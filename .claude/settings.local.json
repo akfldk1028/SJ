@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(git --version:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(if not exist \"D:\\development\" mkdir \"D:\\development\")",
+      "Bash(powershell:*)",
+      "Bash(git clone:*)",
+      "Bash(D:\\development\\flutter\\bin\\flutter doctor:*)",
+      "Bash(cmd /c \"D:\\development\\flutter\\bin\\flutter doctor\")",
+      "Bash(flutter doctor:*)",
+      "Bash(cmd /c \"where flutter 2>nul || echo Flutter not in PATH\")",
+      "Bash(cmd /c \"dir /s /b D:\\flutter*.bat 2>nul || dir /s /b C:\\flutter*.bat 2>nul || echo Searching common locations...\")",
+      "Bash(cmd /c \"dir D:\\Data\\20_Flutter\\01_SJ\")",
+      "Bash(cmd /c \"if exist D:\\development\\flutter\\bin\\flutter.bat echo Flutter found at D:\\development\\flutter\")",
+      "Bash(cmd /c \"if exist C:\\flutter\\bin\\flutter.bat (echo C:\\flutter) else if exist C:\\src\\flutter\\bin\\flutter.bat (echo C:\\src\\flutter) else if exist D:\\flutter\\bin\\flutter.bat (echo D:\\flutter) else echo not found\")",
+      "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\docs\\02_features\")",
+      "Bash(cmd /c \"dir /s /b D:\\Data\\20_Flutter\\01_SJ\\docs\\*.md\")",
+      "Bash(cmd /c \"del D:\\Data\\20_Flutter\\01_SJ\\docs\\02_saju_chat.md\")",
+      "Bash(cmd /c \"move D:\\Data\\20_Flutter\\01_SJ\\docs\\auth.md D:\\Data\\20_Flutter\\01_SJ\\docs\\02_features\\auth.md\")",
+      "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\.claude\\commands\")",
+      "Bash(cmd /c \"del /q D:\\Data\\20_Flutter\\01_SJ\\.claude\\commands\\*.md\")",
+      "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\.claude\\logs\")",
+      "SlashCommand(/todo:*)",
+      "SlashCommand(/build profile_input)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
