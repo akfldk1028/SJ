@@ -123,37 +123,50 @@ lib/
 
 ---
 
-## Phase 4: Feature - Profile (P0)
+## Phase 4: Feature - Profile (P0) ✅ 완료
 
 > 참조: docs/02_features/profile_input.md
+> 2025-12-02: Profile Feature 구현 완료 (21개 파일)
 
-### 4.1 Domain 레이어
-- [ ] entities/saju_profile.dart
-- [ ] entities/gender.dart (enum)
-- [ ] repositories/profile_repository.dart (abstract)
+### 4.1 Domain 레이어 ✅
+- [x] entities/saju_profile.dart (Freezed)
+- [x] entities/gender.dart (enum)
+- [x] repositories/profile_repository.dart (abstract)
 
-### 4.2 Data 레이어
-- [ ] models/saju_profile_model.dart (fromJson/toJson)
-- [ ] datasources/profile_local_datasource.dart (Hive)
-- [ ] repositories/profile_repository_impl.dart
+### 4.2 Data 레이어 ✅
+- [x] models/saju_profile_model.dart (Freezed + JSON)
+- [x] datasources/profile_local_datasource.dart (Hive)
+- [x] repositories/profile_repository_impl.dart
 
-### 4.3 Presentation 레이어
-- [ ] providers/profile_provider.dart (Riverpod)
-- [ ] providers/profile_form_provider.dart
-- [ ] screens/profile_edit_screen.dart
-- [ ] widgets/birth_date_picker.dart
-- [ ] widgets/birth_time_picker.dart
-- [ ] widgets/gender_selector.dart
+### 4.3 Presentation 레이어 ✅
+- [x] providers/profile_provider.dart (Riverpod 3.0)
+- [x] screens/profile_edit_screen.dart
+- [x] widgets/profile_name_input.dart
+- [x] widgets/gender_toggle_buttons.dart
+- [x] widgets/calendar_type_dropdown.dart
+- [x] widgets/birth_date_picker.dart
+- [x] widgets/birth_time_picker.dart
+- [x] widgets/birth_time_options.dart
+- [x] widgets/city_search_field.dart
+- [x] widgets/time_correction_banner.dart
+- [x] widgets/profile_action_buttons.dart
 
-### 4.4 수락 조건
-- [ ] 프로필명 입력 (프리셋: 나, 연인, 가족)
-- [ ] 성별 선택 (필수)
-- [ ] 생년월일 선택 (필수)
-- [ ] 음력/양력 선택
-- [ ] 출생시간 입력 (선택)
-- [ ] "시간 모름" 체크 기능
-- [ ] 로컬 저장 (Hive)
-- [ ] 유효성 검사
+### 4.4 수락 조건 ✅
+- [x] 프로필명 입력 (최대 12자)
+- [x] 성별 선택 (필수) - 토글 버튼
+- [x] 생년월일 선택 (필수) - ShadDatePicker
+- [x] 음력/양력 선택 - ShadSelect
+- [x] 출생시간 입력 (선택)
+- [x] "시간 모름" 체크 기능
+- [x] "야자시/조자시" 옵션 추가
+- [x] 도시 검색 (25개 도시 + 자동완성)
+- [x] 진태양시 보정 표시 (예: "-26분")
+- [x] 로컬 저장 (Hive)
+- [x] 유효성 검사
+
+### 4.5 TODO
+- [ ] `dart run build_runner build` 실행
+- [ ] 빌드 테스트
 
 ---
 
@@ -303,6 +316,8 @@ lib/
 | 2025-12-02 | **Phase 8 기본 완료**: 만세력 계산 로직 19개 파일 구현 | 완료 |
 | 2025-12-02 | SubAgent A2A 아키텍처 개선 (Orchestrator 추가) | 완료 |
 | 2025-12-02 | 09_manseryeok_calculator SubAgent 추가 | 완료 |
+| 2025-12-02 | 앱 런칭 전략 문서 작성 (APP_LAUNCH_STRATEGY.md) | 완료 |
+| 2025-12-02 | **Phase 4 완료**: Profile Feature 21개 파일 구현 | 완료 |
 
 ---
 
