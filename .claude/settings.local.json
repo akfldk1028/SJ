@@ -23,7 +23,13 @@
       "Bash(cmd /c \"del /q D:\\Data\\20_Flutter\\01_SJ\\.claude\\commands\\*.md\")",
       "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\.claude\\logs\")",
       "SlashCommand(/todo:*)",
-      "SlashCommand(/build profile_input)"
+      "SlashCommand(/build profile_input)",
+      "Bash(cmd /c \"mkdir e:\\SJ\\.claude\\JH_Agent\")",
+      "Bash(cmd /c \"dir /s /b e:\\SJ\\frontend\\lib\")",
+      "Bash(cmd /c:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(findstr:*)",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat --version)"
     ],
     "deny": [],
     "ask": []

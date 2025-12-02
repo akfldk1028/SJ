@@ -35,16 +35,47 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # State Management - Riverpod 3.0
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.6.2
+
+  # Local Storage
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.3.5
+
+  # Data Classes
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Utilities
+  uuid: ^4.5.1
+  equatable: ^2.0.7
+  intl: ^0.20.1
+
+  # HTTP Client (for future API calls)
+  dio: ^5.7.0
+
+  # UI Framework - Modern shadcn design system
+  shadcn_ui: ^0.39.14
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Code Generation - pinned to compatible versions
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.3.11
+  freezed: ^2.4.7
+  json_serializable: ^6.7.1
+
+  # Note: riverpod_lint temporarily disabled due to analyzer conflicts
+  # Note: hive_generator removed due to dependency conflicts
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
