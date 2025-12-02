@@ -28,19 +28,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## Sub Agents (.claude/JH_Agent/)
+## Sub Agents (.claude/JH_Agent/) - A2A Orchestration
 
-| 에이전트 | 역할 | 우선순위 |
-|----------|------|----------|
-| **00_widget_tree_guard** | 위젯 코드 최적화 검증 | **최우선 - 모든 위젯 작성 시 필수** |
-| 01_feature_builder | Feature 폴더 구조 생성 | - |
-| 02_widget_composer | 화면을 작은 위젯으로 분해 | - |
-| 03_provider_builder | Riverpod Provider 생성 | - |
-| 04_model_generator | Entity/Model 클래스 생성 | - |
-| 05_router_setup | go_router 라우팅 설정 | - |
-| 06_local_storage | Hive 로컬 저장소 설정 | - |
-| 07_task_tracker | TASKS.md 진행 관리 | - |
+### 아키텍처
+```
+Main Claude → [Orchestrator] → Pipeline → [Quality Gate] → 완료
+```
+
+### 에이전트 목록
+
+| 에이전트 | 역할 | 유형 |
+|----------|------|------|
+| **00_orchestrator** | 작업 분석 & 파이프라인 자동 구성 | **진입점** |
+| **00_widget_tree_guard** | 위젯 트리 최적화 검증 | **품질 게이트** |
+| 01_feature_builder | Feature 폴더 구조 생성 | Builder |
+| 02_widget_composer | 화면을 작은 위젯으로 분해 | Builder |
+| 03_provider_builder | Riverpod Provider 생성 | Builder |
+| 04_model_generator | Entity/Model 클래스 생성 | Builder |
+| 05_router_setup | go_router 라우팅 설정 | Config |
+| 06_local_storage | Hive 로컬 저장소 설정 | Config |
+| 07_task_tracker | TASKS.md 진행 관리 | Tracker |
 | **08_shadcn_ui_builder** | shadcn_ui 모던 UI 구현 | **UI 필수** |
+| **09_manseryeok_calculator** | 만세력(사주팔자) 계산 로직 | **Domain 전문** |
+
+### 호출 방식
+
+**1. Orchestrator 자동 파이프라인 (권장)**
+```
+Task 도구:
+- prompt: "[Orchestrator] Profile Feature 구현"
+- subagent_type: general-purpose
+```
+
+**2. 개별 에이전트 직접 호출**
+```
+Task 도구:
+- prompt: "[09_manseryeok_calculator] 사주 계산 로직 구현"
+- subagent_type: general-purpose
+```
 
 ### Widget Tree Guard 필수 검증 항목
 - const 생성자/인스턴스화

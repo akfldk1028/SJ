@@ -225,23 +225,45 @@ lib/
 
 ---
 
-## Phase 8: Saju Chart (만세력)
+## Phase 8: Saju Chart (만세력) ✅ 기본 완료
 
-> Supabase Edge Function 연동 후 진행
+> 2025-12-02: 만세력 계산 로직 구현 완료 (19개 파일)
 
-### 8.1 Domain
-- [ ] entities/saju_chart.dart
-- [ ] entities/pillar.dart
-- [ ] entities/daewoon.dart
+### 8.1 Constants ✅
+- [x] data/constants/cheongan_jiji.dart - 천간(10), 지지(12), 오행
+- [x] data/constants/gapja_60.dart - 60갑자
+- [x] data/constants/solar_term_table.dart - 절기 시각 (2024-2025)
+- [x] data/constants/dst_periods.dart - 서머타임 기간
 
-### 8.2 Data
-- [ ] models/saju_chart_model.dart
-- [ ] models/pillar_model.dart
+### 8.2 Domain Entities ✅
+- [x] domain/entities/pillar.dart - 기둥 (천간+지지)
+- [x] domain/entities/saju_chart.dart - 사주 차트
+- [x] domain/entities/lunar_date.dart - 음력 날짜
+- [x] domain/entities/solar_term.dart - 24절기 enum
+- [ ] domain/entities/daewoon.dart - 대운 (추후)
 
-### 8.3 Presentation
+### 8.3 Domain Services ✅
+- [x] domain/services/saju_calculation_service.dart - 통합 계산 (메인)
+- [x] domain/services/lunar_solar_converter.dart - 음양력 변환 (Stub)
+- [x] domain/services/solar_term_service.dart - 절입시간
+- [x] domain/services/true_solar_time_service.dart - 진태양시 (25개 도시)
+- [x] domain/services/dst_service.dart - 서머타임
+- [x] domain/services/jasi_service.dart - 야자시/조자시
+
+### 8.4 Data Models ✅
+- [x] data/models/pillar_model.dart - JSON 직렬화
+- [x] data/models/saju_chart_model.dart - JSON 직렬화
+
+### 8.5 Presentation (미구현)
 - [ ] providers/saju_chart_provider.dart
 - [ ] widgets/saju_summary_card.dart
 - [ ] widgets/pillar_display.dart
+
+### 8.6 TODO (보완 필요)
+- [ ] 음양력 변환 실제 구현 (현재 Stub)
+- [ ] 절기 테이블 확장 (1900-2100년)
+- [ ] 대운(大運) 계산
+- [ ] 포스텔러 만세력과 검증
 
 ---
 
@@ -278,6 +300,9 @@ lib/
 | 2025-12-02 | 세션 1 종료, Phase 1 시작 대기 | 완료 |
 | 2025-12-02 | **Phase 1 완료**: 의존성, 폴더구조, 라우터, 테마 | 완료 |
 | 2025-12-02 | **Phase 2 부분 완료**: 상수, 테마, Placeholder 화면들 | 진행중 |
+| 2025-12-02 | **Phase 8 기본 완료**: 만세력 계산 로직 19개 파일 구현 | 완료 |
+| 2025-12-02 | SubAgent A2A 아키텍처 개선 (Orchestrator 추가) | 완료 |
+| 2025-12-02 | 09_manseryeok_calculator SubAgent 추가 | 완료 |
 
 ---
 
@@ -316,18 +341,39 @@ lib/
 
 ---
 
-## 서브 에이전트 (.claude/JH_Agent/)
+## 서브 에이전트 (.claude/JH_Agent/) - A2A Orchestration
 
-| 번호 | 에이전트 | 역할 |
-|------|----------|------|
-| **00** | **widget_tree_guard** | 위젯 최적화 검증 **(최우선)** |
-| 01 | feature_builder | Feature 폴더 구조 생성 |
-| 02 | widget_composer | 화면→작은 위젯 분해 |
-| 03 | provider_builder | Riverpod Provider 생성 |
-| 04 | model_generator | Entity/Model 생성 |
-| 05 | router_setup | go_router 설정 |
-| 06 | local_storage | Hive 저장소 설정 |
-| 07 | task_tracker | TASKS.md 관리 |
+### 아키텍처
+```
+Main Claude → [Orchestrator] → Pipeline → [Quality Gate] → 완료
+```
+
+### 에이전트 목록
+
+| 번호 | 에이전트 | 역할 | 유형 |
+|------|----------|------|------|
+| **00** | **orchestrator** | 작업 분석 & 파이프라인 구성 | **진입점** |
+| **00** | **widget_tree_guard** | 위젯 최적화 검증 | **품질 게이트** |
+| 01 | feature_builder | Feature 폴더 구조 생성 | Builder |
+| 02 | widget_composer | 화면→작은 위젯 분해 | Builder |
+| 03 | provider_builder | Riverpod Provider 생성 | Builder |
+| 04 | model_generator | Entity/Model 생성 | Builder |
+| 05 | router_setup | go_router 설정 | Config |
+| 06 | local_storage | Hive 저장소 설정 | Config |
+| 07 | task_tracker | TASKS.md 관리 | Tracker |
+| **08** | **shadcn_ui_builder** | shadcn_ui 모던 UI | **UI 필수** |
+| **09** | **manseryeok_calculator** | 만세력 계산 로직 | **Domain 전문** |
+
+### 호출 방식
+```
+# Orchestrator 자동 파이프라인 (권장)
+Task 도구:
+- prompt: "[Orchestrator] Profile Feature 구현"
+
+# 개별 에이전트 직접 호출
+Task 도구:
+- prompt: "[09_manseryeok_calculator] 사주 계산 로직 구현"
+```
 
 ### 필수 규칙
 - **모든 위젯 코드 작성 시 00_widget_tree_guard 검증 필수**

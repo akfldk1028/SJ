@@ -1,55 +1,129 @@
 # JH_Agent - 서브 에이전트 모음
 
-> 만톡 프로젝트를 위한 전문 서브 에이전트
+> 만톡 프로젝트를 위한 전문 서브 에이전트 (A2A Orchestration 방식)
+
+---
+
+## 아키텍처
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Main Claude                                        │
+│       ↓                                             │
+│  [00_orchestrator] ← 진입점, 자동 파이프라인 구성    │
+│       ↓                                             │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐               │
+│  │Builder  │→│Generator│→│Provider │               │
+│  └─────────┘ └─────────┘ └─────────┘               │
+│       ↓                                             │
+│  [00_widget_tree_guard] ← 필수 품질 게이트          │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 에이전트 목록
 
-| 순서 | 에이전트 | 역할 | 우선순위 |
-|------|----------|------|----------|
-| **00** | **widget_tree_guard** | 위젯 트리 최적화 검증 | **최우선** |
-| 01 | feature_builder | Feature 폴더 구조 생성 | - |
-| 02 | widget_composer | 화면을 작은 위젯으로 분해 | - |
-| 03 | provider_builder | Riverpod Provider 생성 | - |
-| 04 | model_generator | Entity/Model 클래스 생성 | - |
-| 05 | router_setup | go_router 라우팅 설정 | - |
-| 06 | local_storage | Hive 로컬 저장소 설정 | - |
-| 07 | task_tracker | TASKS.md 진행 관리 | - |
+| 순서 | 에이전트 | 역할 | 유형 |
+|------|----------|------|------|
+| **00** | **orchestrator** | 작업 분석 & 파이프라인 구성 | **진입점** |
+| **00** | **widget_tree_guard** | 위젯 트리 최적화 검증 | **품질 게이트** |
+| 01 | feature_builder | Feature 폴더 구조 생성 | Builder |
+| 02 | widget_composer | 화면을 작은 위젯으로 분해 | Builder |
+| 03 | provider_builder | Riverpod Provider 생성 | Builder |
+| 04 | model_generator | Entity/Model 클래스 생성 | Builder |
+| 05 | router_setup | go_router 라우팅 설정 | Config |
+| 06 | local_storage | Hive 로컬 저장소 설정 | Config |
+| 07 | task_tracker | TASKS.md 진행 관리 | Tracker |
 | **08** | **shadcn_ui_builder** | shadcn_ui 모던 UI 구현 | **UI 필수** |
+| **09** | **manseryeok_calculator** | 만세력(사주팔자) 계산 로직 | **Domain 전문** |
 
 ---
 
-## 사용 규칙
+## A2A 사용 방식
 
-### 1. Widget Tree Guard는 필수
-
-```
-모든 위젯 코드 작성 전/후에 00_widget_tree_guard 호출
-```
-
-### 2. 작업 흐름
+### 1. Orchestrator를 통한 자동 파이프라인 (권장)
 
 ```
-1. 07_task_tracker → 현재 할 일 확인
-2. 01_feature_builder → 폴더 구조 생성 (새 기능 시)
-3. 04_model_generator → Entity/Model 생성
-4. 03_provider_builder → Provider 생성
-5. 02_widget_composer → 위젯 트리 설계
-6. 00_widget_tree_guard → 코드 검증 (필수!)
-7. 05_router_setup → 라우트 추가
-8. 06_local_storage → 로컬 저장 설정
-9. 07_task_tracker → 완료 표시
-```
+Task 도구:
+- prompt: |
+    [Orchestrator] 다음 작업 수행:
+    - 작업: Profile Feature 구현
+    - 참조: docs/02_features/profile_input.md
 
-### 3. 호출 방법
+    자동으로 파이프라인 구성하여 순차 실행.
 
-Main Claude가 Task 도구로 서브 에이전트 역할을 수행:
-
-```
-Task 도구 사용:
-- prompt: "00_widget_tree_guard 역할로 다음 코드 검증: ..."
 - subagent_type: general-purpose
+```
+
+### 2. 개별 에이전트 직접 호출 (특수 상황)
+
+```
+Task 도구:
+- prompt: |
+    [09_manseryeok_calculator] 역할로 수행:
+    - 사주팔자 계산 로직 구현
+    - 진태양시 보정 포함
+    - 절입시간 처리 포함
+
+- subagent_type: general-purpose
+```
+
+### 3. 품질 게이트 (자동 적용)
+
+```
+모든 위젯 코드 작성 후 00_widget_tree_guard 자동 검증
+```
+
+---
+
+## 파이프라인 정의
+
+### Pipeline A: 새 Feature 구현
+```
+orchestrator → feature_builder → model_generator → provider_builder
+            → widget_composer → shadcn_ui_builder
+            → widget_tree_guard (게이트)
+            → router_setup → local_storage → task_tracker
+```
+
+### Pipeline B: 위젯 수정
+```
+orchestrator → widget_composer → shadcn_ui_builder
+            → widget_tree_guard (게이트) → task_tracker
+```
+
+### Pipeline C: 로직 구현
+```
+orchestrator → model_generator → provider_builder → task_tracker
+```
+
+### Pipeline D: 만세력/사주 (특수)
+```
+orchestrator → manseryeok_calculator → model_generator
+            → provider_builder → widget_tree_guard → task_tracker
+```
+
+---
+
+## 의존성 규칙
+
+```yaml
+widget_composer:
+  requires: [feature_builder]
+
+provider_builder:
+  requires: [model_generator]
+
+router_setup:
+  requires: [widget_composer]
+  blocked_by: [widget_tree_guard]  # 검증 통과 필수
+
+local_storage:
+  requires: [model_generator]
+
+manseryeok_calculator:
+  independent: true  # 독립 실행 가능
 ```
 
 ---
@@ -157,3 +231,21 @@ features/{name}/
 **호출 시점:** 모든 UI 컴포넌트 구현 시
 
 **참고:** Material과 혼용 가능, const 최적화 적용
+
+---
+
+### 09_manseryeok_calculator (Domain 전문)
+
+**역할:** 만세력(사주팔자) 계산 전문 에이전트
+
+**핵심 기능:**
+- 사주팔자 계산 (년주, 월주, 일주, 시주)
+- 음양력 변환
+- 진태양시 보정 (지역별 시차)
+- 절입시간 처리 (24절기 기준)
+- 서머타임 보정 (1948-1951, 1955-1960, 1987-1988)
+- 야자시/조자시 처리
+
+**호출 시점:** 사주 계산 로직 구현 시
+
+**참고:** 독립 실행 가능, 포스텔러 만세력과 검증 필요
