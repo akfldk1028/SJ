@@ -6,34 +6,166 @@ class TrueSolarTimeService {
   /// 실제 한반도는 약 126~131도
   static const Map<String, double> cityLongitude = {
     '서울': 126.98,
+    '서울특별시': 126.98,
     '부산': 129.03,
+    '부산광역시': 129.03,
     '대구': 128.60,
+    '대구광역시': 128.60,
     '인천': 126.70,
+    '인천광역시': 126.70,
     '광주': 126.85,
+    '광주광역시': 126.85,
     '대전': 127.38,
+    '대전광역시': 127.38,
     '울산': 129.31,
+    '울산광역시': 129.31,
     '세종': 127.29,
+    '세종특별자치시': 127.29,
     '제주': 126.53,
+    '제주특별자치도': 126.53,
+    '제주시': 126.53,
     '창원': 128.68,
+    '창원시': 128.68,
     '수원': 127.03,
+    '수원시': 127.03,
     '성남': 127.14,
+    '성남시': 127.14,
     '고양': 126.83,
+    '고양시': 126.83,
     '용인': 127.18,
+    '용인시': 127.18,
     '청주': 127.49,
+    '청주시': 127.49,
     '전주': 127.15,
+    '전주시': 127.15,
     '포항': 129.37,
+    '포항시': 129.37,
     '강릉': 128.88,
+    '강릉시': 128.88,
     '춘천': 127.73,
+    '춘천시': 127.73,
     '원주': 127.95,
+    '원주시': 127.95,
     '제천': 128.19,
+    '제천시': 128.19,
     '평택': 127.11,
+    '평택시': 127.11,
     '김해': 128.89,
+    '김해시': 128.89,
     '진주': 128.11,
+    '진주시': 128.11,
     '여수': 127.66,
+    '여수시': 127.66,
     '목포': 126.39,
+    '목포시': 126.39,
     // 기본값
     'default': 127.0,
   };
+
+  /// 도시 별칭 매핑
+  /// 짧은 이름 → 정식 이름 매핑
+  static const Map<String, String> cityAliases = {
+    '서울': '서울특별시',
+    '부산': '부산광역시',
+    '대구': '대구광역시',
+    '인천': '인천광역시',
+    '광주': '광주광역시',
+    '대전': '대전광역시',
+    '울산': '울산광역시',
+    '세종': '세종특별자치시',
+    '제주': '제주특별자치도',
+    '제주시': '제주특별자치도',
+    '창원': '창원시',
+    '수원': '수원시',
+    '성남': '성남시',
+    '고양': '고양시',
+    '용인': '용인시',
+    '청주': '청주시',
+    '전주': '전주시',
+    '포항': '포항시',
+    '강릉': '강릉시',
+    '춘천': '춘천시',
+    '원주': '원주시',
+    '제천': '제천시',
+    '평택': '평택시',
+    '김해': '김해시',
+    '진주': '진주시',
+    '여수': '여수시',
+    '목포': '목포시',
+  };
+
+  /// 검색 가능한 도시 목록 (중복 제거, 표시용)
+  static List<String> get searchableCities {
+    // 광역시/도 우선, 그 다음 시 단위
+    final priorityOrder = [
+      '서울특별시',
+      '부산광역시',
+      '대구광역시',
+      '인천광역시',
+      '광주광역시',
+      '대전광역시',
+      '울산광역시',
+      '세종특별자치시',
+      '제주특별자치도',
+      '수원시',
+      '성남시',
+      '고양시',
+      '용인시',
+      '창원시',
+      '청주시',
+      '전주시',
+      '포항시',
+      '강릉시',
+      '춘천시',
+      '원주시',
+      '제천시',
+      '평택시',
+      '김해시',
+      '진주시',
+      '여수시',
+      '목포시',
+    ];
+    return priorityOrder;
+  }
+
+  /// 도시명 검색 (부분 매칭 + 별칭 지원)
+  ///
+  /// "부산" 입력 → ["부산광역시"] 반환
+  /// "시" 입력 → ["부산광역시", "서울특별시", ...] 반환
+  static List<String> searchCities(String query) {
+    if (query.isEmpty) {
+      return searchableCities;
+    }
+
+    final normalizedQuery = query.trim().toLowerCase();
+    final results = <String>[];
+
+    // 1. 별칭 검색 (정확 매칭 우선)
+    for (final entry in cityAliases.entries) {
+      if (entry.key.toLowerCase() == normalizedQuery) {
+        if (!results.contains(entry.value)) {
+          results.add(entry.value);
+        }
+      }
+    }
+
+    // 2. 부분 매칭
+    for (final city in searchableCities) {
+      if (city.toLowerCase().contains(normalizedQuery) && !results.contains(city)) {
+        results.add(city);
+      }
+    }
+
+    // 3. 별칭 부분 매칭
+    for (final entry in cityAliases.entries) {
+      if (entry.key.toLowerCase().contains(normalizedQuery) &&
+          !results.contains(entry.value)) {
+        results.add(entry.value);
+      }
+    }
+
+    return results;
+  }
 
   /// 표준 경도 (동경 135도)
   static const double standardLongitude = 135.0;
@@ -110,6 +242,11 @@ class TrueSolarTimeService {
   static double getLongitudeCorrectionMinutes(String city) {
     final longitude = getLongitude(city);
     return (standardLongitude - longitude) * 4;
+  }
+
+  /// 도시명 정규화 (별칭 → 정식 이름)
+  static String normalizeCity(String city) {
+    return cityAliases[city] ?? city;
   }
 }
 

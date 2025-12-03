@@ -15,23 +15,31 @@ const List<String> jiji = [
   '오', '미', '신', '유', '술', '해',
 ];
 
-/// 오행 매핑
-/// 천간과 지지를 오행으로 변환
-const Map<String, String> oheng = {
-  // 천간
+/// 천간 오행 매핑
+const Map<String, String> cheonganOheng = {
   '갑': '목', '을': '목',
   '병': '화', '정': '화',
   '무': '토', '기': '토',
   '경': '금', '신': '금',
   '임': '수', '계': '수',
+};
 
-  // 지지
+/// 지지 오행 매핑
+const Map<String, String> jijiOheng = {
   '인': '목', '묘': '목',
   '사': '화', '오': '화',
   '진': '토', '술': '토', '축': '토', '미': '토',
   '신': '금', '유': '금',
   '해': '수', '자': '수',
 };
+
+/// 오행 조회 함수
+String? getOheng(String char, {bool isCheongan = true}) {
+  if (isCheongan) {
+    return cheonganOheng[char];
+  }
+  return jijiOheng[char];
+}
 
 /// 천간 한자
 const Map<String, String> cheonganHanja = {

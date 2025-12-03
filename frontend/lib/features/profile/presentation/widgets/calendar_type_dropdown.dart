@@ -11,8 +11,7 @@ class CalendarTypeDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final formState = ref.watch(profileFormProvider);
-    final isLunar = formState.isLunar;
+    ref.watch(profileFormProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

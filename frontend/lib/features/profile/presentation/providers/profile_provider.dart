@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/saju_profile.dart';
@@ -11,7 +12,7 @@ part 'profile_provider.g.dart';
 
 /// ProfileRepository Provider
 @riverpod
-ProfileRepository profileRepository(ProfileRepositoryRef ref) {
+ProfileRepository profileRepository(Ref ref) {
   final datasource = ProfileLocalDatasource();
   return ProfileRepositoryImpl(datasource);
 }

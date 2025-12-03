@@ -7,6 +7,9 @@ abstract class Routes {
   // Profile
   static const String profileEdit = '/profile/edit';
 
+  // Saju Chart (만세력 결과 화면)
+  static const String sajuChart = '/saju/chart';
+
   // Saju Chat (메인 화면)
   static const String sajuChat = '/saju/chat';
 

@@ -81,7 +81,7 @@ class SajuProfile with _$SajuProfile {
   String get timeCorrectionLabel {
     if (timeCorrection == 0) return '보정 없음';
     if (timeCorrection > 0) {
-      return '+${timeCorrection}분';
+      return '+$timeCorrection분';
     }
     return '$timeCorrection분';
   }

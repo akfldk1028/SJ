@@ -11,7 +11,7 @@ class BirthTimeOptions extends ConsumerWidget {
   const BirthTimeOptions({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final formState = ref.watch(profileFormProvider);
 
     return Column(
@@ -23,7 +23,7 @@ class BirthTimeOptions extends ConsumerWidget {
               value: formState.birthTimeUnknown,
               onChanged: (value) {
                 ref.read(profileFormProvider.notifier)
-                    .updateBirthTimeUnknown(value ?? false);
+                    .updateBirthTimeUnknown(value);
               },
             ),
             const SizedBox(width: 8),
@@ -38,17 +38,17 @@ class BirthTimeOptions extends ConsumerWidget {
               value: formState.useYaJasi,
               onChanged: (value) {
                 ref.read(profileFormProvider.notifier)
-                    .updateUseYaJasi(value ?? true);
+                    .updateUseYaJasi(value);
               },
             ),
             const SizedBox(width: 8),
             const Text('야자시/조자시'),
             const SizedBox(width: 4),
-            Tooltip(
+            const Tooltip(
               message: '자시(23-01시) 처리 방식을 선택합니다.\n'
                   '야자시: 23:00-01:00을 다음날 자시로 계산\n'
                   '조자시: 23:00-01:00을 당일 자시로 계산',
-              child: const Icon(Icons.info_outline, size: 16),
+              child: Icon(Icons.info_outline, size: 16),
             ),
           ],
         ),

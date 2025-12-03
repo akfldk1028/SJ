@@ -6,7 +6,7 @@ class DateRange {
   final DateTime start;
   final DateTime end;
 
-  const DateRange(this.start, this.end);
+  DateRange(this.start, this.end);
 
   /// 주어진 날짜가 이 범위에 포함되는지 확인
   bool contains(DateTime date) {
@@ -16,7 +16,7 @@ class DateRange {
 
 /// 한국 서머타임 적용 기간 목록
 /// 해당 기간 출생자는 -1시간 보정 필요
-const List<DateRange> dstPeriods = [
+final List<DateRange> dstPeriods = [
   // 1948-1951년
   DateRange(DateTime(1948, 6, 1), DateTime(1948, 9, 12, 23, 59, 59)),
   DateRange(DateTime(1949, 4, 3), DateTime(1949, 9, 10, 23, 59, 59)),

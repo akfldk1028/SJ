@@ -40,7 +40,7 @@ class ProfileActionButtons extends ConsumerWidget {
   Future<void> _onSaveAndViewChart(BuildContext context, WidgetRef ref) async {
     try {
       // 프로필 저장
-      final profile = await ref.read(profileFormProvider.notifier).saveProfile();
+      await ref.read(profileFormProvider.notifier).saveProfile();
 
       // 성공 메시지
       if (context.mounted) {
@@ -51,11 +51,8 @@ class ProfileActionButtons extends ConsumerWidget {
           ),
         );
 
-        // 만세력 화면으로 이동 (구현 예정)
-        // context.push('${Routes.sajuChart}?profileId=${profile.id}');
-
-        // 임시: 채팅 화면으로 이동
-        context.go(Routes.sajuChat);
+        // 만세력 결과 화면으로 이동
+        context.go(Routes.sajuChart);
       }
     } catch (e) {
       if (context.mounted) {
@@ -71,7 +68,6 @@ class ProfileActionButtons extends ConsumerWidget {
 
   /// 저장된 프로필 목록 표시
   void _onLoadSavedProfiles(BuildContext context) {
-    // TODO: 프로필 목록 바텀시트 표시
     showModalBottomSheet(
       context: context,
       builder: (context) => const _SavedProfilesSheet(),
@@ -79,7 +75,7 @@ class ProfileActionButtons extends ConsumerWidget {
   }
 }
 
-/// 저장된 프로필 목록 바텀시트 (임시)
+/// 저장된 프로필 목록 바텀시트
 class _SavedProfilesSheet extends ConsumerWidget {
   const _SavedProfilesSheet();
 
@@ -118,13 +114,30 @@ class _SavedProfilesSheet extends ConsumerWidget {
                     subtitle: Text(
                       '${profile.birthDateFormatted} ${profile.calendarTypeLabel}',
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () {
-                        // 프로필 불러오기
-                        ref.read(profileFormProvider.notifier).loadProfile(profile);
-                        Navigator.pop(context);
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 불러오기 버튼
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          tooltip: '불러오기',
+                          onPressed: () {
+                            ref.read(profileFormProvider.notifier).loadProfile(profile);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        // 만세력 보기 버튼
+                        IconButton(
+                          icon: const Icon(Icons.visibility),
+                          tooltip: '만세력 보기',
+                          onPressed: () {
+                            // 활성 프로필 설정 후 만세력 화면으로 이동
+                            ref.read(profileListProvider.notifier).setActiveProfile(profile.id);
+                            Navigator.pop(context);
+                            context.go(Routes.sajuChart);
+                          },
+                        ),
+                      ],
                     ),
                   );
                 },

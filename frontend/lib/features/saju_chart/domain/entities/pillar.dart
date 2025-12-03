@@ -15,10 +15,10 @@ class Pillar {
   String get fullName => '$gan$ji';
 
   /// 천간의 오행
-  String get ganOheng => oheng[gan] ?? '';
+  String get ganOheng => cheonganOheng[gan] ?? '';
 
   /// 지지의 오행
-  String get jiOheng => oheng[ji] ?? '';
+  String get jiOheng => jijiOheng[ji] ?? '';
 
   /// 한자 표기 (예: "甲子")
   String get hanja => '${cheonganHanja[gan] ?? ''}${jijiHanja[ji] ?? ''}';

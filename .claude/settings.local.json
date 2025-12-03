@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" --version)",
+      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" pub get)",
+      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\dart.bat\" run build_runner build --delete-conflicting-outputs)",
+      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" analyze)"
     ],
     "deny": [],
     "ask": []

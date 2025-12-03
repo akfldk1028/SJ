@@ -5,7 +5,7 @@ import '../providers/profile_provider.dart';
 
 /// 출생시간 선택 위젯
 ///
-/// CupertinoTimePicker 기반, HH:mm 형식
+/// CupertinoDatePicker 기반 (time mode), HH:mm 형식
 /// TimeUnknown 시 비활성화
 class BirthTimePicker extends ConsumerWidget {
   const BirthTimePicker({super.key});
@@ -63,6 +63,9 @@ class BirthTimePicker extends ConsumerWidget {
     int initialHour,
     int initialMinute,
   ) {
+    int selectedHour = initialHour;
+    int selectedMinute = initialMinute;
+
     showModalBottomSheet(
       context: context,
       builder: (context) => SizedBox(
@@ -78,6 +81,8 @@ class BirthTimePicker extends ConsumerWidget {
                 ),
                 TextButton(
                   onPressed: () {
+                    final totalMinutes = selectedHour * 60 + selectedMinute;
+                    ref.read(profileFormProvider.notifier).updateBirthTime(totalMinutes);
                     Navigator.pop(context);
                   },
                   child: const Text('확인'),
@@ -85,15 +90,13 @@ class BirthTimePicker extends ConsumerWidget {
               ],
             ),
             Expanded(
-              child: CupertinoTimePicker(
-                mode: CupertinoTimerPickerMode.hm,
-                initialTimerDuration: Duration(
-                  hours: initialHour,
-                  minutes: initialMinute,
-                ),
-                onTimerDurationChanged: (duration) {
-                  final totalMinutes = duration.inMinutes;
-                  ref.read(profileFormProvider.notifier).updateBirthTime(totalMinutes);
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                use24hFormat: true,
+                initialDateTime: DateTime(2000, 1, 1, initialHour, initialMinute),
+                onDateTimeChanged: (dateTime) {
+                  selectedHour = dateTime.hour;
+                  selectedMinute = dateTime.minute;
                 },
               ),
             ),

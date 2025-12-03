@@ -7,6 +7,7 @@ import 'routes.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
+import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_screen.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -33,6 +34,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.profileEdit,
         name: 'profileEdit',
         builder: (context, state) => const ProfileEditScreen(),
+      ),
+      GoRoute(
+        path: Routes.sajuChart,
+        name: 'sajuChart',
+        builder: (context, state) => const SajuChartScreen(),
       ),
       GoRoute(
         path: Routes.sajuChat,

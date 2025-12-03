@@ -1,5 +1,4 @@
 import '../../data/constants/cheongan_jiji.dart';
-import '../../data/constants/solar_term_table.dart';
 import '../entities/lunar_date.dart';
 import '../entities/pillar.dart';
 import '../entities/saju_chart.dart';
