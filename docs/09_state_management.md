@@ -586,6 +586,546 @@ dart run build_runner build --delete-conflicting-outputs
 
 ---
 
+## 8. Provider 설계 원칙 (핵심!)
+
+### 8.1 단일 책임 원칙 (SRP)
+```dart
+// ❌ BAD - 하나의 Provider가 너무 많은 일을 함
+@riverpod
+class EverythingNotifier extends _$EverythingNotifier {
+  // 프로필 로드
+  // 채팅 전송
+  // 설정 저장
+  // 모든 것을 다 함...
+}
+
+// ✅ GOOD - 책임 분리
+@riverpod
+class ProfileNotifier extends _$ProfileNotifier { /* 프로필만 */ }
+
+@riverpod
+class ChatNotifier extends _$ChatNotifier { /* 채팅만 */ }
+
+@riverpod
+class SettingsNotifier extends _$SettingsNotifier { /* 설정만 */ }
+```
+
+### 8.2 Provider 분리 기준
+
+| 분리 기준 | 예시 |
+|----------|------|
+| **데이터 소스별** | supabaseProvider, hiveProvider |
+| **도메인 엔티티별** | profileProvider, chatProvider |
+| **화면별** | chatScreenStateProvider |
+| **액션별** | sendMessageProvider, loadHistoryProvider |
+
+```dart
+// 데이터 소스 Provider (core/)
+@Riverpod(keepAlive: true)
+SupabaseClient supabaseClient(Ref ref) => Supabase.instance.client;
+
+// 도메인 Provider (features/)
+@riverpod
+Future<List<SajuProfile>> profileList(Ref ref) async { ... }
+
+// 화면 상태 Provider
+@riverpod
+class ChatScreenState extends _$ChatScreenState {
+  // 화면 전용 상태 (입력값, 스크롤 위치 등)
+}
+
+// 액션 Provider (Mutation)
+@riverpod
+Future<void> sendMessage(Ref ref, String message) async { ... }
+```
+
+### 8.3 순환 의존성 방지
+
+```dart
+// ❌ BAD - 순환 의존성
+@riverpod
+class A extends _$A {
+  @override
+  build() {
+    ref.watch(bProvider);  // A → B
+  }
+}
+
+@riverpod
+class B extends _$B {
+  @override
+  build() {
+    ref.watch(aProvider);  // B → A (순환!)
+  }
+}
+
+// ✅ GOOD - 공통 Provider로 분리
+@riverpod
+SharedData sharedData(Ref ref) => SharedData();
+
+@riverpod
+class A extends _$A {
+  @override
+  build() {
+    ref.watch(sharedDataProvider);  // A → Shared
+  }
+}
+
+@riverpod
+class B extends _$B {
+  @override
+  build() {
+    ref.watch(sharedDataProvider);  // B → Shared
+  }
+}
+```
+
+### 8.4 Provider 의존성 방향
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    UI Widget                                 │
+│                       │                                      │
+│                       │ watch                                │
+│                       ▼                                      │
+│              Screen State Provider                           │
+│                       │                                      │
+│                       │ watch                                │
+│                       ▼                                      │
+│              Domain/Feature Provider                         │
+│                       │                                      │
+│                       │ watch                                │
+│                       ▼                                      │
+│              Repository Provider                             │
+│                       │                                      │
+│                       │ watch                                │
+│                       ▼                                      │
+│              DataSource Provider (Supabase, Hive)            │
+└─────────────────────────────────────────────────────────────┘
+
+의존성 방향: 위 → 아래 (단방향)
+```
+
+---
+
+## 9. 상태 분류
+
+### 9.1 상태 유형
+
+| 유형 | 설명 | 예시 | Provider 타입 |
+|------|------|------|--------------|
+| **UI State** | 화면 전용 상태 | 입력값, 스크롤 위치, 탭 인덱스 | `Notifier` |
+| **Domain State** | 비즈니스 상태 | 프로필 목록, 채팅 메시지 | `AsyncNotifier` |
+| **Server State** | 서버 데이터 | Supabase 쿼리 결과 | `FutureProvider` |
+| **Cached State** | 캐시된 데이터 | 로컬 저장 프로필 | `AsyncNotifier` + Hive |
+
+### 9.2 상태별 Provider 패턴
+
+```dart
+// UI State - 단순 Notifier
+@riverpod
+class TabIndex extends _$TabIndex {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) => state = index;
+}
+
+// Domain State - AsyncNotifier
+@riverpod
+class ProfileList extends _$ProfileList {
+  @override
+  Future<List<SajuProfile>> build() async {
+    return ref.watch(profileRepositoryProvider).getProfiles();
+  }
+}
+
+// Server State - FutureProvider (읽기 전용)
+@riverpod
+Future<SajuSummary> sajuSummary(Ref ref, String profileId) async {
+  return ref.watch(supabaseClientProvider)
+      .from('saju_summaries')
+      .select()
+      .eq('profile_id', profileId)
+      .single();
+}
+
+// Cached State - 로컬 우선, 서버 동기화
+@riverpod
+class CachedProfiles extends _$CachedProfiles {
+  @override
+  Future<List<SajuProfile>> build() async {
+    // 1. 먼저 로컬 캐시 확인
+    final cached = await _loadFromHive();
+    if (cached.isNotEmpty) return cached;
+
+    // 2. 없으면 서버에서 로드
+    final remote = await _loadFromServer();
+    await _saveToHive(remote);  // 캐시 저장
+    return remote;
+  }
+}
+```
+
+---
+
+## 10. keepAlive vs autoDispose
+
+### 10.1 기준표
+
+| 조건 | keepAlive | autoDispose (기본) |
+|------|-----------|-------------------|
+| 앱 전체에서 사용 | ✅ | |
+| 로그인 세션 | ✅ | |
+| Supabase Client | ✅ | |
+| 특정 화면에서만 사용 | | ✅ |
+| 메모리 정리 필요 | | ✅ |
+| 비용이 큰 API 호출 | | ✅ |
+
+### 10.2 사용 예시
+
+```dart
+// keepAlive: true - 앱 생명주기 동안 유지
+@Riverpod(keepAlive: true)
+SupabaseClient supabaseClient(Ref ref) {
+  return Supabase.instance.client;
+}
+
+@Riverpod(keepAlive: true)
+User? currentUser(Ref ref) {
+  return ref.watch(supabaseClientProvider).auth.currentUser;
+}
+
+// autoDispose (기본) - 화면 벗어나면 자동 정리
+@riverpod  // 기본이 autoDispose
+Future<List<ChatMessage>> chatMessages(Ref ref, String chatId) async {
+  return ref.watch(chatRepositoryProvider).getMessages(chatId);
+}
+
+// 명시적 autoDispose
+@Riverpod(keepAlive: false)
+class ChatScreenState extends _$ChatScreenState {
+  // 화면 벗어나면 자동 정리
+}
+```
+
+### 10.3 수동 Dispose 관리
+
+```dart
+@riverpod
+class TimerNotifier extends _$TimerNotifier {
+  Timer? _timer;
+
+  @override
+  int build() {
+    // dispose 시 정리
+    ref.onDispose(() {
+      _timer?.cancel();
+    });
+    return 0;
+  }
+}
+```
+
+---
+
+## 11. family Provider 사용 기준
+
+### 11.1 언제 사용?
+
+```dart
+// ✅ 동적 파라미터가 필요할 때
+@riverpod
+Future<SajuProfile> profileById(Ref ref, String id) async {
+  return ref.watch(profileRepositoryProvider).getById(id);
+}
+
+// ✅ 같은 타입의 여러 인스턴스가 필요할 때
+@riverpod
+Future<List<ChatMessage>> messagesByChatId(Ref ref, String chatId) async {
+  return ref.watch(chatRepositoryProvider).getMessages(chatId);
+}
+```
+
+### 11.2 주의사항
+
+```dart
+// ❌ BAD - 복잡한 객체를 파라미터로 사용
+@riverpod
+Future<Data> fetchData(Ref ref, ComplexObject obj) async { ... }
+// → 객체 비교가 어려워 캐싱 문제 발생
+
+// ✅ GOOD - 단순 값(String, int)만 파라미터로
+@riverpod
+Future<Data> fetchData(Ref ref, String id) async { ... }
+
+// ✅ 여러 파라미터가 필요하면 Record 사용
+@riverpod
+Future<Data> fetchData(Ref ref, ({String id, int page}) params) async {
+  final id = params.id;
+  final page = params.page;
+  ...
+}
+```
+
+---
+
+## 12. 에러/로딩 상태 패턴
+
+### 12.1 AsyncValue 활용
+
+```dart
+// Provider
+@riverpod
+Future<List<SajuProfile>> profileList(Ref ref) async {
+  return ref.watch(profileRepositoryProvider).getProfiles();
+}
+
+// Widget
+class ProfileListScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profilesAsync = ref.watch(profileListProvider);
+
+    return profilesAsync.when(
+      data: (profiles) => ListView.builder(
+        itemCount: profiles.length,
+        itemBuilder: (_, i) => ProfileCard(profile: profiles[i]),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => ErrorWidget(
+        message: error.toString(),
+        onRetry: () => ref.invalidate(profileListProvider),
+      ),
+    );
+  }
+}
+```
+
+### 12.2 Optimistic Update 패턴
+
+```dart
+@riverpod
+class ChatMessages extends _$ChatMessages {
+  @override
+  Future<List<ChatMessage>> build() async {
+    return ref.watch(chatRepositoryProvider).getMessages();
+  }
+
+  Future<void> sendMessage(String content) async {
+    // 1. Optimistic Update - 즉시 UI 반영
+    final optimisticMessage = ChatMessage(
+      id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
+      content: content,
+      role: MessageRole.user,
+      createdAt: DateTime.now(),
+    );
+
+    state = AsyncData([
+      ...state.valueOrNull ?? [],
+      optimisticMessage,
+    ]);
+
+    try {
+      // 2. 서버 전송
+      final realMessage = await ref
+          .read(chatRepositoryProvider)
+          .sendMessage(content);
+
+      // 3. 성공 시 임시 메시지를 실제 메시지로 교체
+      state = AsyncData([
+        ...state.valueOrNull!.where((m) => m.id != optimisticMessage.id),
+        realMessage,
+      ]);
+    } catch (e, st) {
+      // 4. 실패 시 롤백
+      state = AsyncData([
+        ...state.valueOrNull!.where((m) => m.id != optimisticMessage.id),
+      ]);
+      state = AsyncError(e, st);
+    }
+  }
+}
+```
+
+### 12.3 에러 복구 패턴
+
+```dart
+// ref.invalidate로 재시도
+ref.invalidate(profileListProvider);
+
+// 또는 refresh
+await ref.refresh(profileListProvider.future);
+
+// 수동 에러 클리어
+@riverpod
+class ProfileNotifier extends _$ProfileNotifier {
+  @override
+  AsyncValue<Profile> build() => const AsyncLoading();
+
+  void clearError() {
+    if (state.hasError) {
+      state = const AsyncLoading();
+      _load();  // 다시 로드
+    }
+  }
+}
+```
+
+---
+
+## 13. Provider 네이밍 규칙
+
+### 13.1 파일명
+```
+{feature}_{type}_provider.dart
+
+예시:
+- profile_list_provider.dart
+- chat_state_provider.dart
+- active_profile_provider.dart
+```
+
+### 13.2 Provider 이름
+
+| 타입 | 네이밍 | 예시 |
+|------|--------|------|
+| 데이터 조회 | `{entity}Provider` | `profileListProvider` |
+| 상태 관리 | `{feature}StateProvider` | `chatStateProvider` |
+| 단일 값 | `{entity}ByIdProvider` | `profileByIdProvider` |
+| 액션 | `{action}Provider` | `sendMessageProvider` |
+| 현재/활성 | `current{Entity}Provider` | `currentUserProvider` |
+
+### 13.3 Notifier 클래스 이름
+```dart
+// 데이터 목록
+class ProfileList extends _$ProfileList { ... }
+
+// 상태 관리
+class ChatState extends _$ChatState { ... }
+
+// 단일 엔티티
+class ActiveProfile extends _$ActiveProfile { ... }
+```
+
+---
+
+## 14. 테스트용 Override 가이드
+
+### 14.1 기본 Override
+```dart
+void main() {
+  testWidgets('프로필 목록 표시', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          // Mock 데이터로 Override
+          profileListProvider.overrideWith((ref) async {
+            return [
+              SajuProfile(id: '1', displayName: '테스트'),
+            ];
+          }),
+        ],
+        child: const MaterialApp(home: ProfileListScreen()),
+      ),
+    );
+
+    expect(find.text('테스트'), findsOneWidget);
+  });
+}
+```
+
+### 14.2 Repository Mock
+```dart
+class MockProfileRepository implements ProfileRepository {
+  @override
+  Future<List<SajuProfile>> getProfiles() async {
+    return [SajuProfile(id: '1', displayName: '목업')];
+  }
+}
+
+void main() {
+  testWidgets('Repository Mock 테스트', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          profileRepositoryProvider.overrideWithValue(
+            MockProfileRepository(),
+          ),
+        ],
+        child: const MaterialApp(home: ProfileListScreen()),
+      ),
+    );
+  });
+}
+```
+
+### 14.3 에러 케이스 테스트
+```dart
+testWidgets('에러 표시', (tester) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        profileListProvider.overrideWith((ref) async {
+          throw Exception('네트워크 오류');
+        }),
+      ],
+      child: const MaterialApp(home: ProfileListScreen()),
+    ),
+  );
+
+  await tester.pumpAndSettle();
+  expect(find.text('네트워크 오류'), findsOneWidget);
+});
+```
+
+### 14.4 ProviderContainer 직접 테스트
+```dart
+void main() {
+  test('Provider 로직 테스트', () async {
+    final container = ProviderContainer(
+      overrides: [
+        supabaseClientProvider.overrideWithValue(MockSupabaseClient()),
+      ],
+    );
+
+    // Provider 값 읽기
+    final profiles = await container.read(profileListProvider.future);
+
+    expect(profiles.length, 1);
+
+    // 정리
+    container.dispose();
+  });
+}
+```
+
+---
+
+## 15. Provider 체크리스트
+
+### 15.1 새 Provider 작성 시
+```
+□ 단일 책임 원칙 준수하는가?
+□ 적절한 타입 선택 (Notifier vs AsyncNotifier vs FutureProvider)?
+□ keepAlive 필요한가?
+□ family 필요한가? (파라미터 필요?)
+□ 순환 의존성 없는가?
+□ 에러/로딩 상태 처리했는가?
+□ 테스트 작성했는가?
+□ 네이밍 규칙 준수했는가?
+```
+
+### 15.2 코드 리뷰 시
+```
+□ Provider 분리가 적절한가?
+□ watch vs read 올바르게 사용했는가?
+□ dispose 필요한 리소스 정리했는가?
+□ Optimistic Update 필요한 곳에 적용했는가?
+```
+
+---
+
 ## 참고 자료
 
 - [Riverpod 3.0 공식 문서](https://riverpod.dev/docs/whats_new)
@@ -602,3 +1142,4 @@ dart run build_runner build --delete-conflicting-outputs
 | 날짜 | 버전 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
 | 2025-12-01 | 0.1 | 초안 작성 - Riverpod 3.0 기반 | - |
+| 2025-12-01 | 0.2 | Provider 설계 원칙, 상태 분류, 패턴 추가 | - |

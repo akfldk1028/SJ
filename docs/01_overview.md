@@ -126,11 +126,13 @@
 
 | 항목 | 선택 | 비고 |
 |------|------|------|
-| 프레임워크 | Flutter | 단일 코드베이스로 Android/iOS 지원 |
-| 상태관리 | **Riverpod 3.0** | @riverpod annotation 기반, 확장 가능한 구조 |
+| 프레임워크 | Flutter | 단일 코드베이스로 Android/iOS/Web 지원 |
+| **UI 프레임워크** | **shadcn_flutter** (v0.0.28) | React shadcn/ui 스타일 Flutter UI 컴포넌트 |
+| 상태관리 | **Riverpod 2.x** | @riverpod annotation 기반, 확장 가능한 구조 |
 | 라우팅 | go_router | 인증/메인 ShellRoute 등 선언적 라우팅 |
 | HTTP | Dio | 인터셉터로 인증/로깅 처리 |
 | 로컬저장소 | Hive + flutter_secure_storage | 캐시/히스토리(Hive), 토큰/민감정보(secure storage) |
+| 데이터 모델 | Freezed | Immutable 모델 클래스, JSON 직렬화 |
 
 ### 6.2 백엔드 (Supabase)
 
@@ -152,7 +154,7 @@
 | 푸시알림 | OneSignal 또는 FCM | Supabase Edge Functions에서 호출 |
 | 분석 | Mixpanel 또는 Amplitude | 사용자 행동 분석 |
 | 광고 | (초기엔 없음, 추후 구독 모델 검토) | |
-| LLM | **Google Gemini 3.0 Pro** | Edge Functions에서 호출 (2025.11 출시) |
+| LLM | **Google Gemini 3 Pro** | Flutter 앱에서 직접 호출 (google_generative_ai 패키지) |
 
 ---
 
