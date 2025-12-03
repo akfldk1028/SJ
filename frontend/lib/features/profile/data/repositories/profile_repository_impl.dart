@@ -1,60 +1,82 @@
 import '../../domain/entities/saju_profile.dart';
 import '../../domain/repositories/profile_repository.dart';
-import '../datasources/profile_remote_datasource.dart';
+import '../datasources/profile_local_datasource.dart';
 import '../models/saju_profile_model.dart';
 
-/// Profile Repository 구현체
+/// 프로필 Repository 구현체
 ///
-/// Domain의 ProfileRepository interface를 implements
+/// LocalDataSource를 사용하여 프로필 관리
 class ProfileRepositoryImpl implements ProfileRepository {
-  final ProfileRemoteDataSource _remoteDataSource;
+  final ProfileLocalDatasource _localDatasource;
 
-  ProfileRepositoryImpl(this._remoteDataSource);
+  ProfileRepositoryImpl(this._localDatasource);
 
   @override
-  Future<List<SajuProfile>> getProfiles() async {
-    final models = await _remoteDataSource.getProfiles();
+  Future<List<SajuProfile>> getAll() async {
+    final models = await _localDatasource.getAll();
     return models.map((m) => m.toEntity()).toList();
   }
 
   @override
-  Future<SajuProfile?> getProfileById(String id) async {
-    final model = await _remoteDataSource.getProfileById(id);
+  Future<SajuProfile?> getById(String id) async {
+    final model = await _localDatasource.getById(id);
     return model?.toEntity();
   }
 
   @override
-  Future<SajuProfile?> getActiveProfile() async {
-    final model = await _remoteDataSource.getActiveProfile();
+  Future<SajuProfile?> getActive() async {
+    final model = await _localDatasource.getActive();
     return model?.toEntity();
   }
 
   @override
-  Future<SajuProfile> createProfile(SajuProfile profile) async {
+  Future<void> save(SajuProfile profile) async {
     final model = SajuProfileModel.fromEntity(profile);
-    final created = await _remoteDataSource.createProfile(model);
-    return created.toEntity();
+    await _localDatasource.save(model);
   }
 
   @override
-  Future<SajuProfile> updateProfile(SajuProfile profile) async {
-    final model = SajuProfileModel.fromEntity(profile);
-    final updated = await _remoteDataSource.updateProfile(model);
-    return updated.toEntity();
+  Future<void> update(SajuProfile profile) async {
+    // updatedAt 자동 갱신
+    final updatedProfile = profile.copyWith(
+      updatedAt: DateTime.now(),
+    );
+    final model = SajuProfileModel.fromEntity(updatedProfile);
+    await _localDatasource.update(model);
   }
 
   @override
-  Future<void> deleteProfile(String id) async {
-    await _remoteDataSource.deleteProfile(id);
+  Future<void> delete(String id) async {
+    // 마지막 프로필 삭제 방지
+    final count = await _localDatasource.count();
+    if (count <= 1) {
+      throw Exception('최소 1개의 프로필이 필요합니다.');
+    }
+
+    await _localDatasource.delete(id);
+
+    // 삭제된 프로필이 활성 프로필이었다면 다른 프로필 활성화
+    final activeProfile = await _localDatasource.getActive();
+    if (activeProfile == null) {
+      final profiles = await _localDatasource.getAll();
+      if (profiles.isNotEmpty) {
+        await _localDatasource.setActive(profiles.first.id);
+      }
+    }
   }
 
   @override
-  Future<void> setActiveProfile(String id) async {
-    await _remoteDataSource.setActiveProfile(id);
+  Future<void> setActive(String id) async {
+    await _localDatasource.setActive(id);
   }
 
   @override
-  Future<int> getProfileCount() async {
-    return await _remoteDataSource.getProfileCount();
+  Future<int> count() async {
+    return await _localDatasource.count();
+  }
+
+  @override
+  Future<void> clear() async {
+    await _localDatasource.clear();
   }
 }

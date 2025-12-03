@@ -23,19 +23,7 @@
       "Bash(cmd /c \"del /q D:\\Data\\20_Flutter\\01_SJ\\.claude\\commands\\*.md\")",
       "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\.claude\\logs\")",
       "SlashCommand(/todo:*)",
-      "SlashCommand(/build profile_input)",
-      "Bash(cmd /c \"dir D:\\Data\\20_Flutter\\01_SJ\\.claude 2>nul || echo .claude 폴더 없음\")",
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs",
-      "Bash(flutter pub get:*)",
-      "Bash(cmd /c \"cd /d D:\\Data\\20_Flutter\\01_SJ\\frontend && flutter pub get\")",
-      "Bash(cmd /c \"cd /d D:\\Data\\20_Flutter\\01_SJ\\frontend && D:\\development\\flutter\\bin\\flutter.bat pub get\")",
-      "Bash(cmd /c \"D:\\development\\flutter\\bin\\flutter.bat --version\")",
-      "Bash(dir:*)",
-      "Bash(cat:*)",
-      "Bash(D:developmentflutterbinflutter.bat pub get)",
-      "Bash(cmd /c \"dir D:\\Data\\20_Flutter\\01_SJ\\docs\")",
-      "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\supabase\\migrations\")"
+      "SlashCommand(/build profile_input)"
     ],
     "deny": [],
     "ask": []

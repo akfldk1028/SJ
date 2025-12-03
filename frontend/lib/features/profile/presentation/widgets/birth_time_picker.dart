@@ -1,123 +1,105 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/profile_provider.dart';
 
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/constants/app_strings.dart';
-
-/// 출생 시간 선택 위젯
-class BirthTimePicker extends StatelessWidget {
-  const BirthTimePicker({
-    super.key,
-    required this.birthTimeMinutes,
-    required this.birthTimeUnknown,
-    required this.onTimeChanged,
-    required this.onUnknownChanged,
-  });
-
-  final int? birthTimeMinutes;
-  final bool birthTimeUnknown;
-  final ValueChanged<int> onTimeChanged;
-  final ValueChanged<bool> onUnknownChanged;
-
-  TimeOfDay? get _timeOfDay {
-    if (birthTimeMinutes == null) return null;
-    return TimeOfDay(
-      hour: birthTimeMinutes! ~/ 60,
-      minute: birthTimeMinutes! % 60,
-    );
-  }
-
-  String get _timeString {
-    if (birthTimeUnknown) return '시간 모름';
-    if (birthTimeMinutes == null) return '시간을 선택하세요';
-    final time = _timeOfDay!;
-    return '${time.hour.toString().padLeft(2, '0')}시 ${time.minute.toString().padLeft(2, '0')}분';
-  }
-
-  Future<void> _selectTime(BuildContext context) async {
-    if (birthTimeUnknown) return;
-
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _timeOfDay ?? const TimeOfDay(hour: 12, minute: 0),
-    );
-
-    if (picked != null) {
-      final minutes = picked.hour * 60 + picked.minute;
-      onTimeChanged(minutes);
-    }
-  }
+/// 출생시간 선택 위젯
+///
+/// CupertinoTimePicker 기반, HH:mm 형식
+/// TimeUnknown 시 비활성화
+class BirthTimePicker extends ConsumerWidget {
+  const BirthTimePicker({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppStrings.birthTimeLabel,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: AppSizes.sm),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final formState = ref.watch(profileFormProvider);
+    final birthTimeMinutes = formState.birthTimeMinutes;
+    final birthTimeUnknown = formState.birthTimeUnknown;
 
-        // 시간 선택 버튼
-        InkWell(
-          onTap: birthTimeUnknown ? null : () => _selectTime(context),
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.md,
-              vertical: AppSizes.md,
+    // 시간 모름 체크 시 비활성화
+    final isEnabled = !birthTimeUnknown;
+
+    // 분을 시:분으로 변환
+    final hours = (birthTimeMinutes ?? 0) ~/ 60;
+    final minutes = (birthTimeMinutes ?? 0) % 60;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isEnabled
+              ? Theme.of(context).colorScheme.outline
+              : Theme.of(context).disabledColor,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.access_time, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              isEnabled
+                  ? '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}'
+                  : '시간 모름',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: isEnabled ? null : Theme.of(context).disabledColor,
+              ),
             ),
-            decoration: BoxDecoration(
-              color: birthTimeUnknown
-                  ? AppColors.surfaceVariant.withOpacity(0.5)
-                  : AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          ),
+          if (isEnabled)
+            TextButton(
+              onPressed: () => _showTimePicker(context, ref, hours, minutes),
+              child: const Text('변경'),
             ),
-            child: Row(
+        ],
+      ),
+    );
+  }
+
+  void _showTimePicker(
+    BuildContext context,
+    WidgetRef ref,
+    int initialHour,
+    int initialMinute,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SizedBox(
+        height: 250,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    _timeString,
-                    style: TextStyle(
-                      color: birthTimeUnknown
-                          ? AppColors.textHint
-                          : (birthTimeMinutes != null
-                              ? AppColors.textPrimary
-                              : AppColors.textHint),
-                      fontSize: AppSizes.fontMd,
-                    ),
-                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('취소'),
                 ),
-                Icon(
-                  Icons.access_time,
-                  color: birthTimeUnknown
-                      ? AppColors.textHint
-                      : AppColors.textSecondary,
-                  size: AppSizes.iconMd,
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('확인'),
                 ),
               ],
             ),
-          ),
-        ),
-
-        const SizedBox(height: AppSizes.sm),
-
-        // 시간 모름 체크박스
-        Row(
-          children: [
-            Checkbox(
-              value: birthTimeUnknown,
-              onChanged: (value) => onUnknownChanged(value ?? false),
-            ),
-            GestureDetector(
-              onTap: () => onUnknownChanged(!birthTimeUnknown),
-              child: const Text(AppStrings.birthTimeUnknown),
+            Expanded(
+              child: CupertinoTimePicker(
+                mode: CupertinoTimerPickerMode.hm,
+                initialTimerDuration: Duration(
+                  hours: initialHour,
+                  minutes: initialMinute,
+                ),
+                onTimerDurationChanged: (duration) {
+                  final totalMinutes = duration.inMinutes;
+                  ref.read(profileFormProvider.notifier).updateBirthTime(totalMinutes);
+                },
+              ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

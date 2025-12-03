@@ -1,23 +1,29 @@
-/// 성별 열거형
-///
-/// 주의: 순수 Dart만 사용! Flutter import 금지!
+/// 성별 enum
 enum Gender {
-  male('male', '남성'),
-  female('female', '여성');
+  male,
+  female;
 
-  const Gender(this.value, this.displayName);
+  /// 한글 표시명
+  String get displayName {
+    switch (this) {
+      case Gender.male:
+        return '남자';
+      case Gender.female:
+        return '여자';
+    }
+  }
 
-  /// DB에 저장되는 값
-  final String value;
-
-  /// UI에 표시되는 이름
-  final String displayName;
-
-  /// 문자열에서 Gender로 변환
+  /// JSON 직렬화를 위한 문자열 변환
   static Gender fromString(String value) {
-    return Gender.values.firstWhere(
-      (g) => g.value == value,
-      orElse: () => Gender.male,
-    );
+    switch (value.toLowerCase()) {
+      case 'male':
+      case 'm':
+        return Gender.male;
+      case 'female':
+      case 'f':
+        return Gender.female;
+      default:
+        throw ArgumentError('Invalid gender value: $value');
+    }
   }
 }

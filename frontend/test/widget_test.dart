@@ -1,12 +1,19 @@
-// 만톡 앱 위젯 테스트
-//
-// 테스트 실행: flutter test
-
+﻿// Mantok app basic widget test
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:frontend/app.dart';
 
 void main() {
-  testWidgets('앱 시작 테스트', (WidgetTester tester) async {
-    // TODO: 프로필 입력 화면 테스트 구현
-    expect(true, isTrue);
+  testWidgets('App launches successfully', (WidgetTester tester) async {
+    // Build our app and trigger a frame.
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MantokApp(),
+      ),
+    );
+
+    // App should launch without errors
+    expect(find.byType(MantokApp), findsOneWidget);
   });
 }
