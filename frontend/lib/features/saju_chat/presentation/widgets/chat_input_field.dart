@@ -53,15 +53,15 @@ class _ChatInputFieldState extends State<ChatInputField> {
             ),
           ),
           const SizedBox(width: 8),
-          ShadButton.icon(
-            icon: widget.isLoading
+          ShadButton(
+            onPressed: widget.isLoading ? null : _handleSend,
+            child: widget.isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send),
-            onPressed: widget.isLoading ? null : _handleSend,
           ),
         ],
       ),

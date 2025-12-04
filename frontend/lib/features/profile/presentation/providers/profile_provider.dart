@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../../domain/entities/gender.dart';
+import '../../domain/entities/relationship_type.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/repositories/profile_repository_impl.dart';
@@ -15,6 +16,13 @@ part 'profile_provider.g.dart';
 ProfileRepository profileRepository(Ref ref) {
   final datasource = ProfileLocalDatasource();
   return ProfileRepositoryImpl(datasource);
+}
+
+/// 모든 프로필 목록 Provider (Alias for ProfileList)
+@riverpod
+Future<List<SajuProfile>> allProfiles(Ref ref) async {
+  final repository = ref.watch(profileRepositoryProvider);
+  return repository.getAllProfiles();
 }
 
 /// 프로필 목록 Provider
@@ -40,6 +48,7 @@ class ProfileList extends _$ProfileList {
     final repository = ref.read(profileRepositoryProvider);
     await repository.save(profile);
     await refresh();
+    ref.invalidate(allProfilesProvider);
   }
 
   /// 프로필 업데이트
@@ -47,6 +56,7 @@ class ProfileList extends _$ProfileList {
     final repository = ref.read(profileRepositoryProvider);
     await repository.update(profile);
     await refresh();
+    ref.invalidate(allProfilesProvider);
   }
 
   /// 프로필 삭제
@@ -54,6 +64,7 @@ class ProfileList extends _$ProfileList {
     final repository = ref.read(profileRepositoryProvider);
     await repository.delete(id);
     await refresh();
+    ref.invalidate(allProfilesProvider);
   }
 
   /// 활성 프로필 설정
@@ -61,6 +72,7 @@ class ProfileList extends _$ProfileList {
     final repository = ref.read(profileRepositoryProvider);
     await repository.setActive(id);
     await refresh();
+    ref.invalidate(activeProfileProvider);
   }
 }
 
@@ -81,6 +93,32 @@ class ActiveProfile extends _$ActiveProfile {
       return await repository.getActive();
     });
   }
+  
+  Future<void> saveProfile(SajuProfile profile) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(profileRepositoryProvider);
+      await repository.saveProfile(profile);
+      
+      // 목록 갱신을 위해 allProfilesProvider invalidate
+      ref.invalidate(allProfilesProvider);
+      ref.invalidate(profileListProvider);
+      
+      return profile;
+    });
+  }
+  
+  Future<void> deleteProfile(String id) async {
+    final repository = ref.read(profileRepositoryProvider);
+    await repository.deleteProfile(id);
+    ref.invalidate(allProfilesProvider);
+    ref.invalidate(profileListProvider);
+    
+    // 만약 삭제된 프로필이 현재 활성 프로필이라면
+    if (state.value?.id == id) {
+      state = const AsyncValue.data(null);
+    }
+  }
 }
 
 /// 프로필 폼 상태
@@ -95,6 +133,8 @@ class ProfileFormState {
   final bool useYaJasi;
   final String birthCity;
   final int timeCorrection;
+  final RelationshipType relationType;
+  final String? memo;
 
   const ProfileFormState({
     this.displayName = '',
@@ -107,6 +147,8 @@ class ProfileFormState {
     this.useYaJasi = true,
     this.birthCity = '',
     this.timeCorrection = 0,
+    this.relationType = RelationshipType.me,
+    this.memo,
   });
 
   /// 폼 유효성 검사
@@ -146,6 +188,8 @@ class ProfileFormState {
     bool? useYaJasi,
     String? birthCity,
     int? timeCorrection,
+    RelationshipType? relationType,
+    String? memo,
   }) {
     return ProfileFormState(
       displayName: displayName ?? this.displayName,
@@ -158,6 +202,8 @@ class ProfileFormState {
       useYaJasi: useYaJasi ?? this.useYaJasi,
       birthCity: birthCity ?? this.birthCity,
       timeCorrection: timeCorrection ?? this.timeCorrection,
+      relationType: relationType ?? this.relationType,
+      memo: memo ?? this.memo,
     );
   }
 }
@@ -213,6 +259,14 @@ class ProfileForm extends _$ProfileForm {
       timeCorrection: correction,
     );
   }
+  
+  void updateRelationType(RelationshipType value) {
+    state = state.copyWith(relationType: value);
+  }
+  
+  void updateMemo(String value) {
+    state = state.copyWith(memo: value);
+  }
 
   /// 기존 프로필로 폼 초기화 (수정 모드)
   void loadProfile(SajuProfile profile) {
@@ -227,6 +281,8 @@ class ProfileForm extends _$ProfileForm {
       useYaJasi: profile.useYaJasi,
       birthCity: profile.birthCity,
       timeCorrection: profile.timeCorrection,
+      relationType: profile.relationType,
+      memo: profile.memo,
     );
   }
 
@@ -257,6 +313,8 @@ class ProfileForm extends _$ProfileForm {
       createdAt: now,
       updatedAt: now,
       isActive: editingId == null, // 새 프로필은 자동으로 활성화
+      relationType: state.relationType,
+      memo: state.memo,
     );
 
     final repository = ref.read(profileRepositoryProvider);
@@ -269,6 +327,7 @@ class ProfileForm extends _$ProfileForm {
     // 프로필 목록 새로 고침
     ref.invalidate(profileListProvider);
     ref.invalidate(activeProfileProvider);
+    ref.invalidate(allProfilesProvider);
 
     return profile;
   }

@@ -23,6 +23,8 @@ _$SajuProfileModelImpl _$$SajuProfileModelImplFromJson(
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
   isActive: json['isActive'] as bool? ?? false,
+  relationType: json['relationType'] as String? ?? 'me',
+  memo: json['memo'] as String?,
 );
 
 Map<String, dynamic> _$$SajuProfileModelImplToJson(
@@ -42,4 +44,6 @@ Map<String, dynamic> _$$SajuProfileModelImplToJson(
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
   'isActive': instance.isActive,
+  'relationType': instance.relationType,
+  'memo': instance.memo,
 };

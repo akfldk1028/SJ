@@ -24,7 +24,7 @@ final chatRepositoryProvider = AutoDisposeProvider<ChatRepository>.internal(
 // ignore: unused_element
 typedef ChatRepositoryRef = AutoDisposeProviderRef<ChatRepository>;
 String _$chatSessionControllerHash() =>
-    r'7adadb32aa8e135d2e6dedf504050d270846e1d3';
+    r'c9b66bbadfeac18bb4e6609fc32bf169cf6b6c94';
 
 /// Copied from Dart SDK
 class _SystemHash {

@@ -64,6 +64,12 @@ mixin _$SajuProfile {
   /// 한 번에 하나의 프로필만 활성화 가능
   bool get isActive => throw _privateConstructorUsedError;
 
+  /// 관계 유형 (가족, 친구, 연인 등)
+  RelationshipType get relationType => throw _privateConstructorUsedError;
+
+  /// 메모
+  String? get memo => throw _privateConstructorUsedError;
+
   /// Create a copy of SajuProfile
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -93,6 +99,8 @@ abstract class $SajuProfileCopyWith<$Res> {
     DateTime createdAt,
     DateTime updatedAt,
     bool isActive,
+    RelationshipType relationType,
+    String? memo,
   });
 }
 
@@ -125,6 +133,8 @@ class _$SajuProfileCopyWithImpl<$Res, $Val extends SajuProfile>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? isActive = null,
+    Object? relationType = null,
+    Object? memo = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -184,6 +194,14 @@ class _$SajuProfileCopyWithImpl<$Res, $Val extends SajuProfile>
                 ? _value.isActive
                 : isActive // ignore: cast_nullable_to_non_nullable
                       as bool,
+            relationType: null == relationType
+                ? _value.relationType
+                : relationType // ignore: cast_nullable_to_non_nullable
+                      as RelationshipType,
+            memo: freezed == memo
+                ? _value.memo
+                : memo // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -214,6 +232,8 @@ abstract class _$$SajuProfileImplCopyWith<$Res>
     DateTime createdAt,
     DateTime updatedAt,
     bool isActive,
+    RelationshipType relationType,
+    String? memo,
   });
 }
 
@@ -245,6 +265,8 @@ class __$$SajuProfileImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? isActive = null,
+    Object? relationType = null,
+    Object? memo = freezed,
   }) {
     return _then(
       _$SajuProfileImpl(
@@ -304,6 +326,14 @@ class __$$SajuProfileImplCopyWithImpl<$Res>
             ? _value.isActive
             : isActive // ignore: cast_nullable_to_non_nullable
                   as bool,
+        relationType: null == relationType
+            ? _value.relationType
+            : relationType // ignore: cast_nullable_to_non_nullable
+                  as RelationshipType,
+        memo: freezed == memo
+            ? _value.memo
+            : memo // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -327,6 +357,8 @@ class _$SajuProfileImpl extends _SajuProfile {
     required this.createdAt,
     required this.updatedAt,
     this.isActive = false,
+    this.relationType = RelationshipType.me,
+    this.memo,
   }) : super._();
 
   /// 프로필 고유 ID
@@ -395,9 +427,18 @@ class _$SajuProfileImpl extends _SajuProfile {
   @JsonKey()
   final bool isActive;
 
+  /// 관계 유형 (가족, 친구, 연인 등)
+  @override
+  @JsonKey()
+  final RelationshipType relationType;
+
+  /// 메모
+  @override
+  final String? memo;
+
   @override
   String toString() {
-    return 'SajuProfile(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive)';
+    return 'SajuProfile(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive, relationType: $relationType, memo: $memo)';
   }
 
   @override
@@ -429,7 +470,10 @@ class _$SajuProfileImpl extends _SajuProfile {
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
             (identical(other.isActive, isActive) ||
-                other.isActive == isActive));
+                other.isActive == isActive) &&
+            (identical(other.relationType, relationType) ||
+                other.relationType == relationType) &&
+            (identical(other.memo, memo) || other.memo == memo));
   }
 
   @override
@@ -449,6 +493,8 @@ class _$SajuProfileImpl extends _SajuProfile {
     createdAt,
     updatedAt,
     isActive,
+    relationType,
+    memo,
   );
 
   /// Create a copy of SajuProfile
@@ -476,6 +522,8 @@ abstract class _SajuProfile extends SajuProfile {
     required final DateTime createdAt,
     required final DateTime updatedAt,
     final bool isActive,
+    final RelationshipType relationType,
+    final String? memo,
   }) = _$SajuProfileImpl;
   const _SajuProfile._() : super._();
 
@@ -539,6 +587,14 @@ abstract class _SajuProfile extends SajuProfile {
   /// 한 번에 하나의 프로필만 활성화 가능
   @override
   bool get isActive;
+
+  /// 관계 유형 (가족, 친구, 연인 등)
+  @override
+  RelationshipType get relationType;
+
+  /// 메모
+  @override
+  String? get memo;
 
   /// Create a copy of SajuProfile
   /// with the given fields replaced by the non-null parameter values.

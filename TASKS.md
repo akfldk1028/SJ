@@ -4,28 +4,88 @@
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
 > Flutter 경로: C:\Users\SOGANG\flutter\flutter\bin\flutter.bat
+>
+> **A2A 협업**: Claude 4.5 Opus + Gemini 3 Pro High (수동 오케스트레이션)
+> **태그 규칙**: 작업자 표시 `[Claude]` / `[Gemini]`
 
 ---
 
 ## 현재 상태
 
-| 항목 | 상태 |
-|------|------|
-| 기획 문서 | ✅ 완료 |
-| CLAUDE.md | ✅ 완료 |
-| JH_Agent (서브에이전트) | ✅ 완료 (10개) |
-| Flutter 프로젝트 | ✅ 기반 설정 완료 |
-| 의존성 | ✅ 설치 완료 |
-| 폴더 구조 | ✅ 구현 완료 |
-| Phase 1 | ✅ **완료** |
-| Phase 4 (Profile) | ✅ **완료** |
-| Phase 4.5 (UI 개선) | ✅ **완료** |
-| Phase 8 (만세력 로직) | ✅ **완료** (화면 포함) |
-| **현재 작업** | **Phase 5: Saju Chat (AI 사주 상담) - 진행중 (Gemini)** |
+| 항목 | 상태 | 작업자 |
+|------|------|--------|
+| 기획 문서 | ✅ 완료 | - |
+| CLAUDE.md | ✅ 완료 | - |
+| JH_Agent (서브에이전트) | ✅ 완료 (10개) | - |
+| Flutter 프로젝트 | ✅ 기반 설정 완료 | [Claude] |
+| 의존성 | ✅ 설치 완료 | [Claude] |
+| 폴더 구조 | ✅ 구현 완료 | [Claude] |
+| Phase 1 | ✅ **완료** | [Claude] |
+| Phase 4 (Profile) | ✅ **완료** | [Claude] |
+| Phase 4.5 (UI 개선) | ✅ **완료** | [Claude] |
+| Phase 8 (만세력 로직) | ✅ **완료** (화면 포함) | [Claude] |
+| Phase 5 (인연) | ✅ **완료** | [Gemini] |
+| Phase 6 (Context Chat) | ✅ **완료** | [Gemini] |
+| Phase 7 (앱 완성도) | ✅ **완료** | [Claude/Gemini] |
 
 ---
 
-## ✅ Phase 4.5 - UI 개선 & 만세력 화면 (완료)
+## Phase 5: 인연 (Relationships) - 지인 관리 👥 [Gemini]
+> **목표**: 가족, 친구, 연인 등 지인들의 사주를 카테고리별로 관리
+
+### 5.1 Domain Layer
+- [x] entities/relationship_type.dart (enum)
+- [x] entities/saju_profile.dart (relationType, memo 필드 추가)
+
+### 5.2 Data Layer
+- [x] models/saju_profile_model.dart (필드 업데이트)
+- [x] datasources/profile_local_datasource.dart (getAllProfiles 추가)
+- [x] repositories/profile_repository.dart (getAllProfiles 추가)
+
+### 5.3 Presentation Layer
+- [x] screens/relationship_list_screen.dart (인연 탭 메인)
+- [x] widgets/relationship_category_section.dart
+- [x] widgets/add_profile_sheet.dart (ProfileEditScreen으로 대체)
+- [x] screens/home_screen.dart (MainScaffold 및 기본 홈)
+
+---
+
+## Phase 6: 컨텍스트 사주 챗봇 (Advanced Chat) 💬 [Gemini]
+> **목표**: 나 + 상대방의 데이터를 기반으로 한 심층 상담
+
+### 6.1 Chat Core
+- [x] domain/entities/chat_session.dart (targetProfileId 추가)
+- [x] presentation/screens/saju_chat_screen.dart (대상 선택 UI)
+
+### 6.2 AI Integration
+- [x] system_prompt_v2 (관계 분석 프롬프트)
+- [x] edge_functions/saju-chat (멀티 프로필 지원)
+
+---
+
+## Phase 7: 앱 완성도 (Polishing) ✨ [Claude/Gemini] - ✅ 완료
+> **목표**: 스토어 출시 수준의 UI/UX 완성
+
+### 7.1 Main Tab ✅ [Claude]
+- [x] screens/home_screen.dart (대시보드 + 프로필 연동) (2025-12-04)
+- [x] widgets/daily_fortune_card.dart (2025-12-04)
+
+### 7.2 Settings & Legal ✅ [Claude]
+- [x] screens/settings_screen.dart (2025-12-04)
+- [x] widgets/legal_notice_dialog.dart (2025-12-04)
+
+### 7.3 빌드 에러 수정 ✅ [Claude]
+- [x] main_scaffold.dart (ShadBottomNavigationBar → Material BottomNavigationBar)
+- [x] relationship_list_screen.dart (prefix → leading)
+- [x] relationship_type_dropdown.dart (selectedOptionBuilder 추가)
+- [x] saju_chat_screen.dart (_selectedTargetProfile 선언, ShadSheet/ShadButton 수정)
+- [x] chat_bubble.dart (AppColors import 경로)
+- [x] chat_input_field.dart (ShadButton.icon → ShadButton)
+- [x] chat_*_model.g.dart (Hive TypeAdapter 수동 생성)
+
+---
+
+## ✅ Phase 4.5 - UI 개선 & 만세력 화면 (완료) [Claude]
 
 > 2025-12-02 완료
 
@@ -54,7 +114,7 @@
 
 ---
 
-## Phase 1: 프로젝트 기반 설정 ✅ 완료
+## Phase 1: 프로젝트 기반 설정 ✅ 완료 [Claude]
 
 ### 1.1 pubspec.yaml 의존성 추가 ✅
 - [x] flutter_riverpod: ^2.6.1
@@ -83,25 +143,31 @@ lib/
 ├── main.dart ✅
 ├── app.dart ✅ (ShadApp.router로 변경됨)
 ├── core/
-│   ├── constants/ ✅
-│   ├── theme/ ✅
-│   ├── utils/
-│   └── errors/
+├── constants/ ✅
+├── theme/ ✅
+├── utils/
+├── errors/
 ├── features/
-│   ├── splash/ ✅
-│   ├── onboarding/ ✅
-│   ├── profile/ ✅ (21개 파일)
-│   ├── saju_chart/ ✅ (19개 파일 - 로직만)
-│   ├── saju_chat/ ✅ (placeholder)
-│   ├── history/ ✅
-│   └── settings/ ✅
+├── splash/ ✅
+├── onboarding/ ✅
+├── profile/ ✅ (21개 파일)
+├── saju_chart/ ✅ (19개 파일 - 로직만)
+├── saju_chat/ ✅ (placeholder)
+├── history/ ✅
+└── settings/ ✅
 ├── shared/
 └── router/ ✅
 ```
 
+### 1.4 기본 설정 파일 ✅
+- [x] analysis_options.yaml (린트 규칙)
+- [x] app.dart (MaterialApp 설정)
+- [x] router/routes.dart (라우트 상수)
+- [x] router/app_router.dart (go_router 설정)
+
 ---
 
-## Phase 4: Feature - Profile (P0) ✅ 완료
+## Phase 4: Feature - Profile (P0) ✅ 완료 [Claude]
 
 > 참조: docs/02_features/profile_input.md
 > 2025-12-02: Profile Feature 구현 완료 (21개 파일)
@@ -121,9 +187,26 @@ lib/
 - [x] screens/profile_edit_screen.dart
 - [x] widgets/* (11개)
 
+### 4.4 수락 조건 ✅
+- [x] 프로필명 입력 (최대 12자)
+- [x] 성별 선택 (필수) - 토글 버튼
+- [x] 생년월일 선택 (필수) - ShadDatePicker
+- [x] 음력/양력 선택 - ShadSelect
+- [x] 출생시간 입력 (선택)
+- [x] "시간 모름" 체크 기능
+- [x] "야자시/조자시" 옵션 추가
+- [x] 도시 검색 (25개 도시 + 자동완성)
+- [x] 진태양시 보정 표시 (예: "-26분")
+- [x] 로컬 저장 (Hive)
+- [x] 유효성 검사
+
+### 4.5 TODO
+- [x] `dart run build_runner build` 실행
+- [x] 빌드 테스트
+
 ---
 
-## Phase 8: Saju Chart (만세력) ✅ 로직 완료
+## Phase 8: Saju Chart (만세력) ✅ 로직 완료 [Claude]
 
 > 2025-12-02: 만세력 계산 로직 구현 완료 (19개 파일)
 
@@ -138,6 +221,7 @@ lib/
 - [x] domain/entities/saju_chart.dart - 사주 차트
 - [x] domain/entities/lunar_date.dart - 음력 날짜
 - [x] domain/entities/solar_term.dart - 24절기 enum
+- [ ] domain/entities/daewoon.dart - 대운 (추후)
 
 ### 8.3 Domain Services ✅
 - [x] domain/services/saju_calculation_service.dart - 통합 계산
@@ -159,59 +243,21 @@ lib/
 
 ---
 
-## Phase 5: Feature - Saju Chat (P0) - 대기
-
-> Phase 4.5 완료 후 진행
-
----
-
 ## 진행 기록
 
-| 날짜 | 작업 내용 | 상태 |
-|------|-----------|------|
-| 2025-12-01 | 프로젝트 시작, 기획 문서 완료 | 완료 |
-| 2025-12-02 | Phase 1 완료: 의존성, 폴더구조, 라우터, 테마 | 완료 |
-| 2025-12-02 | Phase 8 기본 완료: 만세력 계산 로직 19개 파일 | 완료 |
-| 2025-12-02 | Phase 4 완료: Profile Feature 21개 파일 | 완료 |
-| 2025-12-02 | Flutter 빌드 오류 수정 (const→final, shadcn API) | 완료 |
-| 2025-12-02 | app.dart를 ShadApp.router로 변경 | 완료 |
-| 2025-12-02 | 웹 테스트 완료, UI 개선점 발견 | 완료 |
-| 2025-12-02 | **Phase 4.5 완료**: 프로필 UI 개선 + 만세력 화면 | 완료 |
-
----
-
-## 메모
-
-### Flutter 실행 명령
-```bash
-cd e:\SJ\frontend
-"C:\Users\SOGANG\flutter\flutter\bin\flutter.bat" pub get
-"C:\Users\SOGANG\flutter\flutter\bin\dart.bat" run build_runner build --delete-conflicting-outputs
-"C:\Users\SOGANG\flutter\flutter\bin\flutter.bat" run -d chrome --web-port=8080
-```
-
-### 수정된 주요 파일 (2025-12-02 빌드 오류 수정)
-- `dst_periods.dart`: const → final (DateTime 불가)
-- `solar_term_table.dart`: const → final
-- `cheongan_jiji.dart`: oheng → cheonganOheng/jijiOheng 분리 (중복키 해결)
-- `pillar.dart`: ganOheng/jiOheng getter 수정
-- `profile_provider.dart`: ProfileRepositoryRef → Ref
-- `app.dart`: MaterialApp.router → ShadApp.router
-
----
-
-## 서브 에이전트 (.claude/JH_Agent/) - A2A Orchestration
-
-| 번호 | 에이전트 | 역할 |
-|------|----------|------|
-| **00** | **orchestrator** | 작업 분석 & 파이프라인 구성 |
-| **00** | **widget_tree_guard** | 위젯 최적화 검증 |
-| 01 | feature_builder | Feature 폴더 구조 생성 |
-| 02 | widget_composer | 화면→작은 위젯 분해 |
-| 03 | provider_builder | Riverpod Provider 생성 |
-| 04 | model_generator | Entity/Model 생성 |
-| 05 | router_setup | go_router 설정 |
-| 06 | local_storage | Hive 저장소 설정 |
-| 07 | task_tracker | TASKS.md 관리 |
-| **08** | **shadcn_ui_builder** | shadcn_ui 모던 UI |
-| **09** | **manseryeok_calculator** | 만세력 계산 로직 |
+| 날짜 | 작업 내용 | 작업자 | 상태 |
+|------|-----------|--------|------|
+| 2025-12-01 | 프로젝트 시작, 기획 문서 완료 | - | 완료 |
+| 2025-12-02 | Phase 1 완료: 의존성, 폴더구조, 라우터, 테마 | [Claude] | 완료 |
+| 2025-12-02 | Phase 8 기본 완료: 만세력 계산 로직 19개 파일 | [Claude] | 완료 |
+| 2025-12-02 | Phase 4 완료: Profile Feature 21개 파일 | [Claude] | 완료 |
+| 2025-12-02 | Flutter 빌드 오류 수정 (const→final, shadcn API) | [Claude] | 완료 |
+| 2025-12-02 | app.dart를 ShadApp.router로 변경 | [Claude] | 완료 |
+| 2025-12-02 | 웹 테스트 완료, UI 개선점 발견 | [Claude] | 완료 |
+| 2025-12-02 | **Phase 4.5 완료**: 프로필 UI 개선 + 만세력 화면 | [Claude] | 완료 |
+| 2025-12-04 | Phase 5 시작: Saju Chat AI 상담 | [Gemini] | 진행중 |
+| 2025-12-04 | **Phase 5 완료**: 인연 관리 UI 및 데이터 연동 | [Gemini] | 완료 |
+| 2025-12-04 | Phase 6 시작: Context Saju Chatbot (대상 선택 및 상담) | [Gemini] | 진행중 |
+| 2025-12-04 | **Phase 7.2 완료**: Settings & Legal (settings_screen, legal_notice_dialog) | [Claude] | 완료 |
+| 2025-12-04 | **Phase 6 완료**: Context Saju Chatbot (UI, Entity, Edge Function) | [Gemini] | 완료 |
+| 2025-12-04 | **Phase 7 완료**: home_screen 개선, daily_fortune_card, 빌드 에러 87개 수정 | [Claude] | 완료 |

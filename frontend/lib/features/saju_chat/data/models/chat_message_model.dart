@@ -54,4 +54,28 @@ class ChatMessageModel extends HiveObject {
       isError: isError,
     );
   }
+
+  /// Hive에 저장할 Map으로 변환
+  Map<String, dynamic> toHiveMap() {
+    return {
+      'id': id,
+      'sessionId': sessionId,
+      'role': role,
+      'content': content,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+      'isError': isError,
+    };
+  }
+
+  /// Hive Map에서 생성
+  static ChatMessageModel fromHiveMap(Map<dynamic, dynamic> map) {
+    return ChatMessageModel(
+      id: map['id'] as String,
+      sessionId: map['sessionId'] as String,
+      role: map['role'] as String,
+      content: map['content'] as String,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
+      isError: (map['isError'] as bool?) ?? false,
+    );
+  }
 }

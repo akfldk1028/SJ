@@ -20,12 +20,14 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<ChatSession> createSession({
     required String profileId,
+    String? targetProfileId,
     String? title,
   }) async {
     final now = DateTime.now();
     final session = ChatSession(
       id: _uuid.v4(),
       profileId: profileId,
+      targetProfileId: targetProfileId,
       title: title ?? '새로운 상담',
       lastMessageAt: now,
       createdAt: now,

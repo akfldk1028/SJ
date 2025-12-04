@@ -18,6 +18,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<List<SajuProfile>> getAllProfiles() async {
+    return getAll();
+  }
+
+  @override
   Future<SajuProfile?> getById(String id) async {
     final model = await _localDatasource.getById(id);
     return model?.toEntity();
@@ -30,9 +35,19 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<SajuProfile?> getActiveProfile() async {
+    return getActive();
+  }
+
+  @override
   Future<void> save(SajuProfile profile) async {
     final model = SajuProfileModel.fromEntity(profile);
     await _localDatasource.save(model);
+  }
+
+  @override
+  Future<void> saveProfile(SajuProfile profile) async {
+    await save(profile);
   }
 
   @override
@@ -63,6 +78,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
         await _localDatasource.setActive(profiles.first.id);
       }
     }
+  }
+
+  @override
+  Future<void> deleteProfile(String id) async {
+    await delete(id);
   }
 
   @override

@@ -17,6 +17,13 @@ abstract class AppColors {
   static const Color backgroundDark = Color(0xFF121212);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF1E1E1E);
+  static const Color surface = surfaceLight; // alias for chat_bubble
+
+  // Border Colors
+  static const Color border = Color(0xFFE0E0E0);
+
+  // Text Colors (aliases for chat_bubble)
+  static const Color text = textPrimary;
 
   // Chat Bubble Colors
   static const Color userBubble = Color(0xFF5C6BC0);

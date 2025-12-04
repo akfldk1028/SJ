@@ -10,6 +10,7 @@ _$ChatSessionImpl _$$ChatSessionImplFromJson(Map<String, dynamic> json) =>
     _$ChatSessionImpl(
       id: json['id'] as String,
       profileId: json['profileId'] as String,
+      targetProfileId: json['targetProfileId'] as String?,
       title: json['title'] as String,
       lastMessageAt: DateTime.parse(json['lastMessageAt'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -19,6 +20,7 @@ Map<String, dynamic> _$$ChatSessionImplToJson(_$ChatSessionImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'profileId': instance.profileId,
+      'targetProfileId': instance.targetProfileId,
       'title': instance.title,
       'lastMessageAt': instance.lastMessageAt.toIso8601String(),
       'createdAt': instance.createdAt.toIso8601String(),

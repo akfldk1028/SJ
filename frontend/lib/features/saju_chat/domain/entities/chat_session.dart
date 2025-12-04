@@ -8,6 +8,7 @@ class ChatSession with _$ChatSession {
   const factory ChatSession({
     required String id,
     required String profileId,
+    String? targetProfileId,
     required String title,
     required DateTime lastMessageAt,
     required DateTime createdAt,

@@ -46,6 +46,11 @@ class ProfileLocalDatasource {
     return profiles;
   }
 
+  /// 모든 프로필 조회 (Alias for consistency)
+  Future<List<SajuProfileModel>> getAllProfiles() async {
+    return getAll();
+  }
+
   /// ID로 프로필 조회
   Future<SajuProfileModel?> getById(String id) async {
     await init();
@@ -72,6 +77,11 @@ class ProfileLocalDatasource {
       }
     }
     return null;
+  }
+
+  /// 활성 프로필 조회 (Alias)
+  Future<SajuProfileModel?> getActiveProfile() async {
+    return getActive();
   }
 
   /// 프로필 저장
@@ -119,6 +129,11 @@ class ProfileLocalDatasource {
         return;
       }
     }
+  }
+
+  /// 프로필 삭제 (Alias)
+  Future<void> deleteProfile(String id) async {
+    await delete(id);
   }
 
   /// 모든 프로필을 비활성화

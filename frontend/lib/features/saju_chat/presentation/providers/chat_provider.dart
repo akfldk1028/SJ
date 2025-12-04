@@ -22,10 +22,11 @@ class ChatSessionController extends _$ChatSessionController {
     return repository.getSessions(profileId);
   }
 
-  Future<ChatSession> createSession({String? title}) async {
+  Future<ChatSession> createSession({String? title, String? targetProfileId}) async {
     final repository = ref.read(chatRepositoryProvider);
     final session = await repository.createSession(
       profileId: profileId,
+      targetProfileId: targetProfileId,
       title: title,
     );
     ref.invalidateSelf();

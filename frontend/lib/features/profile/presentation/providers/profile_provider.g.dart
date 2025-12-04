@@ -26,7 +26,27 @@ final profileRepositoryProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProfileRepositoryRef = AutoDisposeProviderRef<ProfileRepository>;
-String _$profileListHash() => r'd358b2737d7df7d48630d3e1e33570fc966b7d4b';
+String _$allProfilesHash() => r'7fd8a6c741514dc59a1bcf31eb3ec06992906ee7';
+
+/// 모든 프로필 목록 Provider (Alias for ProfileList)
+///
+/// Copied from [allProfiles].
+@ProviderFor(allProfiles)
+final allProfilesProvider =
+    AutoDisposeFutureProvider<List<SajuProfile>>.internal(
+      allProfiles,
+      name: r'allProfilesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$allProfilesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AllProfilesRef = AutoDisposeFutureProviderRef<List<SajuProfile>>;
+String _$profileListHash() => r'a626b2540abb39c53aac0f396e3fffd6c1d8728f';
 
 /// 프로필 목록 Provider
 ///
@@ -44,7 +64,7 @@ final profileListProvider =
     );
 
 typedef _$ProfileList = AutoDisposeAsyncNotifier<List<SajuProfile>>;
-String _$activeProfileHash() => r'1bf4bc0869bd14b5729ea6bc999bdb68e5b2252f';
+String _$activeProfileHash() => r'2581b9244eea2833495186057051bcf04dbaf552';
 
 /// 현재 활성 프로필 Provider
 ///
@@ -62,7 +82,7 @@ final activeProfileProvider =
     );
 
 typedef _$ActiveProfile = AutoDisposeAsyncNotifier<SajuProfile?>;
-String _$profileFormHash() => r'7b8421913b89ffb16a549cffa0ecbf9e0ed93eeb';
+String _$profileFormHash() => r'e4a5a4951bea5d96b6f8873ce72a8f2258e12fce';
 
 /// 프로필 폼 Provider
 ///

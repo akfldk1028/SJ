@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/gender.dart';
 import '../../domain/entities/saju_profile.dart';
+import '../../domain/entities/relationship_type.dart';
 
 part 'saju_profile_model.freezed.dart';
 part 'saju_profile_model.g.dart';
@@ -26,6 +27,8 @@ class SajuProfileModel with _$SajuProfileModel {
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default(false) bool isActive,
+    @Default('me') String relationType, // RelationshipType enum name
+    String? memo,
   }) = _SajuProfileModel;
 
   const SajuProfileModel._();
@@ -51,6 +54,8 @@ class SajuProfileModel with _$SajuProfileModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       isActive: isActive,
+      relationType: RelationshipType.values.byName(relationType),
+      memo: memo,
     );
   }
 
@@ -71,6 +76,8 @@ class SajuProfileModel with _$SajuProfileModel {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
+      relationType: entity.relationType.name,
+      memo: entity.memo,
     );
   }
 
@@ -91,6 +98,8 @@ class SajuProfileModel with _$SajuProfileModel {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
       'isActive': isActive,
+      'relationType': relationType,
+      'memo': memo,
     };
   }
 
@@ -111,6 +120,8 @@ class SajuProfileModel with _$SajuProfileModel {
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int),
       isActive: (map['isActive'] as bool?) ?? false,
+      relationType: (map['relationType'] as String?) ?? 'me',
+      memo: map['memo'] as String?,
     );
   }
 }

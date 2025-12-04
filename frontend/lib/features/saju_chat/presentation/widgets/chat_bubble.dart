@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/core/theme/app_colors.dart';
+import 'package:frontend/core/constants/app_colors.dart';
 import 'package:frontend/features/saju_chat/domain/entities/chat_message.dart';
 import 'package:frontend/features/saju_chat/domain/entities/message_role.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -43,7 +42,7 @@ class ChatBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isUser) ...[
-              const Text(
+              Text(
                 '만톡 AI',
                 style: TextStyle(
                   fontSize: 12,

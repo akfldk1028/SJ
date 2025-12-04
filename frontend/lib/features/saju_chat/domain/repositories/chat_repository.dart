@@ -11,6 +11,7 @@ abstract class ChatRepository {
   /// 새로운 채팅 세션을 생성합니다.
   Future<ChatSession> createSession({
     required String profileId,
+    String? targetProfileId,
     String? title,
   });
 

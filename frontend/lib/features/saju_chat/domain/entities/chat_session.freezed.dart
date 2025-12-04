@@ -23,6 +23,7 @@ ChatSession _$ChatSessionFromJson(Map<String, dynamic> json) {
 mixin _$ChatSession {
   String get id => throw _privateConstructorUsedError;
   String get profileId => throw _privateConstructorUsedError;
+  String? get targetProfileId => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
   DateTime get lastMessageAt => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
@@ -47,6 +48,7 @@ abstract class $ChatSessionCopyWith<$Res> {
   $Res call({
     String id,
     String profileId,
+    String? targetProfileId,
     String title,
     DateTime lastMessageAt,
     DateTime createdAt,
@@ -70,6 +72,7 @@ class _$ChatSessionCopyWithImpl<$Res, $Val extends ChatSession>
   $Res call({
     Object? id = null,
     Object? profileId = null,
+    Object? targetProfileId = freezed,
     Object? title = null,
     Object? lastMessageAt = null,
     Object? createdAt = null,
@@ -84,6 +87,10 @@ class _$ChatSessionCopyWithImpl<$Res, $Val extends ChatSession>
                 ? _value.profileId
                 : profileId // ignore: cast_nullable_to_non_nullable
                       as String,
+            targetProfileId: freezed == targetProfileId
+                ? _value.targetProfileId
+                : targetProfileId // ignore: cast_nullable_to_non_nullable
+                      as String?,
             title: null == title
                 ? _value.title
                 : title // ignore: cast_nullable_to_non_nullable
@@ -114,6 +121,7 @@ abstract class _$$ChatSessionImplCopyWith<$Res>
   $Res call({
     String id,
     String profileId,
+    String? targetProfileId,
     String title,
     DateTime lastMessageAt,
     DateTime createdAt,
@@ -136,6 +144,7 @@ class __$$ChatSessionImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? profileId = null,
+    Object? targetProfileId = freezed,
     Object? title = null,
     Object? lastMessageAt = null,
     Object? createdAt = null,
@@ -150,6 +159,10 @@ class __$$ChatSessionImplCopyWithImpl<$Res>
             ? _value.profileId
             : profileId // ignore: cast_nullable_to_non_nullable
                   as String,
+        targetProfileId: freezed == targetProfileId
+            ? _value.targetProfileId
+            : targetProfileId // ignore: cast_nullable_to_non_nullable
+                  as String?,
         title: null == title
             ? _value.title
             : title // ignore: cast_nullable_to_non_nullable
@@ -173,6 +186,7 @@ class _$ChatSessionImpl implements _ChatSession {
   const _$ChatSessionImpl({
     required this.id,
     required this.profileId,
+    this.targetProfileId,
     required this.title,
     required this.lastMessageAt,
     required this.createdAt,
@@ -186,6 +200,8 @@ class _$ChatSessionImpl implements _ChatSession {
   @override
   final String profileId;
   @override
+  final String? targetProfileId;
+  @override
   final String title;
   @override
   final DateTime lastMessageAt;
@@ -194,7 +210,7 @@ class _$ChatSessionImpl implements _ChatSession {
 
   @override
   String toString() {
-    return 'ChatSession(id: $id, profileId: $profileId, title: $title, lastMessageAt: $lastMessageAt, createdAt: $createdAt)';
+    return 'ChatSession(id: $id, profileId: $profileId, targetProfileId: $targetProfileId, title: $title, lastMessageAt: $lastMessageAt, createdAt: $createdAt)';
   }
 
   @override
@@ -205,6 +221,8 @@ class _$ChatSessionImpl implements _ChatSession {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.profileId, profileId) ||
                 other.profileId == profileId) &&
+            (identical(other.targetProfileId, targetProfileId) ||
+                other.targetProfileId == targetProfileId) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.lastMessageAt, lastMessageAt) ||
                 other.lastMessageAt == lastMessageAt) &&
@@ -214,8 +232,15 @@ class _$ChatSessionImpl implements _ChatSession {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, profileId, title, lastMessageAt, createdAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    profileId,
+    targetProfileId,
+    title,
+    lastMessageAt,
+    createdAt,
+  );
 
   /// Create a copy of ChatSession
   /// with the given fields replaced by the non-null parameter values.
@@ -235,6 +260,7 @@ abstract class _ChatSession implements ChatSession {
   const factory _ChatSession({
     required final String id,
     required final String profileId,
+    final String? targetProfileId,
     required final String title,
     required final DateTime lastMessageAt,
     required final DateTime createdAt,
@@ -247,6 +273,8 @@ abstract class _ChatSession implements ChatSession {
   String get id;
   @override
   String get profileId;
+  @override
+  String? get targetProfileId;
   @override
   String get title;
   @override

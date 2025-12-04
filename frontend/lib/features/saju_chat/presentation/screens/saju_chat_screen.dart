@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/features/profile/domain/entities/gender.dart';
+import 'package:frontend/features/profile/domain/entities/saju_profile.dart';
+import 'package:frontend/features/profile/presentation/providers/profile_provider.dart';
 import 'package:frontend/features/saju_chat/presentation/providers/chat_provider.dart';
 import 'package:frontend/features/saju_chat/presentation/widgets/chat_bubble.dart';
 import 'package:frontend/features/saju_chat/presentation/widgets/chat_input_field.dart';
@@ -22,8 +25,10 @@ class SajuChatScreen extends ConsumerStatefulWidget {
 }
 
 class _SajuChatScreenState extends ConsumerState<SajuChatScreen> {
-  late String _currentSessionId;
+  String? _currentSessionId;
   final ScrollController _scrollController = ScrollController();
+  SajuProfile? _selectedTargetProfile;
+  bool _isInitializing = true;
 
   @override
   void initState() {
@@ -33,16 +38,35 @@ class _SajuChatScreenState extends ConsumerState<SajuChatScreen> {
 
   Future<void> _initializeSession() async {
     if (widget.sessionId != null) {
-      _currentSessionId = widget.sessionId!;
+      setState(() {
+        _currentSessionId = widget.sessionId;
+        _isInitializing = false;
+      });
+      // TODO: Load target profile from session if exists
     } else {
-      // Create new session if none provided
-      // Note: In a real app, you might want to do this only when the first message is sent
-      // or check for an existing empty session.
+      await _createNewSession();
+    }
+  }
+
+  Future<void> _createNewSession() async {
+    try {
       final session = await ref.read(chatSessionControllerProvider(widget.profileId).notifier)
-          .createSession();
+          .createSession(
+            targetProfileId: _selectedTargetProfile?.id,
+            title: _selectedTargetProfile != null
+                ? '${_selectedTargetProfile!.displayName}님과의 상담'
+                : null,
+          );
       setState(() {
         _currentSessionId = session.id;
+        _isInitializing = false;
       });
+    } catch (e) {
+      // 세션 생성 실패 시에도 초기화 완료 처리 (UI 표시용)
+      setState(() {
+        _isInitializing = false;
+      });
+      debugPrint('Failed to create chat session: $e');
     }
   }
 
@@ -56,9 +80,74 @@ class _SajuChatScreenState extends ConsumerState<SajuChatScreen> {
     }
   }
 
+  void _showTargetSelectionSheet() {
+    showShadSheet(
+      side: ShadSheetSide.bottom,
+      context: context,
+      builder: (context) {
+        final profilesAsync = ref.watch(allProfilesProvider);
+        return ShadSheet(
+          title: const Text('상담 대상 선택'),
+          description: const Text('누구와의 관계가 궁금하신가요?'),
+          child: profilesAsync.when(
+            data: (profiles) {
+              final targets = profiles.where((p) => p.id != widget.profileId).toList();
+              if (targets.isEmpty) {
+                return const Center(
+                  child: Text('등록된 지인이 없습니다.\n[인연] 탭에서 지인을 추가해주세요.'),
+                );
+              }
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: targets.length,
+                itemBuilder: (context, index) {
+                  final profile = targets[index];
+                  return ListTile(
+                    leading: Text(
+                      profile.gender == Gender.male ? '👨' : '👩',
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    title: Text(profile.displayName),
+                    subtitle: Text(profile.relationType.label),
+                    onTap: () {
+                      setState(() {
+                        _selectedTargetProfile = profile;
+                      });
+                      _createNewSession(); // Start new session with new target
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(child: Text('Error: $err')),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(chatMessageControllerProvider(_currentSessionId));
+    // 초기화 중이거나 세션 ID가 없으면 로딩 표시
+    if (_isInitializing || _currentSessionId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('만톡 AI 상담')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('채팅 준비 중...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final messagesAsync = ref.watch(chatMessageControllerProvider(_currentSessionId!));
 
     return Scaffold(
       appBar: AppBar(
@@ -101,7 +190,7 @@ class _SajuChatScreenState extends ConsumerState<SajuChatScreen> {
                         const SizedBox(height: 24),
                         SuggestedQuestions(
                           onQuestionSelected: (text) {
-                            ref.read(chatMessageControllerProvider(_currentSessionId).notifier)
+                            ref.read(chatMessageControllerProvider(_currentSessionId!).notifier)
                                 .sendMessage(text);
                           },
                         ),
@@ -127,13 +216,55 @@ class _SajuChatScreenState extends ConsumerState<SajuChatScreen> {
             ),
           ),
 
+          // Target Selection Chip
+          if (_selectedTargetProfile != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey.withOpacity(0.1),
+              child: Row(
+                children: [
+                  const Text('상담 대상: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Chip(
+                    label: Text(_selectedTargetProfile!.displayName),
+                    avatar: Text(_selectedTargetProfile!.gender == Gender.male ? '👨' : '👩'),
+                    onDeleted: () {
+                      setState(() {
+                        _selectedTargetProfile = null;
+                      });
+                      _createNewSession();
+                    },
+                  ),
+                ],
+              ),
+            ),
+
           // Input Area
-          ChatInputField(
-            isLoading: messagesAsync.isLoading,
-            onSend: (text) {
-              ref.read(chatMessageControllerProvider(_currentSessionId).notifier)
-                  .sendMessage(text);
-            },
+          Column(
+            children: [
+              if (_selectedTargetProfile == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ShadButton.outline(
+                    width: double.infinity,
+                    onPressed: _showTargetSelectionSheet,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_add, size: 18),
+                        SizedBox(width: 8),
+                        Text('상담 대상(지인) 선택하기'),
+                      ],
+                    ),
+                  ),
+                ),
+              ChatInputField(
+                isLoading: messagesAsync.isLoading,
+                onSend: (text) {
+                  ref.read(chatMessageControllerProvider(_currentSessionId!).notifier)
+                      .sendMessage(text);
+                },
+              ),
+            ],
           ),
         ],
       ),

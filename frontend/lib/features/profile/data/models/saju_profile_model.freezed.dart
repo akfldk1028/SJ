@@ -36,6 +36,9 @@ mixin _$SajuProfileModel {
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
+  String get relationType =>
+      throw _privateConstructorUsedError; // RelationshipType enum name
+  String? get memo => throw _privateConstructorUsedError;
 
   /// Serializes this SajuProfileModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -69,6 +72,8 @@ abstract class $SajuProfileModelCopyWith<$Res> {
     DateTime createdAt,
     DateTime updatedAt,
     bool isActive,
+    String relationType,
+    String? memo,
   });
 }
 
@@ -101,6 +106,8 @@ class _$SajuProfileModelCopyWithImpl<$Res, $Val extends SajuProfileModel>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? isActive = null,
+    Object? relationType = null,
+    Object? memo = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -160,6 +167,14 @@ class _$SajuProfileModelCopyWithImpl<$Res, $Val extends SajuProfileModel>
                 ? _value.isActive
                 : isActive // ignore: cast_nullable_to_non_nullable
                       as bool,
+            relationType: null == relationType
+                ? _value.relationType
+                : relationType // ignore: cast_nullable_to_non_nullable
+                      as String,
+            memo: freezed == memo
+                ? _value.memo
+                : memo // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -190,6 +205,8 @@ abstract class _$$SajuProfileModelImplCopyWith<$Res>
     DateTime createdAt,
     DateTime updatedAt,
     bool isActive,
+    String relationType,
+    String? memo,
   });
 }
 
@@ -221,6 +238,8 @@ class __$$SajuProfileModelImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? isActive = null,
+    Object? relationType = null,
+    Object? memo = freezed,
   }) {
     return _then(
       _$SajuProfileModelImpl(
@@ -280,6 +299,14 @@ class __$$SajuProfileModelImplCopyWithImpl<$Res>
             ? _value.isActive
             : isActive // ignore: cast_nullable_to_non_nullable
                   as bool,
+        relationType: null == relationType
+            ? _value.relationType
+            : relationType // ignore: cast_nullable_to_non_nullable
+                  as String,
+        memo: freezed == memo
+            ? _value.memo
+            : memo // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -303,6 +330,8 @@ class _$SajuProfileModelImpl extends _SajuProfileModel {
     required this.createdAt,
     required this.updatedAt,
     this.isActive = false,
+    this.relationType = 'me',
+    this.memo,
   }) : super._();
 
   factory _$SajuProfileModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -342,10 +371,16 @@ class _$SajuProfileModelImpl extends _SajuProfileModel {
   @override
   @JsonKey()
   final bool isActive;
+  @override
+  @JsonKey()
+  final String relationType;
+  // RelationshipType enum name
+  @override
+  final String? memo;
 
   @override
   String toString() {
-    return 'SajuProfileModel(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive)';
+    return 'SajuProfileModel(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive, relationType: $relationType, memo: $memo)';
   }
 
   @override
@@ -377,7 +412,10 @@ class _$SajuProfileModelImpl extends _SajuProfileModel {
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
             (identical(other.isActive, isActive) ||
-                other.isActive == isActive));
+                other.isActive == isActive) &&
+            (identical(other.relationType, relationType) ||
+                other.relationType == relationType) &&
+            (identical(other.memo, memo) || other.memo == memo));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -398,6 +436,8 @@ class _$SajuProfileModelImpl extends _SajuProfileModel {
     createdAt,
     updatedAt,
     isActive,
+    relationType,
+    memo,
   );
 
   /// Create a copy of SajuProfileModel
@@ -433,6 +473,8 @@ abstract class _SajuProfileModel extends SajuProfileModel {
     required final DateTime createdAt,
     required final DateTime updatedAt,
     final bool isActive,
+    final String relationType,
+    final String? memo,
   }) = _$SajuProfileModelImpl;
   const _SajuProfileModel._() : super._();
 
@@ -467,6 +509,10 @@ abstract class _SajuProfileModel extends SajuProfileModel {
   DateTime get updatedAt;
   @override
   bool get isActive;
+  @override
+  String get relationType; // RelationshipType enum name
+  @override
+  String? get memo;
 
   /// Create a copy of SajuProfileModel
   /// with the given fields replaced by the non-null parameter values.

@@ -6,59 +6,121 @@ class ChatLocalDataSource {
   static const String sessionBoxName = 'chat_sessions';
   static const String messageBoxName = 'chat_messages';
 
-  Future<Box<ChatSessionModel>> get _sessionBox async {
+  /// Map 기반 Hive Box (TypeAdapter 불필요)
+  Future<Box<Map<dynamic, dynamic>>> get _sessionBox async {
     if (Hive.isBoxOpen(sessionBoxName)) {
-      return Hive.box<ChatSessionModel>(sessionBoxName);
+      return Hive.box<Map<dynamic, dynamic>>(sessionBoxName);
     }
-    return await Hive.openBox<ChatSessionModel>(sessionBoxName);
+    return await Hive.openBox<Map<dynamic, dynamic>>(sessionBoxName);
   }
 
-  Future<Box<ChatMessageModel>> get _messageBox async {
+  Future<Box<Map<dynamic, dynamic>>> get _messageBox async {
     if (Hive.isBoxOpen(messageBoxName)) {
-      return Hive.box<ChatMessageModel>(messageBoxName);
+      return Hive.box<Map<dynamic, dynamic>>(messageBoxName);
     }
-    return await Hive.openBox<ChatMessageModel>(messageBoxName);
+    return await Hive.openBox<Map<dynamic, dynamic>>(messageBoxName);
   }
 
   Future<List<ChatSessionModel>> getSessions(String profileId) async {
     final box = await _sessionBox;
-    return box.values
-        .where((session) => session.profileId == profileId)
-        .toList()
-      ..sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+    final sessions = <ChatSessionModel>[];
+
+    for (var i = 0; i < box.length; i++) {
+      final map = box.getAt(i);
+      if (map != null && map['profileId'] == profileId) {
+        sessions.add(ChatSessionModel.fromHiveMap(map));
+      }
+    }
+
+    // 최근 메시지 순으로 정렬
+    sessions.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+    return sessions;
   }
 
   Future<void> saveSession(ChatSessionModel session) async {
     final box = await _sessionBox;
-    await box.put(session.id, session);
+
+    // 기존 세션 찾기
+    int? existingIndex;
+    for (var i = 0; i < box.length; i++) {
+      final map = box.getAt(i);
+      if (map != null && map['id'] == session.id) {
+        existingIndex = i;
+        break;
+      }
+    }
+
+    final data = session.toHiveMap();
+    if (existingIndex != null) {
+      await box.putAt(existingIndex, data);
+    } else {
+      await box.add(data);
+    }
   }
 
   Future<void> deleteSession(String sessionId) async {
     final sessionBox = await _sessionBox;
-    await sessionBox.delete(sessionId);
+
+    // 세션 삭제
+    for (var i = 0; i < sessionBox.length; i++) {
+      final map = sessionBox.getAt(i);
+      if (map != null && map['id'] == sessionId) {
+        await sessionBox.deleteAt(i);
+        break;
+      }
+    }
 
     // 관련 메시지도 삭제
     final messageBox = await _messageBox;
-    final messagesToDelete = messageBox.values
-        .where((msg) => msg.sessionId == sessionId)
-        .map((msg) => msg.id)
-        .toList();
-    
-    for (var key in messagesToDelete) {
-      await messageBox.delete(key); // Note: key might need to be checked if it matches id
+    final toDeleteIndices = <int>[];
+
+    for (var i = 0; i < messageBox.length; i++) {
+      final map = messageBox.getAt(i);
+      if (map != null && map['sessionId'] == sessionId) {
+        toDeleteIndices.add(i);
+      }
+    }
+
+    // 역순으로 삭제 (인덱스 변경 방지)
+    for (var i = toDeleteIndices.length - 1; i >= 0; i--) {
+      await messageBox.deleteAt(toDeleteIndices[i]);
     }
   }
 
   Future<List<ChatMessageModel>> getMessages(String sessionId) async {
     final box = await _messageBox;
-    return box.values
-        .where((msg) => msg.sessionId == sessionId)
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final messages = <ChatMessageModel>[];
+
+    for (var i = 0; i < box.length; i++) {
+      final map = box.getAt(i);
+      if (map != null && map['sessionId'] == sessionId) {
+        messages.add(ChatMessageModel.fromHiveMap(map));
+      }
+    }
+
+    // 생성 시간순 정렬
+    messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return messages;
   }
 
   Future<void> saveMessage(ChatMessageModel message) async {
     final box = await _messageBox;
-    await box.put(message.id, message);
+
+    // 기존 메시지 찾기
+    int? existingIndex;
+    for (var i = 0; i < box.length; i++) {
+      final map = box.getAt(i);
+      if (map != null && map['id'] == message.id) {
+        existingIndex = i;
+        break;
+      }
+    }
+
+    final data = message.toHiveMap();
+    if (existingIndex != null) {
+      await box.putAt(existingIndex, data);
+    } else {
+      await box.add(data);
+    }
   }
 }

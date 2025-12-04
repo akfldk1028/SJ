@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'gender.dart';
+import 'relationship_type.dart';
 
 part 'saju_profile.freezed.dart';
 
@@ -56,6 +57,12 @@ class SajuProfile with _$SajuProfile {
     /// 현재 활성 프로필 여부
     /// 한 번에 하나의 프로필만 활성화 가능
     @Default(false) bool isActive,
+
+    /// 관계 유형 (가족, 친구, 연인 등)
+    @Default(RelationshipType.me) RelationshipType relationType,
+
+    /// 메모
+    String? memo,
   }) = _SajuProfile;
 
   const SajuProfile._();
