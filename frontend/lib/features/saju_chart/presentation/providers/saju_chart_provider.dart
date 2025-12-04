@@ -2,8 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../domain/entities/daeun.dart';
+import '../../domain/entities/saju_analysis.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/services/jasi_service.dart';
+import '../../domain/services/saju_analysis_service.dart';
 import '../../domain/services/saju_calculation_service.dart';
 
 part 'saju_chart_provider.g.dart';
@@ -12,6 +15,12 @@ part 'saju_chart_provider.g.dart';
 @riverpod
 SajuCalculationService sajuCalculationService(Ref ref) {
   return SajuCalculationService();
+}
+
+/// 사주 종합 분석 서비스 Provider
+@riverpod
+SajuAnalysisService sajuAnalysisService(Ref ref) {
+  return SajuAnalysisService();
 }
 
 /// 현재 활성 프로필의 사주차트 Provider
@@ -70,6 +79,30 @@ class CurrentSajuChart extends _$CurrentSajuChart {
   /// 새로고침
   Future<void> refresh() async {
     ref.invalidateSelf();
+  }
+}
+
+/// 현재 사주 종합 분석 Provider
+@riverpod
+class CurrentSajuAnalysis extends _$CurrentSajuAnalysis {
+  @override
+  Future<SajuAnalysis?> build() async {
+    final chart = await ref.watch(currentSajuChartProvider.future);
+    if (chart == null) return null;
+
+    final activeProfile = await ref.watch(activeProfileProvider.future);
+    if (activeProfile == null) return null;
+
+    final service = ref.read(sajuAnalysisServiceProvider);
+
+    // 성별 변환
+    final gender = activeProfile.gender.name == 'male' ? Gender.male : Gender.female;
+
+    return service.analyze(
+      chart: chart,
+      gender: gender,
+      currentYear: DateTime.now().year,
+    );
   }
 }
 

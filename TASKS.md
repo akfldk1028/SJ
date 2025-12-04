@@ -206,30 +206,51 @@ lib/
 
 ---
 
-## Phase 8: Saju Chart (만세력) ✅ 로직 완료 [Claude]
+## Phase 8: Saju Chart (만세력) ✅ 완료 [Claude]
 
-> 2025-12-02: 만세력 계산 로직 구현 완료 (19개 파일)
+> 2025-12-02: 기본 로직 구현 (19개 파일)
+> 2025-12-05: **포스텔러 수준 상세 분석 기능 추가** (24개 파일 추가, 총 43개)
 
 ### 8.1 Constants ✅
 - [x] data/constants/cheongan_jiji.dart - 천간(10), 지지(12), 오행
 - [x] data/constants/gapja_60.dart - 60갑자
 - [x] data/constants/solar_term_table.dart - 절기 시각 (2024-2025)
 - [x] data/constants/dst_periods.dart - 서머타임 기간
+- [x] **data/constants/jijanggan_table.dart** - 지장간 테이블 🆕
+- [x] **data/constants/sipsin_relations.dart** - 십신 관계 테이블 🆕
+- [x] **data/constants/lunar_data/** - 음양력 변환 테이블 (1900-2100년) 🆕
+  - lunar_year_data.dart
+  - lunar_table_1900_1949.dart
+  - lunar_table_1950_1999.dart
+  - lunar_table_2000_2050.dart
+  - lunar_table_2051_2100.dart
+  - lunar_table.dart (통합)
 
 ### 8.2 Domain Entities ✅
 - [x] domain/entities/pillar.dart - 기둥 (천간+지지)
 - [x] domain/entities/saju_chart.dart - 사주 차트
 - [x] domain/entities/lunar_date.dart - 음력 날짜
 - [x] domain/entities/solar_term.dart - 24절기 enum
-- [ ] domain/entities/daewoon.dart - 대운 (추후)
+- [x] **domain/entities/day_strength.dart** - 일간 강약 (신강/신약) 🆕
+- [x] **domain/entities/gyeokguk.dart** - 격국 (14종) 🆕
+- [x] **domain/entities/sinsal.dart** - 신살 (14종) 🆕
+- [x] **domain/entities/yongsin.dart** - 용신 🆕
+- [x] **domain/entities/daeun.dart** - 대운/세운 🆕
+- [x] **domain/entities/saju_analysis.dart** - 종합 분석 결과 🆕
 
 ### 8.3 Domain Services ✅
-- [x] domain/services/saju_calculation_service.dart - 통합 계산
-- [x] domain/services/lunar_solar_converter.dart - 음양력 변환 (Stub)
+- [x] domain/services/saju_calculation_service.dart - 기본 사주 계산
+- [x] domain/services/lunar_solar_converter.dart - 음양력 변환 (**실제 구현 완료**)
 - [x] domain/services/solar_term_service.dart - 절입시간
 - [x] domain/services/true_solar_time_service.dart - 진태양시 (25개 도시)
 - [x] domain/services/dst_service.dart - 서머타임
 - [x] domain/services/jasi_service.dart - 야자시/조자시
+- [x] **domain/services/day_strength_service.dart** - 일간 강약 분석 🆕
+- [x] **domain/services/gyeokguk_service.dart** - 격국 판정 🆕
+- [x] **domain/services/sinsal_service.dart** - 신살 탐지 🆕
+- [x] **domain/services/yongsin_service.dart** - 용신 선정 🆕
+- [x] **domain/services/daeun_service.dart** - 대운/세운 계산 🆕
+- [x] **domain/services/saju_analysis_service.dart** - 종합 분석 통합 🆕
 
 ### 8.4 Data Models ✅
 - [x] data/models/pillar_model.dart - JSON 직렬화
@@ -240,6 +261,24 @@ lib/
 - [x] screens/saju_chart_screen.dart
 - [x] widgets/pillar_column_widget.dart
 - [x] widgets/saju_info_header.dart
+
+### 8.6 구현된 분석 기능 (포스텔러 수준) 🆕
+| 기능 | 설명 | 상태 |
+|------|------|------|
+| 음양력 변환 | 1900-2100년 완전 지원 | ✅ |
+| 지장간 | 12지지별 숨은 천간 + 세력 비율 | ✅ |
+| 십신(십성) | 일간 기준 오행 관계 분석 | ✅ |
+| 일간 강약 | 신강/신약/중화 5단계 판정 | ✅ |
+| 격국 | 14종 (기본 10 + 특수 3 + 중화) | ✅ |
+| 신살 | 14종 (천을귀인, 도화살, 역마 등) | ✅ |
+| 용신 | 억부법 기반 오행 선정 | ✅ |
+| 대운 | 10년 주기 운 흐름 | ✅ |
+| 세운 | 1년 단위 운 | ✅ |
+
+### 8.7 다음 단계 (TODO)
+- [ ] UI에 상세 분석 결과 표시 (십신, 지장간, 용신 등)
+- [ ] 대운/세운 화면 구현
+- [ ] 포스텔러 결과와 비교 검증
 
 ---
 
@@ -262,6 +301,7 @@ lib/
 | 2025-12-04 | **Phase 6 완료**: Context Saju Chatbot (UI, Entity, Edge Function) | [Gemini] | 완료 |
 | 2025-12-04 | **Phase 7 완료**: home_screen 개선, daily_fortune_card, 빌드 에러 87개 수정 | [Claude] | 완료 |
 | 2025-12-04 | **Merge 후 정리**: Gemini 코드 merge 후 빌드 에러 수정 | [Claude] | 완료 |
+| 2025-12-05 | **Phase 8 확장**: 만세력 로직 포스텔러 수준 구현 (24개 파일 추가) | [Claude] | 완료 |
 
 ---
 
