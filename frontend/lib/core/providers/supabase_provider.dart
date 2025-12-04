@@ -23,6 +23,8 @@ Stream<AuthState> authState(AuthStateRef ref) {
 }
 
 /// Current User Provider
+/// 
+/// 
 @riverpod
 User? currentUser(CurrentUserRef ref) {
   // auth 상태 변경 감지
