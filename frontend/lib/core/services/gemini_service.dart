@@ -1,8 +1,14 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'gemini_service.g.dart';
+
+/// Gemini API 키 (compile-time 환경변수 또는 기본값)
+/// flutter run --dart-define=GEMINI_API_KEY=your_key 로 전달
+const String _defaultGeminiApiKey = String.fromEnvironment(
+  'GEMINI_API_KEY',
+  defaultValue: '',
+);
 
 /// Gemini AI 서비스
 class GeminiService {
@@ -100,11 +106,10 @@ class GeminiService {
   }
 }
 
-/// Gemini API 키 Provider (환경변수에서 로드)
+/// Gemini API 키 Provider (compile-time 환경변수에서 로드)
 @Riverpod(keepAlive: true)
 String geminiApiKey(GeminiApiKeyRef ref) {
-  // .env 파일에서 GEMINI_API_KEY 로드
-  return dotenv.env['GEMINI_API_KEY'] ?? '';
+  return _defaultGeminiApiKey;
 }
 
 /// Gemini Service Provider

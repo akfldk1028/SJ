@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../domain/entities/gender.dart';
 
@@ -21,21 +20,21 @@ class GenderSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppStrings.genderLabel,
+          AppStrings.gender,
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: AppSizes.sm),
+        const SizedBox(height: 8),
         SegmentedButton<Gender>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: Gender.male,
-              label: Text(AppStrings.genderMale),
-              icon: Icon(Icons.male),
+              label: const Text(AppStrings.genderMale),
+              icon: const Icon(Icons.male),
             ),
             ButtonSegment(
               value: Gender.female,
-              label: Text(AppStrings.genderFemale),
-              icon: Icon(Icons.female),
+              label: const Text(AppStrings.genderFemale),
+              icon: const Icon(Icons.female),
             ),
           ],
           selected: selectedGender != null ? {selectedGender!} : const {},

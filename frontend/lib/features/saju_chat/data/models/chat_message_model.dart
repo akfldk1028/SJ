@@ -1,57 +1,38 @@
-import 'package:hive/hive.dart';
 import 'package:frontend/features/saju_chat/domain/entities/chat_message.dart';
-import 'package:frontend/features/saju_chat/domain/entities/message_role.dart';
 
-part 'chat_message_model.g.dart';
-
-@HiveType(typeId: 3)
-class ChatMessageModel extends HiveObject {
-  @HiveField(0)
+/// 채팅 메시지 데이터 모델 (Hive 저장용)
+class ChatMessageModel {
   final String id;
-
-  @HiveField(1)
-  final String sessionId;
-
-  @HiveField(2)
-  final String role; // Store enum as String
-
-  @HiveField(3)
   final String content;
-
-  @HiveField(4)
+  final String role; // MessageRole enum as String
   final DateTime createdAt;
-
-  @HiveField(5)
-  final bool isError;
+  final String status; // MessageStatus enum as String
 
   ChatMessageModel({
     required this.id,
-    required this.sessionId,
-    required this.role,
     required this.content,
+    required this.role,
     required this.createdAt,
-    this.isError = false,
+    this.status = 'sent',
   });
 
   factory ChatMessageModel.fromEntity(ChatMessage entity) {
     return ChatMessageModel(
       id: entity.id,
-      sessionId: entity.sessionId,
-      role: entity.role.name,
       content: entity.content,
+      role: entity.role.name,
       createdAt: entity.createdAt,
-      isError: entity.isError,
+      status: entity.status.name,
     );
   }
 
   ChatMessage toEntity() {
     return ChatMessage(
       id: id,
-      sessionId: sessionId,
-      role: MessageRole.values.byName(role),
       content: content,
+      role: MessageRole.values.byName(role),
       createdAt: createdAt,
-      isError: isError,
+      status: MessageStatus.values.byName(status),
     );
   }
 
@@ -59,11 +40,10 @@ class ChatMessageModel extends HiveObject {
   Map<String, dynamic> toHiveMap() {
     return {
       'id': id,
-      'sessionId': sessionId,
-      'role': role,
       'content': content,
+      'role': role,
       'createdAt': createdAt.millisecondsSinceEpoch,
-      'isError': isError,
+      'status': status,
     };
   }
 
@@ -71,11 +51,10 @@ class ChatMessageModel extends HiveObject {
   static ChatMessageModel fromHiveMap(Map<dynamic, dynamic> map) {
     return ChatMessageModel(
       id: map['id'] as String,
-      sessionId: map['sessionId'] as String,
-      role: map['role'] as String,
       content: map['content'] as String,
+      role: map['role'] as String,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
-      isError: (map['isError'] as bool?) ?? false,
+      status: (map['status'] as String?) ?? 'sent',
     );
   }
 }

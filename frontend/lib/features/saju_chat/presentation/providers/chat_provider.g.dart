@@ -6,9 +6,11 @@ part of 'chat_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatRepositoryHash() => r'f1cbf557c4d51eabfdc21ea2baa681354961f70b';
+String _$chatRepositoryHash() => r'e56551aac747a58f8c60f6a7b336767405478a25';
 
-/// See also [chatRepository].
+/// ChatRepository Provider
+///
+/// Copied from [chatRepository].
 @ProviderFor(chatRepository)
 final chatRepositoryProvider = AutoDisposeProvider<ChatRepository>.internal(
   chatRepository,
@@ -23,8 +25,7 @@ final chatRepositoryProvider = AutoDisposeProvider<ChatRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ChatRepositoryRef = AutoDisposeProviderRef<ChatRepository>;
-String _$chatSessionControllerHash() =>
-    r'c9b66bbadfeac18bb4e6609fc32bf169cf6b6c94';
+String _$chatNotifierHash() => r'3883a00971829a35e9e9d2b4ecb51d72b6af85df';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -47,33 +48,39 @@ class _SystemHash {
   }
 }
 
-abstract class _$ChatSessionController
-    extends BuildlessAutoDisposeAsyncNotifier<List<ChatSession>> {
-  late final String profileId;
+abstract class _$ChatNotifier extends BuildlessAutoDisposeNotifier<ChatState> {
+  late final ChatType chatType;
 
-  FutureOr<List<ChatSession>> build(String profileId);
+  ChatState build(ChatType chatType);
 }
 
-/// See also [ChatSessionController].
-@ProviderFor(ChatSessionController)
-const chatSessionControllerProvider = ChatSessionControllerFamily();
+/// 채팅 상태 관리 Provider
+///
+/// Copied from [ChatNotifier].
+@ProviderFor(ChatNotifier)
+const chatNotifierProvider = ChatNotifierFamily();
 
-/// See also [ChatSessionController].
-class ChatSessionControllerFamily
-    extends Family<AsyncValue<List<ChatSession>>> {
-  /// See also [ChatSessionController].
-  const ChatSessionControllerFamily();
+/// 채팅 상태 관리 Provider
+///
+/// Copied from [ChatNotifier].
+class ChatNotifierFamily extends Family<ChatState> {
+  /// 채팅 상태 관리 Provider
+  ///
+  /// Copied from [ChatNotifier].
+  const ChatNotifierFamily();
 
-  /// See also [ChatSessionController].
-  ChatSessionControllerProvider call(String profileId) {
-    return ChatSessionControllerProvider(profileId);
+  /// 채팅 상태 관리 Provider
+  ///
+  /// Copied from [ChatNotifier].
+  ChatNotifierProvider call(ChatType chatType) {
+    return ChatNotifierProvider(chatType);
   }
 
   @override
-  ChatSessionControllerProvider getProviderOverride(
-    covariant ChatSessionControllerProvider provider,
+  ChatNotifierProvider getProviderOverride(
+    covariant ChatNotifierProvider provider,
   ) {
-    return call(provider.profileId);
+    return call(provider.chatType);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -88,85 +95,78 @@ class ChatSessionControllerFamily
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'chatSessionControllerProvider';
+  String? get name => r'chatNotifierProvider';
 }
 
-/// See also [ChatSessionController].
-class ChatSessionControllerProvider
-    extends
-        AutoDisposeAsyncNotifierProviderImpl<
-          ChatSessionController,
-          List<ChatSession>
-        > {
-  /// See also [ChatSessionController].
-  ChatSessionControllerProvider(String profileId)
+/// 채팅 상태 관리 Provider
+///
+/// Copied from [ChatNotifier].
+class ChatNotifierProvider
+    extends AutoDisposeNotifierProviderImpl<ChatNotifier, ChatState> {
+  /// 채팅 상태 관리 Provider
+  ///
+  /// Copied from [ChatNotifier].
+  ChatNotifierProvider(ChatType chatType)
     : this._internal(
-        () => ChatSessionController()..profileId = profileId,
-        from: chatSessionControllerProvider,
-        name: r'chatSessionControllerProvider',
+        () => ChatNotifier()..chatType = chatType,
+        from: chatNotifierProvider,
+        name: r'chatNotifierProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
             ? null
-            : _$chatSessionControllerHash,
-        dependencies: ChatSessionControllerFamily._dependencies,
+            : _$chatNotifierHash,
+        dependencies: ChatNotifierFamily._dependencies,
         allTransitiveDependencies:
-            ChatSessionControllerFamily._allTransitiveDependencies,
-        profileId: profileId,
+            ChatNotifierFamily._allTransitiveDependencies,
+        chatType: chatType,
       );
 
-  ChatSessionControllerProvider._internal(
+  ChatNotifierProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
     required super.allTransitiveDependencies,
     required super.debugGetCreateSourceHash,
     required super.from,
-    required this.profileId,
+    required this.chatType,
   }) : super.internal();
 
-  final String profileId;
+  final ChatType chatType;
 
   @override
-  FutureOr<List<ChatSession>> runNotifierBuild(
-    covariant ChatSessionController notifier,
-  ) {
-    return notifier.build(profileId);
+  ChatState runNotifierBuild(covariant ChatNotifier notifier) {
+    return notifier.build(chatType);
   }
 
   @override
-  Override overrideWith(ChatSessionController Function() create) {
+  Override overrideWith(ChatNotifier Function() create) {
     return ProviderOverride(
       origin: this,
-      override: ChatSessionControllerProvider._internal(
-        () => create()..profileId = profileId,
+      override: ChatNotifierProvider._internal(
+        () => create()..chatType = chatType,
         from: from,
         name: null,
         dependencies: null,
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
-        profileId: profileId,
+        chatType: chatType,
       ),
     );
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<
-    ChatSessionController,
-    List<ChatSession>
-  >
-  createElement() {
-    return _ChatSessionControllerProviderElement(this);
+  AutoDisposeNotifierProviderElement<ChatNotifier, ChatState> createElement() {
+    return _ChatNotifierProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is ChatSessionControllerProvider &&
-        other.profileId == profileId;
+    return other is ChatNotifierProvider && other.chatType == chatType;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, profileId.hashCode);
+    hash = _SystemHash.combine(hash, chatType.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -174,172 +174,18 @@ class ChatSessionControllerProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ChatSessionControllerRef
-    on AutoDisposeAsyncNotifierProviderRef<List<ChatSession>> {
-  /// The parameter `profileId` of this provider.
-  String get profileId;
+mixin ChatNotifierRef on AutoDisposeNotifierProviderRef<ChatState> {
+  /// The parameter `chatType` of this provider.
+  ChatType get chatType;
 }
 
-class _ChatSessionControllerProviderElement
-    extends
-        AutoDisposeAsyncNotifierProviderElement<
-          ChatSessionController,
-          List<ChatSession>
-        >
-    with ChatSessionControllerRef {
-  _ChatSessionControllerProviderElement(super.provider);
+class _ChatNotifierProviderElement
+    extends AutoDisposeNotifierProviderElement<ChatNotifier, ChatState>
+    with ChatNotifierRef {
+  _ChatNotifierProviderElement(super.provider);
 
   @override
-  String get profileId => (origin as ChatSessionControllerProvider).profileId;
-}
-
-String _$chatMessageControllerHash() =>
-    r'c9b46191b3d415fadfb0ebcec284969b71c5064f';
-
-abstract class _$ChatMessageController
-    extends BuildlessAutoDisposeAsyncNotifier<List<ChatMessage>> {
-  late final String sessionId;
-
-  FutureOr<List<ChatMessage>> build(String sessionId);
-}
-
-/// See also [ChatMessageController].
-@ProviderFor(ChatMessageController)
-const chatMessageControllerProvider = ChatMessageControllerFamily();
-
-/// See also [ChatMessageController].
-class ChatMessageControllerFamily
-    extends Family<AsyncValue<List<ChatMessage>>> {
-  /// See also [ChatMessageController].
-  const ChatMessageControllerFamily();
-
-  /// See also [ChatMessageController].
-  ChatMessageControllerProvider call(String sessionId) {
-    return ChatMessageControllerProvider(sessionId);
-  }
-
-  @override
-  ChatMessageControllerProvider getProviderOverride(
-    covariant ChatMessageControllerProvider provider,
-  ) {
-    return call(provider.sessionId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'chatMessageControllerProvider';
-}
-
-/// See also [ChatMessageController].
-class ChatMessageControllerProvider
-    extends
-        AutoDisposeAsyncNotifierProviderImpl<
-          ChatMessageController,
-          List<ChatMessage>
-        > {
-  /// See also [ChatMessageController].
-  ChatMessageControllerProvider(String sessionId)
-    : this._internal(
-        () => ChatMessageController()..sessionId = sessionId,
-        from: chatMessageControllerProvider,
-        name: r'chatMessageControllerProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$chatMessageControllerHash,
-        dependencies: ChatMessageControllerFamily._dependencies,
-        allTransitiveDependencies:
-            ChatMessageControllerFamily._allTransitiveDependencies,
-        sessionId: sessionId,
-      );
-
-  ChatMessageControllerProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.sessionId,
-  }) : super.internal();
-
-  final String sessionId;
-
-  @override
-  FutureOr<List<ChatMessage>> runNotifierBuild(
-    covariant ChatMessageController notifier,
-  ) {
-    return notifier.build(sessionId);
-  }
-
-  @override
-  Override overrideWith(ChatMessageController Function() create) {
-    return ProviderOverride(
-      origin: this,
-      override: ChatMessageControllerProvider._internal(
-        () => create()..sessionId = sessionId,
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        sessionId: sessionId,
-      ),
-    );
-  }
-
-  @override
-  AutoDisposeAsyncNotifierProviderElement<
-    ChatMessageController,
-    List<ChatMessage>
-  >
-  createElement() {
-    return _ChatMessageControllerProviderElement(this);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is ChatMessageControllerProvider &&
-        other.sessionId == sessionId;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, sessionId.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
-}
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin ChatMessageControllerRef
-    on AutoDisposeAsyncNotifierProviderRef<List<ChatMessage>> {
-  /// The parameter `sessionId` of this provider.
-  String get sessionId;
-}
-
-class _ChatMessageControllerProviderElement
-    extends
-        AutoDisposeAsyncNotifierProviderElement<
-          ChatMessageController,
-          List<ChatMessage>
-        >
-    with ChatMessageControllerRef {
-  _ChatMessageControllerProviderElement(super.provider);
-
-  @override
-  String get sessionId => (origin as ChatMessageControllerProvider).sessionId;
+  ChatType get chatType => (origin as ChatNotifierProvider).chatType;
 }
 
 // ignore_for_file: type=lint

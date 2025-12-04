@@ -261,3 +261,31 @@ lib/
 | 2025-12-04 | **Phase 7.2 완료**: Settings & Legal (settings_screen, legal_notice_dialog) | [Claude] | 완료 |
 | 2025-12-04 | **Phase 6 완료**: Context Saju Chatbot (UI, Entity, Edge Function) | [Gemini] | 완료 |
 | 2025-12-04 | **Phase 7 완료**: home_screen 개선, daily_fortune_card, 빌드 에러 87개 수정 | [Claude] | 완료 |
+| 2025-12-04 | **Merge 후 정리**: Gemini 코드 merge 후 빌드 에러 수정 | [Claude] | 완료 |
+
+---
+
+## Phase 9: Merge 후 정리 ✅ [Claude]
+> **목표**: Gemini 협업자 코드 merge 후 빌드 가능하게 정리
+
+### 9.1 수정된 파일
+| 파일 | 변경 내용 | 상태 |
+|------|----------|------|
+| `routes.dart` | 누락 라우트 추가 (home, sajuChart, relationshipList) | ✅ |
+| `gemini_service.dart` | flutter_dotenv → String.fromEnvironment | ✅ |
+| `chat_message_model.dart` | 새 Entity 구조에 맞춤 (status 사용) | ✅ |
+| `chat_session_model.dart` | 새 Entity 구조에 맞춤 (chatType, messages) | ✅ |
+| `chat_local_datasource.dart` | lastMessageAt → updatedAt ?? createdAt | ✅ |
+| `chat_bubble.dart` | import 수정, AppColors.textPrimary | ✅ |
+| `gender_selector.dart` | AppStrings.gender, 상수 수정 | ✅ |
+| `message_role.dart` | 삭제 (중복 - chat_message.dart에 정의됨) | ✅ |
+
+### 9.2 백업된 파일 (MVP 미사용)
+- `supabase_provider.dart.bak`
+- `profile_remote_datasource.dart.bak`
+- `profile_form_provider.dart.bak`
+- `profile_list_screen.dart.bak`
+
+### 9.3 결과
+- ✅ flutter analyze 에러 0개
+- ✅ Chrome에서 앱 정상 실행

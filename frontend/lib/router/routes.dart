@@ -4,14 +4,17 @@ abstract class Routes {
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
 
-  // Menu (홈)
+  // Home & Menu
+  static const String home = '/home';
   static const String menu = '/menu';
 
   // Profile
   static const String profileEdit = '/profile/edit';
+  static const String relationshipList = '/relationships';
 
-  // Saju Chat
+  // Saju
   static const String sajuChat = '/saju/chat';
+  static const String sajuChart = '/saju/chart';
 
   // History
   static const String history = '/history';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/app_colors.dart';
 import 'package:frontend/features/saju_chat/domain/entities/chat_message.dart';
-import 'package:frontend/features/saju_chat/domain/entities/message_role.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -55,7 +54,7 @@ class ChatBubble extends StatelessWidget {
             Text(
               message.content,
               style: TextStyle(
-                color: isUser ? Colors.white : AppColors.text,
+                color: isUser ? Colors.white : AppColors.textPrimary,
                 fontSize: 15,
                 height: 1.4,
               ),

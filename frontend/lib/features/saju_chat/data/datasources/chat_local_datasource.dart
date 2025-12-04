@@ -32,8 +32,12 @@ class ChatLocalDataSource {
       }
     }
 
-    // 최근 메시지 순으로 정렬
-    sessions.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+    // 최근 업데이트 순으로 정렬
+    sessions.sort((a, b) {
+      final aTime = a.updatedAt ?? a.createdAt;
+      final bTime = b.updatedAt ?? b.createdAt;
+      return bTime.compareTo(aTime);
+    });
     return sessions;
   }
 

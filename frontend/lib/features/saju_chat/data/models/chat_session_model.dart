@@ -1,56 +1,42 @@
-import 'package:hive/hive.dart';
 import 'package:frontend/features/saju_chat/domain/entities/chat_session.dart';
+import 'package:frontend/features/saju_chat/domain/models/chat_type.dart';
+import 'chat_message_model.dart';
 
-part 'chat_session_model.g.dart';
-
-@HiveType(typeId: 2) // TypeId 0: SajuProfile, 1: SajuProfileModel (check to avoid conflict)
-class ChatSessionModel extends HiveObject {
-  @HiveField(0)
+/// 채팅 세션 데이터 모델 (Hive 저장용)
+class ChatSessionModel {
   final String id;
-
-  @HiveField(1)
-  final String profileId;
-
-  @HiveField(2)
-  final String title;
-
-  @HiveField(3)
-  final DateTime lastMessageAt;
-
-  @HiveField(4)
+  final String chatType; // ChatType enum as String
+  final List<ChatMessageModel> messages;
   final DateTime createdAt;
-
-  @HiveField(5)
-  final String? targetProfileId;
+  final DateTime? updatedAt;
 
   ChatSessionModel({
     required this.id,
-    required this.profileId,
-    this.targetProfileId,
-    required this.title,
-    required this.lastMessageAt,
+    required this.chatType,
+    required this.messages,
     required this.createdAt,
+    this.updatedAt,
   });
 
   factory ChatSessionModel.fromEntity(ChatSession entity) {
     return ChatSessionModel(
       id: entity.id,
-      profileId: entity.profileId,
-      targetProfileId: entity.targetProfileId,
-      title: entity.title,
-      lastMessageAt: entity.lastMessageAt,
+      chatType: entity.chatType.name,
+      messages: entity.messages
+          .map((m) => ChatMessageModel.fromEntity(m))
+          .toList(),
       createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     );
   }
 
   ChatSession toEntity() {
     return ChatSession(
       id: id,
-      profileId: profileId,
-      targetProfileId: targetProfileId,
-      title: title,
-      lastMessageAt: lastMessageAt,
+      chatType: ChatType.values.byName(chatType),
+      messages: messages.map((m) => m.toEntity()).toList(),
       createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
@@ -58,23 +44,28 @@ class ChatSessionModel extends HiveObject {
   Map<String, dynamic> toHiveMap() {
     return {
       'id': id,
-      'profileId': profileId,
-      'targetProfileId': targetProfileId,
-      'title': title,
-      'lastMessageAt': lastMessageAt.millisecondsSinceEpoch,
+      'chatType': chatType,
+      'messages': messages.map((m) => m.toHiveMap()).toList(),
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'updatedAt': updatedAt?.millisecondsSinceEpoch,
     };
   }
 
   /// Hive Map에서 생성
   static ChatSessionModel fromHiveMap(Map<dynamic, dynamic> map) {
+    final messagesList = (map['messages'] as List?)
+            ?.map((m) => ChatMessageModel.fromHiveMap(m as Map<dynamic, dynamic>))
+            .toList() ??
+        [];
+
     return ChatSessionModel(
       id: map['id'] as String,
-      profileId: map['profileId'] as String,
-      targetProfileId: map['targetProfileId'] as String?,
-      title: map['title'] as String,
-      lastMessageAt: DateTime.fromMillisecondsSinceEpoch(map['lastMessageAt'] as int),
+      chatType: map['chatType'] as String,
+      messages: messagesList,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int)
+          : null,
     );
   }
 }
