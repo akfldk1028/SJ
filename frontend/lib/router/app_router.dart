@@ -6,11 +6,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'routes.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
-import '../features/home/presentation/screens/home_screen.dart';
-import '../features/home/presentation/screens/main_scaffold.dart';
+import '../features/menu/presentation/screens/menu_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
-import '../features/profile/presentation/screens/relationship_list_screen.dart';
-import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_screen.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -33,34 +30,10 @@ GoRouter appRouter(Ref ref) {
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      ShellRoute(
-        builder: (context, state, child) {
-          return MainScaffold(child: child);
-        },
-        routes: [
-          GoRoute(
-            path: Routes.home,
-            name: 'home',
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: Routes.relationshipList,
-            name: 'relationshipList',
-            builder: (context, state) => const RelationshipListScreen(),
-          ),
-          GoRoute(
-            path: Routes.sajuChat,
-            name: 'sajuChat',
-            builder: (context, state) {
-              final profileId = state.uri.queryParameters['profileId'] ?? '';
-              final sessionId = state.uri.queryParameters['sessionId'];
-              return SajuChatScreen(
-                profileId: profileId,
-                sessionId: sessionId,
-              );
-            },
-          ),
-        ],
+      GoRoute(
+        path: Routes.menu,
+        name: 'menu',
+        builder: (context, state) => const MenuScreen(),
       ),
       GoRoute(
         path: Routes.profileEdit,
@@ -68,9 +41,13 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const ProfileEditScreen(),
       ),
       GoRoute(
-        path: Routes.sajuChart,
-        name: 'sajuChart',
-        builder: (context, state) => const SajuChartScreen(),
+        path: Routes.sajuChat,
+        name: 'sajuChat',
+        builder: (context, state) {
+          // Query parameter에서 chatType 가져오기
+          final chatType = state.uri.queryParameters['type'];
+          return SajuChatScreen(chatType: chatType);
+        },
       ),
       GoRoute(
         path: Routes.history,

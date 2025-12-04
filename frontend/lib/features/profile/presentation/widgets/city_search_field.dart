@@ -4,73 +4,103 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../providers/profile_provider.dart';
 
-/// 도시 선택 위젯
+/// 도시 검색 입력 위젯
 ///
-/// ShadSelect 드롭다운으로 전환
-/// 전체 도시 목록을 바로 선택 가능
-class CitySearchField extends ConsumerWidget {
+/// ShadInput + Autocomplete
+/// 25개 도시 목록에서 검색 및 선택
+class CitySearchField extends ConsumerStatefulWidget {
   const CitySearchField({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final formState = ref.watch(profileFormProvider);
-    final cities = TrueSolarTimeService.searchableCities;
+  ConsumerState<CitySearchField> createState() => _CitySearchFieldState();
+}
 
+class _CitySearchFieldState extends ConsumerState<CitySearchField> {
+  late final TextEditingController _controller;
+
+  // 도시 목록 (TrueSolarTimeService에서 가져오기)
+  static final List<String> _cities =
+      TrueSolarTimeService.cityLongitude.keys.where((k) => k != 'default').toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+
+    // 초기값 설정
+    final formState = ref.read(profileFormProvider);
+    _controller.text = formState.birthCity;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '출생 도시',
+          '도시',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        ShadSelect<String>(
-          placeholder: const Text('출생 도시를 선택하세요'),
-          initialValue: formState.birthCity.isNotEmpty ? formState.birthCity : null,
-          selectedOptionBuilder: (context, value) {
-            final correction = TrueSolarTimeService.getLongitudeCorrectionMinutes(value);
-            final correctionText = correction >= 0
-                ? '+${correction.round()}분'
-                : '${correction.round()}분';
-            return Text('$value ($correctionText)');
+        Autocomplete<String>(
+          optionsBuilder: (textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return _cities;
+            }
+            return _cities.where((city) {
+              return city.contains(textEditingValue.text);
+            });
           },
-          options: cities.map((city) {
-            final correction = TrueSolarTimeService.getLongitudeCorrectionMinutes(city);
-            final correctionText = correction >= 0
-                ? '+${correction.round()}분'
-                : '${correction.round()}분';
-            return ShadOption(
-              value: city,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(city),
-                  Text(
-                    correctionText,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+          onSelected: (city) {
+            _controller.text = city;
+            ref.read(profileFormProvider.notifier).updateBirthCity(city);
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            // Autocomplete의 controller 무시하고 우리 controller 사용
+            return ShadInput(
+              controller: _controller,
+              focusNode: focusNode,
+              placeholder: const Text('도시명을 입력하세요'),
+              trailing: const Icon(Icons.search, size: 20),
+              onChanged: (value) {
+                ref.read(profileFormProvider.notifier).updateBirthCity(value);
+              },
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(8),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight: 200,
+                    maxWidth: 300,
                   ),
-                ],
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    itemBuilder: (context, index) {
+                      final city = options.elementAt(index);
+                      return ListTile(
+                        title: Text(city),
+                        onTap: () => onSelected(city),
+                      );
+                    },
+                  ),
+                ),
               ),
             );
-          }).toList(),
-          onChanged: (city) {
-            if (city != null) {
-              ref.read(profileFormProvider.notifier).updateBirthCity(city);
-            }
           },
         ),
-        // 선택된 도시의 보정 시간 표시
-        if (formState.birthCity.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            '진태양시 보정: ${formState.timeCorrection >= 0 ? '+${formState.timeCorrection}' : formState.timeCorrection}분 (경도 기준)',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
       ],
     );
   }

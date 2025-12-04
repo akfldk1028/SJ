@@ -1,46 +1,60 @@
 import 'package:flutter/material.dart';
 
-/// 앱 컬러 팔레트
+/// Modern Minimal Dark Theme Color Palette
+/// Based on shadcn/ui zinc palette
 abstract class AppColors {
-  // Primary Colors - 사주/운세 느낌의 딥 퍼플/인디고 계열
-  static const Color primary = Color(0xFF5C6BC0);
-  static const Color primaryLight = Color(0xFF8E99A4);
-  static const Color primaryDark = Color(0xFF3949AB);
+  // ===== Background Colors (zinc scale) =====
+  static const Color background = Color(0xFF09090B);      // zinc-950
+  static const Color backgroundElevated = Color(0xFF0C0C0E); // slightly lighter
 
-  // Secondary Colors - 골드 계열 (운세/행운 느낌)
-  static const Color secondary = Color(0xFFFFB300);
-  static const Color secondaryLight = Color(0xFFFFE54C);
-  static const Color secondaryDark = Color(0xFFC68400);
+  // ===== Surface Colors =====
+  static const Color surface = Color(0xFF18181B);         // zinc-900
+  static const Color surfaceElevated = Color(0xFF1F1F23); // between 900-800
+  static const Color surfaceHover = Color(0xFF27272A);    // zinc-800
 
-  // Background Colors
-  static const Color backgroundLight = Color(0xFFF5F5F5);
-  static const Color backgroundDark = Color(0xFF121212);
-  static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color surfaceDark = Color(0xFF1E1E1E);
-  static const Color surface = surfaceLight; // alias for chat_bubble
+  // ===== Border Colors =====
+  static const Color border = Color(0xFF27272A);          // zinc-800
+  static const Color borderSubtle = Color(0xFF1F1F23);    // subtle border
 
-  // Border Colors
-  static const Color border = Color(0xFFE0E0E0);
+  // ===== Text Colors =====
+  static const Color textPrimary = Color(0xFFFAFAFA);     // zinc-50
+  static const Color textSecondary = Color(0xFFA1A1AA);   // zinc-400
+  static const Color textMuted = Color(0xFF71717A);       // zinc-500
+  static const Color textSubtle = Color(0xFF52525B);      // zinc-600
 
-  // Text Colors (aliases for chat_bubble)
-  static const Color text = textPrimary;
+  // ===== Accent Color (single, subtle) =====
+  static const Color accent = Color(0xFF8B5CF6);          // violet-500
+  static const Color accentMuted = Color(0xFF7C3AED);     // violet-600
+  static const Color accentSubtle = Color(0xFF6D28D9);    // violet-700
 
-  // Chat Bubble Colors
-  static const Color userBubble = Color(0xFF5C6BC0);
-  static const Color aiBubble = Color(0xFFE8EAF6);
-  static const Color aiBubbleDark = Color(0xFF303F9F);
+  // ===== Element Colors (muted, sophisticated) =====
+  static const Color wood = Color(0xFF4ADE80);            // green-400
+  static const Color fire = Color(0xFFF87171);            // red-400
+  static const Color earth = Color(0xFFFBBF24);           // amber-400
+  static const Color metal = Color(0xFFE5E7EB);           // gray-200
+  static const Color water = Color(0xFF60A5FA);           // blue-400
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textOnPrimary = Color(0xFFFFFFFF);
+  // ===== Semantic Colors =====
+  static const Color success = Color(0xFF22C55E);         // green-500
+  static const Color warning = Color(0xFFF59E0B);         // amber-500
+  static const Color error = Color(0xFFEF4444);           // red-500
+  static const Color info = Color(0xFF3B82F6);            // blue-500
 
-  // Semantic Colors
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
-  static const Color error = Color(0xFFF44336);
-  static const Color info = Color(0xFF2196F3);
+  // ===== Chart/Score Colors =====
+  static const Color scoreHigh = Color(0xFF4ADE80);       // green
+  static const Color scoreMedium = Color(0xFFFBBF24);     // amber
+  static const Color scoreLow = Color(0xFFF87171);        // red
 
-  // Divider
-  static const Color divider = Color(0xFFBDBDBD);
+  // ===== Gradient helpers =====
+  static const List<Color> accentGradient = [
+    Color(0xFF8B5CF6),
+    Color(0xFF6366F1),
+  ];
+
+  // ===== Legacy support =====
+  static const Color primary = accent;
+  static const Color primaryLight = Color(0xFFA78BFA);
+  static const Color primaryDark = accentSubtle;
+  static const Color secondary = Color(0xFFFBBF24);
+  static const Color divider = border;
 }

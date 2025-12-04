@@ -32,8 +32,8 @@
 ### 2.1 만톡 앱 Feature-First 구조
 ```
 lib/
-├── main.dart                    # 앱 진입점
-├── app.dart                     # MaterialApp 설정
+├── main.dart                    # 앱 진입점 (ShadcnApp.router 설정)
+├── app.dart                     # 앱 설정 (shadcn_flutter 테마)
 │
 ├── core/                        # 앱 전역 공통
 │   ├── constants/               # 상수
@@ -646,40 +646,44 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # UI 프레임워크
+  shadcn_flutter: ^0.0.28             # shadcn/ui 스타일 Flutter UI
+
   # Supabase
   supabase_flutter: ^2.3.0
 
   # 상태 관리
-  flutter_riverpod: ^2.4.0
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
 
   # 라우팅
-  go_router: ^12.0.0
+  go_router: ^14.6.2
 
-  # 네트워크 (Supabase 외 추가 API용)
-  dio: ^5.3.0
+  # AI
+  google_generative_ai: ^0.4.6        # Gemini 2.0 Flash
 
   # 로컬 저장소
-  flutter_secure_storage: ^9.0.0
-  shared_preferences: ^2.2.0
   hive_flutter: ^1.1.0
 
   # 유틸리티
-  freezed_annotation: ^2.4.0
-  json_annotation: ^4.8.0
-  equatable: ^2.0.0
-  uuid: ^4.2.0
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  uuid: ^4.5.1
 
   # 환경 변수
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   # 코드 생성
-  build_runner: ^2.4.0
-  freezed: ^2.4.0
-  json_serializable: ^6.7.0
+  build_runner: ^2.4.14
+  freezed: ^2.5.8
+  json_serializable: ^6.9.0
+  riverpod_generator: ^2.6.4
+  custom_lint:
+  riverpod_lint: ^2.6.4
 
   # 테스트
   mockito: ^5.4.0
@@ -733,7 +737,33 @@ RepaintBoundary(
 )
 ```
 
-### 13.4 린트 설정 (analysis_options.yaml)
+### 13.4 shadcn_flutter 위젯 패턴
+```dart
+// 테마 접근
+final theme = Theme.of(context);
+
+// 색상 사용
+theme.colorScheme.primary
+theme.colorScheme.secondary
+theme.colorScheme.mutedForeground
+
+// 타이포그래피 사용
+theme.typography.h1
+theme.typography.base
+theme.typography.small.copyWith(color: theme.colorScheme.mutedForeground)
+
+// 투명도 조절 (scaleAlpha 사용)
+color.scaleAlpha(0.5)  // ✅
+// color.withOpacity(0.5)  // ❌ 사용하지 않음
+
+// Scaffold 구조
+Scaffold(
+  headers: [AppBar(...)],
+  child: ...,
+)
+```
+
+### 13.5 린트 설정 (analysis_options.yaml)
 ```yaml
 linter:
   rules:
@@ -742,6 +772,284 @@ linter:
     prefer_const_literals_to_create_immutables: true
     avoid_unnecessary_containers: true
     sized_box_for_whitespace: true
+```
+
+---
+
+## 14. 레이어 의존성 규칙 (핵심!)
+
+> Flutter Clean Architecture의 핵심은 **의존성 방향**입니다.
+
+### 14.1 의존성 방향 다이어그램
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Presentation Layer                         │
+│            (Screens, Widgets, Providers)                     │
+│                         │                                    │
+│                         │ depends on                         │
+│                         ▼                                    │
+├─────────────────────────────────────────────────────────────┤
+│                     Domain Layer                             │
+│           (Entities, Repository Interfaces)                  │
+│                         ▲                                    │
+│                         │ depends on                         │
+│                         │                                    │
+├─────────────────────────────────────────────────────────────┤
+│                      Data Layer                              │
+│        (Models, DataSources, Repository Impl)                │
+└─────────────────────────────────────────────────────────────┘
+
+의존성 방향: Presentation → Domain ← Data
+(Domain이 중심, 아무것도 의존하지 않음)
+```
+
+### 14.2 레이어별 규칙
+
+#### Domain Layer (가장 안쪽, 순수)
+```dart
+// ✅ 허용
+import 'dart:core';
+import 'package:equatable/equatable.dart';  // 순수 Dart 패키지만
+
+// ❌ 금지
+import 'package:flutter/material.dart';     // Flutter 의존성
+import 'package:supabase_flutter/...';      // 외부 서비스
+import '../data/...';                        // Data Layer
+import '../presentation/...';                // Presentation Layer
+```
+
+**포함 요소:**
+- `entities/` - 비즈니스 객체 (순수 Dart 클래스)
+- `repositories/` - Repository 인터페이스 (abstract class)
+- `usecases/` - 비즈니스 로직 (선택적)
+
+#### Data Layer (중간)
+```dart
+// ✅ 허용
+import '../domain/entities/...';            // Domain Entity
+import '../domain/repositories/...';        // Domain Repository Interface
+import 'package:supabase_flutter/...';      // 외부 서비스
+import 'package:hive/hive.dart';            // 로컬 저장소
+
+// ❌ 금지
+import '../presentation/...';                // Presentation Layer
+import 'package:flutter/material.dart';     // Flutter UI (필요 없음)
+```
+
+**포함 요소:**
+- `models/` - Entity를 상속하고 JSON 변환 추가
+- `datasources/` - Remote/Local 데이터 접근
+- `repositories/` - Repository 구현체
+
+#### Presentation Layer (가장 바깥)
+```dart
+// ✅ 허용
+import '../domain/entities/...';            // Domain Entity
+import '../domain/repositories/...';        // Domain Repository (DI로 주입)
+import 'package:flutter/material.dart';     // Flutter UI
+import 'package:flutter_riverpod/...';      // 상태 관리
+
+// ❌ 금지
+import '../data/datasources/...';           // Data Layer 직접 접근
+import '../data/models/...';                // Model 직접 사용 (Entity 사용)
+```
+
+**포함 요소:**
+- `providers/` - Riverpod Provider
+- `screens/` - 화면 위젯
+- `widgets/` - 재사용 위젯
+
+### 14.3 의존성 주입 (DI) 패턴
+```dart
+// Domain Layer - Repository Interface
+abstract class ProfileRepository {
+  Future<List<SajuProfile>> getProfiles();
+}
+
+// Data Layer - Repository Implementation
+class ProfileRepositoryImpl implements ProfileRepository {
+  final SupabaseClient _client;
+  ProfileRepositoryImpl(this._client);
+
+  @override
+  Future<List<SajuProfile>> getProfiles() async {
+    // Supabase 호출
+  }
+}
+
+// Presentation Layer - Provider (DI 연결)
+@riverpod
+ProfileRepository profileRepository(Ref ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return ProfileRepositoryImpl(client);  // 구현체 주입
+}
+
+// Presentation Layer - 사용
+@riverpod
+Future<List<SajuProfile>> profileList(Ref ref) async {
+  final repo = ref.watch(profileRepositoryProvider);  // Interface로 접근
+  return repo.getProfiles();
+}
+```
+
+### 14.4 왜 이렇게 해야 하는가?
+
+| 이점 | 설명 |
+|------|------|
+| **테스트 용이** | Domain Layer를 독립적으로 테스트 가능 |
+| **유지보수** | Supabase → Firebase 변경 시 Data Layer만 수정 |
+| **확장성** | 새 기능 추가 시 영향 범위 최소화 |
+| **협업** | 레이어별 담당자 분리 가능 |
+
+---
+
+## 15. Import 규칙
+
+### 15.1 절대 경로 사용 (권장)
+```dart
+// ✅ 권장 - 절대 경로 (package:)
+import 'package:mantok/features/profile/domain/entities/saju_profile.dart';
+import 'package:mantok/core/constants/app_colors.dart';
+
+// ❌ 지양 - 상대 경로 (같은 feature 내에서만 허용)
+import '../../../core/constants/app_colors.dart';
+```
+
+### 15.2 Import 순서
+```dart
+// 1. Dart 기본 패키지
+import 'dart:async';
+import 'dart:convert';
+
+// 2. Flutter 패키지
+import 'package:flutter/material.dart';
+
+// 3. 외부 패키지 (pub.dev)
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// 4. 프로젝트 내부 패키지 - core
+import 'package:mantok/core/constants/app_colors.dart';
+
+// 5. 프로젝트 내부 패키지 - features (같은 feature)
+import 'package:mantok/features/profile/domain/entities/saju_profile.dart';
+
+// 6. 상대 경로 (같은 폴더 내)
+import 'saju_profile_model.dart';
+```
+
+### 15.3 Barrel File (선택적)
+```dart
+// features/profile/domain/domain.dart (barrel file)
+export 'entities/saju_profile.dart';
+export 'repositories/profile_repository.dart';
+
+// 사용처
+import 'package:mantok/features/profile/domain/domain.dart';
+// → SajuProfile, ProfileRepository 모두 사용 가능
+```
+
+---
+
+## 16. Feature 간 통신 규칙
+
+### 16.1 원칙
+```
+Feature A ──X──> Feature B (직접 import 금지)
+     │                │
+     └──────┬─────────┘
+            ▼
+      shared/ 또는 core/
+```
+
+### 16.2 통신 방법
+
+#### 방법 1: shared/ 모듈 사용
+```dart
+// shared/models/common_types.dart
+enum Gender { male, female }
+
+// Feature A, B 모두에서 사용
+import 'package:mantok/shared/models/common_types.dart';
+```
+
+#### 방법 2: Provider를 통한 간접 참조
+```dart
+// Feature A의 Provider
+@riverpod
+SajuProfile? activeProfile(Ref ref) => ...;
+
+// Feature B에서 사용 (Provider만 import)
+@riverpod
+Future<void> startChat(Ref ref) async {
+  final profile = ref.watch(activeProfileProvider);
+  // profile 사용
+}
+```
+
+#### 방법 3: Event/Callback 패턴
+```dart
+// core/events/app_events.dart
+class ProfileChangedEvent {
+  final String profileId;
+  ProfileChangedEvent(this.profileId);
+}
+
+// Event Bus 또는 Riverpod의 ref.listen 사용
+```
+
+### 16.3 Feature 간 의존성 매트릭스
+```
+              profile  saju_chart  saju_chat  history  settings
+profile         -          X           X         X         X
+saju_chart     ✓          -           X         X         X
+saju_chat      ✓          ✓           -         X         X
+history        ✓          X           ✓         -         X
+settings       ✓          X           X         X         -
+
+✓ = 의존 가능 (Provider 통해)
+X = 의존 불가
+```
+
+---
+
+## 17. 폴더 구조 검증 체크리스트
+
+### 17.1 새 Feature 추가 시
+```
+□ domain/ 폴더에 Flutter import 없는지 확인
+□ data/ 폴더에 presentation/ import 없는지 확인
+□ presentation/ 폴더에 data/ 직접 import 없는지 확인
+□ 다른 feature 직접 import 없는지 확인
+□ Entity는 순수 Dart 클래스인지 확인
+□ Repository Interface가 domain/에 있는지 확인
+□ Repository Impl이 data/에 있는지 확인
+```
+
+### 17.2 dart analyze 활용
+```bash
+# 전체 분석
+flutter analyze
+
+# 특정 폴더만
+flutter analyze lib/features/profile/
+```
+
+### 17.3 커스텀 린트 규칙 (analysis_options.yaml)
+```yaml
+analyzer:
+  errors:
+    # import 규칙 위반 시 에러
+    import_of_legacy_library_into_null_safe: error
+
+linter:
+  rules:
+    # import 관련
+    directives_ordering: true
+    always_use_package_imports: true  # 절대 경로 강제
+
+    # 아키텍처 관련
+    avoid_relative_lib_imports: true
 ```
 
 ---
@@ -757,3 +1065,6 @@ linter:
 - [x] Supabase 연동 설정 추가
 - [x] Supabase Auth/DB/Edge Functions 예시 코드
 - [x] Widget 설계 원칙 정의
+- [x] 레이어 의존성 규칙 정의
+- [x] Import 규칙 정의
+- [x] Feature 간 통신 규칙 정의

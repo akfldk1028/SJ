@@ -1,91 +1,65 @@
-import 'package:frontend/features/saju_chat/data/datasources/chat_local_datasource.dart';
-import 'package:frontend/features/saju_chat/data/models/chat_message_model.dart';
-import 'package:frontend/features/saju_chat/data/models/chat_session_model.dart';
-import 'package:frontend/features/saju_chat/domain/entities/chat_message.dart';
-import 'package:frontend/features/saju_chat/domain/entities/chat_session.dart';
-import 'package:frontend/features/saju_chat/domain/entities/message_role.dart';
-import 'package:frontend/features/saju_chat/domain/repositories/chat_repository.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../domain/entities/chat_message.dart';
+import '../../domain/repositories/chat_repository.dart';
+import '../datasources/gemini_datasource.dart';
+
+/// ChatRepository 구현체
+///
+/// GeminiDatasource를 사용하여 AI 통신
 class ChatRepositoryImpl implements ChatRepository {
-  final ChatLocalDataSource _localDataSource;
-  final Uuid _uuid;
+  final GeminiDatasource _datasource;
+  final _uuid = const Uuid();
 
   ChatRepositoryImpl({
-    required ChatLocalDataSource localDataSource,
-    Uuid uuid = const Uuid(),
-  })  : _localDataSource = localDataSource,
-        _uuid = uuid;
-
-  @override
-  Future<ChatSession> createSession({
-    required String profileId,
-    String? targetProfileId,
-    String? title,
-  }) async {
-    final now = DateTime.now();
-    final session = ChatSession(
-      id: _uuid.v4(),
-      profileId: profileId,
-      targetProfileId: targetProfileId,
-      title: title ?? '새로운 상담',
-      lastMessageAt: now,
-      createdAt: now,
-    );
-
-    await _localDataSource.saveSession(ChatSessionModel.fromEntity(session));
-    return session;
-  }
-
-  @override
-  Future<void> deleteSession(String sessionId) async {
-    await _localDataSource.deleteSession(sessionId);
-  }
-
-  @override
-  Future<List<ChatMessage>> getMessages(String sessionId) async {
-    final models = await _localDataSource.getMessages(sessionId);
-    return models.map((m) => m.toEntity()).toList();
-  }
-
-  @override
-  Future<List<ChatSession>> getSessions(String profileId) async {
-    final models = await _localDataSource.getSessions(profileId);
-    return models.map((m) => m.toEntity()).toList();
-  }
+    GeminiDatasource? datasource,
+  }) : _datasource = datasource ?? GeminiDatasource();
 
   @override
   Future<ChatMessage> sendMessage({
-    required String sessionId,
-    required String content,
+    required String userMessage,
+    required List<ChatMessage> conversationHistory,
+    required String systemPrompt,
   }) async {
-    // 1. 사용자 메시지 저장
-    final userMessage = ChatMessage(
-      id: _uuid.v4(),
-      sessionId: sessionId,
-      role: MessageRole.user,
-      content: content,
-      createdAt: DateTime.now(),
-    );
-    await _localDataSource.saveMessage(ChatMessageModel.fromEntity(userMessage));
+    // 첫 메시지면 세션 시작
+    if (conversationHistory.isEmpty) {
+      _datasource.initialize();
+      _datasource.startNewSession(systemPrompt);
+    }
 
-    // 세션 업데이트 (마지막 메시지 시간)
-    // TODO: 세션 타이틀 업데이트 로직 추가 가능 (첫 메시지 내용으로)
-    // await _updateSessionTimestamp(sessionId);
+    try {
+      final response = await _datasource.sendMessage(userMessage);
 
-    // 2. AI 응답 시뮬레이션 (Mock)
-    // TODO: 실제 Supabase Edge Function 호출로 교체 필요
-    await Future.delayed(const Duration(seconds: 1)); // 네트워크 지연 시뮬레이션
+      return ChatMessage(
+        id: _uuid.v4(),
+        content: response,
+        role: MessageRole.assistant,
+        createdAt: DateTime.now(),
+        status: MessageStatus.sent,
+      );
+    } catch (e) {
+      return ChatMessage(
+        id: _uuid.v4(),
+        content: '죄송합니다. 응답을 받는 중 오류가 발생했습니다.',
+        role: MessageRole.assistant,
+        createdAt: DateTime.now(),
+        status: MessageStatus.error,
+      );
+    }
+  }
 
-    final aiMessage = ChatMessage(
-      id: _uuid.v4(),
-      sessionId: sessionId,
-      role: MessageRole.assistant,
-      content: '안녕하세요! 사주에 대해 궁금한 점이 있으신가요? (Mock Response)',
-      createdAt: DateTime.now(),
-    );
-    await _localDataSource.saveMessage(ChatMessageModel.fromEntity(aiMessage));
+  @override
+  Stream<String> sendMessageStream({
+    required String userMessage,
+    required List<ChatMessage> conversationHistory,
+    required String systemPrompt,
+  }) {
+    // 첫 메시지면 세션 시작
+    if (conversationHistory.isEmpty) {
+      _datasource.initialize();
+      _datasource.startNewSession(systemPrompt);
+    }
 
-    return aiMessage;
+    return _datasource.sendMessageStream(userMessage);
   }
 }

@@ -11,7 +11,7 @@ part 'saju_profile_model.g.dart';
 /// Entity를 확장하여 JSON/Hive 직렬화 기능 추가
 /// Hive TypeAdapter를 사용하지 않고 Map으로 저장
 @freezed
-class SajuProfileModel with _$SajuProfileModel {
+abstract class SajuProfileModel with _$SajuProfileModel {
   const factory SajuProfileModel({
     required String id,
     required String displayName,

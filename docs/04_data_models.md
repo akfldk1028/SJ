@@ -637,8 +637,11 @@ CREATE TABLE public.saju_profiles (
   birth_time_minutes INTEGER,  -- 0~1439 (분 단위)
   birth_time_unknown BOOLEAN DEFAULT FALSE,
   is_lunar BOOLEAN DEFAULT FALSE,
+  is_leap_month BOOLEAN DEFAULT FALSE,  -- 음력 윤달 여부
   gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
-  birth_place TEXT,
+  birth_city TEXT NOT NULL,  -- 출생 도시 (진태양시 계산용)
+  use_ya_jasi BOOLEAN DEFAULT TRUE,  -- 야자시/조자시 설정
+  time_correction INTEGER DEFAULT 0,  -- 진태양시 보정값 (분 단위)
   is_active BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

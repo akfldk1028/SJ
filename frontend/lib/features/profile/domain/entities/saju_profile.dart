@@ -9,7 +9,7 @@ part 'saju_profile.freezed.dart';
 /// 사용자의 생년월일시 정보를 담는 도메인 모델
 /// 만세력 계산 및 AI 사주 상담의 기본 데이터
 @freezed
-class SajuProfile with _$SajuProfile {
+abstract class SajuProfile with _$SajuProfile {
   const factory SajuProfile({
     /// 프로필 고유 ID
     required String id,
