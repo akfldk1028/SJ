@@ -287,7 +287,10 @@ class SajuChartScreen extends ConsumerWidget {
 
           // 하단 버튼들
           ShadButton(
-            onPressed: () => context.go(Routes.sajuChat),
+            onPressed: () {
+              final profileId = (profile as dynamic).id; // Assuming profile has id
+              context.go(Uri(path: Routes.sajuChat, queryParameters: {'profileId': profileId}).toString());
+            },
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

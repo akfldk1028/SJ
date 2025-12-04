@@ -21,7 +21,7 @@
 | Phase 4 (Profile) | ✅ **완료** |
 | Phase 4.5 (UI 개선) | ✅ **완료** |
 | Phase 8 (만세력 로직) | ✅ **완료** (화면 포함) |
-| **다음 작업** | **Phase 5: Saju Chat (AI 사주 상담)** |
+| **현재 작업** | **Phase 5: Saju Chat (AI 사주 상담) - 진행중 (Gemini)** |
 
 ---
 

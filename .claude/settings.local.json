@@ -6,7 +6,8 @@
       "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" --version)",
       "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" pub get)",
       "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\dart.bat\" run build_runner build --delete-conflicting-outputs)",
-      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" analyze)"
+      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" analyze)",
+      "Bash(\"C:\\Users\\SOGANG\\flutter\\flutter\\bin\\flutter.bat\" run -d chrome --web-port=8080)"
     ],
     "deny": [],
     "ask": []

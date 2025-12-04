@@ -43,7 +43,14 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: Routes.sajuChat,
         name: 'sajuChat',
-        builder: (context, state) => const SajuChatScreen(),
+        builder: (context, state) {
+          final profileId = state.uri.queryParameters['profileId'] ?? '';
+          final sessionId = state.uri.queryParameters['sessionId'];
+          return SajuChatScreen(
+            profileId: profileId,
+            sessionId: sessionId,
+          );
+        },
       ),
       GoRoute(
         path: Routes.history,
