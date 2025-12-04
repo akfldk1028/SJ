@@ -67,7 +67,7 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
               controller: _controller,
               focusNode: focusNode,
               placeholder: const Text('도시명을 입력하세요'),
-              suffix: const Icon(Icons.search, size: 20),
+              trailing: const Icon(Icons.search, size: 20),
               onChanged: (value) {
                 ref.read(profileFormProvider.notifier).updateBirthCity(value);
               },

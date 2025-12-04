@@ -11,7 +11,7 @@ class BirthTimeOptions extends ConsumerWidget {
   const BirthTimeOptions({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final formState = ref.watch(profileFormProvider);
 
     return Column(

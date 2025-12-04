@@ -72,14 +72,14 @@ class _GenderButton extends StatelessWidget {
     if (isSelected) {
       return ShadButton(
         width: double.infinity,
-        text: Text(label),
+        child: Text(label),
         onPressed: onTap,
       );
     }
 
     return ShadButton.outline(
       width: double.infinity,
-      text: Text(label),
+      child: Text(label),
       onPressed: onTap,
     );
   }

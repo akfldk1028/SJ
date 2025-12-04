@@ -85,7 +85,7 @@ class BirthTimePicker extends ConsumerWidget {
               ],
             ),
             Expanded(
-              child: CupertinoTimePicker(
+              child: CupertinoTimerPicker(
                 mode: CupertinoTimerPickerMode.hm,
                 initialTimerDuration: Duration(
                   hours: initialHour,

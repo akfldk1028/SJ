@@ -4,10 +4,13 @@ abstract class Routes {
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
 
+  // Menu (홈)
+  static const String menu = '/menu';
+
   // Profile
   static const String profileEdit = '/profile/edit';
 
-  // Saju Chat (메인 화면)
+  // Saju Chat
   static const String sajuChat = '/saju/chat';
 
   // History

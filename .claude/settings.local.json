@@ -23,7 +23,20 @@
       "Bash(cmd /c \"del /q D:\\Data\\20_Flutter\\01_SJ\\.claude\\commands\\*.md\")",
       "Bash(cmd /c \"mkdir D:\\Data\\20_Flutter\\01_SJ\\.claude\\logs\")",
       "SlashCommand(/todo:*)",
-      "SlashCommand(/build profile_input)"
+      "SlashCommand(/build profile_input)",
+      "Bash(cmd /c \"dir D:\\Data\\20_Flutter\\01_SJ /b\")",
+      "Bash(flutter run:*)",
+      "Bash(cmd /c \"cd /d D:\\Data\\20_Flutter\\01_SJ\\frontend && flutter run\")",
+      "Bash(cmd /c:*)",
+      "WebFetch(domain:pub.dev)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(flutter pub:*)",
+      "Bash(cd:*)",
+      "Bash(dart run build_runner:*)",
+      "mcp__memory__create_entities",
+      "mcp__memory__add_observations",
+      "Bash(flutter analyze:*)"
     ],
     "deny": [],
     "ask": []

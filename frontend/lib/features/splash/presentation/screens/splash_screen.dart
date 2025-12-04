@@ -22,8 +22,8 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      // TODO: 온보딩 완료 여부 확인 후 라우팅
-      context.go(Routes.onboarding);
+      // 메뉴 화면으로 이동 (나중에 온보딩 완료 여부 확인 로직 추가)
+      context.go(Routes.menu);
     }
   }
 

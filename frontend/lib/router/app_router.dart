@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'routes.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../features/menu/presentation/screens/menu_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_screen.dart';
 import '../features/history/presentation/screens/history_screen.dart';
@@ -30,6 +31,11 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
+        path: Routes.menu,
+        name: 'menu',
+        builder: (context, state) => const MenuScreen(),
+      ),
+      GoRoute(
         path: Routes.profileEdit,
         name: 'profileEdit',
         builder: (context, state) => const ProfileEditScreen(),
@@ -37,7 +43,11 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: Routes.sajuChat,
         name: 'sajuChat',
-        builder: (context, state) => const SajuChatScreen(),
+        builder: (context, state) {
+          // Query parameter에서 chatType 가져오기
+          final chatType = state.uri.queryParameters['type'];
+          return SajuChatScreen(chatType: chatType);
+        },
       ),
       GoRoute(
         path: Routes.history,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 /// 만톡 앱 루트 위젯
 class MantokApp extends ConsumerWidget {
@@ -11,14 +13,26 @@ class MantokApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final currentTheme = ref.watch(currentThemeDataProvider);
+    final themeExt = ref.watch(currentThemeExtensionProvider);
 
-    return MaterialApp.router(
-      title: '만톡',
+    return ShadApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      routerConfig: router,
+      materialThemeBuilder: (context, theme) {
+        return ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: themeExt.primaryColor,
+            brightness: themeExt.isDark ? Brightness.dark : Brightness.light,
+          ),
+          useMaterial3: true,
+        );
+      },
+      home: MaterialApp.router(
+        title: '만톡',
+        debugShowCheckedModeBanner: false,
+        theme: currentTheme,
+        routerConfig: router,
+      ),
     );
   }
 }

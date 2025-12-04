@@ -21,9 +21,11 @@ class BirthDatePicker extends ConsumerWidget {
           ref.read(profileFormProvider.notifier).updateBirthDate(date);
         }
       },
-      // 1900년부터 현재까지만 선택 가능
-      minDate: DateTime(1900, 1, 1),
-      maxDate: DateTime.now(),
+      // selectableDayPredicate로 날짜 범위 제한 (1900년 ~ 현재)
+      selectableDayPredicate: (date) {
+        return date.isAfter(DateTime(1899, 12, 31)) &&
+               date.isBefore(DateTime.now().add(const Duration(days: 1)));
+      },
     );
   }
 }
