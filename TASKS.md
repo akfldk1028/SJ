@@ -276,9 +276,18 @@ lib/
 | 세운 | 1년 단위 운 | ✅ |
 
 ### 8.7 다음 단계 (TODO)
+- [ ] **MenuScreen의 SajuTable을 실제 만세력 로직으로 연결** ⚠️ 현재 Mock 데이터 사용 중
 - [ ] UI에 상세 분석 결과 표시 (십신, 지장간, 용신 등)
 - [ ] 대운/세운 화면 구현
 - [ ] 포스텔러 결과와 비교 검증
+
+### 8.8 발견 사항 (2025-12-06)
+| 화면 | 데이터 소스 | 상태 |
+|------|-------------|------|
+| `MenuScreen > SajuTable` | `MockFortuneData` (하드코딩) | ⚠️ Mock 사용 |
+| `SajuChartScreen` | `SajuCalculationService` (실제 로직) | ✅ 실제 만세력 로직 |
+
+**문제**: `menu/presentation/widgets/saju_table.dart`가 `MockFortuneData.sajuPillarsDetailed`를 사용하여 하드코딩된 데이터(己亥, 辛酉, 戊寅, 庚辰)를 표시 중. 사용자 프로필과 연동 필요.
 
 ---
 
@@ -302,6 +311,7 @@ lib/
 | 2025-12-04 | **Phase 7 완료**: home_screen 개선, daily_fortune_card, 빌드 에러 87개 수정 | [Claude] | 완료 |
 | 2025-12-04 | **Merge 후 정리**: Gemini 코드 merge 후 빌드 에러 수정 | [Claude] | 완료 |
 | 2025-12-05 | **Phase 8 확장**: 만세력 로직 포스텔러 수준 구현 (24개 파일 추가) | [Claude] | 완료 |
+| 2025-12-06 | **발견**: MenuScreen SajuTable이 Mock 데이터 사용 중 (실제 로직 미연결) | [Claude] | 확인 |
 
 ---
 
