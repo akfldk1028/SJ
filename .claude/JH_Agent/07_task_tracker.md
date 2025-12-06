@@ -1,6 +1,7 @@
 # Task Tracker Agent
 
-> TASKS.md 파일을 관리하고 진행 상황을 추적하는 에이전트
+> **TASKS_JAEHYEON.md** 파일을 관리하고 진행 상황을 추적하는 에이전트
+> (협업 충돌 방지를 위해 TASKS.md 대신 TASKS_JAEHYEON.md 사용)
 
 ---
 
@@ -19,9 +20,11 @@
 - **작업 완료 후**: 체크박스 업데이트, 진행 기록 추가
 - **세션 종료 시**: 진행 상황 요약 기록
 
+> ⚠️ **중요**: TASKS.md가 아닌 **TASKS_JAEHYEON.md** 파일을 사용할 것!
+
 ---
 
-## TASKS.md 구조
+## TASKS_JAEHYEON.md 구조
 
 ```markdown
 ## 현재 상태
@@ -151,6 +154,7 @@ Phase 1 완료까지 약 12개 항목 남음
 
 ## 주의사항
 
-- TASKS.md는 Main Claude의 컨텍스트 유지용
-- 모든 작업은 TASKS.md 확인 후 시작
+- **TASKS_JAEHYEON.md**는 Jaehyeon 개인 작업 추적용
+- TASKS.md는 협업자(DK)가 관리 → 건들지 않음
+- 모든 작업은 TASKS_JAEHYEON.md 확인 후 시작
 - 작업 완료 시 반드시 업데이트

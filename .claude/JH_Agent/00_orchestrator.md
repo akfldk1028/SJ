@@ -69,7 +69,7 @@ triggers:
             └── Hive 설정
             ↓
         ⑨ 07_task_tracker
-            └── TASKS.md 업데이트
+            └── TASKS_JAEHYEON.md 업데이트
 ```
 
 ### Pipeline B: 위젯만 수정
