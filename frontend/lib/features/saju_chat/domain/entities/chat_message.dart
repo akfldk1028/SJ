@@ -5,6 +5,7 @@
 /// - copyWith으로 상태 변경 시 새 인스턴스 생성
 class ChatMessage {
   final String id;
+  final String sessionId;
   final String content;
   final MessageRole role;
   final DateTime createdAt;
@@ -12,6 +13,7 @@ class ChatMessage {
 
   const ChatMessage({
     required this.id,
+    required this.sessionId,
     required this.content,
     required this.role,
     required this.createdAt,
@@ -20,6 +22,7 @@ class ChatMessage {
 
   ChatMessage copyWith({
     String? id,
+    String? sessionId,
     String? content,
     MessageRole? role,
     DateTime? createdAt,
@@ -27,6 +30,7 @@ class ChatMessage {
   }) {
     return ChatMessage(
       id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
       content: content ?? this.content,
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,

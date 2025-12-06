@@ -12,13 +12,16 @@
 |------|------|
 | 기획 문서 | ✅ 완료 |
 | CLAUDE.md | ✅ 완료 |
-| JH_Agent (서브에이전트) | ✅ 완료 (8개) |
+| JH_Agent (서브에이전트) | ✅ 완료 (9개) |
 | Flutter 프로젝트 | ✅ 기반 설정 완료 |
 | 의존성 | ✅ 설치 완료 |
 | 폴더 구조 | ✅ 구현 완료 |
 | Phase 1 | ✅ **완료** |
 | Phase 2 | ✅ **부분 완료** (상수/테마) |
-| **다음 작업** | **Phase 2 나머지 → Phase 4 시작** |
+| Phase 4 (Profile) | ✅ **완료** |
+| Phase 5 (Saju Chat) | ✅ **대부분 완료** (Gemini 3.0 연동) |
+| Phase 8 (만세력) | ✅ **기본 완료** |
+| **다음 작업** | **Phase 6 (Splash/Onboarding)** |
 
 ---
 
@@ -170,41 +173,48 @@ lib/
 
 ---
 
-## Phase 5: Feature - Saju Chat (P0)
+## Phase 5: Feature - Saju Chat (P0) ✅ 대부분 완료
 
 > 참조: docs/02_features/saju_chat.md
+> 2025-12-05: Gemini 3.0 REST API 연동, 스트리밍 응답, UI 위젯 구현 완료
 
-### 5.1 Domain 레이어
-- [ ] entities/chat_session.dart
-- [ ] entities/chat_message.dart
-- [ ] entities/message_role.dart (enum)
-- [ ] repositories/chat_repository.dart (abstract)
+### 5.1 Domain 레이어 ✅
+- [x] entities/chat_session.dart
+- [x] entities/chat_message.dart (MessageRole, MessageStatus 포함)
+- [x] models/chat_type.dart (ChatType enum)
+- [x] repositories/chat_repository.dart (abstract)
 
-### 5.2 Data 레이어
-- [ ] models/chat_session_model.dart
-- [ ] models/chat_message_model.dart
-- [ ] datasources/chat_local_datasource.dart (Hive 캐시)
-- [ ] repositories/chat_repository_impl.dart
+### 5.2 Data 레이어 ✅
+- [x] datasources/gemini_rest_datasource.dart (REST API + SSE 스트리밍)
+- [x] repositories/chat_repository_impl.dart
+- [ ] datasources/chat_local_datasource.dart (Hive 캐시 - 추후)
+- [x] ~~gemini_datasource.dart~~ (SDK 방식 - 미사용, 삭제 예정)
 
-### 5.3 Presentation 레이어
-- [ ] providers/chat_provider.dart
-- [ ] providers/chat_state.dart (freezed)
-- [ ] screens/saju_chat_screen.dart
-- [ ] widgets/chat_bubble.dart
-- [ ] widgets/chat_input_field.dart
-- [ ] widgets/suggested_questions.dart
-- [ ] widgets/saju_summary_sheet.dart
+### 5.3 Presentation 레이어 ✅
+- [x] providers/chat_provider.dart (Riverpod 3.0)
+- [x] screens/saju_chat_screen.dart
+- [x] widgets/message_bubble.dart
+- [x] widgets/streaming_message_bubble.dart
+- [x] widgets/chat_message_list.dart
+- [x] widgets/chat_input_field.dart
+- [x] widgets/send_button.dart
+- [x] widgets/chat_app_bar.dart
+- [x] widgets/typing_indicator.dart
+- [x] widgets/disclaimer_banner.dart
+- [x] widgets/error_banner.dart
+- [ ] widgets/suggested_questions.dart (추후)
+- [ ] widgets/saju_summary_sheet.dart (추후)
 
 ### 5.4 수락 조건
-- [ ] AI 인사 메시지 표시
-- [ ] 메시지 입력/전송
-- [ ] 로딩 인디케이터
-- [ ] 추천 질문 칩 표시
-- [ ] 추천 질문 탭 → 자동 전송
-- [ ] 프로필 전환 기능
-- [ ] 사주 요약 바텀시트
-- [ ] 면책 배너 표시
-- [ ] 에러 처리 (재시도 버튼)
+- [x] AI 인사 메시지 표시 (ChatType별 환영 메시지)
+- [x] 메시지 입력/전송
+- [x] 스트리밍 응답 표시
+- [x] 타이핑 인디케이터
+- [x] 면책 배너 표시
+- [x] 에러 처리 (에러 배너)
+- [ ] 추천 질문 칩 표시 (추후)
+- [ ] 프로필 전환 기능 (추후)
+- [ ] 사주 요약 바텀시트 (추후)
 
 ---
 
@@ -318,6 +328,9 @@ lib/
 | 2025-12-02 | 09_manseryeok_calculator SubAgent 추가 | 완료 |
 | 2025-12-02 | 앱 런칭 전략 문서 작성 (APP_LAUNCH_STRATEGY.md) | 완료 |
 | 2025-12-02 | **Phase 4 완료**: Profile Feature 21개 파일 구현 | 완료 |
+| 2025-12-05 | **Phase 5 대부분 완료**: Saju Chat 18개 파일 구현 | 완료 |
+| 2025-12-05 | Gemini 3.0 REST API 연동 (SDK → REST 마이그레이션) | 완료 |
+| 2025-12-05 | SSE 스트리밍 응답, 타이핑 인디케이터 구현 | 완료 |
 
 ---
 

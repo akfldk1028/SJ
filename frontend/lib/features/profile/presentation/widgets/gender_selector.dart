@@ -21,10 +21,10 @@ class GenderSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppStrings.genderLabel,
+          AppStrings.gender,
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: AppSizes.sm),
+        const SizedBox(height: AppSizes.paddingS),
         SegmentedButton<Gender>(
           segments: const [
             ButtonSegment(

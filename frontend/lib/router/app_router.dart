@@ -8,7 +8,7 @@ import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/menu/presentation/screens/menu_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
-import '../features/saju_chat/presentation/screens/saju_chat_screen.dart';
+import '../features/saju_chat/presentation/screens/saju_chat_shell.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 
@@ -46,7 +46,7 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) {
           // Query parameter에서 chatType 가져오기
           final chatType = state.uri.queryParameters['type'];
-          return SajuChatScreen(chatType: chatType);
+          return SajuChatShell(chatType: chatType);
         },
       ),
       GoRoute(

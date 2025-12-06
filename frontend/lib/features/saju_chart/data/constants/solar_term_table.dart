@@ -11,7 +11,7 @@ class SolarTermData {
 
 /// 연도별 절기 시각 테이블
 /// 실제 사용 시 한국천문연구원 API 또는 정밀 계산 라이브러리 사용 권장
-const Map<int, Map<String, SolarTermData>> solarTermTable = {
+final Map<int, Map<String, SolarTermData>> solarTermTable = {
   2024: {
     'ipchun': SolarTermData(DateTime(2024, 2, 4, 17, 26), '입춘'),
     'usoo': SolarTermData(DateTime(2024, 2, 19, 12, 12), '우수'),
