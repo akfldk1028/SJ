@@ -1,11 +1,12 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../data/datasources/gemini_datasource.dart';
+import '../../../../core/services/prompt_loader.dart';
+import '../../data/datasources/gemini_rest_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/models/chat_type.dart';
-import '../../domain/repositories/chat_repository.dart';
+import 'chat_session_provider.dart';
 
 part 'chat_provider.g.dart';
 
@@ -38,70 +39,103 @@ class ChatState {
   }
 }
 
-/// ChatRepository Provider
-@riverpod
-ChatRepository chatRepository(ChatRepositoryRef ref) {
-  return ChatRepositoryImpl(
-    datasource: GeminiDatasource(),
-  );
-}
-
-/// 채팅 상태 관리 Provider
+/// 채팅 상태 관리 Provider (세션 인식)
+///
+/// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+/// → Gemini AI 히스토리가 세션별로 분리됨
 @riverpod
 class ChatNotifier extends _$ChatNotifier {
   final _uuid = const Uuid();
 
+  /// 세션별 독립된 ChatRepository 인스턴스
+  late final ChatRepositoryImpl _repository;
+
   @override
-  ChatState build(ChatType chatType) {
-    // 초기 환영 메시지 추가
-    final welcomeMessage = ChatMessage(
-      id: _uuid.v4(),
-      content: chatType.welcomeMessage,
-      role: MessageRole.assistant,
-      createdAt: DateTime.now(),
+  ChatState build(String sessionId) {
+    // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
+    _repository = ChatRepositoryImpl(
+      datasource: GeminiRestDatasource(),
     );
 
-    return ChatState(messages: [welcomeMessage]);
+    // Provider dispose 시 repository 정리
+    ref.onDispose(() {
+      _repository.resetSession();
+    });
+
+    // 세션이 변경되면 메시지 로드 (build 완료 후 실행)
+    Future.microtask(() => loadSessionMessages(sessionId));
+    return const ChatState();
   }
 
-  /// 시스템 프롬프트 생성
-  String _getSystemPrompt(ChatType chatType) {
-    switch (chatType) {
-      case ChatType.dailyFortune:
-        return '''당신은 전문 사주 상담사입니다.
-사용자의 오늘 운세에 대해 친절하고 긍정적으로 상담해 주세요.
-한국어로 대답하고, 이모지를 적절히 사용해 주세요.
-너무 부정적인 내용은 완화해서 전달해 주세요.''';
+  /// 세션의 메시지 로드
+  /// 이미 메시지가 있거나 로딩 중이면 스킵 (타이밍 이슈 방지)
+  Future<void> loadSessionMessages(String sessionId) async {
+    // 이미 메시지가 있거나 로딩 중이면 스킵
+    if (state.messages.isNotEmpty || state.isLoading) {
+      return;
+    }
 
-      case ChatType.sajuAnalysis:
-        return '''당신은 전문 사주팔자 분석가입니다.
-사용자의 생년월일시를 받아 사주팔자를 분석해 주세요.
-한국어로 대답하고, 전문적이면서도 이해하기 쉽게 설명해 주세요.
-음양오행, 천간지지 등의 개념을 활용해 주세요.''';
+    state = state.copyWith(isLoading: true, error: null);
 
-      case ChatType.compatibility:
-        return '''당신은 전문 궁합 상담사입니다.
-두 사람의 생년월일을 받아 궁합을 분석해 주세요.
-한국어로 대답하고, 긍정적인 관점에서 조언해 주세요.
-부정적인 내용도 개선 방안과 함께 전달해 주세요.''';
+    try {
+      final sessionRepository = ref.read(chatSessionRepositoryProvider);
+      final messages = await sessionRepository.getSessionMessages(sessionId);
 
-      default:
-        return '''당신은 친절한 사주 상담 AI입니다.
-사용자의 질문에 성실하게 답변해 주세요.
-한국어로 대답해 주세요.''';
+      // 로드 중에 메시지가 추가되었으면 덮어쓰지 않음
+      if (state.messages.isEmpty) {
+        state = state.copyWith(
+          messages: messages,
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: '메시지 로드 중 오류가 발생했습니다.',
+      );
     }
   }
 
+  /// 세션 초기화 (새 세션으로 전환)
+  void clearSession() {
+    state = const ChatState();
+  }
+
+  /// ChatType → 프롬프트 파일명 매핑
+  String _getPromptFileName(ChatType chatType) {
+    switch (chatType) {
+      case ChatType.dailyFortune:
+        return 'daily_fortune';
+      case ChatType.sajuAnalysis:
+        return 'saju_analysis';
+      case ChatType.compatibility:
+        return 'compatibility';
+      default:
+        return 'general';
+    }
+  }
+
+  /// 시스템 프롬프트 로드 (MD 파일에서)
+  Future<String> _loadSystemPrompt(ChatType chatType) async {
+    final fileName = _getPromptFileName(chatType);
+    return PromptLoader.load(fileName);
+  }
+
   /// 메시지 전송
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, ChatType chatType) async {
     if (content.trim().isEmpty) return;
 
-    final chatType = this.chatType;
-    final repository = ref.read(chatRepositoryProvider);
+    print('[ChatNotifier] sendMessage 호출: sessionId=$sessionId, content=${content.substring(0, content.length > 20 ? 20 : content.length)}...');
 
-    // 사용자 메시지 추가
+    final currentSessionId = sessionId;
+    final sessionRepository = ref.read(chatSessionRepositoryProvider);
+
+    // 사용자 메시지 추가 (sessionId 포함)
     final userMessage = ChatMessage(
       id: _uuid.v4(),
+      sessionId: currentSessionId,
       content: content,
       role: MessageRole.user,
       createdAt: DateTime.now(),
@@ -113,12 +147,24 @@ class ChatNotifier extends _$ChatNotifier {
       error: null,
     );
 
+    print('[ChatNotifier] 사용자 메시지 추가됨: messages.length=${state.messages.length}');
+
+    // 사용자 메시지 저장
     try {
-      // 스트리밍 응답
-      final stream = repository.sendMessageStream(
+      await sessionRepository.saveMessage(userMessage);
+    } catch (e) {
+      // 저장 실패해도 계속 진행
+    }
+
+    try {
+      // MD 파일에서 시스템 프롬프트 로드
+      final systemPrompt = await _loadSystemPrompt(chatType);
+
+      // 스트리밍 응답 (세션별 독립된 repository 사용)
+      final stream = _repository.sendMessageStream(
         userMessage: content,
         conversationHistory: state.messages,
-        systemPrompt: _getSystemPrompt(chatType),
+        systemPrompt: systemPrompt,
       );
 
       String fullContent = '';
@@ -129,9 +175,10 @@ class ChatNotifier extends _$ChatNotifier {
         );
       }
 
-      // 스트리밍 완료 후 메시지로 추가
+      // 스트리밍 완료 후 메시지로 추가 (sessionId 포함)
       final aiMessage = ChatMessage(
         id: _uuid.v4(),
+        sessionId: currentSessionId,
         content: fullContent,
         role: MessageRole.assistant,
         createdAt: DateTime.now(),
@@ -142,6 +189,12 @@ class ChatNotifier extends _$ChatNotifier {
         isLoading: false,
         streamingContent: null,
       );
+
+      // AI 메시지 저장
+      await sessionRepository.saveMessage(aiMessage);
+
+      // 세션 메타데이터 업데이트
+      await _updateSessionMetadata(currentSessionId, content);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -151,15 +204,39 @@ class ChatNotifier extends _$ChatNotifier {
     }
   }
 
-  /// 대화 초기화
-  void clearMessages() {
-    final welcomeMessage = ChatMessage(
-      id: _uuid.v4(),
-      content: chatType.welcomeMessage,
-      role: MessageRole.assistant,
-      createdAt: DateTime.now(),
-    );
+  /// 세션 메타데이터 업데이트 (메시지 개수, 미리보기)
+  Future<void> _updateSessionMetadata(
+      String sessionId, String lastUserMessage) async {
+    try {
+      final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
+      final sessionRepository = ref.read(chatSessionRepositoryProvider);
 
-    state = ChatState(messages: [welcomeMessage]);
+      // 현재 세션 가져오기
+      final currentSession = await sessionRepository.getSession(sessionId);
+      if (currentSession == null) return;
+
+      // 메시지 개수 카운트 (현재 state의 messages)
+      final messageCount = state.messages.length;
+
+      // 미리보기 텍스트 (사용자의 마지막 메시지, 최대 50자)
+      final preview = lastUserMessage.length > 50
+          ? '${lastUserMessage.substring(0, 50)}...'
+          : lastUserMessage;
+
+      // 세션 업데이트
+      final updatedSession = currentSession.copyWith(
+        messageCount: messageCount,
+        lastMessagePreview: preview,
+        updatedAt: DateTime.now(),
+      );
+
+      await sessionRepository.updateSession(updatedSession);
+
+      // 세션 목록 새로고침
+      await sessionNotifier.loadSessions();
+    } catch (e) {
+      // 메타데이터 업데이트 실패해도 무시
+    }
   }
+
 }

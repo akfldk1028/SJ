@@ -3,118 +3,29 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> Flutter 경로: C:\Users\SOGANG\flutter\flutter\bin\flutter.bat
->
-> **A2A 협업**: Claude 4.5 Opus + Gemini 3 Pro High (수동 오케스트레이션)
-> **태그 규칙**: 작업자 표시 `[Claude]` / `[Gemini]`
 
 ---
 
 ## 현재 상태
 
-| 항목 | 상태 | 작업자 |
-|------|------|--------|
-| 기획 문서 | ✅ 완료 | - |
-| CLAUDE.md | ✅ 완료 | - |
-| JH_Agent (서브에이전트) | ✅ 완료 (10개) | - |
-| Flutter 프로젝트 | ✅ 기반 설정 완료 | [Claude] |
-| 의존성 | ✅ 설치 완료 | [Claude] |
-| 폴더 구조 | ✅ 구현 완료 | [Claude] |
-| Phase 1 | ✅ **완료** | [Claude] |
-| Phase 4 (Profile) | ✅ **완료** | [Claude] |
-| Phase 4.5 (UI 개선) | ✅ **완료** | [Claude] |
-| Phase 8 (만세력 로직) | ✅ **완료** (화면 포함) | [Claude] |
-| Phase 5 (인연) | ✅ **완료** | [Gemini] |
-| Phase 6 (Context Chat) | ✅ **완료** | [Gemini] |
-| Phase 7 (앱 완성도) | ✅ **완료** | [Claude/Gemini] |
+| 항목 | 상태 |
+|------|------|
+| 기획 문서 | ✅ 완료 |
+| CLAUDE.md | ✅ 완료 |
+| JH_Agent (서브에이전트) | ✅ 완료 (9개) |
+| Flutter 프로젝트 | ✅ 기반 설정 완료 |
+| 의존성 | ✅ 설치 완료 |
+| 폴더 구조 | ✅ 구현 완료 |
+| Phase 1 | ✅ **완료** |
+| Phase 2 | ✅ **부분 완료** (상수/테마) |
+| Phase 4 (Profile) | ✅ **완료** |
+| Phase 5 (Saju Chat) | ✅ **대부분 완료** (Gemini 3.0 연동) |
+| Phase 8 (만세력) | ✅ **기본 완료** |
+| **다음 작업** | **Phase 6 (Splash/Onboarding)** |
 
 ---
 
-## Phase 5: 인연 (Relationships) - 지인 관리 👥 [Gemini]
-> **목표**: 가족, 친구, 연인 등 지인들의 사주를 카테고리별로 관리
-
-### 5.1 Domain Layer
-- [x] entities/relationship_type.dart (enum)
-- [x] entities/saju_profile.dart (relationType, memo 필드 추가)
-
-### 5.2 Data Layer
-- [x] models/saju_profile_model.dart (필드 업데이트)
-- [x] datasources/profile_local_datasource.dart (getAllProfiles 추가)
-- [x] repositories/profile_repository.dart (getAllProfiles 추가)
-
-### 5.3 Presentation Layer
-- [x] screens/relationship_list_screen.dart (인연 탭 메인)
-- [x] widgets/relationship_category_section.dart
-- [x] widgets/add_profile_sheet.dart (ProfileEditScreen으로 대체)
-- [x] screens/home_screen.dart (MainScaffold 및 기본 홈)
-
----
-
-## Phase 6: 컨텍스트 사주 챗봇 (Advanced Chat) 💬 [Gemini]
-> **목표**: 나 + 상대방의 데이터를 기반으로 한 심층 상담
-
-### 6.1 Chat Core
-- [x] domain/entities/chat_session.dart (targetProfileId 추가)
-- [x] presentation/screens/saju_chat_screen.dart (대상 선택 UI)
-
-### 6.2 AI Integration
-- [x] system_prompt_v2 (관계 분석 프롬프트)
-- [x] edge_functions/saju-chat (멀티 프로필 지원)
-
----
-
-## Phase 7: 앱 완성도 (Polishing) ✨ [Claude/Gemini] - ✅ 완료
-> **목표**: 스토어 출시 수준의 UI/UX 완성
-
-### 7.1 Main Tab ✅ [Claude]
-- [x] screens/home_screen.dart (대시보드 + 프로필 연동) (2025-12-04)
-- [x] widgets/daily_fortune_card.dart (2025-12-04)
-
-### 7.2 Settings & Legal ✅ [Claude]
-- [x] screens/settings_screen.dart (2025-12-04)
-- [x] widgets/legal_notice_dialog.dart (2025-12-04)
-
-### 7.3 빌드 에러 수정 ✅ [Claude]
-- [x] main_scaffold.dart (ShadBottomNavigationBar → Material BottomNavigationBar)
-- [x] relationship_list_screen.dart (prefix → leading)
-- [x] relationship_type_dropdown.dart (selectedOptionBuilder 추가)
-- [x] saju_chat_screen.dart (_selectedTargetProfile 선언, ShadSheet/ShadButton 수정)
-- [x] chat_bubble.dart (AppColors import 경로)
-- [x] chat_input_field.dart (ShadButton.icon → ShadButton)
-- [x] chat_*_model.g.dart (Hive TypeAdapter 수동 생성)
-
----
-
-## ✅ Phase 4.5 - UI 개선 & 만세력 화면 (완료) [Claude]
-
-> 2025-12-02 완료
-
-### 완료된 작업
-
-| 파일 | 변경 내용 | 상태 |
-|------|----------|------|
-| `birth_date_picker.dart` | Calendar → 연/월/일 드롭다운 (1900~현재) | ✅ |
-| `city_search_field.dart` | 부분 검색 + 별칭 매핑 | ✅ |
-| `true_solar_time_service.dart` | 도시 별칭 + searchCities() 추가 | ✅ |
-| **NEW** `saju_chart_screen.dart` | 포스텔러 스타일 만세력 결과 화면 | ✅ |
-| **NEW** `saju_chart_provider.dart` | 만세력 상태 관리 | ✅ |
-| **NEW** `pillar_column_widget.dart` | 년/월/일/시주 컬럼 (오행 색상) | ✅ |
-| **NEW** `saju_info_header.dart` | 프로필 정보 헤더 (띠 이모지) | ✅ |
-| `routes.dart` | /saju/chart 라우트 추가 | ✅ |
-| `app_router.dart` | SajuChartScreen 라우트 등록 | ✅ |
-| `profile_action_buttons.dart` | 저장 후 만세력 화면으로 이동 | ✅ |
-
-### 수락 조건 체크
-- [x] 생년월일 연/월/일 빠르게 선택 가능
-- [x] "부산" 입력 시 "부산광역시" 자동 제안
-- [x] 만세력 보러가기 클릭 → /saju/chart 화면 표시
-- [x] 사주팔자 (년주/월주/일주/시주) 한자+한글 표시
-- [x] 띠 (동물) 표시 + 이모지
-- [x] 보정 시간 표시
-
----
-
-## Phase 1: 프로젝트 기반 설정 ✅ 완료 [Claude]
+## Phase 1: 프로젝트 기반 설정 ✅ 완료
 
 ### 1.1 pubspec.yaml 의존성 추가 ✅
 - [x] flutter_riverpod: ^2.6.1
@@ -129,34 +40,47 @@
 - [x] equatable: ^2.0.7
 - [x] dio: ^5.7.0
 - [x] intl: ^0.20.1
-- [x] shadcn_ui: ^0.39.14
 
 ### 1.2 dev_dependencies ✅
 - [x] build_runner: ^2.4.9
 - [x] riverpod_generator: ^2.3.11
 - [x] freezed: ^2.4.7
 - [x] json_serializable: ^6.7.1
+- [ ] riverpod_lint (disabled - analyzer 충돌)
+- [ ] hive_generator (disabled - analyzer 충돌)
 
 ### 1.3 폴더 구조 생성 ✅
 ```
 lib/
 ├── main.dart ✅
-├── app.dart ✅ (ShadApp.router로 변경됨)
+├── app.dart ✅
 ├── core/
-├── constants/ ✅
-├── theme/ ✅
-├── utils/
-├── errors/
+│   ├── constants/
+│   │   ├── app_colors.dart ✅
+│   │   ├── app_strings.dart ✅
+│   │   └── app_sizes.dart ✅
+│   ├── theme/
+│   │   └── app_theme.dart ✅
+│   ├── utils/
+│   │   ├── validators.dart
+│   │   └── formatters.dart
+│   └── errors/
+│       ├── exceptions.dart
+│       └── failures.dart
 ├── features/
-├── splash/ ✅
-├── onboarding/ ✅
-├── profile/ ✅ (21개 파일)
-├── saju_chart/ ✅ (19개 파일 - 로직만)
-├── saju_chat/ ✅ (placeholder)
-├── history/ ✅
-└── settings/ ✅
+│   ├── splash/ ✅ (placeholder)
+│   ├── onboarding/ ✅ (placeholder)
+│   ├── profile/ ✅ (placeholder)
+│   ├── saju_chart/ ✅ (폴더만)
+│   ├── saju_chat/ ✅ (placeholder)
+│   ├── history/ ✅ (placeholder)
+│   └── settings/ ✅ (placeholder)
 ├── shared/
-└── router/ ✅
+│   ├── widgets/
+│   └── extensions/
+└── router/
+    ├── app_router.dart ✅
+    └── routes.dart ✅
 ```
 
 ### 1.4 기본 설정 파일 ✅
@@ -167,7 +91,42 @@ lib/
 
 ---
 
-## Phase 4: Feature - Profile (P0) ✅ 완료 [Claude]
+## Phase 2: Core 레이어 구현 (부분 완료)
+
+### 2.1 상수 정의 ✅
+- [x] app_colors.dart - 컬러 팔레트
+- [x] app_strings.dart - 문자열 상수
+- [x] app_sizes.dart - 크기/패딩 상수
+
+### 2.2 테마 설정 ✅
+- [x] app_theme.dart - 라이트/다크 테마
+
+### 2.3 에러 처리
+- [ ] exceptions.dart - 예외 클래스
+- [ ] failures.dart - Failure 클래스
+
+### 2.4 유틸리티
+- [ ] validators.dart - 생년월일 검증 등
+- [ ] formatters.dart - 날짜 포맷 등
+
+---
+
+## Phase 3: 공유 컴포넌트
+
+### 3.1 공통 위젯
+- [ ] custom_button.dart
+- [ ] custom_text_field.dart
+- [ ] loading_indicator.dart
+- [ ] error_widget.dart
+- [ ] disclaimer_banner.dart ("사주는 참고용입니다")
+
+### 3.2 Extensions
+- [ ] context_extensions.dart
+- [ ] datetime_extensions.dart
+
+---
+
+## Phase 4: Feature - Profile (P0) ✅ 완료
 
 > 참조: docs/02_features/profile_input.md
 > 2025-12-02: Profile Feature 구현 완료 (21개 파일)
@@ -185,7 +144,15 @@ lib/
 ### 4.3 Presentation 레이어 ✅
 - [x] providers/profile_provider.dart (Riverpod 3.0)
 - [x] screens/profile_edit_screen.dart
-- [x] widgets/* (11개)
+- [x] widgets/profile_name_input.dart
+- [x] widgets/gender_toggle_buttons.dart
+- [x] widgets/calendar_type_dropdown.dart
+- [x] widgets/birth_date_picker.dart
+- [x] widgets/birth_time_picker.dart
+- [x] widgets/birth_time_options.dart
+- [x] widgets/city_search_field.dart
+- [x] widgets/time_correction_banner.dart
+- [x] widgets/profile_action_buttons.dart
 
 ### 4.4 수락 조건 ✅
 - [x] 프로필명 입력 (최대 12자)
@@ -201,141 +168,244 @@ lib/
 - [x] 유효성 검사
 
 ### 4.5 TODO
-- [x] `dart run build_runner build` 실행
-- [x] 빌드 테스트
+- [ ] `dart run build_runner build` 실행
+- [ ] 빌드 테스트
 
 ---
 
-## Phase 8: Saju Chart (만세력) ✅ 완료 [Claude]
+## Phase 5: Feature - Saju Chat (P0) ✅ 대부분 완료
 
-> 2025-12-02: 기본 로직 구현 (19개 파일)
-> 2025-12-05: **포스텔러 수준 상세 분석 기능 추가** (24개 파일 추가, 총 43개)
+> 참조: docs/02_features/saju_chat.md
+> 2025-12-05: Gemini 3.0 REST API 연동, 스트리밍 응답, UI 위젯 구현 완료
+
+### 5.1 Domain 레이어 ✅
+- [x] entities/chat_session.dart
+- [x] entities/chat_message.dart (MessageRole, MessageStatus 포함)
+- [x] models/chat_type.dart (ChatType enum)
+- [x] repositories/chat_repository.dart (abstract)
+
+### 5.2 Data 레이어 ✅
+- [x] datasources/gemini_rest_datasource.dart (REST API + SSE 스트리밍)
+- [x] repositories/chat_repository_impl.dart
+- [ ] datasources/chat_local_datasource.dart (Hive 캐시 - 추후)
+- [x] ~~gemini_datasource.dart~~ (SDK 방식 - 미사용, 삭제 예정)
+
+### 5.3 Presentation 레이어 ✅
+- [x] providers/chat_provider.dart (Riverpod 3.0)
+- [x] screens/saju_chat_screen.dart
+- [x] widgets/message_bubble.dart
+- [x] widgets/streaming_message_bubble.dart
+- [x] widgets/chat_message_list.dart
+- [x] widgets/chat_input_field.dart
+- [x] widgets/send_button.dart
+- [x] widgets/chat_app_bar.dart
+- [x] widgets/typing_indicator.dart
+- [x] widgets/disclaimer_banner.dart
+- [x] widgets/error_banner.dart
+- [ ] widgets/suggested_questions.dart (추후)
+- [ ] widgets/saju_summary_sheet.dart (추후)
+
+### 5.4 수락 조건
+- [x] AI 인사 메시지 표시 (ChatType별 환영 메시지)
+- [x] 메시지 입력/전송
+- [x] 스트리밍 응답 표시
+- [x] 타이핑 인디케이터
+- [x] 면책 배너 표시
+- [x] 에러 처리 (에러 배너)
+- [ ] 추천 질문 칩 표시 (추후)
+- [ ] 프로필 전환 기능 (추후)
+- [ ] 사주 요약 바텀시트 (추후)
+
+---
+
+## Phase 6: Feature - Splash/Onboarding
+
+### 6.1 Splash
+- [ ] screens/splash_screen.dart
+- [ ] 로컬 데이터 로드
+- [ ] 온보딩/프로필 체크 후 라우팅
+
+### 6.2 Onboarding
+- [ ] screens/onboarding_screen.dart
+- [ ] 서비스 소개 페이지
+- [ ] "사주는 참고용입니다" 안내
+- [ ] 온보딩 완료 플래그 저장
+
+---
+
+## Phase 7: Feature - History/Settings
+
+### 7.1 History
+- [ ] screens/history_screen.dart
+- [ ] 과거 대화 목록 표시
+- [ ] 대화 선택 → 채팅 화면 이동
+
+### 7.2 Settings
+- [ ] screens/settings_screen.dart
+- [ ] 프로필 관리 진입점
+- [ ] 알림 설정 (추후)
+- [ ] 약관/면책 안내
+
+---
+
+## Phase 8: Saju Chart (만세력) ✅ 기본 완료
+
+> 2025-12-02: 만세력 계산 로직 구현 완료 (19개 파일)
 
 ### 8.1 Constants ✅
 - [x] data/constants/cheongan_jiji.dart - 천간(10), 지지(12), 오행
 - [x] data/constants/gapja_60.dart - 60갑자
 - [x] data/constants/solar_term_table.dart - 절기 시각 (2024-2025)
 - [x] data/constants/dst_periods.dart - 서머타임 기간
-- [x] **data/constants/jijanggan_table.dart** - 지장간 테이블 🆕
-- [x] **data/constants/sipsin_relations.dart** - 십신 관계 테이블 🆕
-- [x] **data/constants/lunar_data/** - 음양력 변환 테이블 (1900-2100년) 🆕
-  - lunar_year_data.dart
-  - lunar_table_1900_1949.dart
-  - lunar_table_1950_1999.dart
-  - lunar_table_2000_2050.dart
-  - lunar_table_2051_2100.dart
-  - lunar_table.dart (통합)
 
 ### 8.2 Domain Entities ✅
 - [x] domain/entities/pillar.dart - 기둥 (천간+지지)
 - [x] domain/entities/saju_chart.dart - 사주 차트
 - [x] domain/entities/lunar_date.dart - 음력 날짜
 - [x] domain/entities/solar_term.dart - 24절기 enum
-- [x] **domain/entities/day_strength.dart** - 일간 강약 (신강/신약) 🆕
-- [x] **domain/entities/gyeokguk.dart** - 격국 (14종) 🆕
-- [x] **domain/entities/sinsal.dart** - 신살 (14종) 🆕
-- [x] **domain/entities/yongsin.dart** - 용신 🆕
-- [x] **domain/entities/daeun.dart** - 대운/세운 🆕
-- [x] **domain/entities/saju_analysis.dart** - 종합 분석 결과 🆕
+- [ ] domain/entities/daewoon.dart - 대운 (추후)
 
 ### 8.3 Domain Services ✅
-- [x] domain/services/saju_calculation_service.dart - 기본 사주 계산
-- [x] domain/services/lunar_solar_converter.dart - 음양력 변환 (**실제 구현 완료**)
+- [x] domain/services/saju_calculation_service.dart - 통합 계산 (메인)
+- [x] domain/services/lunar_solar_converter.dart - 음양력 변환 (Stub)
 - [x] domain/services/solar_term_service.dart - 절입시간
 - [x] domain/services/true_solar_time_service.dart - 진태양시 (25개 도시)
 - [x] domain/services/dst_service.dart - 서머타임
 - [x] domain/services/jasi_service.dart - 야자시/조자시
-- [x] **domain/services/day_strength_service.dart** - 일간 강약 분석 🆕
-- [x] **domain/services/gyeokguk_service.dart** - 격국 판정 🆕
-- [x] **domain/services/sinsal_service.dart** - 신살 탐지 🆕
-- [x] **domain/services/yongsin_service.dart** - 용신 선정 🆕
-- [x] **domain/services/daeun_service.dart** - 대운/세운 계산 🆕
-- [x] **domain/services/saju_analysis_service.dart** - 종합 분석 통합 🆕
 
 ### 8.4 Data Models ✅
 - [x] data/models/pillar_model.dart - JSON 직렬화
 - [x] data/models/saju_chart_model.dart - JSON 직렬화
 
-### 8.5 Presentation ✅
-- [x] providers/saju_chart_provider.dart
-- [x] screens/saju_chart_screen.dart
-- [x] widgets/pillar_column_widget.dart
-- [x] widgets/saju_info_header.dart
+### 8.5 Presentation (미구현)
+- [ ] providers/saju_chart_provider.dart
+- [ ] widgets/saju_summary_card.dart
+- [ ] widgets/pillar_display.dart
 
-### 8.6 구현된 분석 기능 (포스텔러 수준) 🆕
-| 기능 | 설명 | 상태 |
-|------|------|------|
-| 음양력 변환 | 1900-2100년 완전 지원 | ✅ |
-| 지장간 | 12지지별 숨은 천간 + 세력 비율 | ✅ |
-| 십신(십성) | 일간 기준 오행 관계 분석 | ✅ |
-| 일간 강약 | 신강/신약/중화 5단계 판정 | ✅ |
-| 격국 | 14종 (기본 10 + 특수 3 + 중화) | ✅ |
-| 신살 | 14종 (천을귀인, 도화살, 역마 등) | ✅ |
-| 용신 | 억부법 기반 오행 선정 | ✅ |
-| 대운 | 10년 주기 운 흐름 | ✅ |
-| 세운 | 1년 단위 운 | ✅ |
+### 8.6 TODO (보완 필요)
+- [ ] 음양력 변환 실제 구현 (현재 Stub)
+- [ ] 절기 테이블 확장 (1900-2100년)
+- [ ] 대운(大運) 계산
+- [ ] 포스텔러 만세력과 검증
 
-### 8.7 다음 단계 (TODO)
-- [ ] **MenuScreen의 SajuTable을 실제 만세력 로직으로 연결** ⚠️ 현재 Mock 데이터 사용 중
-- [ ] UI에 상세 분석 결과 표시 (십신, 지장간, 용신 등)
-- [ ] 대운/세운 화면 구현
-- [ ] 포스텔러 결과와 비교 검증
+---
 
-### 8.8 발견 사항 (2025-12-06)
-| 화면 | 데이터 소스 | 상태 |
-|------|-------------|------|
-| `MenuScreen > SajuTable` | `MockFortuneData` (하드코딩) | ⚠️ Mock 사용 |
-| `SajuChartScreen` | `SajuCalculationService` (실제 로직) | ✅ 실제 만세력 로직 |
+## 작업 규칙
 
-**문제**: `menu/presentation/widgets/saju_table.dart`가 `MockFortuneData.sajuPillarsDetailed`를 사용하여 하드코딩된 데이터(己亥, 辛酉, 戊寅, 庚辰)를 표시 중. 사용자 프로필과 연동 필요.
+### 컨텍스트 관리
+1. **Compaction**: 대화 길어지면 이 파일에 진행 상황 업데이트
+2. **노트 작성**: 결정 사항, 변경점 기록
+3. **서브 Agent**: 복잡한 작업은 Task 도구로 분리
+
+### Git 규칙
+- 작업 브랜치: Jaehyeon(Test)
+- master 건들지 않음
+- 기능 단위로 커밋
+
+### 우선순위
+1. Phase 1-2: 기반 설정 (먼저)
+2. Phase 4: Profile (P0 필수)
+3. Phase 5: Saju Chat (P0 핵심)
+4. Phase 6-7: 나머지 화면
+5. Phase 8: Supabase 연동 후
 
 ---
 
 ## 진행 기록
 
-| 날짜 | 작업 내용 | 작업자 | 상태 |
-|------|-----------|--------|------|
-| 2025-12-01 | 프로젝트 시작, 기획 문서 완료 | - | 완료 |
-| 2025-12-02 | Phase 1 완료: 의존성, 폴더구조, 라우터, 테마 | [Claude] | 완료 |
-| 2025-12-02 | Phase 8 기본 완료: 만세력 계산 로직 19개 파일 | [Claude] | 완료 |
-| 2025-12-02 | Phase 4 완료: Profile Feature 21개 파일 | [Claude] | 완료 |
-| 2025-12-02 | Flutter 빌드 오류 수정 (const→final, shadcn API) | [Claude] | 완료 |
-| 2025-12-02 | app.dart를 ShadApp.router로 변경 | [Claude] | 완료 |
-| 2025-12-02 | 웹 테스트 완료, UI 개선점 발견 | [Claude] | 완료 |
-| 2025-12-02 | **Phase 4.5 완료**: 프로필 UI 개선 + 만세력 화면 | [Claude] | 완료 |
-| 2025-12-04 | Phase 5 시작: Saju Chat AI 상담 | [Gemini] | 진행중 |
-| 2025-12-04 | **Phase 5 완료**: 인연 관리 UI 및 데이터 연동 | [Gemini] | 완료 |
-| 2025-12-04 | Phase 6 시작: Context Saju Chatbot (대상 선택 및 상담) | [Gemini] | 진행중 |
-| 2025-12-04 | **Phase 7.2 완료**: Settings & Legal (settings_screen, legal_notice_dialog) | [Claude] | 완료 |
-| 2025-12-04 | **Phase 6 완료**: Context Saju Chatbot (UI, Entity, Edge Function) | [Gemini] | 완료 |
-| 2025-12-04 | **Phase 7 완료**: home_screen 개선, daily_fortune_card, 빌드 에러 87개 수정 | [Claude] | 완료 |
-| 2025-12-04 | **Merge 후 정리**: Gemini 코드 merge 후 빌드 에러 수정 | [Claude] | 완료 |
-| 2025-12-05 | **Phase 8 확장**: 만세력 로직 포스텔러 수준 구현 (24개 파일 추가) | [Claude] | 완료 |
-| 2025-12-06 | **발견**: MenuScreen SajuTable이 Mock 데이터 사용 중 (실제 로직 미연결) | [Claude] | 확인 |
+| 날짜 | 작업 내용 | 상태 |
+|------|-----------|------|
+| 2025-12-01 | 프로젝트 시작, 기획 문서 완료 | 완료 |
+| 2025-12-02 | TASKS.md 작성 | 완료 |
+| 2025-12-02 | CLAUDE.md 생성 | 완료 |
+| 2025-12-02 | JH_Agent 서브에이전트 생성 (8개) | 완료 |
+| 2025-12-02 | 만세력 정확도 연구 (진태양시, 절입시간 등) | 완료 |
+| 2025-12-02 | 세션 1 종료, Phase 1 시작 대기 | 완료 |
+| 2025-12-02 | **Phase 1 완료**: 의존성, 폴더구조, 라우터, 테마 | 완료 |
+| 2025-12-02 | **Phase 2 부분 완료**: 상수, 테마, Placeholder 화면들 | 진행중 |
+| 2025-12-02 | **Phase 8 기본 완료**: 만세력 계산 로직 19개 파일 구현 | 완료 |
+| 2025-12-02 | SubAgent A2A 아키텍처 개선 (Orchestrator 추가) | 완료 |
+| 2025-12-02 | 09_manseryeok_calculator SubAgent 추가 | 완료 |
+| 2025-12-02 | 앱 런칭 전략 문서 작성 (APP_LAUNCH_STRATEGY.md) | 완료 |
+| 2025-12-02 | **Phase 4 완료**: Profile Feature 21개 파일 구현 | 완료 |
+| 2025-12-05 | **Phase 5 대부분 완료**: Saju Chat 18개 파일 구현 | 완료 |
+| 2025-12-05 | Gemini 3.0 REST API 연동 (SDK → REST 마이그레이션) | 완료 |
+| 2025-12-05 | SSE 스트리밍 응답, 타이핑 인디케이터 구현 | 완료 |
 
 ---
 
-## Phase 9: Merge 후 정리 ✅ [Claude]
-> **목표**: Gemini 협업자 코드 merge 후 빌드 가능하게 정리
+## 메모
 
-### 9.1 수정된 파일
-| 파일 | 변경 내용 | 상태 |
-|------|----------|------|
-| `routes.dart` | 누락 라우트 추가 (home, sajuChart, relationshipList) | ✅ |
-| `gemini_service.dart` | flutter_dotenv → String.fromEnvironment | ✅ |
-| `chat_message_model.dart` | 새 Entity 구조에 맞춤 (status 사용) | ✅ |
-| `chat_session_model.dart` | 새 Entity 구조에 맞춤 (chatType, messages) | ✅ |
-| `chat_local_datasource.dart` | lastMessageAt → updatedAt ?? createdAt | ✅ |
-| `chat_bubble.dart` | import 수정, AppColors.textPrimary | ✅ |
-| `gender_selector.dart` | AppStrings.gender, 상수 수정 | ✅ |
-| `message_role.dart` | 삭제 (중복 - chat_message.dart에 정의됨) | ✅ |
+- Supabase는 사용자가 직접 설정 예정
+- 프론트엔드만 집중해서 구현
+- 로컬 저장(Hive) 우선, Supabase 연동은 나중에
 
-### 9.2 백업된 파일 (MVP 미사용)
-- `supabase_provider.dart.bak`
-- `profile_remote_datasource.dart.bak`
-- `profile_form_provider.dart.bak`
-- `profile_list_screen.dart.bak`
+### 만세력 정확도 연구 (2025-12-02)
 
-### 9.3 결과
-- ✅ flutter analyze 에러 0개
-- ✅ Chrome에서 앱 정상 실행
+**핵심 보정 요소:**
+1. **진태양시 보정 (지역 시간차)**
+   - 한국 표준시: 동경 135도 기준
+   - 실제 한반도: 약 127도 → ~32분 차이
+   - 예: 창원 = -26분, 서울 = -30분 보정
+
+2. **절입시간 (24절기 정밀 계산)**
+   - 월주 변경 시점 = 절기 시작 시간
+   - 한국천문연구원 API 활용 가능
+
+3. **서머타임 (일광절약시간제)**
+   - 1948-1951, 1955-1960, 1987-1988 적용 기간
+   - 해당 기간 출생자 +1시간 보정 필요
+
+4. **야자시/조자시 처리**
+   - 23:00-01:00 자시(子時) 구간 처리 방식
+   - 야자시: 23:00-24:00 당일로 계산
+   - 조자시: 00:00-01:00 익일로 계산
+
+**참고 자료:**
+- 한국천문연구원 음양력 API
+- Inflearn 만세력 강의
+- GitHub: bikul-manseryeok 프로젝트
+- 포스텔러 만세력 2.2 (레퍼런스 앱)
+
+---
+
+## 서브 에이전트 (.claude/JH_Agent/) - A2A Orchestration
+
+### 아키텍처
+```
+Main Claude → [Orchestrator] → Pipeline → [Quality Gate] → 완료
+```
+
+### 에이전트 목록
+
+| 번호 | 에이전트 | 역할 | 유형 |
+|------|----------|------|------|
+| **00** | **orchestrator** | 작업 분석 & 파이프라인 구성 | **진입점** |
+| **00** | **widget_tree_guard** | 위젯 최적화 검증 | **품질 게이트** |
+| 01 | feature_builder | Feature 폴더 구조 생성 | Builder |
+| 02 | widget_composer | 화면→작은 위젯 분해 | Builder |
+| 03 | provider_builder | Riverpod Provider 생성 | Builder |
+| 04 | model_generator | Entity/Model 생성 | Builder |
+| 05 | router_setup | go_router 설정 | Config |
+| 06 | local_storage | Hive 저장소 설정 | Config |
+| 07 | task_tracker | TASKS.md 관리 | Tracker |
+| **08** | **shadcn_ui_builder** | shadcn_ui 모던 UI | **UI 필수** |
+| **09** | **manseryeok_calculator** | 만세력 계산 로직 | **Domain 전문** |
+
+### 호출 방식
+```
+# Orchestrator 자동 파이프라인 (권장)
+Task 도구:
+- prompt: "[Orchestrator] Profile Feature 구현"
+
+# 개별 에이전트 직접 호출
+Task 도구:
+- prompt: "[09_manseryeok_calculator] 사주 계산 로직 구현"
+```
+
+### 필수 규칙
+- **모든 위젯 코드 작성 시 00_widget_tree_guard 검증 필수**
+- const 생성자/인스턴스화
+- ListView.builder 사용
+- 위젯 100줄 이하
+- setState 범위 최소화

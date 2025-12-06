@@ -15,7 +15,7 @@ class ProfileFormState {
   final bool isLunar;
   final int? birthTimeMinutes;
   final bool birthTimeUnknown;
-  final String? birthPlace;
+  final String? birthCity;
 
   const ProfileFormState({
     this.displayName = '',
@@ -24,7 +24,7 @@ class ProfileFormState {
     this.isLunar = false,
     this.birthTimeMinutes,
     this.birthTimeUnknown = false,
-    this.birthPlace,
+    this.birthCity,
   });
 
   /// 필수 필드가 모두 입력되었는지 확인
@@ -49,7 +49,7 @@ class ProfileFormState {
     bool? isLunar,
     int? birthTimeMinutes,
     bool? birthTimeUnknown,
-    String? birthPlace,
+    String? birthCity,
   }) {
     return ProfileFormState(
       displayName: displayName ?? this.displayName,
@@ -58,7 +58,7 @@ class ProfileFormState {
       isLunar: isLunar ?? this.isLunar,
       birthTimeMinutes: birthTimeMinutes ?? this.birthTimeMinutes,
       birthTimeUnknown: birthTimeUnknown ?? this.birthTimeUnknown,
-      birthPlace: birthPlace ?? this.birthPlace,
+      birthCity: birthCity ?? this.birthCity,
     );
   }
 }
@@ -81,7 +81,7 @@ class ProfileForm extends _$ProfileForm {
       isLunar: profile.isLunar,
       birthTimeMinutes: profile.birthTimeMinutes,
       birthTimeUnknown: profile.birthTimeUnknown,
-      birthPlace: profile.birthPlace,
+      birthCity: profile.birthCity,
     );
   }
 
@@ -133,8 +133,8 @@ class ProfileForm extends _$ProfileForm {
   }
 
   /// 출생지 변경
-  void setBirthPlace(String? value) {
-    state = state.copyWith(birthPlace: value);
+  void setBirthCity(String? value) {
+    state = state.copyWith(birthCity: value);
   }
 
   /// 폼 상태를 SajuProfile Entity로 변환
@@ -151,7 +151,7 @@ class ProfileForm extends _$ProfileForm {
       birthTimeUnknown: state.birthTimeUnknown,
       isLunar: state.isLunar,
       gender: state.gender!,
-      birthPlace: state.birthPlace,
+      birthCity: state.birthCity ?? '',
       isActive: false,
       createdAt: now,
       updatedAt: now,

@@ -1,54 +1,55 @@
-import 'chat_message.dart';
 import '../models/chat_type.dart';
 
-/// 채팅 세션 엔티티
+/// 채팅 세션 엔티티 (순수 도메인 객체)
 ///
-/// 하나의 대화 세션을 관리
+/// ChatGPT/Claude 스타일의 채팅 히스토리를 위한 세션 관리
+/// - 각 대화는 하나의 세션으로 관리
+/// - 메시지는 별도 저장, 세션은 메타데이터만 보관
 class ChatSession {
   final String id;
+  final String title;
   final ChatType chatType;
-  final List<ChatMessage> messages;
+  final String? profileId;
   final DateTime createdAt;
-  final DateTime? updatedAt;
+  final DateTime updatedAt;
+  final int messageCount;
+  final String? lastMessagePreview;
 
   const ChatSession({
     required this.id,
+    required this.title,
     required this.chatType,
-    required this.messages,
+    this.profileId,
     required this.createdAt,
-    this.updatedAt,
+    required this.updatedAt,
+    this.messageCount = 0,
+    this.lastMessagePreview,
   });
 
   ChatSession copyWith({
     String? id,
+    String? title,
     ChatType? chatType,
-    List<ChatMessage>? messages,
+    String? profileId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? messageCount,
+    String? lastMessagePreview,
   }) {
     return ChatSession(
       id: id ?? this.id,
+      title: title ?? this.title,
       chatType: chatType ?? this.chatType,
-      messages: messages ?? this.messages,
+      profileId: profileId ?? this.profileId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      messageCount: messageCount ?? this.messageCount,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
     );
   }
 
-  /// 메시지 추가
-  ChatSession addMessage(ChatMessage message) {
-    return copyWith(
-      messages: [...messages, message],
-      updatedAt: DateTime.now(),
-    );
-  }
-
-  /// 마지막 메시지
-  ChatMessage? get lastMessage =>
-      messages.isNotEmpty ? messages.last : null;
-
-  /// 메시지 개수
-  int get messageCount => messages.length;
+  /// 세션 그룹 (날짜별 분류)
+  SessionGroup get group => SessionGroup.fromDate(createdAt);
 
   @override
   bool operator ==(Object other) =>
@@ -59,4 +60,29 @@ class ChatSession {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// 세션 그룹 (날짜별 분류)
+enum SessionGroup {
+  today('오늘'),
+  yesterday('어제'),
+  last7Days('지난 7일'),
+  last30Days('지난 30일'),
+  older('이전');
+
+  final String label;
+  const SessionGroup(this.label);
+
+  static SessionGroup fromDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final sessionDate = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(sessionDate).inDays;
+
+    if (diff == 0) return SessionGroup.today;
+    if (diff == 1) return SessionGroup.yesterday;
+    if (diff <= 7) return SessionGroup.last7Days;
+    if (diff <= 30) return SessionGroup.last30Days;
+    return SessionGroup.older;
+  }
 }

@@ -1,42 +1,58 @@
-import 'package:frontend/features/saju_chat/domain/entities/chat_session.dart';
-import 'package:frontend/features/saju_chat/domain/models/chat_type.dart';
-import 'chat_message_model.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../domain/entities/chat_session.dart';
+import '../../domain/models/chat_type.dart';
 
-/// 채팅 세션 데이터 모델 (Hive 저장용)
-class ChatSessionModel {
-  final String id;
-  final String chatType; // ChatType enum as String
-  final List<ChatMessageModel> messages;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
+part 'chat_session_model.freezed.dart';
+part 'chat_session_model.g.dart';
 
-  ChatSessionModel({
-    required this.id,
-    required this.chatType,
-    required this.messages,
-    required this.createdAt,
-    this.updatedAt,
-  });
+/// 채팅 세션 데이터 모델
+///
+/// Entity를 확장하여 JSON/Hive 직렬화 기능 추가
+/// Hive TypeAdapter를 사용하지 않고 Map으로 저장
+@freezed
+abstract class ChatSessionModel with _$ChatSessionModel {
+  const factory ChatSessionModel({
+    required String id,
+    required String title,
+    required String chatType, // ChatType enum을 문자열로 저장
+    String? profileId,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    @Default(0) int messageCount,
+    String? lastMessagePreview,
+  }) = _ChatSessionModel;
 
-  factory ChatSessionModel.fromEntity(ChatSession entity) {
-    return ChatSessionModel(
-      id: entity.id,
-      chatType: entity.chatType.name,
-      messages: entity.messages
-          .map((m) => ChatMessageModel.fromEntity(m))
-          .toList(),
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    );
-  }
+  const ChatSessionModel._();
 
+  /// JSON 직렬화
+  factory ChatSessionModel.fromJson(Map<String, dynamic> json) =>
+      _$ChatSessionModelFromJson(json);
+
+  /// Entity로 변환
   ChatSession toEntity() {
     return ChatSession(
       id: id,
-      chatType: ChatType.values.byName(chatType),
-      messages: messages.map((m) => m.toEntity()).toList(),
+      title: title,
+      chatType: ChatType.fromString(chatType),
+      profileId: profileId,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      messageCount: messageCount,
+      lastMessagePreview: lastMessagePreview,
+    );
+  }
+
+  /// Entity에서 생성
+  static ChatSessionModel fromEntity(ChatSession entity) {
+    return ChatSessionModel(
+      id: entity.id,
+      title: entity.title,
+      chatType: entity.chatType.name,
+      profileId: entity.profileId,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      messageCount: entity.messageCount,
+      lastMessagePreview: entity.lastMessagePreview,
     );
   }
 
@@ -44,28 +60,27 @@ class ChatSessionModel {
   Map<String, dynamic> toHiveMap() {
     return {
       'id': id,
+      'title': title,
       'chatType': chatType,
-      'messages': messages.map((m) => m.toHiveMap()).toList(),
+      'profileId': profileId,
       'createdAt': createdAt.millisecondsSinceEpoch,
-      'updatedAt': updatedAt?.millisecondsSinceEpoch,
+      'updatedAt': updatedAt.millisecondsSinceEpoch,
+      'messageCount': messageCount,
+      'lastMessagePreview': lastMessagePreview,
     };
   }
 
   /// Hive Map에서 생성
   static ChatSessionModel fromHiveMap(Map<dynamic, dynamic> map) {
-    final messagesList = (map['messages'] as List?)
-            ?.map((m) => ChatMessageModel.fromHiveMap(m as Map<dynamic, dynamic>))
-            .toList() ??
-        [];
-
     return ChatSessionModel(
       id: map['id'] as String,
+      title: map['title'] as String,
       chatType: map['chatType'] as String,
-      messages: messagesList,
+      profileId: map['profileId'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int)
-          : null,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int),
+      messageCount: (map['messageCount'] as int?) ?? 0,
+      lastMessagePreview: map['lastMessagePreview'] as String?,
     );
   }
 }

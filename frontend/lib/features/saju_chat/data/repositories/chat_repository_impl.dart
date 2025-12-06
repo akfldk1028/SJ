@@ -2,18 +2,19 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/chat_message.dart';
 import '../../domain/repositories/chat_repository.dart';
-import '../datasources/gemini_datasource.dart';
+import '../datasources/gemini_rest_datasource.dart';
 
 /// ChatRepository 구현체
 ///
-/// GeminiDatasource를 사용하여 AI 통신
+/// GeminiRestDatasource를 사용하여 Gemini 3.0 AI 통신
 class ChatRepositoryImpl implements ChatRepository {
-  final GeminiDatasource _datasource;
+  final GeminiRestDatasource _datasource;
   final _uuid = const Uuid();
+  bool _isSessionStarted = false;
 
   ChatRepositoryImpl({
-    GeminiDatasource? datasource,
-  }) : _datasource = datasource ?? GeminiDatasource();
+    GeminiRestDatasource? datasource,
+  }) : _datasource = datasource ?? GeminiRestDatasource();
 
   @override
   Future<ChatMessage> sendMessage({
@@ -21,10 +22,11 @@ class ChatRepositoryImpl implements ChatRepository {
     required List<ChatMessage> conversationHistory,
     required String systemPrompt,
   }) async {
-    // 첫 메시지면 세션 시작
-    if (conversationHistory.isEmpty) {
+    // 세션이 시작되지 않았으면 초기화
+    if (!_isSessionStarted) {
       _datasource.initialize();
       _datasource.startNewSession(systemPrompt);
+      _isSessionStarted = true;
     }
 
     try {
@@ -32,6 +34,7 @@ class ChatRepositoryImpl implements ChatRepository {
 
       return ChatMessage(
         id: _uuid.v4(),
+        sessionId: '', // AI 통신용 - 실제 sessionId는 provider에서 설정
         content: response,
         role: MessageRole.assistant,
         createdAt: DateTime.now(),
@@ -40,6 +43,7 @@ class ChatRepositoryImpl implements ChatRepository {
     } catch (e) {
       return ChatMessage(
         id: _uuid.v4(),
+        sessionId: '', // AI 통신용 - 실제 sessionId는 provider에서 설정
         content: '죄송합니다. 응답을 받는 중 오류가 발생했습니다.',
         role: MessageRole.assistant,
         createdAt: DateTime.now(),
@@ -54,12 +58,19 @@ class ChatRepositoryImpl implements ChatRepository {
     required List<ChatMessage> conversationHistory,
     required String systemPrompt,
   }) {
-    // 첫 메시지면 세션 시작
-    if (conversationHistory.isEmpty) {
+    // 세션이 시작되지 않았으면 초기화
+    if (!_isSessionStarted) {
       _datasource.initialize();
       _datasource.startNewSession(systemPrompt);
+      _isSessionStarted = true;
     }
 
     return _datasource.sendMessageStream(userMessage);
+  }
+
+  /// 세션 리셋 (새 대화 시작 시 호출)
+  void resetSession() {
+    _isSessionStarted = false;
+    _datasource.dispose();
   }
 }
