@@ -6,26 +6,7 @@ part of 'chat_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatRepositoryHash() => r'e56551aac747a58f8c60f6a7b336767405478a25';
-
-/// ChatRepository Provider
-///
-/// Copied from [chatRepository].
-@ProviderFor(chatRepository)
-final chatRepositoryProvider = AutoDisposeProvider<ChatRepository>.internal(
-  chatRepository,
-  name: r'chatRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$chatRepositoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ChatRepositoryRef = AutoDisposeProviderRef<ChatRepository>;
-String _$chatNotifierHash() => r'3883a00971829a35e9e9d2b4ecb51d72b6af85df';
+String _$chatNotifierHash() => r'6c4fff07b2d0839f3a94efbf67a02832768bcab5';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -49,38 +30,50 @@ class _SystemHash {
 }
 
 abstract class _$ChatNotifier extends BuildlessAutoDisposeNotifier<ChatState> {
-  late final ChatType chatType;
+  late final String sessionId;
 
-  ChatState build(ChatType chatType);
+  ChatState build(String sessionId);
 }
 
-/// 채팅 상태 관리 Provider
+/// 채팅 상태 관리 Provider (세션 인식)
+///
+/// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+/// → Gemini AI 히스토리가 세션별로 분리됨
 ///
 /// Copied from [ChatNotifier].
 @ProviderFor(ChatNotifier)
 const chatNotifierProvider = ChatNotifierFamily();
 
-/// 채팅 상태 관리 Provider
+/// 채팅 상태 관리 Provider (세션 인식)
+///
+/// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+/// → Gemini AI 히스토리가 세션별로 분리됨
 ///
 /// Copied from [ChatNotifier].
 class ChatNotifierFamily extends Family<ChatState> {
-  /// 채팅 상태 관리 Provider
+  /// 채팅 상태 관리 Provider (세션 인식)
+  ///
+  /// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+  /// → Gemini AI 히스토리가 세션별로 분리됨
   ///
   /// Copied from [ChatNotifier].
   const ChatNotifierFamily();
 
-  /// 채팅 상태 관리 Provider
+  /// 채팅 상태 관리 Provider (세션 인식)
+  ///
+  /// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+  /// → Gemini AI 히스토리가 세션별로 분리됨
   ///
   /// Copied from [ChatNotifier].
-  ChatNotifierProvider call(ChatType chatType) {
-    return ChatNotifierProvider(chatType);
+  ChatNotifierProvider call(String sessionId) {
+    return ChatNotifierProvider(sessionId);
   }
 
   @override
   ChatNotifierProvider getProviderOverride(
     covariant ChatNotifierProvider provider,
   ) {
-    return call(provider.chatType);
+    return call(provider.sessionId);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -98,17 +91,23 @@ class ChatNotifierFamily extends Family<ChatState> {
   String? get name => r'chatNotifierProvider';
 }
 
-/// 채팅 상태 관리 Provider
+/// 채팅 상태 관리 Provider (세션 인식)
+///
+/// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+/// → Gemini AI 히스토리가 세션별로 분리됨
 ///
 /// Copied from [ChatNotifier].
 class ChatNotifierProvider
     extends AutoDisposeNotifierProviderImpl<ChatNotifier, ChatState> {
-  /// 채팅 상태 관리 Provider
+  /// 채팅 상태 관리 Provider (세션 인식)
+  ///
+  /// 각 세션별로 독립된 ChatRepository 인스턴스를 가짐
+  /// → Gemini AI 히스토리가 세션별로 분리됨
   ///
   /// Copied from [ChatNotifier].
-  ChatNotifierProvider(ChatType chatType)
+  ChatNotifierProvider(String sessionId)
     : this._internal(
-        () => ChatNotifier()..chatType = chatType,
+        () => ChatNotifier()..sessionId = sessionId,
         from: chatNotifierProvider,
         name: r'chatNotifierProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -117,7 +116,7 @@ class ChatNotifierProvider
         dependencies: ChatNotifierFamily._dependencies,
         allTransitiveDependencies:
             ChatNotifierFamily._allTransitiveDependencies,
-        chatType: chatType,
+        sessionId: sessionId,
       );
 
   ChatNotifierProvider._internal(
@@ -127,14 +126,14 @@ class ChatNotifierProvider
     required super.allTransitiveDependencies,
     required super.debugGetCreateSourceHash,
     required super.from,
-    required this.chatType,
+    required this.sessionId,
   }) : super.internal();
 
-  final ChatType chatType;
+  final String sessionId;
 
   @override
   ChatState runNotifierBuild(covariant ChatNotifier notifier) {
-    return notifier.build(chatType);
+    return notifier.build(sessionId);
   }
 
   @override
@@ -142,13 +141,13 @@ class ChatNotifierProvider
     return ProviderOverride(
       origin: this,
       override: ChatNotifierProvider._internal(
-        () => create()..chatType = chatType,
+        () => create()..sessionId = sessionId,
         from: from,
         name: null,
         dependencies: null,
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
-        chatType: chatType,
+        sessionId: sessionId,
       ),
     );
   }
@@ -160,13 +159,13 @@ class ChatNotifierProvider
 
   @override
   bool operator ==(Object other) {
-    return other is ChatNotifierProvider && other.chatType == chatType;
+    return other is ChatNotifierProvider && other.sessionId == sessionId;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, chatType.hashCode);
+    hash = _SystemHash.combine(hash, sessionId.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -175,8 +174,8 @@ class ChatNotifierProvider
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin ChatNotifierRef on AutoDisposeNotifierProviderRef<ChatState> {
-  /// The parameter `chatType` of this provider.
-  ChatType get chatType;
+  /// The parameter `sessionId` of this provider.
+  String get sessionId;
 }
 
 class _ChatNotifierProviderElement
@@ -185,7 +184,7 @@ class _ChatNotifierProviderElement
   _ChatNotifierProviderElement(super.provider);
 
   @override
-  ChatType get chatType => (origin as ChatNotifierProvider).chatType;
+  String get sessionId => (origin as ChatNotifierProvider).sessionId;
 }
 
 // ignore_for_file: type=lint

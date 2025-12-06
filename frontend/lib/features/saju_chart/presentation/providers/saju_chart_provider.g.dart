@@ -28,6 +28,27 @@ final sajuCalculationServiceProvider =
 // ignore: unused_element
 typedef SajuCalculationServiceRef =
     AutoDisposeProviderRef<SajuCalculationService>;
+String _$sajuAnalysisServiceHash() =>
+    r'8b2a8ed1260ea6e0f6d5d8ac040764e53e6f750b';
+
+/// 사주 종합 분석 서비스 Provider
+///
+/// Copied from [sajuAnalysisService].
+@ProviderFor(sajuAnalysisService)
+final sajuAnalysisServiceProvider =
+    AutoDisposeProvider<SajuAnalysisService>.internal(
+      sajuAnalysisService,
+      name: r'sajuAnalysisServiceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$sajuAnalysisServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SajuAnalysisServiceRef = AutoDisposeProviderRef<SajuAnalysisService>;
 String _$currentSajuChartHash() => r'aa69b5d61e6f1aa843513f3f5cda2a38eeec5d52';
 
 /// 현재 활성 프로필의 사주차트 Provider
@@ -46,6 +67,28 @@ final currentSajuChartProvider =
     );
 
 typedef _$CurrentSajuChart = AutoDisposeAsyncNotifier<SajuChart?>;
+String _$currentSajuAnalysisHash() =>
+    r'16995887c91f3fadf96b9cc53748e4ef28e8a77a';
+
+/// 현재 사주 종합 분석 Provider
+///
+/// Copied from [CurrentSajuAnalysis].
+@ProviderFor(CurrentSajuAnalysis)
+final currentSajuAnalysisProvider =
+    AutoDisposeAsyncNotifierProvider<
+      CurrentSajuAnalysis,
+      SajuAnalysis?
+    >.internal(
+      CurrentSajuAnalysis.new,
+      name: r'currentSajuAnalysisProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$currentSajuAnalysisHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$CurrentSajuAnalysis = AutoDisposeAsyncNotifier<SajuAnalysis?>;
 String _$sajuChartScreenNotifierHash() =>
     r'7951dfa3c5dbac971f9fd6cb90cf84fe2c4d158f';
 

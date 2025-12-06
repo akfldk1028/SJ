@@ -37,7 +37,9 @@
       "mcp__memory__create_entities",
       "mcp__memory__add_observations",
       "Bash(flutter analyze:*)",
-      "Bash(D:\\development\\flutter\\bin\\flutter devices:*)"
+      "Bash(D:\\development\\flutter\\bin\\flutter devices:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)"
     ],
     "deny": [],
     "ask": []
