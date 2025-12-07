@@ -2,7 +2,7 @@ import 'lunar_year_data.dart';
 
 /// 음력 데이터 테이블 (2051-2100년)
 /// 한국천문연구원 데이터 기반 (미래 예측치)
-const List<LunarYearData> lunarTable2051_2100 = [
+final List<LunarYearData> lunarTable2051_2100 = [
   // 2051년
   LunarYearData(
     year: 2051,
