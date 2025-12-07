@@ -15,6 +15,9 @@ Thumbs.db
 # Logs
 *.log
 
+# API Key test scripts (sensitive)
+test_gemini*.ps1
+
 # Flutter (frontend 폴더 내 별도 .gitignore 있음)
 frontend/.dart_tool/
 frontend/.pub-cache/
