@@ -180,3 +180,98 @@ const Map<String, List<int>> jiJangGanDaysTable = {
   '술': [9, 3, 18], // 신금9일, 정화3일, 무토18일
   '해': [7, 7, 16], // 무토7일, 갑목7일, 임수16일
 };
+
+// ============================================================================
+// 지장간 확장 기능
+// ============================================================================
+
+/// 지장간 상세 정보 (한자 포함)
+class JiJangGanDetail {
+  final String gan; // 천간 한글
+  final String hanja; // 천간 한자
+  final String oheng; // 오행
+  final int strength; // 세력 (일수)
+  final JiJangGanType type; // 유형
+
+  const JiJangGanDetail({
+    required this.gan,
+    required this.hanja,
+    required this.oheng,
+    required this.strength,
+    required this.type,
+  });
+}
+
+/// 천간 한자 매핑
+const Map<String, String> _ganHanja = {
+  '갑': '甲', '을': '乙', '병': '丙', '정': '丁', '무': '戊',
+  '기': '己', '경': '庚', '신': '辛', '임': '壬', '계': '癸',
+};
+
+/// 천간 오행 매핑
+const Map<String, String> _ganOheng = {
+  '갑': '목', '을': '목', '병': '화', '정': '화', '무': '토',
+  '기': '토', '경': '금', '신': '금', '임': '수', '계': '수',
+};
+
+/// 지지의 지장간 상세 정보 조회
+List<JiJangGanDetail> getJiJangGanDetail(String ji) {
+  final jijanggan = jiJangGanTable[ji];
+  if (jijanggan == null) return [];
+
+  return jijanggan.map((jjg) {
+    return JiJangGanDetail(
+      gan: jjg.gan,
+      hanja: _ganHanja[jjg.gan] ?? '',
+      oheng: _ganOheng[jjg.gan] ?? '',
+      strength: jjg.strength,
+      type: jjg.type,
+    );
+  }).toList();
+}
+
+/// 모든 지지의 지장간 맵 (빠른 조회용)
+Map<String, List<JiJangGanDetail>> getAllJiJangGanDetails() {
+  final result = <String, List<JiJangGanDetail>>{};
+  for (final ji in ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해']) {
+    result[ji] = getJiJangGanDetail(ji);
+  }
+  return result;
+}
+
+/// 지장간 기운 유형별 한글명
+extension JiJangGanTypeExtension on JiJangGanType {
+  String get korean {
+    switch (this) {
+      case JiJangGanType.jeongGi:
+        return '정기';
+      case JiJangGanType.jungGi:
+        return '중기';
+      case JiJangGanType.yeoGi:
+        return '여기';
+    }
+  }
+
+  String get hanja {
+    switch (this) {
+      case JiJangGanType.jeongGi:
+        return '正氣';
+      case JiJangGanType.jungGi:
+        return '中氣';
+      case JiJangGanType.yeoGi:
+        return '餘氣';
+    }
+  }
+
+  /// 기운 강도 (정기가 가장 강함)
+  int get strengthRank {
+    switch (this) {
+      case JiJangGanType.jeongGi:
+        return 3;
+      case JiJangGanType.jungGi:
+        return 2;
+      case JiJangGanType.yeoGi:
+        return 1;
+    }
+  }
+}
