@@ -23,7 +23,7 @@ class DaeUn {
   });
 
   /// 대운 기간 문자열
-  String get ageRange => '$startAge~${endAge}세';
+  String get ageRange => '$startAge~$endAge세';
 }
 
 /// 대운 분석 결과

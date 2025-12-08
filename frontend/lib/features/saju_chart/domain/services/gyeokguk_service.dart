@@ -40,7 +40,7 @@ class GyeokGukService {
           gyeokguk: basicGyeokguk,
           strength: strength.clamp(0, 100),
           isSpecial: false,
-          reason: '월지 정기(${monthJeongGi})가 ${monthSipsin.korean}',
+          reason: '월지 정기($monthJeongGi)가 ${monthSipsin.korean}',
         );
       }
     }
@@ -123,7 +123,7 @@ class GyeokGukService {
         gyeokguk: GyeokGuk.jongwangGyeok,
         strength: (bigeopRatio * 100).round(),
         isSpecial: true,
-        reason: '비겁이 ${(bigeopRatio * 100).round()}% (${bigeopTotal}개)',
+        reason: '비겁이 ${(bigeopRatio * 100).round()}% ($bigeopTotal개)',
       );
     }
 
@@ -137,7 +137,7 @@ class GyeokGukService {
         gyeokguk: GyeokGuk.jongsalGyeok,
         strength: (gwanRatio * 100).round(),
         isSpecial: true,
-        reason: '관살이 ${(gwanRatio * 100).round()}% (${gwanTotal}개)',
+        reason: '관살이 ${(gwanRatio * 100).round()}% ($gwanTotal개)',
       );
     }
 
@@ -151,7 +151,7 @@ class GyeokGukService {
         gyeokguk: GyeokGuk.jongjaeGyeok,
         strength: (jaeRatio * 100).round(),
         isSpecial: true,
-        reason: '재성이 ${(jaeRatio * 100).round()}% (${jaeTotal}개)',
+        reason: '재성이 ${(jaeRatio * 100).round()}% ($jaeTotal개)',
       );
     }
 

@@ -52,11 +52,11 @@ class RelationshipListScreen extends ConsumerWidget {
       child: Column(
         children: [
           // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
             child: ShadInput(
-              placeholder: const Text('이름으로 검색'),
-              leading: const Padding(
+              placeholder: Text('이름으로 검색'),
+              leading: Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.search, size: 16),
               ),

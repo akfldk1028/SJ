@@ -83,7 +83,7 @@ class _DateDisplay extends StatelessWidget {
     final now = DateTime.now();
     final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     final weekday = weekdays[now.weekday - 1];
-    final formattedDate = '${now.year}년 ${now.month}월 ${now.day}일 ${weekday}요일';
+    final formattedDate = '${now.year}년 ${now.month}월 ${now.day}일 $weekday요일';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

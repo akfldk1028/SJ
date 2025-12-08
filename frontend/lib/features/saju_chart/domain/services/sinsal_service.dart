@@ -333,7 +333,7 @@ class SinSalService {
       results.add(SinSalResult(
         sinsal: SinSal.gwiMunGwanSal,
         location: '사주 전체',
-        relatedJi: '인신사해 중 ${count}개',
+        relatedJi: '인신사해 중 $count개',
         description: '귀문관살 - 영적 민감성, 신비 체험 가능',
       ));
     }

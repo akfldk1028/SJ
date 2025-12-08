@@ -184,21 +184,6 @@ lib/
 - [x] models/chat_type.dart (ChatType enum)
 - [x] repositories/chat_repository.dart (abstract)
 
-### 5.2 Data 레이어 ✅
-- [x] datasources/gemini_rest_datasource.dart (REST API + SSE 스트리밍)
-- [x] repositories/chat_repository_impl.dart
-- [ ] datasources/chat_local_datasource.dart (Hive 캐시 - 추후)
-- [x] ~~gemini_datasource.dart~~ (SDK 방식 - 미사용, 삭제 예정)
-
-### 5.3 Presentation 레이어 ✅
-- [x] providers/chat_provider.dart (Riverpod 3.0)
-- [x] screens/saju_chat_screen.dart
-- [x] widgets/message_bubble.dart
-- [x] widgets/streaming_message_bubble.dart
-- [x] widgets/chat_message_list.dart
-- [x] widgets/chat_input_field.dart
-- [x] widgets/send_button.dart
-- [x] widgets/chat_app_bar.dart
 - [x] widgets/typing_indicator.dart
 - [x] widgets/disclaimer_banner.dart
 - [x] widgets/error_banner.dart
@@ -221,15 +206,15 @@ lib/
 ## Phase 6: Feature - Splash/Onboarding
 
 ### 6.1 Splash
-- [ ] screens/splash_screen.dart
-- [ ] 로컬 데이터 로드
-- [ ] 온보딩/프로필 체크 후 라우팅
+- [x] screens/splash_screen.dart (프로필 체크 로직 추가)
+- [x] 로컬 데이터 로드
+- [x] 온보딩/프로필 체크 후 라우팅
 
 ### 6.2 Onboarding
-- [ ] screens/onboarding_screen.dart
-- [ ] 서비스 소개 페이지
-- [ ] "사주는 참고용입니다" 안내
-- [ ] 온보딩 완료 플래그 저장
+- [x] screens/onboarding_screen.dart (사주 정보 입력 폼 구현)
+- [x] 서비스 소개 페이지 (입력 폼으로 대체)
+- [x] "사주는 참고용입니다" 안내
+- [x] 온보딩 완료 플래그 저장 (프로필 저장으로 대체)
 
 ---
 
@@ -278,18 +263,6 @@ lib/
 - [x] data/models/saju_chart_model.dart - JSON 직렬화
 
 ### 8.5 Presentation (미구현)
-- [ ] providers/saju_chart_provider.dart
-- [ ] widgets/saju_summary_card.dart
-- [ ] widgets/pillar_display.dart
-
-### 8.6 TODO (보완 필요)
-- [ ] 음양력 변환 실제 구현 (현재 Stub)
-- [ ] 절기 테이블 확장 (1900-2100년)
-- [ ] 대운(大運) 계산
-- [ ] 포스텔러 만세력과 검증
-
----
-
 ## 작업 규칙
 
 ### 컨텍스트 관리
@@ -331,6 +304,13 @@ lib/
 | 2025-12-05 | **Phase 5 대부분 완료**: Saju Chat 18개 파일 구현 | 완료 |
 | 2025-12-05 | Gemini 3.0 REST API 연동 (SDK → REST 마이그레이션) | 완료 |
 | 2025-12-05 | SSE 스트리밍 응답, 타이핑 인디케이터 구현 | 완료 |
+| 2025-12-06 | 일주 계산 오류 분석 및 수정 완료 | ✅ 완료 |
+| 2025-12-06 | baseDayIndex=10 확정, 테스트 통과 | ✅ 완료 |
+| 2025-12-06 | 포스텔러 검증 완료 (1990-02-15, 1997-11-29) | ✅ 완료 |
+| 2025-12-06 | SajuDetailSheet "자세히 보기" 에러 수정 (3개 파일) | ✅ 완료 |
+| 2025-12-06 | Provider container 전달, ShadSheet→Flutter 위젯 변환 | ✅ 완료 |
+| 2025-12-06 | PillarDisplay 한자 표시 기능 추가 | ✅ 완료 |
+| 2025-12-06 | 천간지지 JSON 기반 리팩토링 (4개 파일) | ✅ 완료 |
 
 ---
 
@@ -366,6 +346,132 @@ lib/
 - Inflearn 만세력 강의
 - GitHub: bikul-manseryeok 프로젝트
 - 포스텔러 만세력 2.2 (레퍼런스 앱)
+
+---
+
+## ✅ 완료된 작업 (2025-12-06)
+
+### 일주(日柱) 계산 오류 수정 ✅
+
+**문제 상황:**
+- 1997-11-29 08:03 부산: 을유(乙酉) → **을해(乙亥)** 수정 필요
+- 1990-02-15 09:30 서울: 신유(辛酉) → **신해(辛亥)** 수정 필요
+
+**해결:**
+- `saju_calculation_service.dart` baseDayIndex = **10** 확정
+- 포스텔러 검증 완료 (두 케이스 모두 통과)
+
+**포스텔러 검증 결과:**
+
+| 날짜 | 시주 | 일주 | 월주 | 년주 | 상태 |
+|------|------|------|------|------|------|
+| 1990-02-15 서울 | 임진 | **신해** | 무인 | 경오 | ✅ |
+| 1997-11-29 부산 | 경진 | **을해** | 신해 | 정축 | ✅ |
+
+**테스트 결과:** `flutter test test/saju_logic_test.dart` → All tests passed!
+
+### 만세력 UI 한자 표시 ✅
+
+한자 표시 기능이 이미 구현되어 있음 확인:
+- `Pillar.hanja` 게터
+- `SajuChart.fullSajuHanja` 게터
+- `PillarColumnWidget` - 한자 박스 표시 (28px)
+- `SajuChartScreen` - 사주팔자 한자 표시
+
+### SajuDetailSheet "자세히 보기" 에러 수정 ✅
+
+**문제:** "자세히 보기" 버튼 클릭 시 "Unexpected null value" 에러 발생
+
+**수정 내용 (3개 파일):**
+
+1. **`saju_mini_card.dart`** - Provider container를 bottom sheet에 전달
+   ```dart
+   final container = ProviderScope.containerOf(context);
+   showModalBottomSheet(
+     builder: (sheetContext) => UncontrolledProviderScope(
+       container: container,
+       child: const SajuDetailSheet(),
+     ),
+   );
+   ```
+
+2. **`saju_detail_sheet.dart`** - ShadSheet → 네이티브 Flutter Container로 변경
+   - shadcn_ui 의존성 제거
+   - 안정적인 네이티브 Flutter 위젯으로 구현
+
+3. **`yongsin_service.dart`** - null-safe 처리 추가
+   ```dart
+   final dayOheng = cheonganToOheng[dayMaster];
+   if (dayOheng == null) {
+     return YongSinResult(...); // 기본값 반환
+   }
+   ```
+
+**결과:** ✅ "자세히 보기" 바텀시트 정상 동작 (만세력 + 오행 분포 표시)
+
+---
+
+### ✅ 해결됨: SajuDetailSheet 한자 표시 추가
+
+**수정 내용:** `PillarDisplay` 위젯에 한자 표시 기능 추가
+
+**수정 파일:** `frontend/lib/features/saju_chart/presentation/widgets/pillar_display.dart`
+
+**변경 사항:**
+- `showHanja` 파라미터 추가 (기본값: true)
+- 한자를 큰 글씨(28px+)로, 한글을 작은 글씨로 표시
+- 오행별 색상 적용 (목-초록, 화-빨강, 토-주황, 금-금색, 수-파랑)
+- `cheongan_jiji.dart`의 한자 매핑 테이블 활용
+
+---
+
+### ✅ 완료: 천간지지 JSON 기반 리팩토링
+
+**목적:** 데이터 정확도 향상, 타입 안전성, 확장성 개선
+
+**생성/수정 파일:**
+
+1. **`assets/data/cheongan_jiji.json`** - 통합 JSON 데이터
+2. **`data/models/cheongan_model.dart`** - 천간 모델 클래스
+3. **`data/models/jiji_model.dart`** - 지지 모델 클래스
+4. **`data/models/oheng_model.dart`** - 오행 모델 클래스
+5. **`data/constants/cheongan_jiji.dart`** - JSON 파싱 + 하위호환 API
+
+**데이터 구조:**
+```json
+{
+  "cheongan": [
+    {"hangul": "갑", "hanja": "甲", "oheng": "목", "eum_yang": "양", "order": 0}
+  ],
+  "jiji": [
+    {"hangul": "자", "hanja": "子", "oheng": "수", "animal": "쥐",
+     "month": 11, "hour_start": 23, "hour_end": 1, "order": 0}
+  ],
+  "oheng": [
+    {"name": "목", "hanja": "木", "color": "#4CAF50", "season": "봄", "direction": "동"}
+  ]
+}
+```
+
+**신규 기능:**
+- `CheonganJijiData.instance` - 싱글톤 데이터 저장소
+- `getCheonganByHanja()`, `getJijiByHanja()` - 한자→한글 역조회
+- `getJijiByHour()` - 시간대로 지지 조회
+- `cheonganEumYang`, `jijiEumYang` - 음양 매핑
+- `ohengHanja`, `ohengColor` - 오행 한자/색상
+
+**하위 호환성:** 기존 API 모두 유지
+- `cheongan`, `jiji` (List)
+- `cheonganHanja`, `jijiHanja`, `jijiAnimal` (Map)
+- `cheonganOheng`, `jijiOheng` (Map)
+- `getOheng()` 함수
+
+**테스트 결과:** ✅ 2개 테스트 통과 (1990-02-15, 1997-11-29)
+
+### Flutter 경로 (로컬 환경)
+
+- **Jaehyeon PC:** `C:\Users\SOGANG\flutter\flutter\bin\flutter.bat`
+- **협업자(DK) PC:** `D:\development\flutter\bin\flutter.bat`
 
 ---
 

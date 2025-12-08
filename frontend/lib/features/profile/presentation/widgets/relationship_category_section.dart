@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../../domain/entities/relationship_type.dart';
 

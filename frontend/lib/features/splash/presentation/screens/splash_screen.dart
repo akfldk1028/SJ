@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../router/routes.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// 스플래시 화면
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -20,10 +22,20 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
+    // 2초 대기 (로고 노출)
     await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // 프로필 존재 여부 확인
+    final profile = await ref.read(activeProfileProvider.future);
+
     if (mounted) {
-      // 메뉴 화면으로 이동 (나중에 온보딩 완료 여부 확인 로직 추가)
-      context.go(Routes.menu);
+      if (profile != null) {
+        context.go(Routes.menu);
+      } else {
+        context.go(Routes.onboarding);
+      }
     }
   }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../data/mock/mock_fortune_data.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Daily advice section - 테마 적용 (테마별 운세)

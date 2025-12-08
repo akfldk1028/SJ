@@ -41,7 +41,7 @@ class ChatBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isUser) ...[
-              Text(
+              const Text(
                 '만톡 AI',
                 style: TextStyle(
                   fontSize: 12,

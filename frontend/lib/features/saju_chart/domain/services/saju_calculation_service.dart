@@ -156,7 +156,7 @@ class SajuCalculationService {
     // 정임년 → 임인월 시작 (임=8)
     // 무계년 → 갑인월 시작 (갑=0)
     final yearGanIndex = cheongan.indexOf(yearPillar.gan);
-    final monthGanStart = (yearGanIndex % 5) * 2;
+    final monthGanStart = ((yearGanIndex % 5) * 2 + 2) % 10;
     final ganIndex = (monthGanStart + monthIndex) % 10;
 
     // 월지: 인월(1월)부터 시작 → index 2
@@ -169,11 +169,14 @@ class SajuCalculationService {
   }
 
   /// 일주 계산
-  /// 기준일: 1900년 1월 1일 = 갑진일 (인덱스 40)
+  /// 기준일: 1900년 1월 1일 = 계사일 (癸巳)
   Pillar _calculateDayPillar(DateTime birthDate) {
-    // 기준일: 1900년 1월 1일 = 갑진일
+    // 기준일: 1900년 1월 1일
     final baseDate = DateTime(1900, 1, 1);
-    const baseDayIndex = 40; // 갑진 (60갑자 중 40번째)
+    // 포스텔러 검증 완료:
+    // - 1990-02-15 → 신해(辛亥, 인덱스 47) ✓
+    // - 1997-11-29 → 을해(乙亥, 인덱스 11) ✓
+    const baseDayIndex = 10;
 
     // 일수 차이 계산
     final daysDiff = birthDate.difference(baseDate).inDays;

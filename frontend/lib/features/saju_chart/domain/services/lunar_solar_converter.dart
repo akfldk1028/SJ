@@ -57,7 +57,7 @@ class LunarSolarConverter {
 
     // 음력 1월 1일부터의 경과 일수 계산
     int totalDays = 0;
-    int targetMonthIndex = _getMonthIndex(
+    final int targetMonthIndex = _getMonthIndex(
       lunarDate.month,
       lunarDate.isLeapMonth,
       yearData.leapMonth,

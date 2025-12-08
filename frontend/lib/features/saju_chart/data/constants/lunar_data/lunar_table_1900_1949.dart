@@ -2,7 +2,7 @@ import 'lunar_year_data.dart';
 
 /// 음력 데이터 테이블 (1900-1949년)
 /// 한국천문연구원 데이터 기반
-const List<LunarYearData> lunarTable1900_1949 = [
+final List<LunarYearData> lunarTable1900_1949 = [
   // 1900년 - 윤8월
   LunarYearData(
     year: 1900,

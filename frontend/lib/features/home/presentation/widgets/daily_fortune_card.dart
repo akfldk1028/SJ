@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -107,7 +106,7 @@ class DailyFortuneCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(
+                  const Icon(
                     Icons.arrow_forward_ios,
                     size: 12,
                     color: AppColors.primary,

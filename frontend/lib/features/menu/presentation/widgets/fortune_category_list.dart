@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../data/mock/mock_fortune_data.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Fortune category grid - 테마 적용 (정통운세 그리드)

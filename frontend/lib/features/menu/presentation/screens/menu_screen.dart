@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
-import '../widgets/saju_table.dart';
+import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
 import '../widgets/fortune_category_list.dart';
 import '../widgets/daily_advice_section.dart';
 import '../widgets/today_message_card.dart';
@@ -44,29 +44,24 @@ class _MenuScreenState extends State<MenuScreen> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 100),
-                children: const [
-                  FortuneSummaryCard(),
-                  SizedBox(height: 24),
-                  SectionHeader(
-                    title: '나의 사주',
-                    actionText: '상세보기',
-                  ),
-                  SizedBox(height: 12),
-                  SajuTable(),
-                  SizedBox(height: 24),
-                  SectionHeader(
+                children: [
+                  const FortuneSummaryCard(),
+                  const SizedBox(height: 24),
+                  SajuMiniCard(),
+                  const SizedBox(height: 24),
+                  const SectionHeader(
                     title: '오늘의 운세',
                   ),
-                  SizedBox(height: 12),
-                  FortuneCategoryList(),
-                  SizedBox(height: 24),
-                  SectionHeader(
+                  const SizedBox(height: 12),
+                  const FortuneCategoryList(),
+                  const SizedBox(height: 24),
+                  const SectionHeader(
                     title: '오늘의 조언',
                   ),
-                  SizedBox(height: 12),
-                  DailyAdviceSection(),
-                  SizedBox(height: 24),
-                  TodayMessageCard(),
+                  const SizedBox(height: 12),
+                  const DailyAdviceSection(),
+                  const SizedBox(height: 24),
+                  const TodayMessageCard(),
                 ],
               ),
             ),
@@ -99,8 +94,8 @@ class _MenuScreenState extends State<MenuScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: theme.isDark
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.05),
+                        ? const Color.fromRGBO(0, 0, 0, 0.3)
+                        : const Color.fromRGBO(0, 0, 0, 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -169,8 +164,8 @@ class _MenuScreenState extends State<MenuScreen> {
               boxShadow: [
                 BoxShadow(
                   color: theme.isDark
-                      ? Colors.black.withOpacity(0.3)
-                      : Colors.black.withOpacity(0.05),
+                      ? const Color.fromRGBO(0, 0, 0, 0.3)
+                      : const Color.fromRGBO(0, 0, 0, 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -216,8 +211,8 @@ class _MenuScreenState extends State<MenuScreen> {
         boxShadow: [
           BoxShadow(
             color: theme.isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.05),
+                ? const Color.fromRGBO(0, 0, 0, 0.3)
+                : const Color.fromRGBO(0, 0, 0, 0.05),
             offset: const Offset(0, -2),
             blurRadius: 10,
           ),

@@ -1,5 +1,6 @@
 /// 사주 계산 사용 예제
 /// 실제 사용 시 이 파일을 참고하여 구현
+library;
 
 import 'saju_chart.dart';
 

@@ -1,6 +1,6 @@
 /// 음력 데이터 테이블 통합 모듈
 /// 1900-2100년 데이터를 통합 제공
-library lunar_table;
+library;
 
 export 'lunar_year_data.dart';
 export 'lunar_table_1900_1949.dart';

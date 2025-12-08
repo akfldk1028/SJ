@@ -85,7 +85,7 @@ class MockFortuneData {
 
   // Today's message
   static String todayMessage =
-      "오늘은 새로운 시작에 좋은 날입니다. 적극적으로 행동하면 좋은 결과를 얻을 수 있어요.";
+      '오늘은 새로운 시작에 좋은 날입니다. 적극적으로 행동하면 좋은 결과를 얻을 수 있어요.';
 
   // Category details
   static Map<String, Map<String, dynamic>> categoryDetails = {

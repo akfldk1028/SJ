@@ -1,0 +1,35 @@
+{
+  "cheongan": [
+    {"hangul": "갑", "hanja": "甲", "oheng": "목", "eum_yang": "양", "order": 0},
+    {"hangul": "을", "hanja": "乙", "oheng": "목", "eum_yang": "음", "order": 1},
+    {"hangul": "병", "hanja": "丙", "oheng": "화", "eum_yang": "양", "order": 2},
+    {"hangul": "정", "hanja": "丁", "oheng": "화", "eum_yang": "음", "order": 3},
+    {"hangul": "무", "hanja": "戊", "oheng": "토", "eum_yang": "양", "order": 4},
+    {"hangul": "기", "hanja": "己", "oheng": "토", "eum_yang": "음", "order": 5},
+    {"hangul": "경", "hanja": "庚", "oheng": "금", "eum_yang": "양", "order": 6},
+    {"hangul": "신", "hanja": "辛", "oheng": "금", "eum_yang": "음", "order": 7},
+    {"hangul": "임", "hanja": "壬", "oheng": "수", "eum_yang": "양", "order": 8},
+    {"hangul": "계", "hanja": "癸", "oheng": "수", "eum_yang": "음", "order": 9}
+  ],
+  "jiji": [
+    {"hangul": "자", "hanja": "子", "oheng": "수", "eum_yang": "양", "animal": "쥐", "month": 11, "hour_start": 23, "hour_end": 1, "order": 0},
+    {"hangul": "축", "hanja": "丑", "oheng": "토", "eum_yang": "음", "animal": "소", "month": 12, "hour_start": 1, "hour_end": 3, "order": 1},
+    {"hangul": "인", "hanja": "寅", "oheng": "목", "eum_yang": "양", "animal": "호랑이", "month": 1, "hour_start": 3, "hour_end": 5, "order": 2},
+    {"hangul": "묘", "hanja": "卯", "oheng": "목", "eum_yang": "음", "animal": "토끼", "month": 2, "hour_start": 5, "hour_end": 7, "order": 3},
+    {"hangul": "진", "hanja": "辰", "oheng": "토", "eum_yang": "양", "animal": "용", "month": 3, "hour_start": 7, "hour_end": 9, "order": 4},
+    {"hangul": "사", "hanja": "巳", "oheng": "화", "eum_yang": "음", "animal": "뱀", "month": 4, "hour_start": 9, "hour_end": 11, "order": 5},
+    {"hangul": "오", "hanja": "午", "oheng": "화", "eum_yang": "양", "animal": "말", "month": 5, "hour_start": 11, "hour_end": 13, "order": 6},
+    {"hangul": "미", "hanja": "未", "oheng": "토", "eum_yang": "음", "animal": "양", "month": 6, "hour_start": 13, "hour_end": 15, "order": 7},
+    {"hangul": "신", "hanja": "申", "oheng": "금", "eum_yang": "양", "animal": "원숭이", "month": 7, "hour_start": 15, "hour_end": 17, "order": 8},
+    {"hangul": "유", "hanja": "酉", "oheng": "금", "eum_yang": "음", "animal": "닭", "month": 8, "hour_start": 17, "hour_end": 19, "order": 9},
+    {"hangul": "술", "hanja": "戌", "oheng": "토", "eum_yang": "양", "animal": "개", "month": 9, "hour_start": 19, "hour_end": 21, "order": 10},
+    {"hangul": "해", "hanja": "亥", "oheng": "수", "eum_yang": "음", "animal": "돼지", "month": 10, "hour_start": 21, "hour_end": 23, "order": 11}
+  ],
+  "oheng": [
+    {"name": "목", "hanja": "木", "color": "#4CAF50", "season": "봄", "direction": "동"},
+    {"name": "화", "hanja": "火", "color": "#F44336", "season": "여름", "direction": "남"},
+    {"name": "토", "hanja": "土", "color": "#FF9800", "season": "환절기", "direction": "중앙"},
+    {"name": "금", "hanja": "金", "color": "#FFD700", "season": "가을", "direction": "서"},
+    {"name": "수", "hanja": "水", "color": "#2196F3", "season": "겨울", "direction": "북"}
+  ]
+}

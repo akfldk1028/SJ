@@ -15,7 +15,20 @@ class YongSinService {
   /// 사주로부터 용신 선정
   YongSinResult selectYongSin(SajuChart chart) {
     final dayMaster = chart.dayPillar.gan;
-    final dayOheng = cheonganToOheng[dayMaster]!;
+    final dayOheng = cheonganToOheng[dayMaster];
+
+    // dayMaster가 유효하지 않은 경우 기본값 반환
+    if (dayOheng == null) {
+      return YongSinResult(
+        yongsin: Oheng.mok,
+        heesin: Oheng.su,
+        gisin: Oheng.geum,
+        gusin: Oheng.hwa,
+        hansin: Oheng.to,
+        reason: '일간 정보 부족',
+        method: YongSinMethod.eokbu,
+      );
+    }
 
     // 일간 강약 분석
     final dayStrength = _dayStrengthService.analyze(chart);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 class SuggestedQuestions extends StatelessWidget {
   final Function(String) onQuestionSelected;
@@ -10,10 +9,10 @@ class SuggestedQuestions extends StatelessWidget {
   });
 
   static const List<String> _questions = [
-    "올해 이직운이 궁금해요",
-    "나의 타고난 성향은?",
-    "재물운이 언제 좋아질까요?",
-    "연애운을 알고 싶어요",
+    '올해 이직운이 궁금해요',
+    '나의 타고난 성향은?',
+    '재물운이 언제 좋아질까요?',
+    '연애운을 알고 싶어요',
   ];
 
   @override

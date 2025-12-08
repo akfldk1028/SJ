@@ -2,7 +2,6 @@ import '../../data/constants/sipsin_relations.dart';
 import 'daeun.dart';
 import 'day_strength.dart';
 import 'gyeokguk.dart';
-import 'pillar.dart';
 import 'saju_chart.dart';
 import 'sinsal.dart';
 import 'yongsin.dart';

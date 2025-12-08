@@ -1,5 +1,6 @@
 /// 한국 서머타임 (일광절약시간) 적용 기간
 /// DST (Daylight Saving Time) 보정용
+library;
 
 /// 날짜 범위
 class DateRange {
