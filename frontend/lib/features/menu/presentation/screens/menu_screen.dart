@@ -225,7 +225,9 @@ class _MenuScreenState extends State<MenuScreen> {
           _buildNavItem(theme, Icons.chat_bubble_outline_rounded, 'AI 상담', false, () {
             context.push('/saju/chat');
           }),
-          _buildNavItem(theme, Icons.calendar_today_outlined, '달력', false, null),
+          _buildNavItem(theme, Icons.people_outline_rounded, '인맥', false, () {
+            context.push('/relationships');
+          }),
           _buildNavItem(theme, Icons.settings_outlined, '설정', false, () {
             context.push('/settings');
           }),
