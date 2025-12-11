@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
@@ -8,6 +9,8 @@ import '../../domain/entities/saju_chart.dart';
 import '../../domain/services/jasi_service.dart';
 import '../../domain/services/saju_analysis_service.dart';
 import '../../domain/services/saju_calculation_service.dart';
+import '../../../../core/repositories/saju_analysis_repository.dart';
+import '../../../../core/services/auth_service.dart';
 
 part 'saju_chart_provider.g.dart';
 
@@ -21,6 +24,12 @@ SajuCalculationService sajuCalculationService(Ref ref) {
 @riverpod
 SajuAnalysisService sajuAnalysisService(Ref ref) {
   return SajuAnalysisService();
+}
+
+/// Supabase 사주 분석 Repository Provider
+@riverpod
+SajuAnalysisRepository sajuAnalysisRepository(Ref ref) {
+  return SajuAnalysisRepository();
 }
 
 /// 현재 활성 프로필의 사주차트 Provider
@@ -83,6 +92,8 @@ class CurrentSajuChart extends _$CurrentSajuChart {
 }
 
 /// 현재 사주 종합 분석 Provider
+///
+/// 분석 결과를 계산하고 Supabase에 자동 저장
 @riverpod
 class CurrentSajuAnalysis extends _$CurrentSajuAnalysis {
   @override
@@ -98,11 +109,42 @@ class CurrentSajuAnalysis extends _$CurrentSajuAnalysis {
     // 성별 변환
     final gender = activeProfile.gender.name == 'male' ? Gender.male : Gender.female;
 
-    return service.analyze(
+    final analysis = service.analyze(
       chart: chart,
       gender: gender,
       currentYear: DateTime.now().year,
     );
+
+    // Supabase에 분석 결과 저장 (비동기, 에러 발생해도 앱은 계속 동작)
+    _saveToSupabase(activeProfile.id, analysis);
+
+    return analysis;
+  }
+
+  /// Supabase에 분석 결과 저장
+  Future<void> _saveToSupabase(String profileId, SajuAnalysis analysis) async {
+    try {
+      final authService = AuthService();
+      if (!authService.isLoggedIn) {
+        if (kDebugMode) {
+          print('[SajuAnalysis] Supabase 저장 스킵: 로그인되지 않음');
+        }
+        return;
+      }
+
+      final repository = ref.read(sajuAnalysisRepositoryProvider);
+      await repository.upsert(profileId, analysis);
+
+      if (kDebugMode) {
+        print('[SajuAnalysis] Supabase 저장 완료: $profileId');
+        print('[SajuAnalysis] 일간: ${analysis.chart.dayPillar.gan}');
+        print('[SajuAnalysis] 격국: ${analysis.gyeokguk.gyeokguk.korean}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[SajuAnalysis] Supabase 저장 실패: $e');
+      }
+    }
   }
 }
 

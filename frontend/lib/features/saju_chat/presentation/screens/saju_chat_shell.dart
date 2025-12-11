@@ -9,6 +9,7 @@ import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_list.dart';
 import '../widgets/disclaimer_banner.dart';
 import '../widgets/error_banner.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// 사주 채팅 Shell - 반응형 레이아웃 래퍼
 ///
@@ -65,9 +66,13 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final sessionState = ref.read(chatSessionNotifierProvider);
 
+    // 활성 프로필 ID 가져오기
+    final activeProfile = await ref.read(activeProfileProvider.future);
+    final profileId = activeProfile?.id;
+
     // 세션이 없으면 기본 세션 생성
     if (sessionState.sessions.isEmpty) {
-      await sessionNotifier.createSession(_chatType, null);
+      await sessionNotifier.createSession(_chatType, profileId);
     } else if (sessionState.currentSessionId == null) {
       // 세션이 있지만 선택되지 않았으면 첫 번째 세션 선택
       sessionNotifier.selectSession(sessionState.sessions.first.id);
@@ -91,7 +96,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// 새 채팅 시작
   Future<void> _handleNewChat() async {
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
-    await sessionNotifier.createSession(_chatType, null);
+    final activeProfile = await ref.read(activeProfileProvider.future);
+    await sessionNotifier.createSession(_chatType, activeProfile?.id);
   }
 
   /// 세션 선택
@@ -319,11 +325,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             ),
           ),
           ChatInputField(
-            onSend: (text) {
+            onSend: (text) async {
               // 세션 생성 + 대기 메시지 설정 (UI 리빌드 후 자동 전송)
               print('[_ChatContent] 세션 생성 요청: text=$text');
+              final activeProfile = await ref.read(activeProfileProvider.future);
               ref.read(chatSessionNotifierProvider.notifier)
-                  .createSession(widget.chatType, null, initialMessage: text);
+                  .createSession(widget.chatType, activeProfile?.id, initialMessage: text);
             },
             enabled: true,
             hintText: widget.chatType.inputHint,

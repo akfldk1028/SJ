@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_session.dart';
@@ -6,15 +7,23 @@ import '../../domain/repositories/chat_session_repository.dart';
 import '../datasources/chat_session_local_datasource.dart';
 import '../models/chat_message_model.dart';
 import '../models/chat_session_model.dart';
+import '../../../../core/repositories/chat_repository.dart';
+import '../../../../core/services/auth_service.dart';
 
 /// 채팅 세션 Repository 구현체
 ///
-/// LocalDataSource를 사용하여 채팅 세션 및 메시지 관리
+/// Local-First + Cloud Sync 패턴:
+/// - Hive(로컬): 빠른 응답, 오프라인 지원
+/// - Supabase(클라우드): 데이터 백업, 기기 간 동기화
 class ChatSessionRepositoryImpl implements ChatSessionRepository {
   final ChatSessionLocalDatasource _localDatasource;
+  final ChatRepository _supabaseRepository;
+  final AuthService _authService;
   final Uuid _uuid = const Uuid();
 
-  ChatSessionRepositoryImpl(this._localDatasource);
+  ChatSessionRepositoryImpl(this._localDatasource)
+      : _supabaseRepository = ChatRepository(),
+        _authService = AuthService();
 
   @override
   Future<List<ChatSession>> getAllSessions() async {
@@ -30,6 +39,9 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
   @override
   Future<ChatSession> createSession(ChatType chatType, String? profileId) async {
+    if (kDebugMode) {
+      print('[ChatRepo] createSession 호출: chatType=$chatType, profileId=$profileId');
+    }
     final now = DateTime.now();
     final newSession = ChatSessionModel(
       id: _uuid.v4(),
@@ -42,8 +54,47 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
       lastMessagePreview: null,
     );
 
+    // 1. 로컬 저장 (Hive) - 즉시 응답
     await _localDatasource.saveSession(newSession);
+
+    // 2. 클라우드 저장 (Supabase) - 비동기 백업
+    _syncSessionToSupabase(newSession.toEntity());
+
     return newSession.toEntity();
+  }
+
+  /// 세션을 Supabase에 저장 (비동기, 에러 발생해도 앱 계속 동작)
+  Future<void> _syncSessionToSupabase(ChatSession session) async {
+    try {
+      if (!_authService.isLoggedIn) {
+        if (kDebugMode) {
+          print('[ChatRepo] Supabase 동기화 스킵: 로그인되지 않음');
+        }
+        return;
+      }
+
+      if (session.profileId == null) {
+        if (kDebugMode) {
+          print('[ChatRepo] Supabase 동기화 스킵: profileId 없음');
+        }
+        return;
+      }
+
+      await _supabaseRepository.createSession(
+        id: session.id, // 로컬 ID와 동일하게 유지
+        profileId: session.profileId!,
+        chatType: ChatType.fromString(session.chatType.name),
+        title: session.title,
+      );
+
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 세션 저장 완료: ${session.id}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 세션 저장 실패 (로컬은 저장됨): $e');
+      }
+    }
   }
 
   @override
@@ -54,9 +105,28 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
   @override
   Future<void> deleteSession(String id) async {
-    // 세션 삭제 전에 관련 메시지도 모두 삭제
+    // 1. 로컬 삭제 (세션 + 메시지)
     await _localDatasource.deleteSessionMessages(id);
     await _localDatasource.deleteSession(id);
+
+    // 2. 클라우드 삭제 (Supabase) - CASCADE로 메시지도 삭제됨
+    _deleteSessionFromSupabase(id);
+  }
+
+  /// Supabase에서 세션 삭제
+  Future<void> _deleteSessionFromSupabase(String sessionId) async {
+    try {
+      if (!_authService.isLoggedIn) return;
+
+      await _supabaseRepository.deleteSession(sessionId);
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 세션 삭제 완료: $sessionId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 세션 삭제 실패: $e');
+      }
+    }
   }
 
   @override
@@ -67,11 +137,41 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
   @override
   Future<void> saveMessage(ChatMessage message) async {
+    // 1. 로컬 저장 (Hive) - 즉시 응답
     final model = ChatMessageModel.fromEntity(message);
     await _localDatasource.saveMessage(model);
 
     // 메시지 저장 후 세션 메타데이터 업데이트
     await _updateSessionMetadata(message.sessionId);
+
+    // 2. 클라우드 저장 (Supabase) - 비동기 백업
+    _syncMessageToSupabase(message);
+  }
+
+  /// 메시지를 Supabase에 저장
+  Future<void> _syncMessageToSupabase(ChatMessage message) async {
+    try {
+      if (!_authService.isLoggedIn) {
+        if (kDebugMode) {
+          print('[ChatRepo] 메시지 동기화 스킵: 로그인되지 않음');
+        }
+        return;
+      }
+
+      await _supabaseRepository.addMessage(
+        sessionId: message.sessionId,
+        content: message.content,
+        role: message.role,
+      );
+
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 메시지 저장 완료: ${message.role.name}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 메시지 저장 실패 (로컬은 저장됨): $e');
+      }
+    }
   }
 
   @override

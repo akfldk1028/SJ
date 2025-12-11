@@ -49,6 +49,28 @@ final sajuAnalysisServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SajuAnalysisServiceRef = AutoDisposeProviderRef<SajuAnalysisService>;
+String _$sajuAnalysisRepositoryHash() =>
+    r'd9b60320604d86c0db57564136a63c3c45a104ca';
+
+/// Supabase 사주 분석 Repository Provider
+///
+/// Copied from [sajuAnalysisRepository].
+@ProviderFor(sajuAnalysisRepository)
+final sajuAnalysisRepositoryProvider =
+    AutoDisposeProvider<SajuAnalysisRepository>.internal(
+      sajuAnalysisRepository,
+      name: r'sajuAnalysisRepositoryProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$sajuAnalysisRepositoryHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SajuAnalysisRepositoryRef =
+    AutoDisposeProviderRef<SajuAnalysisRepository>;
 String _$currentSajuChartHash() => r'aa69b5d61e6f1aa843513f3f5cda2a38eeec5d52';
 
 /// 현재 활성 프로필의 사주차트 Provider
@@ -68,9 +90,11 @@ final currentSajuChartProvider =
 
 typedef _$CurrentSajuChart = AutoDisposeAsyncNotifier<SajuChart?>;
 String _$currentSajuAnalysisHash() =>
-    r'16995887c91f3fadf96b9cc53748e4ef28e8a77a';
+    r'2fa0f9a751cbe3d14f898a18ba4120e730c6bd78';
 
 /// 현재 사주 종합 분석 Provider
+///
+/// 분석 결과를 계산하고 Supabase에 자동 저장
 ///
 /// Copied from [CurrentSajuAnalysis].
 @ProviderFor(CurrentSajuAnalysis)

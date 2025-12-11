@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -27,16 +28,41 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (!mounted) return;
 
-    // 프로필 존재 여부 확인
-    final profile = await ref.read(activeProfileProvider.future);
+    // 1. 활성 프로필 확인 (Hive 로컬 먼저)
+    final activeProfile = await ref.read(activeProfileProvider.future);
 
-    if (mounted) {
-      if (profile != null) {
-        context.go(Routes.menu);
-      } else {
-        context.go(Routes.onboarding);
+    if (activeProfile != null) {
+      if (kDebugMode) {
+        print('[Splash] 활성 프로필 존재: ${activeProfile.displayName}');
       }
+      if (mounted) context.go(Routes.menu);
+      return;
     }
+
+    // 2. 활성 프로필이 없으면 전체 프로필 확인
+    final allProfiles = await ref.read(allProfilesProvider.future);
+
+    if (allProfiles.isNotEmpty) {
+      if (kDebugMode) {
+        print('[Splash] 프로필 ${allProfiles.length}개 발견, 첫 번째 활성화');
+      }
+
+      // 첫 번째 프로필 활성화
+      final repository = ref.read(profileRepositoryProvider);
+      await repository.setActive(allProfiles.first.id);
+
+      // Provider 갱신
+      ref.invalidate(activeProfileProvider);
+
+      if (mounted) context.go(Routes.menu);
+      return;
+    }
+
+    // 3. 프로필이 없으면 온보딩
+    if (kDebugMode) {
+      print('[Splash] 프로필 없음 -> 온보딩');
+    }
+    if (mounted) context.go(Routes.onboarding);
   }
 
   @override

@@ -88,7 +88,7 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
   /// 새 세션 생성 및 현재 세션으로 설정
   /// [initialMessage]: 세션 생성 후 바로 전송할 메시지 (선택)
   Future<ChatSession?> createSession(ChatType type, String? profileId, {String? initialMessage}) async {
-    print('[ChatSessionNotifier] createSession 시작: type=$type, initialMessage=$initialMessage');
+    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, initialMessage=$initialMessage');
     try {
       final repository = ref.read(chatSessionRepositoryProvider);
       final newSession = await repository.createSession(type, profileId);

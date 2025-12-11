@@ -73,6 +73,40 @@ abstract class ChatMessageModel with _$ChatMessageModel {
     );
   }
 
+  /// Supabase에 저장할 Map으로 변환 (snake_case)
+  Map<String, dynamic> toSupabaseMap() {
+    return {
+      'id': id,
+      'session_id': sessionId,
+      'content': content,
+      'role': role,
+      'status': status,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  /// Supabase INSERT용 (id, created_at 제외)
+  Map<String, dynamic> toSupabaseInsert() {
+    return {
+      'session_id': sessionId,
+      'content': content,
+      'role': role,
+      'status': status,
+    };
+  }
+
+  /// Supabase Map에서 생성 (snake_case → camelCase)
+  static ChatMessageModel fromSupabaseMap(Map<String, dynamic> map) {
+    return ChatMessageModel(
+      id: map['id'] as String,
+      sessionId: map['session_id'] as String,
+      content: map['content'] as String,
+      role: map['role'] as String,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      status: (map['status'] as String?) ?? 'sent',
+    );
+  }
+
   /// 문자열을 MessageRole로 변환
   static MessageRole _parseRole(String role) {
     switch (role) {

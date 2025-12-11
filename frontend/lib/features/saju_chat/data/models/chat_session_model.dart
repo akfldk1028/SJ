@@ -83,4 +83,41 @@ abstract class ChatSessionModel with _$ChatSessionModel {
       lastMessagePreview: map['lastMessagePreview'] as String?,
     );
   }
+
+  /// Supabase에 저장할 Map으로 변환 (snake_case)
+  Map<String, dynamic> toSupabaseMap() {
+    return {
+      'id': id,
+      'profile_id': profileId,
+      'title': title,
+      'chat_type': chatType,
+      'message_count': messageCount,
+      'last_message_preview': lastMessagePreview,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  /// Supabase INSERT용 (id, created_at, updated_at, message_count 제외)
+  Map<String, dynamic> toSupabaseInsert() {
+    return {
+      'profile_id': profileId,
+      'title': title,
+      'chat_type': chatType,
+    };
+  }
+
+  /// Supabase Map에서 생성 (snake_case → camelCase)
+  static ChatSessionModel fromSupabaseMap(Map<String, dynamic> map) {
+    return ChatSessionModel(
+      id: map['id'] as String,
+      title: (map['title'] as String?) ?? '새 대화',
+      chatType: (map['chat_type'] as String?) ?? 'general',
+      profileId: map['profile_id'] as String?,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      messageCount: (map['message_count'] as int?) ?? 0,
+      lastMessagePreview: map['last_message_preview'] as String?,
+    );
+  }
 }

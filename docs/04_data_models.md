@@ -1,760 +1,415 @@
-# 데이터 모델 정의
+# Supabase 스키마 설계 문서 v2
 
-> 만톡: AI 사주 챗봇에서 사용하는 모든 데이터 구조를 정의합니다.
-
----
-
-## 1. Entity vs Model vs DTO
-
-| 구분 | 위치 | 용도 | 예시 |
-|------|------|------|------|
-| **Entity** | domain/entities | 비즈니스 로직에서 사용하는 순수 객체 | User |
-| **Model** | data/models | Entity + JSON 변환 기능 | UserModel |
-| **DTO** | data/models | API 요청/응답 전용 객체 | LoginRequestDto |
+> 만톡(Mantok) AI 사주 챗봇 - 데이터베이스 스키마 설계
+>
+> **v2 업데이트**: 현재 코드베이스 분석 + AI 대화 컨텍스트 저장 최적화
 
 ---
 
-## 2. 사용자 관련
+## 1. 설계 원칙
 
-### 2.1 User Entity
-```dart
-// domain/entities/user.dart
-class User {
-  final String id;
-  final String email;
-  final String nickname;
-  final String? profileImage;
-  final DateTime createdAt;
+### 1.1 Anonymous → Permanent User 패턴
 
-  User({
-    required this.id,
-    required this.email,
-    required this.nickname,
-    this.profileImage,
-    required this.createdAt,
-  });
-}
+```
+[첫 앱 실행]                    [나중에 로그인]
+     │                              │
+     ▼                              ▼
+signInAnonymously()  →  linkIdentity() / updateUser()
+     │                              │
+     ▼                              ▼
+익명 사용자 생성              기존 데이터 유지 + 영구 계정 전환
+(is_anonymous=true)          (is_anonymous=false)
 ```
 
-### 2.2 User Model
-```dart
-// data/models/user_model.dart
-class UserModel extends User {
-  UserModel({
-    required super.id,
-    required super.email,
-    required super.nickname,
-    super.profileImage,
-    required super.createdAt,
-  });
+### 1.2 AI 대화 데이터 저장 전략
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'],
-      email: json['email'],
-      nickname: json['nickname'],
-      profileImage: json['profileImage'],
-      createdAt: DateTime.parse(json['createdAt']),
-    );
-  }
+**왜 사주 분석 데이터를 DB에 저장해야 하나?**
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-      'nickname': nickname,
-      'profileImage': profileImage,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-}
+| 이유 | 설명 |
+|------|------|
+| **AI 컨텍스트 재구성** | 새 세션에서도 "지난번에 말씀드린 것처럼 을목 일간이시니..." 가능 |
+| **토큰 비용 절감** | 매번 만세력 계산 + 프롬프트 전송 대신 저장된 요약 사용 |
+| **세션 간 연속성** | 과거 대화 기반 후속 상담 ("이직 얘기 이어서 할까요?") |
+| **분석/통계** | 사용자 질문 패턴, 인기 주제 분석 가능 |
+
+### 1.3 데이터 저장 범위
+
+```
+[반드시 저장]
+├── 사주 프로필 (생년월일, 성별, 출생지 등)
+├── 만세력 계산 결과 (4주, 대운, 오행분포 등)
+├── 채팅 세션 메타데이터
+└── 채팅 메시지 (user/assistant 모두)
+
+[저장 안 함]
+├── Gemini API 키 (환경변수)
+├── 실시간 스트리밍 상태 (메모리)
+└── UI 임시 상태 (Riverpod)
 ```
 
 ---
 
-## 3. 인증 관련
-
-### 3.1 Token Model
-```dart
-// data/models/token_model.dart
-class TokenModel {
-  final String accessToken;
-  final String refreshToken;
-  final DateTime expiresAt;
-
-  TokenModel({
-    required this.accessToken,
-    required this.refreshToken,
-    required this.expiresAt,
-  });
-
-  factory TokenModel.fromJson(Map<String, dynamic> json) {
-    return TokenModel(
-      accessToken: json['accessToken'],
-      refreshToken: json['refreshToken'],
-      expiresAt: DateTime.parse(json['expiresAt']),
-    );
-  }
-
-  bool get isExpired => DateTime.now().isAfter(expiresAt);
-}
-```
-
-### 3.2 Auth DTOs
-```dart
-// data/models/auth_dto.dart
-
-// 로그인 요청
-class LoginRequestDto {
-  final String email;
-  final String password;
-
-  LoginRequestDto({required this.email, required this.password});
-
-  Map<String, dynamic> toJson() => {
-    'email': email,
-    'password': password,
-  };
-}
-
-// 로그인 응답
-class LoginResponseDto {
-  final String accessToken;
-  final String refreshToken;
-  final UserModel user;
-
-  LoginResponseDto({
-    required this.accessToken,
-    required this.refreshToken,
-    required this.user,
-  });
-
-  factory LoginResponseDto.fromJson(Map<String, dynamic> json) {
-    return LoginResponseDto(
-      accessToken: json['accessToken'],
-      refreshToken: json['refreshToken'],
-      user: UserModel.fromJson(json['user']),
-    );
-  }
-}
-
-// 회원가입 요청
-class RegisterRequestDto {
-  final String email;
-  final String password;
-  final String nickname;
-
-  RegisterRequestDto({
-    required this.email,
-    required this.password,
-    required this.nickname,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'email': email,
-    'password': password,
-    'nickname': nickname,
-  };
-}
-```
-
----
-
-## 4. 공통 응답
-
-### 4.1 API Response Wrapper
-```dart
-// data/models/api_response.dart
-class ApiResponse<T> {
-  final bool success;
-  final String? message;
-  final T? data;
-  final ApiError? error;
-
-  ApiResponse({
-    required this.success,
-    this.message,
-    this.data,
-    this.error,
-  });
-
-  factory ApiResponse.fromJson(
-    Map<String, dynamic> json,
-    T Function(dynamic)? fromJsonT,
-  ) {
-    return ApiResponse(
-      success: json['success'],
-      message: json['message'],
-      data: json['data'] != null && fromJsonT != null
-          ? fromJsonT(json['data'])
-          : null,
-      error: json['error'] != null
-          ? ApiError.fromJson(json['error'])
-          : null,
-    );
-  }
-}
-
-class ApiError {
-  final String code;
-  final String message;
-
-  ApiError({required this.code, required this.message});
-
-  factory ApiError.fromJson(Map<String, dynamic> json) {
-    return ApiError(
-      code: json['code'],
-      message: json['message'],
-    );
-  }
-}
-```
-
-### 4.2 Pagination
-```dart
-// data/models/pagination.dart
-class PaginatedResponse<T> {
-  final List<T> items;
-  final int page;
-  final int totalPages;
-  final int totalItems;
-  final bool hasNext;
-
-  PaginatedResponse({
-    required this.items,
-    required this.page,
-    required this.totalPages,
-    required this.totalItems,
-    required this.hasNext,
-  });
-
-  factory PaginatedResponse.fromJson(
-    Map<String, dynamic> json,
-    T Function(Map<String, dynamic>) fromJsonT,
-  ) {
-    return PaginatedResponse(
-      items: (json['items'] as List)
-          .map((e) => fromJsonT(e))
-          .toList(),
-      page: json['page'],
-      totalPages: json['totalPages'],
-      totalItems: json['totalItems'],
-      hasNext: json['hasNext'],
-    );
-  }
-}
-```
-
----
-
-## 5. 사주 프로필 (핵심)
-
-### 5.1 SajuProfile Entity
-```dart
-// features/profile/domain/entities/saju_profile.dart
-class SajuProfile {
-  final String id;
-  final String displayName;           // "나", "연인", "친구" 등
-  final DateTime birthDate;           // 생년월일
-  final int? birthTimeMinutes;        // 출생시간 (분 단위, 0~1439)
-  final bool birthTimeUnknown;        // 시간 모름 여부
-  final bool isLunar;                 // 음력 여부
-  final Gender gender;                // 성별
-  final String? birthPlace;           // 출생지 (선택)
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  SajuProfile({
-    required this.id,
-    required this.displayName,
-    required this.birthDate,
-    this.birthTimeMinutes,
-    this.birthTimeUnknown = false,
-    this.isLunar = false,
-    required this.gender,
-    this.birthPlace,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  /// 출생시간을 "09:30" 형태로 반환
-  String? get birthTimeFormatted {
-    if (birthTimeMinutes == null) return null;
-    final hours = birthTimeMinutes! ~/ 60;
-    final mins = birthTimeMinutes! % 60;
-    return '${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}';
-  }
-}
-```
-
-### 5.2 SajuProfile Model
-```dart
-// features/profile/data/models/saju_profile_model.dart
-class SajuProfileModel extends SajuProfile {
-  SajuProfileModel({
-    required super.id,
-    required super.displayName,
-    required super.birthDate,
-    super.birthTimeMinutes,
-    super.birthTimeUnknown,
-    super.isLunar,
-    required super.gender,
-    super.birthPlace,
-    required super.createdAt,
-    required super.updatedAt,
-  });
-
-  factory SajuProfileModel.fromJson(Map<String, dynamic> json) {
-    return SajuProfileModel(
-      id: json['id'],
-      displayName: json['displayName'],
-      birthDate: DateTime.parse(json['birthDate']),
-      birthTimeMinutes: json['birthTimeMinutes'],
-      birthTimeUnknown: json['birthTimeUnknown'] ?? false,
-      isLunar: json['isLunar'] ?? false,
-      gender: Gender.values.byName(json['gender']),
-      birthPlace: json['birthPlace'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'displayName': displayName,
-    'birthDate': birthDate.toIso8601String().split('T')[0],
-    'birthTimeMinutes': birthTimeMinutes,
-    'birthTimeUnknown': birthTimeUnknown,
-    'isLunar': isLunar,
-    'gender': gender.name,
-    'birthPlace': birthPlace,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-  };
-}
-```
-
----
-
-## 6. 사주 차트 (만세력)
-
-### 6.1 Pillar (기둥) Entity
-```dart
-// features/saju_chart/domain/entities/pillar.dart
-/// 사주의 기둥 하나 (연주/월주/일주/시주)
-class Pillar {
-  final String heavenlyStem;    // 천간 (갑, 을, 병, 정, ...)
-  final String earthlyBranch;   // 지지 (자, 축, 인, 묘, ...)
-
-  Pillar({
-    required this.heavenlyStem,
-    required this.earthlyBranch,
-  });
-
-  /// 한자 표기 ("甲子" 등)
-  String get hanja => _stemHanja[heavenlyStem]! + _branchHanja[earthlyBranch]!;
-
-  static const _stemHanja = {
-    '갑': '甲', '을': '乙', '병': '丙', '정': '丁', '무': '戊',
-    '기': '己', '경': '庚', '신': '辛', '임': '壬', '계': '癸',
-  };
-  static const _branchHanja = {
-    '자': '子', '축': '丑', '인': '寅', '묘': '卯', '진': '辰', '사': '巳',
-    '오': '午', '미': '未', '신': '申', '유': '酉', '술': '戌', '해': '亥',
-  };
-}
-```
-
-### 6.2 SajuChart Entity
-```dart
-// features/saju_chart/domain/entities/saju_chart.dart
-class SajuChart {
-  final String id;
-  final String profileId;
-  final Pillar yearPillar;      // 연주
-  final Pillar monthPillar;     // 월주
-  final Pillar dayPillar;       // 일주 (일간이 "나")
-  final Pillar? hourPillar;     // 시주 (시간 모르면 null)
-  final List<Daewoon> daewoon;  // 대운 목록
-  final DateTime calculatedAt;
-
-  SajuChart({
-    required this.id,
-    required this.profileId,
-    required this.yearPillar,
-    required this.monthPillar,
-    required this.dayPillar,
-    this.hourPillar,
-    required this.daewoon,
-    required this.calculatedAt,
-  });
-
-  /// 일간 (나를 나타내는 천간)
-  String get dayMaster => dayPillar.heavenlyStem;
-}
-
-/// 대운 정보
-class Daewoon {
-  final int index;
-  final int startAge;
-  final int endAge;
-  final int startYear;
-  final int endYear;
-  final Pillar pillar;
-
-  Daewoon({
-    required this.index,
-    required this.startAge,
-    required this.endAge,
-    required this.startYear,
-    required this.endYear,
-    required this.pillar,
-  });
-}
-```
-
----
-
-## 7. 사주 요약
-
-### 7.1 SajuSummary Entity
-```dart
-// features/saju_chart/domain/entities/saju_summary.dart
-class SajuSummary {
-  final String id;
-  final String profileId;
-  final String overview;           // 전체 요약
-  final List<String> strengths;    // 강점
-  final List<String> weaknesses;   // 약점/주의점
-  final String? career;            // 직업운
-  final String? love;              // 연애운
-  final String? money;             // 재물운
-  final String? yearlyFocus;       // 올해 포커스
-  final DateTime createdAt;
-
-  SajuSummary({
-    required this.id,
-    required this.profileId,
-    required this.overview,
-    required this.strengths,
-    required this.weaknesses,
-    this.career,
-    this.love,
-    this.money,
-    this.yearlyFocus,
-    required this.createdAt,
-  });
-}
-```
-
----
-
-## 8. 채팅
-
-### 8.1 ChatSession Entity
-```dart
-// features/saju_chat/domain/entities/chat_session.dart
-class ChatSession {
-  final String id;
-  final String profileId;
-  final String? title;             // 대화 제목 (자동 생성 or null)
-  final DateTime createdAt;
-  final DateTime lastMessageAt;
-  final int messageCount;
-
-  ChatSession({
-    required this.id,
-    required this.profileId,
-    this.title,
-    required this.createdAt,
-    required this.lastMessageAt,
-    required this.messageCount,
-  });
-}
-```
-
-### 8.2 ChatMessage Entity
-```dart
-// features/saju_chat/domain/entities/chat_message.dart
-class ChatMessage {
-  final String id;
-  final String chatId;
-  final MessageRole role;          // user / assistant
-  final String content;
-  final DateTime createdAt;
-  final List<String>? suggestedQuestions;  // AI 추천 질문 (assistant만)
-
-  ChatMessage({
-    required this.id,
-    required this.chatId,
-    required this.role,
-    required this.content,
-    required this.createdAt,
-    this.suggestedQuestions,
-  });
-}
-```
-
-### 8.3 Chat DTOs
-```dart
-// features/saju_chat/data/models/chat_dto.dart
-
-/// 메시지 전송 요청
-class SendMessageRequestDto {
-  final String? chatId;            // null이면 새 세션
-  final String profileId;
-  final String message;
-  final String locale;
-
-  SendMessageRequestDto({
-    this.chatId,
-    required this.profileId,
-    required this.message,
-    this.locale = 'ko-KR',
-  });
-
-  Map<String, dynamic> toJson() => {
-    'chatId': chatId,
-    'profileId': profileId,
-    'message': message,
-    'locale': locale,
-  };
-}
-
-/// 메시지 전송 응답
-class SendMessageResponseDto {
-  final String chatId;
-  final String messageId;
-  final String content;
-  final List<String>? suggestedQuestions;
-  final DateTime createdAt;
-
-  SendMessageResponseDto({
-    required this.chatId,
-    required this.messageId,
-    required this.content,
-    this.suggestedQuestions,
-    required this.createdAt,
-  });
-
-  factory SendMessageResponseDto.fromJson(Map<String, dynamic> json) {
-    return SendMessageResponseDto(
-      chatId: json['chatId'],
-      messageId: json['messageId'],
-      content: json['content'],
-      suggestedQuestions: json['suggestedQuestions'] != null
-          ? List<String>.from(json['suggestedQuestions'])
-          : null,
-      createdAt: DateTime.parse(json['createdAt']),
-    );
-  }
-}
-```
-
----
-
-## 9. Enum 정의
-
-### 9.1 성별
-```dart
-enum Gender {
-  male,    // 남성
-  female,  // 여성
-}
-```
-
-### 9.2 메시지 역할
-```dart
-enum MessageRole {
-  user,       // 사용자 메시지
-  assistant,  // AI 응답
-}
-```
-
-### 9.3 오행 (참고용)
-```dart
-enum FiveElements {
-  wood,   // 목
-  fire,   // 화
-  earth,  // 토
-  metal,  // 금
-  water,  // 수
-}
-```
-
----
-
-## 10. 데이터 관계도
+## 2. ERD (Entity Relationship Diagram)
 
 ```
-User (1) ─────< (N) SajuProfile
+auth.users (Supabase 내장)
+    │
+    └── 1:N ──── public.saju_profiles (사주 프로필)
                       │
-                      ├── (1) SajuChart
-                      │         └── (4) Pillar (연/월/일/시)
-                      │         └── (N) Daewoon
+                      ├── 1:1 ── public.saju_analyses (만세력 + 분석 결과)
                       │
-                      ├── (1) SajuSummary
-                      │
-                      └──< (N) ChatSession
-                                  └──< (N) ChatMessage
+                      └── 1:N ── public.chat_sessions (채팅 세션)
+                                      │
+                                      └── 1:N ── public.chat_messages (메시지)
 ```
+
+**변경점 (v1 대비):**
+- `public.users` 테이블 제거 → `auth.users` 직접 사용 (간소화)
+- `saju_charts` + `saju_summaries` 통합 → `saju_analyses` (만세력 + AI 분석 결과)
 
 ---
 
-## 11. Supabase 테이블 스키마 (PostgreSQL)
+## 3. 상세 스키마
 
-### 11.1 users 테이블
-```sql
--- Supabase Auth의 auth.users와 연결되는 public.users
-CREATE TABLE public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  nickname TEXT,
-  profile_image TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+### 3.1 public.saju_profiles
 
--- RLS 정책
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+**현재 Flutter 코드의 `SajuProfile` 엔티티 기반**
 
-CREATE POLICY "Users can view own profile"
-  ON public.users FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile"
-  ON public.users FOR UPDATE
-  USING (auth.uid() = id);
-```
-
-### 11.2 saju_profiles 테이블
 ```sql
 CREATE TABLE public.saju_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-  display_name TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- 기본 정보 (Flutter: SajuProfile)
+  display_name TEXT NOT NULL,           -- "나", "연인", "친구" (최대 12자)
+  relation_type TEXT DEFAULT 'me',      -- me, family, friend, lover, work, other
+  memo TEXT,                            -- 메모
+
+  -- 생년월일 정보
   birth_date DATE NOT NULL,
-  birth_time_minutes INTEGER,  -- 0~1439 (분 단위)
+  birth_time_minutes INTEGER,           -- 0~1439 (분 단위), NULL이면 시간 모름
   birth_time_unknown BOOLEAN DEFAULT FALSE,
+
+  -- 음력/양력
   is_lunar BOOLEAN DEFAULT FALSE,
-  is_leap_month BOOLEAN DEFAULT FALSE,  -- 음력 윤달 여부
-  gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
-  birth_city TEXT NOT NULL,  -- 출생 도시 (진태양시 계산용)
-  use_ya_jasi BOOLEAN DEFAULT TRUE,  -- 야자시/조자시 설정
-  time_correction INTEGER DEFAULT 0,  -- 진태양시 보정값 (분 단위)
-  is_active BOOLEAN DEFAULT FALSE,
+  is_leap_month BOOLEAN DEFAULT FALSE,  -- 음력 윤달
+
+  -- 성별
+  gender TEXT NOT NULL,                 -- male, female
+
+  -- 출생지 (진태양시 계산용)
+  birth_city TEXT NOT NULL,             -- 25개 도시 중 선택
+  time_correction INTEGER DEFAULT 0,    -- 진태양시 보정값 (분)
+
+  -- 야자시/조자시
+  use_ya_jasi BOOLEAN DEFAULT TRUE,
+
+  -- 상태
+  is_primary BOOLEAN DEFAULT FALSE,     -- 대표 프로필
+
+  -- 타임스탬프
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- 제약조건
+  CONSTRAINT check_gender CHECK (gender IN ('male', 'female')),
+  CONSTRAINT check_relation_type CHECK (relation_type IN ('me', 'family', 'friend', 'lover', 'work', 'other')),
+  CONSTRAINT check_display_name_length CHECK (char_length(display_name) <= 12),
+  CONSTRAINT check_birth_time_range CHECK (birth_time_minutes IS NULL OR (birth_time_minutes >= 0 AND birth_time_minutes <= 1439))
 );
-
--- 인덱스
-CREATE INDEX idx_saju_profiles_user_id ON public.saju_profiles(user_id);
-
--- RLS 정책
-ALTER TABLE public.saju_profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can CRUD own profiles"
-  ON public.saju_profiles FOR ALL
-  USING (auth.uid() = user_id);
 ```
 
-### 11.3 saju_charts 테이블
+### 3.2 public.saju_analyses
+
+**현재 Flutter 코드의 `SajuChart` + `SajuAnalysis` 통합**
+
+핵심: **Gemini에 전달할 사주 컨텍스트 데이터**
+
 ```sql
-CREATE TABLE public.saju_charts (
+CREATE TABLE public.saju_analyses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES public.saju_profiles(id) ON DELETE CASCADE UNIQUE,
+  profile_id UUID NOT NULL REFERENCES public.saju_profiles(id) ON DELETE CASCADE UNIQUE,
+
+  -- ================================================
+  -- 만세력 기본 (SajuChart)
+  -- ================================================
 
   -- 연주 (Year Pillar)
-  year_stem TEXT NOT NULL,
-  year_branch TEXT NOT NULL,
+  year_gan TEXT NOT NULL,               -- 천간: 갑을병정무기경신임계
+  year_ji TEXT NOT NULL,                -- 지지: 자축인묘진사오미신유술해
 
   -- 월주 (Month Pillar)
-  month_stem TEXT NOT NULL,
-  month_branch TEXT NOT NULL,
+  month_gan TEXT NOT NULL,
+  month_ji TEXT NOT NULL,
 
-  -- 일주 (Day Pillar)
-  day_stem TEXT NOT NULL,
-  day_branch TEXT NOT NULL,
+  -- 일주 (Day Pillar) - 일간이 "나"
+  day_gan TEXT NOT NULL,
+  day_ji TEXT NOT NULL,
 
-  -- 시주 (Hour Pillar) - nullable
-  hour_stem TEXT,
-  hour_branch TEXT,
+  -- 시주 (Hour Pillar) - 시간 모르면 NULL
+  hour_gan TEXT,
+  hour_ji TEXT,
 
-  -- 대운 (JSON 배열)
-  daewoon JSONB,
+  -- 보정된 출생시간
+  corrected_datetime TIMESTAMPTZ,
 
-  -- 원본 계산 데이터
-  raw_data JSONB,
+  -- ================================================
+  -- 상세 분석 (SajuAnalysis)
+  -- ================================================
 
-  calculated_at TIMESTAMPTZ DEFAULT NOW()
-);
+  -- 오행 분포 (ohengDistribution)
+  oheng_distribution JSONB NOT NULL,
+  /*
+    {
+      "mok": 2,   -- 목
+      "hwa": 1,   -- 화
+      "to": 3,    -- 토
+      "geum": 1,  -- 금
+      "su": 1,    -- 수
+      "strongest": "to",
+      "weakest": "hwa",
+      "missing": []
+    }
+  */
 
--- 인덱스
-CREATE INDEX idx_saju_charts_profile_id ON public.saju_charts(profile_id);
+  -- 일간 강약 (dayStrength)
+  day_strength JSONB,
+  /*
+    {
+      "strength": "strong" | "weak" | "neutral",
+      "score": 65,
+      "reason": "..."
+    }
+  */
 
--- RLS 정책
-ALTER TABLE public.saju_charts ENABLE ROW LEVEL SECURITY;
+  -- 용신 분석 (yongsin) - AI 상담의 핵심!
+  yongsin JSONB,
+  /*
+    {
+      "yongsin": "수",       -- 용신 (필요한 오행)
+      "heesin": "금",        -- 희신 (용신을 돕는 오행)
+      "gisin": "화",         -- 기신 (해로운 오행)
+      "reason": "일간 갑목이 강하므로..."
+    }
+  */
 
-CREATE POLICY "Users can view own charts"
-  ON public.saju_charts FOR SELECT
-  USING (
-    profile_id IN (
-      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
-    )
-  );
-```
+  -- 십신 분석 (sipsin)
+  sipsin JSONB,
+  /*
+    {
+      "year_gan_sipsin": "편인",
+      "year_ji_sipsin": "정재",
+      "month_gan_sipsin": "겁재",
+      "month_ji_sipsin": "편관",
+      "day_ji_sipsin": "식신",      -- 일간은 "비견(나)"이므로 제외
+      "hour_gan_sipsin": "상관",
+      "hour_ji_sipsin": "정인",
+      "dominant": "식상",           -- 가장 많은 십신 그룹
+      "characteristics": ["창의적", "표현력"]
+    }
+  */
 
-### 11.4 saju_summaries 테이블
-```sql
-CREATE TABLE public.saju_summaries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES public.saju_profiles(id) ON DELETE CASCADE UNIQUE,
-  overview TEXT NOT NULL,
-  strengths TEXT[] NOT NULL,
-  weaknesses TEXT[] NOT NULL,
-  career TEXT,
-  love TEXT,
-  money TEXT,
-  yearly_focus TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- 지장간 분석 (jijanGan)
+  jijang_gan JSONB,
+  /*
+    {
+      "year_ji": ["계", "신", "기"],   -- 자 → 계(본기), 신(중기), 기(여기)
+      "month_ji": ["갑", "병", "무"],
+      "day_ji": ["을", "계", "기"],
+      "hour_ji": ["병", "무", "경"]
+    }
+  */
+
+  -- ================================================
+  -- 대운/세운 (운세 흐름)
+  -- ================================================
+
+  -- 대운 목록 (10년 단위)
+  daewoon JSONB NOT NULL,
+  /*
+    [
+      {
+        "index": 1,
+        "start_age": 4,
+        "end_age": 13,
+        "start_year": 2028,
+        "end_year": 2037,
+        "gan": "병",
+        "ji": "인",
+        "oheng": "화목",
+        "analysis": "학업운 상승, 부모 덕..."
+      },
+      ...
+    ]
+  */
+
+  -- 대운 시작 나이 (남녀, 순행/역행에 따라 다름)
+  daewoon_start_age INTEGER NOT NULL,
+
+  -- 대운 순행/역행
+  daewoon_direction TEXT NOT NULL,      -- 'forward' | 'backward'
+
+  -- 현재 대운 인덱스 (자동 계산 또는 캐시)
+  current_daewoon_index INTEGER,
+
+  -- 올해 세운 (매년 업데이트 가능)
+  current_sewoon JSONB,
+  /*
+    {
+      "year": 2025,
+      "gan": "을",
+      "ji": "사",
+      "oheng": "목화",
+      "analysis": "을목이 일간과 비견, 사화가 식신..."
+    }
+  */
+
+  -- ================================================
+  -- AI 기본 분석 요약
+  -- ================================================
+
+  -- 기본 성격/특성 요약 (AI가 생성)
+  personality_summary TEXT,
+  /*
+    "갑목 일간으로 곧고 정직한 성품, 리더십이 있으나
+    고집이 셀 수 있음. 인성이 강해 학문 적성..."
+  */
+
+  -- 강점/약점
+  strengths TEXT[],                     -- ["창의력", "리더십", "추진력"]
+  weaknesses TEXT[],                    -- ["고집", "성급함"]
+
+  -- 적성 분야
+  career_aptitude TEXT[],               -- ["교육", "IT", "창작"]
+
+  -- 주요 키워드 (AI 대화에서 참조용)
+  keywords TEXT[],                      -- ["을목", "편인격", "식상생재"]
+
+  -- ================================================
+  -- 타임스탬프
+  -- ================================================
+
+  calculated_at TIMESTAMPTZ DEFAULT NOW(),  -- 만세력 계산 시점
+  analyzed_at TIMESTAMPTZ,                  -- AI 분석 시점
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- 인덱스
-CREATE INDEX idx_saju_summaries_profile_id ON public.saju_summaries(profile_id);
-
--- RLS 정책
-ALTER TABLE public.saju_summaries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own summaries"
-  ON public.saju_summaries FOR SELECT
-  USING (
-    profile_id IN (
-      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
-    )
-  );
 ```
 
-### 11.5 chat_sessions 테이블
+### 3.3 public.chat_sessions
+
+**채팅 세션 메타데이터**
+
 ```sql
 CREATE TABLE public.chat_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES public.saju_profiles(id) ON DELETE CASCADE,
-  title TEXT,
+  profile_id UUID NOT NULL REFERENCES public.saju_profiles(id) ON DELETE CASCADE,
+
+  -- 세션 정보
+  title TEXT,                           -- 대화 제목 (자동 생성 또는 사용자 지정)
+  topic TEXT,                           -- 주요 주제: career, love, money, health, general
+
+  -- 통계
   message_count INTEGER DEFAULT 0,
+  user_message_count INTEGER DEFAULT 0,
+  assistant_message_count INTEGER DEFAULT 0,
+
+  -- AI 컨텍스트 요약 (긴 대화 요약)
+  context_summary TEXT,
+  /*
+    "사용자는 이직 고민 중. 현재 IT 회사 재직 3년차.
+    경력직 이직 vs 창업 사이에서 고민. 용신 수(水)를
+    활용한 방향 제시함..."
+  */
+
+  -- 마지막 논의 주제 (세션 이어가기용)
+  last_discussed_topics TEXT[],         -- ["이직", "재물운", "2025년 운세"]
+
+  -- 타임스탬프
   created_at TIMESTAMPTZ DEFAULT NOW(),
   last_message_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
 
--- 인덱스
-CREATE INDEX idx_chat_sessions_profile_id ON public.chat_sessions(profile_id);
-CREATE INDEX idx_chat_sessions_last_message_at ON public.chat_sessions(last_message_at DESC);
+### 3.4 public.chat_messages
 
--- RLS 정책
-ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
+**개별 메시지**
 
-CREATE POLICY "Users can CRUD own chat sessions"
-  ON public.chat_sessions FOR ALL
+```sql
+CREATE TABLE public.chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES public.chat_sessions(id) ON DELETE CASCADE,
+
+  -- 메시지 정보
+  role TEXT NOT NULL,                   -- 'user' | 'assistant'
+  content TEXT NOT NULL,
+
+  -- AI 응답 관련 (assistant만)
+  suggested_questions TEXT[],           -- 추천 질문: ["올해 재물운은?", "연애운도 알려줘"]
+
+  -- 토큰 사용량 (비용 추적용, assistant만)
+  token_count INTEGER,
+
+  -- 타임스탬프
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- 제약조건
+  CONSTRAINT check_role CHECK (role IN ('user', 'assistant'))
+);
+```
+
+---
+
+## 4. RLS (Row Level Security) 정책
+
+### 4.1 saju_profiles RLS
+
+```sql
+ALTER TABLE public.saju_profiles ENABLE ROW LEVEL SECURITY;
+
+-- 자신의 프로필만 조회/생성/수정/삭제 가능
+CREATE POLICY "Users can manage own profiles"
+  ON public.saju_profiles
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+### 4.2 saju_analyses RLS
+
+```sql
+ALTER TABLE public.saju_analyses ENABLE ROW LEVEL SECURITY;
+
+-- 자신의 프로필에 연결된 분석만 접근 가능
+CREATE POLICY "Users can view own analyses"
+  ON public.saju_analyses
+  FOR SELECT
+  USING (
+    profile_id IN (
+      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can insert own analyses"
+  ON public.saju_analyses
+  FOR INSERT
+  WITH CHECK (
+    profile_id IN (
+      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update own analyses"
+  ON public.saju_analyses
+  FOR UPDATE
+  USING (
+    profile_id IN (
+      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete own analyses"
+  ON public.saju_analyses
+  FOR DELETE
   USING (
     profile_id IN (
       SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
@@ -762,28 +417,43 @@ CREATE POLICY "Users can CRUD own chat sessions"
   );
 ```
 
-### 11.6 chat_messages 테이블
+### 4.3 chat_sessions RLS
+
 ```sql
-CREATE TABLE public.chat_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  chat_id UUID REFERENCES public.chat_sessions(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  suggested_questions TEXT[],  -- AI 추천 질문 (assistant만)
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
 
--- 인덱스
-CREATE INDEX idx_chat_messages_chat_id ON public.chat_messages(chat_id);
-CREATE INDEX idx_chat_messages_created_at ON public.chat_messages(created_at);
+CREATE POLICY "Users can manage own chat sessions"
+  ON public.chat_sessions
+  FOR ALL
+  USING (
+    profile_id IN (
+      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    profile_id IN (
+      SELECT id FROM public.saju_profiles WHERE user_id = auth.uid()
+    )
+  );
+```
 
--- RLS 정책
+### 4.4 chat_messages RLS
+
+```sql
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can CRUD own messages"
-  ON public.chat_messages FOR ALL
+CREATE POLICY "Users can manage own messages"
+  ON public.chat_messages
+  FOR ALL
   USING (
-    chat_id IN (
+    session_id IN (
+      SELECT cs.id FROM public.chat_sessions cs
+      JOIN public.saju_profiles sp ON cs.profile_id = sp.id
+      WHERE sp.user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    session_id IN (
       SELECT cs.id FROM public.chat_sessions cs
       JOIN public.saju_profiles sp ON cs.profile_id = sp.id
       WHERE sp.user_id = auth.uid()
@@ -791,119 +461,248 @@ CREATE POLICY "Users can CRUD own messages"
   );
 ```
 
-### 11.7 트리거: updated_at 자동 갱신
+---
+
+## 5. 인덱스
+
 ```sql
--- updated_at 자동 갱신 함수
+-- saju_profiles
+CREATE INDEX idx_saju_profiles_user_id ON public.saju_profiles(user_id);
+CREATE INDEX idx_saju_profiles_is_primary ON public.saju_profiles(user_id, is_primary) WHERE is_primary = TRUE;
+
+-- saju_analyses
+CREATE INDEX idx_saju_analyses_profile_id ON public.saju_analyses(profile_id);
+
+-- chat_sessions
+CREATE INDEX idx_chat_sessions_profile_id ON public.chat_sessions(profile_id);
+CREATE INDEX idx_chat_sessions_last_message ON public.chat_sessions(profile_id, last_message_at DESC);
+
+-- chat_messages
+CREATE INDEX idx_chat_messages_session_id ON public.chat_messages(session_id);
+CREATE INDEX idx_chat_messages_created_at ON public.chat_messages(session_id, created_at ASC);
+```
+
+---
+
+## 6. 트리거
+
+### 6.1 updated_at 자동 갱신
+
+```sql
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
--- 각 테이블에 트리거 적용
-CREATE TRIGGER update_users_updated_at
-  BEFORE UPDATE ON public.users
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
+-- 적용
 CREATE TRIGGER update_saju_profiles_updated_at
   BEFORE UPDATE ON public.saju_profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_saju_summaries_updated_at
-  BEFORE UPDATE ON public.saju_summaries
+CREATE TRIGGER update_saju_analyses_updated_at
+  BEFORE UPDATE ON public.saju_analyses
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-### 11.8 트리거: 메시지 카운트 자동 업데이트
+### 6.2 채팅 세션 통계 자동 업데이트
+
 ```sql
--- 메시지 추가 시 세션의 message_count, last_message_at 업데이트
-CREATE OR REPLACE FUNCTION update_chat_session_on_message()
+CREATE OR REPLACE FUNCTION update_chat_session_stats()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE public.chat_sessions
-  SET
-    message_count = message_count + 1,
-    last_message_at = NEW.created_at
-  WHERE id = NEW.chat_id;
-  RETURN NEW;
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.chat_sessions
+    SET
+      message_count = message_count + 1,
+      user_message_count = CASE WHEN NEW.role = 'user' THEN user_message_count + 1 ELSE user_message_count END,
+      assistant_message_count = CASE WHEN NEW.role = 'assistant' THEN assistant_message_count + 1 ELSE assistant_message_count END,
+      last_message_at = NEW.created_at
+    WHERE id = NEW.session_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.chat_sessions
+    SET
+      message_count = message_count - 1,
+      user_message_count = CASE WHEN OLD.role = 'user' THEN user_message_count - 1 ELSE user_message_count END,
+      assistant_message_count = CASE WHEN OLD.role = 'assistant' THEN assistant_message_count - 1 ELSE assistant_message_count END
+    WHERE id = OLD.session_id;
+    RETURN OLD;
+  END IF;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER on_chat_message_insert
-  AFTER INSERT ON public.chat_messages
-  FOR EACH ROW EXECUTE FUNCTION update_chat_session_on_message();
+CREATE TRIGGER on_chat_message_change
+  AFTER INSERT OR DELETE ON public.chat_messages
+  FOR EACH ROW EXECUTE FUNCTION update_chat_session_stats();
 ```
 
-### 11.9 새 유저 생성 시 자동 프로필 생성 (선택)
+### 6.3 대표 프로필 단일 유지
+
 ```sql
--- auth.users에 새 유저 추가 시 public.users에도 추가
-CREATE OR REPLACE FUNCTION handle_new_user()
+CREATE OR REPLACE FUNCTION ensure_single_primary_profile()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email)
-  VALUES (NEW.id, NEW.email);
+  IF NEW.is_primary = TRUE THEN
+    UPDATE public.saju_profiles
+    SET is_primary = FALSE
+    WHERE user_id = NEW.user_id AND id != NEW.id AND is_primary = TRUE;
+  END IF;
   RETURN NEW;
 END;
-$$ language 'plpgsql' SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+CREATE TRIGGER on_primary_profile_change
+  BEFORE INSERT OR UPDATE OF is_primary ON public.saju_profiles
+  FOR EACH ROW
+  WHEN (NEW.is_primary = TRUE)
+  EXECUTE FUNCTION ensure_single_primary_profile();
 ```
 
 ---
 
-## 12. Supabase 쿼리 예시
+## 7. 쿼리 예시
 
-### 12.1 프로필 + 차트 + 요약 한번에 조회
+### 7.1 프로필 + 분석 조회
+
 ```dart
-final response = await supabase
-    .from('saju_profiles')
-    .select('''
-      *,
-      saju_charts (*),
-      saju_summaries (*)
-    ''')
-    .eq('id', profileId)
-    .single();
+final data = await supabase
+  .from('saju_profiles')
+  .select('''
+    *,
+    saju_analyses (*)
+  ''')
+  .eq('user_id', userId)
+  .order('created_at', ascending: false);
 ```
 
-### 12.2 채팅 세션 목록 (최신순)
+### 7.2 대표 프로필 조회
+
 ```dart
-final response = await supabase
-    .from('chat_sessions')
-    .select()
-    .eq('profile_id', profileId)
-    .order('last_message_at', ascending: false)
-    .limit(20);
+final primaryProfile = await supabase
+  .from('saju_profiles')
+  .select('*, saju_analyses (*)')
+  .eq('user_id', userId)
+  .eq('is_primary', true)
+  .maybeSingle();
 ```
 
-### 12.3 채팅 히스토리 제목 검색
+### 7.3 채팅 세션 목록 (최신순)
+
 ```dart
-final response = await supabase
-    .from('chat_sessions')
-    .select()
-    .eq('profile_id', profileId)
-    .ilike('title', '%이직%')
-    .order('last_message_at', ascending: false);
+final sessions = await supabase
+  .from('chat_sessions')
+  .select()
+  .eq('profile_id', profileId)
+  .order('last_message_at', ascending: false)
+  .limit(20);
+```
+
+### 7.4 특정 세션의 메시지 (페이지네이션)
+
+```dart
+final messages = await supabase
+  .from('chat_messages')
+  .select()
+  .eq('session_id', sessionId)
+  .order('created_at', ascending: true)
+  .range(0, 49);  // 50개씩
+```
+
+### 7.5 AI 컨텍스트용 프로필+분석+최근대화 조회
+
+```dart
+// Gemini 프롬프트 구성에 필요한 모든 데이터
+final context = await supabase
+  .from('saju_profiles')
+  .select('''
+    *,
+    saju_analyses (*),
+    chat_sessions (
+      id,
+      context_summary,
+      last_discussed_topics,
+      chat_messages (
+        role,
+        content,
+        created_at
+      )
+    )
+  ''')
+  .eq('id', profileId)
+  .single();
+
+// chat_messages는 최근 10개만 사용
+final recentMessages = context['chat_sessions']
+    .expand((s) => s['chat_messages'])
+    .take(10)
+    .toList();
+```
+
+### 7.6 세션 컨텍스트 요약 업데이트 (Edge Function에서)
+
+```dart
+await supabase
+  .from('chat_sessions')
+  .update({
+    'context_summary': '사용자는 2025년 이직 타이밍을 고민 중...',
+    'last_discussed_topics': ['이직', '2025년 운세', '재물운']
+  })
+  .eq('id', sessionId);
 ```
 
 ---
 
-## 체크리스트
+## 8. 익명 사용자 정리
 
-- [x] User Entity/Model 정의 (P1 - 로그인 시)
-- [x] Token Model 정의 (P1)
-- [x] API Response 래퍼 정의
-- [x] Pagination 모델 정의
-- [x] SajuProfile Entity/Model 정의 (P0)
-- [x] SajuChart Entity/Model 정의 (P0)
-- [x] SajuSummary Entity 정의 (P0)
-- [x] ChatSession Entity 정의 (P0)
-- [x] ChatMessage Entity/Model 정의 (P0)
-- [x] Enum 정의 (Gender, MessageRole)
-- [x] Supabase 테이블 스키마 정의
-- [x] RLS 정책 정의
-- [x] 트리거 함수 정의
+오래된 익명 사용자 자동 삭제 (관리자용):
+
+```sql
+-- 30일 이상 비활성 익명 사용자 삭제
+DELETE FROM auth.users
+WHERE is_anonymous = true
+  AND created_at < NOW() - INTERVAL '30 days'
+  AND id NOT IN (
+    SELECT DISTINCT user_id
+    FROM public.saju_profiles
+    WHERE updated_at > NOW() - INTERVAL '30 days'
+  );
+```
+
+---
+
+## 9. 마이그레이션 파일 구조
+
+```
+frontend/lib/sql/
+├── 01_create_tables.sql      -- 테이블 생성
+├── 02_rls_policies.sql       -- RLS 정책
+├── 03_indexes.sql            -- 인덱스
+├── 04_triggers.sql           -- 트리거 함수
+└── 05_seed_data.sql          -- 테스트 데이터 (선택)
+```
+
+---
+
+## 10. 체크리스트
+
+- [ ] Anonymous Sign-In 활성화 (Supabase Dashboard)
+- [ ] 테이블 생성 마이그레이션 실행
+- [ ] RLS 정책 적용
+- [ ] 인덱스 생성
+- [ ] 트리거 함수 생성
+- [ ] Flutter 앱에서 signInAnonymously() 구현
+- [ ] linkIdentity() / updateUser() 구현
+- [ ] Edge Function: AI 대화 처리
+- [ ] Edge Function: 세션 컨텍스트 요약
+
+---
+
+## 11. 다음 단계
+
+1. SQL 마이그레이션 파일 생성 (`frontend/lib/sql/`)
+2. Flutter Model 클래스 업데이트 (saju_analyses 구조 반영)
+3. Repository 구현 (Supabase CRUD)
+4. Edge Function 구현 (Gemini 연동)
