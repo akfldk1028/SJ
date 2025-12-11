@@ -14,6 +14,12 @@ export 'data/constants/jijanggan_table.dart';
 export 'data/constants/sipsin_relations.dart';
 export 'data/constants/lunar_data/lunar_table.dart';
 
+// Phase 9 고급 분석 상수
+export 'data/constants/hapchung_relations.dart';
+export 'data/constants/twelve_unsung.dart';
+export 'data/constants/twelve_sinsal.dart';
+export 'data/constants/gongmang_table.dart';
+
 // =============================================================================
 // Domain Entities (엔티티)
 // =============================================================================
@@ -46,6 +52,13 @@ export 'domain/services/sinsal_service.dart';
 export 'domain/services/yongsin_service.dart';
 export 'domain/services/daeun_service.dart';
 export 'domain/services/saju_analysis_service.dart';
+
+// Phase 9 고급 분석 서비스
+export 'domain/services/hapchung_service.dart';
+export 'domain/services/unsung_service.dart';
+export 'domain/services/gongmang_service.dart';
+export 'domain/services/jijanggan_service.dart';
+export 'domain/services/twelve_sinsal_service.dart';
 
 // =============================================================================
 // Data Models (데이터 모델)
