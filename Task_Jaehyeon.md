@@ -327,6 +327,16 @@ lib/
 | 2025-12-12 | 코어 엔진 아키텍처 분석 및 피드백 반영 | ✅ 완료 |
 | 2025-12-12 | **Phase 10-A 완료**: RuleEngine 기반 구축 (9개 파일) | ✅ 완료 |
 | 2025-12-12 | **Phase 10-C 완료**: 나머지 룰 JSON 분리 (5개 JSON + 3개 코드 수정 + 테스트) | ✅ 완료 |
+| 2025-12-13 | **Phase 10 서비스 전환 시작**: HapchungService RuleEngine 연동 착수 | ✅ 완료 |
+| 2025-12-13 | HapchungService import 문 추가 완료 | ✅ 완료 |
+| 2025-12-13 | **HapchungService RuleEngine 연동 완료** | ✅ 완료 |
+| 2025-12-13 | RuleEngineHapchungResult 결과 모델 추가 | ✅ 완료 |
+| 2025-12-13 | analyzeWithRuleEngine() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | findRelationById() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | analyzeByFortune() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | compareWithLegacy() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | HapchungByFortuneType 분류 클래스 추가 | ✅ 완료 |
+| 2025-12-13 | HapchungComparisonResult 비교 결과 클래스 추가 | ✅ 완료 |
 
 ---
 
@@ -431,7 +441,7 @@ GyeokGukService
 | 서비스 | RuleEngine 메서드 | JSON 룰 | 상태 |
 |--------|-------------------|---------|------|
 | TwelveSinsalService | `analyzeWithRuleEngine()` ✅ | ✅ sinsal_rules.json | **완료** |
-| HapchungService | ❌ 없음 | ✅ hapchung_rules.json | **불완전** |
+| HapchungService | `analyzeWithRuleEngine()` ✅ | ✅ hapchung_rules.json | **완료** |
 | SipsinService | ❌ 없음 | ✅ sipsin_tables.json | 테이블만 |
 | UnsungService | ❌ 없음 | ✅ unsung_tables.json | 테이블만 |
 | GongmangService | ❌ 없음 | ✅ gongmang_tables.json | 테이블만 |
@@ -447,16 +457,16 @@ GyeokGukService
 | 순서 | 작업 | 설명 | 의존성 |
 |:----:|------|------|--------|
 | ✅ ① | Phase 10-B | sinsal_rules.json 생성 | 완료 |
-| **② 다음** | 서비스 RuleEngine 전환 | HapchungService 등에 메서드 추가 | ① 완료 |
-| ③ | 테스트 검증 | 하드코딩 == RuleEngine 결과 확인 | ② 완료 |
+| ✅ ② | 서비스 RuleEngine 전환 | HapchungService에 메서드 추가 | ① 완료 |
+| 🔄 ③ 진행중 | 테스트 검증 | 하드코딩 == RuleEngine 결과 확인 | ② 완료 |
 | ④ | 하드코딩 제거 (Option 3) | 기존 로직 deprecate | ③ 통과 |
 | ⑤ | UI 컴포넌트 (Option 2) | 화면 표시 위젯 | ④ 선택 |
 
 #### Option 3을 먼저 하면 안 되는 이유
 
 1. ~~**sinsal_rules.json 미생성** → TwelveSinsalService RuleEngine 불완전~~ ✅ 해결됨
-2. **HapchungService에 RuleEngine 메서드 없음** → 하드코딩 제거 시 앱 깨짐
-3. **검증 미완료** → 하드코딩 vs RuleEngine 결과 비교 안됨
+2. ~~**HapchungService에 RuleEngine 메서드 없음** → 하드코딩 제거 시 앱 깨짐~~ ✅ 해결됨 (2025-12-13)
+3. 🔄 **검증 미완료** → 하드코딩 vs RuleEngine 결과 비교 테스트 필요
 
 ---
 
@@ -1239,3 +1249,59 @@ Task 도구:
 - ListView.builder 사용
 - 위젯 100줄 이하
 - setState 범위 최소화
+
+---
+
+## 🔄 세션 재개 가이드 (2025-12-13 업데이트)
+
+### 현재 작업 상태
+
+**Phase 10 서비스 전환 - HapchungService RuleEngine 연동 ✅ 완료**
+
+| 항목 | 상태 | 설명 |
+|------|------|------|
+| hapchung_service.dart import 추가 | ✅ 완료 | line 9-15에 RuleEngine 관련 import 추가됨 |
+| RuleEngineHapchungResult 모델 | ✅ 완료 | 카테고리별 필터, 길흉별 분류 헬퍼 포함 |
+| HapchungComparisonResult 모델 | ✅ 완료 | 하드코딩 vs RuleEngine 비교용 |
+| HapchungByFortuneType 모델 | ✅ 완료 | 길흉별 분류 결과 |
+| analyzeWithRuleEngine() 메서드 | ✅ 완료 | RuleType.hapchung 사용 |
+| findRelationById() 메서드 | ✅ 완료 | ID로 특정 관계 검색 |
+| analyzeByFortune() 메서드 | ✅ 완료 | 길/흉/중 분류 |
+| compareWithLegacy() 메서드 | ✅ 완료 | 검증용 비교 메서드 |
+
+### 구현된 코드 위치
+
+**hapchung_service.dart** (총 814줄)
+- `HapchungService` 클래스: line 153-617
+  - `analyzeSaju()`: line 157-328 (기존 하드코딩)
+  - `analyzeWithRuleEngine()`: line 428-456
+  - `findRelationById()`: line 463-476
+  - `analyzeByFortune()`: line 482-508
+  - `compareWithLegacy()`: line 513-589
+- `HapchungByFortuneType` 클래스: line 592-616
+- `RuleEngineHapchungResult` 클래스: line 654-762
+- `HapchungComparisonResult` 클래스: line 764-814
+
+### 다음 작업 (③ 테스트 검증)
+
+**Step 1**: 하드코딩 vs RuleEngine 결과 비교 테스트 작성
+- `compareWithLegacy()` 메서드로 두 결과 비교
+- 일치율 100% 확인
+
+**Step 2**: 나머지 서비스 RuleEngine 전환 검토
+- SipsinService, UnsungService 등은 테이블 기반이라 RuleEngine 적용 필요성 낮음
+- 형파해(hyungpahae) 룰은 hapchung_rules.json에 이미 포함됨
+
+### 새 세션 시작 프롬프트
+
+```
+@Task_Jaehyeon.md 읽고 "세션 재개 가이드" 확인해.
+
+현재 상태:
+- HapchungService RuleEngine 연동 완료 ✅
+- 다음 작업: compareWithLegacy() 테스트 케이스 작성
+
+작업해줘:
+1. rule_engine_hapchung_test.dart에 compareWithLegacy() 테스트 추가
+2. 하드코딩 결과와 RuleEngine 결과 일치 여부 검증
+```
