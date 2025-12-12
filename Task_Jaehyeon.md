@@ -22,8 +22,8 @@
 | Phase 5 (Saju Chat) | ✅ **대부분 완료** (Gemini 3.0 연동) |
 | Phase 8 (만세력) | ✅ **기본 완료** |
 | **Phase 9 (만세력 고급)** | ✅ **9-A/9-B 완료** |
-| **Phase 10 (RuleEngine)** | ✅ **10-A/10-B/10-C 완료** |
-| **다음 작업** | **Phase 10-D: Supabase 연동 (추후)** |
+| **Phase 10 (RuleEngine)** | ✅ **10-A/10-B/10-C 모두 완료** |
+| **다음 작업** | **Phase 10 서비스 전환 (RuleEngine 적용)** |
 
 ---
 
@@ -387,11 +387,11 @@ assets/data/rules/
 - [x] 8. `rule_models.dart` - JSON 파싱 모델 ✅
 - [x] 9. `rule_repository_impl.dart` - Repository 구현 ✅
 
-### Phase 10-B: 신살 JSON 분리
+### Phase 10-B: 신살 JSON 분리 ✅ 완료 (2025-12-12)
 
-- [ ] `sinsal_rules.json` 생성
-- [ ] TwelveSinsalService 마이그레이션
-- [ ] 테스트 케이스 10개+ 추가
+- [x] `sinsal_rules.json` 생성 (957줄, 12신살 + 특수신살)
+- [x] TwelveSinsalService.analyzeWithRuleEngine() 연동 완료
+- [x] 테스트 케이스 19개 추가 (rule_engine_sinsal_test.dart)
 
 ### Phase 10-C: 나머지 룰 분리 ✅ 완료 (2025-12-12)
 
@@ -410,6 +410,249 @@ assets/data/rules/
 - [ ] `loadFromRemote()` 구현
 - [ ] 해시 검증 (SHA256)
 - [ ] 버전 관리 + 롤백
+
+### Phase 10 작업 순서 분석 (2025-12-12)
+
+> **핵심 발견**: Option 3 (하드코딩 제거)는 마지막에 해야 함
+
+#### 현재 앱 실행 흐름
+```
+saju_chart_provider.dart
+        ↓
+SajuAnalysisService.analyze()  ← 실제 앱 진입점
+        ↓
+SinSalService (하드코딩)
+DayStrengthService
+GyeokGukService
+```
+
+#### RuleEngine 적용 현황
+
+| 서비스 | RuleEngine 메서드 | JSON 룰 | 상태 |
+|--------|-------------------|---------|------|
+| TwelveSinsalService | `analyzeWithRuleEngine()` ✅ | ✅ sinsal_rules.json | **완료** |
+| HapchungService | ❌ 없음 | ✅ hapchung_rules.json | **불완전** |
+| SipsinService | ❌ 없음 | ✅ sipsin_tables.json | 테이블만 |
+| UnsungService | ❌ 없음 | ✅ unsung_tables.json | 테이블만 |
+| GongmangService | ❌ 없음 | ✅ gongmang_tables.json | 테이블만 |
+| JijangganService | ❌ 없음 | ✅ jijanggan_tables.json | 테이블만 |
+
+#### 올바른 작업 순서
+
+```
+① Phase 10-B ✅ → ② 서비스 전환 → ③ 테스트 검증 → ④ 하드코딩 제거 → ⑤ UI
+  (sinsal.json)    (RuleEngine)    (결과 비교)      (Option 3)       (Option 2)
+```
+
+| 순서 | 작업 | 설명 | 의존성 |
+|:----:|------|------|--------|
+| ✅ ① | Phase 10-B | sinsal_rules.json 생성 | 완료 |
+| **② 다음** | 서비스 RuleEngine 전환 | HapchungService 등에 메서드 추가 | ① 완료 |
+| ③ | 테스트 검증 | 하드코딩 == RuleEngine 결과 확인 | ② 완료 |
+| ④ | 하드코딩 제거 (Option 3) | 기존 로직 deprecate | ③ 통과 |
+| ⑤ | UI 컴포넌트 (Option 2) | 화면 표시 위젯 | ④ 선택 |
+
+#### Option 3을 먼저 하면 안 되는 이유
+
+1. ~~**sinsal_rules.json 미생성** → TwelveSinsalService RuleEngine 불완전~~ ✅ 해결됨
+2. **HapchungService에 RuleEngine 메서드 없음** → 하드코딩 제거 시 앱 깨짐
+3. **검증 미완료** → 하드코딩 vs RuleEngine 결과 비교 안됨
+
+---
+
+## Phase 11: Supabase 만세력 DB 설계 (2025-12-12 분석)
+
+> **목적**: 만세력 계산 결과를 DB에 저장하여 재계산 없이 빠르게 조회
+> **원칙**: 정규화(4주) + JSONB(분석 데이터) 하이브리드 구조
+> **확장성**: 100만 사용자까지 대응 가능한 스키마
+
+### 현재 Supabase 구조
+
+```
+public.users (기존)
+├── id (PK, uuid)
+├── name (text)
+├── gender (text)
+├── birth_date (date)
+├── birth_time (time)
+├── birth_city (text)
+├── is_lunar (boolean)
+└── created_at (timestamp)
+```
+
+### 목표 DB 스키마
+
+#### 11.1 saju_charts 테이블 (핵심)
+
+```sql
+CREATE TABLE saju_charts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- 사주 기본 (정규화 - 인덱싱 가능)
+  year_gan TEXT NOT NULL,      -- 년간 (갑~계)
+  year_ji TEXT NOT NULL,       -- 년지 (자~해)
+  month_gan TEXT NOT NULL,
+  month_ji TEXT NOT NULL,
+  day_gan TEXT NOT NULL,       -- 일간 = 나
+  day_ji TEXT NOT NULL,
+  hour_gan TEXT,               -- 시주 (선택)
+  hour_ji TEXT,
+
+  -- 계산 기준 정보
+  birth_datetime TIMESTAMPTZ NOT NULL,
+  corrected_datetime TIMESTAMPTZ,  -- 진태양시 보정 후
+  birth_city TEXT,
+  is_lunar BOOLEAN DEFAULT FALSE,
+
+  -- 메타데이터
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  calculation_version TEXT DEFAULT '1.0.0',  -- 로직 버전
+  needs_recalculation BOOLEAN DEFAULT FALSE
+);
+```
+
+#### 11.2 saju_analysis 테이블 (분석 결과)
+
+```sql
+CREATE TABLE saju_analysis (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chart_id UUID UNIQUE REFERENCES saju_charts(id) ON DELETE CASCADE,
+
+  -- JSONB 컬럼들 (가변 구조)
+  sipsin JSONB,              -- 십성 분석
+  twelve_unsung JSONB,       -- 12운성
+  relations JSONB,           -- 합충형파해
+  twelve_sinsal JSONB,       -- 12신살
+  gongmang JSONB,            -- 공망
+  jijanggan JSONB,           -- 지장간
+  oheng_distribution JSONB,  -- 오행 분포
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### 11.3 인덱싱 전략
+
+```sql
+-- 사용자별 조회
+CREATE INDEX idx_saju_charts_user_id ON saju_charts(user_id);
+
+-- 일간 기준 조회 (통계/분석용)
+CREATE INDEX idx_saju_charts_day_gan ON saju_charts(day_gan);
+
+-- 생년월일 범위 조회
+CREATE INDEX idx_saju_charts_birth_datetime ON saju_charts(birth_datetime);
+
+-- JSONB 내부 검색용 (선택적)
+CREATE INDEX idx_saju_analysis_relations ON saju_analysis
+  USING GIN (relations jsonb_path_ops);
+```
+
+#### 11.4 Row Level Security (RLS)
+
+```sql
+ALTER TABLE saju_charts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saju_analysis ENABLE ROW LEVEL SECURITY;
+
+-- 본인 데이터만 조회
+CREATE POLICY "Users can view own charts" ON saju_charts
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own charts" ON saju_charts
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own charts" ON saju_charts
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own charts" ON saju_charts
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- saju_analysis는 chart_id 통해 간접 보호
+CREATE POLICY "Users can view own analysis" ON saju_analysis
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM saju_charts
+      WHERE saju_charts.id = saju_analysis.chart_id
+      AND saju_charts.user_id = auth.uid()
+    )
+  );
+```
+
+### ERD
+
+```
+┌─────────────────────┐       ┌─────────────────────┐
+│   auth.users        │       │    saju_charts      │
+├─────────────────────┤       ├─────────────────────┤
+│ id (PK)             │──1:N──│ user_id (FK)        │
+│ email               │       │ id (PK)             │
+│ ...                 │       │ year_gan/ji         │
+└─────────────────────┘       │ month_gan/ji        │
+                              │ day_gan/ji          │
+                              │ hour_gan/ji         │
+                              │ birth_datetime      │
+                              │ corrected_datetime  │
+                              └──────────┬──────────┘
+                                         │
+                                        1:1
+                                         │
+                              ┌──────────┴──────────┐
+                              │   saju_analysis     │
+                              ├─────────────────────┤
+                              │ chart_id (FK, UQ)   │
+                              │ sipsin (JSONB)      │
+                              │ twelve_unsung       │
+                              │ relations (JSONB)   │
+                              │ twelve_sinsal       │
+                              │ gongmang (JSONB)    │
+                              │ jijanggan (JSONB)   │
+                              │ oheng_distribution  │
+                              └─────────────────────┘
+```
+
+### JSONB 데이터 구조 예시
+
+```json
+// sipsin
+{ "yearGan": "정관", "monthGan": "편인", "dayGan": "비견", "hourGan": "식신" }
+
+// twelve_unsung
+{ "yearJi": { "name": "장생", "strength": 7 }, "monthJi": {...} }
+
+// relations (합충형파해)
+{
+  "hapchung": [{"type": "자축합", "positions": ["년지", "월지"]}],
+  "chung": [],
+  "hyung": [{"type": "인사형", "positions": ["월지", "시지"]}]
+}
+
+// gongmang
+{ "gongmangJi": ["술", "해"], "affectedPositions": ["년지"] }
+
+// oheng_distribution
+{ "목": 2, "화": 1, "토": 3, "금": 1, "수": 1 }
+```
+
+### 설계 원칙 요약
+
+| 원칙 | 적용 |
+|------|------|
+| **정규화** | 4주(8개 간지)는 별도 컬럼 → 인덱싱/검색 최적화 |
+| **JSONB** | 파생 데이터(십성/신살/관계)는 JSONB → 스키마 유연성 |
+| **RLS** | user_id 기반 행 수준 보안 → 데이터 격리 |
+| **Foreign Key** | auth.users.id 참조 (Supabase 권장) |
+| **버전 관리** | calculation_version으로 로직 변경 추적 |
+| **인덱싱** | user_id, day_gan, birth_datetime에 인덱스 |
+
+### 구현 작업 (추후)
+
+- [ ] Supabase 마이그레이션 SQL 작성
+- [ ] Flutter 모델 클래스 생성 (saju_chart_model.dart)
+- [ ] Repository 구현 (saju_chart_repository.dart)
+- [ ] 로컬 캐시(Hive) ↔ Supabase 동기화 로직
+- [ ] calculation_version 기반 재계산 트리거
 
 ### 설계 원칙
 

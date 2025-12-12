@@ -1,8 +1,18 @@
 /// 합충형파해(合沖刑破害) 분석 서비스
 /// 사주팔자의 천간/지지 간 관계를 종합 분석
+///
+/// Phase 10 서비스 전환: RuleEngine 기반 메서드 추가 (하위 호환성 유지)
+/// - 기존 하드코딩 로직: analyzeSaju()
+/// - RuleEngine 기반: analyzeWithRuleEngine()
 library;
 
 import '../../data/constants/hapchung_relations.dart';
+import '../../data/repositories/rule_repository_impl.dart';
+import '../entities/rule.dart';
+import '../entities/compiled_rules.dart';
+import '../entities/saju_chart.dart';
+import '../entities/saju_context.dart';
+import 'rule_engine.dart';
 
 // ============================================================================
 // 분석 결과 모델
