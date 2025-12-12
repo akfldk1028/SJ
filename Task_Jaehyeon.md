@@ -22,7 +22,8 @@
 | Phase 5 (Saju Chat) | ✅ **대부분 완료** (Gemini 3.0 연동) |
 | Phase 8 (만세력) | ✅ **기본 완료** |
 | **Phase 9 (만세력 고급)** | ✅ **9-A/9-B 완료** |
-| **다음 작업** | **Phase 9-C: UI 컴포넌트 구현** |
+| **Phase 10 (RuleEngine)** | ✅ **10-A/10-B/10-C 완료** |
+| **다음 작업** | **Phase 10-D: Supabase 연동 (추후)** |
 
 ---
 
@@ -322,6 +323,125 @@ lib/
 | 2025-12-08 | jijanggan_service.dart - 지장간+십성 분석 서비스 | ✅ 완료 |
 | 2025-12-08 | twelve_sinsal_service.dart - 12신살 전용 서비스 | ✅ 완료 |
 | 2025-12-08 | saju_chart.dart export 업데이트 | ✅ 완료 |
+| 2025-12-12 | **Phase 10 시작**: RuleEngine 리팩토링 설계 | ✅ 완료 |
+| 2025-12-12 | 코어 엔진 아키텍처 분석 및 피드백 반영 | ✅ 완료 |
+| 2025-12-12 | **Phase 10-A 완료**: RuleEngine 기반 구축 (9개 파일) | ✅ 완료 |
+| 2025-12-12 | **Phase 10-C 완료**: 나머지 룰 JSON 분리 (5개 JSON + 3개 코드 수정 + 테스트) | ✅ 완료 |
+
+---
+
+## Phase 10: RuleEngine 리팩토링 (2025-12-12~)
+
+> **목적**: 하드코딩된 룰/테이블을 JSON으로 분리하여 운영 유연성 확보
+> **원칙**: JSON(작성/관리) + Dart Map(실행) 이중 구조
+> **전략**: 인터페이스는 완성형, 구현은 MVP (Lean RuleEngine)
+
+### 배경
+
+현재 문제점:
+- 신살/십성/합충 등 룰이 Dart 코드에 하드코딩
+- 룰 수정 시 코드 변경 + 앱 재배포 필요
+- 테스트 부족 (2개 케이스만)
+
+목표 구조:
+```
+[JSON 룰 파일] ──→ [RuleRepository] ──→ [RuleEngine] ──→ [기존 서비스]
+ (assets)          load + validate      matchAll()      사용
+                   + compile
+```
+
+### Phase 10-A: 기반 구축 (Lean MVP)
+
+#### 생성할 파일
+```
+lib/features/saju_chart/
+├── domain/
+│   ├── entities/
+│   │   ├── rule.dart              # Rule 인터페이스 + 타입
+│   │   ├── rule_condition.dart    # 조건 타입 (op enum)
+│   │   ├── compiled_rules.dart    # 컴파일된 룰 구조
+│   │   └── saju_context.dart      # 사주 컨텍스트
+│   ├── repositories/
+│   │   └── rule_repository.dart   # Repository 인터페이스
+│   └── services/
+│       ├── rule_engine.dart       # 매칭 엔진
+│       └── rule_validator.dart    # 기본 검증
+├── data/
+│   ├── repositories/
+│   │   └── rule_repository_impl.dart
+│   └── models/
+│       └── rule_models.dart       # JSON 파싱 모델
+
+assets/data/rules/
+└── sinsal_rules.json              # 첫 번째 JSON 룰
+```
+
+#### 작업 순서
+- [x] 1. `rule.dart` - Rule 인터페이스 정의 ✅
+- [x] 2. `rule_condition.dart` - 조건 타입 + op enum ✅
+- [x] 3. `saju_context.dart` - SajuContext 정의 ✅
+- [x] 4. `compiled_rules.dart` - CompiledRules (MVP: 단순 리스트) ✅
+- [x] 5. `rule_repository.dart` - Repository 인터페이스 ✅
+- [x] 6. `rule_engine.dart` - RuleEngine 핵심 로직 ✅
+- [x] 7. `rule_validator.dart` - 기본 필드 검증 ✅
+- [x] 8. `rule_models.dart` - JSON 파싱 모델 ✅
+- [x] 9. `rule_repository_impl.dart` - Repository 구현 ✅
+
+### Phase 10-B: 신살 JSON 분리
+
+- [ ] `sinsal_rules.json` 생성
+- [ ] TwelveSinsalService 마이그레이션
+- [ ] 테스트 케이스 10개+ 추가
+
+### Phase 10-C: 나머지 룰 분리 ✅ 완료 (2025-12-12)
+
+- [x] `hapchung_rules.json` - 합충형파해 56개 룰
+- [x] `sipsin_tables.json` - 십신 10천간 매핑
+- [x] `jijanggan_tables.json` - 지장간 12지지 매핑
+- [x] `unsung_tables.json` - 12운성 테이블
+- [x] `gongmang_tables.json` - 공망 6순 테이블
+- [x] `rule_condition.dart` - gte/lte 연산자, jiCount/ganCount 필드 추가
+- [x] `saju_context.dart` - jiCount/ganCount getter 추가
+- [x] `rule_engine.dart` - _evaluateGte/_evaluateLte 메서드 추가
+- [x] `rule_engine_hapchung_test.dart` - 합충형파해 테스트 케이스
+
+### Phase 10-D: Supabase 연동 (추후)
+
+- [ ] `loadFromRemote()` 구현
+- [ ] 해시 검증 (SHA256)
+- [ ] 버전 관리 + 롤백
+
+### 설계 원칙
+
+1. **인터페이스는 완성형** - 확장 대비
+2. **구현은 MVP** - 빠른 출시
+3. **하위 호환성** - 기존 하드코딩 로직 유지
+4. **점진적 마이그레이션** - sinsal부터 시작
+
+### JSON 룰 구조 (예시)
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "ruleType": "sinsal",
+  "rules": [
+    {
+      "id": "cheon_eul_gwin",
+      "name": "천을귀인",
+      "hanja": "天乙貴人",
+      "category": "길성",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "dayGan", "op": "in", "value": ["갑", "무", "경"] },
+          { "field": "jiAny", "op": "in", "value": ["축", "미"] }
+        ]
+      },
+      "reasonTemplate": "일간 {dayGan}에서 {matchedJi}가 천을귀인"
+    }
+  ]
+}
+```
 
 ---
 
@@ -759,6 +879,80 @@ presentation/widgets/
 
 - **Jaehyeon PC:** `C:\Users\SOGANG\flutter\flutter\bin\flutter.bat`
 - **협업자(DK) PC:** `D:\development\flutter\bin\flutter.bat`
+
+---
+
+## ✅ 완료된 작업 (2025-12-12)
+
+### Phase 10-A: RuleEngine 기반 구축 ✅ 완료
+
+**생성된 파일 (9개):**
+
+#### Domain Layer - Entities
+1. **`rule.dart`** - Rule 인터페이스 + 타입 정의
+   - `RuleType` enum: sinsal, hapchung, hyungpahae, sipsin, unsung, jijanggan, gongmang, gyeokguk, daeun
+   - `FortuneType` enum: 길/흉/중
+   - `Rule` 추상 인터페이스
+   - `RuleMatchResult` 매칭 결과 클래스
+   - `RuleSetMeta` 룰셋 메타데이터
+
+2. **`rule_condition.dart`** - 조건 타입 + 연산자 정의
+   - `ConditionOp` enum: eq, ne, in, notIn, and, or, not, samhapMatch, yukhapMatch 등
+   - `ConditionField` enum: dayGan, dayJi, jiAny, ganAny 등 사주 필드
+   - `RuleCondition` sealed class (SimpleCondition, CompositeCondition)
+
+3. **`saju_context.dart`** - 사주 컨텍스트 래퍼
+   - `SajuChart` 감싸서 RuleEngine 필드 접근 제공
+   - `getFieldValue()`: ConditionField로 값 조회
+   - 오행, 음양 파생 데이터 자동 계산
+
+4. **`compiled_rules.dart`** - 컴파일된 룰 컨테이너
+   - `CompiledRules`: 파싱된 룰셋 저장
+   - `CompiledRulesRegistry`: 여러 RuleType 통합 관리
+
+#### Domain Layer - Repository
+5. **`rule_repository.dart`** - Repository 추상 인터페이스
+   - `loadFromAsset()`, `loadFromRemote()`, `loadFromString()`
+   - 캐시 관리: `getCached()`, `setCache()`, `invalidateCache()`
+   - 버전 관리: `getLocalVersion()`, `needsUpdate()`
+   - 예외 클래스: `RuleLoadException`, `RuleValidationException`
+
+#### Domain Layer - Services
+6. **`rule_engine.dart`** - 핵심 매칭 엔진
+   - `RuleEngine.matchAll()`: 전체 룰 매칭
+   - `RuleEngine.match()`: 단일 룰 매칭
+   - `RuleEngine.evaluate()`: 조건 평가
+   - 특수 연산자 지원: 삼합, 육합, 충, 형 매칭
+
+7. **`rule_validator.dart`** - 룰 검증기
+   - `validateRuleSet()`: 전체 룰셋 검증
+   - `validateRule()`: 개별 룰 검증
+   - `validateCondition()`: 조건 구조 검증
+   - `ValidationResult`, `ValidationError` 결과 클래스
+
+#### Data Layer - Models
+8. **`rule_models.dart`** - JSON 파싱 모델
+   - `RuleModel`: Rule 인터페이스 구현체
+   - `RuleSetParseResult`: 파싱 결과 컨테이너
+   - `RuleParser`: JSON 파싱 헬퍼
+
+#### Data Layer - Repository
+9. **`rule_repository_impl.dart`** - Repository 구현체
+   - Asset 로드 구현 (MVP)
+   - 메모리 캐시 관리
+   - Remote 로드는 Phase 10-D 예정
+
+**아키텍처:**
+```
+[JSON 룰 파일] → [RuleRepository] → [RuleEngine] → [기존 서비스]
+ (assets)        load + validate    matchAll()     사용
+                 + compile
+```
+
+**MVP 원칙 적용:**
+- RuleValidator: 필수 필드 체크만 (스키마 검증은 추후)
+- CompiledRules: 인덱싱 없이 단순 리스트 (성능 이슈 시 추가)
+- 하위 호환성: 기존 하드코딩 서비스 유지
 
 ---
 

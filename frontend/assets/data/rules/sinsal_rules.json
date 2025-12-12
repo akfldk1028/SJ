@@ -1,0 +1,958 @@
+{
+  "schemaVersion": "1.0.0",
+  "ruleType": "sinsal",
+  "version": "2024.12.12",
+  "description": "12신살 및 특수신살 룰셋",
+  "rules": [
+    {
+      "id": "cheon_eul_gwin",
+      "name": "천을귀인",
+      "hanja": "天乙貴人",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "길",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "in", "value": ["갑", "무", "경"] },
+              { "field": "jiAny", "op": "in", "value": ["축", "미"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "in", "value": ["을", "기"] },
+              { "field": "jiAny", "op": "in", "value": ["자", "신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "in", "value": ["병", "정"] },
+              { "field": "jiAny", "op": "in", "value": ["해", "유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "신" },
+              { "field": "jiAny", "op": "in", "value": ["인", "오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "in", "value": ["임", "계"] },
+              { "field": "jiAny", "op": "in", "value": ["묘", "사"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "일간 {dayGan}에서 {matchedJi}가 천을귀인",
+      "description": "귀인의 도움을 받는 길성입니다. 어려운 일이 있어도 도움을 받아 해결됩니다.",
+      "priority": 100,
+      "enabled": true
+    },
+    {
+      "id": "yang_in_sal",
+      "name": "양인살",
+      "hanja": "羊刃殺",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "갑" },
+              { "field": "jiAny", "op": "in", "value": ["묘"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "을" },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "in", "value": ["병", "무"] },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "in", "value": ["정", "기"] },
+              { "field": "jiAny", "op": "in", "value": ["미"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "경" },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "신" },
+              { "field": "jiAny", "op": "in", "value": ["술"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "임" },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "계" },
+              { "field": "jiAny", "op": "in", "value": ["축"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "일간 {dayGan}에서 {matchedJi}가 양인살",
+      "description": "날카롭고 과격한 성격의 신살입니다. 결단력이 있지만 충동적일 수 있습니다.",
+      "priority": 90,
+      "enabled": true
+    },
+    {
+      "id": "goe_gang_sal",
+      "name": "괴강살",
+      "hanja": "魁罡殺",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "중",
+      "when": {
+        "op": "or",
+        "conditions": [
+          { "field": "dayPillar", "op": "eq", "value": "경진" },
+          { "field": "dayPillar", "op": "eq", "value": "경술" },
+          { "field": "dayPillar", "op": "eq", "value": "임진" },
+          { "field": "dayPillar", "op": "eq", "value": "임술" }
+        ]
+      },
+      "reasonTemplate": "일주 {dayPillar}가 괴강살",
+      "description": "강한 성격과 결단력의 신살입니다. 리더십이 강하지만 독선적일 수 있습니다.",
+      "priority": 85,
+      "enabled": true
+    },
+    {
+      "id": "baek_ho_sal",
+      "name": "백호살",
+      "hanja": "白虎殺",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["자", "오"] },
+              { "field": "jiAny", "op": "in", "value": ["인", "신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["축", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["묘", "유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "신"] },
+              { "field": "jiAny", "op": "in", "value": ["진", "술"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["묘", "유"] },
+              { "field": "jiAny", "op": "in", "value": ["사", "해"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["진", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["오", "자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "해"] },
+              { "field": "jiAny", "op": "in", "value": ["미", "축"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi}에서 {matchedJi}가 백호살",
+      "description": "혈광지액을 주의해야 하는 신살입니다. 사고와 수술에 주의가 필요합니다.",
+      "priority": 80,
+      "enabled": true
+    },
+    {
+      "id": "cheolla_jimang",
+      "name": "천라지망",
+      "hanja": "天羅地網",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "jiAny", "op": "in", "value": ["술"] },
+              { "field": "jiAny", "op": "in", "value": ["해"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "jiAny", "op": "in", "value": ["진"] },
+              { "field": "jiAny", "op": "in", "value": ["사"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "지지에 {matchedJi}가 있어 천라지망",
+      "description": "구속과 속박의 신살입니다. 자유가 제한되거나 법적 문제에 주의가 필요합니다.",
+      "priority": 75,
+      "enabled": true
+    },
+    {
+      "id": "munchang_gwin",
+      "name": "문창귀인",
+      "hanja": "文昌貴人",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "길",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "갑" },
+              { "field": "jiAny", "op": "in", "value": ["사"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "을" },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "병" },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "정" },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "무" },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "기" },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "경" },
+              { "field": "jiAny", "op": "in", "value": ["해"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "신" },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "임" },
+              { "field": "jiAny", "op": "in", "value": ["인"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "계" },
+              { "field": "jiAny", "op": "in", "value": ["묘"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "일간 {dayGan}에서 {matchedJi}가 문창귀인",
+      "description": "학문과 시험 운이 좋은 길성입니다. 공부, 자격증, 시험에 유리합니다.",
+      "priority": 95,
+      "enabled": true
+    },
+    {
+      "id": "hong_yeom_sal",
+      "name": "홍염살",
+      "hanja": "紅艶煞",
+      "type": "sinsal",
+      "category": "특수신살",
+      "fortuneType": "중",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "갑" },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "을" },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "병" },
+              { "field": "jiAny", "op": "in", "value": ["인"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "정" },
+              { "field": "jiAny", "op": "in", "value": ["미"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "무" },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "기" },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "경" },
+              { "field": "jiAny", "op": "in", "value": ["술"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "신" },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "임" },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "dayGan", "op": "eq", "value": "계" },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "일간 {dayGan}에서 {matchedJi}가 홍염살",
+      "description": "이성에게 매력적인 신살입니다. 연애운이 좋지만 색정 문제에 주의가 필요합니다.",
+      "priority": 70,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_geopsal",
+      "name": "겁살",
+      "hanja": "劫煞",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["사"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["해"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["인"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 겁살",
+      "description": "재물 손실과 도난을 주의해야 하는 신살입니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_jaesal",
+      "name": "재살",
+      "hanja": "災煞",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["묘"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 재살",
+      "description": "재앙과 사고를 주의해야 하는 신살입니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_cheonsal",
+      "name": "천살",
+      "hanja": "天煞",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["미"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["술"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["축"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 천살",
+      "description": "하늘에서 오는 재앙의 신살입니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_jisal",
+      "name": "지살",
+      "hanja": "地煞",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["해"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["인"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["사"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 지살",
+      "description": "땅과 관련된 재앙의 신살입니다. 이사, 이동에 주의가 필요합니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_yeonsal",
+      "name": "도화살",
+      "hanja": "桃花煞",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "중",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["묘"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 도화살",
+      "description": "이성에게 매력적인 신살입니다. 연애운이 좋지만 바람기에 주의가 필요합니다.",
+      "priority": 55,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_wolsal",
+      "name": "월살",
+      "hanja": "月煞",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["술"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["축"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["미"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 월살",
+      "description": "고독과 외로움의 신살입니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_mangshin",
+      "name": "망신살",
+      "hanja": "亡身殺",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["해"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["인"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["사"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 망신살",
+      "description": "체면 손상의 신살입니다. 명예가 손상될 수 있습니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_jangsung",
+      "name": "장성살",
+      "hanja": "將星殺",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "길",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["묘"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 장성살",
+      "description": "권위와 리더십의 길한 신살입니다. 지도자적 자질이 있습니다.",
+      "priority": 60,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_banan",
+      "name": "반안살",
+      "hanja": "攀鞍殺",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "길",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["축"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["미"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["술"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 반안살",
+      "description": "안정과 승진의 길한 신살입니다. 출세와 성공을 의미합니다.",
+      "priority": 60,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_yeokma",
+      "name": "역마살",
+      "hanja": "驛馬殺",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "중",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["인"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["사"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["신"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["해"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 역마살",
+      "description": "이동과 변동의 신살입니다. 여행, 해외 인연이 있습니다.",
+      "priority": 55,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_yukhae",
+      "name": "육해살",
+      "hanja": "六害殺",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "흉",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["묘"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["오"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["유"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["자"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 육해살",
+      "description": "육친 갈등의 신살입니다. 가족 간 문제에 주의가 필요합니다.",
+      "priority": 50,
+      "enabled": true
+    },
+    {
+      "id": "twelve_sinsal_hwagae",
+      "name": "화개살",
+      "hanja": "華蓋殺",
+      "type": "sinsal",
+      "category": "12신살",
+      "fortuneType": "중",
+      "when": {
+        "op": "or",
+        "conditions": [
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["인", "오", "술"] },
+              { "field": "jiAny", "op": "in", "value": ["진"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["사", "유", "축"] },
+              { "field": "jiAny", "op": "in", "value": ["미"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["신", "자", "진"] },
+              { "field": "jiAny", "op": "in", "value": ["술"] }
+            ]
+          },
+          {
+            "op": "and",
+            "conditions": [
+              { "field": "yearJi", "op": "in", "value": ["해", "묘", "미"] },
+              { "field": "jiAny", "op": "in", "value": ["축"] }
+            ]
+          }
+        ]
+      },
+      "reasonTemplate": "년지 {yearJi} 기준 {matchedJi}에 화개살",
+      "description": "예술과 종교의 신살입니다. 학문적 깊이와 예술적 재능이 있습니다.",
+      "priority": 55,
+      "enabled": true
+    }
+  ]
+}

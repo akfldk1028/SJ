@@ -1,9 +1,18 @@
 /// 12신살(十二神煞) 계산 서비스
 /// 년지/일지를 기준으로 각 지지에 배치되는 12가지 신살 분석
+///
+/// Phase 10-B: RuleEngine 기반 메서드 추가 (하위 호환성 유지)
+/// - 기존 하드코딩 로직: analyzeFromChart(), analyze()
+/// - RuleEngine 기반: analyzeWithRuleEngine()
 library;
 
 import '../../data/constants/twelve_sinsal.dart';
+import '../../data/repositories/rule_repository_impl.dart';
+import '../entities/rule.dart';
+import '../entities/compiled_rules.dart';
 import '../entities/saju_chart.dart';
+import '../entities/saju_context.dart';
+import 'rule_engine.dart';
 
 // ============================================================================
 // 12신살 분석 결과 모델
@@ -410,5 +419,265 @@ class TwelveSinsalService {
   /// 천을귀인 여부 확인
   static bool checkCheonEulGwin(String dayGan, String targetJi) {
     return isCheonEulGwin(dayGan, targetJi);
+  }
+
+  // ============================================================================
+  // RuleEngine 기반 분석 (Phase 10-B)
+  // ============================================================================
+
+  /// RuleEngine 기반 신살 분석
+  ///
+  /// JSON 룰셋을 사용하여 신살을 분석합니다.
+  /// 기존 하드코딩 로직과 병행 사용 가능합니다.
+  ///
+  /// [chart] 분석할 사주 차트
+  /// [gender] 성별 (선택)
+  /// 반환: RuleEngine 매칭 결과 리스트
+  static Future<RuleEngineSinsalResult> analyzeWithRuleEngine(
+    SajuChart chart, {
+    String? gender,
+  }) async {
+    // 1. 컨텍스트 생성
+    final context = SajuContext.fromChart(chart, gender: gender);
+
+    // 2. 신살 룰셋 로드
+    CompiledRules? compiledRules;
+    try {
+      compiledRules = await ruleRepository.loadByType(RuleType.sinsal);
+    } catch (e) {
+      // 룰셋 로드 실패 시 빈 결과 반환
+      return RuleEngineSinsalResult(
+        matchResults: [],
+        context: context,
+        error: '신살 룰셋 로드 실패: $e',
+      );
+    }
+
+    // 3. RuleEngine으로 매칭
+    final engine = RuleEngine();
+    final matchResults = engine.matchAll(compiledRules, context);
+
+    return RuleEngineSinsalResult(
+      matchResults: matchResults,
+      context: context,
+    );
+  }
+
+  /// RuleEngine 기반 특정 신살 검색
+  ///
+  /// [chart] 분석할 사주 차트
+  /// [sinsalId] 찾을 신살 ID (예: "cheon_eul_gwin", "yang_in_sal")
+  /// 반환: 매칭된 결과 또는 null
+  static Future<RuleMatchResult?> findSinsalById(
+    SajuChart chart,
+    String sinsalId, {
+    String? gender,
+  }) async {
+    final result = await analyzeWithRuleEngine(chart, gender: gender);
+
+    for (final match in result.matchResults) {
+      if (match.rule.id == sinsalId) {
+        return match;
+      }
+    }
+    return null;
+  }
+
+  /// RuleEngine 기반 길/흉 신살 분류
+  ///
+  /// [chart] 분석할 사주 차트
+  /// 반환: 길흉별로 분류된 신살 결과
+  static Future<SinsalByFortuneType> analyzeSinsalByFortune(
+    SajuChart chart, {
+    String? gender,
+  }) async {
+    final result = await analyzeWithRuleEngine(chart, gender: gender);
+
+    final good = <RuleMatchResult>[];
+    final bad = <RuleMatchResult>[];
+    final neutral = <RuleMatchResult>[];
+
+    for (final match in result.matchResults) {
+      switch (match.rule.fortuneType) {
+        case FortuneType.gil:
+          good.add(match);
+        case FortuneType.hyung:
+          bad.add(match);
+        case FortuneType.jung:
+          neutral.add(match);
+      }
+    }
+
+    return SinsalByFortuneType(
+      good: good,
+      bad: bad,
+      neutral: neutral,
+    );
+  }
+
+  /// 기존 로직과 RuleEngine 결과 비교 (테스트/검증용)
+  ///
+  /// 두 분석 방식의 결과를 비교하여 일관성을 검증합니다.
+  static Future<SinsalComparisonResult> compareWithLegacy(
+    SajuChart chart, {
+    String? gender,
+  }) async {
+    // 기존 로직 분석
+    final legacyResult = analyzeFromChart(chart);
+
+    // RuleEngine 분석
+    final ruleEngineResult = await analyzeWithRuleEngine(chart, gender: gender);
+
+    // 특수신살 비교 (천을귀인, 양인살)
+    final legacySpecials = <String>[];
+    final ruleEngineSpecials = <String>[];
+
+    // 기존 로직의 특수신살 추출
+    for (final result in legacyResult.allResults) {
+      for (final special in result.specialSinsals) {
+        legacySpecials.add(special.korean);
+      }
+    }
+
+    // RuleEngine의 특수신살 추출 (category == '특수신살')
+    for (final match in ruleEngineResult.matchResults) {
+      if (match.rule.category == '특수신살') {
+        ruleEngineSpecials.add(match.rule.name);
+      }
+    }
+
+    return SinsalComparisonResult(
+      legacyResult: legacyResult,
+      ruleEngineResult: ruleEngineResult,
+      legacySpecialSinsals: legacySpecials,
+      ruleEngineSpecialSinsals: ruleEngineSpecials,
+    );
+  }
+}
+
+// ============================================================================
+// RuleEngine 기반 결과 모델
+// ============================================================================
+
+/// RuleEngine 기반 신살 분석 결과
+class RuleEngineSinsalResult {
+  /// 매칭된 룰 결과 리스트
+  final List<RuleMatchResult> matchResults;
+
+  /// 분석에 사용된 컨텍스트
+  final SajuContext context;
+
+  /// 에러 메시지 (있으면)
+  final String? error;
+
+  const RuleEngineSinsalResult({
+    required this.matchResults,
+    required this.context,
+    this.error,
+  });
+
+  /// 분석 성공 여부
+  bool get isSuccess => error == null;
+
+  /// 매칭된 신살 개수
+  int get matchCount => matchResults.length;
+
+  /// 12신살 결과만 필터링
+  List<RuleMatchResult> get twelveSinsalResults =>
+      matchResults.where((r) => r.rule.category == '12신살').toList();
+
+  /// 특수신살 결과만 필터링
+  List<RuleMatchResult> get specialSinsalResults =>
+      matchResults.where((r) => r.rule.category == '특수신살').toList();
+
+  /// 길한 신살 결과
+  List<RuleMatchResult> get goodResults =>
+      matchResults.where((r) => r.rule.fortuneType == FortuneType.gil).toList();
+
+  /// 흉한 신살 결과
+  List<RuleMatchResult> get badResults =>
+      matchResults.where((r) => r.rule.fortuneType == FortuneType.hyung).toList();
+
+  /// 신살 요약 문자열
+  String get summary {
+    if (matchResults.isEmpty) return '신살 없음';
+    return matchResults.map((r) => r.displayName).join(', ');
+  }
+}
+
+/// 길흉별 신살 분류 결과
+class SinsalByFortuneType {
+  /// 길한 신살
+  final List<RuleMatchResult> good;
+
+  /// 흉한 신살
+  final List<RuleMatchResult> bad;
+
+  /// 중립(혼합) 신살
+  final List<RuleMatchResult> neutral;
+
+  const SinsalByFortuneType({
+    required this.good,
+    required this.bad,
+    required this.neutral,
+  });
+
+  /// 전체 신살 개수
+  int get totalCount => good.length + bad.length + neutral.length;
+
+  /// 길한 신살 비율 (0.0 ~ 1.0)
+  double get goodRatio => totalCount > 0 ? good.length / totalCount : 0.0;
+
+  /// 길흉 균형 점수 (-1.0 ~ 1.0, 양수가 길)
+  double get balanceScore {
+    if (totalCount == 0) return 0.0;
+    return (good.length - bad.length) / totalCount;
+  }
+}
+
+/// 기존 로직과 RuleEngine 비교 결과 (검증용)
+class SinsalComparisonResult {
+  /// 기존 로직 결과
+  final TwelveSinsalAnalysisResult legacyResult;
+
+  /// RuleEngine 결과
+  final RuleEngineSinsalResult ruleEngineResult;
+
+  /// 기존 로직에서 찾은 특수신살
+  final List<String> legacySpecialSinsals;
+
+  /// RuleEngine에서 찾은 특수신살
+  final List<String> ruleEngineSpecialSinsals;
+
+  const SinsalComparisonResult({
+    required this.legacyResult,
+    required this.ruleEngineResult,
+    required this.legacySpecialSinsals,
+    required this.ruleEngineSpecialSinsals,
+  });
+
+  /// 특수신살 일치 여부
+  bool get specialSinsalsMatch {
+    final legacySet = legacySpecialSinsals.toSet();
+    final ruleEngineSet = ruleEngineSpecialSinsals.toSet();
+    return legacySet.containsAll(ruleEngineSet) &&
+           ruleEngineSet.containsAll(legacySet);
+  }
+
+  /// 불일치 항목
+  List<String> get mismatches {
+    final result = <String>[];
+    final legacySet = legacySpecialSinsals.toSet();
+    final ruleEngineSet = ruleEngineSpecialSinsals.toSet();
+
+    // 기존에만 있는 것
+    for (final item in legacySet.difference(ruleEngineSet)) {
+      result.add('기존만: $item');
+    }
+    // RuleEngine에만 있는 것
+    for (final item in ruleEngineSet.difference(legacySet)) {
+      result.add('RuleEngine만: $item');
+    }
+    return result;
   }
 }

@@ -39,7 +39,8 @@
       "Bash(flutter analyze:*)",
       "Bash(D:\\development\\flutter\\bin\\flutter devices:*)",
       "Bash(git fetch:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(flutter test:*)"
     ],
     "deny": [],
     "ask": []

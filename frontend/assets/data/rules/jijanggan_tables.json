@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "1.0.0",
+  "ruleType": "jijanggan",
+  "version": "2024.12.12",
+  "description": "지장간(地藏干) 테이블 - 12지지 각각에 숨어있는 천간과 세력",
+  "typeDefinitions": {
+    "jeongGi": {
+      "korean": "정기",
+      "hanja": "正氣",
+      "description": "가장 강한 주된 기운 (본기)",
+      "strengthRank": 3
+    },
+    "jungGi": {
+      "korean": "중기",
+      "hanja": "中氣",
+      "description": "중간 세력의 기운",
+      "strengthRank": 2
+    },
+    "yeoGi": {
+      "korean": "여기",
+      "hanja": "餘氣",
+      "description": "잔여 기운",
+      "strengthRank": 1
+    }
+  },
+  "cheonganInfo": {
+    "갑": { "hanja": "甲", "oheng": "목", "eumYang": "양" },
+    "을": { "hanja": "乙", "oheng": "목", "eumYang": "음" },
+    "병": { "hanja": "丙", "oheng": "화", "eumYang": "양" },
+    "정": { "hanja": "丁", "oheng": "화", "eumYang": "음" },
+    "무": { "hanja": "戊", "oheng": "토", "eumYang": "양" },
+    "기": { "hanja": "己", "oheng": "토", "eumYang": "음" },
+    "경": { "hanja": "庚", "oheng": "금", "eumYang": "양" },
+    "신": { "hanja": "辛", "oheng": "금", "eumYang": "음" },
+    "임": { "hanja": "壬", "oheng": "수", "eumYang": "양" },
+    "계": { "hanja": "癸", "oheng": "수", "eumYang": "음" }
+  },
+  "jijiInfo": {
+    "자": { "hanja": "子", "oheng": "수", "eumYang": "양", "animal": "쥐" },
+    "축": { "hanja": "丑", "oheng": "토", "eumYang": "음", "animal": "소" },
+    "인": { "hanja": "寅", "oheng": "목", "eumYang": "양", "animal": "호랑이" },
+    "묘": { "hanja": "卯", "oheng": "목", "eumYang": "음", "animal": "토끼" },
+    "진": { "hanja": "辰", "oheng": "토", "eumYang": "양", "animal": "용" },
+    "사": { "hanja": "巳", "oheng": "화", "eumYang": "음", "animal": "뱀" },
+    "오": { "hanja": "午", "oheng": "화", "eumYang": "양", "animal": "말" },
+    "미": { "hanja": "未", "oheng": "토", "eumYang": "음", "animal": "양" },
+    "신": { "hanja": "申", "oheng": "금", "eumYang": "양", "animal": "원숭이" },
+    "유": { "hanja": "酉", "oheng": "금", "eumYang": "음", "animal": "닭" },
+    "술": { "hanja": "戌", "oheng": "토", "eumYang": "양", "animal": "개" },
+    "해": { "hanja": "亥", "oheng": "수", "eumYang": "음", "animal": "돼지" }
+  },
+  "jijangganTable": {
+    "자": {
+      "hanja": "子",
+      "jijanggan": [
+        { "gan": "계", "hanja": "癸", "oheng": "수", "strength": 100, "days": 30, "type": "jeongGi" }
+      ],
+      "description": "자(子)는 순수한 계수(癸水)로만 이루어져 있습니다."
+    },
+    "축": {
+      "hanja": "丑",
+      "jijanggan": [
+        { "gan": "계", "hanja": "癸", "oheng": "수", "strength": 30, "days": 9, "type": "yeoGi" },
+        { "gan": "신", "hanja": "辛", "oheng": "금", "strength": 10, "days": 3, "type": "jungGi" },
+        { "gan": "기", "hanja": "己", "oheng": "토", "strength": 60, "days": 18, "type": "jeongGi" }
+      ],
+      "description": "축(丑)은 토의 계절 마무리로 기토가 주된 기운입니다."
+    },
+    "인": {
+      "hanja": "寅",
+      "jijanggan": [
+        { "gan": "무", "hanja": "戊", "oheng": "토", "strength": 23, "days": 7, "type": "yeoGi" },
+        { "gan": "병", "hanja": "丙", "oheng": "화", "strength": 23, "days": 7, "type": "jungGi" },
+        { "gan": "갑", "hanja": "甲", "oheng": "목", "strength": 54, "days": 16, "type": "jeongGi" }
+      ],
+      "description": "인(寅)은 봄의 시작으로 갑목이 주된 기운입니다."
+    },
+    "묘": {
+      "hanja": "卯",
+      "jijanggan": [
+        { "gan": "을", "hanja": "乙", "oheng": "목", "strength": 100, "days": 30, "type": "jeongGi" }
+      ],
+      "description": "묘(卯)는 순수한 을목(乙木)으로만 이루어져 있습니다."
+    },
+    "진": {
+      "hanja": "辰",
+      "jijanggan": [
+        { "gan": "을", "hanja": "乙", "oheng": "목", "strength": 30, "days": 9, "type": "yeoGi" },
+        { "gan": "계", "hanja": "癸", "oheng": "수", "strength": 10, "days": 3, "type": "jungGi" },
+        { "gan": "무", "hanja": "戊", "oheng": "토", "strength": 60, "days": 18, "type": "jeongGi" }
+      ],
+      "description": "진(辰)은 봄의 마무리로 무토가 주된 기운입니다."
+    },
+    "사": {
+      "hanja": "巳",
+      "jijanggan": [
+        { "gan": "무", "hanja": "戊", "oheng": "토", "strength": 23, "days": 7, "type": "yeoGi" },
+        { "gan": "경", "hanja": "庚", "oheng": "금", "strength": 23, "days": 7, "type": "jungGi" },
+        { "gan": "병", "hanja": "丙", "oheng": "화", "strength": 54, "days": 16, "type": "jeongGi" }
+      ],
+      "description": "사(巳)는 여름의 시작으로 병화가 주된 기운입니다."
+    },
+    "오": {
+      "hanja": "午",
+      "jijanggan": [
+        { "gan": "기", "hanja": "己", "oheng": "토", "strength": 30, "days": 9, "type": "yeoGi" },
+        { "gan": "정", "hanja": "丁", "oheng": "화", "strength": 70, "days": 21, "type": "jeongGi" }
+      ],
+      "description": "오(午)는 여름의 중심으로 정화가 주된 기운입니다."
+    },
+    "미": {
+      "hanja": "未",
+      "jijanggan": [
+        { "gan": "정", "hanja": "丁", "oheng": "화", "strength": 30, "days": 9, "type": "yeoGi" },
+        { "gan": "을", "hanja": "乙", "oheng": "목", "strength": 10, "days": 3, "type": "jungGi" },
+        { "gan": "기", "hanja": "己", "oheng": "토", "strength": 60, "days": 18, "type": "jeongGi" }
+      ],
+      "description": "미(未)는 여름의 마무리로 기토가 주된 기운입니다."
+    },
+    "신": {
+      "hanja": "申",
+      "jijanggan": [
+        { "gan": "무", "hanja": "戊", "oheng": "토", "strength": 23, "days": 7, "type": "yeoGi" },
+        { "gan": "임", "hanja": "壬", "oheng": "수", "strength": 23, "days": 7, "type": "jungGi" },
+        { "gan": "경", "hanja": "庚", "oheng": "금", "strength": 54, "days": 16, "type": "jeongGi" }
+      ],
+      "description": "신(申)은 가을의 시작으로 경금이 주된 기운입니다."
+    },
+    "유": {
+      "hanja": "酉",
+      "jijanggan": [
+        { "gan": "신", "hanja": "辛", "oheng": "금", "strength": 100, "days": 30, "type": "jeongGi" }
+      ],
+      "description": "유(酉)는 순수한 신금(辛金)으로만 이루어져 있습니다."
+    },
+    "술": {
+      "hanja": "戌",
+      "jijanggan": [
+        { "gan": "신", "hanja": "辛", "oheng": "금", "strength": 30, "days": 9, "type": "yeoGi" },
+        { "gan": "정", "hanja": "丁", "oheng": "화", "strength": 10, "days": 3, "type": "jungGi" },
+        { "gan": "무", "hanja": "戊", "oheng": "토", "strength": 60, "days": 18, "type": "jeongGi" }
+      ],
+      "description": "술(戌)은 가을의 마무리로 무토가 주된 기운입니다."
+    },
+    "해": {
+      "hanja": "亥",
+      "jijanggan": [
+        { "gan": "무", "hanja": "戊", "oheng": "토", "strength": 23, "days": 7, "type": "yeoGi" },
+        { "gan": "갑", "hanja": "甲", "oheng": "목", "strength": 23, "days": 7, "type": "jungGi" },
+        { "gan": "임", "hanja": "壬", "oheng": "수", "strength": 54, "days": 16, "type": "jeongGi" }
+      ],
+      "description": "해(亥)는 겨울의 시작으로 임수가 주된 기운입니다."
+    }
+  },
+  "notes": {
+    "strengthCalculation": "세력 비율(strength)은 절기 경과일(days)을 기준으로 계산됩니다. 30일 기준으로 각 기운의 일수를 백분율로 환산합니다.",
+    "pureJiji": "자(子), 묘(卯), 유(酉)는 단일 천간만을 가진 순수한 지지입니다.",
+    "seasonTransition": "진(辰), 술(戌), 축(丑), 미(未)는 계절의 마무리 지지로 토(土)가 정기입니다.",
+    "seasonStart": "인(寅), 사(巳), 신(申), 해(亥)는 계절의 시작 지지로 해당 계절의 오행이 정기입니다."
+  }
+}
