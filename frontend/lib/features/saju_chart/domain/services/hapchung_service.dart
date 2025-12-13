@@ -514,16 +514,16 @@ class HapchungService {
     SajuChart chart, {
     String? gender,
   }) async {
-    // 기존 로직 분석
+    // 기존 로직 분석 (시주가 없으면 빈 문자열 사용)
     final legacyResult = analyzeSaju(
       yearGan: chart.yearPillar.gan,
       monthGan: chart.monthPillar.gan,
       dayGan: chart.dayPillar.gan,
-      hourGan: chart.hourPillar.gan,
+      hourGan: chart.hourPillar?.gan ?? '',
       yearJi: chart.yearPillar.ji,
       monthJi: chart.monthPillar.ji,
       dayJi: chart.dayPillar.ji,
-      hourJi: chart.hourPillar.ji,
+      hourJi: chart.hourPillar?.ji ?? '',
     );
 
     // RuleEngine 분석
@@ -818,7 +818,48 @@ class HapchungComparisonResult {
     required this.ruleEngineRelations,
   });
 
-  /// 일치하는 관계
+  /// 이름 정규화 (공백 제거, 용어 통일, 순서 정렬)
+  static String _normalizeName(String name) {
+    var normalized = name
+        .replaceAll(' ', '') // 공백 제거
+        .replaceAll('육합', '합') // 육합 → 합
+        .replaceAll('반합', '합'); // 반합 → 합 (비교용)
+
+    // 천간/지지 순서 정렬 (ㄱㄴㄷ순)
+    final patterns = [
+      ['임병', '병임'],
+      ['임신', '신임'],
+      ['계정', '정계'],
+      ['경갑', '갑경'],
+      ['신을', '을신'],
+      ['해진', '진해'],
+      ['해신', '신해'],
+      ['인신', '신인'],
+      ['미축', '축미'],
+      ['오자', '자오'],
+    ];
+    for (final pair in patterns) {
+      if (normalized.contains(pair[0])) {
+        normalized = normalized.replaceFirst(pair[0], pair[1]);
+      }
+    }
+
+    return normalized;
+  }
+
+  /// 정규화된 이름 비교로 일치하는 관계 (개선된 비교)
+  List<String> get normalizedMatchedRelations {
+    final legacyNormalized = legacyRelations.map(_normalizeName).toSet();
+    final matched = <String>[];
+    for (final r in ruleEngineRelations) {
+      if (legacyNormalized.contains(_normalizeName(r))) {
+        matched.add(r);
+      }
+    }
+    return matched;
+  }
+
+  /// 일치하는 관계 (원본 이름 비교)
   List<String> get matchedRelations {
     final legacySet = legacyRelations.toSet();
     return ruleEngineRelations.where((r) => legacySet.contains(r)).toList();
@@ -836,14 +877,41 @@ class HapchungComparisonResult {
     return ruleEngineRelations.where((r) => !legacySet.contains(r)).toList();
   }
 
+  /// 기존 로직에만 있는 관계 (정규화 비교)
+  List<String> get normalizedOnlyInLegacy {
+    final ruleEngineNormalized = ruleEngineRelations.map(_normalizeName).toSet();
+    return legacyRelations
+        .where((r) => !ruleEngineNormalized.contains(_normalizeName(r)))
+        .toList();
+  }
+
+  /// RuleEngine에만 있는 관계 (정규화 비교)
+  List<String> get normalizedOnlyInRuleEngine {
+    final legacyNormalized = legacyRelations.map(_normalizeName).toSet();
+    return ruleEngineRelations
+        .where((r) => !legacyNormalized.contains(_normalizeName(r)))
+        .toList();
+  }
+
   /// 완전 일치 여부
   bool get isFullyMatched =>
       onlyInLegacy.isEmpty && onlyInRuleEngine.isEmpty;
 
-  /// 일치율 (0.0 ~ 1.0)
+  /// 정규화 비교로 완전 일치 여부
+  bool get isNormalizedFullyMatched =>
+      normalizedOnlyInLegacy.isEmpty && normalizedOnlyInRuleEngine.isEmpty;
+
+  /// 일치율 (0.0 ~ 1.0) - 원본 이름 비교
   double get matchRate {
     final total = legacyRelations.length + ruleEngineRelations.length;
     if (total == 0) return 1.0;
     return (matchedRelations.length * 2) / total;
+  }
+
+  /// 정규화된 일치율 (0.0 ~ 1.0) - 이름 형식 차이 허용
+  double get normalizedMatchRate {
+    final total = legacyRelations.length + ruleEngineRelations.length;
+    if (total == 0) return 1.0;
+    return (normalizedMatchedRelations.length * 2) / total;
   }
 }

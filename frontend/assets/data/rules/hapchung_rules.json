@@ -385,6 +385,174 @@
       "enabled": true
     },
     {
+      "id": "jiji_banhap_ino",
+      "name": "인오반합",
+      "hanja": "寅午半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["인"] },
+          { "field": "jiAny", "op": "in", "value": ["오"] },
+          { "field": "jiAny", "op": "notIn", "value": ["술"] }
+        ]
+      },
+      "resultOheng": "화",
+      "reasonTemplate": "지지에 인과 오가 있어 인오반합(화국 반합)",
+      "description": "인오반합(寅午半合) - 인오술 화국의 반합으로, 화의 기운이 불완전하게 형성됩니다. 열정은 있으나 지속력이 부족할 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_osul",
+      "name": "오술반합",
+      "hanja": "午戌半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["오"] },
+          { "field": "jiAny", "op": "in", "value": ["술"] },
+          { "field": "jiAny", "op": "notIn", "value": ["인"] }
+        ]
+      },
+      "resultOheng": "화",
+      "reasonTemplate": "지지에 오와 술이 있어 오술반합(화국 반합)",
+      "description": "오술반합(午戌半合) - 인오술 화국의 반합으로, 화의 기운이 불완전하게 형성됩니다. 추진력은 있으나 시작이 늦을 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_sayu",
+      "name": "사유반합",
+      "hanja": "巳酉半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["사"] },
+          { "field": "jiAny", "op": "in", "value": ["유"] },
+          { "field": "jiAny", "op": "notIn", "value": ["축"] }
+        ]
+      },
+      "resultOheng": "금",
+      "reasonTemplate": "지지에 사와 유가 있어 사유반합(금국 반합)",
+      "description": "사유반합(巳酉半合) - 사유축 금국의 반합으로, 금의 기운이 불완전하게 형성됩니다. 결단력은 있으나 마무리가 약할 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_yuchuk",
+      "name": "유축반합",
+      "hanja": "酉丑半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["유"] },
+          { "field": "jiAny", "op": "in", "value": ["축"] },
+          { "field": "jiAny", "op": "notIn", "value": ["사"] }
+        ]
+      },
+      "resultOheng": "금",
+      "reasonTemplate": "지지에 유와 축이 있어 유축반합(금국 반합)",
+      "description": "유축반합(酉丑半合) - 사유축 금국의 반합으로, 금의 기운이 불완전하게 형성됩니다. 의리는 있으나 기회가 늦을 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_sinja",
+      "name": "신자반합",
+      "hanja": "申子半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["신"] },
+          { "field": "jiAny", "op": "in", "value": ["자"] },
+          { "field": "jiAny", "op": "notIn", "value": ["진"] }
+        ]
+      },
+      "resultOheng": "수",
+      "reasonTemplate": "지지에 신과 자가 있어 신자반합(수국 반합)",
+      "description": "신자반합(申子半合) - 신자진 수국의 반합으로, 수의 기운이 불완전하게 형성됩니다. 지혜는 있으나 실행력이 부족할 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_jajin",
+      "name": "자진반합",
+      "hanja": "子辰半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["자"] },
+          { "field": "jiAny", "op": "in", "value": ["진"] },
+          { "field": "jiAny", "op": "notIn", "value": ["신"] }
+        ]
+      },
+      "resultOheng": "수",
+      "reasonTemplate": "지지에 자와 진이 있어 자진반합(수국 반합)",
+      "description": "자진반합(子辰半合) - 신자진 수국의 반합으로, 수의 기운이 불완전하게 형성됩니다. 적응력은 있으나 시작이 늦을 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_haemyo",
+      "name": "해묘반합",
+      "hanja": "亥卯半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["해"] },
+          { "field": "jiAny", "op": "in", "value": ["묘"] },
+          { "field": "jiAny", "op": "notIn", "value": ["미"] }
+        ]
+      },
+      "resultOheng": "목",
+      "reasonTemplate": "지지에 해와 묘가 있어 해묘반합(목국 반합)",
+      "description": "해묘반합(亥卯半合) - 해묘미 목국의 반합으로, 목의 기운이 불완전하게 형성됩니다. 성장력은 있으나 마무리가 약할 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
+      "id": "jiji_banhap_myomi",
+      "name": "묘미반합",
+      "hanja": "卯未半合",
+      "type": "hapchung",
+      "category": "지지반합",
+      "fortuneType": "중",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "jiAny", "op": "in", "value": ["묘"] },
+          { "field": "jiAny", "op": "in", "value": ["미"] },
+          { "field": "jiAny", "op": "notIn", "value": ["해"] }
+        ]
+      },
+      "resultOheng": "목",
+      "reasonTemplate": "지지에 묘와 미가 있어 묘미반합(목국 반합)",
+      "description": "묘미반합(卯未半合) - 해묘미 목국의 반합으로, 목의 기운이 불완전하게 형성됩니다. 인자함은 있으나 시작이 늦을 수 있습니다.",
+      "priority": 82,
+      "enabled": true
+    },
+    {
       "id": "jiji_banghap_inmyojin",
       "name": "인묘진 방합",
       "hanja": "寅卯辰方合",

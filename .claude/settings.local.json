@@ -40,7 +40,8 @@
       "Bash(D:\\development\\flutter\\bin\\flutter devices:*)",
       "Bash(git fetch:*)",
       "Bash(git ls-tree:*)",
-      "Bash(flutter test:*)"
+      "Bash(flutter test:*)",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat test test/hapchung_compare_legacy_test.dart --reporter=compact)"
     ],
     "deny": [],
     "ask": []
