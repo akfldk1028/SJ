@@ -1,8 +1,18 @@
 /// 합충형파해(合沖刑破害) 분석 서비스
 /// 사주팔자의 천간/지지 간 관계를 종합 분석
+///
+/// Phase 10 서비스 전환: RuleEngine 기반 메서드 추가 (하위 호환성 유지)
+/// - 기존 하드코딩 로직: analyzeSaju()
+/// - RuleEngine 기반: analyzeWithRuleEngine()
 library;
 
 import '../../data/constants/hapchung_relations.dart';
+import '../../data/repositories/rule_repository_impl.dart';
+import '../entities/rule.dart';
+import '../entities/compiled_rules.dart';
+import '../entities/saju_chart.dart';
+import '../entities/saju_context.dart';
+import 'rule_engine.dart';
 
 // ============================================================================
 // 분석 결과 모델
@@ -401,6 +411,209 @@ class HapchungService {
       String gan1, String gan2) {
     return analyzeCheonganRelations(gan1, gan2);
   }
+
+  // ============================================================================
+  // RuleEngine 기반 메서드 (Phase 10 추가)
+  // ============================================================================
+
+  /// RuleRepository 인스턴스 (싱글톤)
+  static final ruleRepository = RuleRepositoryImpl();
+
+  /// JSON 룰셋을 사용하여 합충형파해를 분석합니다.
+  /// 기존 하드코딩 로직과 병행 사용 가능합니다.
+  ///
+  /// [chart] 분석할 사주 차트
+  /// [gender] 성별 (선택)
+  /// 반환: RuleEngine 매칭 결과 리스트
+  static Future<RuleEngineHapchungResult> analyzeWithRuleEngine(
+    SajuChart chart, {
+    String? gender,
+  }) async {
+    // 1. 컨텍스트 생성
+    final context = SajuContext.fromChart(chart, gender: gender);
+
+    // 2. 합충 룰셋 로드
+    CompiledRules? compiledRules;
+    try {
+      compiledRules = await ruleRepository.loadByType(RuleType.hapchung);
+    } catch (e) {
+      // 룰셋 로드 실패 시 빈 결과 반환
+      return RuleEngineHapchungResult(
+        matchResults: [],
+        context: context,
+        error: '합충 룰셋 로드 실패: $e',
+      );
+    }
+
+    // 3. RuleEngine으로 매칭
+    final engine = RuleEngine();
+    final matchResults = engine.matchAll(compiledRules, context);
+
+    return RuleEngineHapchungResult(
+      matchResults: matchResults,
+      context: context,
+    );
+  }
+
+  /// RuleEngine 기반 특정 관계 검색
+  ///
+  /// [chart] 분석할 사주 차트
+  /// [relationId] 찾을 관계 ID (예: "cheongan_hap_gapgi", "jiji_chung_jao")
+  /// 반환: 매칭된 결과 또는 null
+  static Future<RuleMatchResult?> findRelationById(
+    SajuChart chart,
+    String relationId, {
+    String? gender,
+  }) async {
+    final result = await analyzeWithRuleEngine(chart, gender: gender);
+
+    for (final match in result.matchResults) {
+      if (match.rule.id == relationId) {
+        return match;
+      }
+    }
+    return null;
+  }
+
+  /// RuleEngine 기반 길/흉 관계 분류
+  ///
+  /// [chart] 분석할 사주 차트
+  /// 반환: 길흉별로 분류된 관계 결과
+  static Future<HapchungByFortuneType> analyzeByFortune(
+    SajuChart chart, {
+    String? gender,
+  }) async {
+    final result = await analyzeWithRuleEngine(chart, gender: gender);
+
+    final good = <RuleMatchResult>[];
+    final bad = <RuleMatchResult>[];
+    final neutral = <RuleMatchResult>[];
+
+    for (final match in result.matchResults) {
+      switch (match.rule.fortuneType) {
+        case FortuneType.gil:
+          good.add(match);
+        case FortuneType.hyung:
+          bad.add(match);
+        case FortuneType.jung:
+          neutral.add(match);
+      }
+    }
+
+    return HapchungByFortuneType(
+      good: good,
+      bad: bad,
+      neutral: neutral,
+    );
+  }
+
+  /// 기존 로직과 RuleEngine 결과 비교 (테스트/검증용)
+  ///
+  /// 두 분석 방식의 결과를 비교하여 일관성을 검증합니다.
+  static Future<HapchungComparisonResult> compareWithLegacy(
+    SajuChart chart, {
+    String? gender,
+  }) async {
+    // 기존 로직 분석 (시주가 없으면 빈 문자열 사용)
+    final legacyResult = analyzeSaju(
+      yearGan: chart.yearPillar.gan,
+      monthGan: chart.monthPillar.gan,
+      dayGan: chart.dayPillar.gan,
+      hourGan: chart.hourPillar?.gan ?? '',
+      yearJi: chart.yearPillar.ji,
+      monthJi: chart.monthPillar.ji,
+      dayJi: chart.dayPillar.ji,
+      hourJi: chart.hourPillar?.ji ?? '',
+    );
+
+    // RuleEngine 분석
+    final ruleEngineResult = await analyzeWithRuleEngine(chart, gender: gender);
+
+    // 기존 로직의 관계 이름 추출
+    final legacyRelations = <String>[];
+
+    // 천간합
+    for (final hap in legacyResult.cheonganHaps) {
+      legacyRelations.add('${hap.gan1}${hap.gan2}합');
+    }
+    // 천간충
+    for (final chung in legacyResult.cheonganChungs) {
+      legacyRelations.add('${chung.gan1}${chung.gan2}충');
+    }
+    // 지지육합
+    for (final yukhap in legacyResult.jijiYukhaps) {
+      legacyRelations.add('${yukhap.ji1}${yukhap.ji2}육합');
+    }
+    // 삼합
+    for (final samhap in legacyResult.jijiSamhaps) {
+      final label = samhap.isFullSamhap ? '삼합' : '반합';
+      legacyRelations.add('${samhap.jijis.join("")}$label');
+    }
+    // 방합
+    for (final banghap in legacyResult.jijiBanghaps) {
+      legacyRelations.add('${banghap.jijis.join("")}방합');
+    }
+    // 지지충
+    for (final chung in legacyResult.jijiChungs) {
+      legacyRelations.add('${chung.ji1}${chung.ji2}충');
+    }
+    // 형
+    for (final hyung in legacyResult.jijiHyungs) {
+      legacyRelations.add('${hyung.ji1}${hyung.ji2}형');
+    }
+    // 파
+    for (final pa in legacyResult.jijiPas) {
+      legacyRelations.add('${pa.ji1}${pa.ji2}파');
+    }
+    // 해
+    for (final hae in legacyResult.jijiHaes) {
+      legacyRelations.add('${hae.ji1}${hae.ji2}해');
+    }
+    // 원진
+    for (final wonjin in legacyResult.wonjins) {
+      legacyRelations.add('${wonjin.ji1}${wonjin.ji2}원진');
+    }
+
+    // RuleEngine의 관계 이름 추출
+    final ruleEngineRelations = <String>[];
+    for (final match in ruleEngineResult.matchResults) {
+      ruleEngineRelations.add(match.rule.name);
+    }
+
+    return HapchungComparisonResult(
+      legacyResult: legacyResult,
+      ruleEngineResult: ruleEngineResult,
+      legacyRelations: legacyRelations,
+      ruleEngineRelations: ruleEngineRelations,
+    );
+  }
+}
+
+/// 길흉별 합충형파해 분류 결과
+class HapchungByFortuneType {
+  /// 길한 관계 (합)
+  final List<RuleMatchResult> good;
+
+  /// 흉한 관계 (충, 형, 파, 해, 원진)
+  final List<RuleMatchResult> bad;
+
+  /// 중립 관계
+  final List<RuleMatchResult> neutral;
+
+  const HapchungByFortuneType({
+    required this.good,
+    required this.bad,
+    required this.neutral,
+  });
+
+  /// 전체 관계 개수
+  int get total => good.length + bad.length + neutral.length;
+
+  /// 길한 관계 비율
+  double get goodRatio => total == 0 ? 0 : good.length / total;
+
+  /// 흉한 관계 비율
+  double get badRatio => total == 0 ? 0 : bad.length / total;
 }
 
 // ============================================================================
@@ -466,5 +679,239 @@ class HapchungInterpreter {
   static String interpretBanghap(BanghapResult result) {
     return '${result.pillars.join(", ")}주가 방합하여 '
         '${result.season}(${result.direction}방) ${result.resultOheng}의 기운이 매우 강합니다.';
+  }
+}
+
+// ============================================================================
+// RuleEngine 기반 결과 모델
+// ============================================================================
+
+/// RuleEngine 기반 합충형파해 분석 결과
+class RuleEngineHapchungResult {
+  /// 매칭된 룰 결과 리스트
+  final List<RuleMatchResult> matchResults;
+
+  /// 분석에 사용된 컨텍스트
+  final SajuContext context;
+
+  /// 에러 메시지 (있으면)
+  final String? error;
+
+  const RuleEngineHapchungResult({
+    required this.matchResults,
+    required this.context,
+    this.error,
+  });
+
+  /// 분석 성공 여부
+  bool get isSuccess => error == null;
+
+  /// 매칭된 관계 개수
+  int get matchCount => matchResults.length;
+
+  // ============================================================================
+  // 카테고리별 필터링 헬퍼
+  // ============================================================================
+
+  /// 천간합 결과만 필터링
+  List<RuleMatchResult> get cheonganHapResults =>
+      matchResults.where((r) => r.rule.category == '천간합').toList();
+
+  /// 천간충 결과만 필터링
+  List<RuleMatchResult> get cheonganChungResults =>
+      matchResults.where((r) => r.rule.category == '천간충').toList();
+
+  /// 지지육합 결과만 필터링
+  List<RuleMatchResult> get jijiYukhapResults =>
+      matchResults.where((r) => r.rule.category == '지지육합').toList();
+
+  /// 삼합 결과만 필터링
+  List<RuleMatchResult> get samhapResults =>
+      matchResults.where((r) => r.rule.category == '삼합').toList();
+
+  /// 방합 결과만 필터링
+  List<RuleMatchResult> get banghapResults =>
+      matchResults.where((r) => r.rule.category == '방합').toList();
+
+  /// 지지충 결과만 필터링
+  List<RuleMatchResult> get jijiChungResults =>
+      matchResults.where((r) => r.rule.category == '충').toList();
+
+  /// 형 결과만 필터링
+  List<RuleMatchResult> get hyungResults =>
+      matchResults.where((r) => r.rule.category == '형').toList();
+
+  /// 파 결과만 필터링
+  List<RuleMatchResult> get paResults =>
+      matchResults.where((r) => r.rule.category == '파').toList();
+
+  /// 해 결과만 필터링
+  List<RuleMatchResult> get haeResults =>
+      matchResults.where((r) => r.rule.category == '해').toList();
+
+  /// 원진 결과만 필터링
+  List<RuleMatchResult> get wonjinResults =>
+      matchResults.where((r) => r.rule.category == '원진').toList();
+
+  // ============================================================================
+  // 길흉별 분류
+  // ============================================================================
+
+  /// 길한 관계 결과 (합)
+  List<RuleMatchResult> get goodResults =>
+      matchResults.where((r) => r.rule.fortuneType == FortuneType.gil).toList();
+
+  /// 흉한 관계 결과 (충, 형, 파, 해, 원진)
+  List<RuleMatchResult> get badResults =>
+      matchResults.where((r) => r.rule.fortuneType == FortuneType.hyung).toList();
+
+  /// 중립 관계 결과
+  List<RuleMatchResult> get neutralResults =>
+      matchResults.where((r) => r.rule.fortuneType == FortuneType.jung).toList();
+
+  // ============================================================================
+  // 집계
+  // ============================================================================
+
+  /// 합의 총 개수
+  int get totalHaps =>
+      cheonganHapResults.length +
+      jijiYukhapResults.length +
+      samhapResults.length +
+      banghapResults.length;
+
+  /// 충의 총 개수
+  int get totalChungs => cheonganChungResults.length + jijiChungResults.length;
+
+  /// 흉살의 총 개수 (형, 파, 해, 원진)
+  int get totalNegatives =>
+      hyungResults.length +
+      paResults.length +
+      haeResults.length +
+      wonjinResults.length;
+
+  /// 관계 요약 문자열
+  String get summary {
+    if (matchResults.isEmpty) return '합충형파해 관계 없음';
+    return matchResults.map((r) => r.displayName).join(', ');
+  }
+}
+
+/// 합충형파해 비교 결과 (하드코딩 vs RuleEngine)
+class HapchungComparisonResult {
+  /// 기존 하드코딩 분석 결과
+  final HapchungAnalysisResult legacyResult;
+
+  /// RuleEngine 기반 분석 결과
+  final RuleEngineHapchungResult ruleEngineResult;
+
+  /// 기존 로직의 관계 목록 (이름)
+  final List<String> legacyRelations;
+
+  /// RuleEngine의 관계 목록 (이름)
+  final List<String> ruleEngineRelations;
+
+  const HapchungComparisonResult({
+    required this.legacyResult,
+    required this.ruleEngineResult,
+    required this.legacyRelations,
+    required this.ruleEngineRelations,
+  });
+
+  /// 이름 정규화 (공백 제거, 용어 통일, 순서 정렬)
+  static String _normalizeName(String name) {
+    var normalized = name
+        .replaceAll(' ', '') // 공백 제거
+        .replaceAll('육합', '합') // 육합 → 합
+        .replaceAll('반합', '합'); // 반합 → 합 (비교용)
+
+    // 천간/지지 순서 정렬 (ㄱㄴㄷ순)
+    final patterns = [
+      ['임병', '병임'],
+      ['임신', '신임'],
+      ['계정', '정계'],
+      ['경갑', '갑경'],
+      ['신을', '을신'],
+      ['해진', '진해'],
+      ['해신', '신해'],
+      ['인신', '신인'],
+      ['미축', '축미'],
+      ['오자', '자오'],
+    ];
+    for (final pair in patterns) {
+      if (normalized.contains(pair[0])) {
+        normalized = normalized.replaceFirst(pair[0], pair[1]);
+      }
+    }
+
+    return normalized;
+  }
+
+  /// 정규화된 이름 비교로 일치하는 관계 (개선된 비교)
+  List<String> get normalizedMatchedRelations {
+    final legacyNormalized = legacyRelations.map(_normalizeName).toSet();
+    final matched = <String>[];
+    for (final r in ruleEngineRelations) {
+      if (legacyNormalized.contains(_normalizeName(r))) {
+        matched.add(r);
+      }
+    }
+    return matched;
+  }
+
+  /// 일치하는 관계 (원본 이름 비교)
+  List<String> get matchedRelations {
+    final legacySet = legacyRelations.toSet();
+    return ruleEngineRelations.where((r) => legacySet.contains(r)).toList();
+  }
+
+  /// 기존 로직에만 있는 관계
+  List<String> get onlyInLegacy {
+    final ruleEngineSet = ruleEngineRelations.toSet();
+    return legacyRelations.where((r) => !ruleEngineSet.contains(r)).toList();
+  }
+
+  /// RuleEngine에만 있는 관계
+  List<String> get onlyInRuleEngine {
+    final legacySet = legacyRelations.toSet();
+    return ruleEngineRelations.where((r) => !legacySet.contains(r)).toList();
+  }
+
+  /// 기존 로직에만 있는 관계 (정규화 비교)
+  List<String> get normalizedOnlyInLegacy {
+    final ruleEngineNormalized = ruleEngineRelations.map(_normalizeName).toSet();
+    return legacyRelations
+        .where((r) => !ruleEngineNormalized.contains(_normalizeName(r)))
+        .toList();
+  }
+
+  /// RuleEngine에만 있는 관계 (정규화 비교)
+  List<String> get normalizedOnlyInRuleEngine {
+    final legacyNormalized = legacyRelations.map(_normalizeName).toSet();
+    return ruleEngineRelations
+        .where((r) => !legacyNormalized.contains(_normalizeName(r)))
+        .toList();
+  }
+
+  /// 완전 일치 여부
+  bool get isFullyMatched =>
+      onlyInLegacy.isEmpty && onlyInRuleEngine.isEmpty;
+
+  /// 정규화 비교로 완전 일치 여부
+  bool get isNormalizedFullyMatched =>
+      normalizedOnlyInLegacy.isEmpty && normalizedOnlyInRuleEngine.isEmpty;
+
+  /// 일치율 (0.0 ~ 1.0) - 원본 이름 비교
+  double get matchRate {
+    final total = legacyRelations.length + ruleEngineRelations.length;
+    if (total == 0) return 1.0;
+    return (matchedRelations.length * 2) / total;
+  }
+
+  /// 정규화된 일치율 (0.0 ~ 1.0) - 이름 형식 차이 허용
+  double get normalizedMatchRate {
+    final total = legacyRelations.length + ruleEngineRelations.length;
+    if (total == 0) return 1.0;
+    return (normalizedMatchedRelations.length * 2) / total;
   }
 }

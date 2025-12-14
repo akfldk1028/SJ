@@ -108,6 +108,8 @@ flutter:
   assets:
     - .env
     - assets/prompts/
+    - assets/data/
+    - assets/data/rules/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

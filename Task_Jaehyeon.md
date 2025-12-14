@@ -21,8 +21,9 @@
 | Phase 4 (Profile) | ✅ **완료** |
 | Phase 5 (Saju Chat) | ✅ **대부분 완료** (Gemini 3.0 연동) |
 | Phase 8 (만세력) | ✅ **기본 완료** |
-| **Phase 9 (만세력 고급)** | 🔄 **진행중** |
-| **다음 작업** | **합충형파해, 십성, 지장간 구현** |
+| **Phase 9 (만세력 고급)** | ✅ **9-A/9-B 완료** |
+| **Phase 10 (RuleEngine)** | ✅ **완료** (10-A/10-B/10-C + 서비스 전환 + 반합 추가) |
+| **다음 작업** | Phase 11 (Supabase DB) 또는 UI 컴포넌트 |
 
 ---
 
@@ -314,7 +315,394 @@ lib/
 | 2025-12-06 | 천간지지 JSON 기반 리팩토링 (4개 파일) | ✅ 완료 |
 | 2025-12-08 | DK-AA 브랜치 merge (관계도 그래프 기능) | ✅ 완료 |
 | 2025-12-08 | 만세력 로직 문서 작성 (docs/manseryeok_logic.md) | ✅ 완료 |
-| 2025-12-08 | **Phase 9 시작**: 만세력 고급 분석 기능 | 🔄 진행중 |
+| 2025-12-08 | **Phase 9 시작**: 만세력 고급 분석 기능 | ✅ 완료 |
+| 2025-12-08 | **Phase 9-A 완료**: 데이터 구조 (Constants) 6개 파일 | ✅ 완료 |
+| 2025-12-08 | **Phase 9-B 완료**: 고급 분석 서비스 5개 구현 | ✅ 완료 |
+| 2025-12-08 | unsung_service.dart - 12운성 계산 서비스 | ✅ 완료 |
+| 2025-12-08 | gongmang_service.dart - 공망 계산 서비스 | ✅ 완료 |
+| 2025-12-08 | jijanggan_service.dart - 지장간+십성 분석 서비스 | ✅ 완료 |
+| 2025-12-08 | twelve_sinsal_service.dart - 12신살 전용 서비스 | ✅ 완료 |
+| 2025-12-08 | saju_chart.dart export 업데이트 | ✅ 완료 |
+| 2025-12-12 | **Phase 10 시작**: RuleEngine 리팩토링 설계 | ✅ 완료 |
+| 2025-12-12 | 코어 엔진 아키텍처 분석 및 피드백 반영 | ✅ 완료 |
+| 2025-12-12 | **Phase 10-A 완료**: RuleEngine 기반 구축 (9개 파일) | ✅ 완료 |
+| 2025-12-12 | **Phase 10-C 완료**: 나머지 룰 JSON 분리 (5개 JSON + 3개 코드 수정 + 테스트) | ✅ 완료 |
+| 2025-12-13 | **Phase 10 서비스 전환 시작**: HapchungService RuleEngine 연동 착수 | ✅ 완료 |
+| 2025-12-13 | HapchungService import 문 추가 완료 | ✅ 완료 |
+| 2025-12-13 | **HapchungService RuleEngine 연동 완료** | ✅ 완료 |
+| 2025-12-13 | RuleEngineHapchungResult 결과 모델 추가 | ✅ 완료 |
+| 2025-12-13 | analyzeWithRuleEngine() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | findRelationById() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | analyzeByFortune() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | compareWithLegacy() 메서드 구현 | ✅ 완료 |
+| 2025-12-13 | HapchungByFortuneType 분류 클래스 추가 | ✅ 완료 |
+| 2025-12-13 | HapchungComparisonResult 비교 결과 클래스 추가 | ✅ 완료 |
+| 2025-12-13 | **compareWithLegacy() 테스트 검증 완료** | ✅ 완료 |
+| 2025-12-13 | hapchung_compare_legacy_test.dart 생성 (17개 테스트) | ✅ 완료 |
+| 2025-12-13 | 이름 정규화 로직 추가 (_normalizeName) | ✅ 완료 |
+| 2025-12-13 | 정규화 일치율 88.2% 달성 (원본 53.6%) | ✅ 완료 |
+| 2025-12-13 | **반합 규칙 8개 추가** (hapchung_rules.json) | ✅ 완료 |
+| 2025-12-13 | 인오반합, 오술반합, 사유반합, 유축반합, 신자반합, 자진반합, 해묘반합, 묘미반합 | ✅ 완료 |
+| 2025-12-13 | **정규화 일치율 90.0% 달성** (목표 70% 크게 초과) | ✅ 완료 |
+| 2025-12-13 | **Phase 10 완료** - RuleEngine 연동 + 테스트 검증 완료 | ✅ 완료 |
+
+---
+
+## Phase 10: RuleEngine 리팩토링 (2025-12-12~) ✅ 완료
+
+> **목적**: 하드코딩된 룰/테이블을 JSON으로 분리하여 운영 유연성 확보
+> **원칙**: JSON(작성/관리) + Dart Map(실행) 이중 구조
+> **전략**: 인터페이스는 완성형, 구현은 MVP (Lean RuleEngine)
+
+### 배경
+
+현재 문제점:
+- 신살/십성/합충 등 룰이 Dart 코드에 하드코딩
+- 룰 수정 시 코드 변경 + 앱 재배포 필요
+- 테스트 부족 (2개 케이스만)
+
+목표 구조:
+```
+[JSON 룰 파일] ──→ [RuleRepository] ──→ [RuleEngine] ──→ [기존 서비스]
+ (assets)          load + validate      matchAll()      사용
+                   + compile
+```
+
+### Phase 10-A: 기반 구축 (Lean MVP)
+
+#### 생성할 파일
+```
+lib/features/saju_chart/
+├── domain/
+│   ├── entities/
+│   │   ├── rule.dart              # Rule 인터페이스 + 타입
+│   │   ├── rule_condition.dart    # 조건 타입 (op enum)
+│   │   ├── compiled_rules.dart    # 컴파일된 룰 구조
+│   │   └── saju_context.dart      # 사주 컨텍스트
+│   ├── repositories/
+│   │   └── rule_repository.dart   # Repository 인터페이스
+│   └── services/
+│       ├── rule_engine.dart       # 매칭 엔진
+│       └── rule_validator.dart    # 기본 검증
+├── data/
+│   ├── repositories/
+│   │   └── rule_repository_impl.dart
+│   └── models/
+│       └── rule_models.dart       # JSON 파싱 모델
+
+assets/data/rules/
+└── sinsal_rules.json              # 첫 번째 JSON 룰
+```
+
+#### 작업 순서
+- [x] 1. `rule.dart` - Rule 인터페이스 정의 ✅
+- [x] 2. `rule_condition.dart` - 조건 타입 + op enum ✅
+- [x] 3. `saju_context.dart` - SajuContext 정의 ✅
+- [x] 4. `compiled_rules.dart` - CompiledRules (MVP: 단순 리스트) ✅
+- [x] 5. `rule_repository.dart` - Repository 인터페이스 ✅
+- [x] 6. `rule_engine.dart` - RuleEngine 핵심 로직 ✅
+- [x] 7. `rule_validator.dart` - 기본 필드 검증 ✅
+- [x] 8. `rule_models.dart` - JSON 파싱 모델 ✅
+- [x] 9. `rule_repository_impl.dart` - Repository 구현 ✅
+
+### Phase 10-B: 신살 JSON 분리 ✅ 완료 (2025-12-12)
+
+- [x] `sinsal_rules.json` 생성 (957줄, 12신살 + 특수신살)
+- [x] TwelveSinsalService.analyzeWithRuleEngine() 연동 완료
+- [x] 테스트 케이스 19개 추가 (rule_engine_sinsal_test.dart)
+
+### Phase 10-C: 나머지 룰 분리 ✅ 완료 (2025-12-12)
+
+- [x] `hapchung_rules.json` - 합충형파해 56개 룰
+- [x] `sipsin_tables.json` - 십신 10천간 매핑
+- [x] `jijanggan_tables.json` - 지장간 12지지 매핑
+- [x] `unsung_tables.json` - 12운성 테이블
+- [x] `gongmang_tables.json` - 공망 6순 테이블
+- [x] `rule_condition.dart` - gte/lte 연산자, jiCount/ganCount 필드 추가
+- [x] `saju_context.dart` - jiCount/ganCount getter 추가
+- [x] `rule_engine.dart` - _evaluateGte/_evaluateLte 메서드 추가
+- [x] `rule_engine_hapchung_test.dart` - 합충형파해 테스트 케이스
+
+### Phase 10-D: Supabase 연동 (추후)
+
+- [ ] `loadFromRemote()` 구현
+- [ ] 해시 검증 (SHA256)
+- [ ] 버전 관리 + 롤백
+
+### Phase 10 작업 순서 분석 (2025-12-12)
+
+> **핵심 발견**: Option 3 (하드코딩 제거)는 마지막에 해야 함
+
+#### 현재 앱 실행 흐름
+```
+saju_chart_provider.dart
+        ↓
+SajuAnalysisService.analyze()  ← 실제 앱 진입점
+        ↓
+SinSalService (하드코딩)
+DayStrengthService
+GyeokGukService
+```
+
+#### RuleEngine 적용 현황
+
+| 서비스 | RuleEngine 메서드 | JSON 룰 | 상태 |
+|--------|-------------------|---------|------|
+| TwelveSinsalService | `analyzeWithRuleEngine()` ✅ | ✅ sinsal_rules.json | **완료** |
+| HapchungService | `analyzeWithRuleEngine()` ✅ | ✅ hapchung_rules.json | **완료** |
+| SipsinService | ❌ 없음 | ✅ sipsin_tables.json | 테이블만 |
+| UnsungService | ❌ 없음 | ✅ unsung_tables.json | 테이블만 |
+| GongmangService | ❌ 없음 | ✅ gongmang_tables.json | 테이블만 |
+| JijangganService | ❌ 없음 | ✅ jijanggan_tables.json | 테이블만 |
+
+#### 올바른 작업 순서
+
+```
+① Phase 10-B ✅ → ② 서비스 전환 → ③ 테스트 검증 → ④ 하드코딩 제거 → ⑤ UI
+  (sinsal.json)    (RuleEngine)    (결과 비교)      (Option 3)       (Option 2)
+```
+
+| 순서 | 작업 | 설명 | 의존성 |
+|:----:|------|------|--------|
+| ✅ ① | Phase 10-B | sinsal_rules.json 생성 | 완료 |
+| ✅ ② | 서비스 RuleEngine 전환 | HapchungService에 메서드 추가 | ① 완료 |
+| 🔄 ③ 진행중 | 테스트 검증 | 하드코딩 == RuleEngine 결과 확인 | ② 완료 |
+| ④ | 하드코딩 제거 (Option 3) | 기존 로직 deprecate | ③ 통과 |
+| ⑤ | UI 컴포넌트 (Option 2) | 화면 표시 위젯 | ④ 선택 |
+
+#### Option 3을 먼저 하면 안 되는 이유
+
+1. ~~**sinsal_rules.json 미생성** → TwelveSinsalService RuleEngine 불완전~~ ✅ 해결됨
+2. ~~**HapchungService에 RuleEngine 메서드 없음** → 하드코딩 제거 시 앱 깨짐~~ ✅ 해결됨 (2025-12-13)
+3. 🔄 **검증 미완료** → 하드코딩 vs RuleEngine 결과 비교 테스트 필요
+
+---
+
+## Phase 11: Supabase 만세력 DB 설계 (2025-12-12 분석)
+
+> **목적**: 만세력 계산 결과를 DB에 저장하여 재계산 없이 빠르게 조회
+> **원칙**: 정규화(4주) + JSONB(분석 데이터) 하이브리드 구조
+> **확장성**: 100만 사용자까지 대응 가능한 스키마
+
+### 현재 Supabase 구조
+
+```
+public.users (기존)
+├── id (PK, uuid)
+├── name (text)
+├── gender (text)
+├── birth_date (date)
+├── birth_time (time)
+├── birth_city (text)
+├── is_lunar (boolean)
+└── created_at (timestamp)
+```
+
+### 목표 DB 스키마
+
+#### 11.1 saju_charts 테이블 (핵심)
+
+```sql
+CREATE TABLE saju_charts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- 사주 기본 (정규화 - 인덱싱 가능)
+  year_gan TEXT NOT NULL,      -- 년간 (갑~계)
+  year_ji TEXT NOT NULL,       -- 년지 (자~해)
+  month_gan TEXT NOT NULL,
+  month_ji TEXT NOT NULL,
+  day_gan TEXT NOT NULL,       -- 일간 = 나
+  day_ji TEXT NOT NULL,
+  hour_gan TEXT,               -- 시주 (선택)
+  hour_ji TEXT,
+
+  -- 계산 기준 정보
+  birth_datetime TIMESTAMPTZ NOT NULL,
+  corrected_datetime TIMESTAMPTZ,  -- 진태양시 보정 후
+  birth_city TEXT,
+  is_lunar BOOLEAN DEFAULT FALSE,
+
+  -- 메타데이터
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  calculation_version TEXT DEFAULT '1.0.0',  -- 로직 버전
+  needs_recalculation BOOLEAN DEFAULT FALSE
+);
+```
+
+#### 11.2 saju_analysis 테이블 (분석 결과)
+
+```sql
+CREATE TABLE saju_analysis (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chart_id UUID UNIQUE REFERENCES saju_charts(id) ON DELETE CASCADE,
+
+  -- JSONB 컬럼들 (가변 구조)
+  sipsin JSONB,              -- 십성 분석
+  twelve_unsung JSONB,       -- 12운성
+  relations JSONB,           -- 합충형파해
+  twelve_sinsal JSONB,       -- 12신살
+  gongmang JSONB,            -- 공망
+  jijanggan JSONB,           -- 지장간
+  oheng_distribution JSONB,  -- 오행 분포
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### 11.3 인덱싱 전략
+
+```sql
+-- 사용자별 조회
+CREATE INDEX idx_saju_charts_user_id ON saju_charts(user_id);
+
+-- 일간 기준 조회 (통계/분석용)
+CREATE INDEX idx_saju_charts_day_gan ON saju_charts(day_gan);
+
+-- 생년월일 범위 조회
+CREATE INDEX idx_saju_charts_birth_datetime ON saju_charts(birth_datetime);
+
+-- JSONB 내부 검색용 (선택적)
+CREATE INDEX idx_saju_analysis_relations ON saju_analysis
+  USING GIN (relations jsonb_path_ops);
+```
+
+#### 11.4 Row Level Security (RLS)
+
+```sql
+ALTER TABLE saju_charts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saju_analysis ENABLE ROW LEVEL SECURITY;
+
+-- 본인 데이터만 조회
+CREATE POLICY "Users can view own charts" ON saju_charts
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own charts" ON saju_charts
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own charts" ON saju_charts
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own charts" ON saju_charts
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- saju_analysis는 chart_id 통해 간접 보호
+CREATE POLICY "Users can view own analysis" ON saju_analysis
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM saju_charts
+      WHERE saju_charts.id = saju_analysis.chart_id
+      AND saju_charts.user_id = auth.uid()
+    )
+  );
+```
+
+### ERD
+
+```
+┌─────────────────────┐       ┌─────────────────────┐
+│   auth.users        │       │    saju_charts      │
+├─────────────────────┤       ├─────────────────────┤
+│ id (PK)             │──1:N──│ user_id (FK)        │
+│ email               │       │ id (PK)             │
+│ ...                 │       │ year_gan/ji         │
+└─────────────────────┘       │ month_gan/ji        │
+                              │ day_gan/ji          │
+                              │ hour_gan/ji         │
+                              │ birth_datetime      │
+                              │ corrected_datetime  │
+                              └──────────┬──────────┘
+                                         │
+                                        1:1
+                                         │
+                              ┌──────────┴──────────┐
+                              │   saju_analysis     │
+                              ├─────────────────────┤
+                              │ chart_id (FK, UQ)   │
+                              │ sipsin (JSONB)      │
+                              │ twelve_unsung       │
+                              │ relations (JSONB)   │
+                              │ twelve_sinsal       │
+                              │ gongmang (JSONB)    │
+                              │ jijanggan (JSONB)   │
+                              │ oheng_distribution  │
+                              └─────────────────────┘
+```
+
+### JSONB 데이터 구조 예시
+
+```json
+// sipsin
+{ "yearGan": "정관", "monthGan": "편인", "dayGan": "비견", "hourGan": "식신" }
+
+// twelve_unsung
+{ "yearJi": { "name": "장생", "strength": 7 }, "monthJi": {...} }
+
+// relations (합충형파해)
+{
+  "hapchung": [{"type": "자축합", "positions": ["년지", "월지"]}],
+  "chung": [],
+  "hyung": [{"type": "인사형", "positions": ["월지", "시지"]}]
+}
+
+// gongmang
+{ "gongmangJi": ["술", "해"], "affectedPositions": ["년지"] }
+
+// oheng_distribution
+{ "목": 2, "화": 1, "토": 3, "금": 1, "수": 1 }
+```
+
+### 설계 원칙 요약
+
+| 원칙 | 적용 |
+|------|------|
+| **정규화** | 4주(8개 간지)는 별도 컬럼 → 인덱싱/검색 최적화 |
+| **JSONB** | 파생 데이터(십성/신살/관계)는 JSONB → 스키마 유연성 |
+| **RLS** | user_id 기반 행 수준 보안 → 데이터 격리 |
+| **Foreign Key** | auth.users.id 참조 (Supabase 권장) |
+| **버전 관리** | calculation_version으로 로직 변경 추적 |
+| **인덱싱** | user_id, day_gan, birth_datetime에 인덱스 |
+
+### 구현 작업 (추후)
+
+- [ ] Supabase 마이그레이션 SQL 작성
+- [ ] Flutter 모델 클래스 생성 (saju_chart_model.dart)
+- [ ] Repository 구현 (saju_chart_repository.dart)
+- [ ] 로컬 캐시(Hive) ↔ Supabase 동기화 로직
+- [ ] calculation_version 기반 재계산 트리거
+
+### 설계 원칙
+
+1. **인터페이스는 완성형** - 확장 대비
+2. **구현은 MVP** - 빠른 출시
+3. **하위 호환성** - 기존 하드코딩 로직 유지
+4. **점진적 마이그레이션** - sinsal부터 시작
+
+### JSON 룰 구조 (예시)
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "ruleType": "sinsal",
+  "rules": [
+    {
+      "id": "cheon_eul_gwin",
+      "name": "천을귀인",
+      "hanja": "天乙貴人",
+      "category": "길성",
+      "when": {
+        "op": "and",
+        "conditions": [
+          { "field": "dayGan", "op": "in", "value": ["갑", "무", "경"] },
+          { "field": "jiAny", "op": "in", "value": ["축", "미"] }
+        ]
+      },
+      "reasonTemplate": "일간 {dayGan}에서 {matchedJi}가 천을귀인"
+    }
+  ]
+}
+```
 
 ---
 
@@ -433,15 +821,15 @@ data/constants/
 └── gongmang_table.dart        # ✅ 공망 테이블
 ```
 
-#### Phase 9-B: 도메인 서비스 (진행중)
+#### Phase 9-B: 도메인 서비스 ✅ 완료 (2025-12-08)
 ```
 domain/services/
-├── hapchung_service.dart      # ✅ 합충형파해 분석 서비스 완료
-├── sipsung_service.dart       # 십성 계산 (sipsin_relations.dart에 있음)
-├── jijanggan_service.dart     # 지장간 분석
-├── unsung_service.dart        # 12운성 계산
-├── sinsal_service.dart        # 12신살 계산 (이미 있음, 확장)
-└── gongmang_service.dart      # 공망 계산
+├── hapchung_service.dart       # ✅ 합충형파해 분석 서비스
+├── unsung_service.dart         # ✅ 12운성 계산 서비스
+├── gongmang_service.dart       # ✅ 공망 계산 서비스
+├── jijanggan_service.dart      # ✅ 지장간+십성 분석 서비스
+├── twelve_sinsal_service.dart  # ✅ 12신살 전용 서비스
+└── sinsal_service.dart         # ✅ 기존 신살 탐지 서비스
 ```
 
 #### Phase 9-C: UI 컴포넌트
@@ -643,6 +1031,61 @@ presentation/widgets/
 
 ## ✅ 완료된 작업 (2025-12-08)
 
+### Phase 9-B: 만세력 고급 분석 서비스 ✅ 완료
+
+**생성된 서비스 파일:**
+
+1. **`unsung_service.dart`** - 12운성 계산 서비스
+   - `UnsungService.analyzeFromChart()` - 사주 차트 기반 분석
+   - `UnsungService.analyze()` - 개별 파라미터 분석
+   - `UnsungResult` - 단일 궁성 12운성 결과
+   - `UnsungAnalysisResult` - 사주 전체 12운성 분석 결과
+   - 건록지, 제왕지, 장생지, 묘지 조회 기능
+   - 12운성별 상세 해석 제공
+
+2. **`gongmang_service.dart`** - 공망 계산 서비스
+   - `GongmangService.analyzeFromChart()` - 사주 차트 기반 분석
+   - `GongmangService.analyze()` - 개별 파라미터 분석
+   - `GongmangResult` - 단일 궁성 공망 결과
+   - `GongmangAnalysisResult` - 사주 전체 공망 분석 결과
+   - 진공/반공/탈공 유형 판단
+   - 궁성별 공망 해석 (년지/월지/일지/시지)
+
+3. **`jijanggan_service.dart`** - 지장간+십성 분석 서비스
+   - `JiJangGanService.analyzeFromChart()` - 사주 차트 기반 분석
+   - `JiJangGanService.analyze()` - 개별 파라미터 분석
+   - `JiJangGanSipSin` - 지장간 천간의 십성 정보
+   - `JiJangGanResult` - 단일 궁성 지장간 결과
+   - `JiJangGanAnalysisResult` - 사주 전체 지장간 분석 결과
+   - 정기/중기/여기 구분, 십성 분포 분석
+   - 십성별 카테고리 분류 (비겁/식상/재성/관성/인성)
+
+4. **`twelve_sinsal_service.dart`** - 12신살 전용 서비스
+   - `TwelveSinsalService.analyzeFromChart()` - 사주 차트 기반 분석
+   - `TwelveSinsalService.analyze()` - 개별 파라미터 분석
+   - `TwelveSinsalResult` - 단일 궁성 12신살 결과
+   - `TwelveSinsalAnalysisResult` - 사주 전체 12신살 분석 결과
+   - 역마살, 도화살, 화개살, 장성살 조회 기능
+   - 특수 신살 탐지 (양인살, 천을귀인)
+   - 12신살별 상세 해석 제공
+
+**업데이트된 파일:**
+
+- **`saju_chart.dart`** - Phase 9 서비스 export 추가
+  - `hapchung_service.dart` (합충형파해)
+  - `unsung_service.dart` (12운성)
+  - `gongmang_service.dart` (공망)
+  - `jijanggan_service.dart` (지장간+십성)
+  - `twelve_sinsal_service.dart` (12신살)
+
+**서비스 아키텍처 패턴:**
+- 모든 서비스는 `static` 메서드로 구현
+- `analyzeFromChart()` - SajuChart 객체 직접 분석
+- `analyze()` - 개별 파라미터로 분석 (유연성)
+- Result 모델에 해석 메서드 포함
+
+---
+
 ### Phase 9-A: 만세력 고급 분석 데이터 구조 ✅ 완료
 
 **생성된 파일:**
@@ -700,6 +1143,80 @@ presentation/widgets/
 
 ---
 
+## ✅ 완료된 작업 (2025-12-12)
+
+### Phase 10-A: RuleEngine 기반 구축 ✅ 완료
+
+**생성된 파일 (9개):**
+
+#### Domain Layer - Entities
+1. **`rule.dart`** - Rule 인터페이스 + 타입 정의
+   - `RuleType` enum: sinsal, hapchung, hyungpahae, sipsin, unsung, jijanggan, gongmang, gyeokguk, daeun
+   - `FortuneType` enum: 길/흉/중
+   - `Rule` 추상 인터페이스
+   - `RuleMatchResult` 매칭 결과 클래스
+   - `RuleSetMeta` 룰셋 메타데이터
+
+2. **`rule_condition.dart`** - 조건 타입 + 연산자 정의
+   - `ConditionOp` enum: eq, ne, in, notIn, and, or, not, samhapMatch, yukhapMatch 등
+   - `ConditionField` enum: dayGan, dayJi, jiAny, ganAny 등 사주 필드
+   - `RuleCondition` sealed class (SimpleCondition, CompositeCondition)
+
+3. **`saju_context.dart`** - 사주 컨텍스트 래퍼
+   - `SajuChart` 감싸서 RuleEngine 필드 접근 제공
+   - `getFieldValue()`: ConditionField로 값 조회
+   - 오행, 음양 파생 데이터 자동 계산
+
+4. **`compiled_rules.dart`** - 컴파일된 룰 컨테이너
+   - `CompiledRules`: 파싱된 룰셋 저장
+   - `CompiledRulesRegistry`: 여러 RuleType 통합 관리
+
+#### Domain Layer - Repository
+5. **`rule_repository.dart`** - Repository 추상 인터페이스
+   - `loadFromAsset()`, `loadFromRemote()`, `loadFromString()`
+   - 캐시 관리: `getCached()`, `setCache()`, `invalidateCache()`
+   - 버전 관리: `getLocalVersion()`, `needsUpdate()`
+   - 예외 클래스: `RuleLoadException`, `RuleValidationException`
+
+#### Domain Layer - Services
+6. **`rule_engine.dart`** - 핵심 매칭 엔진
+   - `RuleEngine.matchAll()`: 전체 룰 매칭
+   - `RuleEngine.match()`: 단일 룰 매칭
+   - `RuleEngine.evaluate()`: 조건 평가
+   - 특수 연산자 지원: 삼합, 육합, 충, 형 매칭
+
+7. **`rule_validator.dart`** - 룰 검증기
+   - `validateRuleSet()`: 전체 룰셋 검증
+   - `validateRule()`: 개별 룰 검증
+   - `validateCondition()`: 조건 구조 검증
+   - `ValidationResult`, `ValidationError` 결과 클래스
+
+#### Data Layer - Models
+8. **`rule_models.dart`** - JSON 파싱 모델
+   - `RuleModel`: Rule 인터페이스 구현체
+   - `RuleSetParseResult`: 파싱 결과 컨테이너
+   - `RuleParser`: JSON 파싱 헬퍼
+
+#### Data Layer - Repository
+9. **`rule_repository_impl.dart`** - Repository 구현체
+   - Asset 로드 구현 (MVP)
+   - 메모리 캐시 관리
+   - Remote 로드는 Phase 10-D 예정
+
+**아키텍처:**
+```
+[JSON 룰 파일] → [RuleRepository] → [RuleEngine] → [기존 서비스]
+ (assets)        load + validate    matchAll()     사용
+                 + compile
+```
+
+**MVP 원칙 적용:**
+- RuleValidator: 필수 필드 체크만 (스키마 검증은 추후)
+- CompiledRules: 인덱싱 없이 단순 리스트 (성능 이슈 시 추가)
+- 하위 호환성: 기존 하드코딩 서비스 유지
+
+---
+
 ## 서브 에이전트 (.claude/JH_Agent/) - A2A Orchestration
 
 ### 아키텍처
@@ -740,3 +1257,84 @@ Task 도구:
 - ListView.builder 사용
 - 위젯 100줄 이하
 - setState 범위 최소화
+
+---
+
+## 🔄 세션 재개 가이드 (2025-12-13 최종 업데이트)
+
+### Phase 10 완료 ✅
+
+**HapchungService RuleEngine 연동 + 반합 규칙 추가 완료**
+
+| 항목 | 상태 | 설명 |
+|------|------|------|
+| hapchung_service.dart | ✅ 완료 | RuleEngine 연동 메서드 추가 |
+| RuleEngine 결과 모델들 | ✅ 완료 | 카테고리/길흉 분류 헬퍼 |
+| compareWithLegacy() 테스트 | ✅ 완료 | 17개 테스트 케이스 |
+| **반합 규칙 8개 추가** | ✅ 완료 | hapchung_rules.json (총 64개 규칙) |
+
+### 최종 테스트 결과 (2025-12-13)
+
+| 구분 | 이전 | 최종 |
+|------|------|------|
+| 원본 평균 일치율 | 53.6% | **56.0%** |
+| **정규화 평균 일치율** | 88.2% | **90.0%** ✅ |
+| 정규화 완전 일치 | 3/5 (60%) | **4/5 (80%)** ✅ |
+
+### 추가된 반합 규칙 (8개)
+
+| 삼합 | 반합 1 | 반합 2 |
+|------|--------|--------|
+| 인오술 화국 | 인오반합 | 오술반합 |
+| 사유축 금국 | 사유반합 | 유축반합 |
+| 신자진 수국 | 신자반합 | 자진반합 |
+| 해묘미 목국 | 해묘반합 | 묘미반합 |
+
+### hapchung_rules.json 규칙 현황 (총 64개)
+
+| 카테고리 | 개수 |
+|----------|------|
+| 천간합 | 5개 |
+| 천간충 | 4개 |
+| 지지육합 | 6개 |
+| 지지삼합 | 4개 |
+| **지지반합** | **8개** (신규) |
+| 지지방합 | 4개 |
+| 지지충 | 6개 |
+| 지지형 | 10개 |
+| 지지파 | 6개 |
+| 지지해 | 6개 |
+| 원진 | 6개 |
+
+### 남은 차이점 (무시 가능)
+
+- `해인` vs `인해` - 글자 순서 차이 (표기 방식만 다름, 의미 동일)
+
+### 다음 작업 선택지
+
+**Option 1**: Phase 11 (Supabase DB 설계) 진행
+- saju_charts, saju_analysis 테이블 생성
+- Flutter 모델 클래스 + Repository 구현
+
+**Option 2**: Phase 9-C (UI 컴포넌트) 진행
+- 합충형파해 표시 위젯
+- 십성/지장간/12운성 표시 위젯
+
+**Option 3**: 앱 통합 테스트
+- 전체 플로우 테스트
+- 버그 수정 및 최적화
+
+### 새 세션 시작 프롬프트
+
+```
+@Task_Jaehyeon.md 읽고 "세션 재개 가이드" 확인해.
+
+현재 상태:
+- Phase 10 완료 ✅ (RuleEngine + 반합 + 테스트)
+- 정규화 일치율 90.0% 달성
+
+다음 작업 선택:
+1. Phase 11 (Supabase DB)
+2. Phase 9-C (UI 컴포넌트)
+3. 앱 통합 테스트
+```

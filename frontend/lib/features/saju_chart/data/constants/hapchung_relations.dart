@@ -391,7 +391,12 @@ String? getJijiChungPair(String ji) => jijiChungPairs[ji];
 enum HyungType {
   muEun('무은지형', '無恩之刑'), // 인사신 - 은혜 없는 형
   jiSe('지세지형', '持勢之刑'), // 축술미 - 권세 믿는 형
-  jaHyung('자형', '自刑'), // 진진, 오오, 유유, 해해
+  jaHyung('자형', '自刑'); // 진진, 오오, 유유, 해해
+
+  final String korean;
+  final String hanja;
+
+  const HyungType(this.korean, this.hanja);
 }
 
 /// 지지형 관계
