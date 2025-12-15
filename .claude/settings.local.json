@@ -41,9 +41,15 @@
       "Bash(git fetch:*)",
       "Bash(git ls-tree:*)",
       "Bash(flutter test:*)",
-      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat test test/hapchung_compare_legacy_test.dart --reporter=compact)"
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat test test/hapchung_compare_legacy_test.dart --reporter=compact)",
+      "Bash(claude mcp add:*)",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat pub get)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

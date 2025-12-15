@@ -8,6 +8,8 @@ import '../../domain/repositories/profile_repository.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/repositories/profile_repository_impl.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
+import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
+import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
 
 part 'profile_provider.g.dart';
 
@@ -329,6 +331,32 @@ class ProfileForm extends _$ProfileForm {
     ref.invalidate(activeProfileProvider);
     ref.invalidate(allProfilesProvider);
 
+    // 사주 분석 결과 자동 저장 (Supabase 연동)
+    // 프로필 저장 후 사주 분석을 계산하고 DB에 저장
+    await _saveAnalysisToDb(ref, profile);
+
     return profile;
+  }
+
+  /// 사주 분석 결과를 DB에 저장
+  Future<void> _saveAnalysisToDb(Ref ref, SajuProfile profile) async {
+    try {
+      // 사주 분석 Provider를 통해 분석 결과 가져오기
+      // 약간의 지연을 주어 프로필이 저장된 후 분석이 진행되도록 함
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // 분석 결과 Provider가 갱신되면 자동으로 분석 실행
+      final analysis = await ref.read(currentSajuAnalysisProvider.future);
+
+      if (analysis != null) {
+        // DB에 저장
+        final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
+        await dbNotifier.saveFromAnalysis(analysis);
+      }
+    } catch (e) {
+      // 분석 저장 실패는 무시 (프로필 저장은 이미 완료됨)
+      // ignore: avoid_print
+      print('[Profile] 사주 분석 저장 실패 (무시됨): $e');
+    }
   }
 }

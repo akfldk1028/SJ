@@ -4,6 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../domain/entities/pillar.dart';
 import '../providers/saju_chart_provider.dart';
 import 'pillar_display.dart';
+import 'saju_detail_tabs.dart';
 
 class SajuDetailSheet extends ConsumerWidget {
   const SajuDetailSheet({super.key});
@@ -147,6 +148,33 @@ class SajuDetailSheet extends ConsumerWidget {
                             _buildOhengBar(
                                 context, '수 (Water)', oheng.su, AppColors.water),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // 3. 상세 분석 버튼
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => const SajuDetailTabs(),
+                            );
+                          },
+                          icon: const Icon(Icons.analytics_outlined, size: 20),
+                          label: const Text('상세 분석 보기'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),

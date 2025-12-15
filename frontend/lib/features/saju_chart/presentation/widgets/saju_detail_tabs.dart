@@ -1,0 +1,644 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../domain/entities/saju_chart.dart';
+import '../../domain/services/hapchung_service.dart';
+import '../../domain/services/jijanggan_service.dart';
+import '../../domain/services/unsung_service.dart';
+import '../../domain/services/twelve_sinsal_service.dart';
+import '../../domain/services/gongmang_service.dart';
+import '../providers/saju_chart_provider.dart';
+import 'hapchung_tab.dart';
+import 'unsung_display.dart';
+import 'sinsal_display.dart';
+import 'gongmang_display.dart';
+import 'jijanggan_display.dart';
+import 'sipsung_display.dart';
+import 'pillar_display.dart';
+import '../../domain/entities/pillar.dart';
+import '../../data/constants/sipsin_relations.dart';
+
+/// 포스텔러 스타일 사주 상세 탭 컨테이너
+/// 여러 분석 탭(궁성, 합충, 십성, 운성, 신살, 공망)을 제공
+class SajuDetailTabs extends ConsumerStatefulWidget {
+  const SajuDetailTabs({super.key});
+
+  @override
+  ConsumerState<SajuDetailTabs> createState() => _SajuDetailTabsState();
+}
+
+class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // 탭 정의
+  static const _tabs = [
+    _TabItem(label: '만세력', icon: Icons.grid_view_rounded),
+    _TabItem(label: '합충', icon: Icons.sync_alt),
+    _TabItem(label: '십성', icon: Icons.stars_rounded),
+    _TabItem(label: '운성', icon: Icons.trending_up),
+    _TabItem(label: '신살', icon: Icons.flash_on),
+    _TabItem(label: '공망', icon: Icons.highlight_off),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
+
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 700),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.textMuted,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '사주 풀이 자세히 보기',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          // Tab Bar
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.border, width: 1),
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelColor: AppColors.accent,
+              unselectedLabelColor: AppColors.textMuted,
+              indicatorColor: AppColors.accent,
+              indicatorWeight: 2,
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+              tabs: _tabs
+                  .map((tab) => Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(tab.icon, size: 16),
+                            const SizedBox(width: 6),
+                            Text(tab.label),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+          // Tab Content
+          Expanded(
+            child: sajuAnalysisAsync.when(
+              data: (analysis) {
+                if (analysis == null) {
+                  return const Center(
+                    child: Text(
+                      '분석 정보를 불러올 수 없습니다.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  );
+                }
+
+                final chart = analysis.chart;
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // 1. 만세력 탭
+                    _ManseryeokTab(chart: chart, oheng: analysis.ohengDistribution),
+                    // 2. 합충 탭
+                    HapchungTab(chart: chart),
+                    // 3. 십성 탭
+                    _SipSungTab(chart: chart),
+                    // 4. 운성 탭
+                    _UnsungTab(chart: chart),
+                    // 5. 신살 탭
+                    _SinsalTab(chart: chart),
+                    // 6. 공망 탭
+                    _GongmangTab(chart: chart),
+                  ],
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (err, stack) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    '오류가 발생했습니다:\n$err',
+                    style: const TextStyle(color: AppColors.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 탭 아이템 정의
+class _TabItem {
+  final String label;
+  final IconData icon;
+
+  const _TabItem({required this.label, required this.icon});
+}
+
+/// 만세력 탭 (기존 SajuDetailSheet 내용)
+class _ManseryeokTab extends StatelessWidget {
+  final SajuChart chart;
+  final OhengDistribution oheng;
+
+  const _ManseryeokTab({
+    required this.chart,
+    required this.oheng,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 4주 표시
+          _buildSectionTitle(context, '사주팔자 (Four Pillars)'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                PillarDisplay(
+                  label: '시주',
+                  pillar: chart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
+                  size: 32,
+                ),
+                PillarDisplay(
+                  label: '일주 (나)',
+                  pillar: chart.dayPillar,
+                  size: 32,
+                ),
+                PillarDisplay(
+                  label: '월주',
+                  pillar: chart.monthPillar,
+                  size: 32,
+                ),
+                PillarDisplay(
+                  label: '년주',
+                  pillar: chart.yearPillar,
+                  size: 32,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 오행 분포
+          _buildSectionTitle(context, '오행 분포'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                _buildOhengBar(context, '목 (Wood)', oheng.mok, AppColors.wood),
+                _buildOhengBar(context, '화 (Fire)', oheng.hwa, AppColors.fire),
+                _buildOhengBar(context, '토 (Earth)', oheng.to, AppColors.earth),
+                _buildOhengBar(context, '금 (Metal)', oheng.geum, AppColors.metal),
+                _buildOhengBar(context, '수 (Water)', oheng.su, AppColors.water),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+    );
+  }
+
+  Widget _buildOhengBar(
+      BuildContext context, String label, int count, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                Container(
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                if (count > 0)
+                  Container(
+                    height: 12,
+                    width: count * 40.0,
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '$count개',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 십성 탭
+class _SipSungTab extends StatelessWidget {
+  final SajuChart chart;
+
+  const _SipSungTab({required this.chart});
+
+  @override
+  Widget build(BuildContext context) {
+    final jijangganResult = JiJangGanService.analyzeFromChart(chart);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(context, '천간 십성'),
+          const SizedBox(height: 12),
+          _buildCheonganSipSin(context),
+          const SizedBox(height: 24),
+
+          _buildSectionTitle(context, '지장간 십성'),
+          const SizedBox(height: 12),
+          JiJangGanRow(analysis: jijangganResult, compact: true),
+          const SizedBox(height: 24),
+
+          _buildSectionTitle(context, '십성 분포'),
+          const SizedBox(height: 12),
+          SipSungCategoryChart(
+            distribution: jijangganResult.categoryDistribution,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+    );
+  }
+
+  Widget _buildCheonganSipSin(BuildContext context) {
+    final dayGan = chart.dayPillar.gan;
+
+    // 각 천간의 십성 계산
+    final sipsinList = <SipSin?>[
+      chart.hourPillar != null
+          ? calculateSipSin(dayGan, chart.hourPillar!.gan)
+          : null,
+      calculateSipSin(dayGan, chart.dayPillar.gan), // 일간 = 비견
+      calculateSipSin(dayGan, chart.monthPillar.gan),
+      calculateSipSin(dayGan, chart.yearPillar.gan),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 60,
+            child: Text(
+              '천간',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 10,
+              ),
+            ),
+          ),
+          ...sipsinList.map((sipsin) => Expanded(
+                child: Center(
+                  child: sipsin != null
+                      ? SipSungDisplay(
+                          sipsin: sipsin,
+                          size: SipSungSize.medium,
+                        )
+                      : const Text(
+                          '-',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+/// 운성 탭
+class _UnsungTab extends StatelessWidget {
+  final SajuChart chart;
+
+  const _UnsungTab({required this.chart});
+
+  @override
+  Widget build(BuildContext context) {
+    final result = UnsungService.analyzeFromChart(chart);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 요약
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.analytics_outlined,
+                    color: AppColors.accent, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    result.summary,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 12운성 테이블
+          _buildSectionTitle(context, '각 궁성별 12운성'),
+          const SizedBox(height: 12),
+          UnsungTable(result: result),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+    );
+  }
+}
+
+/// 신살 탭
+class _SinsalTab extends StatelessWidget {
+  final SajuChart chart;
+
+  const _SinsalTab({required this.chart});
+
+  @override
+  Widget build(BuildContext context) {
+    final result = TwelveSinsalService.analyzeFromChart(chart);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 요약
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '주요 신살',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  result.summary,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 12신살 테이블
+          _buildSectionTitle(context, '각 궁성별 12신살'),
+          const SizedBox(height: 12),
+          SinsalTable(result: result),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+    );
+  }
+}
+
+/// 공망 탭
+class _GongmangTab extends StatelessWidget {
+  final SajuChart chart;
+
+  const _GongmangTab({required this.chart});
+
+  @override
+  Widget build(BuildContext context) {
+    final result = GongmangService.analyzeFromChart(chart);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 공망 지지 표시
+          _buildSectionTitle(context, '공망 지지'),
+          const SizedBox(height: 12),
+          GongmangJijiDisplay(gongmangJijis: result.gongmangJijis),
+          const SizedBox(height: 24),
+
+          // 요약
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: result.hasGongmang
+                  ? AppColors.warning.withOpacity(0.1)
+                  : AppColors.success.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: result.hasGongmang
+                    ? AppColors.warning.withOpacity(0.3)
+                    : AppColors.success.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  result.hasGongmang
+                      ? Icons.warning_amber_rounded
+                      : Icons.check_circle_outline,
+                  color: result.hasGongmang ? AppColors.warning : AppColors.success,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    result.summary,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 상세 결과
+          _buildSectionTitle(context, '각 궁성별 공망 분석'),
+          const SizedBox(height: 12),
+          GongmangTable(result: result),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+    );
+  }
+}
