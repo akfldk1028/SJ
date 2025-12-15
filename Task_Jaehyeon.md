@@ -23,7 +23,10 @@
 | Phase 8 (만세력) | ✅ **기본 완료** |
 | **Phase 9 (만세력 고급)** | ✅ **9-A/9-B 완료** |
 | **Phase 10 (RuleEngine)** | ✅ **완료** (10-A/10-B/10-C + 서비스 전환 + 반합 추가) |
-| **다음 작업** | Phase 11 (Supabase DB) 또는 UI 컴포넌트 |
+| **Supabase MCP** | ✅ **설정 완료** (2025-12-15) |
+| **Phase 11 (Supabase 연동)** | ✅ **완료** (모델/서비스/Repository/Provider + 자동 저장 연동) |
+| **Phase 9-C (UI 컴포넌트)** | ✅ **완료** (saju_detail_tabs, hapchung_tab, unsung_display, sinsal_display, gongmang_display) |
+| **다음 작업** | .env 실제 키 설정 → 테스트 → 앱 통합 테스트 |
 
 ---
 
@@ -345,6 +348,103 @@ lib/
 | 2025-12-13 | 인오반합, 오술반합, 사유반합, 유축반합, 신자반합, 자진반합, 해묘반합, 묘미반합 | ✅ 완료 |
 | 2025-12-13 | **정규화 일치율 90.0% 달성** (목표 70% 크게 초과) | ✅ 완료 |
 | 2025-12-13 | **Phase 10 완료** - RuleEngine 연동 + 테스트 검증 완료 | ✅ 완료 |
+| 2025-12-15 | **Supabase MCP 설정 완료** - Claude Code 연동 | ✅ 완료 |
+| 2025-12-15 | **Phase 11 시작**: Supabase Flutter 연동 | ✅ 진행중 |
+| 2025-12-15 | supabase_flutter ^2.12.0 의존성 추가 | ✅ 완료 |
+| 2025-12-15 | SajuAnalysisDbModel 생성 (Supabase 테이블 매핑) | ✅ 완료 |
+| 2025-12-15 | SupabaseService 초기화 코드 작성 | ✅ 완료 |
+| 2025-12-15 | SajuAnalysisRepository 구현 (CRUD + 오프라인 동기화) | ✅ 완료 |
+| 2025-12-15 | Riverpod Provider 생성 + build_runner | ✅ 완료 |
+| 2025-12-15 | **Phase 9-C 완료**: UI 컴포넌트 (saju_detail_tabs, hapchung_tab, unsung_display, sinsal_display, gongmang_display) | ✅ 완료 |
+| 2025-12-15 | **프로필 저장 시 분석 자동 저장 연동** 구현 | ✅ 완료 |
+| 2025-12-15 | `saveFromAnalysis()` 메서드 추가 - SajuAnalysis → DB 변환 | ✅ 완료 |
+| 2025-12-15 | profile_provider에 _saveAnalysisToDb() 연동 | ✅ 완료 |
+| 2025-12-15 | **Phase 11 완료** - 자동 저장 연동 포함 | ✅ 완료 |
+
+---
+
+## Phase 11: Supabase Flutter 연동 (2025-12-15~) ✅ 완료
+
+> **목적**: 사주 분석 결과를 Supabase DB에 저장하여 클라우드 동기화
+> **원칙**: 오프라인 우선 (Hive) + 온라인 동기화 (Supabase)
+> **상태**: ✅ 완료 (.env 실제 키 설정 후 테스트 필요)
+
+### 구현 완료 항목
+
+#### 1. 의존성 추가 ✅
+- `supabase_flutter: ^2.12.0` (pubspec.yaml)
+
+#### 2. 모델 클래스 ✅
+- `saju_analysis_db_model.dart` - Supabase 테이블 매핑
+  - `fromSupabase()`, `toSupabase()` - Supabase JSON 변환
+  - `fromHiveMap()`, `toHiveMap()` - Hive 캐시 변환
+  - `fromSajuChart()`, `toSajuChart()` - Entity 변환
+
+#### 3. 서비스 ✅
+- `supabase_service.dart` - Supabase 클라이언트 초기화
+  - `.env` 환경변수 로드 (SUPABASE_URL, SUPABASE_ANON_KEY)
+  - 오프라인 모드 지원 (설정 없어도 앱 실행 가능)
+  - 테이블별 쿼리 빌더 제공
+
+#### 4. Repository ✅
+- `saju_analysis_repository.dart` - CRUD + 동기화
+  - `save()` - 저장 (Hive 우선 + Supabase 동기화)
+  - `getById()`, `getByProfileId()` - 조회
+  - `delete()` - 삭제
+  - `syncPendingData()` - 오프라인 데이터 동기화
+  - `pullFromRemote()` - 원격 데이터 가져오기
+
+#### 5. Riverpod Provider ✅
+- `saju_analysis_repository_provider.dart`
+  - `sajuAnalysisRepositoryProvider` - Repository 인스턴스
+  - `currentSajuAnalysisDbProvider` - 현재 프로필 분석 데이터
+  - `sajuAnalysisSyncProvider` - 동기화 상태
+  - `allSajuAnalysesProvider` - 전체 분석 목록
+
+### 사용 방법
+
+#### .env 설정 (필수)
+```
+SUPABASE_URL=https://kfciluyxkomskyxjaeat.supabase.co
+SUPABASE_ANON_KEY=your-actual-anon-key
+```
+
+#### 코드에서 사용
+```dart
+// 사주 분석 결과 저장
+final notifier = ref.read(currentSajuAnalysisDbProvider.notifier);
+await notifier.saveAnalysis(
+  chart: chart,
+  ohengDistribution: {...},
+  dayStrength: {...},
+);
+
+// 동기화 수행
+final syncNotifier = ref.read(sajuAnalysisSyncProvider.notifier);
+final result = await syncNotifier.sync();
+print('동기화 결과: $result');
+```
+
+#### 6. 프로필 저장 시 자동 분석 저장 ✅ (2025-12-15 추가)
+- `saju_analysis_repository_provider.dart`
+  - `saveFromAnalysis()` 메서드 추가
+  - SajuAnalysis Entity → SajuAnalysisDbModel 변환
+  - 오행분포/일간강약/용신/격국/십신/지장간 정보 포함
+- `profile_provider.dart`
+  - `saveProfile()` 메서드에서 `_saveAnalysisToDb()` 호출
+  - 프로필 저장 완료 후 사주 분석 결과 자동 저장
+
+#### 사용 흐름
+```
+프로필 저장 → 프로필 목록 갱신 → 사주 분석 계산 → DB 자동 저장 (Hive + Supabase)
+```
+
+### 남은 작업 (선택)
+
+- [ ] .env에 실제 Supabase 키 설정
+- [x] 프로필 저장 시 자동으로 분석 결과 저장 연동 ✅
+- [ ] 동기화 UI 컴포넌트 (설정 화면)
+- [ ] 실시간 구독 (Realtime) 추가 (선택)
 
 ---
 
@@ -475,6 +575,108 @@ GyeokGukService
 1. ~~**sinsal_rules.json 미생성** → TwelveSinsalService RuleEngine 불완전~~ ✅ 해결됨
 2. ~~**HapchungService에 RuleEngine 메서드 없음** → 하드코딩 제거 시 앱 깨짐~~ ✅ 해결됨 (2025-12-13)
 3. 🔄 **검증 미완료** → 하드코딩 vs RuleEngine 결과 비교 테스트 필요
+
+---
+
+## Supabase MCP 활용 가이드
+
+> **목적**: Claude Code에서 Supabase MCP를 활용하여 DB 작업 자동화
+> **설정 완료**: 2025-12-15
+
+### MCP 서버 정보
+
+| 항목 | 값 |
+|------|-----|
+| 서버 URL | `https://mcp.supabase.com/mcp` |
+| Project Ref | `kfciluyxkomskyxjaeat` |
+| 설정 파일 | `E:\SJ\.mcp.json` |
+| Scope | Project (팀 공유) |
+
+### 활성화된 기능 (Features)
+
+```
+docs, account, database, development, functions, branching, storage, debugging
+```
+
+| Feature | 용도 |
+|---------|------|
+| **database** | SQL 실행, 마이그레이션, 스키마 관리 |
+| **storage** | 파일 업로드/다운로드, 버킷 관리 |
+| **functions** | Edge Functions 배포/관리 |
+| **docs** | Supabase 공식 문서 조회 |
+| **account** | 프로젝트/조직 정보 조회 |
+| **development** | 개발 환경 설정 |
+| **branching** | DB 브랜칭 (Preview) |
+| **debugging** | 로그/에러 조회 |
+
+### 주요 MCP 도구
+
+#### Database 도구
+| 도구 | 설명 | 용도 |
+|------|------|------|
+| `execute_sql` | Raw SQL 실행 | 일반 쿼리 (SELECT, INSERT 등) |
+| `apply_migration` | DDL 마이그레이션 | 스키마 변경 (CREATE TABLE 등) |
+
+#### Functions 도구
+| 도구 | 설명 |
+|------|------|
+| `deploy_edge_function` | Edge Function 배포/업데이트 |
+
+### Claude Code에서 활용 예시
+
+**1. 테이블 생성 (마이그레이션)**
+```
+"saju_charts 테이블 생성해줘"
+→ apply_migration 도구 자동 사용
+```
+
+**2. 데이터 조회**
+```
+"users 테이블에서 최근 10명 조회해줘"
+→ execute_sql 도구 자동 사용
+```
+
+**3. RLS 정책 설정**
+```
+"saju_charts에 RLS 정책 추가해줘"
+→ apply_migration 도구 자동 사용
+```
+
+### URL 파라미터 옵션
+
+```
+# 특정 프로젝트만 접근
+?project_ref=kfciluyxkomskyxjaeat
+
+# 읽기 전용 모드 (안전)
+?read_only=true
+
+# 특정 기능만 활성화
+?features=database,docs
+```
+
+### 현재 설정 (`.mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=kfciluyxkomskyxjaeat&features=docs,account,database,development,functions,branching,storage,debugging"
+    }
+  }
+}
+```
+
+### Phase 11 연동 계획
+
+| 작업 | MCP 도구 | 상태 |
+|------|----------|------|
+| saju_charts 테이블 생성 | `apply_migration` | ⏳ 대기 |
+| saju_analysis 테이블 생성 | `apply_migration` | ⏳ 대기 |
+| 인덱스 생성 | `apply_migration` | ⏳ 대기 |
+| RLS 정책 설정 | `apply_migration` | ⏳ 대기 |
+| 데이터 조회 테스트 | `execute_sql` | ⏳ 대기 |
 
 ---
 
@@ -1312,17 +1514,17 @@ Task 도구:
 
 ### 다음 작업 선택지
 
-**Option 1**: Phase 11 (Supabase DB 설계) 진행
-- saju_charts, saju_analysis 테이블 생성
-- Flutter 모델 클래스 + Repository 구현
+**Option 1**: .env 실제 키 설정 + 테스트 ⏳
+- `.env`에 실제 Supabase URL/Key 설정
+- 프로필 저장 → 분석 저장 → Supabase 확인
 
-**Option 2**: Phase 9-C (UI 컴포넌트) 진행
-- 합충형파해 표시 위젯
-- 십성/지장간/12운성 표시 위젯
-
-**Option 3**: 앱 통합 테스트
+**Option 2**: 앱 통합 테스트
 - 전체 플로우 테스트
 - 버그 수정 및 최적화
+
+**Option 3**: 동기화 UI 컴포넌트
+- 설정 화면에 동기화 상태 표시
+- 수동 동기화 버튼 추가
 
 ### 새 세션 시작 프롬프트
 
@@ -1330,11 +1532,11 @@ Task 도구:
 @Task_Jaehyeon.md 읽고 "세션 재개 가이드" 확인해.
 
 현재 상태:
-- Phase 10 완료 ✅ (RuleEngine + 반합 + 테스트)
-- 정규화 일치율 90.0% 달성
+- Phase 9-C (UI 컴포넌트) ✅ 완료
+- Phase 11 (Supabase 연동) ✅ 완료 (자동 저장 연동 포함)
 
-다음 작업 선택:
-1. Phase 11 (Supabase DB)
-2. Phase 9-C (UI 컴포넌트)
-3. 앱 통합 테스트
+다음 작업:
+1. .env 실제 키 설정 + 테스트
+2. 앱 통합 테스트
+3. 동기화 UI 컴포넌트 (선택)
 ```

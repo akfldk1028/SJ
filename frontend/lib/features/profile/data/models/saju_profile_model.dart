@@ -124,4 +124,52 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       memo: map['memo'] as String?,
     );
   }
+
+  /// Supabase 테이블에 저장할 Map으로 변환
+  ///
+  /// saju_profiles 테이블 스키마에 맞춤
+  /// [userId]는 Supabase auth.uid()
+  Map<String, dynamic> toSupabaseMap(String userId) {
+    return {
+      'id': id,
+      'user_id': userId,
+      'display_name': displayName,
+      'relation_type': relationType,
+      'memo': memo,
+      'birth_date': birthDate.toIso8601String().split('T')[0], // DATE 형식
+      'birth_time_minutes': birthTimeMinutes,
+      'birth_time_unknown': birthTimeUnknown,
+      'is_lunar': isLunar,
+      'is_leap_month': isLeapMonth,
+      'gender': gender,
+      'birth_city': birthCity,
+      'time_correction': timeCorrection,
+      'use_ya_jasi': useYaJasi,
+      'is_primary': isActive,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  /// Supabase 응답에서 생성
+  static SajuProfileModel fromSupabaseMap(Map<String, dynamic> map) {
+    return SajuProfileModel(
+      id: map['id'] as String,
+      displayName: map['display_name'] as String,
+      gender: map['gender'] as String,
+      birthDate: DateTime.parse(map['birth_date'] as String),
+      isLunar: map['is_lunar'] as bool? ?? false,
+      isLeapMonth: map['is_leap_month'] as bool? ?? false,
+      birthTimeMinutes: map['birth_time_minutes'] as int?,
+      birthTimeUnknown: map['birth_time_unknown'] as bool? ?? false,
+      useYaJasi: map['use_ya_jasi'] as bool? ?? true,
+      birthCity: map['birth_city'] as String,
+      timeCorrection: map['time_correction'] as int? ?? 0,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isActive: map['is_primary'] as bool? ?? false,
+      relationType: map['relation_type'] as String? ?? 'me',
+      memo: map['memo'] as String?,
+    );
+  }
 }

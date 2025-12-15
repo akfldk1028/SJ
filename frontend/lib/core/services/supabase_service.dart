@@ -1,60 +1,122 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Supabase 클라이언트 싱글톤 서비스
+/// Supabase 서비스
 ///
-/// 프로덕션 레벨 세션 관리:
-/// - localStorage에 세션 자동 저장 (supabase_flutter 기본 동작)
-/// - 앱 재시작 시 기존 세션 자동 복원
-/// - 세션 만료 시 자동 갱신
+/// 앱 전역에서 Supabase 클라이언트에 접근하기 위한 서비스 클래스
+/// main.dart에서 초기화 후 사용
 class SupabaseService {
   static SupabaseClient? _client;
 
   /// Supabase 초기화
   ///
-  /// authFlowType: pkce (Proof Key for Code Exchange) - 보안 강화
-  /// persistSession: true - 세션을 localStorage에 저장
+  /// main.dart에서 앱 시작 시 호출
+  /// .env 파일에서 SUPABASE_URL, SUPABASE_ANON_KEY 로드
   static Future<void> initialize() async {
     final url = dotenv.env['SUPABASE_URL'];
     final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
 
-    if (url == null || anonKey == null) {
-      throw Exception(
-        'SUPABASE_URL 또는 SUPABASE_ANON_KEY가 .env 파일에 없습니다.',
+    // 개발 환경에서 placeholder 값 체크
+    if (url == null ||
+        url.isEmpty ||
+        url == 'https://your-project.supabase.co') {
+      _logWarning('SUPABASE_URL not configured. Using offline mode.');
+      return;
+    }
+
+    if (anonKey == null || anonKey.isEmpty || anonKey == 'your-anon-key') {
+      _logWarning('SUPABASE_ANON_KEY not configured. Using offline mode.');
+      return;
+    }
+
+    try {
+      await Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+        debug: false, // 프로덕션에서는 false
       );
-    }
-
-    await Supabase.initialize(
-      url: url,
-      anonKey: anonKey,
-      debug: kDebugMode, // 디버그 모드에서만 로그 출력
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce, // 보안 강화된 OAuth 흐름
-      ),
-    );
-
-    _client = Supabase.instance.client;
-
-    if (kDebugMode) {
-      final session = _client?.auth.currentSession;
-      if (session != null) {
-        print('[SupabaseService] 기존 세션 복원됨: ${session.user.id}');
-        print('[SupabaseService] 익명 사용자: ${session.user.isAnonymous}');
-      } else {
-        print('[SupabaseService] 저장된 세션 없음 - 새 세션 필요');
-      }
+      _client = Supabase.instance.client;
+      _logInfo('Supabase initialized successfully');
+    } catch (e) {
+      _logWarning('Failed to initialize Supabase: $e. Using offline mode.');
     }
   }
 
-  /// Supabase 클라이언트 접근
-  static SupabaseClient get client {
+  /// Supabase 클라이언트
+  ///
+  /// null이면 오프라인 모드
+  static SupabaseClient? get client => _client;
+
+  /// Supabase 연결 여부
+  static bool get isConnected => _client != null;
+
+  /// 현재 인증된 사용자
+  static User? get currentUser => _client?.auth.currentUser;
+
+  /// 로그인 여부
+  static bool get isLoggedIn => currentUser != null;
+
+  /// 익명 사용자 여부
+  static bool get isAnonymous => currentUser?.isAnonymous ?? false;
+
+  /// 익명 로그인
+  ///
+  /// 로그인되지 않은 경우 익명 사용자로 자동 로그인
+  /// 이미 로그인된 경우 아무 작업 안함
+  static Future<User?> ensureAuthenticated() async {
     if (_client == null) {
-      throw Exception('Supabase가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+      _logWarning('Supabase not initialized. Cannot authenticate.');
+      return null;
     }
-    return _client!;
+
+    // 이미 로그인된 경우
+    if (currentUser != null) {
+      _logInfo('User already authenticated: ${currentUser!.id}');
+      return currentUser;
+    }
+
+    // 익명 로그인 시도
+    try {
+      final response = await _client!.auth.signInAnonymously();
+      _logInfo('Anonymous sign-in successful: ${response.user?.id}');
+      return response.user;
+    } catch (e) {
+      _logWarning('Anonymous sign-in failed: $e');
+      return null;
+    }
   }
 
-  /// Auth 클라이언트 접근
-  static GoTrueClient get auth => client.auth;
+  /// 현재 사용자 ID (없으면 null)
+  static String? get currentUserId => currentUser?.id;
+
+  /// saju_analyses 테이블 쿼리 빌더
+  static SupabaseQueryBuilder? get sajuAnalysesTable {
+    return _client?.from('saju_analyses');
+  }
+
+  /// saju_profiles 테이블 쿼리 빌더
+  static SupabaseQueryBuilder? get sajuProfilesTable {
+    return _client?.from('saju_profiles');
+  }
+
+  /// chat_sessions 테이블 쿼리 빌더
+  static SupabaseQueryBuilder? get chatSessionsTable {
+    return _client?.from('chat_sessions');
+  }
+
+  /// chat_messages 테이블 쿼리 빌더
+  static SupabaseQueryBuilder? get chatMessagesTable {
+    return _client?.from('chat_messages');
+  }
+
+  // 간단한 로깅 (실제로는 logger 패키지 사용 권장)
+  static void _logInfo(String message) {
+    // ignore: avoid_print
+    print('[Supabase] $message');
+  }
+
+  static void _logWarning(String message) {
+    // ignore: avoid_print
+    print('[Supabase] WARNING: $message');
+  }
 }
