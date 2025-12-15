@@ -342,8 +342,7 @@ class ProfileForm extends _$ProfileForm {
   Future<void> _saveAnalysisToDb(Ref ref, SajuProfile profile) async {
     try {
       // 사주 분석 Provider를 통해 분석 결과 가져오기
-      // 약간의 지연을 주어 프로필이 저장된 후 분석이 진행되도록 함
-      await Future.delayed(const Duration(milliseconds: 100));
+      // 프로필 저장이 await로 완료된 후 호출되므로 추가 지연 불필요
 
       // 분석 결과 Provider가 갱신되면 자동으로 분석 실행
       final analysis = await ref.read(currentSajuAnalysisProvider.future);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/entities/saju_chart.dart';
+import '../../domain/entities/saju_analysis.dart';
 import '../../domain/services/hapchung_service.dart';
 import '../../domain/services/jijanggan_service.dart';
 import '../../domain/services/unsung_service.dart';
@@ -15,6 +16,7 @@ import 'gongmang_display.dart';
 import 'jijanggan_display.dart';
 import 'sipsung_display.dart';
 import 'pillar_display.dart';
+import 'possteller_style_table.dart';
 import '../../domain/entities/pillar.dart';
 import '../../data/constants/sipsin_relations.dart';
 
@@ -197,7 +199,7 @@ class _TabItem {
   const _TabItem({required this.label, required this.icon});
 }
 
-/// 만세력 탭 (기존 SajuDetailSheet 내용)
+/// 만세력 탭 (포스텔러 스타일 테이블 포함)
 class _ManseryeokTab extends StatelessWidget {
   final SajuChart chart;
   final OhengDistribution oheng;
@@ -214,7 +216,13 @@ class _ManseryeokTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 4주 표시
+          // 포스텔러 스타일 통합 테이블
+          _buildSectionTitle(context, '사주 팔자 분석표'),
+          const SizedBox(height: 12),
+          PosstellerStyleTable(chart: chart),
+          const SizedBox(height: 24),
+
+          // 기존 4주 카드 표시
           _buildSectionTitle(context, '사주팔자 (Four Pillars)'),
           const SizedBox(height: 12),
           Container(
@@ -264,11 +272,11 @@ class _ManseryeokTab extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildOhengBar(context, '목 (Wood)', oheng.mok, AppColors.wood),
-                _buildOhengBar(context, '화 (Fire)', oheng.hwa, AppColors.fire),
-                _buildOhengBar(context, '토 (Earth)', oheng.to, AppColors.earth),
-                _buildOhengBar(context, '금 (Metal)', oheng.geum, AppColors.metal),
-                _buildOhengBar(context, '수 (Water)', oheng.su, AppColors.water),
+                _buildOhengBar(context, '목(木) Wood', oheng.mok, AppColors.wood),
+                _buildOhengBar(context, '화(火) Fire', oheng.hwa, AppColors.fire),
+                _buildOhengBar(context, '토(土) Earth', oheng.to, AppColors.earth),
+                _buildOhengBar(context, '금(金) Metal', oheng.geum, AppColors.metal),
+                _buildOhengBar(context, '수(水) Water', oheng.su, AppColors.water),
               ],
             ),
           ),
@@ -294,10 +302,13 @@ class _ManseryeokTab extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 80,
+            width: 90,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
           Expanded(

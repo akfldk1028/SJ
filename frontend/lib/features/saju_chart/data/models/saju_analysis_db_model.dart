@@ -1,5 +1,6 @@
 import '../../domain/entities/pillar.dart';
 import '../../domain/entities/saju_chart.dart';
+import '../constants/cheongan_jiji.dart';
 
 /// Supabase saju_analyses 테이블과 매핑되는 DB 모델
 ///
@@ -17,6 +18,11 @@ import '../../domain/entities/saju_chart.dart';
 /// - gyeokguk: JSONB (격국)
 /// - sipsin_info: JSONB (십신 정보)
 /// - jijanggan_info: JSONB (지장간 정보)
+/// - sinsal_list: JSONB (신살 목록)
+/// - daeun: JSONB (대운 정보)
+/// - current_seun: JSONB (현재 세운)
+/// - twelve_unsung: JSONB (12운성 - 년/월/일/시주별)
+/// - twelve_sinsal: JSONB (12신살 - 년/월/일/시주별)
 class SajuAnalysisDbModel {
   final String id;
   final String profileId;
@@ -35,6 +41,11 @@ class SajuAnalysisDbModel {
   final Map<String, dynamic>? gyeokguk;
   final Map<String, dynamic>? sipsinInfo;
   final Map<String, dynamic>? jijangganInfo;
+  final List<Map<String, dynamic>>? sinsalList;
+  final Map<String, dynamic>? daeun;
+  final Map<String, dynamic>? currentSeun;
+  final List<Map<String, dynamic>>? twelveUnsung;
+  final List<Map<String, dynamic>>? twelveSinsal;
 
   const SajuAnalysisDbModel({
     required this.id,
@@ -54,6 +65,11 @@ class SajuAnalysisDbModel {
     this.gyeokguk,
     this.sipsinInfo,
     this.jijangganInfo,
+    this.sinsalList,
+    this.daeun,
+    this.currentSeun,
+    this.twelveUnsung,
+    this.twelveSinsal,
   });
 
   /// Supabase JSON -> Model
@@ -76,22 +92,38 @@ class SajuAnalysisDbModel {
       gyeokguk: json['gyeokguk'] as Map<String, dynamic>?,
       sipsinInfo: json['sipsin_info'] as Map<String, dynamic>?,
       jijangganInfo: json['jijanggan_info'] as Map<String, dynamic>?,
+      sinsalList: (json['sinsal_list'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      daeun: json['daeun'] as Map<String, dynamic>?,
+      currentSeun: json['current_seun'] as Map<String, dynamic>?,
+      twelveUnsung: (json['twelve_unsung'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      twelveSinsal: (json['twelve_sinsal'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
     );
   }
 
   /// Model -> Supabase JSON (insert/update용)
+  /// 모든 천간/지지 필드를 한글(한자) 형식으로 변환하여 저장
   Map<String, dynamic> toSupabase() {
     return {
       'id': id,
       'profile_id': profileId,
-      'year_gan': yearGan,
-      'year_ji': yearJi,
-      'month_gan': monthGan,
-      'month_ji': monthJi,
-      'day_gan': dayGan,
-      'day_ji': dayJi,
-      'hour_gan': hourGan,
-      'hour_ji': hourJi,
+      'year_gan': _formatWithHanja(yearGan, isCheongan: true),
+      'year_ji': _formatWithHanja(yearJi, isCheongan: false),
+      'month_gan': _formatWithHanja(monthGan, isCheongan: true),
+      'month_ji': _formatWithHanja(monthJi, isCheongan: false),
+      'day_gan': _formatWithHanja(dayGan, isCheongan: true),
+      'day_ji': _formatWithHanja(dayJi, isCheongan: false),
+      'hour_gan': hourGan != null
+          ? _formatWithHanja(hourGan!, isCheongan: true)
+          : null,
+      'hour_ji': hourJi != null
+          ? _formatWithHanja(hourJi!, isCheongan: false)
+          : null,
       'corrected_datetime': correctedDatetime.toIso8601String(),
       'oheng_distribution': ohengDistribution,
       'day_strength': dayStrength,
@@ -99,7 +131,36 @@ class SajuAnalysisDbModel {
       'gyeokguk': gyeokguk,
       'sipsin_info': sipsinInfo,
       'jijanggan_info': jijangganInfo,
+      'sinsal_list': sinsalList,
+      'daeun': daeun,
+      'current_seun': currentSeun,
+      'twelve_unsung': twelveUnsung,
+      'twelve_sinsal': twelveSinsal,
     };
+  }
+
+  /// 한글을 한글(한자) 형식으로 변환
+  /// 예: "갑" → "갑(甲)", "자" → "자(子)"
+  static String _formatWithHanja(String hangul, {required bool isCheongan}) {
+    // 이미 한자가 포함되어 있으면 그대로 반환
+    if (hangul.contains('(') && hangul.contains(')')) {
+      return hangul;
+    }
+
+    final hanja = isCheongan ? cheonganHanja[hangul] : jijiHanja[hangul];
+    if (hanja != null) {
+      return '$hangul($hanja)';
+    }
+    return hangul;
+  }
+
+  /// 한글(한자) 형식에서 한글만 추출
+  /// 예: "갑(甲)" → "갑", "자(子)" → "자"
+  static String _extractHangul(String formatted) {
+    if (formatted.contains('(')) {
+      return formatted.substring(0, formatted.indexOf('('));
+    }
+    return formatted;
   }
 
   /// SajuChart Entity -> DB Model
@@ -114,18 +175,23 @@ class SajuAnalysisDbModel {
     Map<String, dynamic>? gyeokguk,
     Map<String, dynamic>? sipsinInfo,
     Map<String, dynamic>? jijangganInfo,
+    List<Map<String, dynamic>>? sinsalList,
+    Map<String, dynamic>? daeun,
+    Map<String, dynamic>? currentSeun,
+    List<Map<String, dynamic>>? twelveUnsung,
+    List<Map<String, dynamic>>? twelveSinsal,
   }) {
     return SajuAnalysisDbModel(
       id: id,
       profileId: profileId,
-      yearGan: chart.yearPillar.cheongan,
-      yearJi: chart.yearPillar.jiji,
-      monthGan: chart.monthPillar.cheongan,
-      monthJi: chart.monthPillar.jiji,
-      dayGan: chart.dayPillar.cheongan,
-      dayJi: chart.dayPillar.jiji,
-      hourGan: chart.hourPillar?.cheongan,
-      hourJi: chart.hourPillar?.jiji,
+      yearGan: chart.yearPillar.gan,
+      yearJi: chart.yearPillar.ji,
+      monthGan: chart.monthPillar.gan,
+      monthJi: chart.monthPillar.ji,
+      dayGan: chart.dayPillar.gan,
+      dayJi: chart.dayPillar.ji,
+      hourGan: chart.hourPillar?.gan,
+      hourJi: chart.hourPillar?.ji,
       correctedDatetime: chart.correctedDateTime,
       ohengDistribution: ohengDistribution,
       dayStrength: dayStrength,
@@ -133,22 +199,40 @@ class SajuAnalysisDbModel {
       gyeokguk: gyeokguk,
       sipsinInfo: sipsinInfo,
       jijangganInfo: jijangganInfo,
+      sinsalList: sinsalList,
+      daeun: daeun,
+      currentSeun: currentSeun,
+      twelveUnsung: twelveUnsung,
+      twelveSinsal: twelveSinsal,
     );
   }
 
   /// DB Model -> SajuChart Entity
   /// 기본 사주 정보만 변환 (분석 데이터는 별도 처리)
+  /// 한글(한자) 형식의 데이터에서 한글만 추출하여 Pillar 생성
   SajuChart toSajuChart({
     required DateTime birthDateTime,
     required String birthCity,
     required bool isLunarCalendar,
   }) {
     return SajuChart(
-      yearPillar: Pillar(cheongan: yearGan, jiji: yearJi),
-      monthPillar: Pillar(cheongan: monthGan, jiji: monthJi),
-      dayPillar: Pillar(cheongan: dayGan, jiji: dayJi),
+      yearPillar: Pillar(
+        gan: _extractHangul(yearGan),
+        ji: _extractHangul(yearJi),
+      ),
+      monthPillar: Pillar(
+        gan: _extractHangul(monthGan),
+        ji: _extractHangul(monthJi),
+      ),
+      dayPillar: Pillar(
+        gan: _extractHangul(dayGan),
+        ji: _extractHangul(dayJi),
+      ),
       hourPillar: (hourGan != null && hourJi != null)
-          ? Pillar(cheongan: hourGan!, jiji: hourJi!)
+          ? Pillar(
+              gan: _extractHangul(hourGan!),
+              ji: _extractHangul(hourJi!),
+            )
           : null,
       birthDateTime: birthDateTime,
       correctedDateTime: correctedDatetime,
@@ -177,6 +261,11 @@ class SajuAnalysisDbModel {
       'gyeokguk': gyeokguk,
       'sipsinInfo': sipsinInfo,
       'jijangganInfo': jijangganInfo,
+      'sinsalList': sinsalList,
+      'daeun': daeun,
+      'currentSeun': currentSeun,
+      'twelveUnsung': twelveUnsung,
+      'twelveSinsal': twelveSinsal,
       'syncedAt': DateTime.now().millisecondsSinceEpoch,
     };
   }
@@ -203,6 +292,11 @@ class SajuAnalysisDbModel {
       gyeokguk: _castMap(map['gyeokguk']),
       sipsinInfo: _castMap(map['sipsinInfo']),
       jijangganInfo: _castMap(map['jijangganInfo']),
+      sinsalList: _castList(map['sinsalList']),
+      daeun: _castMap(map['daeun']),
+      currentSeun: _castMap(map['currentSeun']),
+      twelveUnsung: _castList(map['twelveUnsung']),
+      twelveSinsal: _castList(map['twelveSinsal']),
     );
   }
 
@@ -212,6 +306,17 @@ class SajuAnalysisDbModel {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
       return Map<String, dynamic>.from(value);
+    }
+    return null;
+  }
+
+  /// dynamic List -> List<Map<String, dynamic>> 안전 변환
+  static List<Map<String, dynamic>>? _castList(dynamic value) {
+    if (value == null) return null;
+    if (value is List) {
+      return value
+          .map((e) => e is Map ? Map<String, dynamic>.from(e) : <String, dynamic>{})
+          .toList();
     }
     return null;
   }
@@ -235,6 +340,11 @@ class SajuAnalysisDbModel {
     Map<String, dynamic>? gyeokguk,
     Map<String, dynamic>? sipsinInfo,
     Map<String, dynamic>? jijangganInfo,
+    List<Map<String, dynamic>>? sinsalList,
+    Map<String, dynamic>? daeun,
+    Map<String, dynamic>? currentSeun,
+    List<Map<String, dynamic>>? twelveUnsung,
+    List<Map<String, dynamic>>? twelveSinsal,
   }) {
     return SajuAnalysisDbModel(
       id: id ?? this.id,
@@ -254,6 +364,11 @@ class SajuAnalysisDbModel {
       gyeokguk: gyeokguk ?? this.gyeokguk,
       sipsinInfo: sipsinInfo ?? this.sipsinInfo,
       jijangganInfo: jijangganInfo ?? this.jijangganInfo,
+      sinsalList: sinsalList ?? this.sinsalList,
+      daeun: daeun ?? this.daeun,
+      currentSeun: currentSeun ?? this.currentSeun,
+      twelveUnsung: twelveUnsung ?? this.twelveUnsung,
+      twelveSinsal: twelveSinsal ?? this.twelveSinsal,
     );
   }
 

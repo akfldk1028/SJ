@@ -2,12 +2,20 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/sipsin_relations.dart';
+import '../../data/constants/twelve_unsung.dart';
+import '../../data/constants/twelve_sinsal.dart';
 import '../../data/models/saju_analysis_db_model.dart';
 import '../../data/repositories/saju_analysis_repository.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/entities/saju_analysis.dart';
+import '../../domain/entities/daeun.dart';
+import '../../domain/entities/pillar.dart';
+import '../../domain/services/unsung_service.dart';
+import '../../domain/services/twelve_sinsal_service.dart';
+import '../../domain/services/daeun_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
-import 'saju_chart_provider.dart';
 
 part 'saju_analysis_repository_provider.g.dart';
 
@@ -95,71 +103,220 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
     // 기존 데이터 확인
     final existing = await repository.getByProfileId(activeProfile.id);
 
-    // OhengDistribution을 Map으로 변환
+    // OhengDistribution을 Map으로 변환 (한글(한자) 형식)
     final ohengMap = {
-      '목': analysis.ohengDistribution.mok,
-      '화': analysis.ohengDistribution.hwa,
-      '토': analysis.ohengDistribution.to,
-      '금': analysis.ohengDistribution.geum,
-      '수': analysis.ohengDistribution.su,
+      '목(木)': analysis.ohengDistribution.mok,
+      '화(火)': analysis.ohengDistribution.hwa,
+      '토(土)': analysis.ohengDistribution.to,
+      '금(金)': analysis.ohengDistribution.geum,
+      '수(水)': analysis.ohengDistribution.su,
     };
 
-    // DayStrength를 Map으로 변환
+    // DayStrength를 Map으로 변환 (한글(한자) 형식)
     final dayStrengthMap = {
       'isStrong': analysis.dayStrength.isStrong,
       'score': analysis.dayStrength.score,
-      'level': analysis.dayStrength.level.korean,
+      'level': '${analysis.dayStrength.level.korean}(${analysis.dayStrength.level.hanja})',
       'monthScore': analysis.dayStrength.monthScore,
       'bigeopScore': analysis.dayStrength.bigeopScore,
       'inseongScore': analysis.dayStrength.inseongScore,
       'exhaustionScore': analysis.dayStrength.exhaustionScore,
     };
 
-    // YongSin을 Map으로 변환
+    // YongSin을 Map으로 변환 (한글(한자) 형식)
+    // 용신/희신/기신/구신/한신은 오행(Oheng) enum
     final yongsinMap = {
-      'yongsin': analysis.yongsin.yongsin.name,
-      'heesin': analysis.yongsin.heesin.name,
-      'gisin': analysis.yongsin.gisin.name,
-      'gusin': analysis.yongsin.gusin.name,
-      'hansin': analysis.yongsin.hansin.name,
+      'yongsin': '${analysis.yongsin.yongsin.korean}(${analysis.yongsin.yongsin.hanja})',
+      'heesin': '${analysis.yongsin.heesin.korean}(${analysis.yongsin.heesin.hanja})',
+      'gisin': '${analysis.yongsin.gisin.korean}(${analysis.yongsin.gisin.hanja})',
+      'gusin': '${analysis.yongsin.gusin.korean}(${analysis.yongsin.gusin.hanja})',
+      'hansin': '${analysis.yongsin.hansin.korean}(${analysis.yongsin.hansin.hanja})',
       'reason': analysis.yongsin.reason,
-      'method': analysis.yongsin.method.korean,
+      'method': '${analysis.yongsin.method.korean}(${analysis.yongsin.method.hanja})',
     };
 
-    // GyeokGuk을 Map으로 변환
+    // GyeokGuk을 Map으로 변환 (한글(한자) 형식)
     final gyeokgukMap = {
-      'name': analysis.gyeokguk.gyeokguk.korean,
-      'hanja': analysis.gyeokguk.gyeokguk.hanja,
+      'name': '${analysis.gyeokguk.gyeokguk.korean}(${analysis.gyeokguk.gyeokguk.hanja})',
       'strength': analysis.gyeokguk.strength,
       'isSpecial': analysis.gyeokguk.isSpecial,
       'reason': analysis.gyeokguk.reason,
     };
 
-    // SipsinInfo를 Map으로 변환
+    // SipsinInfo를 Map으로 변환 (한글(한자) 형식)
+    String formatSipsin(SipSin sipsin) =>
+        '${sipsin.korean}(${sipsin.hanja})';
+
     final sipsinMap = {
-      'yearGan': analysis.sipsinInfo.yearGanSipsin.name,
-      'monthGan': analysis.sipsinInfo.monthGanSipsin.name,
-      'hourGan': analysis.sipsinInfo.hourGanSipsin?.name,
-      'yearJi': analysis.sipsinInfo.yearJiSipsin.name,
-      'monthJi': analysis.sipsinInfo.monthJiSipsin.name,
-      'dayJi': analysis.sipsinInfo.dayJiSipsin.name,
-      'hourJi': analysis.sipsinInfo.hourJiSipsin?.name,
+      'yearGan': formatSipsin(analysis.sipsinInfo.yearGanSipsin),
+      'monthGan': formatSipsin(analysis.sipsinInfo.monthGanSipsin),
+      'hourGan': analysis.sipsinInfo.hourGanSipsin != null
+          ? formatSipsin(analysis.sipsinInfo.hourGanSipsin!)
+          : null,
+      'yearJi': formatSipsin(analysis.sipsinInfo.yearJiSipsin),
+      'monthJi': formatSipsin(analysis.sipsinInfo.monthJiSipsin),
+      'dayJi': formatSipsin(analysis.sipsinInfo.dayJiSipsin),
+      'hourJi': analysis.sipsinInfo.hourJiSipsin != null
+          ? formatSipsin(analysis.sipsinInfo.hourJiSipsin!)
+          : null,
     };
 
-    // JiJangGanInfo를 Map으로 변환
+    // JiJangGanInfo를 Map으로 변환 (한글(한자) 형식)
+    // 천간(gan)은 cheonganHanja로, 십신(sipsin)은 SipSin enum의 hanja로 변환
+    String formatGan(String gan) {
+      final hanja = cheonganHanja[gan];
+      return hanja != null ? '$gan($hanja)' : gan;
+    }
+
     final jijangganMap = {
       'yearJi': analysis.jijangganInfo.yearJi
-          .map((e) => {'gan': e.gan, 'sipsin': e.sipsin.name, 'type': e.type})
+          .map((e) => {
+                'gan': formatGan(e.gan),
+                'sipsin': formatSipsin(e.sipsin),
+                'type': e.type
+              })
           .toList(),
       'monthJi': analysis.jijangganInfo.monthJi
-          .map((e) => {'gan': e.gan, 'sipsin': e.sipsin.name, 'type': e.type})
+          .map((e) => {
+                'gan': formatGan(e.gan),
+                'sipsin': formatSipsin(e.sipsin),
+                'type': e.type
+              })
           .toList(),
       'dayJi': analysis.jijangganInfo.dayJi
-          .map((e) => {'gan': e.gan, 'sipsin': e.sipsin.name, 'type': e.type})
+          .map((e) => {
+                'gan': formatGan(e.gan),
+                'sipsin': formatSipsin(e.sipsin),
+                'type': e.type
+              })
           .toList(),
       'hourJi': analysis.jijangganInfo.hourJi
-          .map((e) => {'gan': e.gan, 'sipsin': e.sipsin.name, 'type': e.type})
+          .map((e) => {
+                'gan': formatGan(e.gan),
+                'sipsin': formatSipsin(e.sipsin),
+                'type': e.type
+              })
           .toList(),
+    };
+
+    // 신살 목록을 Map으로 변환 (한글(한자) 형식)
+    final sinsalListMap = analysis.sinsalResults.map((sinsal) {
+      return {
+        'name': '${sinsal.name}(${sinsal.hanja})',
+        'type': sinsal.type,
+        'category': sinsal.category,
+        'description': sinsal.description,
+        'location': sinsal.location,
+      };
+    }).toList();
+
+    // 12운성 분석
+    final unsungResult = UnsungService.analyzeFromChart(analysis.chart);
+    String formatUnsung(TwelveUnsung unsung) =>
+        '${unsung.korean}(${unsung.hanja})';
+
+    final twelveUnsungList = [
+      {
+        'pillar': '년주',
+        'jiji': unsungResult.yearUnsung.jiji,
+        'unsung': formatUnsung(unsungResult.yearUnsung.unsung),
+        'strength': unsungResult.yearUnsung.strength,
+        'fortuneType': unsungResult.yearUnsung.fortuneType,
+      },
+      {
+        'pillar': '월주',
+        'jiji': unsungResult.monthUnsung.jiji,
+        'unsung': formatUnsung(unsungResult.monthUnsung.unsung),
+        'strength': unsungResult.monthUnsung.strength,
+        'fortuneType': unsungResult.monthUnsung.fortuneType,
+      },
+      {
+        'pillar': '일주',
+        'jiji': unsungResult.dayUnsung.jiji,
+        'unsung': formatUnsung(unsungResult.dayUnsung.unsung),
+        'strength': unsungResult.dayUnsung.strength,
+        'fortuneType': unsungResult.dayUnsung.fortuneType,
+      },
+      if (unsungResult.hourUnsung != null)
+        {
+          'pillar': '시주',
+          'jiji': unsungResult.hourUnsung!.jiji,
+          'unsung': formatUnsung(unsungResult.hourUnsung!.unsung),
+          'strength': unsungResult.hourUnsung!.strength,
+          'fortuneType': unsungResult.hourUnsung!.fortuneType,
+        },
+    ];
+
+    // 12신살 분석
+    final twelveSinsalResult =
+        TwelveSinsalService.analyzeFromChart(analysis.chart);
+    String formatTwelveSinsal(TwelveSinsal sinsal) =>
+        '${sinsal.korean}(${sinsal.hanja})';
+
+    final twelveSinsalList = [
+      {
+        'pillar': '년지',
+        'jiji': twelveSinsalResult.yearResult.jiji,
+        'sinsal': formatTwelveSinsal(twelveSinsalResult.yearResult.sinsal),
+        'fortuneType': twelveSinsalResult.yearResult.fortuneType,
+      },
+      {
+        'pillar': '월지',
+        'jiji': twelveSinsalResult.monthResult.jiji,
+        'sinsal': formatTwelveSinsal(twelveSinsalResult.monthResult.sinsal),
+        'fortuneType': twelveSinsalResult.monthResult.fortuneType,
+      },
+      {
+        'pillar': '일지',
+        'jiji': twelveSinsalResult.dayResult.jiji,
+        'sinsal': formatTwelveSinsal(twelveSinsalResult.dayResult.sinsal),
+        'fortuneType': twelveSinsalResult.dayResult.fortuneType,
+      },
+      if (twelveSinsalResult.hourResult != null)
+        {
+          'pillar': '시지',
+          'jiji': twelveSinsalResult.hourResult!.jiji,
+          'sinsal': formatTwelveSinsal(twelveSinsalResult.hourResult!.sinsal),
+          'fortuneType': twelveSinsalResult.hourResult!.fortuneType,
+        },
+    ];
+
+    // 대운 계산
+    final daeunService = DaeUnService();
+    final daeunResult = daeunService.calculate(
+      chart: analysis.chart,
+      gender: activeProfile.gender == '남' ? Gender.male : Gender.female,
+      birthDateTime: analysis.chart.birthDateTime,
+    );
+
+    String formatPillar(Pillar pillar) {
+      final ganHanja = cheonganHanja[pillar.gan] ?? '';
+      final jiHanja = jijiHanja[pillar.ji] ?? '';
+      return '${pillar.gan}($ganHanja)${pillar.ji}($jiHanja)';
+    }
+
+    final daeunMap = {
+      'startAge': daeunResult.startAge,
+      'isForward': daeunResult.isForward,
+      'list': daeunResult.daeUnList.map((daeun) {
+        return {
+          'pillar': formatPillar(daeun.pillar),
+          'startAge': daeun.startAge,
+          'endAge': daeun.endAge,
+          'order': daeun.order,
+        };
+      }).toList(),
+    };
+
+    // 현재 세운 계산
+    final currentYear = DateTime.now().year;
+    final birthYear = analysis.chart.birthDateTime.year;
+    final currentSeunData = daeunService.calculateSeUn(currentYear, birthYear);
+
+    final currentSeunMap = {
+      'year': currentSeunData.year,
+      'age': currentSeunData.age,
+      'pillar': formatPillar(currentSeunData.pillar),
     };
 
     final model = SajuAnalysisDbModel.fromSajuChart(
@@ -172,6 +329,11 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       gyeokguk: gyeokgukMap,
       sipsinInfo: sipsinMap,
       jijangganInfo: jijangganMap,
+      sinsalList: sinsalListMap,
+      daeun: daeunMap,
+      currentSeun: currentSeunMap,
+      twelveUnsung: twelveUnsungList,
+      twelveSinsal: twelveSinsalList,
     );
 
     final saved = await repository.save(model);

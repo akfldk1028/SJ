@@ -56,6 +56,39 @@ class SupabaseService {
   /// 로그인 여부
   static bool get isLoggedIn => currentUser != null;
 
+  /// 익명 사용자 여부
+  static bool get isAnonymous => currentUser?.isAnonymous ?? false;
+
+  /// 익명 로그인
+  ///
+  /// 로그인되지 않은 경우 익명 사용자로 자동 로그인
+  /// 이미 로그인된 경우 아무 작업 안함
+  static Future<User?> ensureAuthenticated() async {
+    if (_client == null) {
+      _logWarning('Supabase not initialized. Cannot authenticate.');
+      return null;
+    }
+
+    // 이미 로그인된 경우
+    if (currentUser != null) {
+      _logInfo('User already authenticated: ${currentUser!.id}');
+      return currentUser;
+    }
+
+    // 익명 로그인 시도
+    try {
+      final response = await _client!.auth.signInAnonymously();
+      _logInfo('Anonymous sign-in successful: ${response.user?.id}');
+      return response.user;
+    } catch (e) {
+      _logWarning('Anonymous sign-in failed: $e');
+      return null;
+    }
+  }
+
+  /// 현재 사용자 ID (없으면 null)
+  static String? get currentUserId => currentUser?.id;
+
   /// saju_analyses 테이블 쿼리 빌더
   static SupabaseQueryBuilder? get sajuAnalysesTable {
     return _client?.from('saju_analyses');
