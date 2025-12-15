@@ -200,13 +200,13 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
     };
 
     // 신살 목록을 Map으로 변환 (한글(한자) 형식)
-    final sinsalListMap = analysis.sinsalResults.map((sinsal) {
+    final sinsalListMap = analysis.sinsalList.map((result) {
       return {
-        'name': '${sinsal.name}(${sinsal.hanja})',
-        'type': sinsal.type,
-        'category': sinsal.category,
-        'description': sinsal.description,
-        'location': sinsal.location,
+        'name': '${result.sinsal.korean}(${result.sinsal.hanja})',
+        'type': result.sinsal.type.korean,
+        'description': result.description,
+        'location': result.location,
+        'relatedJi': result.relatedJi,
       };
     }).toList();
 
