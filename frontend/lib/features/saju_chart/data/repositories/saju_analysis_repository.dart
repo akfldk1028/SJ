@@ -42,11 +42,18 @@ class SajuAnalysisRepository {
   }
 
   /// Supabase에 저장 (upsert)
+  ///
+  /// profile_id에 UNIQUE 제약조건이 있으므로
+  /// 같은 프로필의 분석은 업데이트됨
   Future<void> _saveToSupabase(SajuAnalysisDbModel model) async {
     final table = SupabaseService.sajuAnalysesTable;
     if (table == null) return;
 
-    await table.upsert(model.toSupabase());
+    // profile_id 충돌 시 업데이트 (onConflict 설정)
+    await table.upsert(
+      model.toSupabase(),
+      onConflict: 'profile_id',
+    );
   }
 
   /// Hive에 저장

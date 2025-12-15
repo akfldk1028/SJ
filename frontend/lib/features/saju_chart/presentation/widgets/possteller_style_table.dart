@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../data/constants/twelve_unsung.dart';
 import '../../data/constants/twelve_sinsal.dart';
@@ -56,11 +57,14 @@ class PosstellerStyleTable extends StatelessWidget {
           // 천간 행
           _buildCheonganRow(context),
           _buildDivider(),
+          // 천간 십성 행 (포스텔러 스타일)
+          _buildCheonganSipsinRow(context, dayGan),
+          _buildDivider(),
           // 지지 행
           _buildJijiRow(context),
           _buildDivider(),
-          // 십성 행
-          _buildSipsinRow(context, dayGan),
+          // 지지 십성 행 (포스텔러 스타일 - 정기 기준)
+          _buildJijiSipsinRow(context, dayGan),
           _buildDivider(),
           // 지장간 행
           _buildJijangganRow(context, jijangganResult),
@@ -138,8 +142,8 @@ class PosstellerStyleTable extends StatelessWidget {
     );
   }
 
-  /// 십성 행
-  Widget _buildSipsinRow(BuildContext context, String dayGan) {
+  /// 천간 십성 행 (포스텔러 스타일)
+  Widget _buildCheonganSipsinRow(BuildContext context, String dayGan) {
     final pillars = _getPillarsOrdered();
 
     return _buildDataRow(
@@ -150,12 +154,32 @@ class PosstellerStyleTable extends StatelessWidget {
         final pillar = entry.value;
         if (pillar == null) return _buildEmptyCell(context);
 
-        // 일주는 '일원' 표시
+        // 일주는 '비견' 표시 (일간 자신)
         if (index == 1) {
-          return _buildSipsinCell(context, '일원', null);
+          return _buildSipsinCell(context, '비견', SipSin.bigyeon);
         }
 
         final sipsin = calculateSipSin(dayGan, pillar.gan);
+        return _buildSipsinCell(context, sipsin.korean, sipsin);
+      }).toList(),
+    );
+  }
+
+  /// 지지 십성 행 (포스텔러 스타일 - 정기 기준)
+  Widget _buildJijiSipsinRow(BuildContext context, String dayGan) {
+    final pillars = _getPillarsOrdered();
+
+    return _buildDataRow(
+      context,
+      label: '십성',
+      cells: pillars.map((pillar) {
+        if (pillar == null) return _buildEmptyCell(context);
+
+        // 지지의 정기(正氣) 천간을 가져와서 십성 계산
+        final jeongGi = getJeongGi(pillar.ji);
+        if (jeongGi == null) return _buildEmptyCell(context);
+
+        final sipsin = calculateSipSin(dayGan, jeongGi);
         return _buildSipsinCell(context, sipsin.korean, sipsin);
       }).toList(),
     );
@@ -175,8 +199,8 @@ class PosstellerStyleTable extends StatelessWidget {
       label: '지장간',
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
-        // 지장간 한자들을 연결 (정기 → 중기 → 여기 순서로 표시, 일반적으로 여기/중기/정기 순)
-        final jijangganStr = r.jijangganHanjaString;
+        // 지장간 한글로 표시 (포스텔러 스타일)
+        final jijangganStr = r.jijangganString;
         return _buildTextCell(context, jijangganStr, AppColors.textSecondary);
       }).toList(),
     );
