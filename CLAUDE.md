@@ -8,8 +8,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **만톡 (Mantok)** - AI 사주 챗봇
 - Flutter 모바일 앱 (Android/iOS)
-- 생년월일 입력 → 만세력 계산 → Gemini AI와 대화형 사주 상담
+- 생년월일 입력 → 만세력 계산 → AI 대화형 사주 상담
 - 채팅 중심 UX (기존 사주 앱의 "긴 리포트" 방식 탈피)
+- **AI 파이프라인**: GPT-5.2 분석 → Gemini 3.0 대화 → DALL-E/Imagen 이미지
+
+---
+
+## Team (5명)
+
+| 이니셜 | 역할 | 담당 폴더 |
+|--------|------|----------|
+| **DK** | 총괄 + 광고 | `router/`, `features/ads/`, `core/interfaces/` |
+| **JH_BE** | Supabase | `sql/`, `core/services/supabase/` |
+| **JH_AI** | AI 분석 | `AI/jh/`, `AI/common/` (공동) |
+| **Jina** | AI 대화 | `AI/jina/`, `AI/common/` (공동) |
+| **SH** | UI/UX | `shared/`, `features/*/presentation/` |
+
+> 상세 역할: `.claude/team/` 폴더 참조
 
 ---
 
@@ -24,7 +39,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/04_data_models.md` | 데이터 모델 + PostgreSQL 스키마 |
 | `docs/09_state_management.md` | Riverpod 3.0 가이드 |
 | `docs/10_widget_tree_optimization.md` | 위젯 트리 최적화 **(필독)** |
+| `.claude/team/` | **팀 역할 정의 (DK, JH_BE, JH_AI, Jina, SH)** |
 | `.claude/JH_Agent/` | 서브 에이전트 정의 |
+| `frontend/lib/AI/` | AI 모듈 (GPT-5.2 + Gemini 3.0) |
 
 ---
 
@@ -84,14 +101,30 @@ Task 도구:
 | State | **Riverpod 3.0** (@riverpod annotation) |
 | Routing | **go_router** |
 | Local Storage | **Hive** (캐시), flutter_secure_storage (토큰) |
-| Backend | Supabase (사용자가 별도 관리) |
-| AI | Google Gemini (Edge Functions에서 호출) |
+| Backend | Supabase (JH_BE 담당) |
+| AI | **GPT-5.2** (분석) + **Gemini 3.0** (대화) + DALL-E/Imagen (이미지) |
 
 ### Shadcn UI 사용 규칙
 - **모든 UI 컴포넌트는 shadcn_ui 우선 사용**
 - Material 위젯과 혼용 가능
 - 주요 컴포넌트: ShadButton, ShadInput, ShadCard, ShadDialog, ShadSheet
 - 참조: `.claude/JH_Agent/08_shadcn_ui_builder.md`
+
+### AI 모듈 구조
+```
+frontend/lib/AI/
+├── ai.dart             # 모듈 exports
+├── common/             # JH_AI + Jina 공동
+│   ├── core/           # 설정, 로거, 캐시
+│   ├── providers/
+│   │   ├── openai/     # GPT-5.2 (JH_AI 주담당)
+│   │   ├── google/     # Gemini 3.0 (Jina 주담당)
+│   │   └── image/      # DALL-E, Imagen
+│   ├── pipelines/      # 분석 파이프라인
+│   └── prompts/        # 프롬프트 템플릿
+├── jh/                 # JH_AI 전용
+└── jina/               # Jina 전용
+```
 
 ---
 
@@ -165,9 +198,34 @@ features/{feature}/
 
 ## Development Rules
 
-### Git
-- 작업 브랜치: **Jaehyeon(Test)**
-- master 브랜치 건들지 않음
+### Git 브랜치 전략
+```
+master (배포)
+  └── develop (통합)
+        ├── DK      # 총괄
+        ├── BE      # Supabase
+        ├── AI      # JH_AI + Jina
+        └── UI      # SH
+```
+
+### 커밋 컨벤션
+```
+[이니셜] type: 설명
+
+예시:
+[DK] feat: 광고 모듈 초기화
+[JH_BE] migration: 채팅 테이블 추가
+[JH_AI] fix: GPT 응답 파싱 오류
+[Jina] refactor: 프롬프트 개선
+[SH] style: 다크모드 적용
+```
+
+### PR 규칙
+| 변경 영역 | 승인자 |
+|----------|--------|
+| 자기 전용 폴더 | 셀프 머지 |
+| `AI/common/` | JH_AI + Jina 둘 다 |
+| `core/`, `shared/` | DK 승인 |
 
 ### Context Management
 - **TASKS.md**: 작업할 때마다 확인하고 진행 상황 업데이트
