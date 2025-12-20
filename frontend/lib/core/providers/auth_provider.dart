@@ -14,13 +14,13 @@ AuthService authService(ref) {
 /// 현재 사용자 Provider
 @riverpod
 User? currentUser(ref) {
-  return SupabaseService.auth.currentUser;
+  return SupabaseService.auth?.currentUser;
 }
 
 /// 현재 사용자 ID Provider
 @riverpod
 String? currentUserId(ref) {
-  return SupabaseService.auth.currentUser?.id;
+  return SupabaseService.auth?.currentUser?.id;
 }
 
 /// 익명 사용자 여부 Provider
@@ -39,6 +39,6 @@ bool isLoggedIn(ref) {
 
 /// 인증 상태 스트림 Provider
 @riverpod
-Stream<AuthState> authStateChanges(ref) {
-  return SupabaseService.auth.onAuthStateChange;
+Stream<AuthState>? authStateChanges(ref) {
+  return SupabaseService.auth?.onAuthStateChange;
 }

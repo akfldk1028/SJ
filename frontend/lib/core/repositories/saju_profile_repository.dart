@@ -7,12 +7,15 @@ import '../../features/profile/domain/entities/relationship_type.dart';
 
 /// Supabase saju_profiles 테이블 Repository
 class SajuProfileRepository {
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
   final AuthService _authService;
 
   SajuProfileRepository()
       : _client = SupabaseService.client,
         _authService = AuthService();
+
+  /// Supabase 연결 여부
+  bool get isConnected => _client != null;
 
   static const String _tableName = 'saju_profiles';
 
@@ -21,7 +24,9 @@ class SajuProfileRepository {
   // ============================================================
 
   /// 새 프로필 생성
-  Future<SajuProfile> create(SajuProfile profile) async {
+  Future<SajuProfile?> create(SajuProfile profile) async {
+    if (_client == null) return null;
+
     final userId = _authService.currentUserId;
     if (userId == null) throw Exception('로그인이 필요합니다.');
 
@@ -42,6 +47,8 @@ class SajuProfileRepository {
 
   /// 현재 사용자의 모든 프로필 조회
   Future<List<SajuProfile>> getAll() async {
+    if (_client == null) return [];
+
     final userId = _authService.currentUserId;
     if (userId == null) throw Exception('로그인이 필요합니다.');
 
@@ -59,6 +66,8 @@ class SajuProfileRepository {
 
   /// ID로 프로필 조회
   Future<SajuProfile?> getById(String id) async {
+    if (_client == null) return null;
+
     final response = await _client
         .from(_tableName)
         .select()
@@ -71,6 +80,8 @@ class SajuProfileRepository {
 
   /// 대표 프로필 조회
   Future<SajuProfile?> getPrimary() async {
+    if (_client == null) return null;
+
     final userId = _authService.currentUserId;
     if (userId == null) throw Exception('로그인이 필요합니다.');
 
@@ -90,7 +101,9 @@ class SajuProfileRepository {
   // ============================================================
 
   /// 프로필 업데이트
-  Future<SajuProfile> update(SajuProfile profile) async {
+  Future<SajuProfile?> update(SajuProfile profile) async {
+    if (_client == null) return null;
+
     final userId = _authService.currentUserId;
     if (userId == null) throw Exception('로그인이 필요합니다.');
 
@@ -111,6 +124,7 @@ class SajuProfileRepository {
 
   /// 대표 프로필 설정
   Future<void> setPrimary(String profileId) async {
+    if (_client == null) return;
     await _client
         .from(_tableName)
         .update({'is_primary': true})
@@ -124,6 +138,7 @@ class SajuProfileRepository {
 
   /// 프로필 삭제
   Future<void> delete(String id) async {
+    if (_client == null) return;
     await _client.from(_tableName).delete().eq('id', id);
     // CASCADE로 saju_analyses, chat_sessions 등도 삭제됨
   }

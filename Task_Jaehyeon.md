@@ -360,6 +360,20 @@ lib/
 | 2025-12-15 | `saveFromAnalysis()` 메서드 추가 - SajuAnalysis → DB 변환 | ✅ 완료 |
 | 2025-12-15 | profile_provider에 _saveAnalysisToDb() 연동 | ✅ 완료 |
 | 2025-12-15 | **Phase 11 완료** - 자동 저장 연동 포함 | ✅ 완료 |
+| 2025-12-18 | **절기 테이블 확장**: 2020-2030 → 1900-2100 (201년) | ✅ 완료 |
+| 2025-12-18 | `solar_term_calculator.dart` - Jean Meeus VSOP87 알고리즘 구현 | ✅ 완료 |
+| 2025-12-18 | `solar_term_table_extended.dart` - 동적 계산 + 캐싱 API | ✅ 완료 |
+| 2025-12-18 | **Supabase 오프라인 모드 수정**: nullable SupabaseClient 처리 | ✅ 완료 |
+| 2025-12-18 | 9개 파일 수정 (supabase_service, auth_service, repositories 등) | ✅ 완료 |
+| 2025-12-18 | `Pillar` 엔티티에 `ganHanja`, `jiHanja` getter 추가 | ✅ 완료 |
+| 2025-12-18 | **빌드 오류 전체 해결** - `flutter build web` 성공 | ✅ 완료 |
+| 2025-12-21 | **Supabase DB 구조 분석** - MCP + REST API로 검증 | ✅ 완료 |
+| 2025-12-21 | Terminal 3x 로그 원인 분석: Riverpod `ref.watch()` rebuild | ✅ 분석 |
+| 2025-12-21 | upsert + onConflict로 중복 데이터 방지 확인 | ✅ 확인 |
+| 2025-12-21 | **엔터프라이즈 스케일링 분석**: 1M 사용자 기준 row 추정 | ✅ 완료 |
+| 2025-12-21 | `chat_messages` 병목 식별: 100M~1B rows 예상 (파티셔닝 필요) | ⚠️ TODO |
+| 2025-12-21 | JSONB GIN 인덱스 필요: `yongsin`, `gyeokguk`, `oheng_distribution` | ⚠️ TODO |
+| 2025-12-21 | `ai_summary` 설계 확인: saju_analyses에만 필요 (베스트 프랙티스) | ✅ 확인 |
 
 ---
 
@@ -1534,9 +1548,101 @@ Task 도구:
 현재 상태:
 - Phase 9-C (UI 컴포넌트) ✅ 완료
 - Phase 11 (Supabase 연동) ✅ 완료 (자동 저장 연동 포함)
+- DB 스케일링 분석 ✅ 완료 (2025-12-21)
 
 다음 작업:
 1. .env 실제 키 설정 + 테스트
 2. 앱 통합 테스트
 3. 동기화 UI 컴포넌트 (선택)
+4. 엔터프라이즈 스케일링 작업 (chat_messages 파티셔닝, JSONB 인덱스)
 ```
+
+---
+
+## ✅ 완료된 작업 (2025-12-21)
+
+### Supabase DB 구조 검증 & 엔터프라이즈 스케일링 분석
+
+**분석 배경:**
+- Terminal에서 `[SajuAnalysis] Supabase 저장 완료` 로그가 3번 출력되는 현상 확인
+- MVP DB 구조가 엔터프라이즈 스케일에 적합한지 검증 필요
+
+**1. 3x 로그 원인 분석 ✅**
+
+```dart
+// saju_chart_provider.dart:100-148
+@override
+Future<SajuAnalysis?> build() async {
+  final chart = await ref.watch(currentSajuChartProvider.future);  // ← watch 사용
+  final activeProfile = await ref.watch(activeProfileProvider.future);
+  // ...
+  _saveToSupabase(activeProfile.id, analysis);  // 3번 호출됨
+}
+```
+
+- **원인**: Riverpod `ref.watch()`가 Provider rebuild 시마다 호출
+- **영향**: `_saveToSupabase()` 3번 호출 → DB 3번 접근
+- **해결**: `upsert(data, onConflict: 'profile_id')` 사용 중이므로 데이터 중복 없음
+
+**2. Supabase 테이블 구조 확인 ✅**
+
+| 테이블 | FK 관계 | RLS |
+|--------|---------|-----|
+| `saju_profiles` | user_id → auth.users(id) | ✅ |
+| `saju_analyses` | profile_id → saju_profiles(id) UNIQUE | ✅ |
+| `chat_sessions` | profile_id → saju_profiles(id) | ✅ |
+| `chat_messages` | session_id → chat_sessions(id) | ✅ |
+| `compatibility_analyses` | profile1_id, profile2_id → saju_profiles(id) | ✅ |
+
+- FK 관계 정상
+- 1:1 관계 (profile ↔ analysis) `UNIQUE` 제약조건 적용됨
+
+**3. 엔터프라이즈 스케일링 분석 ⚠️**
+
+**1M 사용자 기준 예상 row 수:**
+
+| 테이블 | 예상 rows | 위험도 |
+|--------|-----------|--------|
+| `saju_profiles` | 1-3M | 🟢 안전 |
+| `saju_analyses` | 1-3M | 🟢 안전 |
+| `chat_sessions` | 10-50M | 🟡 주의 |
+| `chat_messages` | **100M-1B** | 🔴 **병목** |
+
+**Supabase 실제 사례:**
+> 한 고객이 500M rows의 채팅 메시지로 인해 쿼리 성능 저하 경험
+> → **table partitioning** 권장 (created_at 기준 월별/분기별)
+
+**4. 필요한 조치 (TODO)**
+
+**4.1 chat_messages 파티셔닝 (엔터프라이즈 필수)**
+```sql
+-- 월별 파티셔닝 예시
+CREATE TABLE chat_messages (
+  id UUID,
+  session_id UUID,
+  created_at TIMESTAMPTZ,
+  ...
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE chat_messages_2025_01 PARTITION OF chat_messages
+  FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+```
+
+**4.2 JSONB GIN 인덱스 추가**
+```sql
+-- saju_analyses JSONB 필드 인덱싱
+CREATE INDEX idx_saju_analyses_yongsin ON saju_analyses USING GIN (yongsin);
+CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
+CREATE INDEX idx_saju_analyses_oheng ON saju_analyses USING GIN (oheng_distribution);
+```
+
+**5. ai_summary 설계 확인 ✅**
+
+- `ai_summary`: `saju_analyses` 테이블에만 존재 (사주 분석 요약)
+- `context_summary`: `chat_sessions` 테이블에만 존재 (대화 컨텍스트 요약)
+- **베스트 프랙티스 준수**: 토큰 절약을 위한 요약 분리 설계 적절
+
+**결론:**
+- 현재 MVP 구조는 **기능적으로 정상**
+- 엔터프라이즈 스케일(1M+ 사용자) 대비 **chat_messages 파티셔닝 필수**
+- JSONB 쿼리 성능 최적화를 위한 **GIN 인덱스 추가 권장**

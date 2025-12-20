@@ -8,7 +8,8 @@ library;
 // =============================================================================
 export 'data/constants/cheongan_jiji.dart';
 export 'data/constants/gapja_60.dart';
-export 'data/constants/solar_term_table.dart';
+export 'data/constants/solar_term_table_extended.dart';
+export 'data/constants/solar_term_calculator.dart';
 export 'data/constants/dst_periods.dart';
 export 'data/constants/jijanggan_table.dart';
 export 'data/constants/sipsin_relations.dart';

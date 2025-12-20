@@ -6,9 +6,12 @@ import '../../features/saju_chat/domain/models/chat_type.dart';
 
 /// Supabase chat_sessions + chat_messages 테이블 Repository
 class ChatRepository {
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
 
   ChatRepository() : _client = SupabaseService.client;
+
+  /// Supabase 연결 여부
+  bool get isConnected => _client != null;
 
   // ============================================================
   // SESSIONS - CREATE
@@ -16,12 +19,14 @@ class ChatRepository {
 
   /// 새 채팅 세션 생성
   /// [id]: 로컬에서 생성한 UUID를 사용 (동기화를 위해)
-  Future<ChatSession> createSession({
+  Future<ChatSession?> createSession({
     String? id,
     required String profileId,
     required ChatType chatType,
     String? title,
   }) async {
+    if (_client == null) return null;
+
     final data = {
       if (id != null) 'id': id,
       'profile_id': profileId,
@@ -44,6 +49,8 @@ class ChatRepository {
 
   /// 프로필의 모든 세션 조회 (최신순)
   Future<List<ChatSession>> getSessionsByProfile(String profileId) async {
+    if (_client == null) return [];
+
     final response = await _client
         .from('chat_sessions')
         .select()
@@ -57,6 +64,8 @@ class ChatRepository {
 
   /// 세션 ID로 조회
   Future<ChatSession?> getSessionById(String sessionId) async {
+    if (_client == null) return null;
+
     final response = await _client
         .from('chat_sessions')
         .select()
@@ -69,6 +78,8 @@ class ChatRepository {
 
   /// 최근 세션 조회 (limit 개수만큼)
   Future<List<ChatSession>> getRecentSessions(String profileId, {int limit = 10}) async {
+    if (_client == null) return [];
+
     final response = await _client
         .from('chat_sessions')
         .select()
@@ -87,6 +98,7 @@ class ChatRepository {
 
   /// 세션 제목 업데이트
   Future<void> updateSessionTitle(String sessionId, String title) async {
+    if (_client == null) return;
     await _client
         .from('chat_sessions')
         .update({'title': title})
@@ -95,6 +107,7 @@ class ChatRepository {
 
   /// 세션 컨텍스트 요약 업데이트 (토큰 절약용)
   Future<void> updateContextSummary(String sessionId, String summary) async {
+    if (_client == null) return;
     await _client
         .from('chat_sessions')
         .update({'context_summary': summary})
@@ -107,6 +120,7 @@ class ChatRepository {
 
   /// 세션 삭제 (CASCADE로 메시지도 삭제됨)
   Future<void> deleteSession(String sessionId) async {
+    if (_client == null) return;
     await _client.from('chat_sessions').delete().eq('id', sessionId);
   }
 
@@ -115,13 +129,15 @@ class ChatRepository {
   // ============================================================
 
   /// 메시지 추가
-  Future<ChatMessage> addMessage({
+  Future<ChatMessage?> addMessage({
     required String sessionId,
     required String content,
     required MessageRole role,
     List<String>? suggestedQuestions,
     int? tokensUsed,
   }) async {
+    if (_client == null) return null;
+
     final data = {
       'session_id': sessionId,
       'content': content,
@@ -142,7 +158,7 @@ class ChatRepository {
   }
 
   /// 사용자 메시지 추가 (편의 메서드)
-  Future<ChatMessage> addUserMessage(String sessionId, String content) async {
+  Future<ChatMessage?> addUserMessage(String sessionId, String content) async {
     return addMessage(
       sessionId: sessionId,
       content: content,
@@ -151,7 +167,7 @@ class ChatRepository {
   }
 
   /// AI 응답 메시지 추가 (편의 메서드)
-  Future<ChatMessage> addAssistantMessage(
+  Future<ChatMessage?> addAssistantMessage(
     String sessionId,
     String content, {
     List<String>? suggestedQuestions,
@@ -172,6 +188,8 @@ class ChatRepository {
 
   /// 세션의 모든 메시지 조회 (시간순)
   Future<List<ChatMessage>> getMessagesBySession(String sessionId) async {
+    if (_client == null) return [];
+
     final response = await _client
         .from('chat_messages')
         .select()
@@ -185,6 +203,8 @@ class ChatRepository {
 
   /// 최근 N개 메시지 조회 (AI 컨텍스트용)
   Future<List<ChatMessage>> getRecentMessages(String sessionId, {int limit = 20}) async {
+    if (_client == null) return [];
+
     final response = await _client
         .from('chat_messages')
         .select()
@@ -205,6 +225,7 @@ class ChatRepository {
 
   /// 메시지 상태 업데이트
   Future<void> updateMessageStatus(String messageId, MessageStatus status) async {
+    if (_client == null) return;
     await _client
         .from('chat_messages')
         .update({'status': status.name})
@@ -271,6 +292,8 @@ class ChatRepository {
 
   /// 세션 컨텍스트 요약 조회
   Future<String?> getContextSummary(String sessionId) async {
+    if (_client == null) return null;
+
     final response = await _client
         .from('chat_sessions')
         .select('context_summary')

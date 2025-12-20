@@ -54,6 +54,11 @@ class AiChatService {
         print('[AiChatService] 메시지 수: ${messages.length}');
       }
 
+      // 오프라인 모드 체크
+      if (client == null) {
+        return AiChatResult.failure('Supabase not initialized. Please check your connection.');
+      }
+
       // Edge Function 호출
       final response = await client.functions.invoke(
         _functionName,

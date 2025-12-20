@@ -9,29 +9,32 @@ import 'supabase_service.dart';
 /// - 세션 없을 때만 새 익명 사용자 생성
 /// - 세션 만료 시 자동 갱신 (supabase_flutter 기본 동작)
 class AuthService {
-  final GoTrueClient _auth;
+  final GoTrueClient? _auth;
 
   AuthService() : _auth = SupabaseService.auth;
+
+  /// Supabase 연결 여부
+  bool get isConnected => _auth != null;
 
   // ============================================================
   // 상태 조회
   // ============================================================
 
   /// 현재 사용자
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _auth?.currentUser;
 
   /// 현재 사용자 ID
-  String? get currentUserId => _auth.currentUser?.id;
+  String? get currentUserId => _auth?.currentUser?.id;
 
   /// 현재 세션
-  Session? get currentSession => _auth.currentSession;
+  Session? get currentSession => _auth?.currentSession;
 
   /// 로그인 여부
-  bool get isLoggedIn => _auth.currentSession != null;
+  bool get isLoggedIn => _auth?.currentSession != null;
 
   /// 익명 사용자 여부
   bool get isAnonymous {
-    final user = _auth.currentUser;
+    final user = _auth?.currentUser;
     if (user == null) return true;
 
     // Supabase User 객체의 isAnonymous 속성 사용
@@ -52,6 +55,13 @@ class AuthService {
   /// 2. 세션 있으면 → 기존 사용자 유지 (새 user 생성 안 함)
   /// 3. 세션 없으면 → 새 익명 사용자 생성
   Future<User?> initializeAuth() async {
+    if (_auth == null) {
+      if (kDebugMode) {
+        print('[AuthService] Supabase not initialized. Using offline mode.');
+      }
+      return null;
+    }
+
     final session = _auth.currentSession;
 
     if (session != null) {
@@ -75,6 +85,13 @@ class AuthService {
   ///
   /// 새 익명 사용자를 생성하고 세션을 localStorage에 자동 저장
   Future<User?> signInAnonymously() async {
+    if (_auth == null) {
+      if (kDebugMode) {
+        print('[AuthService] Supabase not initialized. Cannot sign in.');
+      }
+      return null;
+    }
+
     try {
       final response = await _auth.signInAnonymously();
       if (kDebugMode) {
@@ -96,6 +113,7 @@ class AuthService {
   /// 이메일로 영구 계정 전환 (Step 1: 이메일 연결)
   /// 인증 메일이 발송됩니다.
   Future<void> linkEmail(String email) async {
+    if (_auth == null) throw Exception('Supabase not initialized');
     await _auth.updateUser(
       UserAttributes(email: email),
     );
@@ -103,6 +121,7 @@ class AuthService {
 
   /// 이메일 인증 완료 후 비밀번호 설정 (Step 2)
   Future<void> setPassword(String password) async {
+    if (_auth == null) throw Exception('Supabase not initialized');
     await _auth.updateUser(
       UserAttributes(password: password),
     );
@@ -120,6 +139,7 @@ class AuthService {
 
   /// OAuth로 영구 계정 전환 (Google, Apple, Kakao 등)
   Future<void> linkOAuth(OAuthProvider provider) async {
+    if (_auth == null) throw Exception('Supabase not initialized');
     await _auth.linkIdentity(provider);
   }
 
@@ -141,6 +161,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    if (_auth == null) throw Exception('Supabase not initialized');
     return await _auth.signInWithPassword(
       email: email,
       password: password,
@@ -149,6 +170,7 @@ class AuthService {
 
   /// OAuth 로그인
   Future<void> signInWithOAuth(OAuthProvider provider) async {
+    if (_auth == null) throw Exception('Supabase not initialized');
     await _auth.signInWithOAuth(provider);
   }
 
@@ -158,6 +180,7 @@ class AuthService {
 
   /// 로그아웃
   Future<void> signOut() async {
+    if (_auth == null) return;
     await _auth.signOut();
   }
 
@@ -172,5 +195,5 @@ class AuthService {
   // ============================================================
 
   /// 인증 상태 변경 스트림
-  Stream<AuthState> get onAuthStateChange => _auth.onAuthStateChange;
+  Stream<AuthState>? get onAuthStateChange => _auth?.onAuthStateChange;
 }

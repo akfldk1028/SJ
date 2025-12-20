@@ -47,6 +47,11 @@ class SupabaseService {
   /// null이면 오프라인 모드
   static SupabaseClient? get client => _client;
 
+  /// GoTrueClient (인증 클라이언트)
+  ///
+  /// null이면 오프라인 모드
+  static GoTrueClient? get auth => _client?.auth;
+
   /// Supabase 연결 여부
   static bool get isConnected => _client != null;
 

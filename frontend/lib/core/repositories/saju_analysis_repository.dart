@@ -13,9 +13,12 @@ import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 /// Supabase saju_analyses 테이블 Repository
 /// 복잡한 JSONB 필드 매핑 처리
 class SajuAnalysisRepository {
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
 
   SajuAnalysisRepository() : _client = SupabaseService.client;
+
+  /// Supabase 연결 여부
+  bool get isConnected => _client != null;
 
   static const String _tableName = 'saju_analyses';
 
@@ -25,6 +28,8 @@ class SajuAnalysisRepository {
 
   /// 분석 결과 저장 (없으면 생성, 있으면 업데이트)
   Future<void> upsert(String profileId, SajuAnalysis analysis) async {
+    if (_client == null) return;
+
     final data = _toSupabaseMap(profileId, analysis);
 
     await _client.from(_tableName).upsert(data, onConflict: 'profile_id');
@@ -36,6 +41,8 @@ class SajuAnalysisRepository {
 
   /// 프로필 ID로 분석 결과 조회
   Future<SajuAnalysis?> getByProfileId(String profileId) async {
+    if (_client == null) return null;
+
     final response = await _client
         .from(_tableName)
         .select()
@@ -48,6 +55,8 @@ class SajuAnalysisRepository {
 
   /// 분석 존재 여부 확인
   Future<bool> exists(String profileId) async {
+    if (_client == null) return false;
+
     final response = await _client
         .from(_tableName)
         .select('id')
@@ -63,6 +72,7 @@ class SajuAnalysisRepository {
 
   /// 분석 결과 삭제
   Future<void> delete(String profileId) async {
+    if (_client == null) return;
     await _client.from(_tableName).delete().eq('profile_id', profileId);
   }
 
@@ -452,6 +462,7 @@ class SajuAnalysisRepository {
 
   /// AI 요약 저장
   Future<void> updateAiSummary(String profileId, Map<String, dynamic> summary) async {
+    if (_client == null) return;
     await _client
         .from(_tableName)
         .update({'ai_summary': summary})
@@ -460,6 +471,7 @@ class SajuAnalysisRepository {
 
   /// AI 요약 조회
   Future<Map<String, dynamic>?> getAiSummary(String profileId) async {
+    if (_client == null) return null;
     final response = await _client
         .from(_tableName)
         .select('ai_summary')

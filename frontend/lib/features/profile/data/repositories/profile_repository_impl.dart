@@ -157,4 +157,51 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<void> clear() async {
     await _localDatasource.clear();
   }
+
+  @override
+  Future<void> syncFromCloud() async {
+    try {
+      final userId = SupabaseService.currentUserId;
+      if (userId == null) {
+        _log('No user logged in, skipping cloud sync');
+        return;
+      }
+
+      final table = SupabaseService.sajuProfilesTable;
+      if (table == null) return;
+
+      final response = await table.select().eq('user_id', userId);
+
+      for (final data in response as List) {
+        final model = SajuProfileModel.fromSupabaseMap(data);
+        // 로컬에 없는 경우에만 저장
+        final existing = await _localDatasource.getById(model.id);
+        if (existing == null) {
+          await _localDatasource.save(model);
+          _log('Synced profile from cloud: ${model.id}');
+        }
+      }
+    } catch (e) {
+      _log('Failed to sync from cloud: $e');
+    }
+  }
+
+  @override
+  Future<void> syncToCloud() async {
+    try {
+      final user = await SupabaseService.ensureAuthenticated();
+      if (user == null) {
+        _log('No user authenticated, skipping cloud sync');
+        return;
+      }
+
+      final profiles = await _localDatasource.getAll();
+      for (final model in profiles) {
+        await _saveToSupabase(model);
+      }
+      _log('All profiles synced to cloud');
+    } catch (e) {
+      _log('Failed to sync to cloud: $e');
+    }
+  }
 }

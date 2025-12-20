@@ -45,7 +45,10 @@
       "Bash(claude mcp add:*)",
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat pub get)",
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/data/models/saju_analysis_db_model.dart lib/features/saju_chart/presentation/providers/saju_analysis_repository_provider.dart)",
-      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat test:*)"
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat test:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude mcp call:*)",
+      "Bash(curl -s \"https://mcp.supabase.com/mcp?project_ref=kfciluyxkomskyxjaeat\")"
     ],
     "deny": [],
     "ask": []

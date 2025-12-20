@@ -1,14 +1,16 @@
-import '../../data/constants/solar_term_table.dart';
+import '../../data/constants/solar_term_table_extended.dart';
 
 /// 24절기 계산 서비스
 class SolarTermService {
   /// 해당 연도의 절기 시각 조회
-  /// 내장 테이블 사용 (2024-2025년만 지원)
-  /// TODO: 전체 연도 지원을 위해 천문연구원 API 또는 정밀 계산 추가
+  /// 지원 범위: 1900-2100년
+  /// 2020-2030년은 한국천문연구원 공식 데이터, 그 외는 천문학적 계산값
   Map<String, DateTime>? getSolarTerms(int year) {
-    final yearData = solarTermTable[year];
-    if (yearData == null) return null;
+    if (year < supportedStartYear || year > supportedEndYear) {
+      return null;
+    }
 
+    final yearData = getSolarTermsForYear(year);
     return yearData.map((key, value) => MapEntry(key, value.dateTime));
   }
 
@@ -22,7 +24,7 @@ class SolarTermService {
     final nextYearTerms = getSolarTerms(year + 1);
 
     if (solarTerms == null) {
-      // 테이블에 없는 연도는 간단히 양력 월로 대체 (부정확)
+      // 지원 범위 외의 연도는 근사값 사용 (부정확)
       return _approximateMonthIndex(dateTime.month);
     }
 
@@ -114,5 +116,10 @@ class SolarTermService {
       }
     }
     return null;
+  }
+
+  /// 지원하는 연도 범위 반환
+  (int, int) getSupportedYearRange() {
+    return (supportedStartYear, supportedEndYear);
   }
 }
