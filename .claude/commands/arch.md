@@ -30,7 +30,7 @@ import 'dart:convert';
 
 // ❌ 금지
 import 'package:flutter/...';      // Flutter 의존 금지
-import 'package:supabase/...';     // 외부 서비스 금지
+import 'package:sql/...';     // 외부 서비스 금지
 import 'package:hive/...';         // 저장소 구현 금지
 import '../data/...';              // Data Layer 금지
 import '../presentation/...';      // Presentation 금지

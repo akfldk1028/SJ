@@ -13,9 +13,15 @@ import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 /// Supabase saju_analyses 테이블 Repository
 /// 복잡한 JSONB 필드 매핑 처리
 class SajuAnalysisRepository {
-  final SupabaseClient _client;
+  SupabaseClient get _client {
+    final client = SupabaseService.client;
+    if (client == null) {
+      throw Exception('Supabase not initialized. Call initialize() first.');
+    }
+    return client;
+  }
 
-  SajuAnalysisRepository() : _client = SupabaseService.client;
+  SajuAnalysisRepository();
 
   static const String _tableName = 'saju_analyses';
 

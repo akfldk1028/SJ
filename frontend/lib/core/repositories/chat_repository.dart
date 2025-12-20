@@ -6,9 +6,15 @@ import '../../features/saju_chat/domain/models/chat_type.dart';
 
 /// Supabase chat_sessions + chat_messages 테이블 Repository
 class ChatRepository {
-  final SupabaseClient _client;
+  SupabaseClient get _client {
+    final client = SupabaseService.client;
+    if (client == null) {
+      throw Exception('Supabase not initialized. Call initialize() first.');
+    }
+    return client;
+  }
 
-  ChatRepository() : _client = SupabaseService.client;
+  ChatRepository();
 
   // ============================================================
   // SESSIONS - CREATE

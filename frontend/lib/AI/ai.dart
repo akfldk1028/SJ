@@ -1,0 +1,47 @@
+// AI 모듈
+// GPT + Gemini + DALL-E + Imagen 통합 AI 시스템
+//
+// 폴더 구조:
+// - common/  : 공통 코드 (core, providers, pipelines, prompts)
+// - jh/      : JH 전용 개발 영역
+// - jina/    : Jina 전용 개발 영역
+
+// ═══════════════════════════════════════════════════════════════
+// Common - Core
+// ═══════════════════════════════════════════════════════════════
+export 'common/core/ai_config.dart';
+export 'common/core/ai_cache.dart';
+export 'common/core/ai_logger.dart';
+export 'common/core/base_provider.dart';
+
+// ═══════════════════════════════════════════════════════════════
+// Common - LLM Providers
+// ═══════════════════════════════════════════════════════════════
+export 'common/providers/openai/gpt_provider.dart';
+export 'common/providers/google/gemini_provider.dart';
+// export 'common/providers/anthropic/claude_provider.dart'; // 나중에 추가
+
+// ═══════════════════════════════════════════════════════════════
+// Common - Image Providers
+// ═══════════════════════════════════════════════════════════════
+export 'common/providers/image/dalle_provider.dart';
+export 'common/providers/image/imagen_provider.dart';
+
+// ═══════════════════════════════════════════════════════════════
+// Common - Pipelines
+// ═══════════════════════════════════════════════════════════════
+export 'common/pipelines/base_pipeline.dart';
+export 'common/pipelines/saju_pipeline.dart';
+
+// ═══════════════════════════════════════════════════════════════
+// Common - Prompts
+// ═══════════════════════════════════════════════════════════════
+export 'common/prompts/saju_prompts.dart';
+
+// ═══════════════════════════════════════════════════════════════
+// JH - (JH 전용 모듈 추가 시 여기에)
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Jina - (Jina 전용 모듈 추가 시 여기에)
+// ═══════════════════════════════════════════════════════════════

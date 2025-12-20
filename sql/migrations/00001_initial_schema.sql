@@ -2,7 +2,7 @@
 -- 만톡 (Mantok) AI 사주 챗봇 - Initial Database Schema
 -- =====================================================
 -- Supabase에서 SQL Editor로 실행하거나
--- Supabase CLI: supabase db push
+-- Supabase CLI: sql db push
 -- =====================================================
 
 -- 1. Users 테이블 (Supabase Auth와 연동)

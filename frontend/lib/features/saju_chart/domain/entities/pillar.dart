@@ -23,6 +23,12 @@ class Pillar {
   /// 한자 표기 (예: "甲子")
   String get hanja => '${cheonganHanja[gan] ?? ''}${jijiHanja[ji] ?? ''}';
 
+  /// 천간 한자
+  String get ganHanja => cheonganHanja[gan] ?? '';
+
+  /// 지지 한자
+  String get jiHanja => jijiHanja[ji] ?? '';
+
   /// 지지의 동물 (예: "쥐")
   String get jiAnimal => jijiAnimal[ji] ?? '';
 

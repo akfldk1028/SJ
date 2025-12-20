@@ -7,12 +7,16 @@ import '../../features/profile/domain/entities/relationship_type.dart';
 
 /// Supabase saju_profiles 테이블 Repository
 class SajuProfileRepository {
-  final SupabaseClient _client;
+  late final SupabaseClient _client;
   final AuthService _authService;
 
-  SajuProfileRepository()
-      : _client = SupabaseService.client,
-        _authService = AuthService();
+  SajuProfileRepository() : _authService = AuthService() {
+    final client = SupabaseService.client;
+    if (client == null) {
+      throw Exception('Supabase not initialized');
+    }
+    _client = client;
+  }
 
   static const String _tableName = 'saju_profiles';
 

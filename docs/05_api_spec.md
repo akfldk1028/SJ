@@ -151,9 +151,9 @@ final response = await supabase.functions.invoke(
 
 **Edge Function 구현 (Deno):**
 ```typescript
-// supabase/functions/saju-chat/index.ts
+// sql/functions/saju-chat/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "https://esm.sh/@sql/sql-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -379,7 +379,7 @@ final response = await supabase.functions.invoke(
 
 **Edge Function 구현:**
 ```typescript
-// supabase/functions/calculate-saju/index.ts
+// sql/functions/calculate-saju/index.ts
 serve(async (req) => {
   // ... 인증 처리 ...
 
@@ -549,13 +549,13 @@ subscription.cancel();
 ### 7.1 로컬 개발
 ```bash
 # Supabase CLI 설치
-npm install -g supabase
+npm install -g sql
 
 # 로컬 Supabase 시작
-supabase start
+sql start
 
 # Edge Function 개발 서버
-supabase functions serve saju-chat --env-file .env.local
+sql functions serve saju-chat --env-file .env.local
 ```
 
 ### 7.2 환경 변수 설정
@@ -566,9 +566,9 @@ GEMINI_API_KEY=your-gemini-api-key
 
 ### 7.3 배포
 ```bash
-supabase functions deploy saju-chat
-supabase functions deploy calculate-saju
-supabase functions deploy generate-summary
+sql functions deploy saju-chat
+sql functions deploy calculate-saju
+sql functions deploy generate-summary
 ```
 
 ---

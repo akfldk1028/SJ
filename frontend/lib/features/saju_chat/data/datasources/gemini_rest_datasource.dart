@@ -20,6 +20,9 @@ class GeminiRestDatasource {
   /// 환경변수에서 API 키 가져오기
   static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
+  /// 초기화 상태
+  bool get isInitialized => _isInitialized;
+
   /// 초기화
   void initialize({String? apiKey}) {
     final key = apiKey ?? _apiKey;

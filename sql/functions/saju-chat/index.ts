@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@sql/functions-js/edge-runtime.d.ts";
 import { SYSTEM_PROMPT, buildSajuContext } from "./prompts.ts";
 
 // CORS 헤더 - Flutter 앱에서 호출 가능하도록

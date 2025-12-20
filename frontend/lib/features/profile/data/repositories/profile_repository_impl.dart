@@ -157,4 +157,16 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<void> clear() async {
     await _localDatasource.clear();
   }
+
+  @override
+  Future<void> syncFromCloud() async {
+    // TODO: 클라우드 동기화 구현 (현재는 로컬만 사용)
+    _log('syncFromCloud called - not implemented yet');
+  }
+
+  @override
+  Future<void> syncToCloud() async {
+    // TODO: 클라우드 동기화 구현 (현재는 로컬만 사용)
+    _log('syncToCloud called - not implemented yet');
+  }
 }
