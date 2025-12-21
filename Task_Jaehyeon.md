@@ -26,7 +26,10 @@
 | **Supabase MCP** | ✅ **설정 완료** (2025-12-15) |
 | **Phase 11 (Supabase 연동)** | ✅ **완료** (모델/서비스/Repository/Provider + 자동 저장 연동) |
 | **Phase 9-C (UI 컴포넌트)** | ✅ **완료** (saju_detail_tabs, hapchung_tab, unsung_display, sinsal_display, gongmang_display) |
-| **다음 작업** | .env 실제 키 설정 → 테스트 → 앱 통합 테스트 |
+| **Phase 9-D (포스텔러 UI)** | ✅ **완료** (대운/세운/월운, 신강/용신, 오행 차트) |
+| **신강/신약 로직 수정** | ✅ **완료** (8단계 + 득령/득지/득시/득세 계산) |
+| **Phase 12 (DB 최적화)** | 🔄 **진행 중** - 분석 완료, 마이그레이션 대기 |
+| **다음 작업** | Phase 12-A (RLS 최적화, Function 보안) → .env 설정 → 테스트 |
 
 ---
 
@@ -374,6 +377,20 @@ lib/
 | 2025-12-21 | `chat_messages` 병목 식별: 100M~1B rows 예상 (파티셔닝 필요) | ⚠️ TODO |
 | 2025-12-21 | JSONB GIN 인덱스 필요: `yongsin`, `gyeokguk`, `oheng_distribution` | ⚠️ TODO |
 | 2025-12-21 | `ai_summary` 설계 확인: saju_analyses에만 필요 (베스트 프랙티스) | ✅ 확인 |
+| 2025-12-21 | **Phase 9-D 완료**: 포스텔러 스타일 UI 구현 (3개 위젯 추가) | ✅ 완료 |
+| 2025-12-21 | `fortune_display.dart` - 대운/세운/월운 가로 슬라이더 | ✅ 완료 |
+| 2025-12-21 | `day_strength_display.dart` - 신강/신약 그래프 + 용신 표시 | ✅ 완료 |
+| 2025-12-21 | `oheng_analysis_display.dart` - 오행/십성 도넛 차트 + 오각형 다이어그램 | ✅ 완료 |
+| 2025-12-21 | `saju_detail_tabs.dart` 확장 - 6개 → 9개 탭 (오행, 신강, 대운 추가) | ✅ 완료 |
+| 2025-12-21 | Flutter build web 성공 (빌드 검증 완료) | ✅ 완료 |
+| 2025-12-21 | **신강/신약 로직 전면 수정** - 포스텔러 8단계 방식 적용 | ✅ 완료 |
+| 2025-12-21 | `DayStrengthLevel` enum 확장: 5단계 → 8단계 (극약/태약/신약/중화신약/중화신강/신강/태강/극왕) | ✅ 완료 |
+| 2025-12-21 | `DayStrength` 엔티티 필드 추가: `deukryeong`, `deukji`, `deuksi`, `deukse` (boolean) | ✅ 완료 |
+| 2025-12-21 | `DayStrengthService` 득령/득지/득시/득세 계산 로직 재구현 (정기 기준) | ✅ 완료 |
+| 2025-12-21 | 점수 계산 공식: base 50 ± (득령±15, 득지±10, 득시±7, 득세±8) + 비겁/인성 보너스 - 설기 감점 | ✅ 완료 |
+| 2025-12-21 | `day_strength_display.dart` UI 업데이트: 실제 득령/득지/득시/득세 값 표시 | ✅ 완료 |
+| 2025-12-21 | 하위 호환성 처리: enum 값 매핑 (medium→junghwaSingang 등) in repository/model | ✅ 완료 |
+| 2025-12-21 | 빌드 검증 완료 (DayStrengthLevel.medium 오류 해결) | ✅ 완료 |
 
 ---
 
@@ -1056,10 +1073,42 @@ presentation/widgets/
 ├── jijanggan_display.dart     # 지장간 표시
 ├── unsung_display.dart        # 12운성 표시
 ├── sinsal_display.dart        # 12신살 표시
-└── saju_detail_tabs.dart      # 탭 컨테이너 (포스텔러 스타일)
+├── gongmang_display.dart      # 공망 표시
+├── fortune_display.dart       # 대운/세운/월운 슬라이더 (Phase 9-D) ✅
+├── day_strength_display.dart  # 신강/신약 지수 + 용신 (Phase 9-D) ✅
+├── oheng_analysis_display.dart # 오행/십성 도넛 차트 (Phase 9-D) ✅
+└── saju_detail_tabs.dart      # 탭 컨테이너 (9개 탭: 만세력, 오행, 신강, 대운, 합충, 십성, 운성, 신살, 공망)
 ```
 
-### 9.8 레퍼런스 (포스텔러 UI)
+### 9.8 Phase 9-D: 포스텔러 스타일 UI 구현 ✅ (2025-12-21)
+
+> 포스텔러 앱 레퍼런스 기반 고급 UI 구현
+
+#### 구현 완료 항목
+
+1. **fortune_display.dart** - 대운/세운/월운 슬라이더
+   - `FortuneDisplay`: 대운수 표시 + 3개 슬라이더 통합
+   - `DaeunSlider`: 10년 대운 가로 스크롤 (현재 대운 강조)
+   - `SeunSlider`: 연도별 세운 슬라이더 (현재 연도 강조)
+   - `WolunSlider`: 월별 월운 슬라이더
+
+2. **day_strength_display.dart** - 신강/신약 지수 + 용신
+   - 득령/득지/득시/득세 배지 표시
+   - 신강/신약 8단계 막대 그래프 (극약~극왕)
+   - 용신 카드 (조후용신 + 억부용신)
+   - 일간 강약 분석 상세 (비겁/인성/재성/관성/식상)
+
+3. **oheng_analysis_display.dart** - 오행/십성 차트
+   - 오행 도넛 차트 (CustomPainter)
+   - 십성 도넛 차트
+   - 오행 오각형 상생/상극 다이어그램
+   - 비율 테이블
+
+4. **saju_detail_tabs.dart** 업데이트
+   - 6개 → 9개 탭 확장
+   - 새 탭: 오행, 신강, 대운
+
+### 9.9 레퍼런스 (포스텔러 UI)
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1646,3 +1695,227 @@ CREATE INDEX idx_saju_analyses_oheng ON saju_analyses USING GIN (oheng_distribut
 - 현재 MVP 구조는 **기능적으로 정상**
 - 엔터프라이즈 스케일(1M+ 사용자) 대비 **chat_messages 파티셔닝 필수**
 - JSONB 쿼리 성능 최적화를 위한 **GIN 인덱스 추가 권장**
+
+---
+
+## 🚀 Phase 12: 앱 출시 전 DB 최적화 (2025-12-21)
+
+### 12.1 현재 DB 상태 진단
+
+**✅ 잘 되어 있는 것:**
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| 기본 B-Tree 인덱스 | ✅ 21개 | 적절함 |
+| RLS (Row Level Security) | ✅ 활성화 | 모든 테이블 |
+| FK 관계 설정 | ✅ 정상 | CASCADE 포함 |
+| 기본 테이블 구조 | ✅ 적절 | UNIQUE 제약조건 |
+
+**⚠️ Supabase Performance Advisor 경고:**
+
+| 문제 | 심각도 | 테이블/함수 | 영향 |
+|------|--------|-------------|------|
+| **RLS 정책 비효율** | 🟡 WARN | 모든 테이블 (8개 정책) | 매 row마다 `auth.uid()` 재실행 → 성능 최대 100배 저하 |
+| **Function search_path 미설정** | 🟡 WARN | 6개 함수 | 보안 취약점 |
+| **미사용 인덱스** | ℹ️ INFO | 15개 인덱스 | 현재 데이터 적음 → 무시 가능 |
+| **Anonymous 접근 허용** | 🟡 WARN | 5개 테이블 | 의도적이면 OK |
+
+**🔍 수정 필요한 RLS 정책:**
+- `saju_profiles.own_profiles`
+- `saju_analyses.own_analyses`
+- `chat_sessions.own_sessions`
+- `chat_messages.own_messages`
+- `compatibility_analyses` (4개 정책)
+
+**🔍 수정 필요한 함수:**
+- `update_updated_at`
+- `update_session_on_message`
+- `auto_session_title`
+- `set_first_profile_primary`
+- `ensure_single_primary`
+- `update_compatibility_updated_at`
+
+---
+
+### 12.2 GIN 인덱스 필요성 분석
+
+**현재 JSONB 컬럼 (saju_analyses):**
+```
+oheng_distribution, day_strength, yongsin, gyeokguk,
+sipsin_info, jijanggan_info, sinsal_list, daeun,
+current_seun, ai_summary, twelve_unsung, twelve_sinsal
+```
+
+**GIN 인덱스 필요 시점:**
+
+| 시나리오 | GIN 필요? | 이유 |
+|----------|-----------|------|
+| profile_id로 전체 로드 | ❌ 불필요 | B-Tree로 충분 (이미 있음) |
+| 특정 신살 검색 ("역마살 있는 사람") | ✅ 필요 | JSONB 내부 검색 |
+| 궁합 분석 (특정 속성 비교) | ✅ 필요 | 여러 사람 JSONB 비교 |
+| 통계/분석 ("정관격 몇 명?") | ✅ 필요 | 집계 쿼리 |
+
+**💡 결론:**
+- **MVP 출시에는 불필요** (profile_id로 전체 row 로드하는 현재 흐름)
+- **궁합 기능 추가 시 필요** (JSONB 내부 검색)
+
+---
+
+### 12.3 작업 우선순위
+
+#### 🔴 출시 전 필수 (Phase 12-A)
+
+| 순위 | 작업 | 이유 | 상태 |
+|------|------|------|------|
+| 1 | RLS 정책 최적화 | 성능 최대 100배 개선 | ⬜ TODO |
+| 2 | Function search_path 수정 | 보안 취약점 해결 | ⬜ TODO |
+| 3 | SSL Enforcement 활성화 | Production 보안 체크리스트 | ⬜ TODO |
+
+#### 🟡 10K+ 사용자 시 권장 (Phase 12-B)
+
+| 작업 | 이유 | 상태 |
+|------|------|------|
+| JSONB GIN 인덱스 추가 | 궁합 분석, 검색 기능 | ⬜ TODO |
+| 미사용 인덱스 정리 | 스토리지/쓰기 성능 | ⬜ TODO |
+
+#### 🟢 100K+ 사용자 시 권장 (Phase 12-C)
+
+| 작업 | 이유 | 상태 |
+|------|------|------|
+| chat_messages 파티셔닝 | 대용량 채팅 데이터 | ⬜ TODO |
+| Read Replica 도입 | 읽기 부하 분산 | ⬜ TODO |
+| 정규화 (신살/합충 별도 테이블) | 궁합 분석 최적화 | ⬜ TODO |
+
+---
+
+### 12.4 RLS 정책 최적화 SQL
+
+**문제:** `auth.uid()`가 매 row마다 재실행됨 (최대 100배 성능 저하)
+
+**해결:** subquery로 감싸서 1번만 실행
+
+```sql
+-- ❌ 현재 (느림)
+WHERE sp.user_id = auth.uid()
+
+-- ✅ 수정 (빠름)
+WHERE sp.user_id = (SELECT auth.uid())
+```
+
+**적용할 마이그레이션:**
+```sql
+-- saju_profiles RLS 최적화
+DROP POLICY IF EXISTS own_profiles ON public.saju_profiles;
+CREATE POLICY own_profiles ON public.saju_profiles
+  FOR ALL USING ((SELECT auth.uid()) = user_id)
+  WITH CHECK ((SELECT auth.uid()) = user_id);
+
+-- saju_analyses RLS 최적화
+DROP POLICY IF EXISTS own_analyses ON public.saju_analyses;
+CREATE POLICY own_analyses ON public.saju_analyses
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM saju_profiles
+      WHERE saju_profiles.id = saju_analyses.profile_id
+      AND saju_profiles.user_id = (SELECT auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM saju_profiles
+      WHERE saju_profiles.id = saju_analyses.profile_id
+      AND saju_profiles.user_id = (SELECT auth.uid())
+    )
+  );
+
+-- chat_sessions RLS 최적화
+DROP POLICY IF EXISTS own_sessions ON public.chat_sessions;
+CREATE POLICY own_sessions ON public.chat_sessions
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM saju_profiles
+      WHERE saju_profiles.id = chat_sessions.profile_id
+      AND saju_profiles.user_id = (SELECT auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM saju_profiles
+      WHERE saju_profiles.id = chat_sessions.profile_id
+      AND saju_profiles.user_id = (SELECT auth.uid())
+    )
+  );
+
+-- chat_messages RLS 최적화
+DROP POLICY IF EXISTS own_messages ON public.chat_messages;
+CREATE POLICY own_messages ON public.chat_messages
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM chat_sessions cs
+      JOIN saju_profiles sp ON cs.profile_id = sp.id
+      WHERE cs.id = chat_messages.session_id
+      AND sp.user_id = (SELECT auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM chat_sessions cs
+      JOIN saju_profiles sp ON cs.profile_id = sp.id
+      WHERE cs.id = chat_messages.session_id
+      AND sp.user_id = (SELECT auth.uid())
+    )
+  );
+```
+
+---
+
+### 12.5 Function search_path 수정 SQL
+
+```sql
+-- 보안: search_path를 명시적으로 설정
+ALTER FUNCTION public.update_updated_at() SET search_path = public;
+ALTER FUNCTION public.update_session_on_message() SET search_path = public;
+ALTER FUNCTION public.auto_session_title() SET search_path = public;
+ALTER FUNCTION public.set_first_profile_primary() SET search_path = public;
+ALTER FUNCTION public.ensure_single_primary() SET search_path = public;
+ALTER FUNCTION public.update_compatibility_updated_at() SET search_path = public;
+```
+
+---
+
+### 12.6 GIN 인덱스 (궁합 기능 추가 시)
+
+```sql
+-- 궁합 분석용 JSONB GIN 인덱스
+CREATE INDEX idx_saju_analyses_yongsin ON saju_analyses USING GIN (yongsin);
+CREATE INDEX idx_saju_analyses_sinsal ON saju_analyses USING GIN (sinsal_list);
+CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
+```
+
+---
+
+### 새 세션 시작 프롬프트 (Phase 12)
+
+```
+@Task_Jaehyeon.md 읽고 "Phase 12: 앱 출시 전 DB 최적화" 섹션 확인해.
+
+현재 상태:
+- Phase 11 (Supabase 연동) ✅ 완료
+- Phase 12 (DB 최적화) 🔄 진행 중
+
+Phase 12 진행 상황:
+- 12.1 현재 DB 상태 진단 ✅ 완료
+- 12.2 GIN 인덱스 필요성 분석 ✅ 완료
+- 12.3 작업 우선순위 정의 ✅ 완료
+- 12.4 RLS 정책 최적화 SQL ✅ 작성됨 (적용 필요)
+- 12.5 Function search_path 수정 SQL ✅ 작성됨 (적용 필요)
+
+다음 작업 (Phase 12-A 출시 전 필수):
+1. RLS 정책 최적화 적용 (Supabase MCP 사용)
+2. Function search_path 수정 적용
+3. SSL Enforcement 확인
+
+Supabase MCP 사용해서 Phase 12-A 마이그레이션 적용해줘.
+```
+
+---

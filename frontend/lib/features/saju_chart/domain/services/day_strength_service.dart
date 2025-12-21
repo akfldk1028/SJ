@@ -4,64 +4,61 @@ import '../entities/day_strength.dart';
 import '../entities/saju_chart.dart';
 
 /// 일간 강약 분석 서비스
-/// fortuneteller 로직 참고: 월령 40점, 비겁 25점, 인성 20점, 재관식상 감점
+/// 포스텔러 로직 참고: 득령/득지/득시/득세 기반 점수 계산
+/// 8단계: 극약(0-12), 태약(13-25), 신약(26-37), 중화신약(38-49),
+///        중화신강(50-62), 신강(63-74), 태강(75-87), 극왕(88-100)
 class DayStrengthService {
-  /// 기본 점수
-  static const int baseScore = 50;
-
-  /// 월령 점수 (가장 중요)
-  static const int monthMaxScore = 40;
-
-  /// 비겁 점수
-  static const int bigeopMaxScore = 25;
-
-  /// 인성 점수
-  static const int inseongMaxScore = 20;
-
-  /// 재관식상 최대 감점
-  static const int exhaustMaxPenalty = 15;
-
   /// 사주로부터 일간 강약 분석
   DayStrength analyze(SajuChart chart) {
     final dayMaster = chart.dayPillar.gan;
+    final dayOheng = cheonganToOheng[dayMaster]!;
 
-    // 1. 십신 분포 계산
+    // 1. 십신 분포 계산 (천간 + 지장간 정기)
     final sipsinDistribution = _calculateSipsinDistribution(chart, dayMaster);
 
-    // 2. 월령 득실 판단
-    final monthStatus = _checkMonthStatus(dayMaster, chart.monthPillar.ji);
-    final monthScore = _calculateMonthScore(monthStatus);
+    // 2. 득령 판단 (월지 정기가 일간을 생하거나 같은 오행)
+    final deukryeong = _checkDeukryeong(dayOheng, chart.monthPillar.ji);
 
-    // 3. 비겁 점수
+    // 3. 득지 판단 (일지 정기가 일간을 생하거나 같은 오행)
+    final deukji = _checkDeukji(dayOheng, chart.dayPillar.ji);
+
+    // 4. 득시 판단 (시지 정기가 일간을 생하거나 같은 오행)
+    final deuksi = chart.hourPillar != null
+        ? _checkDeuksi(dayOheng, chart.hourPillar!.ji)
+        : false;
+
+    // 5. 득세 판단 (비겁/인성이 많은지)
     final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
-    final bigeopScore = _calculateBigeopScore(bigeopCount);
-
-    // 4. 인성 점수
     final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
-    final inseongScore = _calculateInseongScore(inseongCount);
+    final deukse = (bigeopCount + inseongCount) >= 3;
 
-    // 5. 재관식상 감점
+    // 6. 월령 득실 상태
+    final monthStatus = _checkMonthStatus(dayOheng, chart.monthPillar.ji);
+
+    // 7. 점수 계산 (포스텔러 기준)
+    final score = _calculateScore(
+      deukryeong: deukryeong,
+      deukji: deukji,
+      deuksi: deuksi,
+      deukse: deukse,
+      sipsinDistribution: sipsinDistribution,
+    );
+
+    // 8. 8단계 등급 결정
+    final level = _determineLevel8(score);
+
+    // 세부 정보
     final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
     final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
     final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
-    final exhaustTotal = jaeseongCount + gwanseongCount + siksangCount;
-    final exhaustionScore = _calculateExhaustionPenalty(exhaustTotal);
-
-    // 6. 총점 계산
-    final totalScore =
-        baseScore + monthScore + bigeopScore + inseongScore - exhaustionScore;
-    final clampedScore = totalScore.clamp(0, 100);
-
-    // 7. 강약 등급 결정
-    final level = _determineLevel(clampedScore);
 
     return DayStrength(
-      score: clampedScore,
+      score: score,
       level: level,
-      monthScore: monthScore,
-      bigeopScore: bigeopScore,
-      inseongScore: inseongScore,
-      exhaustionScore: exhaustionScore,
+      monthScore: deukryeong ? 20 : (monthStatus == MonthStatus.silwol ? -10 : 0),
+      bigeopScore: bigeopCount * 5,
+      inseongScore: inseongCount * 5,
+      exhaustionScore: (jaeseongCount + gwanseongCount + siksangCount) * 3,
       details: DayStrengthDetails(
         monthStatus: monthStatus,
         bigeopCount: bigeopCount,
@@ -70,18 +67,126 @@ class DayStrengthService {
         gwanseongCount: gwanseongCount,
         siksangCount: siksangCount,
       ),
+      // 새로운 필드들
+      deukryeong: deukryeong,
+      deukji: deukji,
+      deuksi: deuksi,
+      deukse: deukse,
     );
   }
 
-  /// 십신 분포 계산 (천간 + 지장간)
+  /// 득령 판단 (월지 정기 기준)
+  bool _checkDeukryeong(Oheng dayOheng, String monthJi) {
+    final jeongGi = getJeongGi(monthJi);
+    if (jeongGi == null) return false;
+
+    final jeongGiOheng = cheonganToOheng[jeongGi];
+    if (jeongGiOheng == null) return false;
+
+    // 같은 오행이거나 정기가 일간을 생함
+    return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
+  }
+
+  /// 득지 판단 (일지 정기 기준)
+  bool _checkDeukji(Oheng dayOheng, String dayJi) {
+    final jeongGi = getJeongGi(dayJi);
+    if (jeongGi == null) return false;
+
+    final jeongGiOheng = cheonganToOheng[jeongGi];
+    if (jeongGiOheng == null) return false;
+
+    // 같은 오행이거나 정기가 일간을 생함
+    return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
+  }
+
+  /// 득시 판단 (시지 정기 기준)
+  bool _checkDeuksi(Oheng dayOheng, String hourJi) {
+    final jeongGi = getJeongGi(hourJi);
+    if (jeongGi == null) return false;
+
+    final jeongGiOheng = cheonganToOheng[jeongGi];
+    if (jeongGiOheng == null) return false;
+
+    // 같은 오행이거나 정기가 일간을 생함
+    return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
+  }
+
+  /// 점수 계산 (포스텔러 기준 - 50점 중심 정규분포)
+  int _calculateScore({
+    required bool deukryeong,
+    required bool deukji,
+    required bool deuksi,
+    required bool deukse,
+    required Map<SipSinCategory, int> sipsinDistribution,
+  }) {
+    // 기본 점수 50 (중화 기준)
+    double score = 50.0;
+
+    // 득령: ±15점 (가장 중요)
+    if (deukryeong) {
+      score += 15;
+    } else {
+      score -= 8;
+    }
+
+    // 득지: ±10점
+    if (deukji) {
+      score += 10;
+    } else {
+      score -= 5;
+    }
+
+    // 득시: ±7점
+    if (deuksi) {
+      score += 7;
+    } else {
+      score -= 3;
+    }
+
+    // 득세: ±8점
+    if (deukse) {
+      score += 8;
+    } else {
+      score -= 4;
+    }
+
+    // 비겁/인성 보너스 (각 +3점, 최대 +12점)
+    final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
+    final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
+    score += (bigeopCount * 3).clamp(0, 12);
+    score += (inseongCount * 3).clamp(0, 9);
+
+    // 재관식상 감점 (각 -2점, 최대 -15점)
+    final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
+    final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
+    final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
+    score -= ((jaeseongCount + gwanseongCount + siksangCount) * 2).clamp(0, 15);
+
+    return score.round().clamp(0, 100);
+  }
+
+  /// 8단계 등급 결정 (포스텔러 기준)
+  DayStrengthLevel _determineLevel8(int score) {
+    if (score >= 88) return DayStrengthLevel.geukwang;    // 극왕
+    if (score >= 75) return DayStrengthLevel.taegang;     // 태강
+    if (score >= 63) return DayStrengthLevel.singang;     // 신강
+    if (score >= 50) return DayStrengthLevel.junghwaSingang; // 중화신강
+    if (score >= 38) return DayStrengthLevel.junghwaSinyak;  // 중화신약
+    if (score >= 26) return DayStrengthLevel.sinyak;      // 신약
+    if (score >= 13) return DayStrengthLevel.taeyak;      // 태약
+    return DayStrengthLevel.geukyak;                       // 극약
+  }
+
+  /// 십신 분포 계산 (천간 + 지장간 정기만)
   Map<SipSinCategory, int> _calculateSipsinDistribution(
     SajuChart chart,
     String dayMaster,
   ) {
     final distribution = <SipSinCategory, int>{};
 
-    // 천간 분석 (년간, 월간, 시간) - 일간은 나 자신이므로 제외
+    // 천간 분석 (년간, 월간, 시간) - 일간은 비견으로 포함
     final gans = [
+      dayMaster, // 일간 자체도 비견으로 포함 (포스텔러 방식)
       chart.yearPillar.gan,
       chart.monthPillar.gan,
       if (chart.hourPillar != null) chart.hourPillar!.gan,
@@ -93,7 +198,7 @@ class DayStrengthService {
       distribution[category] = (distribution[category] ?? 0) + 1;
     }
 
-    // 지장간 분석 (년지, 월지, 일지, 시지)
+    // 지장간 분석 (정기만 계산)
     final jis = [
       chart.yearPillar.ji,
       chart.monthPillar.ji,
@@ -102,13 +207,11 @@ class DayStrengthService {
     ];
 
     for (final ji in jis) {
-      final jijanggan = getJiJangGan(ji);
-      for (final jjg in jijanggan) {
-        // 정기만 1점, 중기/여기는 0.5점으로 계산 (반올림)
-        final sipsin = calculateSipSin(dayMaster, jjg.gan);
+      final jeongGi = getJeongGi(ji);
+      if (jeongGi != null) {
+        final sipsin = calculateSipSin(dayMaster, jeongGi);
         final category = sipsinToCategory[sipsin]!;
-        final weight = jjg.type == JiJangGanType.jeongGi ? 1 : 0;
-        distribution[category] = (distribution[category] ?? 0) + weight;
+        distribution[category] = (distribution[category] ?? 0) + 1;
       }
     }
 
@@ -116,13 +219,9 @@ class DayStrengthService {
   }
 
   /// 월령 득실 판단
-  MonthStatus _checkMonthStatus(String dayMaster, String monthJi) {
-    final dayOheng = cheonganToOheng[dayMaster];
+  MonthStatus _checkMonthStatus(Oheng dayOheng, String monthJi) {
     final monthOheng = jijiToOheng[monthJi];
-
-    if (dayOheng == null || monthOheng == null) {
-      return MonthStatus.neutral;
-    }
+    if (monthOheng == null) return MonthStatus.neutral;
 
     // 같은 오행 또는 월지가 일간을 생함 → 득월
     if (dayOheng == monthOheng || ohengSangsaeng[monthOheng] == dayOheng) {
@@ -136,49 +235,5 @@ class DayStrengthService {
     }
 
     return MonthStatus.neutral;
-  }
-
-  /// 월령 점수 계산
-  int _calculateMonthScore(MonthStatus status) {
-    switch (status) {
-      case MonthStatus.deukwol:
-        return monthMaxScore; // +40점
-      case MonthStatus.neutral:
-        return monthMaxScore ~/ 2; // +20점
-      case MonthStatus.silwol:
-        return -20; // -20점
-    }
-  }
-
-  /// 비겁 점수 계산
-  int _calculateBigeopScore(int count) {
-    if (count >= 4) return bigeopMaxScore; // +25점
-    if (count >= 2) return 15; // +15점
-    if (count >= 1) return 5; // +5점
-    return -10; // -10점 (비겁 없음)
-  }
-
-  /// 인성 점수 계산
-  int _calculateInseongScore(int count) {
-    if (count >= 3) return inseongMaxScore; // +20점
-    if (count >= 2) return 15; // +15점
-    if (count >= 1) return 5; // +5점
-    return 0; // 0점
-  }
-
-  /// 재관식상 감점 계산
-  int _calculateExhaustionPenalty(int count) {
-    if (count >= 6) return exhaustMaxPenalty; // -15점
-    if (count >= 4) return 5; // -5점
-    return 0;
-  }
-
-  /// 강약 등급 결정
-  DayStrengthLevel _determineLevel(int score) {
-    if (score >= 80) return DayStrengthLevel.veryStrong;
-    if (score >= 65) return DayStrengthLevel.strong;
-    if (score >= 40) return DayStrengthLevel.medium;
-    if (score >= 25) return DayStrengthLevel.weak;
-    return DayStrengthLevel.veryWeak;
   }
 }

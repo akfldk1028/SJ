@@ -4,7 +4,7 @@ class DayStrength {
   /// 총점 (0-100)
   final int score;
 
-  /// 강약 등급
+  /// 강약 등급 (8단계)
   final DayStrengthLevel level;
 
   /// 월령 득실 점수
@@ -22,6 +22,18 @@ class DayStrength {
   /// 세부 분석 정보
   final DayStrengthDetails details;
 
+  /// 득령 여부 (월지 정기가 일간을 생하거나 같은 오행)
+  final bool deukryeong;
+
+  /// 득지 여부 (일지 정기가 일간을 생하거나 같은 오행)
+  final bool deukji;
+
+  /// 득시 여부 (시지 정기가 일간을 생하거나 같은 오행)
+  final bool deuksi;
+
+  /// 득세 여부 (비겁/인성이 3개 이상)
+  final bool deukse;
+
   const DayStrength({
     required this.score,
     required this.level,
@@ -30,41 +42,83 @@ class DayStrength {
     required this.inseongScore,
     required this.exhaustionScore,
     required this.details,
+    this.deukryeong = false,
+    this.deukji = false,
+    this.deuksi = false,
+    this.deukse = false,
   });
 
-  /// 신강 여부
-  bool get isStrong =>
-      level == DayStrengthLevel.veryStrong || level == DayStrengthLevel.strong;
+  /// 신강 여부 (중화신강 이상)
+  bool get isStrong => score >= 50;
 
-  /// 신약 여부
-  bool get isWeak =>
-      level == DayStrengthLevel.veryWeak || level == DayStrengthLevel.weak;
+  /// 신약 여부 (중화신약 이하)
+  bool get isWeak => score < 50;
 
-  /// 중화 여부
-  bool get isNeutral => level == DayStrengthLevel.medium;
+  /// 중화 여부 (중화신강 또는 중화신약)
+  bool get isNeutral =>
+      level == DayStrengthLevel.junghwaSingang ||
+      level == DayStrengthLevel.junghwaSinyak;
+
+  /// 득 개수 (득령/득지/득시/득세 중 true인 개수)
+  int get deukCount =>
+      (deukryeong ? 1 : 0) +
+      (deukji ? 1 : 0) +
+      (deuksi ? 1 : 0) +
+      (deukse ? 1 : 0);
 }
 
-/// 일간 강약 등급
+/// 일간 강약 등급 (8단계 - 포스텔러 기준)
 enum DayStrengthLevel {
-  /// 신강 (80점 이상)
-  veryStrong('신강', '身强'),
+  /// 극왕 (88-100점)
+  geukwang('극왕', '極旺'),
 
-  /// 강 (65-79점)
-  strong('강', '强'),
+  /// 태강 (75-87점)
+  taegang('태강', '太强'),
 
-  /// 중 (40-64점)
-  medium('중화', '中和'),
+  /// 신강 (63-74점)
+  singang('신강', '身强'),
 
-  /// 약 (25-39점)
-  weak('약', '弱'),
+  /// 중화신강 (50-62점)
+  junghwaSingang('중화신강', '中和身强'),
 
-  /// 신약 (24점 이하)
-  veryWeak('신약', '身弱');
+  /// 중화신약 (38-49점)
+  junghwaSinyak('중화신약', '中和身弱'),
+
+  /// 신약 (26-37점)
+  sinyak('신약', '身弱'),
+
+  /// 태약 (13-25점)
+  taeyak('태약', '太弱'),
+
+  /// 극약 (0-12점)
+  geukyak('극약', '極弱');
 
   final String korean;
   final String hanja;
 
   const DayStrengthLevel(this.korean, this.hanja);
+
+  /// 8단계 인덱스 (0=극약 ~ 7=극왕)
+  int get index8 {
+    switch (this) {
+      case DayStrengthLevel.geukyak:
+        return 0;
+      case DayStrengthLevel.taeyak:
+        return 1;
+      case DayStrengthLevel.sinyak:
+        return 2;
+      case DayStrengthLevel.junghwaSinyak:
+        return 3;
+      case DayStrengthLevel.junghwaSingang:
+        return 4;
+      case DayStrengthLevel.singang:
+        return 5;
+      case DayStrengthLevel.taegang:
+        return 6;
+      case DayStrengthLevel.geukwang:
+        return 7;
+    }
+  }
 }
 
 /// 일간 강약 세부 분석

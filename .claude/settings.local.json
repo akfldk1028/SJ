@@ -48,7 +48,9 @@
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat test:*)",
       "Bash(claude mcp list:*)",
       "Bash(claude mcp call:*)",
-      "Bash(curl -s \"https://mcp.supabase.com/mcp?project_ref=kfciluyxkomskyxjaeat\")"
+      "Bash(curl -s \"https://mcp.supabase.com/mcp?project_ref=kfciluyxkomskyxjaeat\")",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/presentation/widgets/fortune_display.dart lib/features/saju_chart/presentation/widgets/saju_detail_tabs.dart)",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze E:SJfrontendlibfeaturessaju_chartpresentationwidgets)"
     ],
     "deny": [],
     "ask": []

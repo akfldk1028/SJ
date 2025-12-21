@@ -307,7 +307,7 @@ class SajuAnalysisRepository {
     if (json == null) {
       return DayStrength(
         score: 50,
-        level: DayStrengthLevel.medium,
+        level: DayStrengthLevel.junghwaSingang,
         monthScore: 0,
         bigeopScore: 0,
         inseongScore: 0,
@@ -315,9 +315,19 @@ class SajuAnalysisRepository {
         details: defaultDetails,
       );
     }
+    // 이전 enum 값 매핑 (하위 호환성)
+    final levelStr = json['level'] as String? ?? 'junghwaSingang';
+    final mappedLevel = switch (levelStr) {
+      'medium' => 'junghwaSingang',
+      'veryStrong' => 'geukwang',
+      'strong' => 'singang',
+      'weak' => 'sinyak',
+      'veryWeak' => 'geukyak',
+      _ => levelStr,
+    };
     return DayStrength(
       score: json['score'] as int? ?? 50,
-      level: DayStrengthLevel.values.byName(json['level'] as String? ?? 'medium'),
+      level: DayStrengthLevel.values.byName(mappedLevel),
       monthScore: json['monthScore'] as int? ?? 0,
       bigeopScore: json['bigeopScore'] as int? ?? 0,
       inseongScore: json['inseongScore'] as int? ?? 0,

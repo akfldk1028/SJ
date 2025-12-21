@@ -17,6 +17,9 @@ import 'jijanggan_display.dart';
 import 'sipsung_display.dart';
 import 'pillar_display.dart';
 import 'possteller_style_table.dart';
+import 'fortune_display.dart';
+import 'day_strength_display.dart';
+import 'oheng_analysis_display.dart';
 import '../../domain/entities/pillar.dart';
 import '../../data/constants/sipsin_relations.dart';
 
@@ -36,6 +39,9 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
   // 탭 정의
   static const _tabs = [
     _TabItem(label: '만세력', icon: Icons.grid_view_rounded),
+    _TabItem(label: '오행', icon: Icons.donut_small),
+    _TabItem(label: '신강', icon: Icons.fitness_center),
+    _TabItem(label: '대운', icon: Icons.timeline),
     _TabItem(label: '합충', icon: Icons.sync_alt),
     _TabItem(label: '십성', icon: Icons.stars_rounded),
     _TabItem(label: '운성', icon: Icons.trending_up),
@@ -154,15 +160,21 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                   children: [
                     // 1. 만세력 탭
                     _ManseryeokTab(chart: chart, oheng: analysis.ohengDistribution),
-                    // 2. 합충 탭
+                    // 2. 오행/십성 분석 탭
+                    OhengAnalysisDisplay(analysis: analysis),
+                    // 3. 신강/신약 + 용신 탭
+                    DayStrengthDisplay(analysis: analysis),
+                    // 4. 대운/세운/월운 탭
+                    FortuneDisplay(analysis: analysis),
+                    // 5. 합충 탭
                     HapchungTab(chart: chart),
-                    // 3. 십성 탭
+                    // 6. 십성 탭
                     _SipSungTab(chart: chart),
-                    // 4. 운성 탭
+                    // 7. 운성 탭
                     _UnsungTab(chart: chart),
-                    // 5. 신살 탭
+                    // 8. 신살 탭
                     _SinsalTab(chart: chart),
-                    // 6. 공망 탭
+                    // 9. 공망 탭
                     _GongmangTab(chart: chart),
                   ],
                 );

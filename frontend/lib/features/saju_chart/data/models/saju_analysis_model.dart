@@ -462,10 +462,19 @@ class SajuAnalysisModel {
   // ========================================
 
   static DayStrengthLevel _parseDayStrengthLevel(String? value) {
-    if (value == null) return DayStrengthLevel.medium;
+    if (value == null) return DayStrengthLevel.junghwaSingang;
+    // 이전 enum 값 매핑 (하위 호환성)
+    final mappedValue = switch (value) {
+      'medium' => 'junghwaSingang',
+      'veryStrong' => 'geukwang',
+      'strong' => 'singang',
+      'weak' => 'sinyak',
+      'veryWeak' => 'geukyak',
+      _ => value,
+    };
     return DayStrengthLevel.values.firstWhere(
-      (e) => e.name == value,
-      orElse: () => DayStrengthLevel.medium,
+      (e) => e.name == mappedValue,
+      orElse: () => DayStrengthLevel.junghwaSingang,
     );
   }
 
@@ -532,7 +541,7 @@ class SajuAnalysisModel {
   static DayStrength _defaultDayStrength() {
     return DayStrength(
       score: 50,
-      level: DayStrengthLevel.medium,
+      level: DayStrengthLevel.junghwaSingang,
       monthScore: 0,
       bigeopScore: 0,
       inseongScore: 0,
