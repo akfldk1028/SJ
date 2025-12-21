@@ -99,3 +99,35 @@ common/ 수정 시:
 - 4-5문장 이내
 - 사주 용어는 쉽게 풀어서 설명
 - 긍정적 톤 유지
+
+---
+
+## 충돌 방지 (Lock 시스템)
+
+### 작업 시작 전
+```bash
+git pull origin develop
+ls .claude/locks/   # lock 파일 확인
+```
+
+### AI/jina/ 폴더는 내 전용 → Lock 불필요
+
+### AI/common/ 수정 시 (JH_AI와 공유)
+```bash
+# 1. Lock 확인
+ls .claude/locks/ai-common.lock
+
+# 2. 없으면 Lock 생성
+echo "owner: Jina
+task: 작업 내용
+started: $(date -Iseconds)" > .claude/locks/ai-common.lock
+
+# 3. 작업 진행...
+
+# 4. 완료 후
+rm .claude/locks/ai-common.lock
+git add . && git commit && git push
+```
+
+### Lock 있으면?
+→ JH_AI가 작업 중. 기다리거나 연락!

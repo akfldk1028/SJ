@@ -196,6 +196,51 @@ features/{feature}/
 
 ---
 
+## Conflict Prevention (필수!!!)
+
+> **모든 Claude CLI 사용자 필독**: 5명이 동시 작업하므로 충돌 방지 필수
+
+### 공유 폴더 수정 전 Lock 체크
+
+**반드시** 아래 폴더 수정 전에 lock 확인:
+
+| 폴더 | Lock 파일 |
+|------|----------|
+| `core/` | `.claude/locks/core.lock` |
+| `shared/` | `.claude/locks/shared.lock` |
+| `AI/common/` | `.claude/locks/ai-common.lock` |
+| `router/` | `.claude/locks/router.lock` |
+| `pubspec.yaml` | `.claude/locks/pubspec.lock` |
+
+### Lock 체크 절차
+
+```
+1. ls .claude/locks/ 실행
+2. 관련 lock 파일 있으면:
+   → "⚠️ [폴더명] 작업 중입니다 (owner: XXX). 기다리거나 연락하세요."
+   → 작업 중단
+3. lock 파일 없으면:
+   → lock 파일 생성
+   → 작업 진행
+4. 작업 완료 후:
+   → lock 파일 삭제
+   → 커밋 + 푸시
+```
+
+### Lock 파일 형식
+```
+owner: DK
+task: 광고 모듈 설정 추가
+started: 2024-12-20T10:30:00
+```
+
+### 작업 시작 전 필수
+```bash
+git pull origin develop  # 항상 최신 상태 유지
+```
+
+---
+
 ## Development Rules
 
 ### Git 브랜치 전략

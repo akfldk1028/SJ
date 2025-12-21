@@ -65,3 +65,32 @@ sql/                        # JH_BE 전용
 2. **PR 리뷰**: core/, shared/ 변경 승인
 3. **인터페이스**: 팀 간 API 변경 시 조율
 4. **릴리즈**: 버전 태깅, 배포 관리
+
+---
+
+## 충돌 방지 (Lock 시스템)
+
+### 작업 시작 전
+```bash
+git pull origin develop
+ls .claude/locks/   # lock 파일 확인
+```
+
+### 공유 폴더 수정 시
+```bash
+# 1. Lock 생성
+echo "owner: DK
+task: 작업 내용
+started: $(date -Iseconds)" > .claude/locks/core.lock
+
+# 2. 작업 진행...
+
+# 3. 완료 후 lock 삭제 + 커밋
+rm .claude/locks/core.lock
+git add . && git commit && git push
+```
+
+### 내가 관리하는 Lock
+- `core.lock` - core/ 폴더
+- `router.lock` - router/ 폴더
+- `pubspec.lock` - pubspec.yaml

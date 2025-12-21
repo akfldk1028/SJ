@@ -77,3 +77,29 @@ class SupabaseChatRepository implements ChatRepositoryInterface {
   Future<List<ChatMessage>> getHistory(String roomId);
 }
 ```
+
+---
+
+## 충돌 방지 (Lock 시스템)
+
+### 작업 시작 전
+```bash
+git pull origin develop
+ls .claude/locks/   # lock 파일 확인
+```
+
+### sql/ 폴더는 내 전용 → Lock 불필요
+
+### core/services/supabase/ 수정 시
+```bash
+# 1. Lock 생성
+echo "owner: JH_BE
+task: 작업 내용
+started: $(date -Iseconds)" > .claude/locks/core.lock
+
+# 2. 작업 진행...
+
+# 3. 완료 후
+rm .claude/locks/core.lock
+git add . && git commit && git push
+```

@@ -116,3 +116,37 @@ class ChatScreen extends StatelessWidget {
 - `ShadDialog` (다이얼로그)
 - `ShadSheet` (바텀시트)
 - `ShadToast` (토스트)
+
+---
+
+## 충돌 방지 (Lock 시스템)
+
+### 작업 시작 전
+```bash
+git pull origin develop
+ls .claude/locks/   # lock 파일 확인
+```
+
+### shared/ 폴더 수정 시
+```bash
+# 1. Lock 생성
+echo "owner: SH
+task: 작업 내용
+started: $(date -Iseconds)" > .claude/locks/shared.lock
+
+# 2. 작업 진행...
+
+# 3. 완료 후
+rm .claude/locks/shared.lock
+git add . && git commit && git push
+```
+
+### features/*/presentation/ 은 내 전용 → Lock 불필요
+
+### core/theme/ 수정 시
+```bash
+echo "owner: SH
+task: 테마 수정
+started: $(date -Iseconds)" > .claude/locks/core.lock
+# ... 작업 후 삭제
+```
