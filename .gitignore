@@ -31,3 +31,4 @@ docs/Image
 .claude/settings.local.json
 
 UI/
+.swarm
