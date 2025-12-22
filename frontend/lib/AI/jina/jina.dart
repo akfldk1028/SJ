@@ -1,49 +1,43 @@
-// AI 모듈
-// GPT + Gemini + DALL-E + Imagen 통합 AI 시스템
-//
-// 폴더 구조:
-// - common/  : 공통 코드 (core, providers, pipelines, prompts)
-// - jh/      : JH 전용 개발 영역
-// - jina/    : Jina 전용 개발 영역
+/// Jina 전용 모듈
+/// 담당: Jina
+/// 역할: Gemini 3.0으로 재미있는 대화 생성 + Nanabanan 이미지
+///
+/// 폴더 구조:
+/// - chat/     : 대화 생성 로직
+/// - personas/ : 페르소나 시스템
+/// - context/  : 맥락 관리
+/// - image/    : Nanabanan 이미지 생성
+/// - providers/: Jina 전용 Provider
 
 // ═══════════════════════════════════════════════════════════════
-// Common - Core
+// Chat - 대화 생성
 // ═══════════════════════════════════════════════════════════════
-export 'common/core/ai_config.dart';
-export 'common/core/ai_cache.dart';
-export 'common/core/ai_logger.dart';
-export 'common/core/base_provider.dart';
+export 'chat/response_generator.dart';
+export 'chat/tone_adjuster.dart';
+export 'chat/emoji_injector.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// Common - LLM Providers
+// Personas - 페르소나
 // ═══════════════════════════════════════════════════════════════
-export 'common/providers/openai/gpt_provider.dart';
-export 'common/providers/google/gemini_provider.dart';
-// export 'common/providers/anthropic/claude_provider.dart'; // 나중에 추가
+export 'personas/persona_base.dart';
+export 'personas/friendly_sister.dart';
+export 'personas/wise_scholar.dart';
+export 'personas/cute_friend.dart';
+export 'personas/persona_selector.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// Common - Image Providers
+// Context - 맥락 관리
 // ═══════════════════════════════════════════════════════════════
-export 'common/providers/image/dalle_provider.dart';
-export 'common/providers/image/imagen_provider.dart';
+export 'context/chat_history_manager.dart';
+export 'context/context_builder.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// Common - Pipelines
+// Image - Nanabanan
 // ═══════════════════════════════════════════════════════════════
-export 'common/pipelines/base_pipeline.dart';
-export 'common/pipelines/saju_pipeline.dart';
+export 'image/nanabanan_provider.dart';
+export 'image/saju_illustration_prompt.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// Common - Prompts
+// Providers
 // ═══════════════════════════════════════════════════════════════
-export 'common/prompts/saju_prompts.dart';
-
-// ═══════════════════════════════════════════════════════════════
-// JH - GPT-5.2 정확한 사주 분석 (담당: JH_AI)
-// ═══════════════════════════════════════════════════════════════
-export 'jh/jh.dart';
-
-// ═══════════════════════════════════════════════════════════════
-// Jina - Gemini 3.0 재미있는 대화 (담당: Jina)
-// ═══════════════════════════════════════════════════════════════
-export 'jina/jina.dart';
+export 'providers/jina_chat_provider.dart';

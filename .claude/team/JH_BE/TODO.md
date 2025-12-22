@@ -74,13 +74,16 @@ CREATE TABLE public.ad_views (
 -- RLS
 ALTER TABLE public.ad_views ENABLE ROW LEVEL SECURITY;
 
+-- ✅ 공식 권장: TO authenticated + (select auth.uid()) 캐싱
 CREATE POLICY "Users can view own ad_views"
   ON public.ad_views FOR SELECT
-  USING (auth.uid() = user_id);
+  TO authenticated
+  USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can insert own ad_views"
   ON public.ad_views FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  TO authenticated
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- 인덱스
 CREATE INDEX idx_ad_views_user_id ON public.ad_views(user_id);
@@ -116,10 +119,12 @@ CREATE TABLE public.user_credits (
 -- RLS
 ALTER TABLE public.user_credits ENABLE ROW LEVEL SECURITY;
 
+-- ✅ 공식 권장: TO authenticated + (select auth.uid()) 캐싱
 CREATE POLICY "Users can manage own credits"
   ON public.user_credits FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  TO authenticated
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 ```
 
 ### 1.3 credit_transactions (크레딧 거래 이력)
@@ -152,9 +157,12 @@ CREATE TABLE public.credit_transactions (
 -- RLS
 ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
 
+-- ✅ 공식 권장: TO authenticated + (select auth.uid()) 캐싱
+-- INSERT는 트리거에서 처리하므로 SELECT만 허용
 CREATE POLICY "Users can view own transactions"
   ON public.credit_transactions FOR SELECT
-  USING (auth.uid() = user_id);
+  TO authenticated
+  USING ((select auth.uid()) = user_id);
 
 -- 인덱스
 CREATE INDEX idx_credit_transactions_user_id ON public.credit_transactions(user_id);

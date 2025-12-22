@@ -68,7 +68,13 @@
       "Bash(git -C \"D:\\\\Data\\\\20_Flutter\\\\01_SJ\" commit -m \"$\\(cat <<''EOF''\n[DK] feat: 팀 협업 구조 추가\n\n- .claude/team/ 폴더 생성 \\(DK, JH_BE, JH_AI, Jina, SH\\)\n- 각 팀원별 ROLE.md 역할 정의\n- TEAM.md 전체 팀 개요\n- CLAUDE.md 팀 구조, AI 모듈, Git 전략 업데이트\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git -C \"D:\\\\Data\\\\20_Flutter\\\\01_SJ\" add CLAUDE.md .claude/team/ .claude/locks/)",
       "Bash(git -C \"D:\\\\Data\\\\20_Flutter\\\\01_SJ\" commit -m \"$\\(cat <<''EOF''\n[DK] feat: 팀 충돌 방지 Lock 시스템 추가\n\n- .claude/locks/ 폴더 생성 \\(공유 폴더 수정 시 lock 필수\\)\n- CLAUDE.md에 Conflict Prevention 섹션 추가\n- 각 팀원 ROLE.md에 Lock 사용법 추가:\n  - DK: core.lock, router.lock, pubspec.lock\n  - JH_BE: core.lock \\(supabase 서비스\\)\n  - JH_AI + Jina: ai-common.lock \\(공동 관리\\)\n  - SH: shared.lock, core.lock \\(테마\\)\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "mcp__memory-service__store_memory"
+      "mcp__memory-service__store_memory",
+      "mcp__brave-search__brave_web_search",
+      "WebFetch(domain:support.google.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:androindian.com)",
+      "WebFetch(domain:developers.google.com)",
+      "WebFetch(domain:codelabs.developers.google.com)"
     ],
     "deny": [],
     "ask": []
