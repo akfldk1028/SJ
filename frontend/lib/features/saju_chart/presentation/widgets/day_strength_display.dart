@@ -162,7 +162,7 @@ class DayStrengthDisplay extends StatelessWidget {
         children: [
           // 막대 그래프
           SizedBox(
-            height: 120,
+            height: 130,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: List.generate(levels.length, (index) {
