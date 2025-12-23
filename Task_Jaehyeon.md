@@ -33,7 +33,8 @@
 | **Phase 13-A (UI 확인)** | ✅ **완료** |
 | **Phase 13-B (ai_summary)** | ✅ **완료** (Edge Function + Flutter 서비스) |
 | **Phase 13-C (배포/테스트)** | ✅ **완료** (2025-12-23) |
-| **다음 작업** | Phase 13-D: 채팅 시작 시 ai_summary 연동 |
+| **Phase 13-D (채팅 연동)** | ✅ **완료** (2025-12-23) |
+| **Phase 13 전체** | ✅ **완료** 🎉 |
 
 ---
 
@@ -2092,35 +2093,93 @@ CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
 
 ---
 
-### 13.4 Phase 13-D: 채팅 연동 (다음 작업)
+### 13.4 Phase 13-D: 채팅 연동 ✅ 완료 (2025-12-23)
 
 **목표**: 채팅 시작 시 ai_summary 없으면 자동 생성
 
 **작업 내용**:
-- [ ] `saju_chat_provider.dart`에서 채팅 시작 전 ai_summary 확인
-- [ ] ai_summary 없으면 `AiSummaryService.generateSummary()` 호출
-- [ ] 생성된 요약을 채팅 컨텍스트에 포함
+- [x] `chat_provider.dart`에서 채팅 시작 전 ai_summary 확인
+- [x] ai_summary 없으면 `AiSummaryService.generateSummary()` 호출
+- [x] 생성된 요약을 채팅 컨텍스트에 포함
+
+**구현 상세**:
+
+1. **`_ensureAiSummary()` 메서드 추가**
+   - 캐시 확인 → DB 조회 → Edge Function 호출 순서
+   - profileId로 해당 프로필의 AI Summary 확인/생성
+   - 세션별로 캐시하여 중복 호출 방지
+
+2. **`_appendAiSummaryToPrompt()` 메서드 추가**
+   - AI Summary를 시스템 프롬프트에 추가
+   - 성격/강점/약점/진로/대인관계/개운법 포함
+   - Gemini가 맞춤형 상담 가능하도록 컨텍스트 제공
+
+3. **`sendMessage()` 수정**
+   - 첫 메시지일 때 자동으로 AI Summary 확인/생성
+   - 이후 메시지는 캐시된 요약 사용
+   - 시스템 프롬프트에 AI Summary 컨텍스트 추가
+
+4. **`clearSession()` 수정**
+   - 새 세션 전환 시 AI Summary 캐시 초기화
+
+**흐름도**:
+```
+채팅 시작
+  ↓
+첫 메시지 전송
+  ↓
+_ensureAiSummary(profileId) 호출
+  ├→ 캐시 있음 → 캐시 반환
+  ├→ DB에 ai_summary 있음 → 캐시 저장 후 반환
+  └→ 없음 → Edge Function 호출 → DB 저장 → 캐시 저장 후 반환
+  ↓
+_appendAiSummaryToPrompt()로 시스템 프롬프트 확장
+  ↓
+Gemini 대화 생성 (사주 분석 컨텍스트 포함)
+```
 
 ---
 
-### 새 세션 시작 프롬프트 (Phase 13-D: 채팅 연동)
+### Phase 13 완료 요약
+
+| 단계 | 내용 | 상태 |
+|------|------|------|
+| 13-A | 12운성/12신살 UI 확인 | ✅ 완료 |
+| 13-B | ai_summary Edge Function + Flutter 서비스 | ✅ 완료 |
+| 13-C | 배포 및 테스트 | ✅ 완료 |
+| 13-D | 채팅 연동 | ✅ 완료 |
+
+**Phase 13 전체 완료** 🎉
+
+---
+
+### 새 세션 시작 프롬프트 (Phase 13-D: 채팅 연동) - 완료됨
 
 ```
 @Task_Jaehyeon.md 읽고 "Phase 13: AI 요약 기능 구현" 섹션 확인해.
 
 현재 상태:
-- Phase 13-B (ai_summary 구현) ✅ 완료
-- Phase 13-C (배포 및 연동) 🔄 진행 예정
+- Phase 13-C (배포/테스트) ✅ 완료
+- Phase 13-D (채팅 연동) 🔄 진행 예정
 
-구현 완료된 파일:
-- supabase/functions/generate-ai-summary/index.ts
-- supabase/functions/generate-ai-summary/prompts.ts
-- frontend/lib/core/services/ai_summary_service.dart
+완료된 것:
+- Edge Function `generate-ai-summary` 배포 완료 (ACTIVE, v1)
+- Flutter `AiSummaryService` 구현 완료
+- 테스트 통과 (신규 생성 + 캐시 기능)
+- DB: saju_analyses 13개 중 1개 ai_summary 있음
 
-다음 작업:
-1. Edge Function 배포 (supabase functions deploy generate-ai-summary)
-2. 채팅 시작 시 ai_summary 없으면 자동 생성 로직 연동
-3. AI Summary 표시 UI (선택)
+관련 파일:
+- Edge Function: supabase/functions/generate-ai-summary/
+- Flutter 서비스: frontend/lib/core/services/ai_summary_service.dart
+- 채팅 Provider: frontend/lib/features/saju_chat/presentation/providers/chat_provider.dart
+- 세션 Provider: frontend/lib/features/saju_chat/presentation/providers/chat_session_provider.dart
+
+Phase 13-D 작업:
+1. chat_provider.dart에서 채팅 시작 전 ai_summary 확인
+2. ai_summary 없으면 AiSummaryService.generateSummary() 호출
+3. 생성된 요약을 채팅 컨텍스트에 포함
+
+채팅 시작 시 ai_summary 자동 생성 로직 연동해줘.
 ```
 
 ---
