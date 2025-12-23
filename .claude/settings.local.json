@@ -50,7 +50,8 @@
       "Bash(claude mcp call:*)",
       "Bash(curl -s \"https://mcp.supabase.com/mcp?project_ref=kfciluyxkomskyxjaeat\")",
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/presentation/widgets/fortune_display.dart lib/features/saju_chart/presentation/widgets/saju_detail_tabs.dart)",
-      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze E:SJfrontendlibfeaturessaju_chartpresentationwidgets)"
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze E:SJfrontendlibfeaturessaju_chartpresentationwidgets)",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/domain/services/day_strength_service.dart --no-fatal-infos)"
     ],
     "deny": [],
     "ask": []

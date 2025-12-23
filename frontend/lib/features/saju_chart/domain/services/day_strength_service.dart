@@ -27,10 +27,10 @@ class DayStrengthService {
         ? _checkDeuksi(dayOheng, chart.hourPillar!.ji)
         : false;
 
-    // 5. 득세 판단 (비겁/인성이 많은지)
-    final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
-    final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
-    final deukse = (bigeopCount + inseongCount) >= 3;
+    // 5. 득세 판단 (천간에서 비겁/인성 개수 - 포스텔러 기준)
+    // 포스텔러는 천간만 세는 것으로 추정 (지장간 제외)
+    final ganBigeopInseong = _countGanBigeopInseong(chart, dayMaster);
+    final deukse = ganBigeopInseong >= 2; // 천간에서 비겁/인성 2개 이상
 
     // 6. 월령 득실 상태
     final monthStatus = _checkMonthStatus(dayOheng, chart.monthPillar.ji);
@@ -48,6 +48,8 @@ class DayStrengthService {
     final level = _determineLevel8(score);
 
     // 세부 정보
+    final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
+    final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
     final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
     final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
     final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
@@ -111,7 +113,8 @@ class DayStrengthService {
     return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
   }
 
-  /// 점수 계산 (포스텔러 기준 - 50점 중심 정규분포)
+  /// 점수 계산 (포스텔러 기준 - 50점 중심)
+  /// 득령/득지/득시/득세만으로 점수 결정 (포스텔러 방식)
   int _calculateScore({
     required bool deukryeong,
     required bool deukji,
@@ -122,45 +125,46 @@ class DayStrengthService {
     // 기본 점수 50 (중화 기준)
     double score = 50.0;
 
-    // 득령: ±15점 (가장 중요)
+    // 득령: +8점 / -6점 (가장 중요)
     if (deukryeong) {
-      score += 15;
-    } else {
-      score -= 8;
-    }
-
-    // 득지: ±10점
-    if (deukji) {
-      score += 10;
-    } else {
-      score -= 5;
-    }
-
-    // 득시: ±7점
-    if (deuksi) {
-      score += 7;
-    } else {
-      score -= 3;
-    }
-
-    // 득세: ±8점
-    if (deukse) {
       score += 8;
+    } else {
+      score -= 6;
+    }
+
+    // 득지: +5점 / -4점
+    if (deukji) {
+      score += 5;
     } else {
       score -= 4;
     }
 
-    // 비겁/인성 보너스 (각 +3점, 최대 +12점)
+    // 득시: +3점 / -2점
+    if (deuksi) {
+      score += 3;
+    } else {
+      score -= 2;
+    }
+
+    // 득세: +4점 / -3점
+    if (deukse) {
+      score += 4;
+    } else {
+      score -= 3;
+    }
+
+    // 십신 분포에 따른 미세 조정 (±3점 이내)
     final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
     final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
-    score += (bigeopCount * 3).clamp(0, 12);
-    score += (inseongCount * 3).clamp(0, 9);
-
-    // 재관식상 감점 (각 -2점, 최대 -15점)
     final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
     final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
     final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
-    score -= ((jaeseongCount + gwanseongCount + siksangCount) * 2).clamp(0, 15);
+
+    // 비겁/인성 보너스 (최대 +3점)
+    score += ((bigeopCount + inseongCount - 3) * 1.0).clamp(-2, 3);
+
+    // 설기(재관식상) 감점 (최대 -3점)
+    score -= ((jaeseongCount + gwanseongCount + siksangCount - 4) * 1.0).clamp(-2, 3);
 
     return score.round().clamp(0, 100);
   }
@@ -216,6 +220,28 @@ class DayStrengthService {
     }
 
     return distribution;
+  }
+
+  /// 천간에서 비겁/인성 개수 (득세 판단용 - 일간 제외)
+  int _countGanBigeopInseong(SajuChart chart, String dayMaster) {
+    int count = 0;
+
+    // 년간, 월간, 시간만 체크 (일간 제외)
+    final gans = [
+      chart.yearPillar.gan,
+      chart.monthPillar.gan,
+      if (chart.hourPillar != null) chart.hourPillar!.gan,
+    ];
+
+    for (final gan in gans) {
+      final sipsin = calculateSipSin(dayMaster, gan);
+      final category = sipsinToCategory[sipsin]!;
+      if (category == SipSinCategory.bigeop || category == SipSinCategory.inseong) {
+        count++;
+      }
+    }
+
+    return count;
   }
 
   /// 월령 득실 판단
