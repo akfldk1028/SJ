@@ -32,7 +32,8 @@
 | **Phase 12-B (12운성/12신살 DB)** | ✅ **완료** (13개 프로필 데이터 채움) |
 | **Phase 13-A (UI 확인)** | ✅ **완료** |
 | **Phase 13-B (ai_summary)** | ✅ **완료** (Edge Function + Flutter 서비스) |
-| **다음 작업** | Edge Function 배포 및 테스트 |
+| **Phase 13-C (배포/테스트)** | ✅ **완료** (2025-12-23) |
+| **다음 작업** | Phase 13-D: 채팅 시작 시 ai_summary 연동 |
 
 ---
 
@@ -1940,7 +1941,7 @@ CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
 | sinsal_list | ✅ 13/13 | 기존 신살 (도화살, 양인살 등) |
 | twelve_unsung | ✅ 13/13 | 12운성 (장생/목욕/관대 등) |
 | twelve_sinsal | ✅ 13/13 | 12신살 (겁살/재살/천살 등) |
-| ai_summary | ❌ 0/13 | **다음 구현 대상** |
+| ai_summary | ✅ 1/13 | 테스트 완료, 점진적 생성 |
 
 #### Flutter 구현 상태
 | 파일 | 상태 | 용도 |
@@ -1955,7 +1956,7 @@ CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
 | 함수 | 상태 | 용도 |
 |------|------|------|
 | `saju-chat` | ✅ 배포됨 | 채팅용 Gemini 호출 |
-| `generate-ai-summary` | ❌ 없음 | **다음 구현 대상** |
+| `generate-ai-summary` | ✅ 배포됨 | AI 사주 요약 생성 |
 
 ---
 
@@ -2035,12 +2036,74 @@ CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
    - AiSummary 및 관련 모델 클래스 (AiPersonality, AiCareer, AiRelationships, AiFortuneTips)
 
 **다음 단계**:
-- [ ] Edge Function 배포: `supabase functions deploy generate-ai-summary`
+- [x] Edge Function 배포: `supabase functions deploy generate-ai-summary` ✅ 완료 (2025-12-23)
 - [ ] 채팅 시작 시 ai_summary 자동 생성 연동
 
 ---
 
-### 새 세션 시작 프롬프트 (Phase 13-C: 배포 및 연동)
+### 13.3 Phase 13-C: 배포 및 테스트 ✅ 완료 (2025-12-23)
+
+**배포 완료**:
+- Supabase MCP를 통해 Edge Function 배포 성공
+- 함수 ID: `49c95700-f647-4e0b-8c09-086224441d16`
+- 버전: v1
+- 상태: ACTIVE
+
+**테스트 결과**:
+1. **신규 생성 테스트** ✅
+   - 프로필 `a3a08334-6629-468b-ba9f-97783e481e4f`에 대해 AI 요약 생성 성공
+   - Gemini 2.0 Flash 모델 사용
+   - JSON 형식 응답 정상 파싱
+
+2. **캐시 테스트** ✅
+   - 동일 프로필 재호출 시 `cached: true` 반환
+   - DB에서 기존 데이터 정상 조회
+
+3. **DB 저장 확인** ✅
+   - `saju_analyses.ai_summary` 컬럼에 JSON 정상 저장
+
+**생성된 AI Summary 예시**:
+```json
+{
+  "personality": {
+    "core": "섬세하고 예민하며, 예술적인 감각이 뛰어납니다",
+    "traits": ["사려 깊음", "예술적", "섬세함"]
+  },
+  "strengths": ["뛰어난 공감 능력", "안정적인 성격", "높은 집중력"],
+  "weaknesses": ["결정력 부족", "소극적인 태도"],
+  "career": {
+    "aptitude": ["예술 분야", "상담 분야", "교육 분야"],
+    "advice": "창의적인 아이디어를 적극적으로 표현하는 것이 좋습니다."
+  },
+  "relationships": {
+    "style": "상대방을 배려하며 조화로운 관계를 지향합니다.",
+    "tips": "자신의 감정을 솔직하게 표현하는 연습이 필요합니다."
+  },
+  "fortune_tips": {
+    "colors": ["흰색", "금색"],
+    "directions": ["서쪽"],
+    "activities": ["악기 연주", "명상"]
+  },
+  "generated_at": "2025-12-23T11:15:57.252Z",
+  "model": "gemini-2.0-flash",
+  "version": "1.0"
+}
+```
+
+---
+
+### 13.4 Phase 13-D: 채팅 연동 (다음 작업)
+
+**목표**: 채팅 시작 시 ai_summary 없으면 자동 생성
+
+**작업 내용**:
+- [ ] `saju_chat_provider.dart`에서 채팅 시작 전 ai_summary 확인
+- [ ] ai_summary 없으면 `AiSummaryService.generateSummary()` 호출
+- [ ] 생성된 요약을 채팅 컨텍스트에 포함
+
+---
+
+### 새 세션 시작 프롬프트 (Phase 13-D: 채팅 연동)
 
 ```
 @Task_Jaehyeon.md 읽고 "Phase 13: AI 요약 기능 구현" 섹션 확인해.

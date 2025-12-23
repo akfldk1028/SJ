@@ -51,7 +51,10 @@
       "Bash(curl -s \"https://mcp.supabase.com/mcp?project_ref=kfciluyxkomskyxjaeat\")",
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/presentation/widgets/fortune_display.dart lib/features/saju_chart/presentation/widgets/saju_detail_tabs.dart)",
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze E:SJfrontendlibfeaturessaju_chartpresentationwidgets)",
-      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/domain/services/day_strength_service.dart --no-fatal-infos)"
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze lib/features/saju_chart/domain/services/day_strength_service.dart --no-fatal-infos)",
+      "Bash(dir:*)",
+      "Bash(curl -s -X POST \"https://kfciluyxkomskyxjaeat.supabase.co/functions/v1/generate-ai-summary\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmY2lsdXl4a29tc2t5eGphZWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNzQ1ODcsImV4cCI6MjA4MDg1MDU4N30.U6bVMabObQvYLp88ATd_JqxoUEJrZ2LiBCYqh3sUNLk\" -H \"Content-Type: application/json\" -d \"{\"\"profile_id\"\":\"\"a3a08334-6629-468b-ba9f-97783e481e4f\"\",\"\"profile_name\"\":\"\"fd\"\",\"\"birth_date\"\":\"\"1999-04-04\"\",\"\"saju_analysis\"\":{\"\"saju\"\":{\"\"year\"\":{\"\"gan\"\":\"\"기\"\",\"\"ji\"\":\"\"묘\"\"},\"\"month\"\":{\"\"gan\"\":\"\"무\"\",\"\"ji\"\":\"\"진\"\"},\"\"day\"\":{\"\"gan\"\":\"\"병\"\",\"\"ji\"\":\"\"술\"\"},\"\"hour\"\":{\"\"gan\"\":\"\"갑\"\",\"\"ji\"\":\"\"오\"\"}},\"\"oheng\"\":{\"\"wood\"\":2,\"\"fire\"\":2,\"\"earth\"\":4,\"\"metal\"\":0,\"\"water\"\":0},\"\"yongsin\"\":{\"\"yongsin\"\":\"\"금\\(金\\)\"\",\"\"huisin\"\":\"\"토\\(土\\)\"\",\"\"gisin\"\":\"\"화\\(火\\)\"\",\"\"gusin\"\":\"\"수\\(水\\)\"\"},\"\"singang_singak\"\":{\"\"is_singang\"\":false,\"\"score\"\":45,\"\"factors\"\":{\"\"deukryeong\"\":false,\"\"deukji\"\":false,\"\"deuksi\"\":true,\"\"deukse\"\":false}}}}\")",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
