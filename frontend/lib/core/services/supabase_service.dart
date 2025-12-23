@@ -55,15 +55,6 @@ class SupabaseService {
   /// Supabase 연결 여부
   static bool get isConnected => _client != null;
 
-  /// GoTrueClient (Auth) 접근
-  /// 연결되지 않은 경우 예외 발생
-  static GoTrueClient get auth {
-    if (_client == null) {
-      throw Exception('Supabase not initialized. Call initialize() first.');
-    }
-    return _client!.auth;
-  }
-
   /// 현재 인증된 사용자
   static User? get currentUser => _client?.auth.currentUser;
 

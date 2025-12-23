@@ -162,10 +162,12 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
         sessionId: message.sessionId,
         content: message.content,
         role: message.role,
+        tokensUsed: message.tokensUsed,
       );
 
       if (kDebugMode) {
-        print('[ChatRepo] Supabase 메시지 저장 완료: ${message.role.name}');
+        final tokenInfo = message.tokensUsed != null ? ', tokens=${message.tokensUsed}' : '';
+        print('[ChatRepo] Supabase 메시지 저장 완료: ${message.role.name}$tokenInfo');
       }
     } catch (e) {
       if (kDebugMode) {

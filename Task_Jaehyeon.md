@@ -35,6 +35,8 @@
 | **Phase 13-C (배포/테스트)** | ✅ **완료** (2025-12-23) |
 | **Phase 13-D (채팅 연동)** | ✅ **완료** (2025-12-23) |
 | **Phase 13 전체** | ✅ **완료** 🎉 |
+| **Phase 14-A (tokens_used)** | ✅ **완료** (2025-12-23) |
+| **Phase 14 (채팅 DB 최적화)** | 🔄 **진행 중** |
 
 ---
 
@@ -2224,6 +2226,151 @@ Flutter 앱에서 12운성/12신살 UI가 제대로 표시되는지 확인해줘
 ai_summary JSON 구조는 Task_Jaehyeon.md 13.2 섹션 참조.
 
 Supabase Edge Function으로 ai_summary 생성 기능 구현해줘.
+```
+
+---
+
+## Phase 14: 채팅 DB 최적화 및 기능 확장 (2025-12-23~)
+
+### 14.0 현재 DB 분석 결과
+
+#### 채팅 테이블 현황 (2025-12-23 분석)
+
+**chat_sessions 테이블**:
+| 컬럼 | 행 수 | NULL 비율 | 상태 |
+|------|-------|-----------|------|
+| id, user_id, profile_id, chat_type | 3 | 0% | ✅ 정상 |
+| title, last_message_preview | 3 | 0% | ✅ 정상 |
+| message_count | 3 | 0% | ✅ 정상 |
+| context_summary | 3 | **100%** | ⚠️ 미사용 |
+| created_at, updated_at | 3 | 0% | ✅ 정상 |
+
+**chat_messages 테이블**:
+| 컬럼 | 행 수 | NULL 비율 | 상태 |
+|------|-------|-----------|------|
+| id, session_id, role, content | 4 | 0% | ✅ 정상 |
+| created_at | 4 | 0% | ✅ 정상 |
+| suggested_questions | 4 | **100%** | ⚠️ 미사용 |
+| tokens_used | 4 | **100%** | ⚠️ 미사용 |
+
+#### NULL 컬럼 분석 및 우선순위
+
+| 우선순위 | 컬럼 | 테이블 | 용도 | 구현 복잡도 |
+|----------|------|--------|------|-------------|
+| **P1** | tokens_used | chat_messages | 토큰 사용량 추적, 비용 분석 | 낮음 (API 응답에서 추출) |
+| **P2** | suggested_questions | chat_messages | 후속 질문 추천 UI | 중간 (AI 생성 필요) |
+| **P3** | context_summary | chat_sessions | 세션 요약 (긴 대화 컨텍스트 관리) | 높음 (요약 로직 필요) |
+
+#### 권장 사항
+
+1. **tokens_used (P1)**: Gemini API 응답의 usageMetadata에서 토큰 정보 추출하여 저장
+2. **suggested_questions (P2)**: AI 응답 생성 시 후속 질문 3개 함께 생성
+3. **context_summary (P3)**: 메시지 10개 이상 시 중간 요약 생성 (Phase 15+에서 검토)
+
+#### Security Advisors 확인 결과
+
+| 항목 | 상태 |
+|------|------|
+| chat_sessions RLS | ✅ 정상 |
+| chat_messages RLS | ✅ 정상 |
+| saju_profiles RLS | ✅ 정상 |
+| saju_analyses RLS | ✅ 정상 |
+
+---
+
+### 14.1 Phase 14-A: tokens_used 구현 ✅ 완료 (2025-12-23)
+
+**목표**: Gemini API 응답에서 토큰 사용량 추출하여 DB 저장
+
+**작업 항목**:
+- [x] GeminiRestDatasource에서 usageMetadata 파싱
+- [x] chat_message 저장 시 tokens_used 포함
+- [x] ChatMessage entity에 tokensUsed 필드 추가 (optional)
+- [ ] 토큰 사용량 통계 쿼리 (선택사항 - Phase 15+)
+
+**구현 내용**:
+
+1. **GeminiResponse 모델 추가** (`gemini_rest_datasource.dart`)
+   - `content`: AI 응답 텍스트
+   - `promptTokenCount`: 프롬프트 토큰 수
+   - `candidatesTokenCount`: 응답 토큰 수
+   - `totalTokenCount`: 총 토큰 수
+   - `thoughtsTokenCount`: Thinking 모드 토큰 수 (Gemini 3.0)
+
+2. **usageMetadata 파싱**
+   - `sendMessageWithMetadata()`: 일반 요청 시 토큰 정보 포함 반환
+   - `sendMessageStream()`: 스트리밍 완료 후 `lastStreamingResponse`에서 토큰 정보 조회
+
+3. **Entity/Model 수정**
+   - `ChatMessage.tokensUsed`: nullable int 필드 추가
+   - `ChatMessageModel.tokensUsed`: freezed 모델에 추가
+   - Hive/Supabase 직렬화 지원
+
+4. **저장 흐름**
+   ```
+   GeminiRestDatasource (usageMetadata 파싱)
+   → ChatRepositoryImpl (getLastTokensUsed())
+   → ChatNotifier (aiMessage.tokensUsed = tokensUsed)
+   → ChatSessionRepositoryImpl (Hive + Supabase 저장)
+   → chat_messages.tokens_used 컬럼에 저장
+   ```
+
+**관련 파일**:
+- `frontend/lib/features/saju_chat/data/datasources/gemini_rest_datasource.dart` ✅
+- `frontend/lib/features/saju_chat/domain/entities/chat_message.dart` ✅
+- `frontend/lib/features/saju_chat/data/models/chat_message_model.dart` ✅
+- `frontend/lib/features/saju_chat/data/repositories/chat_repository_impl.dart` ✅
+- `frontend/lib/features/saju_chat/presentation/providers/chat_provider.dart` ✅
+- `frontend/lib/features/saju_chat/data/repositories/chat_session_repository_impl.dart` ✅
+
+---
+
+### 14.2 Phase 14-B: suggested_questions 구현
+
+**목표**: AI 응답 생성 시 후속 질문 3개 함께 생성
+
+**작업 항목**:
+- [ ] 시스템 프롬프트에 후속 질문 생성 지시 추가
+- [ ] AI 응답 파싱하여 suggested_questions 추출
+- [ ] chat_message 저장 시 suggested_questions 포함
+- [ ] UI에 추천 질문 칩 표시 (widgets/suggested_questions.dart)
+
+**관련 파일**:
+- `frontend/assets/prompts/*.md` (프롬프트 파일)
+- `frontend/lib/features/saju_chat/presentation/widgets/suggested_questions.dart` (신규)
+- `frontend/lib/features/saju_chat/presentation/widgets/chat_message_bubble.dart`
+
+---
+
+### 새 세션 시작 프롬프트 (Phase 14-A: tokens_used)
+
+```
+@Task_Jaehyeon.md 읽고 "Phase 14: 채팅 DB 최적화 및 기능 확장" 섹션 확인해.
+
+현재 상태:
+- Phase 13 (AI 요약 기능) ✅ 전체 완료
+- Phase 14-A (tokens_used) 🔄 진행 예정
+
+완료된 것:
+- AI Summary 자동 생성 및 채팅 연동 완료
+- chat_sessions, chat_messages 테이블 정상 동작
+- RLS 보안 정상
+
+DB 분석 결과:
+- chat_messages.tokens_used 컬럼이 100% NULL
+- Gemini API 응답에 usageMetadata가 있음 (promptTokenCount, candidatesTokenCount, totalTokenCount)
+
+주요 파일:
+- Gemini Datasource: frontend/lib/features/saju_chat/data/datasources/gemini_rest_datasource.dart
+- ChatMessage Entity: frontend/lib/features/saju_chat/domain/entities/chat_message.dart
+- Session Provider: frontend/lib/features/saju_chat/presentation/providers/chat_session_provider.dart
+
+Phase 14-A 작업:
+1. gemini_rest_datasource.dart에서 usageMetadata 파싱
+2. ChatMessage entity에 tokensUsed 필드 추가
+3. AI 응답 저장 시 토큰 사용량 포함
+
+Gemini API 응답에서 토큰 사용량 추출하여 DB에 저장하는 기능 구현해줘.
 ```
 
 ---

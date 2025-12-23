@@ -11,6 +11,9 @@ class ChatMessage {
   final DateTime createdAt;
   final MessageStatus status;
 
+  /// AI 응답의 토큰 사용량 (user 메시지는 null)
+  final int? tokensUsed;
+
   const ChatMessage({
     required this.id,
     required this.sessionId,
@@ -18,6 +21,7 @@ class ChatMessage {
     required this.role,
     required this.createdAt,
     this.status = MessageStatus.sent,
+    this.tokensUsed,
   });
 
   ChatMessage copyWith({
@@ -27,6 +31,7 @@ class ChatMessage {
     MessageRole? role,
     DateTime? createdAt,
     MessageStatus? status,
+    int? tokensUsed,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -35,6 +40,7 @@ class ChatMessage {
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
+      tokensUsed: tokensUsed ?? this.tokensUsed,
     );
   }
 

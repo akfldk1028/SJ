@@ -7,6 +7,8 @@ import '../../domain/repositories/chat_repository.dart';
 import '../datasources/ai_pipeline_manager.dart';
 import '../datasources/gemini_rest_datasource.dart';
 
+export '../datasources/gemini_rest_datasource.dart' show GeminiResponse;
+
 /// ChatRepository 구현체
 ///
 /// 듀얼 AI 파이프라인:
@@ -153,5 +155,18 @@ class ChatRepositoryImpl implements ChatRepository {
   /// 분석 캐시 초기화
   void clearAnalysisCache([String? sessionId]) {
     _pipeline?.clearCache(sessionId);
+  }
+
+  /// 마지막 스트리밍 응답의 토큰 사용량 조회
+  ///
+  /// sendMessageStream 완료 후 호출하면 토큰 사용량을 반환
+  /// 스트리밍 중이거나 아직 응답이 없으면 null 반환
+  GeminiResponse? getLastStreamingResponse() {
+    return _datasource.lastStreamingResponse;
+  }
+
+  /// 마지막 응답의 토큰 사용량만 조회 (편의 메서드)
+  int? getLastTokensUsed() {
+    return _datasource.lastStreamingResponse?.tokensUsed;
   }
 }

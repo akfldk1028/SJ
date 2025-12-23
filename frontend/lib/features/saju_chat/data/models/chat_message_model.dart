@@ -17,6 +17,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
     required String role, // MessageRole enum을 문자열로 저장
     required DateTime createdAt,
     @Default('sent') String status, // MessageStatus enum을 문자열로 저장
+    int? tokensUsed, // AI 응답의 토큰 사용량
   }) = _ChatMessageModel;
 
   const ChatMessageModel._();
@@ -34,6 +35,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       role: _parseRole(role),
       createdAt: createdAt,
       status: _parseStatus(status),
+      tokensUsed: tokensUsed,
     );
   }
 
@@ -46,6 +48,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       role: entity.role.name,
       createdAt: entity.createdAt,
       status: entity.status.name,
+      tokensUsed: entity.tokensUsed,
     );
   }
 
@@ -58,6 +61,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       'role': role,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'status': status,
+      'tokensUsed': tokensUsed,
     };
   }
 
@@ -70,6 +74,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       role: map['role'] as String,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
       status: (map['status'] as String?) ?? 'sent',
+      tokensUsed: map['tokensUsed'] as int?,
     );
   }
 
@@ -82,6 +87,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       'role': role,
       'status': status,
       'created_at': createdAt.toIso8601String(),
+      'tokens_used': tokensUsed,
     };
   }
 
@@ -92,6 +98,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       'content': content,
       'role': role,
       'status': status,
+      'tokens_used': tokensUsed,
     };
   }
 
@@ -104,6 +111,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       role: map['role'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
       status: (map['status'] as String?) ?? 'sent',
+      tokensUsed: map['tokens_used'] as int?,
     );
   }
 

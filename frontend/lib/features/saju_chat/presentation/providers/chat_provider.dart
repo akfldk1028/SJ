@@ -333,13 +333,20 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
         );
       }
 
-      // 스트리밍 완료 후 메시지로 추가 (sessionId 포함)
+      // 스트리밍 완료 후 토큰 사용량 조회
+      final tokensUsed = _repository.getLastTokensUsed();
+      if (kDebugMode && tokensUsed != null) {
+        print('[ChatNotifier] 토큰 사용량: $tokensUsed');
+      }
+
+      // 스트리밍 완료 후 메시지로 추가 (sessionId + tokensUsed 포함)
       final aiMessage = ChatMessage(
         id: _uuid.v4(),
         sessionId: currentSessionId,
         content: fullContent,
         role: MessageRole.assistant,
         createdAt: DateTime.now(),
+        tokensUsed: tokensUsed,
       );
 
       state = state.copyWith(
@@ -348,7 +355,7 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
         streamingContent: null,
       );
 
-      // AI 메시지 저장
+      // AI 메시지 저장 (tokensUsed 포함)
       await sessionRepository.saveMessage(aiMessage);
 
       // 세션 메타데이터 업데이트

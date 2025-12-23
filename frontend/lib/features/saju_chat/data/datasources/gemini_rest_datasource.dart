@@ -4,6 +4,26 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// Gemini API 응답 (토큰 사용량 포함)
+class GeminiResponse {
+  final String content;
+  final int? promptTokenCount;
+  final int? candidatesTokenCount;
+  final int? totalTokenCount;
+  final int? thoughtsTokenCount;
+
+  const GeminiResponse({
+    required this.content,
+    this.promptTokenCount,
+    this.candidatesTokenCount,
+    this.totalTokenCount,
+    this.thoughtsTokenCount,
+  });
+
+  /// 총 토큰 사용량 (AI 응답 저장용)
+  int? get tokensUsed => totalTokenCount;
+}
+
 /// Gemini 3.0 REST API 데이터소스
 ///
 /// REST API를 직접 호출하여 Gemini 3.0 사용
@@ -50,10 +70,10 @@ class GeminiRestDatasource {
     _systemPrompt = systemPrompt;
   }
 
-  /// 메시지 전송 및 응답 받기
-  Future<String> sendMessage(String message) async {
+  /// 메시지 전송 및 응답 받기 (토큰 사용량 포함)
+  Future<GeminiResponse> sendMessageWithMetadata(String message) async {
     if (!_isInitialized) {
-      return _getMockResponse(message);
+      return GeminiResponse(content: _getMockResponse(message));
     }
 
     try {
@@ -74,12 +94,19 @@ class GeminiRestDatasource {
       final candidates = responseData['candidates'] as List?;
 
       if (candidates == null || candidates.isEmpty) {
-        return '응답을 받지 못했습니다.';
+        return const GeminiResponse(content: '응답을 받지 못했습니다.');
       }
 
       final content = candidates[0]['content'] as Map<String, dynamic>;
       final parts = content['parts'] as List;
       final text = parts[0]['text'] as String;
+
+      // usageMetadata 파싱
+      final usageMetadata = responseData['usageMetadata'] as Map<String, dynamic>?;
+      final promptTokenCount = usageMetadata?['promptTokenCount'] as int?;
+      final candidatesTokenCount = usageMetadata?['candidatesTokenCount'] as int?;
+      final totalTokenCount = usageMetadata?['totalTokenCount'] as int?;
+      final thoughtsTokenCount = usageMetadata?['thoughtsTokenCount'] as int?;
 
       // 대화 기록에 AI 응답 추가
       _conversationHistory.add({
@@ -89,7 +116,13 @@ class GeminiRestDatasource {
         ],
       });
 
-      return text;
+      return GeminiResponse(
+        content: text,
+        promptTokenCount: promptTokenCount,
+        candidatesTokenCount: candidatesTokenCount,
+        totalTokenCount: totalTokenCount,
+        thoughtsTokenCount: thoughtsTokenCount,
+      );
     } on DioException catch (e) {
       if (e.response != null) {
         final errorData = e.response?.data;
@@ -101,14 +134,29 @@ class GeminiRestDatasource {
     }
   }
 
-  /// 스트리밍 응답
+  /// 메시지 전송 및 응답 받기 (기존 호환성 유지)
+  Future<String> sendMessage(String message) async {
+    final response = await sendMessageWithMetadata(message);
+    return response.content;
+  }
+
+  /// 마지막 스트리밍 응답의 토큰 사용량 (스트리밍 완료 후 조회 가능)
+  GeminiResponse? _lastStreamingResponse;
+
+  /// 마지막 스트리밍 응답의 토큰 사용량 getter
+  GeminiResponse? get lastStreamingResponse => _lastStreamingResponse;
+
+  /// 스트리밍 응답 (토큰 사용량은 lastStreamingResponse에서 조회)
   Stream<String> sendMessageStream(String message) async* {
+    _lastStreamingResponse = null;
+
     if (!_isInitialized) {
       final mockResponse = _getMockResponse(message);
       for (int i = 0; i < mockResponse.length; i++) {
         await Future.delayed(const Duration(milliseconds: 20));
         yield mockResponse.substring(0, i + 1);
       }
+      _lastStreamingResponse = GeminiResponse(content: mockResponse);
       return;
     }
 
@@ -131,6 +179,12 @@ class GeminiRestDatasource {
       String accumulated = '';
       final stream = response.data!.stream;
 
+      // 토큰 사용량 수집 (마지막 청크에서)
+      int? promptTokenCount;
+      int? candidatesTokenCount;
+      int? totalTokenCount;
+      int? thoughtsTokenCount;
+
       await for (final chunk in stream) {
         final chunkStr = utf8.decode(chunk);
         final lines = chunkStr.split('\n');
@@ -142,6 +196,16 @@ class GeminiRestDatasource {
 
             try {
               final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+              // usageMetadata 파싱 (마지막 청크에 포함됨)
+              final usageMetadata = data['usageMetadata'] as Map<String, dynamic>?;
+              if (usageMetadata != null) {
+                promptTokenCount = usageMetadata['promptTokenCount'] as int?;
+                candidatesTokenCount = usageMetadata['candidatesTokenCount'] as int?;
+                totalTokenCount = usageMetadata['totalTokenCount'] as int?;
+                thoughtsTokenCount = usageMetadata['thoughtsTokenCount'] as int?;
+              }
+
               final candidates = data['candidates'] as List?;
               if (candidates != null && candidates.isNotEmpty) {
                 final content = candidates[0]['content'] as Map<String, dynamic>?;
@@ -172,6 +236,15 @@ class GeminiRestDatasource {
           ],
         });
       }
+
+      // 마지막 스트리밍 응답 저장 (토큰 사용량 포함)
+      _lastStreamingResponse = GeminiResponse(
+        content: accumulated,
+        promptTokenCount: promptTokenCount,
+        candidatesTokenCount: candidatesTokenCount,
+        totalTokenCount: totalTokenCount,
+        thoughtsTokenCount: thoughtsTokenCount,
+      );
     } on DioException catch (e) {
       throw Exception('스트리밍 오류: ${e.message}');
     } catch (e) {
