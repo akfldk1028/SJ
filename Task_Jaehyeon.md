@@ -2342,28 +2342,46 @@ Supabase Edge Function으로 ai_summary 생성 기능 구현해줘.
 
 ---
 
-### 새 세션 시작 프롬프트 (Phase 14-A: tokens_used)
+### 새 세션 시작 프롬프트 (Phase 14-B: suggested_questions)
 
 ```
+context7, supabase mcp써서 아래 프롬포트 제대로 해봐
 @Task_Jaehyeon.md 읽고 "Phase 14: 채팅 DB 최적화 및 기능 확장" 섹션 확인해.
 
 현재 상태:
-- Phase 13 (AI 요약 기능) ✅ 전체 완료
-- Phase 14-A (tokens_used) 🔄 진행 예정
+- Phase 14-A (tokens_used) ✅ 완료
+- Phase 14-B (suggested_questions) 🔄 진행 예정
 
 완료된 것:
-- AI Summary 자동 생성 및 채팅 연동 완료
-- chat_sessions, chat_messages 테이블 정상 동작
-- RLS 보안 정상
+- tokens_used 컬럼에 토큰 사용량 저장 완료
+- Gemini usageMetadata 파싱 완료
+- OpenAI API 키 .env에 추가 완료
 
 DB 분석 결과:
-- chat_messages.tokens_used 컬럼이 100% NULL
-- Gemini API 응답에 usageMetadata가 있음 (promptTokenCount, candidatesTokenCount, totalTokenCount)
+- chat_messages.suggested_questions 컬럼이 100% NULL
+- AI 응답에 후속 질문 3개 포함하도록 프롬프트 수정 필요
 
 주요 파일:
-- Gemini Datasource: frontend/lib/features/saju_chat/data/datasources/gemini_rest_datasource.dart
+- 프롬프트: frontend/assets/prompts/*.md
 - ChatMessage Entity: frontend/lib/features/saju_chat/domain/entities/chat_message.dart
-- Session Provider: frontend/lib/features/saju_chat/presentation/providers/chat_session_provider.dart
+- 추천 질문 위젯: frontend/lib/features/saju_chat/presentation/widgets/suggested_questions.dart
+
+Phase 14-B 작업:
+1. 시스템 프롬프트에 후속 질문 생성 지시 추가
+2. AI 응답 파싱하여 suggested_questions 추출
+3. ChatMessage entity에 suggestedQuestions 필드 추가
+4. UI에 추천 질문 칩 표시
+
+AI 응답에서 후속 질문 3개 추출하여 DB에 저장하고 UI에 표시하는 기능 구현해줘.
+```
+
+---
+
+### 참고: Phase 14-A 프롬프트 (완료됨)
+
+```
+# 이미 완료된 작업 - 참고용
+@Task_Jaehyeon.md 읽고 "Phase 14: 채팅 DB 최적화 및 기능 확장" 섹션 확인해.
 
 Phase 14-A 작업:
 1. gemini_rest_datasource.dart에서 usageMetadata 파싱
