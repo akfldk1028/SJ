@@ -402,11 +402,11 @@ test/
 
 ### 10.1 Supabase 클라이언트 설정
 ```dart
-// core/supabase/supabase_client.dart
+// core/sql/supabase_client.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
-  static const String supabaseUrl = 'https://[PROJECT_ID].supabase.co';
+  static const String supabaseUrl = 'https://[PROJECT_ID].sql.co';
   static const String supabaseAnonKey = '[ANON_KEY]';
 
   static SupabaseClient get client => Supabase.instance.client;
@@ -430,7 +430,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://[PROJECT_ID].supabase.co',
+    url: 'https://[PROJECT_ID].sql.co',
     anonKey: '[ANON_KEY]',
   );
 
@@ -440,7 +440,7 @@ void main() async {
 
 ### 10.3 Supabase Provider (Riverpod)
 ```dart
-// core/supabase/supabase_provider.dart
+// core/sql/supabase_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -481,7 +481,7 @@ class AuthRemoteDataSource {
   Future<void> signInWithGoogle() async {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: 'io.supabase.mantok://login-callback/',
+      redirectTo: 'io.sql.mantok://login-callback/',
     );
   }
 
@@ -489,7 +489,7 @@ class AuthRemoteDataSource {
   Future<void> signInWithKakao() async {
     await _client.auth.signInWithOAuth(
       OAuthProvider.kakao,
-      redirectTo: 'io.supabase.mantok://login-callback/',
+      redirectTo: 'io.sql.mantok://login-callback/',
     );
   }
 
@@ -543,7 +543,7 @@ class ProfileRemoteDataSource {
 
 ### 10.6 Supabase Edge Functions 호출
 ```dart
-// core/supabase/edge_functions.dart
+// core/sql/edge_functions.dart
 class EdgeFunctions {
   final SupabaseClient _client;
 
@@ -604,11 +604,11 @@ class AppConfig {
   static String get supabaseUrl {
     switch (environment) {
       case Environment.dev:
-        return 'https://[DEV_PROJECT].supabase.co';
+        return 'https://[DEV_PROJECT].sql.co';
       case Environment.staging:
-        return 'https://[STAGING_PROJECT].supabase.co';
+        return 'https://[STAGING_PROJECT].sql.co';
       case Environment.prod:
-        return 'https://[PROD_PROJECT].supabase.co';
+        return 'https://[PROD_PROJECT].sql.co';
     }
   }
 

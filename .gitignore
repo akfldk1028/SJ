@@ -17,6 +17,7 @@ Thumbs.db
 
 # API Key test scripts (sensitive)
 test_gemini*.ps1
+frontend/test/ai_*_test.dart
 
 # Flutter (frontend 폴더 내 별도 .gitignore 있음)
 frontend/.dart_tool/
@@ -28,3 +29,6 @@ UI/Best-Flutter-UI-Templates/
 nul
 docs/Image
 .claude/settings.local.json
+
+UI/
+.swarm

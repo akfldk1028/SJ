@@ -29,6 +29,9 @@ class AiChatService {
   }) async {
     try {
       final client = SupabaseService.client;
+      if (client == null) {
+        return AiChatResult.failure('Supabase not initialized');
+      }
 
       // 요청 바디 구성
       final body = <String, dynamic>{

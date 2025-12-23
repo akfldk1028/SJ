@@ -33,7 +33,7 @@ $ARGUMENTS 기능(또는 전체)의 Flutter 아키텍처 및 Riverpod 패턴 준
 // Domain Layer 검사
 lib/features/$ARGUMENTS/domain/**/*.dart
 - ❌ import 'package:flutter
-- ❌ import 'package:supabase
+- ❌ import 'package:sql
 - ❌ import 'package:hive
 - ✅ import 'dart:
 - ✅ 순수 Dart 코드만

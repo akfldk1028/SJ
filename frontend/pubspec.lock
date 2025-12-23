@@ -1141,7 +1141,7 @@ packages:
   supabase:
     dependency: transitive
     description:
-      name: supabase
+      name: sql
       sha256: cc039f63a3168386b3a4f338f3bff342c860d415a3578f3fbe854024aee6f911
       url: "https://pub.dev"
     source: hosted

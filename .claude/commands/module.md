@@ -21,7 +21,7 @@ $ARGUMENTS 기능의 코드를 구현합니다.
 // entities/[entity].dart
 /// ⚠️ 주의: 순수 Dart만 사용!
 /// import 'package:flutter/...' 금지!
-/// import 'package:supabase/...' 금지!
+/// import 'package:sql/...' 금지!
 class Entity {
   final String id;
   // ...

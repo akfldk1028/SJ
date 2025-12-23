@@ -289,7 +289,7 @@ Future<void> main() async {
 
   // Supabase 초기화
   await Supabase.initialize(
-    url: 'https://kfciluyxkomskyxjaeat.supabase.co',
+    url: 'https://kfciluyxkomskyxjaeat.sql.co',
     anonKey: 'your-anon-key',
   );
 
