@@ -30,7 +30,9 @@
 | **신강/신약 로직 수정** | ✅ **완료** (8단계 + 득령/득지/득시/득세 계산) |
 | **Phase 12-A (DB 최적화)** | ✅ **완료** (RLS 최적화 8개 + Function 보안 6개) |
 | **Phase 12-B (12운성/12신살 DB)** | ✅ **완료** (13개 프로필 데이터 채움) |
-| **다음 작업** | Phase 13-A (12운성/12신살 UI 확인) → Phase 13-B (ai_summary 구현) |
+| **Phase 13-A (UI 확인)** | ✅ **완료** |
+| **Phase 13-B (ai_summary)** | ✅ **완료** (Edge Function + Flutter 서비스) |
+| **다음 작업** | Edge Function 배포 및 테스트 |
 
 ---
 
@@ -1974,7 +1976,7 @@ CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
 
 ---
 
-### 13.2 Phase 13-B: ai_summary 구현
+### 13.2 Phase 13-B: ai_summary 구현 ✅ 완료 (2025-12-23)
 
 **목표**: Gemini가 사주 분석 요약을 생성하여 DB에 저장
 
@@ -2014,9 +2016,49 @@ CREATE INDEX idx_saju_analyses_gyeokguk ON saju_analyses USING GIN (gyeokguk);
 ```
 
 **구현 파일**:
-- `supabase/functions/generate-ai-summary/index.ts` (신규)
-- `supabase/functions/generate-ai-summary/prompts.ts` (신규)
-- `frontend/lib/core/services/ai_summary_service.dart` (신규)
+- [x] `supabase/functions/generate-ai-summary/index.ts` ✅ 완료
+- [x] `supabase/functions/generate-ai-summary/prompts.ts` ✅ 완료
+- [x] `frontend/lib/core/services/ai_summary_service.dart` ✅ 완료
+
+**구현 상세**:
+1. **Edge Function (generate-ai-summary)**
+   - Gemini 2.0 Flash로 JSON 형식 요약 생성
+   - 기존 ai_summary 있으면 캐시된 데이터 반환
+   - `force_regenerate` 옵션으로 재생성 가능
+   - fallback 로직 (Gemini 실패 시 기본 요약 생성)
+   - responseMimeType: "application/json"으로 JSON 출력 강제
+
+2. **Flutter Service (AiSummaryService)**
+   - `generateSummary()` - Edge Function 호출
+   - `getCachedSummary()` - DB에서 직접 조회
+   - `hasSummary()` - 요약 존재 여부 확인
+   - AiSummary 및 관련 모델 클래스 (AiPersonality, AiCareer, AiRelationships, AiFortuneTips)
+
+**다음 단계**:
+- [ ] Edge Function 배포: `supabase functions deploy generate-ai-summary`
+- [ ] 채팅 시작 시 ai_summary 자동 생성 연동
+
+---
+
+### 새 세션 시작 프롬프트 (Phase 13-C: 배포 및 연동)
+
+```
+@Task_Jaehyeon.md 읽고 "Phase 13: AI 요약 기능 구현" 섹션 확인해.
+
+현재 상태:
+- Phase 13-B (ai_summary 구현) ✅ 완료
+- Phase 13-C (배포 및 연동) 🔄 진행 예정
+
+구현 완료된 파일:
+- supabase/functions/generate-ai-summary/index.ts
+- supabase/functions/generate-ai-summary/prompts.ts
+- frontend/lib/core/services/ai_summary_service.dart
+
+다음 작업:
+1. Edge Function 배포 (supabase functions deploy generate-ai-summary)
+2. 채팅 시작 시 ai_summary 없으면 자동 생성 로직 연동
+3. AI Summary 표시 UI (선택)
+```
 
 ---
 
