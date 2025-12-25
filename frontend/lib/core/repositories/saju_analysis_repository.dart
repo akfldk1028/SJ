@@ -10,6 +10,7 @@ import '../../features/saju_chart/domain/entities/sinsal.dart';
 import '../../features/saju_chart/domain/entities/daeun.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 import '../../features/saju_chart/data/constants/cheongan_jiji.dart';
+import '../../features/saju_chart/domain/services/gilseong_service.dart';
 
 /// Supabase saju_analyses 테이블 Repository
 /// 복잡한 JSONB 필드 매핑 처리
@@ -116,6 +117,9 @@ class SajuAnalysisRepository {
       'current_seun':
           analysis.currentSeun != null ? _seunToJson(analysis.currentSeun!) : null,
 
+      // 길성(吉星) 분석 결과 - Phase 16-C 추가
+      'gilseong': _gilseongToJson(analysis.chart),
+
       // AI 요약은 별도로 업데이트
       // 'ai_summary': null,
     };
@@ -213,6 +217,45 @@ class SajuAnalysisRepository {
               'type': s.sinsal.type.name,
             })
         .toList();
+  }
+
+  /// 길성(吉星) 분석 결과를 JSON으로 변환
+  /// Phase 16-C: 기둥별 특수 신살 저장
+  Map<String, dynamic> _gilseongToJson(SajuChart chart) {
+    final result = GilseongService.analyzeFromChart(chart);
+
+    // 기둥별 결과를 JSON으로 변환
+    Map<String, dynamic> pillarToJson(PillarGilseongResult pillar) {
+      return {
+        'pillarName': pillar.pillarName,
+        'gan': pillar.gan,
+        'ji': pillar.ji,
+        'sinsals': pillar.sinsals.map((s) => {
+          'name': s.korean,       // 한글: 천덕귀인
+          'hanja': s.hanja,       // 한자: 天德貴人
+          'meaning': s.meaning,   // 설명
+          'fortuneType': s.fortuneType.name, // good/bad/mixed
+        }).toList(),
+      };
+    }
+
+    return {
+      'year': pillarToJson(result.yearResult),
+      'month': pillarToJson(result.monthResult),
+      'day': pillarToJson(result.dayResult),
+      'hour': result.hourResult != null
+          ? pillarToJson(result.hourResult!)
+          : null,
+      'hasGwiMunGwanSal': result.hasGwiMunGwanSal,
+      'totalGoodCount': result.totalGoodCount,
+      'totalBadCount': result.totalBadCount,
+      'allUniqueSinsals': result.allUniqueSinsals.map((s) => {
+        'name': s.korean,
+        'hanja': s.hanja,
+        'fortuneType': s.fortuneType.name,
+      }).toList(),
+      'summary': result.summary,
+    };
   }
 
   Map<String, dynamic> _daeunToJson(DaeUnResult daeun) {

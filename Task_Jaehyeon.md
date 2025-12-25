@@ -3,6 +3,31 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
+> 최종 업데이트: 2025-12-25
+
+---
+
+## 🚀 새 세션 시작 가이드
+
+### 프롬프트 예시
+```
+@Task_Jaehyeon.md 읽고 현재 상황 파악해.
+Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
+
+[요청 내용 입력]
+```
+
+### 핵심 파일 경로
+| 파일 | 용도 |
+|------|------|
+| `frontend/lib/features/saju_chart/` | 만세력 기능 전체 |
+| `frontend/lib/features/saju_chat/` | AI 채팅 기능 |
+| `frontend/lib/core/repositories/` | DB 연동 Repository |
+| `supabase/functions/` | Edge Functions |
+
+### 현재 개발 단계
+- **MVP (v0.1)**: 만세력 + AI 채팅 기본 완료 ✅
+- **다음 단계 (v0.2)**: 인증 체계 강화 (Phase 17)
 
 ---
 
@@ -43,6 +68,7 @@
 | **Phase 15 (한글+한자 페어 수정)** | ✅ **완료** (2025-12-24) |
 | **Phase 15-D (sipsin_info 수정)** | ✅ **완료** (2025-12-24) |
 | **Phase 16 (길성 기능 구현)** | ✅ **완료** (2025-12-24) |
+| **Phase 16-C (길성 DB 저장)** | ✅ **완료** (2025-12-25) |
 | **Supabase MCP 상태 체크** | ✅ **완료** (2025-12-24) |
 | **Phase 17 (인증 체계 강화)** | 📋 **계획 수립** (v0.2 예정) |
 
@@ -155,6 +181,49 @@ CREATE POLICY "no_anonymous_access" ON saju_profiles
 
 ---
 
+## 📊 데이터 연동 현황 (2025-12-25 검증)
+
+### 한글+한자 페어 일관성 ✅
+| 데이터 타입 | 저장 방식 | 예시 |
+|------------|----------|------|
+| 천간/지지 (DB 컬럼) | `한글(한자)` 페어 | `"무(戊)"`, `"오(午)"` |
+| 신살 (DB JSONB) | 별도 필드 | `name: "화개살"`, `hanja: "華蓋殺"` |
+| Flutter enum | 별도 속성 | `korean: '천을귀인'`, `hanja: '天乙貴人'` |
+
+### DB 저장 컬럼 (saju_analyses)
+| 컬럼 | 타입 | Flutter 계산 | DB 저장 |
+|------|------|-------------|---------|
+| year_gan, year_ji 등 | TEXT | ✅ | ✅ `한글(한자)` |
+| oheng_distribution | JSONB | ✅ | ✅ |
+| day_strength | JSONB | ✅ | ✅ |
+| yongsin | JSONB | ✅ | ✅ |
+| sipsin_info | JSONB | ✅ | ✅ |
+| jijanggan_info | JSONB | ✅ | ✅ |
+| twelve_sinsal | JSONB | ✅ | ✅ |
+| twelve_unsung | JSONB | ✅ | ✅ |
+| sinsal_list | JSONB | ✅ | ✅ (기존 신살만) |
+| **gilseong (새 길성)** | JSONB | ✅ | ✅ **저장됨** (2025-12-25) |
+
+### 길성 저장 현황 ✅ (Phase 16-C 완료)
+- **Flutter**: `gilseong_service.dart`에서 실시간 계산 → UI 표시 ✅
+- **DB**: `gilseong` JSONB 컬럼 추가 → 저장됨 ✅
+- **AI 프롬프트**: 새 길성 정보 활용 가능 ✅
+- **기존 데이터**: 프로필 저장 시 자동 업데이트
+
+### sinsal_list JSONB 구조
+```json
+{
+  "name": "화개살",       // 한글
+  "hanja": "華蓋殺",      // 한자
+  "type": "neutral",      // lucky/unlucky/neutral
+  "location": "년지",
+  "relatedJi": "술",
+  "description": "년지에 화개살 - 예술성과 영성이 강함"
+}
+```
+
+---
+
 ## ✅ Phase 16: 길성(吉星) 기능 구현 (2025-12-24) - 완료
 
 ### 문제 발견
@@ -258,6 +327,81 @@ CREATE POLICY "no_anonymous_access" ON saju_profiles
 ### 검증
 - Flutter analyze 통과 ✅
 - 새로운 신살 로직 7개 추가 완료
+
+---
+
+## ✅ Phase 16-C: 길성 DB 저장 구현 (2025-12-25) - 완료
+
+### 문제 발견
+- Flutter `GilseongService`에서 새 길성(천덕귀인, 월덕귀인 등)을 실시간 계산 ✅
+- **DB에는 저장 안 됨** ❌ → AI 프롬프트에서 새 길성 정보 활용 불가
+
+### 해결
+
+**1. DB 마이그레이션 (add_gilseong_column)**
+```sql
+ALTER TABLE saju_analyses
+ADD COLUMN IF NOT EXISTS gilseong JSONB;
+
+COMMENT ON COLUMN saju_analyses.gilseong IS
+  '길성(吉星) 분석 결과 - 기둥별 특수 신살 JSONB';
+
+CREATE INDEX IF NOT EXISTS idx_saju_analyses_gilseong
+ON saju_analyses USING GIN (gilseong)
+WHERE gilseong IS NOT NULL;
+```
+
+**2. Flutter Repository 수정**
+- `saju_analysis_repository.dart`에 `_gilseongToJson()` 메서드 추가
+- `GilseongService.analyzeFromChart()` 결과를 JSONB로 변환하여 저장
+
+**3. gilseong JSONB 구조**
+```json
+{
+  "year": {
+    "pillarName": "년주",
+    "gan": "갑",
+    "ji": "술",
+    "sinsals": [
+      {"name": "천문성", "hanja": "天門星", "meaning": "영적 감각", "fortuneType": "good"}
+    ]
+  },
+  "month": { ... },
+  "day": { ... },
+  "hour": { ... },
+  "hasGwiMunGwanSal": false,
+  "totalGoodCount": 3,
+  "totalBadCount": 1,
+  "allUniqueSinsals": [...],
+  "summary": "천덕귀인, 월덕귀인, 천문성"
+}
+```
+
+### 저장되는 새 길성 목록
+| 신살 | 한자 | fortuneType |
+|------|------|-------------|
+| 천덕귀인 | 天德貴人 | good |
+| 월덕귀인 | 月德貴人 | good |
+| 백호대살 | 白虎大殺 | bad |
+| 현침살 | 懸針殺 | mixed |
+| 천문성 | 天門星 | good |
+| 황은대사 | 皇恩大赦 | good |
+| 학당귀인 | 學堂貴人 | good |
+| 귀문관살 | 鬼門關殺 | mixed |
+| 괴강살 | 魁罡殺 | mixed |
+| 양인살 | 羊刃殺 | bad |
+| 천을귀인 | 天乙貴人 | good |
+
+### 수정된 파일
+- `frontend/lib/core/repositories/saju_analysis_repository.dart`
+  - import 추가: `gilseong_service.dart`
+  - `_gilseongToJson()` 메서드 추가
+  - `_toSupabaseMap()`에 `'gilseong': _gilseongToJson(analysis.chart)` 추가
+
+### 검증
+- Flutter analyze 통과 ✅
+- 한글(한자) 형식 17개 모두 정상 ✅
+- 기존 데이터: 앱에서 프로필 저장 시 자동 업데이트됨
 
 ---
 
