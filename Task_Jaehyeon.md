@@ -3,18 +3,38 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2025-12-25
+> 최종 업데이트: 2025-12-25 (Phase 16 완료 + DB Health Check 추가)
 
 ---
 
 ## 🚀 새 세션 시작 가이드
 
 ### 프롬프트 예시
+
+**기본 프롬프트** (새 세션 시작):
 ```
 @Task_Jaehyeon.md 읽고 현재 상황 파악해.
 Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
 
 [요청 내용 입력]
+```
+
+**상세 프롬프트** (특정 작업 이어하기):
+```
+@Task_Jaehyeon.md 읽고 현재 상황 파악해.
+Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
+
+현재 상태:
+- MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
+- Phase 16-D (길성 마이그레이션) ✅ 완료 (2025-12-25, 18/18 레코드)
+- 모든 saju_analyses 데이터 gilseong 100% 채움
+
+다음 작업 후보:
+1. AI 채팅에 gilseong 정보 활용
+2. Phase 17 (인증 체계 강화) 시작
+3. migrate-gilseong Edge Function 정리 (보안)
+
+[원하는 작업 선택 또는 새 요청]
 ```
 
 ### 핵심 파일 경로
@@ -69,27 +89,34 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | **Phase 15-D (sipsin_info 수정)** | ✅ **완료** (2025-12-24) |
 | **Phase 16 (길성 기능 구현)** | ✅ **완료** (2025-12-24) |
 | **Phase 16-C (길성 DB 저장)** | ✅ **완료** (2025-12-25) |
-| **Supabase MCP 상태 체크** | ✅ **완료** (2025-12-24) |
+| **Phase 16-D (길성 마이그레이션)** | ✅ **완료** (2025-12-25, 18/18 레코드) |
+| **Supabase MCP 상태 체크** | ✅ **완료** (2025-12-25) |
 | **Phase 17 (인증 체계 강화)** | 📋 **계획 수립** (v0.2 예정) |
 
 ---
 
-## Supabase 현황 (2025-12-24 MCP 체크)
+## Supabase 현황 (2025-12-25 MCP 체크)
 
 ### DB 테이블 현황
 | 테이블 | RLS | 행 수 | 설명 |
 |--------|-----|-------|------|
-| saju_profiles | ✅ | 25 | 사주 프로필 |
-| saju_analyses | ✅ | 17 | 만세력 분석 데이터 |
+| saju_profiles | ✅ | 27 | 사주 프로필 |
+| saju_analyses | ✅ | 18 | 만세력 분석 데이터 (**gilseong 100% 채움**) |
 | chat_sessions | ✅ | 6 | 채팅 세션 |
 | chat_messages | ✅ | 8 | 채팅 메시지 |
 | compatibility_analyses | ✅ | 0 | 궁합 분석 (미사용) |
 
+### DB Functions 현황
+| 함수 | 용도 | 비고 |
+|------|------|------|
+| db_health_check() | 데이터 무결성 검사 | 누락 데이터/고아 레코드 탐지 |
+
 ### Edge Functions 현황
-| 함수 | 버전 | 상태 | 최근 호출 |
-|------|------|------|----------|
-| saju-chat | v3 | ACTIVE | ✅ 정상 |
-| generate-ai-summary | v4 | ACTIVE | ✅ 정상 (200 OK, 3.5초) |
+| 함수 | 버전 | JWT | 상태 | 용도 |
+|------|------|-----|------|------|
+| saju-chat | v3 | ✅ | ACTIVE | AI 채팅 |
+| generate-ai-summary | v4 | ✅ | ACTIVE | AI 요약 생성 |
+| migrate-gilseong | v2 | ✅ | **DEPRECATED** | 마이그레이션 완료 (410 Gone) |
 
 ### 보안 권고사항 (Advisory)
 ⚠️ **Anonymous Access Policies** (5건)
@@ -204,11 +231,12 @@ CREATE POLICY "no_anonymous_access" ON saju_profiles
 | sinsal_list | JSONB | ✅ | ✅ (기존 신살만) |
 | **gilseong (새 길성)** | JSONB | ✅ | ✅ **저장됨** (2025-12-25) |
 
-### 길성 저장 현황 ✅ (Phase 16-C 완료)
+### 길성 저장 현황 ✅ (Phase 16-D 마이그레이션 완료)
 - **Flutter**: `gilseong_service.dart`에서 실시간 계산 → UI 표시 ✅
-- **DB**: `gilseong` JSONB 컬럼 추가 → 저장됨 ✅
+- **DB**: `gilseong` JSONB 컬럼 추가 → **18/18 레코드 100% 채움** ✅
+- **Edge Function**: `migrate-gilseong` 함수로 일괄 마이그레이션 완료 ✅
 - **AI 프롬프트**: 새 길성 정보 활용 가능 ✅
-- **기존 데이터**: 프로필 저장 시 자동 업데이트
+- **UI 위치**: "신살" 탭 → "신살과 길성" 섹션에서 확인
 
 ### sinsal_list JSONB 구조
 ```json
