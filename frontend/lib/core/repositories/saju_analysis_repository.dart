@@ -9,6 +9,7 @@ import '../../features/saju_chart/domain/entities/yongsin.dart';
 import '../../features/saju_chart/domain/entities/sinsal.dart';
 import '../../features/saju_chart/domain/entities/daeun.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
+import '../../features/saju_chart/data/constants/cheongan_jiji.dart';
 
 /// Supabase saju_analyses 테이블 Repository
 /// 복잡한 JSONB 필드 매핑 처리
@@ -86,15 +87,19 @@ class SajuAnalysisRepository {
     return {
       'profile_id': profileId,
 
-      // 4주 (만세력 기본)
-      'year_gan': chart.yearPillar.gan,
-      'year_ji': chart.yearPillar.ji,
-      'month_gan': chart.monthPillar.gan,
-      'month_ji': chart.monthPillar.ji,
-      'day_gan': chart.dayPillar.gan,
-      'day_ji': chart.dayPillar.ji,
-      'hour_gan': chart.hourPillar?.gan,
-      'hour_ji': chart.hourPillar?.ji,
+      // 4주 (만세력 기본) - 한글(한자) 형식으로 저장
+      'year_gan': _formatWithHanja(chart.yearPillar.gan, isCheongan: true),
+      'year_ji': _formatWithHanja(chart.yearPillar.ji, isCheongan: false),
+      'month_gan': _formatWithHanja(chart.monthPillar.gan, isCheongan: true),
+      'month_ji': _formatWithHanja(chart.monthPillar.ji, isCheongan: false),
+      'day_gan': _formatWithHanja(chart.dayPillar.gan, isCheongan: true),
+      'day_ji': _formatWithHanja(chart.dayPillar.ji, isCheongan: false),
+      'hour_gan': chart.hourPillar?.gan != null
+          ? _formatWithHanja(chart.hourPillar!.gan, isCheongan: true)
+          : null,
+      'hour_ji': chart.hourPillar?.ji != null
+          ? _formatWithHanja(chart.hourPillar!.ji, isCheongan: false)
+          : null,
 
       // 보정된 출생시간
       'corrected_datetime': chart.correctedDateTime.toIso8601String(),
@@ -176,7 +181,7 @@ class SajuAnalysisRepository {
         'ji': info.monthJiSipsin.korean,
       },
       'day': {
-        'gan': '일간',
+        'gan': '비견',  // 일간 자신은 비견
         'ji': info.dayJiSipsin.korean,
       },
       'hour': info.hourGanSipsin != null
@@ -242,24 +247,24 @@ class SajuAnalysisRepository {
   // ============================================================
 
   SajuAnalysis _fromSupabaseMap(Map<String, dynamic> map) {
-    // SajuChart 구성
+    // SajuChart 구성 - 한글(한자) 형식에서 한글만 추출
     final chart = SajuChart(
       yearPillar: Pillar(
-        gan: map['year_gan'] as String,
-        ji: map['year_ji'] as String,
+        gan: _extractHangul(map['year_gan'] as String),
+        ji: _extractHangul(map['year_ji'] as String),
       ),
       monthPillar: Pillar(
-        gan: map['month_gan'] as String,
-        ji: map['month_ji'] as String,
+        gan: _extractHangul(map['month_gan'] as String),
+        ji: _extractHangul(map['month_ji'] as String),
       ),
       dayPillar: Pillar(
-        gan: map['day_gan'] as String,
-        ji: map['day_ji'] as String,
+        gan: _extractHangul(map['day_gan'] as String),
+        ji: _extractHangul(map['day_ji'] as String),
       ),
       hourPillar: map['hour_gan'] != null
           ? Pillar(
-              gan: map['hour_gan'] as String,
-              ji: map['hour_ji'] as String,
+              gan: _extractHangul(map['hour_gan'] as String),
+              ji: _extractHangul(map['hour_ji'] as String),
             )
           : null,
       birthDateTime: DateTime.parse(map['corrected_datetime'] as String),
@@ -490,5 +495,34 @@ class SajuAnalysisRepository {
 
     if (response == null) return null;
     return response['ai_summary'] as Map<String, dynamic>?;
+  }
+
+  // ============================================================
+  // 헬퍼 함수: 한글(한자) 형식 변환
+  // ============================================================
+
+  /// 한글을 한글(한자) 형식으로 변환
+  /// 예: "갑" → "갑(甲)", "자" → "자(子)"
+  /// 이미 한자가 포함되어 있으면 그대로 반환
+  String _formatWithHanja(String hangul, {required bool isCheongan}) {
+    // 이미 한자가 포함되어 있으면 그대로 반환
+    if (hangul.contains('(') && hangul.contains(')')) {
+      return hangul;
+    }
+
+    final hanja = isCheongan ? cheonganHanja[hangul] : jijiHanja[hangul];
+    if (hanja != null) {
+      return '$hangul($hanja)';
+    }
+    return hangul;
+  }
+
+  /// 한글(한자) 형식에서 한글만 추출
+  /// 예: "갑(甲)" → "갑", "자(子)" → "자"
+  String _extractHangul(String formatted) {
+    if (formatted.contains('(')) {
+      return formatted.substring(0, formatted.indexOf('('));
+    }
+    return formatted;
   }
 }

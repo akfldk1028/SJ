@@ -1,0 +1,600 @@
+/// 길성(吉星) 표시 위젯
+/// 포스텔러 스타일로 각 기둥별 특수 신살을 표시
+///
+/// Phase 16-C: 길성 행 UI 위젯
+library;
+
+import 'package:flutter/material.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../data/constants/twelve_sinsal.dart';
+import '../../domain/services/gilseong_service.dart';
+
+// ============================================================================
+// 특수 신살 뱃지 위젯
+// ============================================================================
+
+/// 특수 신살 뱃지 (단일)
+class SpecialSinsalBadge extends StatelessWidget {
+  final SpecialSinsal sinsal;
+  final SpecialSinsalBadgeSize size;
+  final bool showFortuneType;
+
+  const SpecialSinsalBadge({
+    super.key,
+    required this.sinsal,
+    this.size = SpecialSinsalBadgeSize.small,
+    this.showFortuneType = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getSinsalColor(sinsal);
+    final fontSize = _getFontSize();
+    final padding = _getPadding();
+
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            sinsal.korean,
+            style: TextStyle(
+              color: color,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (showFortuneType) ...[
+            const SizedBox(width: 2),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: Text(
+                sinsal.fortuneType.korean,
+                style: TextStyle(
+                  color: color,
+                  fontSize: fontSize * 0.7,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  double _getFontSize() {
+    return switch (size) {
+      SpecialSinsalBadgeSize.tiny => 9.0,
+      SpecialSinsalBadgeSize.small => 10.0,
+      SpecialSinsalBadgeSize.medium => 12.0,
+      SpecialSinsalBadgeSize.large => 14.0,
+    };
+  }
+
+  EdgeInsets _getPadding() {
+    return switch (size) {
+      SpecialSinsalBadgeSize.tiny => const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      SpecialSinsalBadgeSize.small => const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      SpecialSinsalBadgeSize.medium => const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      SpecialSinsalBadgeSize.large => const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    };
+  }
+
+  Color _getSinsalColor(SpecialSinsal sinsal) {
+    return switch (sinsal.fortuneType) {
+      SinsalFortuneType.good => AppColors.success,
+      SinsalFortuneType.bad => AppColors.error,
+      SinsalFortuneType.mixed => AppColors.accent,
+    };
+  }
+}
+
+/// 특수 신살 뱃지 크기
+enum SpecialSinsalBadgeSize { tiny, small, medium, large }
+
+// ============================================================================
+// 길성 행 위젯 (포스텔러 스타일)
+// ============================================================================
+
+/// 길성 행 - 각 기둥별 특수 신살을 세로로 표시
+/// 포스텔러 이미지처럼 시/일/월/년 순서로 표시
+class GilseongRow extends StatelessWidget {
+  final GilseongAnalysisResult result;
+  final bool showHeader;
+
+  const GilseongRow({
+    super.key,
+    required this.result,
+    this.showHeader = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 시/일/월/년 순서로 표시 (포스텔러 스타일)
+    final pillars = [
+      result.hourResult,
+      result.dayResult,
+      result.monthResult,
+      result.yearResult,
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더 (길성 라벨)
+          if (showHeader)
+            SizedBox(
+              width: 40,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '길성',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          // 각 기둥별 신살
+          ...pillars.map((pillar) => Expanded(
+                child: _buildPillarSinsals(pillar),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillarSinsals(PillarGilseongResult? pillar) {
+    if (pillar == null || !pillar.hasSinsals) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            '-',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: pillar.sinsals.map((sinsal) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: SpecialSinsalBadge(
+            sinsal: sinsal,
+            size: SpecialSinsalBadgeSize.tiny,
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ============================================================================
+// 신살과 길성 통합 테이블 (포스텔러 스타일)
+// ============================================================================
+
+/// 신살과 길성 통합 테이블
+/// 포스텔러 이미지처럼 상단에 신살 목록, 테이블에 천간/지지/길성 표시
+class SinsalGilseongTable extends StatelessWidget {
+  final GilseongAnalysisResult gilseongResult;
+  final String yearGan;
+  final String yearJi;
+  final String monthGan;
+  final String monthJi;
+  final String dayGan;
+  final String dayJi;
+  final String? hourGan;
+  final String? hourJi;
+
+  const SinsalGilseongTable({
+    super.key,
+    required this.gilseongResult,
+    required this.yearGan,
+    required this.yearJi,
+    required this.monthGan,
+    required this.monthJi,
+    required this.dayGan,
+    required this.dayJi,
+    this.hourGan,
+    this.hourJi,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더: "신살과 길성"
+          _buildHeader(),
+          // 전체 신살 목록 (가로 스크롤)
+          _buildAllSinsalList(),
+          const Divider(height: 1, color: AppColors.border),
+          // 테이블
+          _buildTable(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHover,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome, size: 18, color: AppColors.accent),
+          const SizedBox(width: 8),
+          const Text(
+            '신살과 길성',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Spacer(),
+          // 통계
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '길 ${gilseongResult.totalGoodCount}',
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '흉 ${gilseongResult.totalBadCount}',
+                  style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAllSinsalList() {
+    if (gilseongResult.allUniqueSinsals.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(12),
+        child: Text(
+          '특수 신살 없음',
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: gilseongResult.allUniqueSinsals.map((sinsal) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: SpecialSinsalBadge(
+              sinsal: sinsal,
+              size: SpecialSinsalBadgeSize.small,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTable() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Table(
+        columnWidths: const {
+          0: FixedColumnWidth(50),
+          1: FlexColumnWidth(),
+          2: FlexColumnWidth(),
+          3: FlexColumnWidth(),
+          4: FlexColumnWidth(),
+        },
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          // 헤더 행
+          _buildTableHeader(),
+          // 천간 행
+          _buildGanRow(),
+          // 지지 행
+          _buildJiRow(),
+          // 길성 행
+          _buildGilseongTableRow(),
+        ],
+      ),
+    );
+  }
+
+  TableRow _buildTableHeader() {
+    return TableRow(
+      children: [
+        const SizedBox(height: 32),
+        _buildHeaderCell('시주'),
+        _buildHeaderCell('일주'),
+        _buildHeaderCell('월주'),
+        _buildHeaderCell('년주'),
+      ],
+    );
+  }
+
+  Widget _buildHeaderCell(String text) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  TableRow _buildGanRow() {
+    return TableRow(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.5),
+      ),
+      children: [
+        _buildRowLabel('천간'),
+        _buildGanCell(hourGan),
+        _buildGanCell(dayGan),
+        _buildGanCell(monthGan),
+        _buildGanCell(yearGan),
+      ],
+    );
+  }
+
+  Widget _buildRowLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGanCell(String? gan) {
+    if (gan == null) {
+      return const Center(
+        child: Text('-', style: TextStyle(color: AppColors.textMuted)),
+      );
+    }
+    return Center(
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHover,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Center(
+          child: Text(
+            gan,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  TableRow _buildJiRow() {
+    return TableRow(
+      children: [
+        _buildRowLabel('지지'),
+        _buildJiCell(hourJi),
+        _buildJiCell(dayJi),
+        _buildJiCell(monthJi),
+        _buildJiCell(yearJi),
+      ],
+    );
+  }
+
+  Widget _buildJiCell(String? ji) {
+    if (ji == null) {
+      return const Center(
+        child: Text('-', style: TextStyle(color: AppColors.textMuted)),
+      );
+    }
+    return Center(
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHover,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Center(
+          child: Text(
+            ji,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  TableRow _buildGilseongTableRow() {
+    final pillars = [
+      gilseongResult.hourResult,
+      gilseongResult.dayResult,
+      gilseongResult.monthResult,
+      gilseongResult.yearResult,
+    ];
+
+    return TableRow(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.3),
+      ),
+      children: [
+        _buildRowLabel('길성'),
+        ...pillars.map((p) => _buildGilseongCell(p)),
+      ],
+    );
+  }
+
+  Widget _buildGilseongCell(PillarGilseongResult? pillar) {
+    if (pillar == null || !pillar.hasSinsals) {
+      return const SizedBox(height: 40);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: pillar.sinsals.take(3).map((sinsal) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 1),
+            child: SpecialSinsalBadge(
+              sinsal: sinsal,
+              size: SpecialSinsalBadgeSize.tiny,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// 신살 요약 카드
+// ============================================================================
+
+/// 신살 요약 카드 (컴팩트 버전)
+class GilseongSummaryCard extends StatelessWidget {
+  final GilseongAnalysisResult result;
+
+  const GilseongSummaryCard({super.key, required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              const Icon(Icons.stars, size: 16, color: AppColors.accent),
+              const SizedBox(width: 6),
+              const Text(
+                '특수 신살',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              // 개수
+              Text(
+                '${result.allUniqueSinsals.length}개',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 신살 목록
+          if (result.allUniqueSinsals.isEmpty)
+            const Text(
+              '특수 신살 없음',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+              ),
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: result.allUniqueSinsals.map((sinsal) {
+                return SpecialSinsalBadge(
+                  sinsal: sinsal,
+                  size: SpecialSinsalBadgeSize.small,
+                );
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+}

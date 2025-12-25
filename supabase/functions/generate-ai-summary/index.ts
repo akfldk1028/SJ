@@ -58,7 +58,7 @@ interface GenerateSummaryRequest {
   profile_name: string;
   birth_date: string;
   saju_analysis: SajuAnalysisInput;
-  force_regenerate?: boolean; // 기존 요약이 있어도 재생성
+  force_regenerate?: boolean;
 }
 
 /**
@@ -85,7 +85,7 @@ async function generateWithGemini(prompt: string): Promise<AiSummary> {
           maxOutputTokens: 1024,
           topP: 0.9,
           topK: 40,
-          responseMimeType: "application/json", // JSON 출력 강제
+          responseMimeType: "application/json",
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
@@ -115,7 +115,6 @@ async function generateWithGemini(prompt: string): Promise<AiSummary> {
 
   const rawText = candidate.content?.parts?.[0]?.text || "";
 
-  // JSON 파싱
   try {
     const parsed = JSON.parse(rawText);
     return parsed as AiSummary;
@@ -134,7 +133,6 @@ function createFallbackSummary(analysis: SajuAnalysisInput): AiSummary {
   const yongsin = analysis.yongsin?.yongsin || "토(土)";
   const fortune = getFortuneFromYongsin(yongsin);
 
-  // 일간별 기본 성격
   const ilganTraits: Record<string, { core: string; traits: string[] }> = {
     "갑": { core: "곧은 나무처럼 정직하고 리더십이 있습니다", traits: ["정직함", "리더십", "진취적"] },
     "을": { core: "유연한 덩굴처럼 적응력이 뛰어납니다", traits: ["유연함", "적응력", "인내심"] },
@@ -204,30 +202,34 @@ Deno.serve(async (req) => {
       throw new Error("saju_analysis is required");
     }
 
-    // Supabase 클라이언트 생성 (service role)
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Supabase 클라이언트 생성 (service role - RLS 우회)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
-    // 기존 ai_summary 확인
-    if (!force_regenerate) {
-      const { data: existing } = await supabase
-        .from("saju_analyses")
-        .select("ai_summary")
-        .eq("profile_id", profile_id)
-        .single();
+    // 기존 레코드 확인
+    const { data: existing, error: selectError } = await supabase
+      .from("saju_analyses")
+      .select("id, ai_summary")
+      .eq("profile_id", profile_id)
+      .single();
 
-      if (existing?.ai_summary) {
-        console.log(`AI summary already exists for profile: ${profile_id}`);
-        return new Response(
-          JSON.stringify({
-            success: true,
-            ai_summary: existing.ai_summary,
-            cached: true,
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+    // 기존 ai_summary가 있고 force_regenerate가 아니면 캐시 반환
+    if (!force_regenerate && existing?.ai_summary) {
+      console.log(`AI summary already exists for profile: ${profile_id}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          ai_summary: existing.ai_summary,
+          cached: true,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // 분석 프롬프트 생성
@@ -251,15 +253,74 @@ Deno.serve(async (req) => {
       aiSummary = createFallbackSummary(saju_analysis);
     }
 
-    // DB에 저장
-    const { error: updateError } = await supabase
-      .from("saju_analyses")
-      .update({ ai_summary: aiSummary })
-      .eq("profile_id", profile_id);
+    let dbSaved = false;
+    let dbError: string | null = null;
 
-    if (updateError) {
-      console.error("Failed to save AI summary:", updateError);
-      // 저장 실패해도 생성된 결과는 반환
+    // DB에 저장: 기존 레코드가 있으면 UPDATE, 없으면 INSERT
+    if (existing) {
+      // UPDATE: ai_summary만 업데이트
+      console.log("Updating existing record for profile:", profile_id);
+      const { error: updateError } = await supabase
+        .from("saju_analyses")
+        .update({
+          ai_summary: aiSummary,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("profile_id", profile_id);
+
+      if (updateError) {
+        console.error("Failed to update AI summary:", JSON.stringify(updateError));
+        dbError = updateError.message;
+      } else {
+        console.log("AI summary updated successfully for profile:", profile_id);
+        dbSaved = true;
+      }
+    } else {
+      // INSERT: 새 레코드 생성
+      console.log("Inserting new record for profile:", profile_id);
+      const insertData = {
+        profile_id: profile_id,
+        year_gan: saju_analysis.saju.year.gan,
+        year_ji: saju_analysis.saju.year.ji,
+        month_gan: saju_analysis.saju.month.gan,
+        month_ji: saju_analysis.saju.month.ji,
+        day_gan: saju_analysis.saju.day.gan,
+        day_ji: saju_analysis.saju.day.ji,
+        hour_gan: saju_analysis.saju.hour?.gan || null,
+        hour_ji: saju_analysis.saju.hour?.ji || null,
+        oheng_distribution: {
+          mok: saju_analysis.oheng.wood,
+          hwa: saju_analysis.oheng.fire,
+          to: saju_analysis.oheng.earth,
+          geum: saju_analysis.oheng.metal,
+          su: saju_analysis.oheng.water,
+        },
+        yongsin: saju_analysis.yongsin ? {
+          yongsin: saju_analysis.yongsin.yongsin,
+          heesin: saju_analysis.yongsin.huisin,
+          gisin: saju_analysis.yongsin.gisin,
+          gusin: saju_analysis.yongsin.gusin,
+        } : null,
+        day_strength: saju_analysis.singang_singak ? {
+          isStrong: saju_analysis.singang_singak.is_singang,
+          score: saju_analysis.singang_singak.score,
+          factors: saju_analysis.singang_singak.factors,
+        } : null,
+        ai_summary: aiSummary,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error: insertError } = await supabase
+        .from("saju_analyses")
+        .insert(insertData);
+
+      if (insertError) {
+        console.error("Failed to insert AI summary:", JSON.stringify(insertError));
+        dbError = insertError.message;
+      } else {
+        console.log("AI summary inserted successfully for profile:", profile_id);
+        dbSaved = true;
+      }
     }
 
     return new Response(
@@ -267,6 +328,8 @@ Deno.serve(async (req) => {
         success: true,
         ai_summary: aiSummary,
         cached: false,
+        db_saved: dbSaved,
+        db_error: dbError,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

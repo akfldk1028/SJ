@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
+import '../../../../core/utils/suggested_questions_parser.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
 import '../../data/datasources/gemini_rest_datasource.dart';
@@ -339,14 +340,24 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
         print('[ChatNotifier] 토큰 사용량: $tokensUsed');
       }
 
-      // 스트리밍 완료 후 메시지로 추가 (sessionId + tokensUsed 포함)
+      // AI 응답에서 후속 질문 파싱
+      final parseResult = SuggestedQuestionsParser.parse(fullContent);
+      final cleanedContent = parseResult.cleanedContent;
+      final suggestedQuestions = parseResult.suggestedQuestions;
+
+      if (kDebugMode && suggestedQuestions != null) {
+        print('[ChatNotifier] 후속 질문 추출: $suggestedQuestions');
+      }
+
+      // 스트리밍 완료 후 메시지로 추가 (sessionId + tokensUsed + suggestedQuestions 포함)
       final aiMessage = ChatMessage(
         id: _uuid.v4(),
         sessionId: currentSessionId,
-        content: fullContent,
+        content: cleanedContent, // 태그 제거된 정제된 응답
         role: MessageRole.assistant,
         createdAt: DateTime.now(),
         tokensUsed: tokensUsed,
+        suggestedQuestions: suggestedQuestions,
       );
 
       state = state.copyWith(

@@ -9,6 +9,7 @@ import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_list.dart';
 import '../widgets/disclaimer_banner.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/suggested_questions.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// 사주 채팅 Shell - 반응형 레이아웃 래퍼
@@ -373,6 +374,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       },
     );
 
+    // 마지막 AI 메시지의 suggestedQuestions 가져오기
+    final lastAiMessage = chatState.messages
+        .where((m) => m.isAi)
+        .lastOrNull;
+    final suggestedQuestions = lastAiMessage?.suggestedQuestions;
+
     return Column(
       children: [
         const DisclaimerBanner(),
@@ -385,6 +392,20 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           ),
         ),
         if (chatState.error != null) ErrorBanner(message: chatState.error!),
+        // 추천 질문 표시 (로딩 중이 아니고 메시지가 있을 때)
+        if (!chatState.isLoading && chatState.messages.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SuggestedQuestions(
+              questions: suggestedQuestions,
+              onQuestionSelected: (question) {
+                print('[_ChatContent] 추천 질문 선택: $question');
+                ref
+                    .read(chatNotifierProvider(currentSessionId).notifier)
+                    .sendMessage(question, widget.chatType);
+              },
+            ),
+          ),
         ChatInputField(
           onSend: (text) {
             print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text');

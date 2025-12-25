@@ -18,6 +18,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
     required DateTime createdAt,
     @Default('sent') String status, // MessageStatus enum을 문자열로 저장
     int? tokensUsed, // AI 응답의 토큰 사용량
+    List<String>? suggestedQuestions, // AI가 제안한 후속 질문 목록
   }) = _ChatMessageModel;
 
   const ChatMessageModel._();
@@ -36,6 +37,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       createdAt: createdAt,
       status: _parseStatus(status),
       tokensUsed: tokensUsed,
+      suggestedQuestions: suggestedQuestions,
     );
   }
 
@@ -49,6 +51,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       createdAt: entity.createdAt,
       status: entity.status.name,
       tokensUsed: entity.tokensUsed,
+      suggestedQuestions: entity.suggestedQuestions,
     );
   }
 
@@ -62,6 +65,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'status': status,
       'tokensUsed': tokensUsed,
+      'suggestedQuestions': suggestedQuestions,
     };
   }
 
@@ -75,6 +79,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
       status: (map['status'] as String?) ?? 'sent',
       tokensUsed: map['tokensUsed'] as int?,
+      suggestedQuestions: (map['suggestedQuestions'] as List?)?.cast<String>(),
     );
   }
 
@@ -88,6 +93,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'tokens_used': tokensUsed,
+      'suggested_questions': suggestedQuestions,
     };
   }
 
@@ -99,6 +105,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       'role': role,
       'status': status,
       'tokens_used': tokensUsed,
+      'suggested_questions': suggestedQuestions,
     };
   }
 
@@ -112,6 +119,7 @@ abstract class ChatMessageModel with _$ChatMessageModel {
       createdAt: DateTime.parse(map['created_at'] as String),
       status: (map['status'] as String?) ?? 'sent',
       tokensUsed: map['tokens_used'] as int?,
+      suggestedQuestions: (map['suggested_questions'] as List?)?.cast<String>(),
     );
   }
 
