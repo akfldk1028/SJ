@@ -27,20 +27,26 @@ mixin BaseQueryMixin {
     T? Function()? offlineData,
     String errorPrefix = '쿼리 실패',
   }) async {
+    print('[Query] $errorPrefix 시작...');
+
     if (!isConnected || client == null) {
+      print('[Query] ⚠️ 오프라인 - 캐시 사용');
       final cached = offlineData?.call();
       return QueryResult.offline(cached);
     }
 
     try {
       final result = await query(client!);
+      print('[Query] ✅ $errorPrefix 성공');
       return QueryResult.success(result);
     } on PostgrestException catch (e) {
+      print('[Query] ❌ $errorPrefix: ${e.message}');
       return QueryResult.failure(
         '$errorPrefix: ${e.message}',
         error: e,
       );
     } catch (e) {
+      print('[Query] ❌ $errorPrefix: $e');
       return QueryResult.failure(
         '$errorPrefix: $e',
         error: e,
@@ -56,7 +62,10 @@ mixin BaseQueryMixin {
     T? Function()? offlineData,
     String errorPrefix = '단일 쿼리 실패',
   }) async {
+    print('[Query] $errorPrefix 시작...');
+
     if (!isConnected || client == null) {
+      print('[Query] ⚠️ 오프라인 - 캐시 사용');
       final cached = offlineData?.call();
       return QueryResult.offline(cached);
     }
@@ -64,15 +73,19 @@ mixin BaseQueryMixin {
     try {
       final result = await query(client!);
       if (result == null) {
+        print('[Query] ℹ️ $errorPrefix - 결과 없음');
         return QueryResult.success(null);
       }
+      print('[Query] ✅ $errorPrefix 성공');
       return QueryResult.success(fromJson(result));
     } on PostgrestException catch (e) {
+      print('[Query] ❌ $errorPrefix: ${e.message}');
       return QueryResult.failure(
         '$errorPrefix: ${e.message}',
         error: e,
       );
     } catch (e) {
+      print('[Query] ❌ $errorPrefix: $e');
       return QueryResult.failure(
         '$errorPrefix: $e',
         error: e,
@@ -88,7 +101,10 @@ mixin BaseQueryMixin {
     List<T> Function()? offlineData,
     String errorPrefix = '리스트 쿼리 실패',
   }) async {
+    print('[Query] $errorPrefix 시작...');
+
     if (!isConnected || client == null) {
+      print('[Query] ⚠️ 오프라인 - 캐시 사용');
       final cached = offlineData?.call() ?? [];
       return QueryResult.offline(cached);
     }
@@ -96,13 +112,16 @@ mixin BaseQueryMixin {
     try {
       final result = await query(client!);
       final items = result.map((json) => fromJson(json)).toList();
+      print('[Query] ✅ $errorPrefix 성공 (${items.length}건)');
       return QueryResult.success(items);
     } on PostgrestException catch (e) {
+      print('[Query] ❌ $errorPrefix: ${e.message}');
       return QueryResult.failure(
         '$errorPrefix: ${e.message}',
         error: e,
       );
     } catch (e) {
+      print('[Query] ❌ $errorPrefix: $e');
       return QueryResult.failure(
         '$errorPrefix: $e',
         error: e,
@@ -115,19 +134,25 @@ mixin BaseQueryMixin {
     required Future<T> Function(SupabaseClient client) mutation,
     String errorPrefix = '뮤테이션 실패',
   }) async {
+    print('[Mutation] $errorPrefix 시작...');
+
     if (!isConnected || client == null) {
+      print('[Mutation] ❌ 오프라인 상태');
       return QueryResult.failure('오프라인 상태에서는 저장할 수 없습니다.');
     }
 
     try {
       final result = await mutation(client!);
+      print('[Mutation] ✅ $errorPrefix 성공');
       return QueryResult.success(result);
     } on PostgrestException catch (e) {
+      print('[Mutation] ❌ $errorPrefix: ${e.message}');
       return QueryResult.failure(
         '$errorPrefix: ${e.message}',
         error: e,
       );
     } catch (e) {
+      print('[Mutation] ❌ $errorPrefix: $e');
       return QueryResult.failure(
         '$errorPrefix: $e',
         error: e,
