@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../../domain/entities/gender.dart';
@@ -8,8 +9,10 @@ import '../../domain/repositories/profile_repository.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/repositories/profile_repository_impl.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
-import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
+import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
+    hide sajuAnalysisService;
 import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
+import '../../../../AI/services/saju_analysis_service.dart';
 
 part 'profile_provider.g.dart';
 
@@ -101,13 +104,34 @@ class ActiveProfile extends _$ActiveProfile {
     state = await AsyncValue.guard(() async {
       final repository = ref.read(profileRepositoryProvider);
       await repository.saveProfile(profile);
-      
+
       // 목록 갱신을 위해 allProfilesProvider invalidate
       ref.invalidate(allProfilesProvider);
       ref.invalidate(profileListProvider);
-      
+
+      // AI 분석 백그라운드 실행 (평생 사주 + 오늘의 운세)
+      _triggerAiAnalysis(profile.id);
+
       return profile;
     });
+  }
+
+  /// AI 분석 백그라운드 트리거 (ActiveProfile용)
+  void _triggerAiAnalysis(String profileId) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[ActiveProfile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    // Fire-and-forget: 백그라운드에서 실행
+    sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: true,
+    );
+
+    print('[ActiveProfile] AI 분석 백그라운드 시작: $profileId');
   }
   
   Future<void> deleteProfile(String id) async {
@@ -351,11 +375,34 @@ class ProfileForm extends _$ProfileForm {
         // DB에 저장
         final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
         await dbNotifier.saveFromAnalysis(analysis);
+
+        // AI 분석 백그라운드 실행 (평생 사주 + 오늘의 운세)
+        _triggerAiAnalysis(profile.id);
       }
     } catch (e) {
       // 분석 저장 실패는 무시 (프로필 저장은 이미 완료됨)
       // ignore: avoid_print
       print('[Profile] 사주 분석 저장 실패 (무시됨): $e');
     }
+  }
+
+  /// AI 분석 백그라운드 트리거
+  ///
+  /// 평생 사주운세 (GPT-5.2) + 오늘의 운세 (Gemini) 병렬 실행
+  void _triggerAiAnalysis(String profileId) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[Profile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    // Fire-and-forget: 백그라운드에서 실행
+    sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: true,
+    );
+
+    print('[Profile] AI 분석 백그라운드 시작: $profileId');
   }
 }

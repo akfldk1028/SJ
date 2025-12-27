@@ -155,8 +155,17 @@ class ChatSessionLocalDatasource {
 
   // ========== Message CRUD ==========
 
-  /// 특정 세션의 메시지 목록 조회
-  Future<List<ChatMessageModel>> getSessionMessages(String sessionId) async {
+  /// 특정 세션의 메시지 목록 조회 (Pagination 지원)
+  ///
+  /// [limit]: 가져올 메시지 수 (기본: 전체)
+  /// [offset]: 건너뛸 메시지 수 (기본: 0)
+  /// [fromEnd]: true면 최신 메시지부터, false면 오래된 메시지부터
+  Future<List<ChatMessageModel>> getSessionMessages(
+    String sessionId, {
+    int? limit,
+    int offset = 0,
+    bool fromEnd = false,
+  }) async {
     await init();
     final box = _getMessagesBox();
 
@@ -173,7 +182,40 @@ class ChatSessionLocalDatasource {
 
     // 생성 시간 순서 정렬
     messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    return messages;
+
+    // Pagination 적용
+    if (fromEnd) {
+      // 최신 메시지부터 (채팅 화면 첫 로드용)
+      final reversed = messages.reversed.toList();
+      final start = offset;
+      final end = limit != null ? (offset + limit).clamp(0, reversed.length) : reversed.length;
+      if (start >= reversed.length) return [];
+      return reversed.sublist(start, end).reversed.toList(); // 다시 오래된 순으로
+    } else {
+      // 오래된 메시지부터 (이전 메시지 로드용)
+      final start = offset;
+      final end = limit != null ? (offset + limit).clamp(0, messages.length) : messages.length;
+      if (start >= messages.length) return [];
+      return messages.sublist(start, end);
+    }
+  }
+
+  /// 세션의 전체 메시지 개수 조회
+  Future<int> getSessionMessageCount(String sessionId) async {
+    await init();
+    final box = _getMessagesBox();
+
+    int count = 0;
+    for (var i = 0; i < box.length; i++) {
+      final raw = box.getAt(i);
+      if (raw != null) {
+        final map = Map<dynamic, dynamic>.from(raw as Map);
+        if (map['sessionId'] == sessionId) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 
   /// 메시지 저장

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -9,6 +10,8 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
 import '../../data/datasources/gemini_rest_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
+import '../../data/services/chat_realtime_service.dart';
+import '../../data/services/conversation_window_manager.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/models/chat_type.dart';
 import 'chat_session_provider.dart';
@@ -19,30 +22,60 @@ part 'chat_provider.g.dart';
 class ChatState {
   final List<ChatMessage> messages;
   final bool isLoading;
+  final bool isLoadingMore; // 이전 메시지 로딩 중
+  final bool hasMoreMessages; // 더 로드할 메시지 있음
+  final int totalMessageCount; // 전체 메시지 수
   final String? streamingContent;
   final String? error;
+
+  /// 토큰 사용량 정보
+  final TokenUsageInfo? tokenUsage;
+
+  /// 메시지 트리밍 발생 여부 (토큰 제한으로 오래된 메시지 제거됨)
+  final bool wasContextTrimmed;
 
   const ChatState({
     this.messages = const [],
     this.isLoading = false,
+    this.isLoadingMore = false,
+    this.hasMoreMessages = true,
+    this.totalMessageCount = 0,
     this.streamingContent,
     this.error,
+    this.tokenUsage,
+    this.wasContextTrimmed = false,
   });
+
+  /// 토큰 사용량이 80% 이상인지 확인
+  bool get isNearTokenLimit => tokenUsage?.isNearLimit ?? false;
 
   ChatState copyWith({
     List<ChatMessage>? messages,
     bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMoreMessages,
+    int? totalMessageCount,
     String? streamingContent,
     String? error,
+    TokenUsageInfo? tokenUsage,
+    bool? wasContextTrimmed,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMoreMessages: hasMoreMessages ?? this.hasMoreMessages,
+      totalMessageCount: totalMessageCount ?? this.totalMessageCount,
       streamingContent: streamingContent,
       error: error,
+      tokenUsage: tokenUsage ?? this.tokenUsage,
+      wasContextTrimmed: wasContextTrimmed ?? this.wasContextTrimmed,
     );
   }
 }
+
+/// Pagination 상수
+const int kMessagesPerPage = 30;
 
 /// 채팅 상태 관리 Provider (세션 인식)
 ///
@@ -55,6 +88,10 @@ class ChatNotifier extends _$ChatNotifier {
   /// 세션별 독립된 ChatRepository 인스턴스
   late final ChatRepositoryImpl _repository;
 
+  /// Realtime 구독
+  StreamSubscription<ChatMessage>? _realtimeSubscription;
+  StreamSubscription<String>? _deleteSubscription;
+
   @override
   ChatState build(String sessionId) {
     // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
@@ -62,18 +99,74 @@ class ChatNotifier extends _$ChatNotifier {
       datasource: GeminiRestDatasource(),
     );
 
-    // Provider dispose 시 repository 정리
+    // Provider dispose 시 정리
     ref.onDispose(() {
       _repository.resetSession();
+      _unsubscribeRealtime();
     });
 
-    // 세션이 변경되면 메시지 로드 (build 완료 후 실행)
-    Future.microtask(() => loadSessionMessages(sessionId));
+    // 세션이 변경되면 메시지 로드 + Realtime 구독
+    Future.microtask(() {
+      loadSessionMessages(sessionId);
+      _subscribeRealtime(sessionId);
+    });
+
     return const ChatState();
   }
 
-  /// 세션의 메시지 로드
-  /// 이미 메시지가 있거나 로딩 중이면 스킵 (타이밍 이슈 방지)
+  /// Realtime 구독 설정
+  void _subscribeRealtime(String sessionId) {
+    final realtimeService = ChatRealtimeService.instance;
+
+    // 새 메시지 수신 구독
+    _realtimeSubscription = realtimeService.onNewMessage.listen((message) {
+      // 자신이 보낸 메시지가 아닌 경우에만 추가 (중복 방지)
+      final exists = state.messages.any((m) => m.id == message.id);
+      if (!exists) {
+        state = state.copyWith(
+          messages: [...state.messages, message],
+          totalMessageCount: state.totalMessageCount + 1,
+        );
+
+        if (kDebugMode) {
+          print('[ChatNotifier] Realtime 메시지 추가: ${message.role.name}');
+        }
+      }
+    });
+
+    // 메시지 삭제 구독
+    _deleteSubscription = realtimeService.onMessageDeleted.listen((messageId) {
+      final exists = state.messages.any((m) => m.id == messageId);
+      if (exists) {
+        state = state.copyWith(
+          messages: state.messages.where((m) => m.id != messageId).toList(),
+          totalMessageCount: state.totalMessageCount - 1,
+        );
+
+        if (kDebugMode) {
+          print('[ChatNotifier] Realtime 메시지 삭제: $messageId');
+        }
+      }
+    });
+
+    // Supabase Realtime 채널 구독
+    realtimeService.subscribeToSession(sessionId);
+
+    if (kDebugMode) {
+      print('[ChatNotifier] Realtime 구독 시작: $sessionId');
+    }
+  }
+
+  /// Realtime 구독 해제
+  void _unsubscribeRealtime() {
+    _realtimeSubscription?.cancel();
+    _realtimeSubscription = null;
+    _deleteSubscription?.cancel();
+    _deleteSubscription = null;
+  }
+
+  /// 세션의 메시지 로드 (Pagination 적용)
+  /// 최신 메시지 [kMessagesPerPage]개만 먼저 로드
   Future<void> loadSessionMessages(String sessionId) async {
     // 이미 메시지가 있거나 로딩 중이면 스킵
     if (state.messages.isNotEmpty || state.isLoading) {
@@ -84,13 +177,24 @@ class ChatNotifier extends _$ChatNotifier {
 
     try {
       final sessionRepository = ref.read(chatSessionRepositoryProvider);
-      final messages = await sessionRepository.getSessionMessages(sessionId);
+
+      // 전체 메시지 수 조회
+      final totalCount = await sessionRepository.getSessionMessageCount(sessionId);
+
+      // 최신 메시지 로드 (Pagination)
+      final messages = await sessionRepository.getSessionMessages(
+        sessionId,
+        limit: kMessagesPerPage,
+        offset: 0,
+      );
 
       // 로드 중에 메시지가 추가되었으면 덮어쓰지 않음
       if (state.messages.isEmpty) {
         state = state.copyWith(
           messages: messages,
           isLoading: false,
+          hasMoreMessages: messages.length < totalCount,
+          totalMessageCount: totalCount,
         );
       } else {
         state = state.copyWith(isLoading: false);
@@ -100,6 +204,70 @@ class ChatNotifier extends _$ChatNotifier {
         isLoading: false,
         error: '메시지 로드 중 오류가 발생했습니다.',
       );
+    }
+  }
+
+  /// 이전 메시지 더 로드 (무한 스크롤)
+  Future<void> loadMoreMessages() async {
+    // 이미 로딩 중이거나 더 로드할 메시지가 없으면 스킵
+    if (state.isLoadingMore || !state.hasMoreMessages) {
+      return;
+    }
+
+    state = state.copyWith(isLoadingMore: true);
+
+    try {
+      final sessionRepository = ref.read(chatSessionRepositoryProvider);
+
+      // 현재 로드된 메시지 수를 offset으로 사용
+      final offset = state.messages.length;
+
+      final olderMessages = await sessionRepository.getSessionMessages(
+        sessionId,
+        limit: kMessagesPerPage,
+        offset: offset,
+      );
+
+      if (olderMessages.isNotEmpty) {
+        // 이전 메시지를 앞에 추가
+        state = state.copyWith(
+          messages: [...olderMessages, ...state.messages],
+          isLoadingMore: false,
+          hasMoreMessages: state.messages.length + olderMessages.length < state.totalMessageCount,
+        );
+      } else {
+        state = state.copyWith(
+          isLoadingMore: false,
+          hasMoreMessages: false,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingMore: false,
+        error: '이전 메시지 로드 중 오류가 발생했습니다.',
+      );
+    }
+  }
+
+  /// 개별 메시지 삭제
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      final sessionRepository = ref.read(chatSessionRepositoryProvider);
+      await sessionRepository.deleteMessage(messageId);
+
+      // 로컬 상태에서 제거
+      state = state.copyWith(
+        messages: state.messages.where((m) => m.id != messageId).toList(),
+        totalMessageCount: state.totalMessageCount - 1,
+      );
+
+      if (kDebugMode) {
+        print('[ChatNotifier] 메시지 삭제 완료: $messageId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatNotifier] 메시지 삭제 실패: $e');
+      }
     }
   }
 
@@ -334,10 +502,19 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
         );
       }
 
-      // 스트리밍 완료 후 토큰 사용량 조회
+      // 스트리밍 완료 후 토큰 사용량 및 윈도우잉 정보 조회
       final tokensUsed = _repository.getLastTokensUsed();
-      if (kDebugMode && tokensUsed != null) {
-        print('[ChatNotifier] 토큰 사용량: $tokensUsed');
+      final tokenUsage = _repository.getTokenUsageInfo();
+      final windowResult = _repository.getLastWindowResult();
+
+      if (kDebugMode) {
+        if (tokensUsed != null) {
+          print('[ChatNotifier] 토큰 사용량: $tokensUsed');
+        }
+        print('[ChatNotifier] $tokenUsage');
+        if (windowResult?.wasTrimmed == true) {
+          print('[ChatNotifier] ⚠️ 컨텍스트 트리밍 발생: ${windowResult!.removedCount}개 메시지 제거');
+        }
       }
 
       // AI 응답에서 후속 질문 파싱
@@ -364,6 +541,8 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
         messages: [...state.messages, aiMessage],
         isLoading: false,
         streamingContent: null,
+        tokenUsage: tokenUsage,
+        wasContextTrimmed: windowResult?.wasTrimmed ?? false,
       );
 
       // AI 메시지 저장 (tokensUsed 포함)
