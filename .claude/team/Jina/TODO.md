@@ -44,8 +44,6 @@ GPT-5.2 분석 → JSON 결과 → Gemini 대화 생성 → 최종 응답
 ```dart
 enum ThinkingLevel {
   none,       // 빠른 응답 (단순 질문)
-  low,        // 약간의 추론
-  medium,     // 보통 추론 (일반 대화)
   high,       // 깊은 추론 (복잡한 해석)
 }
 ```
