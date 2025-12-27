@@ -93,26 +93,37 @@ abstract class OpenAIModels {
 /// Google Gemini 모델 식별자
 ///
 /// ## 모델 선택 가이드
-/// - `gemini20Flash`: 빠름, 저렴 → 일운/대화용
-/// - `gemini15Pro`: 더 정확 → 복잡한 분석용
+/// - `gemini30Flash`: Gemini 3.0 Flash (2025.12.17 출시) → 일운/대화용
+/// - `gemini20Flash`: Gemini 2.0 Flash (레거시)
+/// - `gemini15Pro`: Gemini 1.5 Pro → 복잡한 분석용
 ///
 /// ## 참고
 /// - Gemini API 엔드포인트에서 사용하는 정확한 모델 ID
 abstract class GoogleModels {
-  /// Gemini 2.0 Flash (실험적)
-  /// - 가장 빠른 응답
-  /// - 저렴한 비용
-  /// - 일운 분석에 최적
+  /// Gemini 3.0 Flash (2025.12.17 출시)
+  /// - Pro급 지능 + Flash 속도/가격
+  /// - 1M 토큰 입력, 64k 출력
+  /// - 일운/대화 기본 모델
+  static const String gemini30Flash = 'gemini-3-flash-preview';
+
+  /// Gemini 3.0 Pro (2025.12.17 출시)
+  /// - 가장 고급 추론 모델
+  /// - 복잡한 문제 해결
+  static const String gemini30Pro = 'gemini-3-pro-preview';
+
+  /// Gemini 2.0 Flash (레거시)
+  /// - 이전 버전, 호환용
   static const String gemini20Flash = 'gemini-2.0-flash';
 
-  /// Gemini 1.5 Pro
-  /// - 더 긴 컨텍스트
-  /// - 복잡한 추론
+  /// Gemini 1.5 Pro (레거시)
+  /// - 이전 버전
   static const String gemini15Pro = 'gemini-1.5-pro';
 
-  /// 대화/일운용 기본 모델
-  /// - 속도 우선, 비용 효율적
-  static const String chat = gemini20Flash;
+  /// 대화/일운용 기본 모델 (Gemini 3.0 Flash)
+  static const String chat = gemini30Flash;
+
+  /// 일운 분석용 모델
+  static const String dailyFortune = gemini30Flash;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
