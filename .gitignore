@@ -36,3 +36,5 @@ docs/Image
 
 UI/
 .swarm
+.playwright-mcp
+.claude-flow

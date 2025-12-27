@@ -206,32 +206,63 @@ abstract class OpenAIPricing {
   }
 }
 
-/// Google Gemini 토큰 가격 (2024-12 기준)
+/// Google Gemini 토큰 가격 (2025-12 기준)
 ///
 /// ## 가격 출처
 /// https://ai.google.dev/pricing
 ///
 /// ## 참고
-/// - Gemini는 캐시 할인이 다르게 적용됨
-/// - 현재는 캐시 미적용
+/// - Gemini 3.0은 2025.12.17 출시
+/// - Context Caching 할인 별도 (현재 미적용)
+/// - Batch API는 50% 할인 (현재 Standard 기준)
 abstract class GeminiPricing {
   // ─────────────────────────────────────────────────────────────────────────
-  // Gemini 2.0 Flash 가격 (per 1M tokens)
+  // Gemini 3.0 Flash 가격 (per 1M tokens) - 2025.12.17 출시
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 입력: $0.50 (text/image/video)
+  static const double gemini30FlashInput = 0.50;
+
+  /// 출력: $3.00
+  static const double gemini30FlashOutput = 3.00;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Gemini 3.0 Pro 가격 (per 1M tokens) - 2025.12.17 출시
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 입력: $2.00 (prompts <= 200k tokens)
+  /// 참고: 200k 초과시 $4.00
+  static const double gemini30ProInput = 2.00;
+
+  /// 출력: $12.00 (including thinking tokens, prompts <= 200k)
+  /// 참고: 200k 초과시 $18.00
+  static const double gemini30ProOutput = 12.00;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Gemini 2.0 Flash 가격 (per 1M tokens) - 레거시
   // ─────────────────────────────────────────────────────────────────────────
   static const double gemini20FlashInput = 0.10;
   static const double gemini20FlashOutput = 0.40;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Gemini 1.5 Pro 가격 (per 1M tokens)
+  // Gemini 1.5 Pro 가격 (per 1M tokens) - 레거시
   // ─────────────────────────────────────────────────────────────────────────
   static const double gemini15ProInput = 1.25;
   static const double gemini15ProOutput = 5.00;
 
   /// 모델별 가격 조회
   static Map<String, double>? getModelPricing(String model) {
+    // Gemini 3.0 Flash
+    if (model.contains('gemini-3') && model.contains('flash')) {
+      return {'input': gemini30FlashInput, 'output': gemini30FlashOutput};
+    }
+    // Gemini 3.0 Pro
+    if (model.contains('gemini-3') && model.contains('pro')) {
+      return {'input': gemini30ProInput, 'output': gemini30ProOutput};
+    }
+    // Gemini 2.0 Flash (레거시)
     if (model.contains('gemini-2.0-flash')) {
       return {'input': gemini20FlashInput, 'output': gemini20FlashOutput};
     }
+    // Gemini 1.5 Pro (레거시)
     if (model.contains('gemini-1.5-pro')) {
       return {'input': gemini15ProInput, 'output': gemini15ProOutput};
     }

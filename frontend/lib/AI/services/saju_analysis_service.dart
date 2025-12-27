@@ -360,6 +360,7 @@ class SajuAnalysisService {
         model: prompt.modelName,
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
+        logType: 'saju_base',
       );
 
       if (!response.success) {
@@ -439,6 +440,7 @@ class SajuAnalysisService {
         model: prompt.modelName,
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
+        logType: 'daily_fortune',
       );
 
       if (!response.success) {
