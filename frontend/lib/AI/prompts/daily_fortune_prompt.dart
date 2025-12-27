@@ -109,7 +109,7 @@ class DailyFortunePrompt extends PromptTemplate {
   String get summaryType => SummaryType.dailyFortune;
 
   @override
-  String get modelName => GoogleModels.gemini20Flash;
+  String get modelName => GoogleModels.dailyFortune;  // Gemini 3.0 Flash
 
   @override
   int get maxTokens => TokenLimits.dailyFortuneMaxTokens;

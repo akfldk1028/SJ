@@ -126,10 +126,15 @@ class AiQueries extends BaseQueries {
   }
 
   /// 기본 사주 분석 캐시 조회
+  ///
+  /// ## UNIQUE INDEX
+  /// `idx_ai_summaries_unique_base`: (profile_id) WHERE summary_type = 'saju_base'
+  /// saju_base는 target_date가 NULL (날짜 필터 없이 profile_id + summary_type으로 조회)
   Future<QueryResult<AiSummaries?>> getSajuBaseSummary(String profileId) {
     return getCachedSummary(
       profileId: profileId,
       summaryType: SummaryType.sajuBase,
+      // saju_base는 target_date 없음 (NULL) - 날짜 필터 적용 안 함
     );
   }
 

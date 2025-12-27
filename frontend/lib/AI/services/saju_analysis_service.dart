@@ -274,11 +274,15 @@ class SajuAnalysisService {
     });
   }
 
-  /// 두 분석 병렬 실행 (완료 대기)
+  /// 두 분석 순차 실행 (GPT 먼저 → Gemini)
   ///
-  /// ## Future.wait 사용
-  /// 두 분석이 동시에 시작되어 더 빠른 것이 먼저 완료됨.
-  /// 총 소요 시간 = max(GPT 시간, Gemini 시간)
+  /// ## 순차 실행 이유
+  /// GPT-5.2 평생사주 분석 결과를 Gemini 일운 프롬프트에 포함시켜
+  /// 정확도를 높임. GPT가 기본 분석 제공, Gemini가 참조.
+  ///
+  /// ## 실행 순서
+  /// 1. GPT-5.2 평생사주 분석 (saju_base)
+  /// 2. Gemini 일운 분석 (GPT 결과 참조)
   Future<ProfileAnalysisResult> _runBothAnalyses(
     String userId,
     String profileId,
@@ -286,15 +290,29 @@ class SajuAnalysisService {
   ) async {
     final inputJson = inputData.toJson();
 
-    // 병렬 실행
-    final results = await Future.wait([
-      _runSajuBaseAnalysis(userId, profileId, inputJson),
-      _runDailyFortuneAnalysis(userId, profileId, inputJson),
-    ]);
+    // 1. GPT 평생사주 분석 먼저 (기본)
+    final sajuBaseResult = await _runSajuBaseAnalysis(userId, profileId, inputJson);
+
+    // 2. GPT 결과를 Gemini 프롬프트에 포함
+    Map<String, dynamic> enrichedInputJson = Map.from(inputJson);
+
+    if (sajuBaseResult.success) {
+      // GPT 분석 결과 조회하여 Gemini 입력에 추가
+      final sajuBaseData = await aiQueries.getSajuBaseSummary(profileId);
+      if (sajuBaseData.isSuccess && sajuBaseData.data != null) {
+        enrichedInputJson['saju_base_analysis'] = sajuBaseData.data!.content;
+        print('[SajuAnalysisService] GPT 분석 결과를 Gemini 입력에 추가');
+      }
+    }
+
+    // 3. Gemini 일운 분석 (GPT 결과 참조)
+    final dailyFortuneResult = await _runDailyFortuneAnalysis(
+      userId, profileId, enrichedInputJson,
+    );
 
     return ProfileAnalysisResult(
-      sajuBase: results[0],
-      dailyFortune: results[1],
+      sajuBase: sajuBaseResult,
+      dailyFortune: dailyFortuneResult,
     );
   }
 

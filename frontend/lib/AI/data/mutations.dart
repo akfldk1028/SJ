@@ -159,12 +159,16 @@ class AiMutations extends BaseMutations {
   // 특화 저장 메서드
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// 기본 사주 분석 저장 (upsert)
+  /// 기본 사주 분석 저장 (삭제 후 삽입)
   ///
   /// ## 특징
-  /// - **Upsert**: 동일 profile_id가 있으면 덮어쓰기
+  /// - **Delete + Insert**: Partial UNIQUE INDEX 호환
   /// - **무기한 캐시**: expires_at = null
-  /// - **모델**: GPT-4o (가장 정확한 분석)
+  /// - **모델**: GPT-5.2 (가장 정확한 분석)
+  ///
+  /// ## UNIQUE INDEX
+  /// `idx_ai_summaries_unique_base`: (profile_id) WHERE summary_type = 'saju_base'
+  /// Partial index는 Supabase upsert와 호환되지 않으므로 삭제 후 삽입 방식 사용
   ///
   /// ## 호출 시점
   /// - 프로필 최초 저장 시
@@ -183,12 +187,22 @@ class AiMutations extends BaseMutations {
   }) async {
     return safeMutation(
       mutation: (client) async {
+        // 1. 기존 saju_base 레코드 삭제 (있으면)
+        // Partial UNIQUE INDEX: (profile_id) WHERE summary_type = 'saju_base'
+        await client
+            .from(AiSummaries.table_name)
+            .delete()
+            .eq(AiSummaries.c_profileId, profileId)
+            .eq(AiSummaries.c_summaryType, SummaryType.sajuBase);
+
+        // 2. 새 레코드 삽입
         final data = AiSummaries.insert(
           userId: userId,
           profileId: profileId,
           summaryType: SummaryType.sajuBase,
           content: content,
           inputData: inputData,
+          // saju_base는 target_date 없음 (NULL)
           modelProvider: ModelProvider.openai,
           modelName: modelName ?? OpenAIModels.sajuAnalysis, // GPT-5.2
           promptTokens: promptTokens,
@@ -200,14 +214,9 @@ class AiMutations extends BaseMutations {
           status: 'completed',
         );
 
-        // upsert: 같은 profile_id의 saju_base가 있으면 업데이트
         final response = await client
             .from(AiSummaries.table_name)
-            .upsert(
-              data,
-              onConflict: 'profile_id',
-              ignoreDuplicates: false,
-            )
+            .insert(data)
             .select()
             .single();
 
@@ -248,7 +257,7 @@ class AiMutations extends BaseMutations {
       inputData: inputData,
       targetDate: targetDate,
       modelProvider: ModelProvider.google,
-      modelName: modelName ?? GoogleModels.gemini20Flash,
+      modelName: modelName ?? GoogleModels.dailyFortune,  // Gemini 3.0 Flash
       promptTokens: promptTokens,
       completionTokens: completionTokens,
       totalCostUsd: totalCostUsd,

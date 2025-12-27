@@ -10,7 +10,6 @@ import '../../data/models/saju_analysis_db_model.dart';
 import '../../data/repositories/saju_analysis_repository.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/entities/saju_analysis.dart';
-import '../../domain/entities/daeun.dart';
 import '../../domain/entities/pillar.dart';
 import '../../domain/services/unsung_service.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
@@ -98,10 +97,21 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
     final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
+    return saveFromAnalysisWithProfileId(activeProfile.id, analysis);
+  }
+
+  /// SajuAnalysis 결과를 특정 profileId로 저장
+  ///
+  /// 새 프로필 저장 시 race condition 방지를 위해 profileId 직접 전달
+  /// analysis에 이미 대운 정보(daeun)가 포함되어 있으므로 activeProfile 불필요
+  Future<SajuAnalysisDbModel?> saveFromAnalysisWithProfileId(
+    String profileId,
+    SajuAnalysis analysis,
+  ) async {
     final repository = ref.read(sajuAnalysisRepositoryProvider);
 
-    // 기존 데이터 확인
-    final existing = await repository.getByProfileId(activeProfile.id);
+    // 기존 데이터 확인 (profileId 직접 사용)
+    final existing = await repository.getByProfileId(profileId);
 
     // OhengDistribution을 Map으로 변환 (한글(한자) 형식)
     final ohengMap = {
@@ -281,13 +291,10 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
         },
     ];
 
-    // 대운 계산
+    // 대운 (analysis에서 이미 계산됨)
+    // analysis.daeun이 null인 경우를 대비해 빈 맵 사용
+    final daeunResult = analysis.daeun;
     final daeunService = DaeUnService();
-    final daeunResult = daeunService.calculate(
-      chart: analysis.chart,
-      gender: activeProfile.gender == '남' ? Gender.male : Gender.female,
-      birthDateTime: analysis.chart.birthDateTime,
-    );
 
     String formatPillar(Pillar pillar) {
       final ganHanja = cheonganHanja[pillar.gan] ?? '';
@@ -295,18 +302,20 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       return '${pillar.gan}($ganHanja)${pillar.ji}($jiHanja)';
     }
 
-    final daeunMap = {
-      'startAge': daeunResult.startAge,
-      'isForward': daeunResult.isForward,
-      'list': daeunResult.daeUnList.map((daeun) {
-        return {
-          'pillar': formatPillar(daeun.pillar),
-          'startAge': daeun.startAge,
-          'endAge': daeun.endAge,
-          'order': daeun.order,
-        };
-      }).toList(),
-    };
+    final daeunMap = daeunResult != null
+        ? {
+            'startAge': daeunResult.startAge,
+            'isForward': daeunResult.isForward,
+            'list': daeunResult.daeUnList.map((daeun) {
+              return {
+                'pillar': formatPillar(daeun.pillar),
+                'startAge': daeun.startAge,
+                'endAge': daeun.endAge,
+                'order': daeun.order,
+              };
+            }).toList(),
+          }
+        : <String, dynamic>{};
 
     // 현재 세운 계산
     final currentYear = DateTime.now().year;
@@ -321,7 +330,7 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
 
     final model = SajuAnalysisDbModel.fromSajuChart(
       id: existing?.id ?? _generateUuid(),
-      profileId: activeProfile.id,
+      profileId: profileId,
       chart: analysis.chart,
       ohengDistribution: ohengMap,
       dayStrength: dayStrengthMap,

@@ -8,6 +8,10 @@ import '../../domain/entities/relationship_type.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/repositories/profile_repository_impl.dart';
+import '../../../saju_chart/domain/entities/daeun.dart' as daeun_entities;
+import '../../../saju_chart/domain/entities/saju_chart.dart';
+import '../../../saju_chart/domain/services/jasi_service.dart';
+import '../../../saju_chart/domain/services/saju_calculation_service.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
     hide sajuAnalysisService;
@@ -363,27 +367,74 @@ class ProfileForm extends _$ProfileForm {
   }
 
   /// 사주 분석 결과를 DB에 저장
+  ///
+  /// 직접 profile 객체로 사주 계산 후 저장 (activeProfileProvider 의존 제거)
   Future<void> _saveAnalysisToDb(Ref ref, SajuProfile profile) async {
     try {
-      // 사주 분석 Provider를 통해 분석 결과 가져오기
-      // 프로필 저장이 await로 완료된 후 호출되므로 추가 지연 불필요
+      // 1. 직접 사주 차트 계산 (activeProfileProvider 미사용)
+      final calculationService = ref.read(sajuCalculationServiceProvider);
+      final chart = _calculateChartForProfile(calculationService, profile);
 
-      // 분석 결과 Provider가 갱신되면 자동으로 분석 실행
-      final analysis = await ref.read(currentSajuAnalysisProvider.future);
+      // 2. 사주 분석 계산
+      final analysisService = ref.read(sajuAnalysisServiceProvider);
+      final daeunGender = profile.gender.name == 'male'
+          ? daeun_entities.Gender.male
+          : daeun_entities.Gender.female;
+      final analysis = analysisService.analyze(
+        chart: chart,
+        gender: daeunGender,
+        currentYear: DateTime.now().year,
+      );
 
-      if (analysis != null) {
-        // DB에 저장
-        final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
-        await dbNotifier.saveFromAnalysis(analysis);
+      // 3. DB에 저장 (profile.id 직접 전달)
+      final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
+      await dbNotifier.saveFromAnalysisWithProfileId(profile.id, analysis);
 
-        // AI 분석 백그라운드 실행 (평생 사주 + 오늘의 운세)
-        _triggerAiAnalysis(profile.id);
-      }
+      print('[Profile] 사주 분석 저장 완료: ${profile.id}');
+
+      // 4. AI 분석 백그라운드 실행 (평생 사주 + 오늘의 운세)
+      _triggerAiAnalysis(profile.id);
     } catch (e) {
       // 분석 저장 실패는 무시 (프로필 저장은 이미 완료됨)
       // ignore: avoid_print
       print('[Profile] 사주 분석 저장 실패 (무시됨): $e');
     }
+  }
+
+  /// 프로필로부터 사주차트 직접 계산 (Provider 의존 없음)
+  SajuChart _calculateChartForProfile(
+    SajuCalculationService service,
+    SajuProfile profile,
+  ) {
+    DateTime birthDateTime;
+    if (profile.birthTimeUnknown || profile.birthTimeMinutes == null) {
+      birthDateTime = DateTime(
+        profile.birthDate.year,
+        profile.birthDate.month,
+        profile.birthDate.day,
+        12,
+        0,
+      );
+    } else {
+      final hours = profile.birthTimeMinutes! ~/ 60;
+      final minutes = profile.birthTimeMinutes! % 60;
+      birthDateTime = DateTime(
+        profile.birthDate.year,
+        profile.birthDate.month,
+        profile.birthDate.day,
+        hours,
+        minutes,
+      );
+    }
+
+    return service.calculate(
+      birthDateTime: birthDateTime,
+      birthCity: profile.birthCity,
+      isLunarCalendar: profile.isLunar,
+      isLeapMonth: profile.isLeapMonth,
+      birthTimeUnknown: profile.birthTimeUnknown,
+      jasiMode: profile.useYaJasi ? JasiMode.yaJasi : JasiMode.joJasi,
+    );
   }
 
   /// AI 분석 백그라운드 트리거
