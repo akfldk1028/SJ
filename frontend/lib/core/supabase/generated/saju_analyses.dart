@@ -21,14 +21,14 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
   final Map<String, dynamic>? gyeokguk;
   final Map<String, dynamic>? sipsinInfo;
   final Map<String, dynamic>? jijangganInfo;
-  final Map<String, dynamic>? sinsalList;
+  final List<dynamic>? sinsalList;
   final Map<String, dynamic>? daeun;
   final Map<String, dynamic>? currentSeun;
   final Map<String, dynamic>? aiSummary;
   final DateTime? calculatedAt;
   final DateTime? updatedAt;
-  final Map<String, dynamic>? twelveUnsung;
-  final Map<String, dynamic>? twelveSinsal;
+  final List<dynamic>? twelveUnsung;
+  final List<dynamic>? twelveSinsal;
   final Map<String, dynamic>? gilseong;
 
   const SajuAnalyses({
@@ -114,14 +114,14 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
     Map<String, dynamic>? gyeokguk,
     Map<String, dynamic>? sipsinInfo,
     Map<String, dynamic>? jijangganInfo,
-    Map<String, dynamic>? sinsalList,
+    List<dynamic>? sinsalList,
     Map<String, dynamic>? daeun,
     Map<String, dynamic>? currentSeun,
     Map<String, dynamic>? aiSummary,
     DateTime? calculatedAt,
     DateTime? updatedAt,
-    Map<String, dynamic>? twelveUnsung,
-    Map<String, dynamic>? twelveSinsal,
+    List<dynamic>? twelveUnsung,
+    List<dynamic>? twelveSinsal,
     Map<String, dynamic>? gilseong,
   }) {
     return {
@@ -174,14 +174,14 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
     Map<String, dynamic>? gyeokguk,
     Map<String, dynamic>? sipsinInfo,
     Map<String, dynamic>? jijangganInfo,
-    Map<String, dynamic>? sinsalList,
+    List<dynamic>? sinsalList,
     Map<String, dynamic>? daeun,
     Map<String, dynamic>? currentSeun,
     Map<String, dynamic>? aiSummary,
     DateTime? calculatedAt,
     DateTime? updatedAt,
-    Map<String, dynamic>? twelveUnsung,
-    Map<String, dynamic>? twelveSinsal,
+    List<dynamic>? twelveUnsung,
+    List<dynamic>? twelveSinsal,
     Map<String, dynamic>? gilseong,
   }) {
     return _generateMap(
@@ -232,14 +232,14 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
     Map<String, dynamic>? gyeokguk,
     Map<String, dynamic>? sipsinInfo,
     Map<String, dynamic>? jijangganInfo,
-    Map<String, dynamic>? sinsalList,
+    List<dynamic>? sinsalList,
     Map<String, dynamic>? daeun,
     Map<String, dynamic>? currentSeun,
     Map<String, dynamic>? aiSummary,
     DateTime? calculatedAt,
     DateTime? updatedAt,
-    Map<String, dynamic>? twelveUnsung,
-    Map<String, dynamic>? twelveSinsal,
+    List<dynamic>? twelveUnsung,
+    List<dynamic>? twelveSinsal,
     Map<String, dynamic>? gilseong,
   }) {
     return _generateMap(
@@ -308,7 +308,7 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
           ? jsonn['jijanggan_info'] as Map<String, dynamic>
           : null,
       sinsalList: jsonn['sinsal_list'] != null
-          ? jsonn['sinsal_list'] as Map<String, dynamic>
+          ? jsonn['sinsal_list'] as List<dynamic>
           : null,
       daeun: jsonn['daeun'] != null
           ? jsonn['daeun'] as Map<String, dynamic>
@@ -326,10 +326,10 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
           ? DateTime.parse(jsonn['updated_at'].toString())
           : null,
       twelveUnsung: jsonn['twelve_unsung'] != null
-          ? jsonn['twelve_unsung'] as Map<String, dynamic>
+          ? jsonn['twelve_unsung'] as List<dynamic>
           : null,
       twelveSinsal: jsonn['twelve_sinsal'] != null
-          ? jsonn['twelve_sinsal'] as Map<String, dynamic>
+          ? jsonn['twelve_sinsal'] as List<dynamic>
           : null,
       gilseong: jsonn['gilseong'] != null
           ? jsonn['gilseong'] as Map<String, dynamic>
@@ -355,14 +355,14 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
     Map<String, dynamic>? gyeokguk,
     Map<String, dynamic>? sipsinInfo,
     Map<String, dynamic>? jijangganInfo,
-    Map<String, dynamic>? sinsalList,
+    List<dynamic>? sinsalList,
     Map<String, dynamic>? daeun,
     Map<String, dynamic>? currentSeun,
     Map<String, dynamic>? aiSummary,
     DateTime? calculatedAt,
     DateTime? updatedAt,
-    Map<String, dynamic>? twelveUnsung,
-    Map<String, dynamic>? twelveSinsal,
+    List<dynamic>? twelveUnsung,
+    List<dynamic>? twelveSinsal,
     Map<String, dynamic>? gilseong,
   }) {
     return {
@@ -489,7 +489,7 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
           : jijangganInfo as Map<String, dynamic>?,
       sinsalList: sinsalList == _unset
           ? this.sinsalList
-          : sinsalList as Map<String, dynamic>?,
+          : sinsalList as List<dynamic>?,
       daeun: daeun == _unset ? this.daeun : daeun as Map<String, dynamic>?,
       currentSeun: currentSeun == _unset
           ? this.currentSeun
@@ -503,10 +503,10 @@ class SajuAnalyses implements SupadartClass<SajuAnalyses> {
       updatedAt: updatedAt == _unset ? this.updatedAt : updatedAt as DateTime?,
       twelveUnsung: twelveUnsung == _unset
           ? this.twelveUnsung
-          : twelveUnsung as Map<String, dynamic>?,
+          : twelveUnsung as List<dynamic>?,
       twelveSinsal: twelveSinsal == _unset
           ? this.twelveSinsal
-          : twelveSinsal as Map<String, dynamic>?,
+          : twelveSinsal as List<dynamic>?,
       gilseong: gilseong == _unset
           ? this.gilseong
           : gilseong as Map<String, dynamic>?,

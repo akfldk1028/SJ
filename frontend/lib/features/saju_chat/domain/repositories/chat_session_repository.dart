@@ -21,11 +21,24 @@ abstract class ChatSessionRepository {
   /// 세션 삭제
   Future<void> deleteSession(String id);
 
-  /// 세션의 메시지 목록 조회
-  Future<List<ChatMessage>> getSessionMessages(String sessionId);
+  /// 세션의 메시지 목록 조회 (Pagination 지원)
+  ///
+  /// [limit]: 가져올 메시지 수 (기본: 50)
+  /// [offset]: 건너뛸 메시지 수 (기본: 0)
+  Future<List<ChatMessage>> getSessionMessages(
+    String sessionId, {
+    int limit = 50,
+    int offset = 0,
+  });
+
+  /// 세션의 전체 메시지 개수 조회
+  Future<int> getSessionMessageCount(String sessionId);
 
   /// 메시지 저장
   Future<void> saveMessage(ChatMessage message);
+
+  /// 개별 메시지 삭제
+  Future<void> deleteMessage(String messageId);
 
   /// 세션의 모든 메시지 삭제
   Future<void> deleteSessionMessages(String sessionId);

@@ -233,6 +233,16 @@ class ChatRepository {
   }
 
   // ============================================================
+  // MESSAGES - DELETE
+  // ============================================================
+
+  /// 개별 메시지 삭제
+  Future<void> deleteMessage(String messageId) async {
+    if (_client == null) return;
+    await _client.from('chat_messages').delete().eq('id', messageId);
+  }
+
+  // ============================================================
   // 변환 함수
   // ============================================================
 

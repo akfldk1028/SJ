@@ -36,6 +36,7 @@ abstract class SupadartClass<T> {
 // Supabase Client Extension
 extension SupadartClient on SupabaseClient {
   SupabaseQueryBuilder get chat_messages => from('chat_messages');
+  SupabaseQueryBuilder get ai_summaries => from('ai_summaries');
   SupabaseQueryBuilder get saju_profiles => from('saju_profiles');
   SupabaseQueryBuilder get compatibility_analyses =>
       from('compatibility_analyses');
