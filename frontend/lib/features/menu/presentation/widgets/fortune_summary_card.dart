@@ -1,15 +1,138 @@
 import 'package:flutter/material.dart';
-import '../../data/mock/mock_fortune_data.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/daily_fortune_provider.dart';
 
-/// Fortune summary card - 테마 적용
-class FortuneSummaryCard extends StatelessWidget {
+/// Fortune summary card - AI 데이터 연동
+class FortuneSummaryCard extends ConsumerWidget {
   const FortuneSummaryCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.appTheme;
-    final score = MockFortuneData.todayScore;
+    final fortuneAsync = ref.watch(dailyFortuneProvider);
+
+    return fortuneAsync.when(
+      loading: () => _buildLoadingCard(theme),
+      error: (error, stack) => _buildErrorCard(theme, error),
+      data: (fortune) => _buildFortuneCard(context, theme, fortune),
+    );
+  }
+
+  Widget _buildLoadingCard(AppThemeExtension theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        height: 300,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: theme.primaryColor),
+              const SizedBox(height: 16),
+              Text(
+                '운세를 불러오는 중...',
+                style: TextStyle(color: theme.textMuted),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(AppThemeExtension theme, Object error) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        height: 200,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: theme.textMuted, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                '운세를 불러올 수 없습니다',
+                style: TextStyle(color: theme.textMuted),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFortuneCard(
+    BuildContext context,
+    AppThemeExtension theme,
+    DailyFortuneData? fortune,
+  ) {
+    // fortune이 null이면 분석 대기 중
+    if (fortune == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          height: 200,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.auto_awesome, color: theme.primaryColor, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  '오늘의 운세를 분석 중입니다',
+                  style: TextStyle(color: theme.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '잠시만 기다려주세요',
+                  style: TextStyle(color: theme.textMuted, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final score = fortune.overallScore;
+    final message = fortune.overallMessage;
+
+    // 시간대별 운세 점수 계산 (현재 시간 기준)
+    final hour = DateTime.now().hour;
+    String timeSlot;
+    int timeScore;
+    String timeMessage;
+
+    if (hour >= 7 && hour < 12) {
+      timeSlot = '오전 운세';
+      timeScore = fortune.getCategoryScore('work');
+      timeMessage = fortune.getCategoryMessage('work');
+    } else if (hour >= 12 && hour < 18) {
+      timeSlot = '오후 운세';
+      timeScore = fortune.getCategoryScore('wealth');
+      timeMessage = fortune.getCategoryMessage('wealth');
+    } else {
+      timeSlot = '저녁 운세';
+      timeScore = fortune.getCategoryScore('love');
+      timeMessage = fortune.getCategoryMessage('love');
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -74,7 +197,7 @@ class FortuneSummaryCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '주변사람들과\n교류가 많아지는\n하루입니다.',
+                        _formatMessage(message),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w400,
@@ -153,7 +276,7 @@ class FortuneSummaryCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          '오전 운세',
+                          timeSlot,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -163,7 +286,7 @@ class FortuneSummaryCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '7:00 - 11:59',
+                        _getTimeRange(hour),
                         style: TextStyle(
                           fontSize: 11,
                           color: theme.textMuted,
@@ -183,7 +306,7 @@ class FortuneSummaryCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            '65',
+                            '$timeScore',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -196,7 +319,7 @@ class FortuneSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '당신을 둘러싼 기운이\n엄청나게 활기를 띄는 오전입니다.',
+                    _truncateMessage(timeMessage, 50),
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -232,6 +355,49 @@ class FortuneSummaryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// 긴 메시지를 3줄로 포맷팅
+  String _formatMessage(String message) {
+    if (message.length <= 30) return message;
+
+    // 적당한 위치에서 줄바꿈
+    final words = message.split(' ');
+    final lines = <String>[];
+    var currentLine = '';
+
+    for (final word in words) {
+      if ((currentLine + word).length > 12 && currentLine.isNotEmpty) {
+        lines.add(currentLine.trim());
+        currentLine = word + ' ';
+        if (lines.length >= 3) break;
+      } else {
+        currentLine += word + ' ';
+      }
+    }
+
+    if (lines.length < 3 && currentLine.isNotEmpty) {
+      lines.add(currentLine.trim());
+    }
+
+    return lines.take(3).join('\n');
+  }
+
+  /// 메시지 자르기
+  String _truncateMessage(String message, int maxLength) {
+    if (message.length <= maxLength) return message;
+    return '${message.substring(0, maxLength)}...';
+  }
+
+  /// 시간대 범위 반환
+  String _getTimeRange(int hour) {
+    if (hour >= 7 && hour < 12) {
+      return '7:00 - 11:59';
+    } else if (hour >= 12 && hour < 18) {
+      return '12:00 - 17:59';
+    } else {
+      return '18:00 - 23:59';
+    }
   }
 
   Widget _buildActionButton(BuildContext context, String text, bool isPrimary) {

@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../../../../AI/core/ai_logger.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
 
@@ -134,6 +135,26 @@ class GeminiRestDatasource {
         ],
       });
 
+      // 로컬 로그 저장
+      await AiLogger.log(
+        provider: 'gemini',
+        model: _model,
+        type: 'chat',
+        request: {
+          'message': message,
+          'system_prompt_length': _systemPrompt?.length ?? 0,
+        },
+        response: {'content': text},
+        tokens: {
+          'prompt': promptTokenCount,
+          'completion': candidatesTokenCount,
+          'total': totalTokenCount,
+          'thoughts': thoughtsTokenCount,
+        },
+        costUsd: _calculateCost(promptTokenCount ?? 0, candidatesTokenCount ?? 0),
+        success: true,
+      );
+
       return GeminiResponse(
         content: text,
         promptTokenCount: promptTokenCount,
@@ -262,6 +283,26 @@ class GeminiRestDatasource {
         candidatesTokenCount: candidatesTokenCount,
         totalTokenCount: totalTokenCount,
         thoughtsTokenCount: thoughtsTokenCount,
+      );
+
+      // 로컬 로그 저장
+      await AiLogger.log(
+        provider: 'gemini',
+        model: _model,
+        type: 'chat_stream',
+        request: {
+          'message': message,
+          'system_prompt_length': _systemPrompt?.length ?? 0,
+        },
+        response: {'content': accumulated},
+        tokens: {
+          'prompt': promptTokenCount,
+          'completion': candidatesTokenCount,
+          'total': totalTokenCount,
+          'thoughts': thoughtsTokenCount,
+        },
+        costUsd: _calculateCost(promptTokenCount ?? 0, candidatesTokenCount ?? 0),
+        success: true,
       );
     } on DioException catch (e) {
       throw Exception('스트리밍 오류: ${e.message}');
@@ -397,5 +438,13 @@ class GeminiRestDatasource {
   void dispose() {
     _conversationHistory.clear();
     _systemPrompt = null;
+  }
+
+  /// Gemini 비용 계산 (USD)
+  /// gemini-3-pro-preview: 입력 $1.25/1M, 출력 $10.00/1M (thinking 포함)
+  double _calculateCost(int promptTokens, int completionTokens) {
+    const inputPrice = 1.25 / 1000000;
+    const outputPrice = 10.0 / 1000000;
+    return (promptTokens * inputPrice) + (completionTokens * outputPrice);
   }
 }

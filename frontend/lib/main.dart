@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
 import 'core/services/supabase_service.dart';
+import 'AI/core/ai_logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,9 @@ void main() async {
   await Hive.openBox('chat_sessions');
   await Hive.openBox('chat_messages');
   await Hive.openBox('saju_analyses'); // 사주 분석 결과 캐시
+
+  // AI 로그 서비스 초기화
+  await AiLogger.init();
 
   // Supabase 초기화 (오프라인 모드 지원)
   await SupabaseService.initialize();

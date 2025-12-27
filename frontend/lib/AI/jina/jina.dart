@@ -20,10 +20,11 @@ export 'chat/emoji_injector.dart';
 // Personas - 페르소나
 // ═══════════════════════════════════════════════════════════════
 export 'personas/persona_base.dart';
+export 'personas/persona_registry.dart';
+export 'personas/persona_selector.dart';
+export 'personas/cute_friend.dart';
 export 'personas/friendly_sister.dart';
 export 'personas/wise_scholar.dart';
-export 'personas/cute_friend.dart';
-export 'personas/persona_selector.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // Context - 맥락 관리

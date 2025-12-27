@@ -92,6 +92,9 @@ class ChatNotifier extends _$ChatNotifier {
   StreamSubscription<ChatMessage>? _realtimeSubscription;
   StreamSubscription<String>? _deleteSubscription;
 
+  /// 메시지 처리 중 플래그 (Realtime 중복 방지)
+  bool _isProcessingMessage = false;
+
   @override
   ChatState build(String sessionId) {
     // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
@@ -120,7 +123,15 @@ class ChatNotifier extends _$ChatNotifier {
 
     // 새 메시지 수신 구독
     _realtimeSubscription = realtimeService.onNewMessage.listen((message) {
-      // 자신이 보낸 메시지가 아닌 경우에만 추가 (중복 방지)
+      // AI 메시지 처리 중이면 Realtime에서 온 AI 메시지 무시 (중복 방지)
+      if (_isProcessingMessage && message.role == MessageRole.assistant) {
+        if (kDebugMode) {
+          print('[ChatNotifier] Realtime AI 메시지 무시 (처리 중): ${message.id}');
+        }
+        return;
+      }
+
+      // 이미 존재하는 메시지인 경우 추가하지 않음
       final exists = state.messages.any((m) => m.id == message.id);
       if (!exists) {
         state = state.copyWith(
@@ -431,6 +442,9 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
   Future<void> sendMessage(String content, ChatType chatType) async {
     if (content.trim().isEmpty) return;
 
+    // Realtime 중복 방지 플래그 설정
+    _isProcessingMessage = true;
+
     print('[ChatNotifier] sendMessage 호출: sessionId=$sessionId, content=${content.substring(0, content.length > 20 ? 20 : content.length)}...');
 
     final currentSessionId = sessionId;
@@ -550,7 +564,13 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
 
       // 세션 메타데이터 업데이트
       await _updateSessionMetadata(currentSessionId, content);
+
+      // Realtime 중복 방지 플래그 해제
+      _isProcessingMessage = false;
     } catch (e) {
+      // 에러 시에도 플래그 해제
+      _isProcessingMessage = false;
+
       state = state.copyWith(
         isLoading: false,
         streamingContent: null,

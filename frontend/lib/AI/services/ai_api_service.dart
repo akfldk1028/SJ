@@ -73,6 +73,7 @@ import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/ai_constants.dart';
+import '../core/ai_logger.dart';
 
 /// API 응답 데이터 클래스
 ///
@@ -176,17 +177,20 @@ class AiApiService {
   /// - `model`: 모델 ID (기본: 'gpt-5.2')
   /// - `maxTokens`: 최대 응답 토큰 (기본: 2000)
   /// - `temperature`: 창의성 (0.0~2.0, 기본: 0.7)
+  /// - `logType`: 로그 분류 (기본: 'unknown')
   ///
   /// ## 응답 처리
   /// 1. Edge Function 호출
   /// 2. JSON 응답 파싱 (```json``` 블록 처리)
   /// 3. 토큰 사용량 추출
   /// 4. 비용 계산
+  /// 5. 로컬 로그 저장
   Future<AiApiResponse> callOpenAI({
     required List<Map<String, String>> messages,
     required String model,
     int maxTokens = 2000,
     double temperature = 0.7,
+    String logType = 'unknown',
   }) async {
     try {
       print('[AiApiService] OpenAI 호출: $model');
@@ -227,6 +231,26 @@ class AiApiService {
 
       print('[AiApiService] OpenAI 완료: prompt=$promptTokens, completion=$completionTokens');
 
+      // 로컬 로그 저장
+      await AiLogger.log(
+        provider: 'openai',
+        model: model,
+        type: logType,
+        request: {
+          'messages': messages,
+          'max_tokens': maxTokens,
+          'temperature': temperature,
+        },
+        response: content,
+        tokens: {
+          'prompt': promptTokens,
+          'completion': completionTokens,
+          'cached': cachedTokens,
+        },
+        costUsd: totalCostUsd,
+        success: true,
+      );
+
       return AiApiResponse.success(
         content: content,
         promptTokens: promptTokens,
@@ -236,6 +260,21 @@ class AiApiService {
       );
     } catch (e) {
       print('[AiApiService] OpenAI 예외: $e');
+
+      // 실패 로그 저장
+      await AiLogger.log(
+        provider: 'openai',
+        model: model,
+        type: logType,
+        request: {
+          'messages': messages,
+          'max_tokens': maxTokens,
+          'temperature': temperature,
+        },
+        success: false,
+        error: e.toString(),
+      );
+
       return AiApiResponse.failure(e.toString());
     }
   }
@@ -259,11 +298,13 @@ class AiApiService {
   /// - `model`: 모델 ID (기본: 'gemini-2.0-flash')
   /// - `maxTokens`: 최대 응답 토큰 (기본: 1000)
   /// - `temperature`: 창의성 (0.0~2.0, 기본: 0.8)
+  /// - `logType`: 로그 분류 (기본: 'unknown')
   Future<AiApiResponse> callGemini({
     required List<Map<String, String>> messages,
     required String model,
     int maxTokens = 1000,
     double temperature = 0.8,
+    String logType = 'unknown',
   }) async {
     try {
       print('[AiApiService] Gemini 호출: $model');
@@ -301,6 +342,25 @@ class AiApiService {
 
       print('[AiApiService] Gemini 완료: prompt=$promptTokens, completion=$completionTokens');
 
+      // 로컬 로그 저장
+      await AiLogger.log(
+        provider: 'gemini',
+        model: model,
+        type: logType,
+        request: {
+          'messages': messages,
+          'max_tokens': maxTokens,
+          'temperature': temperature,
+        },
+        response: content,
+        tokens: {
+          'prompt': promptTokens,
+          'completion': completionTokens,
+        },
+        costUsd: totalCostUsd,
+        success: true,
+      );
+
       return AiApiResponse.success(
         content: content,
         promptTokens: promptTokens,
@@ -309,6 +369,21 @@ class AiApiService {
       );
     } catch (e) {
       print('[AiApiService] Gemini 예외: $e');
+
+      // 실패 로그 저장
+      await AiLogger.log(
+        provider: 'gemini',
+        model: model,
+        type: logType,
+        request: {
+          'messages': messages,
+          'max_tokens': maxTokens,
+          'temperature': temperature,
+        },
+        success: false,
+        error: e.toString(),
+      );
+
       return AiApiResponse.failure(e.toString());
     }
   }

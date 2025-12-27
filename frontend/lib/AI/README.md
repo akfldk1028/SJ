@@ -1,0 +1,326 @@
+# AI 모듈 가이드
+
+> **담당자**: JH_AI (분석) + Jina (대화)
+> **마지막 업데이트**: 2024-12
+
+---
+
+## 목차
+
+1. [모듈 구조](#모듈-구조)
+2. [팀 역할 분담](#팀-역할-분담)
+3. [새 페르소나 추가하기](#새-페르소나-추가하기-jina)
+4. [새 프롬프트 추가하기](#새-프롬프트-추가하기)
+5. [AI 모델 정보](#ai-모델-정보)
+6. [파이프라인 흐름](#파이프라인-흐름)
+7. [체크리스트](#체크리스트)
+
+---
+
+## 모듈 구조
+
+```
+AI/
+├── ai.dart                 # 메인 exports
+├── core/
+│   └── ai_constants.dart   # 모델명, 가격, 상수
+│
+├── prompts/                # 프롬프트 템플릿 (JH_AI + Jina 공동)
+│   ├── _TEMPLATE.dart      # ⭐ 새 프롬프트 템플릿
+│   ├── prompt_template.dart
+│   ├── saju_base_prompt.dart
+│   └── daily_fortune_prompt.dart
+│
+├── common/                 # 공용 모듈
+│   ├── core/               # 설정, 로거, 캐시
+│   ├── data/               # AI 데이터 제공자
+│   ├── providers/          # AI Provider (OpenAI, Google, Image)
+│   │   ├── openai/         # GPT-5.2 (JH_AI)
+│   │   ├── google/         # Gemini 3.0 (Jina)
+│   │   └── image/          # DALL-E, Imagen
+│   └── pipelines/          # 분석 파이프라인
+│
+├── jh/                     # JH_AI 전용
+│   ├── jh.dart
+│   ├── analysis/           # 사주 분석 로직
+│   └── providers/
+│
+├── jina/                   # Jina 전용
+│   ├── jina.dart
+│   ├── chat/               # 대화 생성
+│   ├── context/            # 맥락 관리
+│   ├── image/              # Nanabanan 이미지
+│   ├── personas/           # ⭐ 페르소나 시스템
+│   │   ├── _TEMPLATE.dart  # 새 페르소나 템플릿
+│   │   ├── persona_base.dart
+│   │   ├── persona_registry.dart
+│   │   └── ...
+│   └── providers/
+│
+├── services/               # AI 서비스
+└── data/                   # 쿼리/뮤테이션
+```
+
+---
+
+## 팀 역할 분담
+
+| 담당 | 역할 | 주요 폴더 |
+|------|------|----------|
+| **JH_AI** | GPT-5.2로 사주 분석 | `jh/`, `prompts/`, `common/providers/openai/` |
+| **Jina** | Gemini 3.0으로 대화 생성 | `jina/`, `common/providers/google/` |
+| **공동** | 파이프라인, 캐시, 로거 | `common/core/`, `common/pipelines/` |
+
+### 작업 영역
+
+```
+JH_AI:
+- 사주 분석 프롬프트 작성
+- 분석 결과 파싱
+- GPT API 호출 로직
+
+Jina:
+- 페르소나 캐릭터 정의
+- 대화 톤/이모지 조절
+- Gemini API 호출 로직
+```
+
+---
+
+## 새 페르소나 추가하기 (Jina)
+
+### 1단계: 템플릿 복사
+
+```bash
+# personas/ 폴더에서 템플릿 복사
+cp _TEMPLATE.dart my_new_persona.dart
+```
+
+### 2단계: 클래스 수정
+
+```dart
+// my_new_persona.dart
+class MyNewPersona extends PersonaBase {
+  @override
+  String get id => 'my_new_persona';  // 영문 snake_case
+
+  @override
+  String get name => '새 페르소나';  // 한글 이름
+
+  @override
+  String get description => '설명';
+
+  @override
+  PersonaTone get tone => PersonaTone.casual;  // 말투 선택
+
+  @override
+  int get emojiLevel => 3;  // 이모지 정도 (0~5)
+
+  @override
+  String get systemPrompt => '''
+당신은 [역할]입니다.
+...
+''';
+}
+```
+
+### 3단계: 레지스트리 등록
+
+```dart
+// persona_registry.dart 열기
+static final List<PersonaBase> _allPersonas = [
+  FriendlySisterPersona(),
+  CuteFriendPersona(),
+  WiseScholarPersona(),
+  MyNewPersona(),  // ← 추가!
+];
+```
+
+### 4단계: jina.dart에 export 추가
+
+```dart
+// jina.dart
+export 'personas/my_new_persona.dart';  // ← 추가!
+```
+
+### 말투 옵션 (PersonaTone)
+
+| 옵션 | 예시 | 용도 |
+|------|------|------|
+| `formal` | ~합니다 | 전문가, 학자 |
+| `polite` | ~해요 | 언니, 선배 |
+| `casual` | ~해 | 친구, 동생 |
+| `mixed` | 혼합 | 상황별 변화 |
+
+### 카테고리 옵션 (PersonaCategory)
+
+| 옵션 | 설명 |
+|------|------|
+| `friend` | 친구 스타일 |
+| `expert` | 전문가 스타일 |
+| `family` | 가족 스타일 |
+| `fun` | 재미 스타일 |
+| `special` | 시즌 한정 등 |
+
+---
+
+## 새 프롬프트 추가하기
+
+### 1단계: 템플릿 복사
+
+```bash
+# prompts/ 폴더에서 템플릿 복사
+cp _TEMPLATE.dart yearly_fortune_prompt.dart
+```
+
+### 2단계: 클래스 수정
+
+```dart
+class YearlyFortunePrompt extends PromptTemplate {
+  @override
+  String get summaryType => 'yearly_fortune';  // DB 저장용 키
+
+  @override
+  String get modelName => OpenAIModels.gpt52;  // 또는 GoogleModels.gemini30Flash
+
+  @override
+  int get maxTokens => 2000;
+
+  @override
+  double get temperature => 0.7;
+
+  @override
+  Duration? get cacheExpiry => Duration(days: 365);  // 1년 캐시
+
+  @override
+  String get systemPrompt => '''
+당신은 사주 전문가입니다.
+...
+''';
+
+  @override
+  String buildUserPrompt(Map<String, dynamic> input) {
+    final data = SajuInputData.fromJson(input);
+    return '''
+## 대상 정보
+- 이름: ${data.profileName}
+...
+''';
+  }
+}
+```
+
+### 모델 선택 가이드
+
+| 용도 | 모델 | 속도 | 비용 |
+|------|------|------|------|
+| 정밀 분석 | `OpenAIModels.gpt52` | 느림 | 높음 |
+| 빠른 분석 | `OpenAIModels.gpt4oMini` | 빠름 | 낮음 |
+| 대화 생성 | `GoogleModels.gemini30Flash` | 빠름 | 낮음 |
+| 고급 대화 | `GoogleModels.gemini30Pro` | 보통 | 보통 |
+
+---
+
+## AI 모델 정보
+
+### 사용 모델 (2024-12 기준)
+
+| 모델 | ID | 용도 |
+|------|-----|------|
+| GPT-5.2 | `gpt-5-2-turbo-preview` | 사주 분석 |
+| GPT-4o Mini | `gpt-4o-mini` | 빠른 분석 |
+| Gemini 3.0 Flash | `gemini-3-flash-preview` | 대화 생성 |
+| Gemini 3.0 Pro | `gemini-3-pro-preview` | 고급 대화 |
+| DALL-E 3 | `dall-e-3` | 이미지 생성 |
+| Imagen 3 | `imagen-3.0-generate-001` | 이미지 생성 |
+
+### 상수 위치
+
+```dart
+// core/ai_constants.dart
+class OpenAIModels {
+  static const gpt52 = 'gpt-5-2-turbo-preview';
+  static const gpt4oMini = 'gpt-4o-mini';
+}
+
+class GoogleModels {
+  static const gemini30Flash = 'gemini-3-flash-preview';
+  static const gemini30Pro = 'gemini-3-pro-preview';
+}
+```
+
+---
+
+## 파이프라인 흐름
+
+```
+┌─────────────┐
+│  사용자 입력  │
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│ SajuPipeline│ ← 사주 데이터 준비
+└──────┬──────┘
+       ▼
+┌─────────────┐     ┌─────────────┐
+│   JH_AI     │────▶│    Jina     │
+│  GPT-5.2    │     │ Gemini 3.0  │
+│  (분석)      │     │  (대화)      │
+└──────┬──────┘     └──────┬──────┘
+       │                    │
+       ▼                    ▼
+┌─────────────┐     ┌─────────────┐
+│ 분석 결과    │     │ 대화 응답    │
+│ (JSON)      │     │ (자연어)     │
+└─────────────┘     └─────────────┘
+```
+
+---
+
+## 체크리스트
+
+### 새 페르소나 추가 시
+
+- [ ] `_TEMPLATE.dart` 복사
+- [ ] 클래스명 변경
+- [ ] id 설정 (영문 snake_case)
+- [ ] name, description 작성
+- [ ] tone, emojiLevel 선택
+- [ ] systemPrompt 작성
+- [ ] greetings, examples 추가 (선택)
+- [ ] `persona_registry.dart`에 등록
+- [ ] `jina.dart`에 export 추가
+- [ ] 빌드 테스트
+
+### 새 프롬프트 추가 시
+
+- [ ] `_TEMPLATE.dart` 복사
+- [ ] 클래스명 변경
+- [ ] summaryType 설정 (필요시 `ai_constants.dart`에 추가)
+- [ ] modelName 선택
+- [ ] maxTokens, temperature, cacheExpiry 설정
+- [ ] systemPrompt 작성
+- [ ] buildUserPrompt 작성 (JSON 스키마 포함)
+- [ ] 사용하는 서비스에서 import
+- [ ] 테스트 완료
+
+---
+
+## 문제 해결
+
+### Q: 페르소나가 목록에 안 보여요
+→ `persona_registry.dart`의 `_allPersonas`에 인스턴스 추가했는지 확인
+
+### Q: 프롬프트 응답이 잘려요
+→ `maxTokens` 값을 늘려보세요 (최대 4000~8000)
+
+### Q: 캐시가 안 돼요
+→ `cacheExpiry`가 null이면 무기한, Duration 설정시 해당 시간만 캐시
+
+---
+
+## 연락처
+
+- JH_AI: AI 분석 관련
+- Jina: 대화/페르소나 관련
+- DK: 전체 아키텍처

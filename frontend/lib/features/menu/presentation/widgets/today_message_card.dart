@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
-import '../../data/mock/mock_fortune_data.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/daily_fortune_provider.dart';
 
-/// Today's message card - 테마 적용
-class TodayMessageCard extends StatelessWidget {
+/// Today's message card - AI 데이터 연동
+class TodayMessageCard extends ConsumerWidget {
   const TodayMessageCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.appTheme;
+    final fortuneAsync = ref.watch(dailyFortuneProvider);
 
+    return fortuneAsync.when(
+      loading: () => _buildCard(theme, '오늘의 메시지를 불러오는 중...'),
+      error: (_, __) => _buildCard(theme, '메시지를 불러올 수 없습니다.'),
+      data: (fortune) => _buildCard(
+        theme,
+        fortune?.affirmation ?? '긍정적인 마음으로 하루를 시작하세요!',
+      ),
+    );
+  }
+
+  Widget _buildCard(AppThemeExtension theme, String message) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -68,7 +81,7 @@ class TodayMessageCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              MockFortuneData.todayMessage,
+              message,
               style: TextStyle(
                 fontSize: 15,
                 height: 1.6,
