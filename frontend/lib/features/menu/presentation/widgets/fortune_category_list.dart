@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Fortune category grid - 테마 적용 (정통운세 그리드)
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class FortuneCategoryList extends StatelessWidget {
   const FortuneCategoryList({super.key});
+
+  // ⚡ 캐싱된 색상 상수
+  static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
+  static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +33,7 @@ class FortuneCategoryList extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: theme.isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.06),
+              color: theme.isDark ? _shadowDark : _shadowLight,
               offset: const Offset(0, 4),
               blurRadius: 16,
             ),
@@ -63,7 +66,7 @@ class FortuneCategoryList extends StatelessWidget {
             height: 56,
             decoration: BoxDecoration(
               color: theme.isDark
-                  ? theme.primaryColor.withOpacity(0.15)
+                  ? theme.primaryColor.withValues(alpha: 0.15)
                   : theme.backgroundColor,
               borderRadius: BorderRadius.circular(16),
             ),
