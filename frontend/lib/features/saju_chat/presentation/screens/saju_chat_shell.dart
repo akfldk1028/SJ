@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../ad/ad.dart';
 import '../../domain/models/chat_type.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
@@ -96,6 +98,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
   /// 새 채팅 시작
   Future<void> _handleNewChat() async {
+    // 새 세션 광고 표시 (Web 제외)
+    if (!kIsWeb) {
+      await ref.read(adControllerProvider.notifier).onNewSession();
+    }
+
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final activeProfile = await ref.read(activeProfileProvider.future);
     await sessionNotifier.createSession(_chatType, activeProfile?.id);
@@ -363,13 +370,23 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       });
     }
 
-    // 메시지가 추가되면 스크롤
+    // 메시지가 추가되면 스크롤 + 광고 체크
     ref.listen(
       chatNotifierProvider(currentSessionId),
       (previous, next) {
         if (previous?.messages.length != next.messages.length ||
             previous?.streamingContent != next.streamingContent) {
           widget.onScroll();
+        }
+
+        // AI 응답 완료 시 광고 체크 (메시지 수 증가 & 로딩 완료)
+        if (!kIsWeb &&
+            previous?.messages.length != next.messages.length &&
+            !next.isLoading &&
+            next.messages.isNotEmpty &&
+            next.messages.last.isAi) {
+          // 광고 카운터 체크 (비동기)
+          ref.read(adControllerProvider.notifier).onChatMessage();
         }
       },
     );

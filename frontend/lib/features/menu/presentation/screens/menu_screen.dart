@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/section_header.dart';
@@ -49,14 +51,20 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 children: [
                   const FortuneSummaryCard(),
                   const SizedBox(height: 24),
-                  SajuMiniCard(),
+                  const SajuMiniCard(),
                   const SizedBox(height: 24),
+                  // Native 광고 1 (사주 카드 아래) - 즉시 로드
+                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 0),
+                  if (!kIsWeb) const SizedBox(height: 24),
                   const SectionHeader(
                     title: '오늘의 운세',
                   ),
                   const SizedBox(height: 12),
                   const FortuneCategoryList(),
                   const SizedBox(height: 24),
+                  // Native 광고 2 - 500ms 지연
+                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 500),
+                  if (!kIsWeb) const SizedBox(height: 24),
                   const SectionHeader(
                     title: '오늘의 조언',
                   ),
@@ -64,6 +72,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   const DailyAdviceSection(),
                   const SizedBox(height: 24),
                   const TodayMessageCard(),
+                  const SizedBox(height: 24),
+                  // Native 광고 3 (맨 하단) - 1000ms 지연
+                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 1000),
                 ],
               ),
             ),

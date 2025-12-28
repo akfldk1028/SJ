@@ -4,8 +4,13 @@ import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_fortune_provider.dart';
 
 /// Fortune summary card - AI 데이터 연동
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class FortuneSummaryCard extends ConsumerWidget {
   const FortuneSummaryCard({super.key});
+
+  // ⚡ 캐싱된 색상 상수 (매 빌드마다 새 객체 생성 방지)
+  static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
+  static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,9 +148,7 @@ class FortuneSummaryCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: theme.isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.06),
+              color: theme.isDark ? _shadowDark : _shadowLight,
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -181,7 +184,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
+                              color: theme.primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -231,7 +234,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: theme.isDark
-                    ? theme.primaryColor.withOpacity(0.1)
+                    ? theme.primaryColor.withValues(alpha: 0.1)
                     : theme.backgroundColor,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -271,7 +274,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: theme.isDark
-                                ? theme.textMuted.withOpacity(0.3)
+                                ? theme.textMuted.withValues(alpha: 0.3)
                                 : Colors.grey[200]!,
                           ),
                         ),
@@ -300,7 +303,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: theme.primaryColor.withOpacity(0.3),
+                            color: theme.primaryColor.withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
@@ -412,7 +415,7 @@ class FortuneSummaryCard extends ConsumerWidget {
           color: isPrimary
               ? theme.primaryColor
               : theme.isDark
-                  ? theme.textMuted.withOpacity(0.3)
+                  ? theme.textMuted.withValues(alpha: 0.3)
                   : Colors.grey[300]!,
         ),
       ),

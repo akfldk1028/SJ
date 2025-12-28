@@ -73,9 +73,11 @@
 /// - `daily_fortune_prompt.dart`: Gemini 프롬프트
 
 import 'dart:async';
+import 'dart:convert';
 
 import '../../core/supabase/generated/saju_analyses.dart';
 import '../../core/supabase/generated/saju_profiles.dart';
+import '../core/ai_logger.dart';
 import '../data/mutations.dart';
 import '../data/queries.dart';
 import '../prompts/daily_fortune_prompt.dart';
@@ -178,6 +180,7 @@ class SajuAnalysisService {
   /// - `userId`: 사용자 UUID (RLS 필수)
   /// - `profileId`: 프로필 UUID
   /// - `runInBackground`: Fire-and-forget 모드 (기본 true)
+  /// - `onComplete`: 백그라운드 분석 완료 시 콜백 (UI 갱신용)
   ///
   /// ## 반환값
   /// - `runInBackground=true`: 빈 ProfileAnalysisResult 즉시 반환
@@ -186,6 +189,7 @@ class SajuAnalysisService {
     required String userId,
     required String profileId,
     bool runInBackground = true,
+    void Function(ProfileAnalysisResult)? onComplete,
   }) async {
     print('[SajuAnalysisService] 프로필 분석 시작: $profileId');
 
@@ -202,7 +206,7 @@ class SajuAnalysisService {
     // 2. 두 분석 병렬 실행
     if (runInBackground) {
       // Fire-and-forget: 백그라운드에서 실행
-      _runBothAnalysesInBackground(userId, profileId, inputData);
+      _runBothAnalysesInBackground(userId, profileId, inputData, onComplete);
       return const ProfileAnalysisResult(); // 즉시 반환
     } else {
       // 완료 대기
@@ -259,16 +263,23 @@ class SajuAnalysisService {
   /// - 즉시 반환 (사용자 대기 없음)
   /// - 결과는 DB에 저장됨
   /// - 에러 발생 시 로그만 출력
+  /// - 완료 시 onComplete 콜백 호출 (UI 갱신용)
   void _runBothAnalysesInBackground(
     String userId,
     String profileId,
     SajuInputData inputData,
+    void Function(ProfileAnalysisResult)? onComplete,
   ) {
     // 비동기로 실행, 결과는 DB에 저장됨
     _runBothAnalyses(userId, profileId, inputData).then((result) {
       print('[SajuAnalysisService] 백그라운드 분석 완료');
       print('  - 평생운세: ${result.sajuBase?.success ?? false}');
       print('  - 오늘운세: ${result.dailyFortune?.success ?? false}');
+
+      // UI 갱신 콜백 호출
+      if (onComplete != null) {
+        onComplete(result);
+      }
     }).catchError((e) {
       print('[SajuAnalysisService] 백그라운드 분석 오류: $e');
     });
@@ -384,7 +395,25 @@ class SajuAnalysisService {
       stopwatch.stop();
 
       if (saveResult.isSuccess) {
-        print('[SajuAnalysisService] 평생 사주 분석 완료: ${stopwatch.elapsedMilliseconds}ms');
+        // 상세 로그 출력 (프로필 분석 전용)
+        final profileName = inputJson['name'] as String? ?? '알 수 없음';
+        await AiLogger.logProfileAnalysis(
+          profileId: profileId,
+          profileName: profileName,
+          analysisType: 'saju_base',
+          provider: 'openai',
+          model: prompt.modelName,
+          success: true,
+          content: response.content != null ? jsonEncode(response.content) : null,
+          tokens: {
+            'prompt': response.promptTokens,
+            'completion': response.completionTokens,
+            'cached': response.cachedTokens,
+          },
+          costUsd: response.totalCostUsd,
+          processingTimeMs: stopwatch.elapsedMilliseconds,
+        );
+
         return AnalysisResult.success(
           summaryId: saveResult.data!.id,
           processingTimeMs: stopwatch.elapsedMilliseconds,
@@ -394,7 +423,20 @@ class SajuAnalysisService {
       }
     } catch (e) {
       stopwatch.stop();
-      print('[SajuAnalysisService] 평생 사주 분석 오류: $e');
+
+      // 에러 로그 출력
+      final profileName = inputJson['name'] as String? ?? '알 수 없음';
+      await AiLogger.logProfileAnalysis(
+        profileId: profileId,
+        profileName: profileName,
+        analysisType: 'saju_base',
+        provider: 'openai',
+        model: 'gpt-5.2',
+        success: false,
+        error: e.toString(),
+        processingTimeMs: stopwatch.elapsedMilliseconds,
+      );
+
       return AnalysisResult.failure(e.toString());
     }
   }
@@ -464,7 +506,24 @@ class SajuAnalysisService {
       stopwatch.stop();
 
       if (saveResult.isSuccess) {
-        print('[SajuAnalysisService] 오늘의 운세 분석 완료: ${stopwatch.elapsedMilliseconds}ms');
+        // 상세 로그 출력 (프로필 분석 전용)
+        final profileName = inputJson['name'] as String? ?? '알 수 없음';
+        await AiLogger.logProfileAnalysis(
+          profileId: profileId,
+          profileName: profileName,
+          analysisType: 'daily_fortune',
+          provider: 'google',
+          model: prompt.modelName,
+          success: true,
+          content: response.content != null ? jsonEncode(response.content) : null,
+          tokens: {
+            'prompt': response.promptTokens,
+            'completion': response.completionTokens,
+          },
+          costUsd: response.totalCostUsd,
+          processingTimeMs: stopwatch.elapsedMilliseconds,
+        );
+
         return AnalysisResult.success(
           summaryId: saveResult.data!.id,
           processingTimeMs: stopwatch.elapsedMilliseconds,
@@ -474,7 +533,20 @@ class SajuAnalysisService {
       }
     } catch (e) {
       stopwatch.stop();
-      print('[SajuAnalysisService] 오늘의 운세 분석 오류: $e');
+
+      // 에러 로그 출력
+      final profileName = inputJson['name'] as String? ?? '알 수 없음';
+      await AiLogger.logProfileAnalysis(
+        profileId: profileId,
+        profileName: profileName,
+        analysisType: 'daily_fortune',
+        provider: 'google',
+        model: 'gemini-2.0-flash',
+        success: false,
+        error: e.toString(),
+        processingTimeMs: stopwatch.elapsedMilliseconds,
+      );
+
       return AnalysisResult.failure(e.toString());
     }
   }
