@@ -23,6 +23,7 @@ import '../constants/cheongan_jiji.dart';
 /// - current_seun: JSONB (현재 세운)
 /// - twelve_unsung: JSONB (12운성 - 년/월/일/시주별)
 /// - twelve_sinsal: JSONB (12신살 - 년/월/일/시주별)
+/// - hapchung: JSONB (합충형파해 정보)
 class SajuAnalysisDbModel {
   final String id;
   final String profileId;
@@ -46,6 +47,7 @@ class SajuAnalysisDbModel {
   final Map<String, dynamic>? currentSeun;
   final List<Map<String, dynamic>>? twelveUnsung;
   final List<Map<String, dynamic>>? twelveSinsal;
+  final Map<String, dynamic>? hapchung;
 
   const SajuAnalysisDbModel({
     required this.id,
@@ -70,6 +72,7 @@ class SajuAnalysisDbModel {
     this.currentSeun,
     this.twelveUnsung,
     this.twelveSinsal,
+    this.hapchung,
   });
 
   /// Supabase JSON -> Model
@@ -103,6 +106,7 @@ class SajuAnalysisDbModel {
       twelveSinsal: (json['twelve_sinsal'] as List<dynamic>?)
           ?.map((e) => Map<String, dynamic>.from(e as Map))
           .toList(),
+      hapchung: json['hapchung'] as Map<String, dynamic>?,
     );
   }
 
@@ -136,6 +140,7 @@ class SajuAnalysisDbModel {
       'current_seun': currentSeun,
       'twelve_unsung': twelveUnsung,
       'twelve_sinsal': twelveSinsal,
+      'hapchung': hapchung,
     };
   }
 
@@ -180,6 +185,7 @@ class SajuAnalysisDbModel {
     Map<String, dynamic>? currentSeun,
     List<Map<String, dynamic>>? twelveUnsung,
     List<Map<String, dynamic>>? twelveSinsal,
+    Map<String, dynamic>? hapchung,
   }) {
     return SajuAnalysisDbModel(
       id: id,
@@ -204,6 +210,7 @@ class SajuAnalysisDbModel {
       currentSeun: currentSeun,
       twelveUnsung: twelveUnsung,
       twelveSinsal: twelveSinsal,
+      hapchung: hapchung,
     );
   }
 
@@ -266,6 +273,7 @@ class SajuAnalysisDbModel {
       'currentSeun': currentSeun,
       'twelveUnsung': twelveUnsung,
       'twelveSinsal': twelveSinsal,
+      'hapchung': hapchung,
       'syncedAt': DateTime.now().millisecondsSinceEpoch,
     };
   }
@@ -297,6 +305,7 @@ class SajuAnalysisDbModel {
       currentSeun: _castMap(map['currentSeun']),
       twelveUnsung: _castList(map['twelveUnsung']),
       twelveSinsal: _castList(map['twelveSinsal']),
+      hapchung: _castMap(map['hapchung']),
     );
   }
 
@@ -345,6 +354,7 @@ class SajuAnalysisDbModel {
     Map<String, dynamic>? currentSeun,
     List<Map<String, dynamic>>? twelveUnsung,
     List<Map<String, dynamic>>? twelveSinsal,
+    Map<String, dynamic>? hapchung,
   }) {
     return SajuAnalysisDbModel(
       id: id ?? this.id,
@@ -369,6 +379,7 @@ class SajuAnalysisDbModel {
       currentSeun: currentSeun ?? this.currentSeun,
       twelveUnsung: twelveUnsung ?? this.twelveUnsung,
       twelveSinsal: twelveSinsal ?? this.twelveSinsal,
+      hapchung: hapchung ?? this.hapchung,
     );
   }
 

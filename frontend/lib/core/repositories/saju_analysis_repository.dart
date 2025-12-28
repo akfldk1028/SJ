@@ -11,6 +11,7 @@ import '../../features/saju_chart/domain/entities/daeun.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 import '../../features/saju_chart/data/constants/cheongan_jiji.dart';
 import '../../features/saju_chart/domain/services/gilseong_service.dart';
+import '../../features/saju_chart/domain/services/hapchung_service.dart';
 
 /// Supabase saju_analyses 테이블 Repository
 /// 복잡한 JSONB 필드 매핑 처리
@@ -119,6 +120,9 @@ class SajuAnalysisRepository {
 
       // 길성(吉星) 분석 결과 - Phase 16-C 추가
       'gilseong': _gilseongToJson(analysis.chart),
+
+      // 합충형파해(合沖刑破害) 분석 결과
+      'hapchung': _hapchungToJson(analysis.chart),
 
       // AI 요약은 별도로 업데이트
       // 'ai_summary': null,
@@ -255,6 +259,102 @@ class SajuAnalysisRepository {
         'fortuneType': s.fortuneType.name,
       }).toList(),
       'summary': result.summary,
+    };
+  }
+
+  /// 합충형파해(合沖刑破害) 분석 결과를 JSON으로 변환
+  /// 천간합/충, 지지육합/삼합/방합/충/형/파/해/원진 저장
+  Map<String, dynamic> _hapchungToJson(SajuChart chart) {
+    final result = HapchungService.analyzeSaju(
+      yearGan: chart.yearPillar.gan,
+      monthGan: chart.monthPillar.gan,
+      dayGan: chart.dayPillar.gan,
+      hourGan: chart.hourPillar?.gan ?? '',
+      yearJi: chart.yearPillar.ji,
+      monthJi: chart.monthPillar.ji,
+      dayJi: chart.dayPillar.ji,
+      hourJi: chart.hourPillar?.ji ?? '',
+    );
+
+    return {
+      // 집계 정보
+      'has_relations': result.hasRelations,
+      'total_haps': result.totalHaps,
+      'total_chungs': result.totalChungs,
+      'total_negatives': result.totalNegatives,
+
+      // 천간 관계
+      'cheongan_haps': result.cheonganHaps.map((h) => {
+            'gan1': h.gan1,
+            'gan2': h.gan2,
+            'pillar1': h.pillar1,
+            'pillar2': h.pillar2,
+            'description': h.description,
+          }).toList(),
+      'cheongan_chungs': result.cheonganChungs.map((c) => {
+            'gan1': c.gan1,
+            'gan2': c.gan2,
+            'pillar1': c.pillar1,
+            'pillar2': c.pillar2,
+            'description': c.description,
+          }).toList(),
+
+      // 지지 관계 - 합
+      'jiji_yukhaps': result.jijiYukhaps.map((y) => {
+            'ji1': y.ji1,
+            'ji2': y.ji2,
+            'pillar1': y.pillar1,
+            'pillar2': y.pillar2,
+            'description': y.description,
+          }).toList(),
+      'jiji_samhaps': result.jijiSamhaps.map((s) => {
+            'jijis': s.jijis,
+            'pillars': s.pillars,
+            'result_oheng': s.resultOheng,
+            'is_full': s.isFullSamhap,
+          }).toList(),
+      'jiji_banghaps': result.jijiBanghaps.map((b) => {
+            'jijis': b.jijis,
+            'pillars': b.pillars,
+            'season': b.season,
+            'direction': b.direction,
+          }).toList(),
+
+      // 지지 관계 - 충
+      'jiji_chungs': result.jijiChungs.map((c) => {
+            'ji1': c.ji1,
+            'ji2': c.ji2,
+            'pillar1': c.pillar1,
+            'pillar2': c.pillar2,
+            'description': c.description,
+          }).toList(),
+
+      // 지지 관계 - 형/파/해/원진
+      'jiji_hyungs': result.jijiHyungs.map((h) => {
+            'ji1': h.ji1,
+            'ji2': h.ji2,
+            'pillar1': h.pillar1,
+            'pillar2': h.pillar2,
+            'description': h.description,
+          }).toList(),
+      'jiji_pas': result.jijiPas.map((p) => {
+            'ji1': p.ji1,
+            'ji2': p.ji2,
+            'pillar1': p.pillar1,
+            'pillar2': p.pillar2,
+          }).toList(),
+      'jiji_haes': result.jijiHaes.map((h) => {
+            'ji1': h.ji1,
+            'ji2': h.ji2,
+            'pillar1': h.pillar1,
+            'pillar2': h.pillar2,
+          }).toList(),
+      'wonjins': result.wonjins.map((w) => {
+            'ji1': w.ji1,
+            'ji2': w.ji2,
+            'pillar1': w.pillar1,
+            'pillar2': w.pillar2,
+          }).toList(),
     };
   }
 
