@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Daily advice section - 테마 적용 (테마별 운세)
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class DailyAdviceSection extends StatelessWidget {
   const DailyAdviceSection({super.key});
+
+  // ⚡ 캐싱된 색상 상수
+  static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
+  static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
+  static const _iconBgLight = Color.fromRGBO(255, 255, 255, 0.5);
+  static const _iconBgDark = Color.fromRGBO(255, 255, 255, 0.1);
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +55,7 @@ class DailyAdviceSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: appTheme.isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.06),
+              color: appTheme.isDark ? _shadowDark : _shadowLight,
               offset: const Offset(0, 4),
               blurRadius: 12,
             ),
@@ -80,9 +85,7 @@ class DailyAdviceSection extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: appTheme.isDark
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.white.withOpacity(0.5),
+                      color: appTheme.isDark ? _iconBgDark : _iconBgLight,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(

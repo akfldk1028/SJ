@@ -1,0 +1,14 @@
+{
+  "name": "sj-log-watcher",
+  "version": "1.0.0",
+  "description": "Supabase AI 로그를 txt 파일로 저장하는 스크립트",
+  "main": "log-watcher.js",
+  "scripts": {
+    "watch": "node log-watcher.js",
+    "start": "node log-watcher.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.3.1"
+  }
+}

@@ -60,7 +60,11 @@ class MenuAppBar extends StatelessWidget {
 }
 
 /// 앱 타이틀 위젯
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class _AppTitle extends StatelessWidget {
+  // ⚡ 캐싱된 색상 상수
+  static const _shadowColor = Color.fromRGBO(126, 87, 194, 0.4);
+
   const _AppTitle();
 
   @override
@@ -79,11 +83,11 @@ class _AppTitle extends StatelessWidget {
               ],
             ),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                color: const Color(0xFF7E57C2).withOpacity(0.4),
+                color: _shadowColor,
                 blurRadius: 12,
-                offset: const Offset(0, 4),
+                offset: Offset(0, 4),
               ),
             ],
           ),

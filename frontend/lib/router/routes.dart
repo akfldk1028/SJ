@@ -9,6 +9,7 @@ abstract class Routes {
   static const String menu = '/menu';
 
   // Profile
+  static const String profileSelect = '/profile/select';
   static const String profileEdit = '/profile/edit';
   static const String relationshipList = '/relationships';
 
