@@ -14,6 +14,7 @@ import '../../domain/entities/pillar.dart';
 import '../../domain/services/unsung_service.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
 import '../../domain/services/daeun_service.dart';
+import '../../domain/services/hapchung_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'saju_analysis_repository_provider.g.dart';
@@ -328,6 +329,115 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       'pillar': formatPillar(currentSeunData.pillar),
     };
 
+    // 합충형파해 분석
+    final hapchungResult = HapchungService.analyzeSaju(
+      yearGan: analysis.chart.yearPillar.gan,
+      monthGan: analysis.chart.monthPillar.gan,
+      dayGan: analysis.chart.dayPillar.gan,
+      hourGan: analysis.chart.hourPillar?.gan ?? '',
+      yearJi: analysis.chart.yearPillar.ji,
+      monthJi: analysis.chart.monthPillar.ji,
+      dayJi: analysis.chart.dayPillar.ji,
+      hourJi: analysis.chart.hourPillar?.ji ?? '',
+    );
+
+    final hapchungMap = {
+      // 집계 정보
+      'has_relations': hapchungResult.hasRelations,
+      'total_haps': hapchungResult.totalHaps,
+      'total_chungs': hapchungResult.totalChungs,
+      'total_negatives': hapchungResult.totalNegatives,
+      // 천간 관계
+      'cheongan_haps': hapchungResult.cheonganHaps
+          .map((h) => {
+                'gan1': h.gan1,
+                'gan2': h.gan2,
+                'pillar1': h.pillar1,
+                'pillar2': h.pillar2,
+                'description': h.description,
+              })
+          .toList(),
+      'cheongan_chungs': hapchungResult.cheonganChungs
+          .map((c) => {
+                'gan1': c.gan1,
+                'gan2': c.gan2,
+                'pillar1': c.pillar1,
+                'pillar2': c.pillar2,
+                'description': c.description,
+              })
+          .toList(),
+      // 지지 관계 - 합
+      'jiji_yukhaps': hapchungResult.jijiYukhaps
+          .map((y) => {
+                'ji1': y.ji1,
+                'ji2': y.ji2,
+                'pillar1': y.pillar1,
+                'pillar2': y.pillar2,
+                'description': y.description,
+              })
+          .toList(),
+      'jiji_samhaps': hapchungResult.jijiSamhaps
+          .map((s) => {
+                'jijis': s.jijis,
+                'pillars': s.pillars,
+                'result_oheng': s.resultOheng,
+                'is_full': s.isFullSamhap,
+              })
+          .toList(),
+      'jiji_banghaps': hapchungResult.jijiBanghaps
+          .map((b) => {
+                'jijis': b.jijis,
+                'pillars': b.pillars,
+                'season': b.season,
+                'direction': b.direction,
+              })
+          .toList(),
+      // 지지 관계 - 충
+      'jiji_chungs': hapchungResult.jijiChungs
+          .map((c) => {
+                'ji1': c.ji1,
+                'ji2': c.ji2,
+                'pillar1': c.pillar1,
+                'pillar2': c.pillar2,
+                'description': c.description,
+              })
+          .toList(),
+      // 지지 관계 - 형/파/해/원진
+      'jiji_hyungs': hapchungResult.jijiHyungs
+          .map((h) => {
+                'ji1': h.ji1,
+                'ji2': h.ji2,
+                'pillar1': h.pillar1,
+                'pillar2': h.pillar2,
+                'description': h.description,
+              })
+          .toList(),
+      'jiji_pas': hapchungResult.jijiPas
+          .map((p) => {
+                'ji1': p.ji1,
+                'ji2': p.ji2,
+                'pillar1': p.pillar1,
+                'pillar2': p.pillar2,
+              })
+          .toList(),
+      'jiji_haes': hapchungResult.jijiHaes
+          .map((h) => {
+                'ji1': h.ji1,
+                'ji2': h.ji2,
+                'pillar1': h.pillar1,
+                'pillar2': h.pillar2,
+              })
+          .toList(),
+      'wonjins': hapchungResult.wonjins
+          .map((w) => {
+                'ji1': w.ji1,
+                'ji2': w.ji2,
+                'pillar1': w.pillar1,
+                'pillar2': w.pillar2,
+              })
+          .toList(),
+    };
+
     final model = SajuAnalysisDbModel.fromSajuChart(
       id: existing?.id ?? _generateUuid(),
       profileId: profileId,
@@ -343,6 +453,7 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       currentSeun: currentSeunMap,
       twelveUnsung: twelveUnsungList,
       twelveSinsal: twelveSinsalList,
+      hapchung: hapchungMap,
     );
 
     final saved = await repository.save(model);
