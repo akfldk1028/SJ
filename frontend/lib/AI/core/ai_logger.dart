@@ -35,6 +35,8 @@
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'file_logger.dart';
 
 /// AI API 로그 데이터
 class AiLogEntry {
@@ -161,6 +163,20 @@ class AiLogger {
   static const String _boxName = 'ai_logs';
   static Box<String>? _box;
 
+  /// 로그 레벨
+  static const int _logLevelNone = 0;
+  static const int _logLevelBasic = 1;
+  static const int _logLevelDetail = 2;
+  static const int _logLevelFull = 3;
+
+  /// 현재 로그 레벨 (기본: 상세)
+  static int _currentLogLevel = _logLevelDetail;
+
+  /// 로그 레벨 설정
+  static void setLogLevel(int level) {
+    _currentLogLevel = level;
+  }
+
   /// Hive Box 초기화 (main.dart에서 호출)
   static Future<void> init() async {
     if (_box != null && _box!.isOpen) return;
@@ -168,6 +184,12 @@ class AiLogger {
     try {
       _box = await Hive.openBox<String>(_boxName);
       debugPrint('[AiLogger] 초기화 완료. 저장된 로그: ${_box!.length}개');
+
+      // FileLogger도 초기화
+      if (kIsWeb) {
+        FileLogger.init();
+        FileLogger.restoreFromLocalStorage();
+      }
     } catch (e) {
       debugPrint('[AiLogger] 초기화 실패: $e');
     }
@@ -206,6 +228,36 @@ class AiLogger {
 
     // 2. Hive 저장
     await _saveToHive(entry);
+
+    // 3. 파일 로그 (웹에서만)
+    if (kIsWeb) {
+      FileLogger.logAiApi(
+        provider: provider,
+        model: model,
+        type: type,
+        success: success,
+        requestSummary: _summarizeRequest(request),
+        response: response != null ? jsonEncode(response) : null,
+        tokens: tokens,
+        costUsd: costUsd,
+        error: error,
+      );
+    }
+  }
+
+  /// 요청 요약 생성
+  static String _summarizeRequest(Map<String, dynamic> request) {
+    final messages = request['messages'] as List?;
+    if (messages == null || messages.isEmpty) {
+      return '(empty request)';
+    }
+
+    final lastMessage = messages.last;
+    final content = lastMessage['content'] as String? ?? '';
+    if (content.length > 100) {
+      return '${content.substring(0, 100)}...';
+    }
+    return content;
   }
 
   /// Hive에 저장
@@ -369,5 +421,202 @@ class AiLogger {
     final logs = await getRecentLogs(1000);
     return const JsonEncoder.withIndent('  ')
         .convert(logs.map((l) => l.toJson()).toList());
+  }
+
+  /// 모든 로그를 TEXT 형식으로 내보내기
+  static Future<String> exportAllLogsAsText() async {
+    final logs = await getRecentLogs(1000);
+    final buffer = StringBuffer();
+
+    buffer.writeln('═' * 80);
+    buffer.writeln('AI API 로그 내보내기');
+    buffer.writeln('생성 시각: ${DateTime.now().toIso8601String()}');
+    buffer.writeln('총 로그 수: ${logs.length}개');
+    buffer.writeln('═' * 80);
+    buffer.writeln();
+
+    for (final log in logs) {
+      buffer.writeln(log.toPrettyString());
+    }
+
+    return buffer.toString();
+  }
+
+  /// 프로필 분석 전용 로그 (더 상세한 출력)
+  static Future<void> logProfileAnalysis({
+    required String profileId,
+    required String profileName,
+    required String analysisType, // 'saju_base' | 'daily_fortune' | 'ai_summary'
+    required String provider,
+    required String model,
+    required bool success,
+    String? content,
+    Map<String, dynamic>? tokens,
+    double? costUsd,
+    int? processingTimeMs,
+    String? error,
+  }) async {
+    final divider = '━' * 60;
+    final now = DateTime.now();
+
+    // 콘솔에 상세 출력
+    if (kDebugMode && _currentLogLevel >= _logLevelBasic) {
+      print('');
+      print('┏$divider┓');
+      print('┃ 🔮 프로필 사주 분석 로그                                      ┃');
+      print('┣$divider┫');
+      print('┃ 📅 시각: ${now.toIso8601String()}');
+      print('┃ 👤 프로필: $profileName ($profileId)');
+      print('┃ 📝 분석 유형: $analysisType');
+      print('┃ 🏷️  제공자: $provider');
+      print('┃ 🔧 모델: $model');
+      print('┃ ${success ? "✅ 성공" : "❌ 실패"}');
+
+      if (tokens != null) {
+        print('┃ 📊 토큰: prompt=${tokens['prompt']}, completion=${tokens['completion']}');
+      }
+      if (costUsd != null) {
+        print('┃ 💰 비용: \$${costUsd.toStringAsFixed(6)}');
+      }
+      if (processingTimeMs != null) {
+        print('┃ ⏱️  처리시간: ${processingTimeMs}ms');
+      }
+      if (error != null) {
+        print('┃ ❌ 에러: $error');
+      }
+
+      // 상세 레벨이면 응답 내용도 출력
+      if (_currentLogLevel >= _logLevelDetail && content != null) {
+        print('┣$divider┫');
+        print('┃ 📥 응답 내용:');
+        final lines = content.split('\n');
+        for (final line in lines.take(20)) {
+          final truncated = line.length > 55 ? '${line.substring(0, 55)}...' : line;
+          print('┃   $truncated');
+        }
+        if (lines.length > 20) {
+          print('┃   ... (${lines.length - 20}줄 더)');
+        }
+      }
+
+      print('┗$divider┛');
+      print('');
+    }
+
+    // Hive에도 저장
+    await log(
+      provider: provider,
+      model: model,
+      type: 'profile_$analysisType',
+      request: {
+        'profile_id': profileId,
+        'profile_name': profileName,
+        'analysis_type': analysisType,
+      },
+      response: content != null ? {'content': content} : null,
+      tokens: tokens,
+      costUsd: costUsd,
+      success: success,
+      error: error,
+    );
+
+    // Supabase에도 저장 (SQL로 바로 조회 가능)
+    await _saveToSupabase(
+      profileId: profileId,
+      provider: provider,
+      model: model,
+      logType: analysisType,
+      promptTokens: tokens?['prompt'] as int?,
+      completionTokens: tokens?['completion'] as int?,
+      cachedTokens: tokens?['cached'] as int?,
+      totalCostUsd: costUsd,
+      success: success,
+      processingTimeMs: processingTimeMs,
+      errorMessage: error,
+      requestPreview: '$profileName ($analysisType)',
+      responsePreview: content?.substring(0, content.length > 1000 ? 1000 : content.length),
+    );
+  }
+
+  /// Supabase ai_api_logs 테이블에 저장
+  static Future<void> _saveToSupabase({
+    required String profileId,
+    required String provider,
+    required String model,
+    required String logType,
+    int? promptTokens,
+    int? completionTokens,
+    int? cachedTokens,
+    double? totalCostUsd,
+    required bool success,
+    int? processingTimeMs,
+    String? errorMessage,
+    String? requestPreview,
+    String? responsePreview,
+  }) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        debugPrint('[AiLogger] Supabase 저장 스킵: 로그인 필요');
+        return;
+      }
+
+      await Supabase.instance.client.from('ai_api_logs').insert({
+        'user_id': user.id,
+        'profile_id': profileId,
+        'provider': provider,
+        'model': model,
+        'log_type': logType,
+        'prompt_tokens': promptTokens,
+        'completion_tokens': completionTokens,
+        'cached_tokens': cachedTokens,
+        'total_cost_usd': totalCostUsd,
+        'success': success,
+        'processing_time_ms': processingTimeMs,
+        'error_message': errorMessage,
+        'request_preview': requestPreview,
+        'response_preview': responsePreview,
+      });
+
+      debugPrint('[AiLogger] Supabase 저장 완료: $logType');
+    } catch (e) {
+      debugPrint('[AiLogger] Supabase 저장 실패: $e');
+    }
+  }
+
+  /// 오늘 로그 요약 출력
+  static Future<void> printTodaySummary() async {
+    final todayLogs = await getLogsByDate(DateTime.now());
+
+    if (todayLogs.isEmpty) {
+      debugPrint('[AiLogger] 오늘 로그 없음');
+      return;
+    }
+
+    int totalRequests = todayLogs.length;
+    int successCount = todayLogs.where((l) => l.success).length;
+    double totalCost = todayLogs
+        .map((l) => l.costUsd ?? 0)
+        .fold(0.0, (a, b) => a + b);
+
+    // Provider별 통계
+    final providerStats = <String, int>{};
+    for (final log in todayLogs) {
+      providerStats[log.provider] = (providerStats[log.provider] ?? 0) + 1;
+    }
+
+    print('');
+    print('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
+    print('┃ 📊 오늘의 AI API 로그 요약                                      ┃');
+    print('┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫');
+    print('┃ 총 요청: $totalRequests회');
+    print('┃ 성공: $successCount회, 실패: ${totalRequests - successCount}회');
+    print('┃ 총 비용: \$${totalCost.toStringAsFixed(6)}');
+    print('┃ Provider별:');
+    for (final entry in providerStats.entries) {
+      print('┃   - ${entry.key}: ${entry.value}회');
+    }
+    print('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛');
+    print('');
   }
 }

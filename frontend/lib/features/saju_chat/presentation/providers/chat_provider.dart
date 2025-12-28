@@ -6,12 +6,13 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
+import '../../../../AI/common/data/ai_context.dart';
+import '../../../../AI/common/data/ai_data_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
 import '../../data/datasources/gemini_rest_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
-import '../../data/services/conversation_window_manager.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/models/chat_type.dart';
 import 'chat_session_provider.dart';
@@ -95,6 +96,9 @@ class ChatNotifier extends _$ChatNotifier {
   /// 메시지 처리 중 플래그 (Realtime 중복 방지)
   bool _isProcessingMessage = false;
 
+  /// 메시지 전송 중 플래그 (더블클릭 방지)
+  bool _isSendingMessage = false;
+
   @override
   ChatState build(String sessionId) {
     // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
@@ -123,10 +127,11 @@ class ChatNotifier extends _$ChatNotifier {
 
     // 새 메시지 수신 구독
     _realtimeSubscription = realtimeService.onNewMessage.listen((message) {
-      // AI 메시지 처리 중이면 Realtime에서 온 AI 메시지 무시 (중복 방지)
-      if (_isProcessingMessage && message.role == MessageRole.assistant) {
+      // 메시지 처리 중이면 Realtime에서 온 메시지 무시 (중복 방지)
+      // 로컬에서 이미 추가했으므로 Realtime에서 다시 추가하면 중복됨
+      if (_isProcessingMessage) {
         if (kDebugMode) {
-          print('[ChatNotifier] Realtime AI 메시지 무시 (처리 중): ${message.id}');
+          print('[ChatNotifier] Realtime 메시지 무시 (처리 중): ${message.role.name}');
         }
         return;
       }
@@ -400,47 +405,100 @@ class ChatNotifier extends _$ChatNotifier {
     }
   }
 
-  /// AI Summary를 시스템 프롬프트에 추가
-  String _appendAiSummaryToPrompt(String basePrompt, AiSummary? aiSummary) {
-    if (aiSummary == null) return basePrompt;
+  /// 시스템 프롬프트에 사주 정보 + AI Summary 추가
+  ///
+  /// 템플릿 순서:
+  /// 1. 기본 프롬프트 (MD 파일에서 로드)
+  /// 2. 사주 기본 정보 (생년월일, 사주팔자, 용신 등)
+  /// 3. AI Summary (GPT-5.2 분석 결과)
+  String _buildFullSystemPrompt({
+    required String basePrompt,
+    AIContext? aiContext,
+    AiSummary? aiSummary,
+  }) {
+    final buffer = StringBuffer(basePrompt);
 
-    final summaryContext = '''
+    // 1. 사주 기본 정보 추가 (AIContext에서)
+    if (aiContext != null) {
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+      buffer.writeln('## 사용자 기본 정보');
+      buffer.writeln();
+      buffer.writeln(aiContext.basicInfoForPrompt);
 
-## 사용자 사주 분석 요약 (AI 생성)
+      // 오행 분포 추가
+      if (aiContext.ohengDistribution != null) {
+        buffer.writeln();
+        buffer.writeln('### 오행 분포');
+        aiContext.ohengDistribution!.forEach((key, value) {
+          buffer.writeln('- $key: $value');
+        });
+      }
 
-### 성격
-- **핵심**: ${aiSummary.personality.core}
-- **특성**: ${aiSummary.personality.traits.join(', ')}
+      // 격국 추가
+      if (aiContext.gyeokguk != null) {
+        buffer.writeln();
+        buffer.writeln('### 격국');
+        buffer.writeln('- ${aiContext.gyeokguk!['name'] ?? '미정'}');
+        if (aiContext.gyeokguk!['description'] != null) {
+          buffer.writeln('- ${aiContext.gyeokguk!['description']}');
+        }
+      }
+    }
 
-### 강점
-${aiSummary.strengths.map((s) => '- $s').join('\n')}
+    // 2. AI Summary 추가 (GPT-5.2 분석 결과)
+    if (aiSummary != null) {
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+      buffer.writeln('## AI 분석 요약 (GPT-5.2)');
+      buffer.writeln();
+      buffer.writeln('### 성격');
+      buffer.writeln('- **핵심**: ${aiSummary.personality.core}');
+      buffer.writeln('- **특성**: ${aiSummary.personality.traits.join(', ')}');
+      buffer.writeln();
+      buffer.writeln('### 강점');
+      buffer.writeln(aiSummary.strengths.map((s) => '- $s').join('\n'));
+      buffer.writeln();
+      buffer.writeln('### 약점');
+      buffer.writeln(aiSummary.weaknesses.map((w) => '- $w').join('\n'));
+      buffer.writeln();
+      buffer.writeln('### 진로 적성');
+      buffer.writeln('- **적합 분야**: ${aiSummary.career.aptitude.join(', ')}');
+      buffer.writeln('- **조언**: ${aiSummary.career.advice}');
+      buffer.writeln();
+      buffer.writeln('### 대인관계');
+      buffer.writeln('- **스타일**: ${aiSummary.relationships.style}');
+      buffer.writeln('- **팁**: ${aiSummary.relationships.tips}');
+      buffer.writeln();
+      buffer.writeln('### 개운법');
+      buffer.writeln('- **행운의 색상**: ${aiSummary.fortuneTips.colors.join(', ')}');
+      buffer.writeln('- **행운의 방향**: ${aiSummary.fortuneTips.directions.join(', ')}');
+      buffer.writeln('- **추천 활동**: ${aiSummary.fortuneTips.activities.join(', ')}');
+    }
 
-### 약점
-${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
+    buffer.writeln();
+    buffer.writeln('---');
+    buffer.writeln();
+    buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
+    buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
 
-### 진로 적성
-- **적합 분야**: ${aiSummary.career.aptitude.join(', ')}
-- **조언**: ${aiSummary.career.advice}
-
-### 대인관계
-- **스타일**: ${aiSummary.relationships.style}
-- **팁**: ${aiSummary.relationships.tips}
-
-### 개운법
-- **행운의 색상**: ${aiSummary.fortuneTips.colors.join(', ')}
-- **행운의 방향**: ${aiSummary.fortuneTips.directions.join(', ')}
-- **추천 활동**: ${aiSummary.fortuneTips.activities.join(', ')}
-
----
-위 사주 분석 요약을 참고하여 사용자에게 맞춤형 상담을 제공하세요.
-''';
-
-    return basePrompt + summaryContext;
+    return buffer.toString();
   }
 
   /// 메시지 전송
   Future<void> sendMessage(String content, ChatType chatType) async {
     if (content.trim().isEmpty) return;
+
+    // 더블클릭/중복 호출 방지
+    if (_isSendingMessage) {
+      if (kDebugMode) {
+        print('[ChatNotifier] sendMessage 중복 호출 차단 - 이미 메시지 전송 중');
+      }
+      return;
+    }
+    _isSendingMessage = true;
 
     // Realtime 중복 방지 플래그 설정
     _isProcessingMessage = true;
@@ -453,6 +511,21 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
     // 현재 세션의 profileId 가져오기
     final currentSession = await sessionRepository.getSession(currentSessionId);
     final profileId = currentSession?.profileId;
+
+    // AIContext 로드 (사주 기본 정보 - 생년월일, 사주팔자, 용신 등)
+    AIContext? aiContext;
+    if (profileId != null && profileId.isNotEmpty) {
+      try {
+        aiContext = await ref.read(aiContextBasicProvider(profileId).future);
+        if (kDebugMode && aiContext != null) {
+          print('[ChatNotifier] AIContext 로드됨: ${aiContext.displayName}, 사주: ${aiContext.sajuPalza}');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('[ChatNotifier] AIContext 로드 실패: $e');
+        }
+      }
+    }
 
     // 첫 메시지인 경우 AI Summary 확인/생성
     AiSummary? aiSummary;
@@ -494,11 +567,20 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
       // MD 파일에서 시스템 프롬프트 로드
       final basePrompt = await _loadSystemPrompt(chatType);
 
-      // AI Summary를 시스템 프롬프트에 추가
-      final systemPrompt = _appendAiSummaryToPrompt(basePrompt, aiSummary);
+      // 사주 기본 정보 + AI Summary를 시스템 프롬프트에 추가
+      final systemPrompt = _buildFullSystemPrompt(
+        basePrompt: basePrompt,
+        aiContext: aiContext,
+        aiSummary: aiSummary,
+      );
 
-      if (kDebugMode && aiSummary != null) {
-        print('[ChatNotifier] AI Summary가 시스템 프롬프트에 추가됨');
+      if (kDebugMode) {
+        if (aiContext != null) {
+          print('[ChatNotifier] 사주 기본 정보가 시스템 프롬프트에 추가됨');
+        }
+        if (aiSummary != null) {
+          print('[ChatNotifier] AI Summary가 시스템 프롬프트에 추가됨');
+        }
       }
 
       // 스트리밍 응답 (세션별 독립된 repository 사용)
@@ -565,11 +647,13 @@ ${aiSummary.weaknesses.map((w) => '- $w').join('\n')}
       // 세션 메타데이터 업데이트
       await _updateSessionMetadata(currentSessionId, content);
 
-      // Realtime 중복 방지 플래그 해제
+      // 플래그 해제
       _isProcessingMessage = false;
+      _isSendingMessage = false;
     } catch (e) {
       // 에러 시에도 플래그 해제
       _isProcessingMessage = false;
+      _isSendingMessage = false;
 
       state = state.copyWith(
         isLoading: false,

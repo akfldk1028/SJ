@@ -16,6 +16,7 @@ import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
     hide sajuAnalysisService;
 import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
+import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
 
 part 'profile_provider.g.dart';
@@ -133,6 +134,11 @@ class ActiveProfile extends _$ActiveProfile {
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
+      onComplete: (result) {
+        // 분석 완료 시 UI 갱신을 위해 provider invalidate
+        print('[ActiveProfile] AI 분석 완료 - UI 갱신');
+        ref.invalidate(dailyFortuneProvider);
+      },
     );
 
     print('[ActiveProfile] AI 분석 백그라운드 시작: $profileId');
@@ -452,6 +458,11 @@ class ProfileForm extends _$ProfileForm {
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
+      onComplete: (result) {
+        // 분석 완료 시 UI 갱신을 위해 provider invalidate
+        print('[Profile] AI 분석 완료 - UI 갱신');
+        ref.invalidate(dailyFortuneProvider);
+      },
     );
 
     print('[Profile] AI 분석 백그라운드 시작: $profileId');
