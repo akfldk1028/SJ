@@ -395,28 +395,32 @@ abstract class CacheExpiry {
 /// - 너무 크면 비용 증가 + 응답 시간 증가
 /// - JSON 응답의 예상 크기 기반으로 설정
 abstract class TokenLimits {
-  /// 기본 사주 분석: 4096 토큰
+  /// 기본 사주 분석: 20000 토큰
   /// - 상세한 JSON 응답 필요
-  /// - 성격, 직업, 재물, 건강 등 다양한 필드
-  static const int sajuBaseMaxTokens = 4096;
+  /// - 원국 기반 십성/신살/합충형해파 전체 분석
+  /// - 재물/연애/결혼/사업/건강 각 영역 상세 분석
+  /// - 4096 → 20000 대폭 증가 (응답 잘림 완전 방지)
+  static const int sajuBaseMaxTokens = 20000;
 
-  /// 일운: 2048 토큰
-  /// - 간결한 오늘의 운세
-  static const int dailyFortuneMaxTokens = 2048;
+  /// 일운: 4096 토큰
+  /// - 오늘의 운세 (2048 → 4096)
+  static const int dailyFortuneMaxTokens = 4096;
 
-  /// 월운: 2048 토큰
-  static const int monthlyFortuneMaxTokens = 2048;
+  /// 월운: 4096 토큰
+  /// - (2048 → 4096)
+  static const int monthlyFortuneMaxTokens = 4096;
 
-  /// 년운: 3072 토큰
-  /// - 더 상세한 연간 전망
-  static const int yearlyFortuneMaxTokens = 3072;
+  /// 년운: 8192 토큰
+  /// - 상세한 연간 전망 (3072 → 8192)
+  static const int yearlyFortuneMaxTokens = 8192;
 
-  /// 질문 응답: 1024 토큰
-  /// - 간결한 답변
-  static const int questionAnswerMaxTokens = 1024;
+  /// 질문 응답: 4096 토큰
+  /// - 답변 (1024 → 4096)
+  static const int questionAnswerMaxTokens = 4096;
 
-  /// 궁합: 3072 토큰
-  static const int compatibilityMaxTokens = 3072;
+  /// 궁합: 8192 토큰
+  /// - (3072 → 8192)
+  static const int compatibilityMaxTokens = 8192;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

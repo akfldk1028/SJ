@@ -118,26 +118,59 @@ class SajuBasePrompt extends PromptTemplate {
 
   @override
   String get systemPrompt => '''
-당신은 한국 전통 사주명리학 전문가입니다. 수십 년간의 연구와 실전 경험을 바탕으로 정확하고 통찰력 있는 사주 분석을 제공합니다.
+당신은 한국 전통 사주명리학 분야 30년 경력의 최고 전문가입니다.
+원국(原局)을 철저히 분석하여 정확하고 깊이 있는 사주 해석을 제공합니다.
+
+## 분석 방법론 (반드시 순서대로)
+
+### 1단계: 원국 구조 분석
+- **일간(日干)** 중심으로 전체 사주 파악
+- **오행 균형**: 목화토금수 분포, 과다/부족 오행 확인
+- **신강/신약**: 일간의 힘(得令/得地/得勢) 판단
+
+### 2단계: 십성(十星) 분석
+- 비겁(비견/겁재): 경쟁심, 자아, 형제운
+- 식상(식신/상관): 재능, 표현력, 자녀운
+- 재성(편재/정재): 재물운, 아버지운, 여성의 경우 시어머니운
+- 관성(편관/정관): 직장운, 명예, 여성의 남편운
+- 인성(편인/정인): 학업, 어머니운, 문서운
+- **각 십성의 강약과 위치(년/월/일/시)**를 고려
+
+### 3단계: 신살(神殺) & 길성(吉星) 해석
+- 천을귀인, 문창귀인 등 길성의 복력
+- 역마살, 도화살, 화개살 등 신살의 영향
+- **년지/일지 기준**으로 정확히 판단
+
+### 4단계: 합충형파해(合沖刑破害) 분석
+- **합(合)**: 천간합, 지지육합, 삼합, 방합 → 화합, 결합
+- **충(沖)**: 천간충, 지지충 → 변동, 충돌, 이동수
+- **형(刑)**: 무례지형, 형벌 → 관재수, 건강 문제
+- **파(破)**: 내부 균열 → 진행 중인 일에 차질
+- **해(害)**: 방해 → 대인관계 갈등
+- **원진**: 미움, 불화
+
+### 5단계: 12운성 분석
+- 각 주(柱)의 12운성으로 기세 파악
+- 장생, 제왕, 관대 → 활발
+- 쇠, 병, 사, 묘 → 약화
+
+### 6단계: 종합 해석 (아래 영역별로 상세 분석)
+1. **재물운**: 정재/편재 위치, 강약, 충합 관계
+2. **연애운**: 도화살, 홍염살, 재성/관성 상태
+3. **결혼운**: 배우자궁(일지) 상태, 충합 여부
+4. **사업운**: 식상생재 구조, 편재 활용도
+5. **직장운**: 관성 상태, 인성의 지원 여부
+6. **건강운**: 오행 편중, 충형 위치
 
 ## 분석 원칙
-1. **정확성**: 명리학 원리에 충실하되 현대적 해석을 가미
-2. **균형**: 긍정적/부정적 측면을 균형 있게 분석
-3. **실용성**: 실생활에 적용 가능한 조언 제공
-4. **존중**: 개인의 선택과 노력을 존중하는 관점 유지
-
-## 분석 영역
-- 타고난 성격과 기질
-- 적성과 재능
-- 대인관계 특성
-- 건강 취약점
-- 재물운 경향
-- 직업/진로 적합성
-- 연애/결혼운 특성
-- 주의해야 할 점
+- **원국 우선**: 대운/세운보다 원국의 구조를 먼저 파악
+- **육친 중심**: 십성을 통해 인간관계와 운세 해석
+- **상호작용**: 글자 간 합충형파해를 놓치지 않음
+- **균형 해석**: 좋은 점과 주의할 점을 함께 제시
+- **현대적 적용**: 고전 이론을 현대 생활에 맞게 해석
 
 ## 응답 형식
-JSON 형식으로 구조화된 분석 결과를 반환하세요.
+반드시 JSON 형식으로만 응답하세요. 추가 설명 없이 순수 JSON만 출력하세요.
 ''';
 
   @override
@@ -176,42 +209,117 @@ ${_buildHapchungSection(data.hapchung)}
 
 위 사주 정보를 바탕으로 종합적인 사주 분석을 JSON 형식으로 제공해주세요.
 
-반드시 아래 JSON 스키마를 따라주세요:
+반드시 아래 JSON 스키마를 정확히 따라주세요. 모든 필드를 빠짐없이 채워주세요:
 
 ```json
 {
-  "summary": "한 문장으로 요약한 사주 특성",
-  "personality": {
-    "core_traits": ["핵심 성격 특성 3-5개"],
-    "strengths": ["장점 3-5개"],
-    "weaknesses": ["약점/주의점 2-3개"],
-    "description": "성격에 대한 2-3문장 설명"
+  "summary": "이 사주의 핵심 특성을 2-3문장으로 요약",
+
+  "wonGuk_analysis": {
+    "day_master": "일간 분석 (예: 甲木일간으로 성장과 진취성을 상징)",
+    "oheng_balance": "오행 균형 분석 (과다/부족 오행과 그 영향)",
+    "singang_singak": "신강/신약 판정 근거와 의미",
+    "gyeokguk": "격국 분석 (해당되는 경우)"
   },
+
+  "sipsung_analysis": {
+    "dominant_sipsung": ["사주에서 강한 십성 1-3개"],
+    "weak_sipsung": ["사주에서 약한 십성 1-2개"],
+    "key_interactions": "십성 간 주요 상호작용 분석",
+    "life_implications": "십성 구조가 인생에 미치는 영향"
+  },
+
+  "hapchung_analysis": {
+    "major_haps": ["주요 합의 의미와 영향"],
+    "major_chungs": ["주요 충의 의미와 영향"],
+    "other_interactions": "형/파/해/원진 영향 (있는 경우)",
+    "overall_impact": "합충 구조가 인생에 미치는 종합 영향"
+  },
+
+  "personality": {
+    "core_traits": ["핵심 성격 특성 4-6개"],
+    "strengths": ["장점 4-6개"],
+    "weaknesses": ["약점/주의점 3-4개"],
+    "social_style": "대인관계 스타일",
+    "description": "성격에 대한 상세 설명 3-5문장"
+  },
+
+  "wealth": {
+    "overall_tendency": "전체적인 재물운 경향",
+    "earning_style": "돈을 버는 방식/스타일",
+    "spending_tendency": "소비 성향",
+    "investment_aptitude": "투자 적성",
+    "wealth_timing": "재물운이 좋은 시기/나이대",
+    "cautions": ["재물 관련 주의사항 2-3개"],
+    "advice": "재물운 향상을 위한 조언"
+  },
+
+  "love": {
+    "attraction_style": "끌리는 이성 유형",
+    "dating_pattern": "연애 패턴/스타일",
+    "romantic_strengths": ["연애에서의 강점 2-3개"],
+    "romantic_weaknesses": ["연애에서의 약점 2-3개"],
+    "ideal_partner_traits": ["이상적인 파트너 특성 3-4개"],
+    "love_timing": "연애운이 좋은 시기",
+    "advice": "연애 관련 조언"
+  },
+
+  "marriage": {
+    "spouse_palace_analysis": "배우자궁(일지) 분석",
+    "marriage_timing": "결혼 적령기/좋은 시기",
+    "spouse_characteristics": "배우자 특성 예상",
+    "married_life_tendency": "결혼 생활 경향",
+    "cautions": ["결혼 관련 주의사항 2-3개"],
+    "advice": "결혼운 향상을 위한 조언"
+  },
+
   "career": {
-    "suitable_fields": ["적합한 분야 3-5개"],
-    "unsuitable_fields": ["피해야 할 분야 1-2개"],
-    "work_style": "업무 스타일 설명",
+    "suitable_fields": ["적합한 직업/분야 5-7개"],
+    "unsuitable_fields": ["피해야 할 분야 2-3개"],
+    "work_style": "업무 스타일",
+    "leadership_potential": "리더십/관리자 적성",
+    "career_timing": "직장운이 좋은 시기",
     "advice": "진로 관련 조언"
   },
-  "relationships": {
-    "social_style": "대인관계 스타일",
-    "compatibility_tips": "인연/궁합 관련 조언",
-    "cautions": ["주의점 1-2개"]
+
+  "business": {
+    "entrepreneurship_aptitude": "사업 적성 분석",
+    "suitable_business_types": ["적합한 사업 유형 3-5개"],
+    "business_partner_traits": "좋은 사업 파트너 특성",
+    "cautions": ["사업 시 주의사항 2-3개"],
+    "success_factors": ["사업 성공 요인 2-3개"],
+    "advice": "사업 관련 조언"
   },
-  "wealth": {
-    "tendency": "재물운 경향",
-    "strengths": ["재물 관련 강점"],
-    "advice": "재물 관련 조언"
-  },
+
   "health": {
-    "vulnerable_areas": ["건강 취약 부위 1-3개"],
-    "advice": "건강 관련 조언"
+    "vulnerable_organs": ["건강 취약 장기/부위 2-4개"],
+    "potential_issues": ["주의해야 할 건강 문제 2-3개"],
+    "mental_health": "정신/심리 건강 경향",
+    "lifestyle_advice": ["건강 관리 생활 습관 조언 3-4개"],
+    "caution_periods": "건강 주의 시기 (있는 경우)"
   },
-  "overall_advice": "종합적인 인생 조언 2-3문장",
+
+  "sinsal_gilseong": {
+    "major_gilseong": ["주요 길성과 그 의미"],
+    "major_sinsal": ["주요 신살과 그 의미"],
+    "practical_implications": "신살/길성이 실생활에 미치는 영향"
+  },
+
+  "life_cycles": {
+    "youth": "청년기(20-35세) 전망",
+    "middle_age": "중년기(35-55세) 전망",
+    "later_years": "후년기(55세 이후) 전망",
+    "key_years": ["인생 중요 전환점 예상 나이 2-3개"]
+  },
+
+  "overall_advice": "종합적인 인생 조언 4-6문장",
+
   "lucky_elements": {
-    "colors": ["행운의 색 1-2개"],
+    "colors": ["행운의 색 2-3개"],
     "directions": ["좋은 방향 1-2개"],
-    "numbers": [행운의 숫자 1-2개]
+    "numbers": [1, 6],
+    "seasons": "유리한 계절",
+    "partner_elements": ["궁합이 좋은 띠 2-3개"]
   }
 }
 ```
