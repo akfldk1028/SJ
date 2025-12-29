@@ -1250,6 +1250,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  typeset:
+    dependency: "direct main"
+    description:
+      name: typeset
+      sha256: "1aee6958befc299775d6637226e4f6d2b78d0679de2864007d9b6f562dcd69d7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.0"
   universal_image:
     dependency: transitive
     description:

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'persona_selector_grid.dart';
 import 'sidebar_footer.dart';
 import 'sidebar_header.dart';
 import 'session_list.dart';
@@ -44,6 +45,9 @@ class ChatHistorySidebar extends StatelessWidget {
       child: Column(
         children: [
           SidebarHeader(onNewChat: onNewChat),
+          // 페르소나 선택 그리드
+          const PersonaSelectorGrid(),
+          // 대화 히스토리 목록
           Expanded(
             child: SessionList(
               onSessionSelected: onSessionSelected,
