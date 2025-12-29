@@ -47,7 +47,7 @@ class GeminiRestDatasource {
 
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta';
-  static const String _model = 'gemini-3-pro-preview'; // Gemini 3.0 Pro (Thinking 지원)
+  static const String _model = 'gemini-3-flash-preview'; // Gemini 3.0 Flash (빠른 응답)
 
   /// 환경변수에서 API 키 가져오기
   static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
@@ -348,11 +348,7 @@ class GeminiRestDatasource {
         'temperature': 0.7,
         'topK': 40,
         'topP': 0.95,
-        'maxOutputTokens': 8192,
-        // Thinking 모드 활성화 - 사주 분석 추론 강화
-        'thinkingConfig': {
-          'thinkingBudget': 2048, // 추론에 사용할 토큰 수
-        },
+        'maxOutputTokens': 8192, // Flash 모델용 적정 토큰
       },
       'safetySettings': [
         {
@@ -441,10 +437,10 @@ class GeminiRestDatasource {
   }
 
   /// Gemini 비용 계산 (USD)
-  /// gemini-3-pro-preview: 입력 $1.25/1M, 출력 $10.00/1M (thinking 포함)
+  /// gemini-3-flash: 입력 $0.50/1M, 출력 $3.00/1M
   double _calculateCost(int promptTokens, int completionTokens) {
-    const inputPrice = 1.25 / 1000000;
-    const outputPrice = 10.0 / 1000000;
+    const inputPrice = 0.50 / 1000000;
+    const outputPrice = 3.00 / 1000000;
     return (promptTokens * inputPrice) + (completionTokens * outputPrice);
   }
 }

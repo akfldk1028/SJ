@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:typeset/typeset.dart';
 
 import '../../domain/entities/chat_message.dart';
 
@@ -54,14 +55,7 @@ class MessageBubble extends StatelessWidget {
                   bottomRight: Radius.circular(isUser ? 4 : 16),
                 ),
               ),
-              child: Text(
-                message.content,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isUser
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurface,
-                ),
-              ),
+              child: _buildMessageContent(theme, isUser),
             ),
           ),
           if (isUser && showAvatar) ...[
@@ -69,6 +63,35 @@ class MessageBubble extends StatelessWidget {
             _buildAvatar(theme),
           ],
         ],
+      ),
+    );
+  }
+
+  /// 메시지 내용 빌드
+  ///
+  /// AI 메시지: TypeSet (WhatsApp 스타일 포맷팅 지원)
+  /// 사용자 메시지: 일반 Text
+  Widget _buildMessageContent(ThemeData theme, bool isUser) {
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: isUser
+          ? theme.colorScheme.onPrimary
+          : theme.colorScheme.onSurface,
+    );
+
+    // 사용자 메시지는 일반 Text
+    if (isUser) {
+      return Text(message.content, style: textStyle);
+    }
+
+    // AI 메시지는 TypeSet (WhatsApp 스타일 포맷팅 지원)
+    // *굵게*, _기울임_, ~취소선~, `코드`
+    return TypeSet(
+      message.content,
+      style: textStyle,
+      boldStyle: textStyle?.copyWith(fontWeight: FontWeight.bold),
+      monospaceStyle: textStyle?.copyWith(
+        fontFamily: 'monospace',
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
       ),
     );
   }

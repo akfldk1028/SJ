@@ -14,8 +14,10 @@ import '../../data/datasources/gemini_rest_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/models/ai_persona.dart';
 import '../../domain/models/chat_type.dart';
 import 'chat_session_provider.dart';
+import 'persona_provider.dart';
 
 part 'chat_provider.g.dart';
 
@@ -405,18 +407,33 @@ class ChatNotifier extends _$ChatNotifier {
     }
   }
 
-  /// 시스템 프롬프트에 사주 정보 + AI Summary 추가
+  /// 시스템 프롬프트에 사주 정보 + AI Summary + 페르소나 추가
   ///
   /// 템플릿 순서:
-  /// 1. 기본 프롬프트 (MD 파일에서 로드)
-  /// 2. 사주 기본 정보 (생년월일, 사주팔자, 용신 등)
-  /// 3. AI Summary (GPT-5.2 분석 결과)
+  /// 1. 페르소나 지시문 (말투/성격)
+  /// 2. 기본 프롬프트 (MD 파일에서 로드)
+  /// 3. 사주 기본 정보 (생년월일, 사주팔자, 용신 등)
+  /// 4. AI Summary (GPT-5.2 분석 결과)
   String _buildFullSystemPrompt({
     required String basePrompt,
     AIContext? aiContext,
     AiSummary? aiSummary,
+    AiPersona? persona,
   }) {
-    final buffer = StringBuffer(basePrompt);
+    final buffer = StringBuffer();
+
+    // 0. 페르소나 지시문 추가 (가장 먼저)
+    if (persona != null) {
+      buffer.writeln('## 캐릭터 설정');
+      buffer.writeln();
+      buffer.writeln(persona.systemPromptInstruction);
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+    }
+
+    // 기본 프롬프트 추가
+    buffer.writeln(basePrompt);
 
     // 1. 사주 기본 정보 추가 (AIContext에서)
     if (aiContext != null) {
@@ -567,14 +584,19 @@ class ChatNotifier extends _$ChatNotifier {
       // MD 파일에서 시스템 프롬프트 로드
       final basePrompt = await _loadSystemPrompt(chatType);
 
-      // 사주 기본 정보 + AI Summary를 시스템 프롬프트에 추가
+      // 현재 페르소나 가져오기
+      final currentPersona = ref.read(personaNotifierProvider);
+
+      // 사주 기본 정보 + AI Summary + 페르소나를 시스템 프롬프트에 추가
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiContext: aiContext,
         aiSummary: aiSummary,
+        persona: currentPersona,
       );
 
       if (kDebugMode) {
+        print('[ChatNotifier] 페르소나 적용: ${currentPersona.displayName}');
         if (aiContext != null) {
           print('[ChatNotifier] 사주 기본 정보가 시스템 프롬프트에 추가됨');
         }

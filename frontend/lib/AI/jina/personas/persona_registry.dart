@@ -28,6 +28,7 @@
 
 import 'cute_friend.dart';
 import 'friendly_sister.dart';
+import 'grandma.dart';
 import 'persona_base.dart';
 import 'wise_scholar.dart';
 
@@ -49,6 +50,7 @@ class PersonaRegistry {
     FriendlySisterPersona(), // 기본 페르소나
     CuteFriendPersona(),
     WiseScholarPersona(),
+    GrandmaPersona(),
     // 새 페르소나는 여기에 추가:
     // NewPersona(),
   ];
