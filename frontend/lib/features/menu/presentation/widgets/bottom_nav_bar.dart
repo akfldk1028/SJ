@@ -5,7 +5,13 @@ import 'package:flutter/material.dart';
 /// 위젯 트리 최적화:
 /// - const 생성자 사용
 /// - 작은 위젯으로 분리
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class BottomNavBar extends StatelessWidget {
+  // ⚡ 캐싱된 색상 상수
+  static const _shadowColor = Color.fromRGBO(0, 0, 0, 0.3);
+  static const _selectedBg = Color.fromRGBO(92, 107, 192, 0.2);
+  static const _selectedBorder = Color.fromRGBO(92, 107, 192, 0.5);
+  static const _unselectedIcon = Color.fromRGBO(255, 255, 255, 0.5);
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
@@ -18,13 +24,13 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A2E),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: _shadowColor,
             blurRadius: 20,
-            offset: const Offset(0, -5),
+            offset: Offset(0, -5),
           ),
         ],
       ),
@@ -93,12 +99,12 @@ class _BottomNavItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF5C6BC0).withOpacity(0.2)
+              ? BottomNavBar._selectedBg
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: isSelected
               ? Border.all(
-                  color: const Color(0xFF5C6BC0).withOpacity(0.5),
+                  color: BottomNavBar._selectedBorder,
                   width: 1.5,
                 )
               : null,
@@ -110,7 +116,7 @@ class _BottomNavItem extends StatelessWidget {
               icon,
               color: isSelected
                   ? const Color(0xFF7E57C2)
-                  : Colors.white.withOpacity(0.5),
+                  : BottomNavBar._unselectedIcon,
               size: 24,
             ),
             if (isSelected) ...[

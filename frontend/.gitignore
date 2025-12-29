@@ -49,6 +49,9 @@ app.*.map.json
 .env.local
 .env.*.local
 
+# Supadart (contains API keys)
+supadart.yaml
+
 # Generated files
 *.g.dart
 *.freezed.dart

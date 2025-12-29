@@ -13,9 +13,10 @@ class SajuMiniCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sajuChartAsync = ref.watch(currentSajuChartProvider);
 
-    // 사주 분석도 watch하여 자동으로 Supabase에 저장되도록 함
-    // (분석 결과는 UI에 직접 표시하지 않지만, Provider 호출로 저장 트리거)
-    ref.watch(currentSajuAnalysisProvider);
+    // ⚡ 성능 최적화: watch → listen으로 변경
+    // 사주 분석은 UI에 표시하지 않으므로 rebuild 트리거 불필요
+    // listen은 side-effect만 실행하고 rebuild하지 않음
+    ref.listen(currentSajuAnalysisProvider, (_, __) {});
 
     return sajuChartAsync.when(
       data: (sajuChart) {

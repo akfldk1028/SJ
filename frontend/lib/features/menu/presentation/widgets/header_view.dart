@@ -75,7 +75,12 @@ class _GreetingText extends StatelessWidget {
 }
 
 /// 날짜 표시 위젯
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class _DateDisplay extends StatelessWidget {
+  // ⚡ 캐싱된 색상 상수
+  static const _bgColor = Color.fromRGBO(255, 255, 255, 0.15);
+  static const _borderColor = Color.fromRGBO(255, 255, 255, 0.2);
+
   const _DateDisplay();
 
   @override
@@ -88,10 +93,10 @@ class _DateDisplay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: _bgColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: _borderColor,
           width: 1,
         ),
       ),

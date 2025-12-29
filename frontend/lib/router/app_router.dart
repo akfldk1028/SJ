@@ -7,6 +7,7 @@ import 'routes.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/menu/presentation/screens/menu_screen.dart';
+import '../features/profile/presentation/screens/profile_select_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../features/profile/presentation/screens/relationship_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_shell.dart';
@@ -35,6 +36,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.menu,
         name: 'menu',
         builder: (context, state) => const MenuScreen(),
+      ),
+      GoRoute(
+        path: Routes.profileSelect,
+        name: 'profileSelect',
+        builder: (context, state) => const ProfileSelectScreen(),
       ),
       GoRoute(
         path: Routes.profileEdit,

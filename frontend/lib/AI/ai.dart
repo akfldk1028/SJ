@@ -47,3 +47,15 @@ export 'jh/jh.dart';
 // Jina - Gemini 3.0 재미있는 대화 (담당: Jina)
 // ═══════════════════════════════════════════════════════════════
 export 'jina/jina.dart';
+
+// ═══════════════════════════════════════════════════════════════
+// AI Analysis - 프로필 저장 시 백그라운드 분석
+// ═══════════════════════════════════════════════════════════════
+export 'core/ai_constants.dart';
+export 'prompts/prompt_template.dart';
+export 'prompts/saju_base_prompt.dart';
+export 'prompts/daily_fortune_prompt.dart';
+export 'data/queries.dart';
+export 'data/mutations.dart';
+export 'services/ai_api_service.dart';
+export 'services/saju_analysis_service.dart';

@@ -1,6 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
@@ -9,14 +13,14 @@ import '../widgets/daily_advice_section.dart';
 import '../widgets/today_message_card.dart';
 
 /// Main menu screen - 테마 적용
-class MenuScreen extends StatefulWidget {
+class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({super.key});
 
   @override
-  State<MenuScreen> createState() => _MenuScreenState();
+  ConsumerState<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> {
+class _MenuScreenState extends ConsumerState<MenuScreen> {
   DateTime _selectedDate = DateTime.now();
 
   void _previousDay() {
@@ -47,14 +51,20 @@ class _MenuScreenState extends State<MenuScreen> {
                 children: [
                   const FortuneSummaryCard(),
                   const SizedBox(height: 24),
-                  SajuMiniCard(),
+                  const SajuMiniCard(),
                   const SizedBox(height: 24),
+                  // Native 광고 1 (사주 카드 아래) - 즉시 로드
+                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 0),
+                  if (!kIsWeb) const SizedBox(height: 24),
                   const SectionHeader(
                     title: '오늘의 운세',
                   ),
                   const SizedBox(height: 12),
                   const FortuneCategoryList(),
                   const SizedBox(height: 24),
+                  // Native 광고 2 - 500ms 지연
+                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 500),
+                  if (!kIsWeb) const SizedBox(height: 24),
                   const SectionHeader(
                     title: '오늘의 조언',
                   ),
@@ -62,6 +72,9 @@ class _MenuScreenState extends State<MenuScreen> {
                   const DailyAdviceSection(),
                   const SizedBox(height: 24),
                   const TodayMessageCard(),
+                  const SizedBox(height: 24),
+                  // Native 광고 3 (맨 하단) - 1000ms 지연
+                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 1000),
                 ],
               ),
             ),
@@ -74,6 +87,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Widget _buildAppBar(AppThemeExtension theme) {
     final formattedDate = _formatDate(_selectedDate);
+    final activeProfileAsync = ref.watch(activeProfileProvider);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -155,47 +169,117 @@ class _MenuScreenState extends State<MenuScreen> {
               ],
             ),
           ),
-          // User info
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.isDark
-                      ? const Color.fromRGBO(0, 0, 0, 0.3)
-                      : const Color.fromRGBO(0, 0, 0, 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.person_outline_rounded,
-                  size: 16,
-                  color: theme.primaryColor,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '김은지님',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: theme.textPrimary,
+          // User info - 실제 프로필 연동
+          GestureDetector(
+            onTap: () => context.push('/profile/select'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.isDark
+                        ? const Color.fromRGBO(0, 0, 0, 0.3)
+                        : const Color.fromRGBO(0, 0, 0, 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: activeProfileAsync.when(
+                loading: () => Row(
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '로딩...',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '본인',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.textMuted,
-                  ),
+                error: (_, _) => Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 16,
+                      color: theme.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '프로필 없음',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+                data: (profile) {
+                  if (profile == null) {
+                    return Row(
+                      children: [
+                        Icon(
+                          Icons.add_rounded,
+                          size: 16,
+                          color: theme.primaryColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '프로필 추가',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: theme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Icon(
+                        Icons.person_outline_rounded,
+                        size: 16,
+                        color: theme.primaryColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${profile.displayName}님',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: theme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        profile.relationType.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: theme.textMuted,
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ],

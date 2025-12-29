@@ -1,0 +1,288 @@
+/// AdMob Service
+/// 광고 초기화, 로딩, 표시를 담당하는 서비스
+library;
+
+import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import 'ad_config.dart';
+
+/// 광고 서비스 싱글톤
+class AdService {
+  AdService._();
+  static final AdService instance = AdService._();
+
+  bool _isInitialized = false;
+  DateTime? _lastInterstitialTime;
+
+  // 광고 인스턴스
+  BannerAd? _bannerAd;
+  InterstitialAd? _interstitialAd;
+  RewardedAd? _rewardedAd;
+
+  // 광고 로드 상태
+  bool _isBannerLoaded = false;
+  bool _isInterstitialLoaded = false;
+  bool _isRewardedLoaded = false;
+
+  // Getters
+  bool get isInitialized => _isInitialized;
+  bool get isBannerLoaded => _isBannerLoaded;
+  bool get isInterstitialLoaded => _isInterstitialLoaded;
+  bool get isRewardedLoaded => _isRewardedLoaded;
+  BannerAd? get bannerAd => _bannerAd;
+
+  /// SDK 초기화
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    try {
+      final status = await MobileAds.instance.initialize();
+      _isInitialized = true;
+
+      // 어댑터 상태 로깅
+      status.adapterStatuses.forEach((key, value) {
+        debugPrint('[AdService] Adapter $key: ${value.description}');
+      });
+
+      debugPrint('[AdService] SDK initialized successfully');
+    } catch (e) {
+      debugPrint('[AdService] SDK initialization failed: $e');
+    }
+  }
+
+  // ==================== Banner Ad ====================
+
+  /// 배너 광고 로드
+  Future<void> loadBannerAd({
+    required double width,
+    void Function(BannerAd)? onLoaded,
+    void Function(LoadAdError)? onFailed,
+  }) async {
+    // 기존 배너 정리
+    await _bannerAd?.dispose();
+    _isBannerLoaded = false;
+
+    // Adaptive 크기 가져오기
+    final adSize =
+        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+      width.truncate(),
+    );
+
+    if (adSize == null) {
+      debugPrint('[AdService] Failed to get adaptive banner size');
+      return;
+    }
+
+    _bannerAd = BannerAd(
+      adUnitId: AdUnitId.banner,
+      size: adSize,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          debugPrint('[AdService] Banner ad loaded');
+          _isBannerLoaded = true;
+          onLoaded?.call(ad as BannerAd);
+        },
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('[AdService] Banner ad failed: ${error.message}');
+          ad.dispose();
+          _bannerAd = null;
+          _isBannerLoaded = false;
+          onFailed?.call(error);
+        },
+        onAdOpened: (ad) {
+          debugPrint('[AdService] Banner ad opened');
+        },
+        onAdClosed: (ad) {
+          debugPrint('[AdService] Banner ad closed');
+        },
+        onAdImpression: (ad) {
+          debugPrint('[AdService] Banner ad impression');
+        },
+        onAdClicked: (ad) {
+          debugPrint('[AdService] Banner ad clicked');
+        },
+      ),
+    );
+
+    await _bannerAd!.load();
+  }
+
+  /// 배너 광고 해제
+  void disposeBanner() {
+    _bannerAd?.dispose();
+    _bannerAd = null;
+    _isBannerLoaded = false;
+  }
+
+  // ==================== Interstitial Ad ====================
+
+  /// 전면 광고 로드
+  Future<void> loadInterstitialAd({
+    void Function()? onLoaded,
+    void Function(LoadAdError)? onFailed,
+  }) async {
+    await InterstitialAd.load(
+      adUnitId: AdUnitId.interstitial,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          debugPrint('[AdService] Interstitial ad loaded');
+          _interstitialAd = ad;
+          _isInterstitialLoaded = true;
+
+          // 전면 광고 콜백 설정
+          _interstitialAd!.fullScreenContentCallback =
+              FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              debugPrint('[AdService] Interstitial showed');
+            },
+            onAdDismissedFullScreenContent: (ad) {
+              debugPrint('[AdService] Interstitial dismissed');
+              ad.dispose();
+              _interstitialAd = null;
+              _isInterstitialLoaded = false;
+              // 자동 재로드
+              loadInterstitialAd();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              debugPrint('[AdService] Interstitial failed to show: $error');
+              ad.dispose();
+              _interstitialAd = null;
+              _isInterstitialLoaded = false;
+            },
+            onAdImpression: (ad) {
+              debugPrint('[AdService] Interstitial impression');
+            },
+            onAdClicked: (ad) {
+              debugPrint('[AdService] Interstitial clicked');
+            },
+          );
+
+          onLoaded?.call();
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('[AdService] Interstitial failed to load: ${error.message}');
+          _isInterstitialLoaded = false;
+          onFailed?.call(error);
+        },
+      ),
+    );
+  }
+
+  /// 전면 광고 표시
+  Future<bool> showInterstitialAd() async {
+    // 최소 간격 체크
+    if (_lastInterstitialTime != null) {
+      final elapsed = DateTime.now().difference(_lastInterstitialTime!);
+      if (elapsed.inSeconds < AdSettings.interstitialMinInterval) {
+        debugPrint(
+            '[AdService] Interstitial skipped: interval ${elapsed.inSeconds}s < ${AdSettings.interstitialMinInterval}s');
+        return false;
+      }
+    }
+
+    if (!_isInterstitialLoaded || _interstitialAd == null) {
+      debugPrint('[AdService] Interstitial not ready');
+      return false;
+    }
+
+    _lastInterstitialTime = DateTime.now();
+    await _interstitialAd!.show();
+    return true;
+  }
+
+  // ==================== Rewarded Ad ====================
+
+  /// 보상형 광고 로드
+  Future<void> loadRewardedAd({
+    void Function()? onLoaded,
+    void Function(LoadAdError)? onFailed,
+  }) async {
+    await RewardedAd.load(
+      adUnitId: AdUnitId.rewarded,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          debugPrint('[AdService] Rewarded ad loaded');
+          _rewardedAd = ad;
+          _isRewardedLoaded = true;
+
+          _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              debugPrint('[AdService] Rewarded showed');
+            },
+            onAdDismissedFullScreenContent: (ad) {
+              debugPrint('[AdService] Rewarded dismissed');
+              ad.dispose();
+              _rewardedAd = null;
+              _isRewardedLoaded = false;
+              // 지연 후 재로드
+              Future.delayed(
+                const Duration(seconds: AdSettings.rewardedReloadDelay),
+                () => loadRewardedAd(),
+              );
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              debugPrint('[AdService] Rewarded failed to show: $error');
+              ad.dispose();
+              _rewardedAd = null;
+              _isRewardedLoaded = false;
+            },
+            onAdImpression: (ad) {
+              debugPrint('[AdService] Rewarded impression');
+            },
+            onAdClicked: (ad) {
+              debugPrint('[AdService] Rewarded clicked');
+            },
+          );
+
+          onLoaded?.call();
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('[AdService] Rewarded failed to load: ${error.message}');
+          _isRewardedLoaded = false;
+          onFailed?.call(error);
+        },
+      ),
+    );
+  }
+
+  /// 보상형 광고 표시
+  /// [onRewarded] 보상 지급 콜백 (보상 금액, 보상 타입)
+  Future<bool> showRewardedAd({
+    required void Function(int amount, String type) onRewarded,
+  }) async {
+    if (!_isRewardedLoaded || _rewardedAd == null) {
+      debugPrint('[AdService] Rewarded not ready');
+      return false;
+    }
+
+    await _rewardedAd!.show(
+      onUserEarnedReward: (ad, reward) {
+        debugPrint(
+            '[AdService] User earned reward: ${reward.amount} ${reward.type}');
+        onRewarded(reward.amount.toInt(), reward.type);
+      },
+    );
+    return true;
+  }
+
+  // ==================== Cleanup ====================
+
+  /// 모든 광고 해제
+  void disposeAll() {
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
+    _rewardedAd?.dispose();
+
+    _bannerAd = null;
+    _interstitialAd = null;
+    _rewardedAd = null;
+
+    _isBannerLoaded = false;
+    _isInterstitialLoaded = false;
+    _isRewardedLoaded = false;
+  }
+}

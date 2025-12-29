@@ -1,0 +1,31 @@
+# Supadart Configuration Template
+# Dart 타입 자동 생성을 위한 설정
+#
+# 사용법:
+# 1. 이 파일을 supadart.yaml로 복사
+# 2. Supabase 프로젝트의 URL과 anon key 입력
+# 3. 실행: dart pub global run supadart
+
+# Supabase 연결 정보
+supabase_url: https://YOUR_PROJECT_REF.supabase.co
+supabase_api_key: YOUR_ANON_KEY_HERE
+
+# 출력 경로
+output: lib/core/supabase/generated/
+
+# 분리 출력 (테이블별 파일 분리)
+separated: true
+
+# 제외할 테이블 (선택)
+# excluded:
+#   - internal_table
+#   - temp_table
+
+# Dart 클래스 생성 옵션 (선택)
+# dart: true
+
+# JSONB 필드를 커스텀 타입으로 매핑 (선택)
+# jsonb_models:
+#   - table: saju_analyses
+#     column: oheng_distribution
+#     model: OhengDistribution

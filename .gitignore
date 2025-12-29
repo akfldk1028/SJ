@@ -12,6 +12,10 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Supadart (contains API keys)
+supadart.yaml
+frontend/supadart.yaml
+
 # Logs
 *.log
 
@@ -32,3 +36,6 @@ docs/Image
 
 UI/
 .swarm
+.playwright-mcp
+.claude-flow
+docs/01_Team_TODO
