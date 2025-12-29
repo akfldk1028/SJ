@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:typeset/typeset.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
+import '../../../../core/theme/app_fonts.dart';
 import '../../domain/entities/chat_message.dart';
 
 /// 채팅 메시지 버블 위젯
@@ -69,29 +70,38 @@ class MessageBubble extends StatelessWidget {
 
   /// 메시지 내용 빌드
   ///
-  /// AI 메시지: TypeSet (WhatsApp 스타일 포맷팅 지원)
-  /// 사용자 메시지: 일반 Text
+  /// AI 메시지: Markdown 렌더링 + Gowun Dodum 폰트
+  /// 사용자 메시지: Noto Sans KR (깔끔한 산세리프)
   Widget _buildMessageContent(ThemeData theme, bool isUser) {
-    final textStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: isUser
-          ? theme.colorScheme.onPrimary
-          : theme.colorScheme.onSurface,
-    );
-
-    // 사용자 메시지는 일반 Text
+    // 사용자 메시지: Noto Sans KR (plain text)
     if (isUser) {
-      return Text(message.content, style: textStyle);
+      final userStyle = AppFonts.userMessage(
+        color: theme.colorScheme.onPrimary,
+      );
+      return Text(message.content, style: userStyle);
     }
 
-    // AI 메시지는 TypeSet (WhatsApp 스타일 포맷팅 지원)
-    // *굵게*, _기울임_, ~취소선~, `코드`
-    return TypeSet(
-      message.content,
-      style: textStyle,
-      boldStyle: textStyle?.copyWith(fontWeight: FontWeight.bold),
-      monospaceStyle: textStyle?.copyWith(
-        fontFamily: 'monospace',
-        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+    // AI 메시지: Markdown 렌더링
+    final aiStyle = AppFonts.aiMessage(
+      color: theme.colorScheme.onSurface,
+    );
+
+    return MarkdownBody(
+      data: message.content,
+      selectable: true,
+      styleSheet: MarkdownStyleSheet(
+        p: aiStyle,
+        strong: aiStyle.copyWith(fontWeight: FontWeight.bold),
+        em: aiStyle.copyWith(fontStyle: FontStyle.italic),
+        code: aiStyle.copyWith(
+          fontFamily: 'monospace',
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        ),
+        listBullet: aiStyle,
+        a: aiStyle.copyWith(
+          color: theme.colorScheme.primary,
+          decoration: TextDecoration.underline,
+        ),
       ),
     );
   }
