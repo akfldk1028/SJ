@@ -57,8 +57,11 @@ dependencies:
   intl: ^0.20.1
   connectivity_plus: ^6.1.4
 
-  # Chat Text Styling (WhatsApp-style formatting)
-  typeset: ^2.3.0
+  # Markdown Rendering (AI 응답 스타일링)
+  flutter_markdown: ^0.7.6
+
+  # Custom Fonts (Korean fonts for saju app)
+  google_fonts: ^6.2.1
 
   # HTTP Client (for future API calls)
   dio: ^5.7.0

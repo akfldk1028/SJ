@@ -129,7 +129,9 @@ class ChatRepository {
   // ============================================================
 
   /// 메시지 추가
+  /// [id]: 로컬에서 생성한 UUID를 사용 (Realtime 중복 방지)
   Future<ChatMessage?> addMessage({
+    String? id,
     required String sessionId,
     required String content,
     required MessageRole role,
@@ -139,6 +141,7 @@ class ChatRepository {
     if (_client == null) return null;
 
     final data = {
+      if (id != null) 'id': id,
       'session_id': sessionId,
       'content': content,
       'role': role.name,
