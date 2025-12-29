@@ -290,12 +290,41 @@ abstract class PersonaBase {
 
   /// 완성된 시스템 프롬프트 생성
   ///
-  /// 기본 시스템 프롬프트에 예시와 금지사항을 추가합니다.
+  /// 기본 시스템 프롬프트에 공통 규칙, 예시, 금지사항을 추가합니다.
+  ///
+  /// ## 모듈화 설계
+  /// - 공통 규칙: 여기서 한 번만 정의 → 모든 페르소나에 자동 적용
+  /// - 개별 페르소나: systemPrompt, examples, prohibitions만 정의
+  /// - 규칙 변경 시: 이 메서드만 수정하면 전체 적용
   String buildFullSystemPrompt() {
     final buffer = StringBuffer(systemPrompt);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🔒 공통 필수 규칙 (모든 페르소나에 적용)
+    // ═══════════════════════════════════════════════════════════════════════
+    buffer.writeln('''
+
+## 🔒 필수 응답 규칙
+
+### 형식 규칙 (중요!)
+- 마크다운 문법 절대 금지! (**, ##, ``` 등 사용 불가)
+- 글머리 기호(-) 대신 자연스러운 문장으로 작성
+- 번호 목록(1. 2. 3.) 대신 "첫째, 둘째" 또는 "그리고, 또한" 사용
+
+### 텍스트 강조 (WhatsApp 스타일)
+- 중요한 단어 강조: *단어* (별표 하나로 감싸기)
+- 기울임: _단어_ (언더바로 감싸기)
+- 취소선: ~단어~ (물결표로 감싸기)
+- 예시: "오늘의 *핵심 키워드*는 _인내_예요~"
+
+### 대화 스타일
+- 친구와 대화하듯 자연스럽게
+- 이모지는 캐릭터에 맞게 적절히
+- 사주 용어는 쉽게 풀어서 설명
+''');
+
     // 말투 가이드 추가
-    buffer.writeln('\n\n## 말투');
+    buffer.writeln('## 말투');
     buffer.writeln('- ${tone.promptDescription}');
     buffer.writeln('- 이모지 $emojiLevel개 정도 사용');
 
@@ -308,9 +337,9 @@ abstract class PersonaBase {
       }
     }
 
-    // 금지사항 추가
+    // 개별 페르소나 금지사항 추가
     if (prohibitions.isNotEmpty) {
-      buffer.writeln('\n## 금지사항');
+      buffer.writeln('\n## 추가 금지사항');
       for (final prohibition in prohibitions) {
         buffer.writeln('- $prohibition');
       }

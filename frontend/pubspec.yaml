@@ -57,6 +57,9 @@ dependencies:
   intl: ^0.20.1
   connectivity_plus: ^6.1.4
 
+  # Chat Text Styling (WhatsApp-style formatting)
+  typeset: ^2.3.0
+
   # HTTP Client (for future API calls)
   dio: ^5.7.0
 
