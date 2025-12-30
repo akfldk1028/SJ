@@ -462,75 +462,214 @@ class AiSummaryResult {
 
 /// AI Summary 데이터 모델
 ///
-/// Gemini 3.0이 생성하는 AI 요약 구조
+/// GPT-5.2가 생성하는 평생 사주 분석 결과
 /// Edge Function의 JSON 응답을 파싱하여 사용
 ///
-/// 포함 정보:
-/// - personality: 성격 (핵심 + 특성 목록)
-/// - strengths/weaknesses: 강점/약점 목록
-/// - career: 진로 적성 + 조언
-/// - relationships: 대인관계 스타일 + 팁
-/// - fortuneTips: 개운법 (색상/방위/활동)
+/// ## 포함 정보 (v2.0)
+/// - saju_origin: 원본 사주 데이터 (합충형파해, 십성, 신살 등)
+/// - personality: 성격 분석
+/// - wealth: 재물운
+/// - love: 연애운
+/// - marriage: 결혼운
+/// - career: 진로/직장운
+/// - business: 사업운
+/// - health: 건강운
+/// - lucky_elements: 행운 요소
+///
+/// ## Gemini 채팅이 참조하는 데이터
+/// - saju_origin: 합충형파해 같은 어려운 정보 참조용
+/// - 나머지 분석 결과: 상담 시 활용
 class AiSummary {
+  /// 사주 원본 데이터 (합충형파해, 십성, 신살 등)
+  /// Gemini가 어려운 사주 용어를 까먹지 않도록 포함
+  final Map<String, dynamic>? sajuOrigin;
+
+  /// 한 문장 요약
+  final String? summary;
+
+  /// 원국 분석 (일간, 오행균형, 신강신약, 격국)
+  final Map<String, dynamic>? wonGukAnalysis;
+
+  /// 십성 분석
+  final Map<String, dynamic>? sipsungAnalysis;
+
+  /// 합충형파해 분석
+  final Map<String, dynamic>? hapchungAnalysis;
+
+  /// 성격 분석
   final AiPersonality personality;
+
+  /// 강점 (하위 호환용)
   final List<String> strengths;
+
+  /// 약점 (하위 호환용)
   final List<String> weaknesses;
+
+  /// 재물운
+  final AiWealth? wealth;
+
+  /// 연애운
+  final AiLove? love;
+
+  /// 결혼운
+  final AiMarriage? marriage;
+
+  /// 진로/직장운
   final AiCareer career;
+
+  /// 사업운
+  final AiBusiness? business;
+
+  /// 건강운
+  final AiHealth? health;
+
+  /// 신살/길성 분석
+  final Map<String, dynamic>? sinsalGilseong;
+
+  /// 인생 주기별 전망
+  final Map<String, dynamic>? lifeCycles;
+
+  /// 대인관계 (하위 호환용)
   final AiRelationships relationships;
+
+  /// 종합 조언
+  final String? overallAdvice;
+
+  /// 행운 요소 (색상, 방향, 숫자 등)
+  final AiLuckyElements? luckyElements;
+
+  /// 개운법 (하위 호환용)
   final AiFortuneTips fortuneTips;
+
   final DateTime? generatedAt;
   final String? model;
   final String version;
 
   AiSummary({
+    this.sajuOrigin,
+    this.summary,
+    this.wonGukAnalysis,
+    this.sipsungAnalysis,
+    this.hapchungAnalysis,
     required this.personality,
     required this.strengths,
     required this.weaknesses,
+    this.wealth,
+    this.love,
+    this.marriage,
     required this.career,
+    this.business,
+    this.health,
+    this.sinsalGilseong,
+    this.lifeCycles,
     required this.relationships,
+    this.overallAdvice,
+    this.luckyElements,
     required this.fortuneTips,
     this.generatedAt,
     this.model,
-    this.version = '1.0',
+    this.version = '2.0',
   });
 
   factory AiSummary.fromJson(Map<String, dynamic> json) {
     return AiSummary(
+      sajuOrigin: json['saju_origin'] as Map<String, dynamic>?,
+      summary: json['summary']?.toString(),
+      wonGukAnalysis: json['wonGuk_analysis'] as Map<String, dynamic>?,
+      sipsungAnalysis: json['sipsung_analysis'] as Map<String, dynamic>?,
+      hapchungAnalysis: json['hapchung_analysis'] as Map<String, dynamic>?,
       personality: AiPersonality.fromJson(
         json['personality'] as Map<String, dynamic>? ?? {},
       ),
       strengths: (json['strengths'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
+          // 하위 호환: personality.strengths에서 가져오기
+          (json['personality']?['strengths'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
           [],
       weaknesses: (json['weaknesses'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
+          // 하위 호환: personality.weaknesses에서 가져오기
+          (json['personality']?['weaknesses'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
           [],
+      wealth: json['wealth'] != null
+          ? AiWealth.fromJson(json['wealth'] as Map<String, dynamic>)
+          : null,
+      love: json['love'] != null
+          ? AiLove.fromJson(json['love'] as Map<String, dynamic>)
+          : null,
+      marriage: json['marriage'] != null
+          ? AiMarriage.fromJson(json['marriage'] as Map<String, dynamic>)
+          : null,
       career: AiCareer.fromJson(
         json['career'] as Map<String, dynamic>? ?? {},
       ),
+      business: json['business'] != null
+          ? AiBusiness.fromJson(json['business'] as Map<String, dynamic>)
+          : null,
+      health: json['health'] != null
+          ? AiHealth.fromJson(json['health'] as Map<String, dynamic>)
+          : null,
+      sinsalGilseong: json['sinsal_gilseong'] as Map<String, dynamic>?,
+      lifeCycles: json['life_cycles'] as Map<String, dynamic>?,
       relationships: AiRelationships.fromJson(
         json['relationships'] as Map<String, dynamic>? ?? {},
       ),
+      overallAdvice: json['overall_advice']?.toString(),
+      luckyElements: json['lucky_elements'] != null
+          ? AiLuckyElements.fromJson(json['lucky_elements'] as Map<String, dynamic>)
+          : null,
       fortuneTips: AiFortuneTips.fromJson(
-        json['fortune_tips'] as Map<String, dynamic>? ?? {},
+        json['fortune_tips'] as Map<String, dynamic>? ??
+        // 하위 호환: lucky_elements에서 변환
+        _convertLuckyToFortuneTips(json['lucky_elements']),
       ),
       generatedAt: json['generated_at'] != null
           ? DateTime.tryParse(json['generated_at'].toString())
           : null,
       model: json['model']?.toString(),
-      version: json['version']?.toString() ?? '1.0',
+      version: json['version']?.toString() ?? '2.0',
     );
+  }
+
+  /// lucky_elements를 fortune_tips 형식으로 변환 (하위 호환용)
+  static Map<String, dynamic> _convertLuckyToFortuneTips(dynamic luckyElements) {
+    if (luckyElements == null) return {};
+    if (luckyElements is! Map) return {};
+
+    return {
+      'colors': luckyElements['colors'] ?? [],
+      'directions': luckyElements['directions'] ?? [],
+      'activities': [], // lucky_elements에는 activities가 없음
+    };
   }
 
   Map<String, dynamic> toJson() {
     return {
+      if (sajuOrigin != null) 'saju_origin': sajuOrigin,
+      if (summary != null) 'summary': summary,
+      if (wonGukAnalysis != null) 'wonGuk_analysis': wonGukAnalysis,
+      if (sipsungAnalysis != null) 'sipsung_analysis': sipsungAnalysis,
+      if (hapchungAnalysis != null) 'hapchung_analysis': hapchungAnalysis,
       'personality': personality.toJson(),
       'strengths': strengths,
       'weaknesses': weaknesses,
+      if (wealth != null) 'wealth': wealth!.toJson(),
+      if (love != null) 'love': love!.toJson(),
+      if (marriage != null) 'marriage': marriage!.toJson(),
       'career': career.toJson(),
+      if (business != null) 'business': business!.toJson(),
+      if (health != null) 'health': health!.toJson(),
+      if (sinsalGilseong != null) 'sinsal_gilseong': sinsalGilseong,
+      if (lifeCycles != null) 'life_cycles': lifeCycles,
       'relationships': relationships.toJson(),
+      if (overallAdvice != null) 'overall_advice': overallAdvice,
+      if (luckyElements != null) 'lucky_elements': luckyElements!.toJson(),
       'fortune_tips': fortuneTips.toJson(),
       if (generatedAt != null) 'generated_at': generatedAt!.toIso8601String(),
       if (model != null) 'model': model,
@@ -654,6 +793,301 @@ class AiFortuneTips {
       'colors': colors,
       'directions': directions,
       'activities': activities,
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 확장 모델 클래스 (v2.0)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 재물운 정보
+class AiWealth {
+  final String? overallTendency;
+  final String? earningStyle;
+  final String? spendingTendency;
+  final String? investmentAptitude;
+  final String? wealthTiming;
+  final List<String> cautions;
+  final String? advice;
+
+  AiWealth({
+    this.overallTendency,
+    this.earningStyle,
+    this.spendingTendency,
+    this.investmentAptitude,
+    this.wealthTiming,
+    this.cautions = const [],
+    this.advice,
+  });
+
+  factory AiWealth.fromJson(Map<String, dynamic> json) {
+    return AiWealth(
+      overallTendency: json['overall_tendency']?.toString(),
+      earningStyle: json['earning_style']?.toString(),
+      spendingTendency: json['spending_tendency']?.toString(),
+      investmentAptitude: json['investment_aptitude']?.toString(),
+      wealthTiming: json['wealth_timing']?.toString(),
+      cautions: (json['cautions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      advice: json['advice']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (overallTendency != null) 'overall_tendency': overallTendency,
+      if (earningStyle != null) 'earning_style': earningStyle,
+      if (spendingTendency != null) 'spending_tendency': spendingTendency,
+      if (investmentAptitude != null) 'investment_aptitude': investmentAptitude,
+      if (wealthTiming != null) 'wealth_timing': wealthTiming,
+      'cautions': cautions,
+      if (advice != null) 'advice': advice,
+    };
+  }
+}
+
+/// 연애운 정보
+class AiLove {
+  final String? attractionStyle;
+  final String? datingPattern;
+  final List<String> romanticStrengths;
+  final List<String> romanticWeaknesses;
+  final List<String> idealPartnerTraits;
+  final String? loveTiming;
+  final String? advice;
+
+  AiLove({
+    this.attractionStyle,
+    this.datingPattern,
+    this.romanticStrengths = const [],
+    this.romanticWeaknesses = const [],
+    this.idealPartnerTraits = const [],
+    this.loveTiming,
+    this.advice,
+  });
+
+  factory AiLove.fromJson(Map<String, dynamic> json) {
+    return AiLove(
+      attractionStyle: json['attraction_style']?.toString(),
+      datingPattern: json['dating_pattern']?.toString(),
+      romanticStrengths: (json['romantic_strengths'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      romanticWeaknesses: (json['romantic_weaknesses'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      idealPartnerTraits: (json['ideal_partner_traits'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      loveTiming: json['love_timing']?.toString(),
+      advice: json['advice']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (attractionStyle != null) 'attraction_style': attractionStyle,
+      if (datingPattern != null) 'dating_pattern': datingPattern,
+      'romantic_strengths': romanticStrengths,
+      'romantic_weaknesses': romanticWeaknesses,
+      'ideal_partner_traits': idealPartnerTraits,
+      if (loveTiming != null) 'love_timing': loveTiming,
+      if (advice != null) 'advice': advice,
+    };
+  }
+}
+
+/// 결혼운 정보
+class AiMarriage {
+  final String? spousePalaceAnalysis;
+  final String? marriageTiming;
+  final String? spouseCharacteristics;
+  final String? marriedLifeTendency;
+  final List<String> cautions;
+  final String? advice;
+
+  AiMarriage({
+    this.spousePalaceAnalysis,
+    this.marriageTiming,
+    this.spouseCharacteristics,
+    this.marriedLifeTendency,
+    this.cautions = const [],
+    this.advice,
+  });
+
+  factory AiMarriage.fromJson(Map<String, dynamic> json) {
+    return AiMarriage(
+      spousePalaceAnalysis: json['spouse_palace_analysis']?.toString(),
+      marriageTiming: json['marriage_timing']?.toString(),
+      spouseCharacteristics: json['spouse_characteristics']?.toString(),
+      marriedLifeTendency: json['married_life_tendency']?.toString(),
+      cautions: (json['cautions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      advice: json['advice']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (spousePalaceAnalysis != null) 'spouse_palace_analysis': spousePalaceAnalysis,
+      if (marriageTiming != null) 'marriage_timing': marriageTiming,
+      if (spouseCharacteristics != null) 'spouse_characteristics': spouseCharacteristics,
+      if (marriedLifeTendency != null) 'married_life_tendency': marriedLifeTendency,
+      'cautions': cautions,
+      if (advice != null) 'advice': advice,
+    };
+  }
+}
+
+/// 사업운 정보
+class AiBusiness {
+  final String? entrepreneurshipAptitude;
+  final List<String> suitableBusinessTypes;
+  final String? businessPartnerTraits;
+  final List<String> cautions;
+  final List<String> successFactors;
+  final String? advice;
+
+  AiBusiness({
+    this.entrepreneurshipAptitude,
+    this.suitableBusinessTypes = const [],
+    this.businessPartnerTraits,
+    this.cautions = const [],
+    this.successFactors = const [],
+    this.advice,
+  });
+
+  factory AiBusiness.fromJson(Map<String, dynamic> json) {
+    return AiBusiness(
+      entrepreneurshipAptitude: json['entrepreneurship_aptitude']?.toString(),
+      suitableBusinessTypes: (json['suitable_business_types'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      businessPartnerTraits: json['business_partner_traits']?.toString(),
+      cautions: (json['cautions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      successFactors: (json['success_factors'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      advice: json['advice']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (entrepreneurshipAptitude != null) 'entrepreneurship_aptitude': entrepreneurshipAptitude,
+      'suitable_business_types': suitableBusinessTypes,
+      if (businessPartnerTraits != null) 'business_partner_traits': businessPartnerTraits,
+      'cautions': cautions,
+      'success_factors': successFactors,
+      if (advice != null) 'advice': advice,
+    };
+  }
+}
+
+/// 건강운 정보
+class AiHealth {
+  final List<String> vulnerableOrgans;
+  final List<String> potentialIssues;
+  final String? mentalHealth;
+  final List<String> lifestyleAdvice;
+  final String? cautionPeriods;
+
+  AiHealth({
+    this.vulnerableOrgans = const [],
+    this.potentialIssues = const [],
+    this.mentalHealth,
+    this.lifestyleAdvice = const [],
+    this.cautionPeriods,
+  });
+
+  factory AiHealth.fromJson(Map<String, dynamic> json) {
+    return AiHealth(
+      vulnerableOrgans: (json['vulnerable_organs'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      potentialIssues: (json['potential_issues'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      mentalHealth: json['mental_health']?.toString(),
+      lifestyleAdvice: (json['lifestyle_advice'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      cautionPeriods: json['caution_periods']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'vulnerable_organs': vulnerableOrgans,
+      'potential_issues': potentialIssues,
+      if (mentalHealth != null) 'mental_health': mentalHealth,
+      'lifestyle_advice': lifestyleAdvice,
+      if (cautionPeriods != null) 'caution_periods': cautionPeriods,
+    };
+  }
+}
+
+/// 행운 요소 정보
+class AiLuckyElements {
+  final List<String> colors;
+  final List<String> directions;
+  final List<int> numbers;
+  final String? seasons;
+  final List<String> partnerElements;
+
+  AiLuckyElements({
+    this.colors = const [],
+    this.directions = const [],
+    this.numbers = const [],
+    this.seasons,
+    this.partnerElements = const [],
+  });
+
+  factory AiLuckyElements.fromJson(Map<String, dynamic> json) {
+    return AiLuckyElements(
+      colors: (json['colors'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      directions: (json['directions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      numbers: (json['numbers'] as List<dynamic>?)
+              ?.map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0)
+              .toList() ??
+          [],
+      seasons: json['seasons']?.toString(),
+      partnerElements: (json['partner_elements'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'colors': colors,
+      'directions': directions,
+      'numbers': numbers,
+      if (seasons != null) 'seasons': seasons,
+      'partner_elements': partnerElements,
     };
   }
 }
