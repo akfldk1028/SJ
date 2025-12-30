@@ -6,6 +6,7 @@ import '../widgets/calendar_type_dropdown.dart';
 import '../widgets/birth_date_picker.dart';
 import '../widgets/birth_time_picker.dart';
 import '../widgets/birth_time_options.dart';
+import '../widgets/lunar_options.dart';
 import '../widgets/city_search_field.dart';
 import '../widgets/time_correction_banner.dart';
 import '../widgets/profile_action_buttons.dart';
@@ -101,6 +102,8 @@ class _BirthDateSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CalendarTypeDropdown(),
+        // Phase 18: 음력 선택 시 윤달 옵션 표시
+        LunarOptions(),
         SizedBox(height: 12),
         BirthDatePicker(),
         SizedBox(height: 12),

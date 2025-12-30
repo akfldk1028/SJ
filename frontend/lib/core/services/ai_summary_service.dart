@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
+import 'quota_service.dart';
 import '../../features/saju_chart/domain/entities/saju_analysis.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 import '../supabase/generated/ai_summaries.dart';
@@ -117,6 +118,20 @@ class AiSummaryService {
         _functionName,
         body: body,
       );
+
+      // QUOTA_EXCEEDED 처리 (HTTP 429)
+      if (response.status == 429) {
+        final errorData = response.data as Map<String, dynamic>?;
+        final quotaInfo = QuotaService.parseQuotaExceededResponse(errorData);
+        if (kDebugMode) {
+          print('[AiSummaryService] QUOTA_EXCEEDED: $quotaInfo');
+        }
+        return AiSummaryResult.quotaExceeded(
+          message: quotaInfo?.message ?? '오늘 토큰 사용량을 초과했습니다.',
+          tokensUsed: quotaInfo?.tokensUsed ?? 0,
+          quotaLimit: quotaInfo?.quotaLimit ?? QuotaService.dailyQuota,
+        );
+      }
 
       if (response.status != 200) {
         final errorData = response.data as Map<String, dynamic>?;
@@ -397,11 +412,17 @@ class AiSummaryService {
 class AiSummaryResult {
   final AiSummary? summary;
   final bool cached;
+  final bool quotaExceeded;
+  final int? tokensUsed;
+  final int? quotaLimit;
   final String? error;
 
   AiSummaryResult._({
     this.summary,
     this.cached = false,
+    this.quotaExceeded = false,
+    this.tokensUsed,
+    this.quotaLimit,
     this.error,
   });
 
@@ -419,7 +440,24 @@ class AiSummaryResult {
     return AiSummaryResult._(error: error);
   }
 
-  bool get isSuccess => error == null && summary != null;
+  /// Quota 초과 결과 생성
+  factory AiSummaryResult.quotaExceeded({
+    required String message,
+    int? tokensUsed,
+    int? quotaLimit,
+  }) {
+    return AiSummaryResult._(
+      quotaExceeded: true,
+      tokensUsed: tokensUsed,
+      quotaLimit: quotaLimit,
+      error: message,
+    );
+  }
+
+  bool get isSuccess => error == null && summary != null && !quotaExceeded;
+
+  /// Quota 초과로 광고 시청이 필요한지
+  bool get needsAdWatch => quotaExceeded;
 }
 
 /// AI Summary 데이터 모델
