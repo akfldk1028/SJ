@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../../../../AI/core/ai_constants.dart';
 import '../../../../AI/core/ai_logger.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
@@ -16,6 +17,10 @@ class GeminiResponse {
   final int? candidatesTokenCount;
   final int? totalTokenCount;
   final int? thoughtsTokenCount;
+  /// 응답이 MAX_TOKENS로 잘렸는지 여부
+  final bool wasTruncated;
+  /// finishReason (STOP, MAX_TOKENS, SAFETY 등)
+  final String? finishReason;
 
   const GeminiResponse({
     required this.content,
@@ -23,6 +28,8 @@ class GeminiResponse {
     this.candidatesTokenCount,
     this.totalTokenCount,
     this.thoughtsTokenCount,
+    this.wasTruncated = false,
+    this.finishReason,
   });
 
   /// 총 토큰 사용량 (AI 응답 저장용)
@@ -224,6 +231,10 @@ class GeminiRestDatasource {
       int? totalTokenCount;
       int? thoughtsTokenCount;
 
+      // 🔧 finishReason 추적 (MAX_TOKENS 감지용)
+      String? lastFinishReason;
+      bool wasTruncated = false;
+
       await for (final chunk in stream) {
         final chunkStr = utf8.decode(chunk);
         final lines = chunkStr.split('\n');
@@ -247,6 +258,18 @@ class GeminiRestDatasource {
 
               final candidates = data['candidates'] as List?;
               if (candidates != null && candidates.isNotEmpty) {
+                // 🔧 finishReason 확인 (MAX_TOKENS면 응답이 잘린 것)
+                final finishReason = candidates[0]['finishReason'] as String?;
+                if (finishReason != null) {
+                  lastFinishReason = finishReason;
+                  if (finishReason == 'MAX_TOKENS') {
+                    wasTruncated = true;
+                    if (kDebugMode) {
+                      print('[GeminiDatasource] ⚠️ 응답이 MAX_TOKENS로 잘림! candidatesTokenCount: $candidatesTokenCount');
+                    }
+                  }
+                }
+
                 final content = candidates[0]['content'] as Map<String, dynamic>?;
                 if (content != null) {
                   final parts = content['parts'] as List?;
@@ -259,11 +282,19 @@ class GeminiRestDatasource {
                   }
                 }
               }
-            } catch (_) {
-              // JSON 파싱 오류 무시
+            } catch (e) {
+              // 🔧 파싱 오류 로깅 (디버그 모드)
+              if (kDebugMode) {
+                print('[GeminiDatasource] JSON 파싱 오류: $e');
+              }
             }
           }
         }
+      }
+
+      // 🔧 응답 잘림 감지 시 로그
+      if (kDebugMode && lastFinishReason != null) {
+        print('[GeminiDatasource] 스트리밍 완료 - finishReason: $lastFinishReason, wasTruncated: $wasTruncated');
       }
 
       // 대화 기록에 AI 응답 추가
@@ -276,13 +307,15 @@ class GeminiRestDatasource {
         });
       }
 
-      // 마지막 스트리밍 응답 저장 (토큰 사용량 포함)
+      // 마지막 스트리밍 응답 저장 (토큰 사용량 + 잘림 여부 포함)
       _lastStreamingResponse = GeminiResponse(
         content: accumulated,
         promptTokenCount: promptTokenCount,
         candidatesTokenCount: candidatesTokenCount,
         totalTokenCount: totalTokenCount,
         thoughtsTokenCount: thoughtsTokenCount,
+        wasTruncated: wasTruncated,
+        finishReason: lastFinishReason,
       );
 
       // 로컬 로그 저장
@@ -342,13 +375,19 @@ class GeminiRestDatasource {
       contents.addAll(windowedMessages);
     }
 
+    // [디버깅 로그 추가]
+    final maxTokens = TokenLimits.questionAnswerMaxTokens;
+    if (kDebugMode) {
+      print('[gemini_rest_datasource.dart] _buildRequestBody: maxOutputTokens = $maxTokens');
+    }
+
     return {
       'contents': contents,
       'generationConfig': {
         'temperature': 0.7,
         'topK': 40,
         'topP': 0.95,
-        'maxOutputTokens': 8192, // Flash 모델용 적정 토큰
+        'maxOutputTokens': maxTokens,
       },
       'safetySettings': [
         {

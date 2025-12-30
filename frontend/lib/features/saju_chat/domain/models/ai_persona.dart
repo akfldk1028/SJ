@@ -20,7 +20,8 @@ enum AiPersona {
   grandma,
   master,
   cute,
-  professional;
+  professional,
+  babyMonk;
 
   /// PersonaRegistry ID 매핑
   ///
@@ -35,6 +36,8 @@ enum AiPersona {
         return 'cute_friend';
       case AiPersona.professional:
         return 'friendly_sister';
+      case AiPersona.babyMonk:
+        return 'baby_monk';
     }
   }
 
@@ -52,6 +55,8 @@ enum AiPersona {
         return '복돌이';
       case AiPersona.professional:
         return 'AI 상담사';
+      case AiPersona.babyMonk:
+        return '아기동자';
     }
   }
 
@@ -66,6 +71,8 @@ enum AiPersona {
         return '🐱';
       case AiPersona.professional:
         return '🔮';
+      case AiPersona.babyMonk:
+        return '👶';
     }
   }
 
@@ -80,6 +87,8 @@ enum AiPersona {
         return '귀엽고 친근한 말투';
       case AiPersona.professional:
         return '전문적이고 정중한 말투';
+      case AiPersona.babyMonk:
+        return '반말과 팩폭, 꼬마도사';
     }
   }
 
@@ -100,6 +109,8 @@ enum AiPersona {
         return AiPersona.cute;
       case 'professional':
         return AiPersona.professional;
+      case 'babyMonk':
+        return AiPersona.babyMonk;
       default:
         return AiPersona.professional;
     }

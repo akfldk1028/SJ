@@ -31,6 +31,7 @@ import 'friendly_sister.dart';
 import 'grandma.dart';
 import 'persona_base.dart';
 import 'wise_scholar.dart';
+import 'baby_monk.dart';
 
 /// 페르소나 레지스트리
 ///
@@ -52,7 +53,7 @@ class PersonaRegistry {
     WiseScholarPersona(),
     GrandmaPersona(),
     // 새 페르소나는 여기에 추가:
-    // NewPersona(),
+    BabyMonkPersona(),
   ];
 
   /// 기본 페르소나 ID
