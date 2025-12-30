@@ -161,11 +161,33 @@ final context = await chatMessageQueries.getForAiContext(sessionId, limit: 10);
 
 ## 관련 AI 모듈
 
-- `lib/features/saju_chat/data/datasources/gemini_rest_datasource.dart`
-  - Gemini 3.0 REST API 호출
-  - 스트리밍 응답
+### Edge Function 기반 (권장 - 2025-12-30 추가)
+
+API 키가 Supabase Secrets에만 저장되어 보안이 강화된 버전
+
+- `lib/features/saju_chat/data/datasources/gemini_edge_datasource.dart`
+  - ai-gemini Edge Function 호출
   - 토큰 사용량 추적
+  - API 키 서버 보관 (보안 강화)
+
+- `lib/features/saju_chat/data/datasources/openai_edge_datasource.dart`
+  - ai-openai Edge Function 호출
+  - GPT-5.2 사주 분석
+  - API 키 서버 보관 (보안 강화)
+
+- `lib/features/saju_chat/data/datasources/saju_chat_edge_datasource.dart`
+  - saju-chat Edge Function 호출
+  - 사주 컨텍스트 기반 대화
+  - Quota 체크 (일일 토큰 제한)
+  - 토큰 사용량 DB 자동 저장
+
+### 직접 API 호출 (레거시 - 개발용)
+
+- `lib/features/saju_chat/data/datasources/gemini_rest_datasource.dart`
+  - Gemini 3.0 REST API 직접 호출
+  - 스트리밍 응답
+  - ⚠️ API 키가 .env에 포함 (보안 취약)
 
 - `lib/features/saju_chat/data/datasources/openai_datasource.dart`
-  - GPT-5.2 Responses API 호출
-  - ReasoningEffort 설정
+  - GPT-5.2 Responses API 직접 호출
+  - ⚠️ API 키가 .env에 포함 (보안 취약)

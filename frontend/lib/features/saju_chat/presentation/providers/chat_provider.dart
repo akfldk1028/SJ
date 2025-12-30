@@ -10,7 +10,7 @@ import '../../../../AI/common/data/ai_context.dart';
 import '../../../../AI/common/data/ai_data_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
-import '../../data/datasources/gemini_rest_datasource.dart';
+import '../../data/datasources/gemini_edge_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
 import '../../domain/entities/chat_message.dart';
@@ -104,8 +104,9 @@ class ChatNotifier extends _$ChatNotifier {
   @override
   ChatState build(String sessionId) {
     // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
+    // 2025-12-30: Edge Function 전환 - API 키 보안 강화
     _repository = ChatRepositoryImpl(
-      datasource: GeminiRestDatasource(),
+      datasource: GeminiEdgeDatasource(),
     );
 
     // Provider dispose 시 정리

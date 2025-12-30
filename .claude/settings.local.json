@@ -168,7 +168,9 @@
       "Bash(cmd.exe /c \"C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat doctor -v 2>nul || echo Not at C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\")",
       "Bash(cmd.exe /c \"dir C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat 2>nul && echo Found\")",
       "Bash(cmd.exe /c \"dir C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat\")",
-      "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat \\(echo FOUND\\) else \\(echo NOT FOUND\\)\")"
+      "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat \\(echo FOUND\\) else \\(echo NOT FOUND\\)\")",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze --no-fatal-infos)",
+      "Bash(/c/Users/SOGANG/flutter/flutter/bin/flutter.bat analyze:*)"
     ],
     "deny": [],
     "ask": []
