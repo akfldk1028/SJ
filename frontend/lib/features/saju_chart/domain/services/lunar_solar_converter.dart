@@ -1,5 +1,6 @@
 import '../../data/constants/lunar_data/lunar_table.dart';
 import '../entities/lunar_date.dart';
+import '../entities/lunar_validation.dart';
 
 /// 음양력 변환 서비스
 /// 한국천문연구원 데이터 기반 테이블 룩업 방식 (1900-2100년)
@@ -198,5 +199,95 @@ class LunarSolarConverter {
     } else {
       return month; // 윤달 이후의 월
     }
+  }
+
+  // ============================================================
+  // 윤달 유효성 검증 메서드 (Phase 18-A)
+  // ============================================================
+
+  /// 음력 날짜 유효성 검증
+  /// [lunarDate] 검증할 음력 날짜
+  /// 반환: 검증 결과 (유효성, 에러 메시지, 윤달 정보)
+  LunarValidationResult validateLunarDate(LunarDate lunarDate) {
+    final year = lunarDate.year;
+    final month = lunarDate.month;
+    final day = lunarDate.day;
+    final isLeap = lunarDate.isLeapMonth;
+
+    // 1. 연도 범위 체크
+    if (!isYearSupported(year)) {
+      return LunarValidationResult.invalid(
+        '지원 범위 외 연도입니다 ($year). 1900-2100년만 지원됩니다.',
+      );
+    }
+
+    final leapMonthInfo = getLeapMonthInfo(year);
+
+    // 2. 월 범위 체크 (1-12)
+    if (month < 1 || month > 12) {
+      return LunarValidationResult.invalid(
+        '월은 1~12 사이여야 합니다.',
+        leapMonthInfo: leapMonthInfo,
+      );
+    }
+
+    // 3. 윤달 유효성 체크
+    if (isLeap) {
+      if (!leapMonthInfo.hasLeapMonth) {
+        return LunarValidationResult.invalid(
+          '$year년에는 윤달이 없습니다.',
+          leapMonthInfo: leapMonthInfo,
+        );
+      }
+      if (month != leapMonthInfo.leapMonth) {
+        return LunarValidationResult.invalid(
+          '$year년 윤달은 ${leapMonthInfo.leapMonth}월입니다. ${month}월에는 윤달이 없습니다.',
+          leapMonthInfo: leapMonthInfo,
+        );
+      }
+    }
+
+    // 4. 일수 범위 체크
+    final maxDays = getLunarMonthDays(year, month, isLeapMonth: isLeap);
+    if (day < 1 || day > maxDays) {
+      final monthStr = isLeap ? '윤$month월' : '$month월';
+      return LunarValidationResult.invalid(
+        '$year년 $monthStr은 ${maxDays}일까지입니다.',
+        leapMonthInfo: leapMonthInfo,
+      );
+    }
+
+    // 모든 검증 통과
+    return LunarValidationResult.valid(leapMonthInfo: leapMonthInfo);
+  }
+
+  /// 해당 연도의 윤달 정보 조회
+  /// [year] 조회할 연도
+  /// 반환: 윤달 정보 (연도, 윤달 유무, 윤달 월, 윤달 일수)
+  LeapMonthInfo getLeapMonthInfo(int year) {
+    final yearData = getLunarYearData(year);
+
+    if (yearData == null || yearData.leapMonth == 0) {
+      return LeapMonthInfo.none(year);
+    }
+
+    // 윤달의 일수는 monthDays 배열에서 leapMonth 인덱스 값
+    final leapMonthDays = yearData.monthDays[yearData.leapMonth];
+
+    return LeapMonthInfo(
+      year: year,
+      hasLeapMonth: true,
+      leapMonth: yearData.leapMonth,
+      leapMonthDays: leapMonthDays,
+    );
+  }
+
+  /// 해당 연도에 윤달 체크박스를 활성화할 수 있는지 확인
+  /// [year] 연도
+  /// [month] 월
+  /// 반환: 해당 월이 윤달을 가질 수 있는지 여부
+  bool canSelectLeapMonth(int year, int month) {
+    final leapMonthInfo = getLeapMonthInfo(year);
+    return leapMonthInfo.hasLeapMonth && leapMonthInfo.leapMonth == month;
   }
 }

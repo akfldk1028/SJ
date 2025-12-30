@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2025-12-29 (Phase 16-G 마이그레이션 완료 - hapchung/gilseong 100%)
+> 최종 업데이트: 2025-12-30 (Phase 18 윤달 유효성 검증 구현 완료)
 
 ---
 
@@ -26,17 +26,22 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 
 현재 상태:
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
-- Phase 16-F (JSONB 데이터 형식 통일) ✅ 완료 (2025-12-29)
-- Phase 16-G (hapchung/gilseong 마이그레이션) ✅ 완료 (2025-12-29)
-  - hapchung: 33/33 (100%) - Edge Function migrate-hapchung v1
-  - gilseong: 33/33 (100%) - Edge Function migrate-gilseong v5
-- DKBB merge 완료: 광고 모듈, 페르소나 시스템, 관계(궁합) 관리 추가
+- Phase 17-A (보안 강화) ✅ 완료 (2025-12-29)
+- Phase 18 (윤달 유효성 검증) ✅ 완료 (2025-12-30)
+  - lunar_validation.dart (신규) - 검증 결과/윤달 정보 엔티티
+  - lunar_solar_converter.dart - validateLunarDate(), getLeapMonthInfo() 추가
+  - profile_provider.dart - ProfileFormState 확장 + 검증 로직
+  - lunar_options.dart (신규) - 윤달 옵션 UI 위젯
+  - profile_edit_screen.dart - LunarOptions 추가
+- 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
+- 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
 다음 작업 후보:
-1. Phase 17 (인증 체계 강화) 시작
-2. 페르소나 시스템 채팅 적용
-3. AI 채팅에 hapchung/gilseong 데이터 활용
-4. 관계(궁합) 분석 기능 구현
+1. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
+2. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
+3. 만세력 단위 테스트 - 특정 생년월일 계산 검증
+4. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
+5. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
 
 [원하는 작업 선택 또는 새 요청]
 ```
@@ -46,11 +51,21 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 |------|------|
 | `frontend/lib/features/saju_chart/` | 만세력 기능 전체 |
 | `frontend/lib/features/saju_chat/` | AI 채팅 기능 |
+| `frontend/lib/features/profile/` | 프로필 입력/관리 |
 | `frontend/lib/core/repositories/` | DB 연동 Repository |
 | `frontend/lib/AI/` | AI 모듈 (프롬프트, 페르소나, 서비스) |
 | `frontend/lib/ad/` | 광고 모듈 (AdMob 연동) |
 | `supabase/functions/` | Edge Functions |
 | `.claude/team/` | 팀원별 역할/TODO 정의 |
+
+### Phase 18 관련 파일 (2025-12-30 추가)
+| 파일 | 용도 |
+|------|------|
+| `saju_chart/domain/entities/lunar_validation.dart` | 윤달 검증 결과/정보 엔티티 |
+| `saju_chart/domain/services/lunar_solar_converter.dart` | 음양력 변환 + 윤달 검증 |
+| `profile/presentation/providers/profile_provider.dart` | 프로필 폼 상태 관리 |
+| `profile/presentation/widgets/lunar_options.dart` | 윤달 옵션 UI 위젯 |
+| `profile/presentation/screens/profile_edit_screen.dart` | 프로필 입력 화면 |
 
 ### 현재 개발 단계
 - **MVP (v0.1)**: 만세력 + AI 채팅 기본 완료 ✅
@@ -107,16 +122,34 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | **관계(궁합) 관리** | ✅ **추가됨** |
 | **성능 최적화** | ✅ **완료** (withOpacity → const Color 캐싱) |
 | **음양력 변환 (LunarSolarConverter)** | ✅ **이미 구현됨** (1900-2100년, 윤달 처리 포함) |
-| **Phase 17 (인증 체계 강화)** | 📋 **계획 수립** (v0.2 예정) |
+| **Phase 17-A (보안 강화)** | ✅ **완료** (2025-12-29, search_path 수정 13개 + 인덱스 확인) |
+| **Phase 17-B~D (인증 체계 강화)** | 📋 **계획 수립** (v0.2 예정) |
+| **대운(大運) 계산** | ✅ **이미 구현됨** (daeun_service.dart) |
+| **Phase 18 (윤달 유효성 검증)** | ✅ **완료** (2025-12-30) |
 
 ---
 
-## 🔧 JH_AI 작업 현황 (2025-12-29)
+## 🔧 JH_AI 작업 현황 (2025-12-30)
+
+### 대운(大運) 계산 - 이미 구현됨 ✅
+
+> **요청**: 대운 계산기 만들기
+> **결과**: 이미 완전 구현되어 있음!
+
+| 파일 | 용도 | 상태 |
+|------|------|------|
+| `saju_chart/domain/entities/daeun.dart` | 대운/세운/월운 엔티티 | ✅ 완료 |
+| `saju_chart/domain/services/daeun_service.dart` | 대운 계산 서비스 | ✅ 완료 |
+| `saju_chart/presentation/widgets/fortune_display.dart` | 대운 UI | ✅ 완료 |
+
+**구현된 기능:**
+- 순행/역행 판단 (남양순, 여음순)
+- 대운수(시작 나이) 계산 (절입일 기준)
+- 10개 대운 주기 생성
+- 세운(년운) 계산
+- 현재 대운 찾기
 
 ### 음양력 변환 - 이미 구현됨 ✅
-
-> **요청**: 음력-양력 변환기 만들기
-> **결과**: 이미 완전 구현되어 있음!
 
 | 파일 | 용도 | 상태 |
 |------|------|------|
@@ -130,41 +163,55 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 - `hasLeapMonth(year)` - 윤달 여부 확인
 - `getLeapMonth(year)` - 해당 연도 윤달 월 반환
 - `getLunarMonthDays(year, month, isLeapMonth)` - 음력 월 일수
-
-**데이터 테이블:**
-- `lunar_table_1900_1949.dart`
-- `lunar_table_1950_1999.dart`
-- `lunar_table_2000_2050.dart`
-- `lunar_table_2051_2100.dart`
+- `validateLunarDate(LunarDate)` - 음력 날짜 유효성 검증 **(Phase 18 추가)**
+- `getLeapMonthInfo(year)` - 연도별 윤달 상세 정보 **(Phase 18 추가)**
+- `canSelectLeapMonth(year, month)` - 윤달 선택 가능 여부 **(Phase 18 추가)**
 
 ### 다음 작업 후보 (JH_AI)
 
 | 우선순위 | 작업 | 설명 | 상태 |
 |---------|------|------|------|
-| P0 | **절입시간 계산 검증** | `solar_term_service.dart` 정확도 확인 | 📋 대기 |
-| P0 | **만세력 단위 테스트** | 특정 생년월일 계산 검증 | 📋 대기 |
-| P1 | **AI 프롬프트 개선** | `saju_base_prompt.dart` 품질 향상 | 📋 대기 |
-| P1 | **합충형파해 AI 해석** | 관계 분석 결과를 AI에 전달 | 📋 대기 |
-| P2 | **궁합 분석** | 두 사주 비교 로직 | 📋 대기 |
+| ~~**P0**~~ | ~~**윤달 유효성 검증**~~ | ~~Phase 18~~ | ✅ **완료** |
+| P1 | **절입시간 계산 검증** | `solar_term_service.dart` 정확도 확인 | 📋 대기 |
+| P1 | **만세력 단위 테스트** | 특정 생년월일 계산 검증 | 📋 대기 |
+| P2 | **AI 프롬프트 개선** | `saju_base_prompt.dart` 품질 향상 | 📋 대기 |
+| P2 | **합충형파해 AI 해석** | 관계 분석 결과를 AI에 전달 | 📋 대기 |
 
-### 새 세션 시작 프롬프트 (JH_AI 작업용)
+---
 
-```
-@Task_Jaehyeon.md 읽고 "JH_AI 작업 현황" 섹션 확인해.
-Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
+## 🌙 Phase 18: 윤달 유효성 검증 ✅ 완료 (2025-12-30)
 
-현재 상태:
-- 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
-- 절입시간 계산: solar_term_service.dart 존재
-- Phase 16-F (JSONB 통일): ✅ 완료
+### 구현 완료 내역
 
-[작업 요청 입력]
+| 단계 | 작업 | 상태 |
+|------|------|------|
+| Phase 18-A | `validateLunarDate()`, `getLeapMonthInfo()`, `canSelectLeapMonth()` 추가 | ✅ |
+| Phase 18-B | `ProfileFormState` 확장 (leapMonthError, leapMonthInfo, canSelectLeapMonth) | ✅ |
+| Phase 18-C | `lunar_options.dart` 생성 (윤달 체크박스 + 정보 배너 + 에러 메시지) | ✅ |
+| Phase 18-D | `profile_edit_screen.dart`에 `LunarOptions` 위젯 추가 | ✅ |
 
-참고 파일:
-- AI/jh/analysis/ (사주 분석 로직)
-- saju_chart/domain/services/ (만세력 서비스)
-- AI/prompts/saju_base_prompt.dart (GPT-5.2 프롬프트)
-```
+### 생성/수정 파일
+
+| 파일 | 변경 |
+|------|------|
+| `saju_chart/domain/entities/lunar_validation.dart` | **신규** - LunarValidationResult, LeapMonthInfo 엔티티 |
+| `saju_chart/domain/services/lunar_solar_converter.dart` | 검증 메서드 3개 추가 |
+| `profile/presentation/providers/profile_provider.dart` | State 확장 + 검증 로직 |
+| `profile/presentation/widgets/lunar_options.dart` | **신규** - 윤달 옵션 UI 위젯 |
+| `profile/presentation/screens/profile_edit_screen.dart` | LunarOptions import + 추가 |
+
+### 동작 방식
+
+1. **양력 선택**: 윤달 옵션 숨김
+2. **음력 선택**:
+   - 해당 연도 윤달 정보 조회 및 표시
+   - 윤달이 있는 연도/월: 체크박스 활성화 + 정보 배너 (녹색)
+   - 윤달이 없는 연도/월: 체크박스 비활성화 + 정보 배너 (회색)
+3. **유효성 검증**:
+   - 연도 범위 (1900-2100)
+   - 윤달 유효성 (해당 연도/월에 윤달 존재 여부)
+   - 일수 범위 (29일 또는 30일)
+   - 에러 시 빨간색 에러 메시지 표시 + 저장 버튼 비활성화
 
 ---
 
@@ -219,28 +266,44 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 
 ---
 
-## Supabase 현황 (2025-12-29 업데이트)
+## Supabase 현황 (2025-12-29 Phase 17-A 완료)
 
 ### DB 테이블 현황
 | 테이블 | RLS | 행 수 | 설명 |
 |--------|-----|-------|------|
-| saju_profiles | ✅ | 27+ | 사주 프로필 |
+| saju_profiles | ✅ | 45 | 사주 프로필 |
 | saju_analyses | ✅ | 33 | 만세력 분석 데이터 (**JSONB 100% 표준화 + hapchung/gilseong 완료**) |
-| chat_sessions | ✅ | 6+ | 채팅 세션 |
-| chat_messages | ✅ | 8+ | 채팅 메시지 |
+| chat_sessions | ✅ | 12 | 채팅 세션 |
+| chat_messages | ✅ | 24 | 채팅 메시지 |
 | compatibility_analyses | ✅ | 0 | 궁합 분석 (미사용) |
+| ai_summaries | ✅ | 23 | AI 분석 캐시 |
+| ai_api_logs | ✅ | 24 | API 호출 로그 |
+| profile_relations | ✅ | 0 | 프로필 관계 (미사용) |
 
-### DB Functions 현황
-| 함수 | 용도 | 비고 |
+### DB Functions 현황 (13개 - search_path 보안 수정 완료 ✅)
+| 함수 | 용도 | 보안 |
 |------|------|------|
-| db_health_check() | 데이터 무결성 검사 | 누락 데이터/고아 레코드 탐지 |
-| get_compatibility_data() | 궁합 분석 데이터 조회 | AI 채팅에서 두 프로필 비교용 |
-| normalize_oheng_distribution() | 오행 JSONB 표준화 | 키 형식 통일 (목/화/토/금/수) |
-| normalize_yongsin() | 용신 JSONB 표준화 | 값 형식 통일 |
-| **get_gan_hanja(gan text)** | 천간 한자 매핑 | Phase 16-F |
-| **get_gan_oheng(gan text)** | 천간 오행 매핑 | Phase 16-F |
-| **calculate_sipsin(day_gan, target_gan)** | 십신 계산 | Phase 16-F |
-| **convert_jijanggan_array(...)** | 지장간 변환 | Phase 16-F |
+| db_health_check() | 데이터 무결성 검사 | ✅ 수정됨 |
+| get_compatibility_data() | 궁합 분석 데이터 조회 | ✅ 수정됨 |
+| normalize_oheng_distribution() | 오행 JSONB 표준화 | ✅ 수정됨 |
+| normalize_yongsin() | 용신 JSONB 표준화 | ✅ 수정됨 |
+| get_gan_hanja(gan text) | 천간 한자 매핑 | ✅ 수정됨 |
+| get_gan_oheng(gan text) | 천간 오행 매핑 | ✅ 수정됨 |
+| calculate_sipsin(day_gan, target_gan) | 십신 계산 | ✅ 수정됨 |
+| convert_jijanggan_array(...) | 지장간 변환 | ✅ 수정됨 |
+| standardize_oheng_key(text) | 오행 키 표준화 | ✅ 수정됨 |
+| standardize_oheng_value(text) | 오행 값 표준화 | ✅ 수정됨 |
+| cleanup_old_ai_logs() | 오래된 AI 로그 정리 | ✅ 수정됨 |
+| update_ai_summaries_updated_at() | 트리거 함수 | ✅ 수정됨 |
+| update_profile_relations_updated_at() | 트리거 함수 | ✅ 수정됨 |
+
+### 인덱스 현황 (최적화 확인 완료 ✅)
+| 테이블 | 인덱스 | 상태 |
+|--------|--------|------|
+| chat_messages | `idx_chat_messages_session_created` (session_id, created_at) | ✅ 존재 |
+| chat_messages | `idx_chat_messages_session_id` | ✅ 존재 |
+| chat_sessions | `idx_chat_sessions_profile_updated` (profile_id, updated_at) | ✅ 존재 |
+| saju_analyses | `idx_saju_analyses_gilseong`, `idx_saju_analyses_hapchung` (GIN) | ✅ 존재 |
 
 ### Edge Functions 현황
 | 함수 | 버전 | JWT | 상태 | 용도 |
@@ -252,18 +315,17 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | migrate-hapchung | v1 | ✅ | ACTIVE | 합충형파해 마이그레이션 (33/33 완료) |
 | migrate-gilseong | v5 | ✅ | ACTIVE | 길성 마이그레이션 (33/33 완료) |
 
-### 보안 권고사항 (Advisory)
-⚠️ **Anonymous Access Policies** (5건)
-- chat_messages, chat_sessions, compatibility_analyses, saju_analyses, saju_profiles
-- 익명 사용자 접근 허용 중 → 프로덕션 전 인증 체계 강화 필요
+### 보안 권고사항 (Advisory) - Phase 17-A 후 상태
+✅ **Function Search Path Mutable** (13건) → **해결됨** (2025-12-29)
+- 마이그레이션: `fix_function_search_path_security`
 
-⚠️ **Leaked Password Protection Disabled**
-- HaveIBeenPwned 연동 비활성화 → 보안 강화 시 활성화 권장
+⚠️ **Anonymous Access Policies** (8건) → Phase 17-D (v1.0)에서 처리 예정
+- ai_api_logs, ai_summaries, chat_messages, chat_sessions
+- compatibility_analyses, profile_relations, saju_analyses, saju_profiles
+- 개발 편의를 위해 현재 유지 중
 
-### 성능 권고사항 (Advisory)
-ℹ️ **Unused Index** (9건)
-- `idx_saju_analyses_day_gan`, `idx_chat_sessions_profile_id` 등
-- 현재 미사용 인덱스 → 사용 패턴 확인 후 정리 검토
+⚠️ **Leaked Password Protection Disabled** → Phase 17-B (v0.2)에서 활성화 예정
+- HaveIBeenPwned 연동 비활성화 상태
 
 ---
 
@@ -528,19 +590,34 @@ curl -X POST "https://kfciluyxkomskyxjaeat.supabase.co/functions/v1/migrate-gils
 
 ---
 
-## 🔐 Phase 17: 인증 체계 강화 계획 (예정)
+## 🔐 Phase 17: 인증 체계 강화
 
-### 현재 상태 분석
-- **익명 인증 사용 중**: 26명 사용자 (provider: null)
-- **RLS 정책**: 모든 테이블에 `auth.uid()` 기반 정책 적용 ✅
-- **문제점**: 익명 사용자도 `authenticated` role로 접근 가능
+### ✅ Phase 17-A: 보안 강화 (2025-12-29 완료)
 
-### Phase 17-A: 현재 상태 정리 (개발 단계)
+**작업 내용:**
+1. **Function search_path 보안 수정** - 13개 함수 완료
+   - 마이그레이션: `fix_function_search_path_security`
+   - Search path injection 공격 방지
+
+2. **인덱스 최적화 확인** - 모두 이미 적용됨
+   - `chat_messages(session_id, created_at)` ✅
+   - `chat_sessions(profile_id, updated_at)` ✅
+   - `saju_analyses` GIN 인덱스 (gilseong, hapchung) ✅
+
+3. **Edge Function 구현 상태 확인** - 모두 완료
+   - `generate-ai-summary` v7 ✅
+   - `ai-gemini` v6 ✅
+
+4. **RLS 정책 검증** - 정상 동작
+   - `saju_profiles`: `auth.uid() = user_id` ✅
+
 | 항목 | 상태 | 비고 |
 |------|------|------|
-| 익명 인증 | ⚠️ 허용 | 개발 편의용 |
+| Function search_path | ✅ 수정됨 | 13개 함수 |
+| 인덱스 최적화 | ✅ 확인됨 | 이미 적용 |
+| Edge Functions | ✅ 구현됨 | 6개 ACTIVE |
 | RLS 정책 | ✅ 적용됨 | user_id 기반 |
-| 데이터 격리 | ✅ 정상 | 자기 데이터만 접근 |
+| 익명 인증 | ⚠️ 허용 중 | 개발 편의용 |
 
 ### Phase 17-B: 인증 방식 추가 (v0.2 예정)
 ```

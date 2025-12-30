@@ -6,6 +6,9 @@ import '../../domain/entities/saju_profile.dart';
 import '../../domain/entities/gender.dart';
 import '../../domain/entities/relationship_type.dart';
 import '../../domain/repositories/profile_repository.dart';
+import '../../../saju_chart/domain/entities/lunar_date.dart';
+import '../../../saju_chart/domain/entities/lunar_validation.dart';
+import '../../../saju_chart/domain/services/lunar_solar_converter.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/repositories/profile_repository_impl.dart';
 import '../../../saju_chart/domain/entities/daeun.dart' as daeun_entities;
@@ -172,6 +175,16 @@ class ProfileFormState {
   final RelationshipType relationType;
   final String? memo;
 
+  // Phase 18: 윤달 유효성 검증 필드
+  /// 윤달 검증 에러 메시지
+  final String? leapMonthError;
+
+  /// 해당 연도 윤달 정보 (조회 결과)
+  final LeapMonthInfo? leapMonthInfo;
+
+  /// 윤달 체크박스 활성화 가능 여부
+  final bool canSelectLeapMonth;
+
   const ProfileFormState({
     this.displayName = '',
     this.gender,
@@ -185,6 +198,9 @@ class ProfileFormState {
     this.timeCorrection = 0,
     this.relationType = RelationshipType.me,
     this.memo,
+    this.leapMonthError,
+    this.leapMonthInfo,
+    this.canSelectLeapMonth = false,
   });
 
   /// 폼 유효성 검사
@@ -204,8 +220,14 @@ class ProfileFormState {
       if (birthTimeMinutes! < 0 || birthTimeMinutes! > 1439) return false;
     }
 
+    // Phase 18: 윤달 유효성 검사 (음력일 때만)
+    if (isLunar && leapMonthError != null) return false;
+
     return true;
   }
+
+  /// 윤달 선택 가능 여부
+  bool get isLeapMonthSelectable => isLunar && canSelectLeapMonth;
 
   /// 진태양시 보정값 계산
   int calculateTimeCorrection() {
@@ -226,6 +248,10 @@ class ProfileFormState {
     int? timeCorrection,
     RelationshipType? relationType,
     String? memo,
+    String? leapMonthError,
+    LeapMonthInfo? leapMonthInfo,
+    bool? canSelectLeapMonth,
+    bool clearLeapMonthError = false,
   }) {
     return ProfileFormState(
       displayName: displayName ?? this.displayName,
@@ -240,6 +266,9 @@ class ProfileFormState {
       timeCorrection: timeCorrection ?? this.timeCorrection,
       relationType: relationType ?? this.relationType,
       memo: memo ?? this.memo,
+      leapMonthError: clearLeapMonthError ? null : (leapMonthError ?? this.leapMonthError),
+      leapMonthInfo: leapMonthInfo ?? this.leapMonthInfo,
+      canSelectLeapMonth: canSelectLeapMonth ?? this.canSelectLeapMonth,
     );
   }
 }
@@ -261,16 +290,81 @@ class ProfileForm extends _$ProfileForm {
     state = state.copyWith(gender: value);
   }
 
+  /// LunarSolarConverter 인스턴스 (윤달 검증용)
+  final _lunarConverter = LunarSolarConverter();
+
   void updateBirthDate(DateTime value) {
     state = state.copyWith(birthDate: value);
+    // 생년월일 변경 시 윤달 정보 업데이트
+    _updateLeapMonthInfo();
   }
 
   void updateIsLunar(bool value) {
     state = state.copyWith(isLunar: value);
+    if (value) {
+      // 음력 선택 시 윤달 정보 업데이트
+      _updateLeapMonthInfo();
+    } else {
+      // 양력 선택 시 윤달 관련 필드 초기화
+      state = state.copyWith(
+        isLeapMonth: false,
+        leapMonthInfo: null,
+        canSelectLeapMonth: false,
+        clearLeapMonthError: true,
+      );
+    }
   }
 
   void updateIsLeapMonth(bool value) {
     state = state.copyWith(isLeapMonth: value);
+    // 윤달 선택 변경 시 유효성 검증
+    _validateLeapMonth();
+  }
+
+  /// 윤달 정보 업데이트 (생년월일/음력 변경 시 호출)
+  void _updateLeapMonthInfo() {
+    final date = state.birthDate;
+    if (date == null || !state.isLunar) return;
+
+    final leapMonthInfo = _lunarConverter.getLeapMonthInfo(date.year);
+    final canSelect = leapMonthInfo.hasLeapMonth &&
+        leapMonthInfo.leapMonth == date.month;
+
+    state = state.copyWith(
+      leapMonthInfo: leapMonthInfo,
+      canSelectLeapMonth: canSelect,
+      // 윤달 선택 불가능한데 체크되어 있으면 해제
+      isLeapMonth: canSelect ? state.isLeapMonth : false,
+      clearLeapMonthError: true,
+    );
+
+    // 윤달이 체크되어 있으면 유효성 검증
+    if (state.isLeapMonth) {
+      _validateLeapMonth();
+    }
+  }
+
+  /// 윤달 유효성 검증
+  void _validateLeapMonth() {
+    final date = state.birthDate;
+    if (date == null || !state.isLunar || !state.isLeapMonth) {
+      state = state.copyWith(clearLeapMonthError: true);
+      return;
+    }
+
+    final lunarDate = LunarDate(
+      year: date.year,
+      month: date.month,
+      day: date.day,
+      isLeapMonth: state.isLeapMonth,
+    );
+
+    final result = _lunarConverter.validateLunarDate(lunarDate);
+    if (!result.isValid) {
+      state = state.copyWith(leapMonthError: result.errorMessage);
+    } else {
+      state = state.copyWith(clearLeapMonthError: true);
+    }
   }
 
   void updateBirthTime(int? minutes) {
@@ -306,6 +400,7 @@ class ProfileForm extends _$ProfileForm {
 
   /// 기존 프로필로 폼 초기화 (수정 모드)
   void loadProfile(SajuProfile profile) {
+    // 기본 상태 설정
     state = ProfileFormState(
       displayName: profile.displayName,
       gender: profile.gender,
@@ -320,6 +415,11 @@ class ProfileForm extends _$ProfileForm {
       relationType: profile.relationType,
       memo: profile.memo,
     );
+
+    // 음력일 경우 윤달 정보 업데이트
+    if (profile.isLunar) {
+      _updateLeapMonthInfo();
+    }
   }
 
   /// 폼 초기화

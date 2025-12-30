@@ -154,7 +154,8 @@
       "Bash(powershell.exe -NoProfile -Command \"Remove-Item ''D:\\\\Data\\\\20_Flutter\\\\01_SJ\\\\frontend\\\\lib\\\\features\\\\menu\\\\data\\\\mock\\\\mock_fortune_data.dart'' -Force; Write-Host ''Deleted mock_fortune_data.dart''\")",
       "Bash(powershell.exe:*)",
       "mcp__playwright__browser_navigate_back",
-      "mcp__playwright__browser_type"
+      "mcp__playwright__browser_type",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze:*)"
     ],
     "deny": [],
     "ask": []
