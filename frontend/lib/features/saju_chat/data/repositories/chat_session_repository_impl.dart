@@ -163,6 +163,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
   }
 
   /// 메시지를 Supabase에 저장
+  /// 로컬 ID를 전달하여 Realtime 중복 방지
   Future<void> _syncMessageToSupabase(ChatMessage message) async {
     try {
       if (!_authService.isLoggedIn) {
@@ -173,6 +174,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
       }
 
       await _supabaseRepository.addMessage(
+        id: message.id, // 로컬 ID 전달 → Realtime 중복 방지
         sessionId: message.sessionId,
         content: message.content,
         role: message.role,

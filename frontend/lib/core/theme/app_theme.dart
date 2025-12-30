@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_fonts.dart';
 
 /// 운세 앱 테마 종류 - 사용자가 선택 가능
 enum AppThemeType {
@@ -84,6 +85,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: ext.isDark ? Brightness.dark : Brightness.light,
+      // 커스텀 한글 폰트 적용
+      textTheme: AppFonts.createTextTheme(isDark: ext.isDark),
       colorScheme: ColorScheme.fromSeed(
         seedColor: ext.primaryColor,
         brightness: ext.isDark ? Brightness.dark : Brightness.light,
