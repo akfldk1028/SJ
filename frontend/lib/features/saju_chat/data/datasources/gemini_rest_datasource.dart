@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../../../../AI/core/ai_constants.dart';
 import '../../../../AI/core/ai_logger.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
@@ -374,13 +375,19 @@ class GeminiRestDatasource {
       contents.addAll(windowedMessages);
     }
 
+    // [디버깅 로그 추가]
+    final maxTokens = TokenLimits.questionAnswerMaxTokens;
+    if (kDebugMode) {
+      print('[gemini_rest_datasource.dart] _buildRequestBody: maxOutputTokens = $maxTokens');
+    }
+
     return {
       'contents': contents,
       'generationConfig': {
         'temperature': 0.7,
         'topK': 40,
         'topP': 0.95,
-        'maxOutputTokens': 16384, // 🔧 8192→16384 증가 (응답 잘림 방지)
+        'maxOutputTokens': maxTokens,
       },
       'safetySettings': [
         {

@@ -430,6 +430,12 @@ class ChatNotifier extends _$ChatNotifier {
       buffer.writeln();
       buffer.writeln('---');
       buffer.writeln();
+
+      // [디버깅 로그 추가]
+      if (kDebugMode) {
+        print('[chat_provider.dart] _buildFullSystemPrompt: 페르소나 ID = ${persona.name}');
+        print('[chat_provider.dart] _buildFullSystemPrompt: 페르소나 프롬프트 길이 = ${persona.systemPromptInstruction.length}');
+      }
     }
 
     // 기본 프롬프트 추가
@@ -501,7 +507,11 @@ class ChatNotifier extends _$ChatNotifier {
     buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
     buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
 
-    return buffer.toString();
+    final fullPrompt = buffer.toString();
+    if (kDebugMode) {
+        print('[chat_provider.dart] _buildFullSystemPrompt: 최종 프롬프트 길이 = ${fullPrompt.length}');
+    }
+    return fullPrompt;
   }
 
   /// 메시지 전송
@@ -520,7 +530,11 @@ class ChatNotifier extends _$ChatNotifier {
     // Realtime 중복 방지 플래그 설정
     _isProcessingMessage = true;
 
-    print('[ChatNotifier] sendMessage 호출: sessionId=$sessionId, content=${content.substring(0, content.length > 20 ? 20 : content.length)}...');
+    // [디버깅 로그 추가]
+    final selectedPersona = ref.read(personaNotifierProvider);
+    if (kDebugMode) {
+        print('[chat_provider.dart] sendMessage: 현재 페르소나 = ${selectedPersona.name}');
+    }
 
     final currentSessionId = sessionId;
     final sessionRepository = ref.read(chatSessionRepositoryProvider);
@@ -618,6 +632,14 @@ class ChatNotifier extends _$ChatNotifier {
         state = state.copyWith(
           streamingContent: fullContent,
         );
+      }
+
+      // [디버깅 로그 추가]
+      if (kDebugMode) {
+        final tokensUsed = _repository.getLastTokensUsed();
+        print('[chat_provider.dart] sendMessage: AI 응답 수신 완료.');
+        print('[chat_provider.dart] sendMessage: 전체 응답 내용 = $fullContent');
+        print('[chat_provider.dart] sendMessage: 토큰 사용량 = $tokensUsed');
       }
 
       // 스트리밍 완료 후 토큰 사용량 및 윈도우잉 정보 조회
