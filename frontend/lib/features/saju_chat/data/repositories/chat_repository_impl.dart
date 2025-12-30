@@ -5,10 +5,10 @@ import 'package:uuid/uuid.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../datasources/ai_pipeline_manager.dart';
-import '../datasources/gemini_rest_datasource.dart';
+import '../datasources/gemini_edge_datasource.dart';
 import '../services/conversation_window_manager.dart';
 
-export '../datasources/gemini_rest_datasource.dart' show GeminiResponse;
+export '../datasources/gemini_edge_datasource.dart' show GeminiResponse;
 export '../services/conversation_window_manager.dart' show TokenUsageInfo, WindowedConversation;
 
 /// ChatRepository 구현체
@@ -18,8 +18,12 @@ export '../services/conversation_window_manager.dart' show TokenUsageInfo, Windo
 /// - Gemini 3.0: 대화 생성 (재미있는 응답)
 ///
 /// Pipeline 모드가 비활성화되면 Gemini 단독 모드로 동작
+///
+/// 2025-12-30: Edge Function 전환 - API 키 보안 강화
+/// - GeminiRestDatasource → GeminiEdgeDatasource
+/// - API 키가 Supabase Secrets에만 저장됨
 class ChatRepositoryImpl implements ChatRepository {
-  final GeminiRestDatasource _datasource;
+  final GeminiEdgeDatasource _datasource;
   final AIPipelineManager? _pipeline;
   final _uuid = const Uuid();
   bool _isSessionStarted = false;
@@ -32,10 +36,10 @@ class ChatRepositoryImpl implements ChatRepository {
   Map<String, dynamic>? chartData;
 
   ChatRepositoryImpl({
-    GeminiRestDatasource? datasource,
+    GeminiEdgeDatasource? datasource,
     AIPipelineManager? pipeline,
     this.usePipeline = true,
-  })  : _datasource = datasource ?? GeminiRestDatasource(),
+  })  : _datasource = datasource ?? GeminiEdgeDatasource(),
         _pipeline = pipeline ?? (usePipeline ? AIPipelineManager() : null);
 
   /// 프로필 정보 설정 (사주 분석용)

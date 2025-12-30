@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
+import '../../../../core/config/admin_config.dart';
 import '../widgets/profile_name_input.dart';
 import '../widgets/gender_toggle_buttons.dart';
 import '../widgets/calendar_type_dropdown.dart';
@@ -12,6 +15,9 @@ import '../widgets/time_correction_banner.dart';
 import '../widgets/profile_action_buttons.dart';
 import '../widgets/relationship_type_dropdown.dart';
 import '../providers/profile_provider.dart';
+import '../../domain/entities/saju_profile.dart';
+import '../../domain/entities/gender.dart';
+import '../../domain/entities/relationship_type.dart';
 
 /// 프로필 입력/수정 화면
 ///
@@ -66,6 +72,15 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        // Admin 버튼 - 개발 환경에서만 표시
+        actions: [
+          if (AdminConfig.isAdminModeAvailable && !isEditing)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings),
+              tooltip: '개발자 모드',
+              onPressed: () => _handleAdminLogin(context, ref),
+            ),
+        ],
       ),
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -89,6 +104,66 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         ),
       ),
     );
+  }
+
+  /// Admin 프로필 자동 생성 및 채팅 화면 이동
+  Future<void> _handleAdminLogin(BuildContext context, WidgetRef ref) async {
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // 1. Admin 프로필 생성
+      final now = DateTime.now();
+      final adminProfile = SajuProfile(
+        id: const Uuid().v4(),
+        displayName: AdminConfig.displayName,
+        gender: Gender.female,
+        birthDate: AdminConfig.birthDate,
+        isLunar: AdminConfig.isLunar,
+        isLeapMonth: AdminConfig.isLeapMonth,
+        birthTimeMinutes: null,
+        birthTimeUnknown: AdminConfig.birthTimeUnknown,
+        useYaJasi: true,
+        birthCity: AdminConfig.birthCity,
+        timeCorrection: 0,
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+        relationType: RelationshipType.admin, // Admin relation type!
+        memo: '개발자 테스트 계정',
+      );
+
+      // 2. 프로필 저장 (사주 분석 자동 실행됨)
+      final activeProfileNotifier = ref.read(activeProfileProvider.notifier);
+      await activeProfileNotifier.saveProfile(adminProfile);
+
+      // 3. 로딩 다이얼로그 닫기
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // 4. 채팅 화면으로 이동
+      if (context.mounted) {
+        context.go('/saju/chat');
+      }
+    } catch (e) {
+      // 에러 처리
+      if (context.mounted) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Admin 로그인 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2025-12-30 (Phase 19 토큰 사용량 추적 시스템 구현 완료)
+> 최종 업데이트: 2025-12-30 (Phase 20 AI Edge Function 통합 완료)
 
 ---
 
@@ -29,9 +29,10 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 - Phase 17-A (보안 강화) ✅ 완료 (2025-12-29)
 - Phase 18 (윤달 유효성 검증) ✅ 완료 (2025-12-30)
 - Phase 19 (토큰 사용량 추적) ✅ 완료 (2025-12-30)
-  - user_daily_token_usage 테이블 + 트리거 생성
-  - Edge Function quota 체크 (saju-chat, generate-ai-summary)
-  - Flutter QUOTA_EXCEEDED 에러 처리 (QuotaService, 다이얼로그)
+- Phase 20 (AI Edge Function 통합) ✅ 완료 (2025-12-30)
+  - gemini_edge_datasource.dart, openai_edge_datasource.dart 생성
+  - saju_chat_edge_datasource.dart 생성
+  - API 키가 Supabase Secrets에만 저장 (보안 강화)
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
@@ -41,9 +42,54 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 3. 만세력 단위 테스트 - 특정 생년월일 계산 검증
 4. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
 5. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
+6. UI/UX 개선 - 채팅 화면, 프로필 화면 디자인
 
 [원하는 작업 선택 또는 새 요청]
 ```
+
+### 🛠️ Flutter 개발 환경 (2025-12-30 업데이트)
+
+| 항목 | 경로/값 |
+|------|---------|
+| **Flutter SDK** | `C:\Users\SOGANG\flutter\flutter\bin\flutter.bat` |
+| **프로젝트 위치** | `E:\SJ\frontend` |
+| **Pub Cache** | `C:\Users\SOGANG\AppData\Local\Pub\Cache` (기본값) |
+
+#### ⚠️ Windows symlink 에러 해결
+
+```
+ERROR_INVALID_FUNCTION: Try moving your Flutter project to the same drive as your Flutter SDK.
+```
+
+**원인**: Flutter SDK(C드라이브)와 프로젝트(E드라이브)가 다른 드라이브에 있어서 Windows 플랫폼 빌드 시 symlink 생성 실패
+
+**해결 방법**:
+- **Chrome(web) 빌드는 문제없음** - symlink 에러 무시하고 실행 가능
+- Windows 데스크톱 빌드 필요 시: 개발자 모드 활성화 또는 PUB_CACHE를 E 드라이브로 이동
+
+#### Flutter 실행 명령어
+
+```powershell
+# E:\SJ\frontend 에서 실행
+
+# 1. 의존성 설치
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat pub get
+
+# 2. 코드 생성 (flutter clean 이후 필수!)
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat pub run build_runner build --delete-conflicting-outputs
+
+# 3. Chrome으로 실행
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome
+
+# 또는 포트 지정
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome --web-port=9999
+```
+
+#### 주의사항
+- `flutter clean` 실행 후에는 **반드시** `build_runner` 재실행 필요
+- `.g.dart`, `.freezed.dart` 파일이 없으면 빌드 에러 발생
+
+---
 
 ### 핵심 파일 경로
 | 파일 | 용도 |
@@ -136,6 +182,138 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | **대운(大運) 계산** | ✅ **이미 구현됨** (daeun_service.dart) |
 | **Phase 18 (윤달 유효성 검증)** | ✅ **완료** (2025-12-30) |
 | **Phase 19 (토큰 사용량 추적)** | ✅ **완료** (2025-12-30, quota 체크 + QUOTA_EXCEEDED 처리) |
+| **Phase 20 (AI Edge Function 통합)** | ✅ **완료** (2025-12-30, API 키 보안 강화) |
+
+---
+
+## 🔐 Phase 20: AI Edge Function 통합 (다음 작업)
+
+### 개요
+
+프론트엔드에서 직접 AI API를 호출하는 방식을 **Edge Function 경유**로 변경하여 API 키 보안 강화
+
+### 현재 문제점
+
+```
+현재 구조 (❌ 보안 취약):
+┌─────────────────────────────────────────────────────────────┐
+│  Flutter App                                                │
+│      │                                                      │
+│      ├──→ GeminiRestDatasource ──→ Gemini API (직접 호출)   │
+│      │         └── API 키가 .env에 포함 ❌                   │
+│      │                                                      │
+│      └──→ OpenAIDatasource ──→ OpenAI API (직접 호출)       │
+│                └── API 키가 .env에 포함 ❌                   │
+└─────────────────────────────────────────────────────────────┘
+
+※ .env는 .gitignore 되어있지만, APK 빌드 시 포함될 수 있음
+```
+
+### 목표 구조
+
+```
+목표 구조 (✅ 보안 강화):
+┌─────────────────────────────────────────────────────────────┐
+│  Flutter App                                                │
+│      │                                                      │
+│      ├──→ Edge Function (ai-gemini) ──→ Gemini API          │
+│      │         └── API 키는 Supabase Secrets에만 ✅          │
+│      │                                                      │
+│      └──→ Edge Function (ai-openai) ──→ OpenAI API          │
+│                └── API 키는 Supabase Secrets에만 ✅          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Edge Function 현황 (Supabase 배포됨)
+
+| Function | 버전 | 용도 | 상태 |
+|----------|------|------|------|
+| **ai-gemini** | v8 | Gemini 3.0 대화용 | ✅ ACTIVE → **Flutter 연동 완료** |
+| **ai-openai** | v6 | GPT-5.2 분석용 | ✅ ACTIVE → **Flutter 연동 완료** |
+| **saju-chat** | v6 | 사주 채팅 (quota 포함) | ✅ ACTIVE → **Flutter 연동 완료** |
+| generate-ai-summary | v8 | AI 요약 생성 | ✅ ACTIVE (사용중) |
+
+### TODO 작업 목록
+
+| 단계 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| **20-A** | GeminiRestDatasource → Edge Function 호출로 변경 | `gemini_edge_datasource.dart` | ✅ **완료** (2025-12-30) |
+| **20-B** | OpenAIDatasource → Edge Function 호출로 변경 | `openai_edge_datasource.dart` | ✅ **완료** (2025-12-30) |
+| **20-C** | Repository/Pipeline Edge 버전으로 전환 | `chat_repository_impl.dart`, `ai_pipeline_manager.dart` | ✅ **완료** (2025-12-30) |
+| **20-D** | .env에서 AI API 키 삭제 (SUPABASE만 유지) | `frontend/.env` | ⏭️ **스킵** (개발 편의) |
+| **20-E** | saju-chat Edge Function 연동 | `saju_chat_edge_datasource.dart` | ✅ **완료** (2025-12-30) |
+
+### 생성/수정된 파일 (2025-12-30)
+
+| 파일 | 설명 | 상태 |
+|------|------|------|
+| `gemini_edge_datasource.dart` | Gemini Edge Function 호출 (신규) | ✅ 생성 |
+| `openai_edge_datasource.dart` | OpenAI Edge Function 호출 (신규) | ✅ 생성 |
+| `saju_chat_edge_datasource.dart` | saju-chat Edge Function 호출 (신규) | ✅ 생성 |
+| `chat_repository_impl.dart` | Edge Datasource 사용으로 변경 | ✅ 수정 |
+| `ai_pipeline_manager.dart` | Edge Datasource 사용으로 변경 | ✅ 수정 |
+| `chat_provider.dart` | Edge Datasource 사용으로 변경 | ✅ 수정 |
+| `README.md` | Edge Function 문서 추가 | ✅ 수정 |
+
+### 레거시 파일 (참고용으로 유지)
+
+| 파일 | 설명 |
+|------|------|
+| `gemini_rest_datasource.dart` | Gemini API 직접 호출 (개발용) |
+| `openai_datasource.dart` | OpenAI API 직접 호출 (개발용) |
+
+### 구현 예시
+
+**Before (현재 - gemini_rest_datasource.dart:53):**
+```dart
+static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+
+_dio = Dio(BaseOptions(
+  baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  queryParameters: {'key': _apiKey},  // ❌ API 키 노출
+));
+```
+
+**After (목표):**
+```dart
+_dio = Dio(BaseOptions(
+  baseUrl: '${Supabase.instance.client.supabaseUrl}/functions/v1/ai-gemini',
+  headers: {
+    'Authorization': 'Bearer ${Supabase.instance.client.supabaseKey}',
+    'Content-Type': 'application/json',
+  },
+));
+```
+
+### 참고: Edge Function 요청/응답 형식
+
+**ai-gemini 요청:**
+```json
+{
+  "messages": [
+    {"role": "system", "content": "시스템 프롬프트"},
+    {"role": "user", "content": "사용자 메시지"}
+  ],
+  "model": "gemini-2.5-flash",
+  "max_tokens": 50000,
+  "temperature": 0.8
+}
+```
+
+**ai-gemini 응답:**
+```json
+{
+  "success": true,
+  "content": "AI 응답 텍스트",
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 200,
+    "total_tokens": 300
+  },
+  "model": "gemini-2.5-flash",
+  "finish_reason": "stop"
+}
+```
 
 ---
 

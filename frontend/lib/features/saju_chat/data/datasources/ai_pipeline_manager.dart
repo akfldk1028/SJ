@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'openai_datasource.dart';
-import 'gemini_rest_datasource.dart';
+import 'openai_edge_datasource.dart';
+import 'gemini_edge_datasource.dart';
 
 /// AI 파이프라인 매니저
 ///
@@ -14,18 +14,22 @@ import 'gemini_rest_datasource.dart';
 /// - 각 AI 모듈은 독립적으로 동작
 /// - 스트리밍 응답으로 실시간 UX 제공
 /// - 분석 결과 캐싱으로 중복 호출 방지
+///
+/// 2025-12-30: Edge Function 전환 - API 키 보안 강화
+/// - OpenAIDatasource → OpenAIEdgeDatasource
+/// - GeminiRestDatasource → GeminiEdgeDatasource
 class AIPipelineManager {
-  final OpenAIDatasource _gptDatasource;
-  final GeminiRestDatasource _geminiDatasource;
+  final OpenAIEdgeDatasource _gptDatasource;
+  final GeminiEdgeDatasource _geminiDatasource;
 
   /// 분석 결과 캐시 (세션별)
   final Map<String, Map<String, dynamic>> _analysisCache = {};
 
   AIPipelineManager({
-    OpenAIDatasource? gptDatasource,
-    GeminiRestDatasource? geminiDatasource,
-  })  : _gptDatasource = gptDatasource ?? OpenAIDatasource(),
-        _geminiDatasource = geminiDatasource ?? GeminiRestDatasource();
+    OpenAIEdgeDatasource? gptDatasource,
+    GeminiEdgeDatasource? geminiDatasource,
+  })  : _gptDatasource = gptDatasource ?? OpenAIEdgeDatasource(),
+        _geminiDatasource = geminiDatasource ?? GeminiEdgeDatasource();
 
   /// 초기화
   void initialize() {

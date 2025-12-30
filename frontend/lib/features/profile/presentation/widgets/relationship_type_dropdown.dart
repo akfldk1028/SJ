@@ -22,7 +22,7 @@ class RelationshipTypeDropdown extends ConsumerWidget {
         ShadSelect<RelationshipType>(
           placeholder: const Text('관계를 선택하세요'),
           initialValue: relationType,
-          options: RelationshipType.values.map((type) {
+          options: RelationshipType.selectableValues.map((type) {
             return ShadOption(
               value: type,
               child: Text(type.label),
