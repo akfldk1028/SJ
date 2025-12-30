@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'supabase_service.dart';
+import 'quota_service.dart';
 import '../../features/saju_chart/domain/entities/saju_analysis.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 
@@ -67,6 +68,20 @@ class AiChatService {
         _functionName,
         body: body,
       );
+
+      // QUOTA_EXCEEDED 처리 (HTTP 429)
+      if (response.status == 429) {
+        final errorData = response.data as Map<String, dynamic>?;
+        final quotaInfo = QuotaService.parseQuotaExceededResponse(errorData);
+        if (kDebugMode) {
+          print('[AiChatService] QUOTA_EXCEEDED: $quotaInfo');
+        }
+        return AiChatResult.quotaExceeded(
+          message: quotaInfo?.message ?? '오늘 토큰 사용량을 초과했습니다.',
+          tokensUsed: quotaInfo?.tokensUsed ?? 0,
+          quotaLimit: quotaInfo?.quotaLimit ?? QuotaService.dailyQuota,
+        );
+      }
 
       if (response.status != 200) {
         final errorData = response.data as Map<String, dynamic>?;
@@ -219,6 +234,9 @@ class AiChatService {
 class AiChatResult {
   final String response;
   final bool blocked;
+  final bool quotaExceeded;
+  final int? tokensUsed;
+  final int? quotaLimit;
   final AiChatUsage? usage;
   final String? model;
   final String? error;
@@ -226,6 +244,9 @@ class AiChatResult {
   AiChatResult._({
     required this.response,
     this.blocked = false,
+    this.quotaExceeded = false,
+    this.tokensUsed,
+    this.quotaLimit,
     this.usage,
     this.model,
     this.error,
@@ -260,7 +281,24 @@ class AiChatResult {
     );
   }
 
-  bool get isSuccess => error == null && !blocked;
+  /// Quota 초과 응답 생성
+  factory AiChatResult.quotaExceeded({
+    required String message,
+    int? tokensUsed,
+    int? quotaLimit,
+  }) {
+    return AiChatResult._(
+      response: message,
+      quotaExceeded: true,
+      tokensUsed: tokensUsed,
+      quotaLimit: quotaLimit,
+    );
+  }
+
+  bool get isSuccess => error == null && !blocked && !quotaExceeded;
+
+  /// Quota 초과로 광고 시청이 필요한지
+  bool get needsAdWatch => quotaExceeded;
 }
 
 /// AI 토큰 사용량

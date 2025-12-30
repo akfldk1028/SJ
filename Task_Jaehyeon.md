@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2025-12-30 (Phase 18 윤달 유효성 검증 구현 완료)
+> 최종 업데이트: 2025-12-30 (Phase 19 토큰 사용량 추적 시스템 구현 완료)
 
 ---
 
@@ -28,11 +28,10 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
 - Phase 17-A (보안 강화) ✅ 완료 (2025-12-29)
 - Phase 18 (윤달 유효성 검증) ✅ 완료 (2025-12-30)
-  - lunar_validation.dart (신규) - 검증 결과/윤달 정보 엔티티
-  - lunar_solar_converter.dart - validateLunarDate(), getLeapMonthInfo() 추가
-  - profile_provider.dart - ProfileFormState 확장 + 검증 로직
-  - lunar_options.dart (신규) - 윤달 옵션 UI 위젯
-  - profile_edit_screen.dart - LunarOptions 추가
+- Phase 19 (토큰 사용량 추적) ✅ 완료 (2025-12-30)
+  - user_daily_token_usage 테이블 + 트리거 생성
+  - Edge Function quota 체크 (saju-chat, generate-ai-summary)
+  - Flutter QUOTA_EXCEEDED 에러 처리 (QuotaService, 다이얼로그)
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
@@ -66,6 +65,16 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | `profile/presentation/providers/profile_provider.dart` | 프로필 폼 상태 관리 |
 | `profile/presentation/widgets/lunar_options.dart` | 윤달 옵션 UI 위젯 |
 | `profile/presentation/screens/profile_edit_screen.dart` | 프로필 입력 화면 |
+
+### Phase 19 관련 파일 (2025-12-30 추가)
+| 파일 | 용도 |
+|------|------|
+| `core/services/quota_service.dart` | Quota 조회/광고 보너스 RPC 호출 |
+| `core/services/ai_chat_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `core/services/ai_summary_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `shared/widgets/quota_exceeded_dialog.dart` | Quota 초과 다이얼로그 |
+| `supabase/functions/saju-chat/index.ts` | Edge Function v6 (quota 체크) |
+| `supabase/functions/generate-ai-summary/index.ts` | Edge Function v8 (quota 체크) |
 
 ### 현재 개발 단계
 - **MVP (v0.1)**: 만세력 + AI 채팅 기본 완료 ✅
@@ -126,6 +135,7 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | **Phase 17-B~D (인증 체계 강화)** | 📋 **계획 수립** (v0.2 예정) |
 | **대운(大運) 계산** | ✅ **이미 구현됨** (daeun_service.dart) |
 | **Phase 18 (윤달 유효성 검증)** | ✅ **완료** (2025-12-30) |
+| **Phase 19 (토큰 사용량 추적)** | ✅ **완료** (2025-12-30, quota 체크 + QUOTA_EXCEEDED 처리) |
 
 ---
 
@@ -176,6 +186,106 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 | P1 | **만세력 단위 테스트** | 특정 생년월일 계산 검증 | 📋 대기 |
 | P2 | **AI 프롬프트 개선** | `saju_base_prompt.dart` 품질 향상 | 📋 대기 |
 | P2 | **합충형파해 AI 해석** | 관계 분석 결과를 AI에 전달 | 📋 대기 |
+
+---
+
+## 💰 Phase 19: 토큰 사용량 추적 시스템 ✅ 완료 (2025-12-30)
+
+### 개요
+
+AI 상담 수익화를 위한 일일 토큰 quota 시스템 구현
+- **일일 무료 quota**: 50,000 토큰
+- **광고 시청 시 보너스**: 5,000 토큰
+- **quota 초과 시**: 광고 시청 또는 결제 유도
+
+### 구현 완료 내역
+
+| 단계 | 작업 | 상태 |
+|------|------|------|
+| Phase 19-A | `user_daily_token_usage` 테이블 생성 | ✅ |
+| Phase 19-B | DB 트리거 (chat_messages, ai_summaries 토큰 자동 집계) | ✅ |
+| Phase 19-C | RPC 함수 (check_user_quota, add_ad_bonus_tokens) | ✅ |
+| Phase 19-D | Edge Function quota 체크 (saju-chat v6, generate-ai-summary v8) | ✅ |
+| Phase 19-E | Flutter QUOTA_EXCEEDED 처리 (QuotaService, 다이얼로그) | ✅ |
+
+### DB 테이블: user_daily_token_usage
+
+```sql
+CREATE TABLE user_daily_token_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  usage_date DATE DEFAULT CURRENT_DATE,
+  chat_tokens INT DEFAULT 0,           -- AI 채팅 토큰
+  ai_analysis_tokens INT DEFAULT 0,    -- AI 분석 토큰
+  ai_chat_tokens INT DEFAULT 0,        -- 세션 채팅 토큰
+  total_tokens INT GENERATED ALWAYS AS (chat_tokens + ai_analysis_tokens + ai_chat_tokens) STORED,
+  daily_quota INT DEFAULT 50000,       -- 일일 한도
+  is_quota_exceeded BOOL GENERATED ALWAYS AS (total_tokens >= daily_quota) STORED,
+  ads_watched INT DEFAULT 0,           -- 시청한 광고 수
+  bonus_tokens_earned INT DEFAULT 0,   -- 광고로 얻은 보너스
+  UNIQUE(user_id, usage_date)
+);
+```
+
+### RPC 함수
+
+| 함수 | 용도 | 반환 |
+|------|------|------|
+| `check_user_quota(p_user_id)` | quota 상태 조회 | {can_use, tokens_used, quota_limit, remaining} |
+| `add_ad_bonus_tokens(p_user_id, p_bonus_tokens)` | 광고 보너스 추가 | {new_quota, ads_watched, bonus_earned} |
+
+### Edge Function 변경사항
+
+**saju-chat v6 & generate-ai-summary v8:**
+- JWT에서 user_id 추출
+- `check_user_quota()` RPC로 quota 확인
+- quota 초과 시 HTTP 429 반환:
+  ```json
+  {
+    "error": "QUOTA_EXCEEDED",
+    "message": "오늘 토큰 사용량을 초과했습니다.",
+    "tokens_used": 52340,
+    "quota_limit": 50000,
+    "ads_required": true
+  }
+  ```
+- AI 호출 후 토큰 사용량 DB 저장
+
+### Flutter 구현 파일
+
+| 파일 | 용도 |
+|------|------|
+| `core/services/quota_service.dart` | **신규** - Quota 조회/광고 보너스 RPC 호출 |
+| `core/services/ai_chat_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `core/services/ai_summary_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `shared/widgets/quota_exceeded_dialog.dart` | **신규** - Quota 초과 다이얼로그 |
+
+### 사용 예시
+
+**Flutter에서 AI 호출 시:**
+```dart
+final result = await AiChatService.sendMessage(messages: messages);
+
+if (result.quotaExceeded) {
+  // 광고 시청 다이얼로그 표시
+  final watched = await QuotaExceededDialog.show(
+    context,
+    tokensUsed: result.tokensUsed ?? 0,
+    quotaLimit: result.quotaLimit ?? 50000,
+  );
+
+  if (watched == true) {
+    // 광고 시청 완료 → 재시도
+    final retryResult = await AiChatService.sendMessage(messages: messages);
+  }
+}
+```
+
+### 다음 단계 (TODO)
+
+- [ ] 실제 광고 SDK 연동 (Google AdMob)
+- [ ] 결제 시스템 연동 (프리미엄 구독)
+- [ ] 토큰 사용량 통계 대시보드
 
 ---
 
