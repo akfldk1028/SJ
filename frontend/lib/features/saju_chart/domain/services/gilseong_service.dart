@@ -74,6 +74,41 @@ class GilseongAnalysisResult {
   /// 귀문관살 여부 (사주 전체에서 인신사해 2개 이상)
   final bool hasGwiMunGwanSal;
 
+  /// 삼기귀인 결과 (사주 전체 천간 조합)
+  final SamgiResult? samgiResult;
+
+  /// 복성귀인 일주 여부
+  final bool hasBokseongGwiinIlju;
+
+  /// 복성귀인 천간 여부 (연간 기준 식신)
+  final bool hasBokseongGwiinGan;
+
+  /// 홍란살 여부 (년지 기준)
+  final bool hasHongranSal;
+
+  /// 천희살 여부 (년지 기준)
+  final bool hasCheonheeSal;
+
+  /// 낙정관살 일주 여부 (강력 작용)
+  final bool hasNakjeongGwansalIlju;
+
+  // === Phase 24 추가 필드 ===
+
+  /// 효신살 일주 여부
+  final bool hasHyosinsal;
+
+  /// 고신살 여부 (남자)
+  final bool hasGosinsal;
+
+  /// 과숙살 여부 (여자)
+  final bool hasGwasuksal;
+
+  /// 천라지망 여부
+  final bool hasCheollaJimang;
+
+  /// 원진살 개수
+  final int wonJinsalCount;
+
   const GilseongAnalysisResult({
     required this.yearResult,
     required this.monthResult,
@@ -81,6 +116,18 @@ class GilseongAnalysisResult {
     this.hourResult,
     required this.allUniqueSinsals,
     required this.hasGwiMunGwanSal,
+    this.samgiResult,
+    this.hasBokseongGwiinIlju = false,
+    this.hasBokseongGwiinGan = false,
+    this.hasHongranSal = false,
+    this.hasCheonheeSal = false,
+    this.hasNakjeongGwansalIlju = false,
+    // Phase 24
+    this.hasHyosinsal = false,
+    this.hasGosinsal = false,
+    this.hasGwasuksal = false,
+    this.hasCheollaJimang = false,
+    this.wonJinsalCount = 0,
   });
 
   /// 모든 기둥 결과 리스트
@@ -184,6 +231,90 @@ class GilseongService {
       allSinsals.addAll(result.sinsals);
     }
 
+    // === Phase 23: 사주 전체 신살 분석 ===
+
+    // 삼기귀인 체크 (천간 조합)
+    final samgiResult = checkSamgiGwiin(
+      yearGan: chart.yearPillar.gan,
+      monthGan: chart.monthPillar.gan,
+      dayGan: dayGan,
+      hourGan: chart.hourPillar?.gan,
+    );
+    if (samgiResult.hasSamgi) {
+      allSinsals.add(SpecialSinsal.samgigwiin);
+    }
+
+    // 복성귀인 일주 체크
+    final hasBokseongIlju = isBokseongGwiinIlju(dayGan, chart.dayPillar.ji);
+    if (hasBokseongIlju) {
+      allSinsals.add(SpecialSinsal.bokseongGwiin);
+    }
+
+    // 복성귀인 천간 체크 (연간 기준 식신)
+    final yearGan = chart.yearPillar.gan;
+    final hasBokseongGan = isBokseongGwiinGan(yearGan, chart.monthPillar.gan) ||
+        isBokseongGwiinGan(yearGan, dayGan) ||
+        (chart.hourPillar != null && isBokseongGwiinGan(yearGan, chart.hourPillar!.gan));
+    if (hasBokseongGan && !hasBokseongIlju) {
+      allSinsals.add(SpecialSinsal.bokseongGwiin);
+    }
+
+    // 홍란살 체크 (년지 기준, 다른 지지에서 확인)
+    final yearJi = chart.yearPillar.ji;
+    final hasHongran = isHongranSal(yearJi, chart.monthPillar.ji) ||
+        isHongranSal(yearJi, chart.dayPillar.ji) ||
+        (chart.hourPillar != null && isHongranSal(yearJi, chart.hourPillar!.ji));
+    if (hasHongran) {
+      allSinsals.add(SpecialSinsal.hongransal);
+    }
+
+    // 천희살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasCheonhee = isCheonheeSal(yearJi, chart.monthPillar.ji) ||
+        isCheonheeSal(yearJi, chart.dayPillar.ji) ||
+        (chart.hourPillar != null && isCheonheeSal(yearJi, chart.hourPillar!.ji));
+    if (hasCheonhee) {
+      allSinsals.add(SpecialSinsal.cheonheesal);
+    }
+
+    // 낙정관살 일주 체크 (강력 작용)
+    final hasNakjeongIlju = isNakjeongGwansalIlju(dayGan, chart.dayPillar.ji);
+
+    // === Phase 24: 추가 신살 분석 ===
+
+    // 효신살 일주 체크
+    final hasHyosinsalResult = isHyosinsal(dayGan, chart.dayPillar.ji);
+    if (hasHyosinsalResult) {
+      allSinsals.add(SpecialSinsal.hyosinsal);
+    }
+
+    // 고신살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasGosinsalResult = isGosinsal(yearJi, chart.monthPillar.ji) ||
+        isGosinsal(yearJi, chart.dayPillar.ji) ||
+        (chart.hourPillar != null && isGosinsal(yearJi, chart.hourPillar!.ji));
+    if (hasGosinsalResult) {
+      allSinsals.add(SpecialSinsal.gosinsal);
+    }
+
+    // 과숙살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasGwasuksalResult = isGwasuksal(yearJi, chart.monthPillar.ji) ||
+        isGwasuksal(yearJi, chart.dayPillar.ji) ||
+        (chart.hourPillar != null && isGwasuksal(yearJi, chart.hourPillar!.ji));
+    if (hasGwasuksalResult) {
+      allSinsals.add(SpecialSinsal.gwasuksal);
+    }
+
+    // 천라지망 체크 (진술 동시 존재)
+    final hasCheollaJimangResult = hasCheollaJimang(allJis);
+    if (hasCheollaJimangResult) {
+      allSinsals.add(SpecialSinsal.cheollaJimang);
+    }
+
+    // 원진살 개수 체크
+    final wonJinsalCountResult = countWonJinsal(allJis);
+    if (wonJinsalCountResult > 0) {
+      allSinsals.add(SpecialSinsal.wonJinsal);
+    }
+
     return GilseongAnalysisResult(
       yearResult: yearResult,
       monthResult: monthResult,
@@ -191,6 +322,18 @@ class GilseongService {
       hourResult: hourResult,
       allUniqueSinsals: allSinsals.toList(),
       hasGwiMunGwanSal: hasGwiMunGwanSal,
+      samgiResult: samgiResult,
+      hasBokseongGwiinIlju: hasBokseongIlju,
+      hasBokseongGwiinGan: hasBokseongGan,
+      hasHongranSal: hasHongran,
+      hasCheonheeSal: hasCheonhee,
+      hasNakjeongGwansalIlju: hasNakjeongIlju,
+      // Phase 24
+      hasHyosinsal: hasHyosinsalResult,
+      hasGosinsal: hasGosinsalResult,
+      hasGwasuksal: hasGwasuksalResult,
+      hasCheollaJimang: hasCheollaJimangResult,
+      wonJinsalCount: wonJinsalCountResult,
     );
   }
 
@@ -262,6 +405,55 @@ class GilseongService {
     // 11. 귀문관살 (해당 지지가 인신사해이고, 전체적으로 2개 이상)
     if (hasGwiMunGwanSal && isGwiMunGwanSalJi(ji)) {
       sinsals.add(SpecialSinsal.gwimungwansal);
+    }
+
+    // === Phase 23 추가 신살 분석 ===
+
+    // 12. 금여 (일간 기준)
+    if (isGeumYeo(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.geumyeo);
+    }
+
+    // 13. 낙정관살 (일간 기준)
+    if (isNakjeongGwansal(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.nakjeongGwansal);
+    }
+
+    // 14. 문곡귀인 (일간 기준)
+    if (isMungokGwiin(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.mungokgwiin);
+    }
+
+    // 15. 태극귀인 (일간 기준)
+    if (isTaegukGwiin(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.taegukgwiin);
+    }
+
+    // 16. 천의귀인 (월지 기준)
+    if (isCheonuiGwiin(monthJi, ji)) {
+      sinsals.add(SpecialSinsal.cheonuigwiin);
+    }
+
+    // 17. 천주귀인 (일간 기준)
+    if (isCheonjuGwiin(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.cheonjugwiin);
+    }
+
+    // 18. 암록귀인 (일간 기준)
+    if (isAmnokGwiin(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.amnokgwiin);
+    }
+
+    // === Phase 24 추가 신살 분석 ===
+
+    // 19. 건록 (일간 기준)
+    if (isGeonrok(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.geonrok);
+    }
+
+    // 20. 비인살 (일간 기준)
+    if (isBiinsal(dayGan, ji)) {
+      sinsals.add(SpecialSinsal.biinsal);
     }
 
     return PillarGilseongResult(
@@ -343,6 +535,88 @@ class GilseongService {
       allSinsals.addAll(result.sinsals);
     }
 
+    // === Phase 23: 사주 전체 신살 분석 ===
+
+    // 삼기귀인 체크 (천간 조합)
+    final samgiResult = checkSamgiGwiin(
+      yearGan: yearGan,
+      monthGan: monthGan,
+      dayGan: dayGan,
+      hourGan: hourGan,
+    );
+    if (samgiResult.hasSamgi) {
+      allSinsals.add(SpecialSinsal.samgigwiin);
+    }
+
+    // 복성귀인 일주 체크
+    final hasBokseongIlju = isBokseongGwiinIlju(dayGan, dayJi);
+    if (hasBokseongIlju) {
+      allSinsals.add(SpecialSinsal.bokseongGwiin);
+    }
+
+    // 복성귀인 천간 체크 (연간 기준 식신)
+    final hasBokseongGan = isBokseongGwiinGan(yearGan, monthGan) ||
+        isBokseongGwiinGan(yearGan, dayGan) ||
+        (hourGan != null && isBokseongGwiinGan(yearGan, hourGan));
+    if (hasBokseongGan && !hasBokseongIlju) {
+      allSinsals.add(SpecialSinsal.bokseongGwiin);
+    }
+
+    // 홍란살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasHongran = isHongranSal(yearJi, monthJi) ||
+        isHongranSal(yearJi, dayJi) ||
+        (hourJi != null && isHongranSal(yearJi, hourJi));
+    if (hasHongran) {
+      allSinsals.add(SpecialSinsal.hongransal);
+    }
+
+    // 천희살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasCheonhee = isCheonheeSal(yearJi, monthJi) ||
+        isCheonheeSal(yearJi, dayJi) ||
+        (hourJi != null && isCheonheeSal(yearJi, hourJi));
+    if (hasCheonhee) {
+      allSinsals.add(SpecialSinsal.cheonheesal);
+    }
+
+    // 낙정관살 일주 체크 (강력 작용)
+    final hasNakjeongIlju = isNakjeongGwansalIlju(dayGan, dayJi);
+
+    // === Phase 24: 추가 신살 분석 ===
+
+    // 효신살 일주 체크
+    final hasHyosinsalResult = isHyosinsal(dayGan, dayJi);
+    if (hasHyosinsalResult) {
+      allSinsals.add(SpecialSinsal.hyosinsal);
+    }
+
+    // 고신살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasGosinsalResult = isGosinsal(yearJi, monthJi) ||
+        isGosinsal(yearJi, dayJi) ||
+        (hourJi != null && isGosinsal(yearJi, hourJi));
+    if (hasGosinsalResult) {
+      allSinsals.add(SpecialSinsal.gosinsal);
+    }
+
+    // 과숙살 체크 (년지 기준, 다른 지지에서 확인)
+    final hasGwasuksalResult = isGwasuksal(yearJi, monthJi) ||
+        isGwasuksal(yearJi, dayJi) ||
+        (hourJi != null && isGwasuksal(yearJi, hourJi));
+    if (hasGwasuksalResult) {
+      allSinsals.add(SpecialSinsal.gwasuksal);
+    }
+
+    // 천라지망 체크 (진술 동시 존재)
+    final hasCheollaJimangResult = hasCheollaJimang(allJis);
+    if (hasCheollaJimangResult) {
+      allSinsals.add(SpecialSinsal.cheollaJimang);
+    }
+
+    // 원진살 개수 체크
+    final wonJinsalCountResult = countWonJinsal(allJis);
+    if (wonJinsalCountResult > 0) {
+      allSinsals.add(SpecialSinsal.wonJinsal);
+    }
+
     return GilseongAnalysisResult(
       yearResult: yearResult,
       monthResult: monthResult,
@@ -350,6 +624,18 @@ class GilseongService {
       hourResult: hourResult,
       allUniqueSinsals: allSinsals.toList(),
       hasGwiMunGwanSal: hasGwiMunGwanSal,
+      samgiResult: samgiResult,
+      hasBokseongGwiinIlju: hasBokseongIlju,
+      hasBokseongGwiinGan: hasBokseongGan,
+      hasHongranSal: hasHongran,
+      hasCheonheeSal: hasCheonhee,
+      hasNakjeongGwansalIlju: hasNakjeongIlju,
+      // Phase 24
+      hasHyosinsal: hasHyosinsalResult,
+      hasGosinsal: hasGosinsalResult,
+      hasGwasuksal: hasGwasuksalResult,
+      hasCheollaJimang: hasCheollaJimangResult,
+      wonJinsalCount: wonJinsalCountResult,
     );
   }
 }

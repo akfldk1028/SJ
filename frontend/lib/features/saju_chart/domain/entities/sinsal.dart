@@ -46,7 +46,62 @@ enum SinSal {
   gwiMunGwanSal('귀문관살', '鬼門關殺', SinSalType.unlucky),
 
   /// 공망 - 비어있음, 허무
-  gongMang('공망', '空亡', SinSalType.unlucky);
+  gongMang('공망', '空亡', SinSalType.unlucky),
+
+  // === Phase 23 추가 신살 ===
+
+  /// 금여 - 좋은 배우자 운, 물질적 풍요
+  geumYeo('금여', '金輿', SinSalType.lucky),
+
+  /// 삼기귀인 - 세 가지 기이한 조합
+  samGiGwiIn('삼기귀인', '三奇貴人', SinSalType.lucky),
+
+  /// 복성귀인 - 복을 주는 별
+  bokSeongGwiIn('복성귀인', '福星貴人', SinSalType.lucky),
+
+  /// 낙정관살 - 우물에 빠지는 살
+  nakJeongGwanSal('낙정관살', '落井關殺', SinSalType.unlucky),
+
+  /// 문곡귀인 - 문창과 쌍으로 학문 귀인
+  munGokGwiIn('문곡귀인', '文曲貴人', SinSalType.lucky),
+
+  /// 태극귀인 - 큰 귀인의 도움
+  taeGukGwiIn('태극귀인', '太極貴人', SinSalType.lucky),
+
+  /// 천의귀인 - 의료 관련 귀인
+  cheonUiGwiIn('천의귀인', '天醫貴人', SinSalType.lucky),
+
+  /// 천주귀인 - 식복 관련 귀인
+  cheonJuGwiIn('천주귀인', '天廚貴人', SinSalType.lucky),
+
+  /// 암록귀인 - 숨은 재물운
+  amNokGwiIn('암록귀인', '暗祿貴人', SinSalType.lucky),
+
+  /// 홍란살 - 결혼운, 연애운
+  hongRanSal('홍란살', '紅鸞煞', SinSalType.lucky),
+
+  /// 천희살 - 경사, 기쁜 일
+  cheonHeeSal('천희살', '天喜煞', SinSalType.lucky),
+
+  // === Phase 24 추가 신살 ===
+
+  /// 건록 - 강한 뿌리, 자신감
+  geonRok('건록', '健祿', SinSalType.lucky),
+
+  /// 비인살 - 양인의 충, 은밀한 작용
+  biInSal('비인살', '飛刃殺', SinSalType.unlucky),
+
+  /// 효신살 - 일지 인성, 어머니 영향
+  hyoSinSal('효신살', '梟神殺', SinSalType.neutral),
+
+  /// 고신살 - 남자 배우자운 약화
+  goSinSal('고신살', '孤神殺', SinSalType.unlucky),
+
+  /// 과숙살 - 여자 배우자운 약화
+  gwaSukSal('과숙살', '寡宿殺', SinSalType.unlucky),
+
+  /// 천라지망 - 진술 충, 구속
+  cheolLaJiMang('천라지망', '天羅地網', SinSalType.unlucky);
 
   final String korean;
   final String hanja;

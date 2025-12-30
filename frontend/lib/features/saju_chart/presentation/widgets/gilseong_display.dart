@@ -598,3 +598,128 @@ class GilseongSummaryCard extends StatelessWidget {
     );
   }
 }
+
+// ============================================================================
+// Phase 24: 확장 신살 정보 위젯
+// ============================================================================
+
+/// 확장 신살 정보 카드
+/// 효신살, 고신살, 과숙살, 천라지망, 원진살 등 추가 정보 표시
+class ExtendedSinsalInfoCard extends StatelessWidget {
+  final GilseongAnalysisResult result;
+  final bool isMale;
+
+  const ExtendedSinsalInfoCard({
+    super.key,
+    required this.result,
+    this.isMale = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 표시할 특수 상태가 있는지 확인
+    final hasSpecialInfo = result.hasHyosinsal ||
+        (isMale && result.hasGosinsal) ||
+        (!isMale && result.hasGwasuksal) ||
+        result.hasCheollaJimang ||
+        result.wonJinsalCount > 0;
+
+    if (!hasSpecialInfo) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: AppColors.accent),
+              const SizedBox(width: 6),
+              const Text(
+                '특수 상태',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 특수 상태 목록
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              // 효신살
+              if (result.hasHyosinsal)
+                _buildInfoChip(
+                  '효신살',
+                  '어머니 영향 강함',
+                  AppColors.accent,
+                ),
+              // 고신살 (남자)
+              if (isMale && result.hasGosinsal)
+                _buildInfoChip(
+                  '고신살',
+                  '배우자운 주의',
+                  AppColors.error,
+                ),
+              // 과숙살 (여자)
+              if (!isMale && result.hasGwasuksal)
+                _buildInfoChip(
+                  '과숙살',
+                  '배우자운 주의',
+                  AppColors.error,
+                ),
+              // 천라지망
+              if (result.hasCheollaJimang)
+                _buildInfoChip(
+                  '천라지망',
+                  '진술충 - 답답함',
+                  AppColors.error,
+                ),
+              // 원진살
+              if (result.wonJinsalCount > 0)
+                _buildInfoChip(
+                  '원진살 ${result.wonJinsalCount}개',
+                  '관계 갈등 주의',
+                  AppColors.warning,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(String label, String tooltip, Color color) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}

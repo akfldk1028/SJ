@@ -167,10 +167,11 @@ class TwelveSinsalAnalysisResult {
 
 /// 12신살 계산 서비스
 class TwelveSinsalService {
-  /// 사주 차트에서 12신살 분석 (년지 기준)
+  /// 사주 차트에서 12신살 분석 (일지 기준)
+  /// 현대 명리학에서는 일지 기준이 더 적중률이 높은 것으로 인식됨
   static TwelveSinsalAnalysisResult analyzeFromChart(
     SajuChart chart, {
-    bool useYearJi = true, // true: 년지 기준, false: 일지 기준
+    bool useYearJi = false, // true: 년지 기준, false: 일지 기준 (기본값: 일지)
   }) {
     final baseJi = useYearJi ? chart.yearPillar.ji : chart.dayPillar.ji;
     final dayGan = chart.dayPillar.gan;
@@ -215,7 +216,7 @@ class TwelveSinsalService {
     required String dayGan,
     required String dayJi,
     String? hourJi,
-    bool useYearJi = true,
+    bool useYearJi = false, // 기본값: 일지 기준
   }) {
     final baseJi = useYearJi ? yearJi : dayJi;
 

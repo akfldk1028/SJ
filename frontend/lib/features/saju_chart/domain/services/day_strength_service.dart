@@ -113,8 +113,8 @@ class DayStrengthService {
     return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
   }
 
-  /// 점수 계산 (포스텔러 기준 - 50점 중심)
-  /// 득령/득지/득시/득세만으로 점수 결정 (포스텔러 방식)
+  /// 점수 계산 (포스텔러/사주플러스 기준 - 50점 중심)
+  /// 득령/득지/득시/득세 + 십신 분포로 점수 결정
   int _calculateScore({
     required bool deukryeong,
     required bool deukji,
@@ -125,46 +125,52 @@ class DayStrengthService {
     // 기본 점수 50 (중화 기준)
     double score = 50.0;
 
-    // 득령: +8점 / -6점 (가장 중요)
+    // 득령: +12점 / -8점 (가장 중요 - 월령은 사주의 50% 영향)
     if (deukryeong) {
+      score += 12;
+    } else {
+      score -= 8;
+    }
+
+    // 득지: +8점 / -5점 (일지는 본인의 근본)
+    if (deukji) {
       score += 8;
     } else {
-      score -= 6;
+      score -= 5;
     }
 
-    // 득지: +5점 / -4점
-    if (deukji) {
-      score += 5;
-    } else {
-      score -= 4;
-    }
-
-    // 득시: +3점 / -2점
+    // 득시: +4점 / -2점 (시간은 보조적)
     if (deuksi) {
-      score += 3;
+      score += 4;
     } else {
       score -= 2;
     }
 
-    // 득세: +4점 / -3점
+    // 득세: +6점 / -4점 (세력의 힘)
     if (deukse) {
-      score += 4;
+      score += 6;
     } else {
-      score -= 3;
+      score -= 4;
     }
 
-    // 십신 분포에 따른 미세 조정 (±3점 이내)
+    // 십신 분포에 따른 미세 조정 (±5점 이내)
     final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
     final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
     final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
     final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
     final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
 
-    // 비겁/인성 보너스 (최대 +3점)
-    score += ((bigeopCount + inseongCount - 3) * 1.0).clamp(-2, 3);
+    // 비겁/인성 보너스 (최대 +5점)
+    // 비겁+인성이 3개 초과시 보너스
+    final supportCount = bigeopCount + inseongCount;
+    score += ((supportCount - 3) * 1.5).clamp(-3.0, 5.0);
 
-    // 설기(재관식상) 감점 (최대 -3점)
-    score -= ((jaeseongCount + gwanseongCount + siksangCount - 4) * 1.0).clamp(-2, 3);
+    // 설기(재관식상) - 많을수록 감점 (최대 -5점)
+    // 재성+관성+식상이 많으면 일간의 기운을 빼앗음
+    final drainCount = jaeseongCount + gwanseongCount + siksangCount;
+    if (drainCount > 3) {
+      score -= ((drainCount - 3) * 1.5).clamp(0.0, 5.0);
+    }
 
     return score.round().clamp(0, 100);
   }
@@ -181,7 +187,8 @@ class DayStrengthService {
     return DayStrengthLevel.geukyak;                       // 극약
   }
 
-  /// 십신 분포 계산 (천간 + 지장간 정기만)
+  /// 십신 분포 계산 (천간 + 지장간 전체)
+  /// 지장간은 여기/중기/정기 모두 포함하되, 세력 비율로 가중치 적용
   Map<SipSinCategory, int> _calculateSipsinDistribution(
     SajuChart chart,
     String dayMaster,
@@ -202,7 +209,8 @@ class DayStrengthService {
       distribution[category] = (distribution[category] ?? 0) + 1;
     }
 
-    // 지장간 분석 (정기만 계산)
+    // 지장간 분석 (전체 지장간 포함 - 정기 기준 1개로 카운트)
+    // 여기/중기가 있으면 해당 오행이 추가로 영향을 줌
     final jis = [
       chart.yearPillar.ji,
       chart.monthPillar.ji,
@@ -211,6 +219,7 @@ class DayStrengthService {
     ];
 
     for (final ji in jis) {
+      // 정기 (가장 강한 영향)
       final jeongGi = getJeongGi(ji);
       if (jeongGi != null) {
         final sipsin = calculateSipSin(dayMaster, jeongGi);

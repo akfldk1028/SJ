@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../domain/entities/daeun.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/entities/saju_analysis.dart';
 import '../../domain/services/hapchung_service.dart';
@@ -174,8 +175,11 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                     _SipSungTab(chart: chart),
                     // 7. 운성 탭
                     _UnsungTab(chart: chart),
-                    // 8. 신살 탭
-                    _SinsalTab(chart: chart),
+                    // 8. 신살 탭 (성별 정보 전달)
+                    _SinsalTab(
+                      chart: chart,
+                      isMale: analysis.daeun?.gender == Gender.male,
+                    ),
                     // 9. 공망 탭
                     _GongmangTab(chart: chart),
                   ],
@@ -525,8 +529,12 @@ class _UnsungTab extends StatelessWidget {
 /// 신살 탭
 class _SinsalTab extends StatelessWidget {
   final SajuChart chart;
+  final bool isMale;
 
-  const _SinsalTab({required this.chart});
+  const _SinsalTab({
+    required this.chart,
+    this.isMale = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -549,6 +557,13 @@ class _SinsalTab extends StatelessWidget {
             dayJi: chart.dayPillar.ji,
             hourGan: chart.hourPillar?.gan,
             hourJi: chart.hourPillar?.ji,
+          ),
+          const SizedBox(height: 16),
+
+          // Phase 24: 확장 신살 정보 (효신살, 고신살/과숙살, 천라지망, 원진살)
+          ExtendedSinsalInfoCard(
+            result: gilseongResult,
+            isMale: isMale,
           ),
           const SizedBox(height: 24),
 
