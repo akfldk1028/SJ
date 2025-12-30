@@ -155,7 +155,20 @@
       "Bash(powershell.exe:*)",
       "mcp__playwright__browser_navigate_back",
       "mcp__playwright__browser_type",
-      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze:*)"
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze:*)",
+      "Bash(cmd.exe /c \"code --list-extensions | findstr -i deno\")",
+      "Bash(cmd.exe /c \"findstr /i /c:\"flutter\" /c:\"D:\\\\\" E:SJTask_Jaehyeon.md)",
+      "Bash(cmd.exe /c \"where flutter\")",
+      "Bash(cmd.exe /c \"if exist D:\\\\development\\\\flutter\\\\bin\\\\flutter.bat echo Found: D:\\\\development\\\\flutter\")",
+      "Bash(cmd.exe /c \"echo %PUB_CACHE%\")",
+      "Bash(cmd.exe /c \"echo %PATH%\")",
+      "Bash(cmd.exe /c \"dir E:\\\\SJ\\\\frontend\\\\*.bat /s /b 2>nul\")",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\SOGANG\\\\flutter /b 2>nul && echo Found at C:\\\\Users\\\\SOGANG\\\\flutter\")",
+      "Bash(cmd.exe /c \"where /R C:\\\\Users\\\\SOGANG flutter.bat 2>nul\")",
+      "Bash(cmd.exe /c \"C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat doctor -v 2>nul || echo Not at C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\")",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat 2>nul && echo Found\")",
+      "Bash(cmd.exe /c \"dir C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat\")",
+      "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat \\(echo FOUND\\) else \\(echo NOT FOUND\\)\")"
     ],
     "deny": [],
     "ask": []
