@@ -20,17 +20,19 @@ class SplashQueries extends BaseQueries {
   ///
   /// 앱 시작 시 가장 먼저 호출
   /// Returns: (프로필, 분석) 또는 null
+  /// Note: relation_type이 'admin'인 프로필은 제외 (개발자 테스트용)
   Future<QueryResult<SplashPrefetchData?>> prefetchPrimaryData(
     String userId,
   ) async {
     return safeQuery(
       query: (client) async {
-        // 1. Primary 프로필 조회
+        // 1. Primary 프로필 조회 (admin 제외)
         final profileResponse = await client
             .from(profile_schema.profilesTable)
             .select(primaryProfileColumns)
             .eq(profile_schema.ProfileColumns.userId, userId)
             .eq(profile_schema.ProfileColumns.isPrimary, true)
+            .neq(profile_schema.ProfileColumns.relationType, 'admin')
             .maybeSingle();
 
         if (profileResponse == null) {
@@ -60,7 +62,7 @@ class SplashQueries extends BaseQueries {
     );
   }
 
-  /// Primary 프로필만 조회
+  /// Primary 프로필만 조회 (admin 제외)
   Future<QueryResult<SajuProfileModel?>> getPrimaryProfile(
     String userId,
   ) async {
@@ -71,6 +73,7 @@ class SplashQueries extends BaseQueries {
             .select(primaryProfileColumns)
             .eq(profile_schema.ProfileColumns.userId, userId)
             .eq(profile_schema.ProfileColumns.isPrimary, true)
+            .neq(profile_schema.ProfileColumns.relationType, 'admin')
             .maybeSingle();
         return response;
       },
@@ -135,7 +138,7 @@ class SplashQueries extends BaseQueries {
     );
   }
 
-  /// 프로필 존재 여부만 빠르게 확인
+  /// 프로필 존재 여부만 빠르게 확인 (admin 제외)
   Future<QueryResult<bool>> hasPrimaryProfile(String userId) async {
     return safeQuery(
       query: (client) async {
@@ -144,6 +147,7 @@ class SplashQueries extends BaseQueries {
             .select(profile_schema.ProfileColumns.id)
             .eq(profile_schema.ProfileColumns.userId, userId)
             .eq(profile_schema.ProfileColumns.isPrimary, true)
+            .neq(profile_schema.ProfileColumns.relationType, 'admin')
             .maybeSingle();
         return response != null;
       },
@@ -169,17 +173,19 @@ class SplashQueries extends BaseQueries {
   /// Pre-fetch 상태 확인
   ///
   /// 빠른 상태 확인용 (데이터 로드 없이)
+  /// Note: relation_type이 'admin'인 프로필은 제외
   Future<QueryResult<PrefetchStatus>> checkPrefetchStatus(
     String userId,
   ) async {
     return safeQuery(
       query: (client) async {
-        // 1. 프로필 존재 확인
+        // 1. 프로필 존재 확인 (admin 제외)
         final profileResponse = await client
             .from(profile_schema.profilesTable)
             .select(profile_schema.ProfileColumns.id)
             .eq(profile_schema.ProfileColumns.userId, userId)
             .eq(profile_schema.ProfileColumns.isPrimary, true)
+            .neq(profile_schema.ProfileColumns.relationType, 'admin')
             .maybeSingle();
 
         if (profileResponse == null) {

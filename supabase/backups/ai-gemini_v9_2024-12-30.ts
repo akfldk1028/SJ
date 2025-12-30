@@ -2,22 +2,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * OpenAI API 호출 Edge Function
+ * Gemini API 호출 Edge Function
  *
- * 평생 사주 분석 (GPT-5.2 Thinking) 전용
+ * 채팅/일운 분석 전용
  * API 키는 서버에만 저장 (보안)
  *
  * Quota 시스템:
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
- *
- * v10 변경사항:
- * - 모델명: gpt-5.2-thinking (추론 강화)
- * - max_tokens: 10000 (전체 응답 보장)
- *
- * === 모델 변경 금지 ===
- * 이 Edge Function의 기본 모델은 반드시 gpt-5.2-thinking 유지
- * 변경 필요 시 EdgeFunction_task.md 참조
  */
 
 const corsHeaders = {
@@ -26,8 +18,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-const OPENAI_BASE_URL = "https://api.openai.com/v1/chat/completions";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -40,22 +31,12 @@ interface ChatMessage {
   content: string;
 }
 
-interface OpenAIRequest {
+interface GeminiRequest {
   messages: ChatMessage[];
-  model: string;
+  model?: string;
   max_tokens?: number;
   temperature?: number;
-  response_format?: { type: "json_object" | "text" };
   user_id?: string; // Quota 체크용
-}
-
-interface UsageInfo {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-  prompt_tokens_details?: {
-    cached_tokens?: number;
-  };
 }
 
 /**
@@ -78,17 +59,19 @@ async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: st
 }
 
 /**
- * Quota 확인
+ * Quota 확인 및 업데이트
  */
-async function checkQuota(
+async function checkAndUpdateQuota(
   supabase: ReturnType<typeof createClient>,
   userId: string,
+  tokensUsed: number,
   isAdmin: boolean
 ): Promise<{ allowed: boolean; remaining: number; quotaLimit: number }> {
   const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
   const today = new Date().toISOString().split("T")[0];
 
   try {
+    // 오늘 사용량 조회
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
       .select("total_tokens, daily_quota")
@@ -100,16 +83,19 @@ async function checkQuota(
     const effectiveQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
     const remaining = effectiveQuota - currentUsage;
 
+    // Admin은 항상 허용
     if (isAdmin) {
       return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     }
 
+    // Quota 초과 체크
     if (currentUsage >= effectiveQuota) {
       return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
     }
 
     return { allowed: true, remaining, quotaLimit: effectiveQuota };
   } catch {
+    // 에러 시 Admin은 허용, 일반 사용자도 허용 (UX 우선)
     return { allowed: true, remaining: quotaLimit, quotaLimit };
   }
 }
@@ -129,18 +115,20 @@ async function recordTokenUsage(
   const totalTokens = promptTokens + completionTokens;
 
   try {
+    // UPSERT: 오늘 기록이 있으면 업데이트, 없으면 생성
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, ai_analysis_tokens, total_tokens, total_cost_usd")
+      .select("id, chat_tokens, total_tokens, total_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
+      // 업데이트
       await supabase
         .from("user_daily_token_usage")
         .update({
-          ai_analysis_tokens: (existing.ai_analysis_tokens || 0) + totalTokens,
+          chat_tokens: (existing.chat_tokens || 0) + totalTokens,
           total_tokens: (existing.total_tokens || 0) + totalTokens,
           total_cost_usd: parseFloat(existing.total_cost_usd || "0") + cost,
           daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
@@ -149,13 +137,14 @@ async function recordTokenUsage(
         })
         .eq("id", existing.id);
     } else {
+      // 새로 생성
       await supabase
         .from("user_daily_token_usage")
         .insert({
           user_id: userId,
           usage_date: today,
-          chat_tokens: 0,
-          ai_analysis_tokens: totalTokens,
+          chat_tokens: totalTokens,
+          ai_analysis_tokens: 0,
           ai_chat_tokens: 0,
           total_tokens: totalTokens,
           total_cost_usd: cost,
@@ -164,7 +153,7 @@ async function recordTokenUsage(
         });
     }
   } catch (error) {
-    console.error("[ai-openai] Failed to record token usage:", error);
+    console.error("[ai-gemini] Failed to record token usage:", error);
   }
 }
 
@@ -176,23 +165,22 @@ Deno.serve(async (req) => {
 
   try {
     // API 키 확인
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
 
-    // Supabase 클라이언트 생성
+    // Supabase 클라이언트 생성 (service role로 DB 접근)
     const supabase = createClient(
       SUPABASE_URL!,
       SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const requestData: OpenAIRequest = await req.json();
+    const requestData: GeminiRequest = await req.json();
     const {
       messages,
-      model = "gpt-5.2-thinking",  // 추론 강화 모델 - 변경 금지
-      max_tokens = 10000,           // 전체 응답 보장
-      temperature = 0.7,
-      response_format,
+      model = "gemini-2.5-flash-preview-05-20",
+      max_tokens = 1000,
+      temperature = 0.8,
       user_id,
     } = requestData;
 
@@ -205,13 +193,13 @@ Deno.serve(async (req) => {
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-openai] User ${user_id} isAdmin: ${isAdmin}`);
+      console.log(`[ai-gemini] User ${user_id} isAdmin: ${isAdmin}`);
 
       // Quota 확인 (Admin은 스킵)
       if (!isAdmin) {
-        const quota = await checkQuota(supabase, user_id, isAdmin);
+        const quota = await checkAndUpdateQuota(supabase, user_id, 0, isAdmin);
         if (!quota.allowed) {
-          console.log(`[ai-openai] Quota exceeded for user ${user_id}`);
+          console.log(`[ai-gemini] Quota exceeded for user ${user_id}`);
           return new Response(
             JSON.stringify({
               success: false,
@@ -230,41 +218,63 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[ai-openai] Calling OpenAI: model=${model}, isAdmin=${isAdmin}`);
+    console.log(`[ai-gemini] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
 
-    // OpenAI API 요청 body 구성
-    // 새로운 모델(o-series, gpt-5.x)은 max_completion_tokens 사용
-    // 기존 모델(gpt-4o, gpt-4o-mini)은 max_tokens도 지원하지만 max_completion_tokens 권장
-    const requestBody: Record<string, unknown> = {
-      model,
-      messages,
-      max_completion_tokens: max_tokens, // deprecated max_tokens → max_completion_tokens
-      temperature,
-    };
+    // messages를 Gemini 형식으로 변환
+    const systemInstruction = messages
+      .filter((m) => m.role === "system")
+      .map((m) => m.content)
+      .join("\n");
 
-    if (response_format) {
-      requestBody.response_format = response_format;
-    }
+    const contents = messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
 
-    // OpenAI API 호출
-    const response = await fetch(OPENAI_BASE_URL, {
+    // Gemini API 호출
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+    const response = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: systemInstruction
+          ? { parts: [{ text: systemInstruction }] }
+          : undefined,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: max_tokens,
+          topP: 0.9,
+          topK: 40,
+          responseMimeType: "application/json",
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_ONLY_HIGH",
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_ONLY_HIGH",
+          },
+        ],
+      }),
     });
 
     const data = await response.json();
 
     // 오류 처리
     if (data.error) {
-      console.error("[ai-openai] OpenAI API Error:", data.error);
+      console.error("[ai-gemini] Gemini API Error:", data.error);
       return new Response(
         JSON.stringify({
           success: false,
-          error: data.error.message || "OpenAI API error",
+          error: data.error.message || "Gemini API error",
         }),
         {
           status: 400,
@@ -274,28 +284,34 @@ Deno.serve(async (req) => {
     }
 
     // 응답 추출
-    const choice = data.choices?.[0];
-    if (!choice) {
-      throw new Error("No response from OpenAI");
+    const candidate = data.candidates?.[0];
+    if (!candidate) {
+      throw new Error("No response from Gemini");
     }
 
-    const content = choice.message?.content || "";
-    const usage: UsageInfo = data.usage || {};
+    if (candidate.finishReason === "SAFETY") {
+      throw new Error("Response blocked due to safety settings");
+    }
 
-    // 캐시된 토큰 추출
-    const cachedTokens = usage.prompt_tokens_details?.cached_tokens || 0;
+    const content = candidate.content?.parts?.[0]?.text || "";
 
-    // OpenAI 비용 계산 (USD)
-    // gpt-5.2-thinking: 입력 $3.00/1M, 출력 $12.00/1M (예상 가격)
-    const cost = (usage.prompt_tokens * 3.00 / 1000000) + (usage.completion_tokens * 12.00 / 1000000);
+    // 토큰 사용량 추출 (usageMetadata)
+    const usageMetadata = data.usageMetadata || {};
+    const promptTokens = usageMetadata.promptTokenCount || 0;
+    const completionTokens = usageMetadata.candidatesTokenCount || 0;
+    const totalTokens = usageMetadata.totalTokenCount || 0;
+
+    // Gemini 비용 계산 (USD)
+    // gemini-2.5-flash: 입력 $0.075/1M, 출력 $0.30/1M
+    const cost = (promptTokens * 0.075 / 1000000) + (completionTokens * 0.30 / 1000000);
 
     // 토큰 사용량 기록
     if (user_id) {
-      await recordTokenUsage(supabase, user_id, usage.prompt_tokens, usage.completion_tokens, cost, isAdmin);
+      await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin);
     }
 
     console.log(
-      `[ai-openai] Success: prompt=${usage.prompt_tokens}, completion=${usage.completion_tokens}, cached=${cachedTokens}, isAdmin=${isAdmin}`
+      `[ai-gemini] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`
     );
 
     return new Response(
@@ -303,13 +319,12 @@ Deno.serve(async (req) => {
         success: true,
         content,
         usage: {
-          prompt_tokens: usage.prompt_tokens,
-          completion_tokens: usage.completion_tokens,
-          total_tokens: usage.total_tokens,
-          cached_tokens: cachedTokens,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: totalTokens,
         },
-        model: data.model,
-        finish_reason: choice.finish_reason,
+        model,
+        finish_reason: candidate.finishReason,
         is_admin: isAdmin,
       }),
       {
@@ -317,7 +332,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("[ai-openai] Error:", error);
+    console.error("[ai-gemini] Error:", error);
 
     return new Response(
       JSON.stringify({

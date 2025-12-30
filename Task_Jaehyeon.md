@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2025-12-30 (Phase 20 AI Edge Function 통합 완료)
+> 최종 업데이트: 2024-12-31 (Phase 21 Edge Function 모델 최종 확정)
 
 ---
 
@@ -33,6 +33,10 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - gemini_edge_datasource.dart, openai_edge_datasource.dart 생성
   - saju_chat_edge_datasource.dart 생성
   - API 키가 Supabase Secrets에만 저장 (보안 강화)
+- Phase 21 (Edge Function 모델 최종 확정) ✅ 완료 (2024-12-31)
+  - ai-gemini v15: gemini-3-flash-preview, max_tokens 4096
+  - ai-openai v10: gpt-5.2-thinking, max_tokens 10000
+  - EdgeFunction_task.md 생성 (모델 변경 금지 문서)
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
@@ -183,10 +187,32 @@ C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome --web-port=9999
 | **Phase 18 (윤달 유효성 검증)** | ✅ **완료** (2025-12-30) |
 | **Phase 19 (토큰 사용량 추적)** | ✅ **완료** (2025-12-30, quota 체크 + QUOTA_EXCEEDED 처리) |
 | **Phase 20 (AI Edge Function 통합)** | ✅ **완료** (2025-12-30, API 키 보안 강화) |
+| **Phase 21 (Edge Function 모델 최종 확정)** | ✅ **완료** (2024-12-31, gpt-5.2-thinking + gemini-3-flash-preview) |
 
 ---
 
-## 🔐 Phase 20: AI Edge Function 통합 (다음 작업)
+## 🎯 Phase 21: Edge Function 모델 최종 확정 (2024-12-31)
+
+### 완료 내용
+
+| Edge Function | 버전 | 모델 | max_tokens | 비고 |
+|---------------|------|------|------------|------|
+| ai-gemini | **v15** | `gemini-3-flash-preview` | 4096 | 채팅/일운 분석용 |
+| ai-openai | **v10** | `gpt-5.2-thinking` | 10000 | 사주 분석용 (추론 강화) |
+
+### 생성된 문서
+
+- **EdgeFunction_task.md**: Edge Function 관리 문서 (모델 변경 금지 규칙)
+- 모든 Edge Function 코드에 `// 변경 금지` 주석 추가
+
+### 백업 파일
+
+- `supabase/backups/ai-gemini_v15_2024-12-30.ts`
+- `supabase/backups/ai-openai_v10_2024-12-31.ts`
+
+---
+
+## 🔐 Phase 20: AI Edge Function 통합 (완료)
 
 ### 개요
 

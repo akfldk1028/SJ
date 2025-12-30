@@ -64,9 +64,11 @@ Main Claude → [Orchestrator] → Pipeline → [Quality Gate] → 완료
 | 04_model_generator | Entity/Model 클래스 생성 | Builder |
 | 05_router_setup | go_router 라우팅 설정 | Config |
 | 06_local_storage | Hive 로컬 저장소 설정 | Config |
-| 07_task_tracker | TASKS.md 진행 관리 | Tracker |
+| 07_task_tracker | Task_Jaehyeon.md 진행 관리 | Tracker |
 | **08_shadcn_ui_builder** | shadcn_ui 모던 UI 구현 | **UI 필수** |
 | **09_manseryeok_calculator** | 만세력(사주팔자) 계산 로직 | **Domain 전문** |
+| 10_a2a_protocol | A2A 프로토콜 구현 | Protocol |
+| **11_progress_tracker** | Task_Jaehyeon.md + supabase_Jaehyeon_Task.md 통합 관리 | **Tracker 통합** |
 
 ### 호출 방식
 
@@ -81,6 +83,13 @@ Task 도구:
 ```
 Task 도구:
 - prompt: "[09_manseryeok_calculator] 사주 계산 로직 구현"
+- subagent_type: general-purpose
+```
+
+**3. Progress Tracker 통합 상태 확인 (권장)**
+```
+Task 도구:
+- prompt: "[11_progress_tracker] 현재 상태 확인"
 - subagent_type: general-purpose
 ```
 

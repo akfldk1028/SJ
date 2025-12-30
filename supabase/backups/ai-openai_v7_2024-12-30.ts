@@ -4,20 +4,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
- * 평생 사주 분석 (GPT-5.2 Thinking) 전용
+ * 평생 사주 분석 (GPT-4o) 전용
  * API 키는 서버에만 저장 (보안)
  *
  * Quota 시스템:
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
- *
- * v10 변경사항:
- * - 모델명: gpt-5.2-thinking (추론 강화)
- * - max_tokens: 10000 (전체 응답 보장)
- *
- * === 모델 변경 금지 ===
- * 이 Edge Function의 기본 모델은 반드시 gpt-5.2-thinking 유지
- * 변경 필요 시 EdgeFunction_task.md 참조
  */
 
 const corsHeaders = {
@@ -189,8 +181,8 @@ Deno.serve(async (req) => {
     const requestData: OpenAIRequest = await req.json();
     const {
       messages,
-      model = "gpt-5.2-thinking",  // 추론 강화 모델 - 변경 금지
-      max_tokens = 10000,           // 전체 응답 보장
+      model = "gpt-4o-mini",
+      max_tokens = 2000,
       temperature = 0.7,
       response_format,
       user_id,
@@ -233,12 +225,10 @@ Deno.serve(async (req) => {
     console.log(`[ai-openai] Calling OpenAI: model=${model}, isAdmin=${isAdmin}`);
 
     // OpenAI API 요청 body 구성
-    // 새로운 모델(o-series, gpt-5.x)은 max_completion_tokens 사용
-    // 기존 모델(gpt-4o, gpt-4o-mini)은 max_tokens도 지원하지만 max_completion_tokens 권장
     const requestBody: Record<string, unknown> = {
       model,
       messages,
-      max_completion_tokens: max_tokens, // deprecated max_tokens → max_completion_tokens
+      max_tokens,
       temperature,
     };
 
@@ -286,8 +276,8 @@ Deno.serve(async (req) => {
     const cachedTokens = usage.prompt_tokens_details?.cached_tokens || 0;
 
     // OpenAI 비용 계산 (USD)
-    // gpt-5.2-thinking: 입력 $3.00/1M, 출력 $12.00/1M (예상 가격)
-    const cost = (usage.prompt_tokens * 3.00 / 1000000) + (usage.completion_tokens * 12.00 / 1000000);
+    // gpt-4o-mini: 입력 $0.15/1M, 출력 $0.60/1M
+    const cost = (usage.prompt_tokens * 0.15 / 1000000) + (usage.completion_tokens * 0.60 / 1000000);
 
     // 토큰 사용량 기록
     if (user_id) {

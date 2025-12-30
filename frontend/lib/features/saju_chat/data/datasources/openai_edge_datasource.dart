@@ -6,26 +6,27 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/services/supabase_service.dart';
 
-/// OpenAI GPT 5.2 Edge Function 데이터소스
+/// OpenAI GPT-5.2-Thinking Edge Function 데이터소스
 ///
 /// Supabase Edge Function (ai-openai)을 통해 OpenAI API 호출
 /// API 키가 서버에만 저장되어 보안 강화
-/// 사주 분석 전용 - 정확한 추론에 특화
+/// 사주 분석 전용 - 추론 강화 모델 사용
+///
+/// 2024-12-31: GPT-5.2-Thinking 모델로 업그레이드 (추론 강화)
+/// === 모델 변경 금지 === EdgeFunction_task.md 참조
 class OpenAIEdgeDatasource {
   bool _isInitialized = false;
   late final Dio _dio;
 
   /// Edge Function URL
   String get _edgeFunctionUrl {
-    final baseUrl = SupabaseService.client?.supabaseUrl ?? '';
+    final baseUrl = SupabaseService.supabaseUrl ?? '';
     return '$baseUrl/functions/v1/ai-openai';
   }
 
   /// Supabase anon key (Authorization header용)
   String get _anonKey {
-    return SupabaseService.client != null
-        ? (SupabaseService.client!.headers['apikey'] ?? '')
-        : '';
+    return SupabaseService.anonKey ?? '';
   }
 
   /// 초기화 여부
@@ -78,6 +79,9 @@ class OpenAIEdgeDatasource {
       final systemPrompt = _buildSajuAnalysisPrompt();
       final userPrompt = _buildUserPrompt(birthInfo, chartData, question);
 
+      // user_id 가져오기 (Admin 체크용)
+      final userId = SupabaseService.currentUserId;
+
       final response = await _dio.post(
         '',
         data: {
@@ -85,9 +89,11 @@ class OpenAIEdgeDatasource {
             {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': userPrompt},
           ],
-          'model': 'gpt-5.2',
-          'max_tokens': 20000,
+          'model': 'gpt-5.2-thinking',  // 추론 강화 모델 - 변경 금지
+          'max_tokens': 10000,           // 전체 응답 보장
           'temperature': 0.3,
+          'response_format': {'type': 'json_object'},
+          if (userId != null) 'user_id': userId,
         },
       );
 

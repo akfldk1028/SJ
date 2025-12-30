@@ -37,6 +37,8 @@
 | 07 | task_tracker | TASKS.md 진행 관리 | Tracker |
 | **08** | **shadcn_ui_builder** | shadcn_ui 모던 UI 구현 | **UI 필수** |
 | **09** | **manseryeok_calculator** | 만세력(사주팔자) 계산 로직 | **Domain 전문** |
+| 10 | a2a_protocol_implementation | A2A 프로토콜 구현 | Protocol |
+| **11** | **progress_tracker** | TASKS.md + supabase_Jaehyeon_Task.md 통합 관리 | **Tracker 통합** |
 
 ---
 
@@ -249,3 +251,34 @@ features/{name}/
 **호출 시점:** 사주 계산 로직 구현 시
 
 **참고:** 독립 실행 가능, 포스텔러 만세력과 검증 필요
+
+---
+
+### 11_progress_tracker (Tracker 통합) ⭐ NEW
+
+**역할:** Frontend + Backend 진행 상황 통합 관리
+
+**관리 파일:**
+- `TASKS.md` - 전체 Phase별 작업 목록 + 서브에이전트 정의
+- `Task_Jaehyeon.md` - Jaehyeon 담당 Frontend 작업 상세
+- `supabase_Jaehyeon_Task.md` - Edge Function/SQL 작업 이력
+
+**핵심 기능:**
+- Frontend/Backend 진행률 통합 보고
+- Edge Function 백업 관리 (`supabase/backups/`)
+- 의존성 충돌 감지 (Flutter ↔ Supabase)
+- 다음 작업 우선순위 제안
+
+**호출 시점:**
+- 작업 시작 전 (현재 상태 확인)
+- Edge Function 수정 시 (백업 확인)
+- 세션 종료 시 (동기화 확인)
+
+**사용 예시:**
+```
+[11_progress_tracker] 현재 상태 확인
+[11_progress_tracker] Edge Function 수정: ai-gemini
+[11_progress_tracker] 다음 작업 추천
+```
+
+**참고:** 07_task_tracker를 확장하여 Backend까지 포괄

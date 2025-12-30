@@ -49,16 +49,13 @@ class GeminiEdgeDatasource {
 
   /// Edge Function URL
   String get _edgeFunctionUrl {
-    final baseUrl = SupabaseService.client?.supabaseUrl ?? '';
+    final baseUrl = SupabaseService.supabaseUrl ?? '';
     return '$baseUrl/functions/v1/ai-gemini';
   }
 
   /// Supabase anon key (Authorization header용)
   String get _anonKey {
-    // SupabaseService에서 anon key 가져오기
-    return SupabaseService.client != null
-        ? (SupabaseService.client!.headers['apikey'] ?? '')
-        : '';
+    return SupabaseService.anonKey ?? '';
   }
 
   /// 초기화 상태
@@ -122,13 +119,17 @@ class GeminiEdgeDatasource {
       // Edge Function 호출을 위한 메시지 포맷 변환
       final messages = _buildMessagesForEdge();
 
+      // user_id 가져오기 (Admin 체크용)
+      final userId = SupabaseService.currentUserId;
+
       final response = await _dio.post(
         '',
         data: {
           'messages': messages,
-          'model': 'gemini-2.5-flash',
+          'model': 'gemini-3-flash-preview',
           'max_tokens': 2048,
           'temperature': 0.8,
+          if (userId != null) 'user_id': userId,
         },
       );
 

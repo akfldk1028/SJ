@@ -55,6 +55,12 @@ class SupabaseService {
   /// Supabase 연결 여부
   static bool get isConnected => _client != null;
 
+  /// Supabase URL (Edge Function 호출용)
+  static String? get supabaseUrl => dotenv.env['SUPABASE_URL'];
+
+  /// Supabase Anon Key (Edge Function Authorization용)
+  static String? get anonKey => dotenv.env['SUPABASE_ANON_KEY'];
+
   /// 현재 인증된 사용자
   static User? get currentUser => _client?.auth.currentUser;
 

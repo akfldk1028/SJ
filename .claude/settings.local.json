@@ -170,7 +170,13 @@
       "Bash(cmd.exe /c \"dir C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat\")",
       "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\SOGANG\\\\flutter\\\\flutter\\\\bin\\\\flutter.bat \\(echo FOUND\\) else \\(echo NOT FOUND\\)\")",
       "Bash(C:UsersSOGANGflutterflutterbinflutter.bat analyze --no-fatal-infos)",
-      "Bash(/c/Users/SOGANG/flutter/flutter/bin/flutter.bat analyze:*)"
+      "Bash(/c/Users/SOGANG/flutter/flutter/bin/flutter.bat analyze:*)",
+      "Bash(C:UsersSOGANGflutterflutterbinflutter.bat run -d chrome --web-port=8080)",
+      "Bash(/c/Users/SOGANG/flutter/flutter/bin/flutter.bat run:*)",
+      "Bash(npx supabase functions deploy:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(npx supabase@latest login:*)",
+      "Bash(npx supabase@latest functions deploy ai-gemini)"
     ],
     "deny": [],
     "ask": []

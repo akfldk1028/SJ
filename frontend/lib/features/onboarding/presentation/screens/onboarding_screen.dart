@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:uuid/uuid.dart';
 
-
+import '../../../../core/config/admin_config.dart';
 import '../../../../router/routes.dart';
+import '../../../profile/domain/entities/gender.dart';
+import '../../../profile/domain/entities/relationship_type.dart';
+import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 import '../../../profile/presentation/widgets/birth_date_input_widget.dart';
@@ -62,6 +66,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       appBar: AppBar(
         title: const Text('사주 정보 입력'),
         centerTitle: true,
+        // Admin 버튼 - 개발 환경에서만 표시
+        actions: [
+          if (AdminConfig.isAdminModeAvailable)
+            _isAdminLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.admin_panel_settings),
+                    tooltip: '개발자 모드',
+                    onPressed: () => _handleAdminLogin(context),
+                  ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -127,5 +149,69 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const BirthTimeOptions(),
       ],
     );
+  }
+
+  bool _isAdminLoading = false;
+
+  /// Admin 프로필 자동 생성 및 채팅 화면 이동
+  ///
+  /// ProfileForm.saveProfile()을 사용하여 일반 사용자와 동일한 로직으로 처리
+  /// - saju_analyses 테이블에 만세력 데이터 자동 생성
+  /// - AI 분석 백그라운드 트리거
+  Future<void> _handleAdminLogin(BuildContext context) async {
+    if (_isAdminLoading) return;
+
+    setState(() {
+      _isAdminLoading = true;
+    });
+
+    try {
+      // 1. 기존 Admin 프로필 확인 (Hive 캐시에서)
+      final allProfiles = await ref.read(allProfilesProvider.future);
+      final existingAdmin = allProfiles.where(
+        (p) => p.relationType == RelationshipType.admin,
+      ).firstOrNull;
+
+      if (existingAdmin != null) {
+        // 기존 Admin 프로필이 있으면 활성화만
+        final profileListNotifier = ref.read(profileListProvider.notifier);
+        await profileListNotifier.setActiveProfile(existingAdmin.id);
+        await ref.read(activeProfileProvider.notifier).refresh();
+      } else {
+        // 2. 없으면 ProfileForm을 통해 새로 생성
+        // ProfileForm.saveProfile()은 saju_analyses 데이터도 함께 생성함
+        final formNotifier = ref.read(profileFormProvider.notifier);
+
+        // Admin 정보로 폼 설정
+        formNotifier.updateDisplayName(AdminConfig.displayName);
+        formNotifier.updateGender(Gender.female);
+        formNotifier.updateBirthDate(AdminConfig.birthDate);
+        formNotifier.updateIsLunar(AdminConfig.isLunar);
+        formNotifier.updateBirthCity(AdminConfig.birthCity);
+        formNotifier.updateBirthTimeUnknown(AdminConfig.birthTimeUnknown);
+        formNotifier.updateRelationType(RelationshipType.admin);
+
+        // 프로필 저장 (saju_analyses 자동 생성 + AI 분석 트리거)
+        await formNotifier.saveProfile();
+      }
+
+      // 3. 화면 이동
+      if (mounted) {
+        context.go(Routes.menu);
+      }
+    } catch (e) {
+      // 에러 처리
+      if (mounted) {
+        setState(() {
+          _isAdminLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Admin 로그인 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
