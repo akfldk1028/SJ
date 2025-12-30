@@ -21,8 +21,8 @@ class TokenCounter {
   };
 
   /// 안전 마진 (출력 토큰 + 버퍼)
-  /// maxOutputTokens(8192) + 여유분
-  static const int safetyMargin = 10000;
+  /// maxOutputTokens(16384) + 여유분
+  static const int safetyMargin = 18000;
 
   /// 기본 최대 입력 토큰 (안전 마진 적용)
   static const int defaultMaxInputTokens = 100000; // 실용적인 제한
