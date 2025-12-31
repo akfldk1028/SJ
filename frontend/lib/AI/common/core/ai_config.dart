@@ -21,8 +21,8 @@ class AIConfig {
 
   // OpenAI Models (GPT-5.2 - 2025.12.11 출시)
   // Responses API 사용: /v1/responses
-  static const String gptDefault = 'gpt-5.2'; // Thinking - 추론 특화
-  static const String gptInstant = 'gpt-5.2-chat-latest'; // Instant - 빠른 응답
+  static const String gptDefault = 'gpt-5.2-thinking'; // Thinking - 추론 특화 (100-150초)
+  static const String gptInstant = 'gpt-5.2-instant'; // Instant - 빠른 응답
   static const String gptPro = 'gpt-5.2-pro'; // Pro - 최고 품질
   static const String gptLegacy = 'gpt-4o'; // 이전 버전 (Chat Completions API)
 

@@ -10,19 +10,33 @@ import '../../../../core/services/supabase_service.dart';
 ///
 /// Supabase Edge Function (ai-openai)을 통해 OpenAI API 호출
 /// API 키가 서버에만 저장되어 보안 강화
-/// 사주 분석 전용
+/// 사주 분석 전용 - 추론 강화 모델 사용
 ///
-/// v15: 직접 응답 방식 (Polling 제거)
-/// - gpt-5.2 모델 사용 (thinking 아님)
-/// - Edge Function이 응답을 직접 반환
+/// 2024-12-31: GPT-5.2 모델 적용
+/// 2024-12-31: v24 - OpenAI Responses API background 모드
+/// - Supabase 150초 walltime 제한 완전 회피!
+/// - OpenAI 클라우드에서 비동기 처리 (시간 제한 없음)
+/// - task_id 반환 → polling으로 결과 확인
+/// === 모델 변경 금지 === EdgeFunction_task.md 참조
 class OpenAIEdgeDatasource {
   bool _isInitialized = false;
   late final Dio _dio;
+
+  /// Polling 설정 (v24)
+  /// GPT-5.2 reasoning: 60-120초 예상, 최대 4분 대기
+  static const int _maxPollingAttempts = 120; // 최대 120회
+  static const Duration _pollingInterval = Duration(seconds: 2); // 2초 간격 = 최대 240초
 
   /// Edge Function URL
   String get _edgeFunctionUrl {
     final baseUrl = SupabaseService.supabaseUrl ?? '';
     return '$baseUrl/functions/v1/ai-openai';
+  }
+
+  /// 결과 조회 Edge Function URL
+  String get _resultFunctionUrl {
+    final baseUrl = SupabaseService.supabaseUrl ?? '';
+    return '$baseUrl/functions/v1/ai-openai-result';
   }
 
   /// Supabase anon key (Authorization header용)
@@ -53,25 +67,26 @@ class OpenAIEdgeDatasource {
     }
 
     _dio = Dio(BaseOptions(
-      baseUrl: _edgeFunctionUrl,
       headers: {
         'Content-Type': 'application/json',
         'apikey': _anonKey,
       },
       connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 180), // GPT 분석은 오래 걸릴 수 있음
+      receiveTimeout: const Duration(seconds: 120), // GPT-5.2 medium reasoning (30-60초)
     ));
 
     _isInitialized = true;
     if (kDebugMode) {
-      print('[OpenAIEdge] Initialized with Edge Function');
+      print('[OpenAIEdge v24] Initialized with Background mode (Responses API)');
     }
   }
 
-  /// 사주 분석 요청 (GPT 5.2)
+  /// 사주 분석 요청 (GPT 5.2 Background 모드 - v24)
   ///
-  /// v15: 직접 응답 방식
-  /// - ai-openai 호출 → 응답 직접 반환
+  /// OpenAI Responses API background 모드 사용:
+  /// - Supabase 150초 walltime 제한 완전 회피!
+  /// - OpenAI 클라우드에서 비동기 처리 (시간 제한 없음)
+  /// - task_id 반환 → polling으로 결과 확인
   ///
   /// [birthInfo] 생년월일시 정보
   /// [chartData] 만세력 계산 결과 (JSON)
@@ -91,24 +106,26 @@ class OpenAIEdgeDatasource {
       final systemPrompt = _buildSajuAnalysisPrompt();
       final userPrompt = _buildUserPrompt(birthInfo, chartData, question);
 
-      // user_id 가져오기 (Quota 체크용)
+      // user_id 가져오기 (Admin 체크용)
       final userId = SupabaseService.currentUserId;
 
       if (kDebugMode) {
-        print('[OpenAIEdge] ai-openai 호출 시작');
+        print('[OpenAIEdge v24] Starting Background request (OpenAI Responses API)...');
       }
 
+      // Step 1: Background 모드로 요청 시작
+      // OpenAI Responses API가 클라우드에서 비동기 처리
       final response = await _dio.post(
-        '',
+        _edgeFunctionUrl,
         data: {
           'messages': [
             {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': userPrompt},
           ],
-          'model': 'gpt-5.2',  // thinking 아닌 일반 모델
-          'max_tokens': 10000,
-          'temperature': 0.3,
+          'model': 'gpt-5.2', // GPT-5.2 모델 - 변경 금지
+          'max_tokens': 10000, // 전체 응답 보장
           'response_format': {'type': 'json_object'},
+          'run_in_background': true, // v24: Background 모드 (Responses API)
           if (userId != null) 'user_id': userId,
         },
         options: Options(
@@ -120,56 +137,124 @@ class OpenAIEdgeDatasource {
 
       final responseData = response.data as Map<String, dynamic>;
 
-      // Quota 초과 체크
-      if (responseData['error'] == 'QUOTA_EXCEEDED') {
-        if (kDebugMode) {
-          print('[OpenAIEdge] Quota exceeded');
-        }
-        return {
-          'error': 'QUOTA_EXCEEDED',
-          'message': responseData['message'],
-        };
-      }
-
-      // 성공 여부 확인
       if (responseData['success'] != true) {
-        final error = responseData['error'] ?? 'Unknown error';
         if (kDebugMode) {
-          print('[OpenAIEdge] Error: $error');
+          print('[OpenAIEdge v24] Error: ${responseData['error']}');
         }
         return _getMockAnalysis(question);
       }
 
-      // content 추출 및 파싱
-      final content = responseData['content'] as String? ?? '';
+      // Background 모드: task_id 반환됨
+      final taskId = responseData['task_id'] as String?;
+      final openaiResponseId = responseData['openai_response_id'] as String?;
 
       if (kDebugMode) {
-        final processingTime = responseData['processing_time_ms'] ?? 0;
-        print('[OpenAIEdge] 완료: ${processingTime}ms');
+        print('[OpenAIEdge v24] Task created: $taskId');
+        print('[OpenAIEdge v24] OpenAI Response ID: $openaiResponseId');
       }
 
-      // JSON 파싱 시도
-      try {
-        return jsonDecode(content) as Map<String, dynamic>;
-      } catch (_) {
-        return {
-          'analysis': {'raw_text': content},
-          'parse_error': true,
-        };
+      if (taskId == null) {
+        if (kDebugMode) {
+          print('[OpenAIEdge v24] No task_id received');
+        }
+        return _getMockAnalysis(question);
       }
 
+      // Step 2: Polling으로 결과 대기
+      return await _pollForResult(taskId);
     } on DioException catch (e) {
       if (kDebugMode) {
-        print('[OpenAIEdge] DioError: ${e.message}');
-        print('[OpenAIEdge] Response: ${e.response?.data}');
+        print('[OpenAIEdge v24] DioError: ${e.message}');
+        print('[OpenAIEdge v24] Response: ${e.response?.data}');
       }
       return _getMockAnalysis(question);
     } catch (e) {
       if (kDebugMode) {
-        print('[OpenAIEdge] Error: $e');
+        print('[OpenAIEdge v24] Error: $e');
       }
       return _getMockAnalysis(question);
     }
+  }
+
+  /// Task 결과 폴링 (v24 - OpenAI Responses API)
+  ///
+  /// ai-openai-result Edge Function 호출
+  /// → OpenAI /v1/responses/{id} 직접 polling
+  /// → 상태: queued → in_progress → completed
+  Future<Map<String, dynamic>> _pollForResult(String taskId) async {
+    for (int attempt = 0; attempt < _maxPollingAttempts; attempt++) {
+      try {
+        final response = await _dio.post(
+          _resultFunctionUrl,
+          data: {'task_id': taskId},
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $_authToken',
+            },
+          ),
+        );
+
+        final data = response.data as Map<String, dynamic>;
+        final status = data['status'] as String?;
+
+        if (kDebugMode && attempt % 5 == 0) {
+          print('[OpenAIEdge v24] Polling attempt $attempt: status=$status');
+        }
+
+        switch (status) {
+          case 'completed':
+            // v24: content가 최상위 레벨에 있음
+            if (kDebugMode) {
+              print('[OpenAIEdge v24] Task completed after $attempt attempts');
+              print('[OpenAIEdge v24] Usage: ${data['usage']}');
+            }
+            final content = data['content'] as String?;
+            if (content != null && content.isNotEmpty) {
+              return _parseAnalysisResponse(content);
+            }
+            return _getMockAnalysis('');
+
+          case 'failed':
+            if (kDebugMode) {
+              print('[OpenAIEdge v24] Task failed: ${data['error']}');
+            }
+            return _getMockAnalysis('');
+
+          case 'queued':
+          case 'in_progress':
+            // v24: OpenAI 상태값 그대로 사용
+            if (kDebugMode && attempt % 10 == 0) {
+              print('[OpenAIEdge v24] OpenAI processing... ($status)');
+            }
+            await Future.delayed(_pollingInterval);
+            break;
+
+          case 'pending':
+          case 'processing':
+            // 레거시 상태값 호환
+            await Future.delayed(_pollingInterval);
+            break;
+
+          default:
+            if (kDebugMode) {
+              print('[OpenAIEdge v24] Unknown status: $status');
+            }
+            // 알 수 없는 상태는 계속 polling
+            await Future.delayed(_pollingInterval);
+            break;
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('[OpenAIEdge v24] Polling error: $e');
+        }
+        await Future.delayed(_pollingInterval);
+      }
+    }
+
+    if (kDebugMode) {
+      print('[OpenAIEdge v24] Polling timeout after $_maxPollingAttempts attempts (${_maxPollingAttempts * 2}s)');
+    }
+    return _getMockAnalysis('');
   }
 
   /// 스트리밍 분석 (실시간 추론 과정 표시)
@@ -198,6 +283,18 @@ class OpenAIEdgeDatasource {
         print('[OpenAIEdge] Stream Error: $e');
       }
       yield jsonEncode(_getMockAnalysis(question));
+    }
+  }
+
+  /// 분석 응답 파싱
+  Map<String, dynamic> _parseAnalysisResponse(String content) {
+    try {
+      return jsonDecode(content) as Map<String, dynamic>;
+    } catch (_) {
+      return {
+        'analysis': {'raw_text': content},
+        'parse_error': true,
+      };
     }
   }
 

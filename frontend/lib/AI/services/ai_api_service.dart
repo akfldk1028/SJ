@@ -7,13 +7,17 @@
 /// ## 파일 위치
 /// `frontend/lib/AI/services/ai_api_service.dart`
 ///
-/// ## 아키텍처 (v15 - 직접 응답)
+/// ## 아키텍처
 /// ```
 /// Flutter App
 ///     ↓
-/// AiApiService.callOpenAI()
+/// AiApiService.callOpenAI() / callGemini()
 ///     ↓
-/// ai-openai Edge Function → 즉시 응답
+/// Supabase Edge Function (ai-openai, ai-gemini)
+///     ↓
+/// OpenAI API / Google Gemini API
+///     ↓
+/// 응답 (JSON)
 /// ```
 ///
 /// ## Edge Function 역할
@@ -29,9 +33,8 @@
 /// final gptResponse = await service.callOpenAI(
 ///   messages: prompt.buildMessages(inputData),
 ///   model: 'gpt-5.2',
-///   maxTokens: 10000,
+///   maxTokens: 4096,
 ///   temperature: 0.7,
-///   userId: userId,
 /// );
 ///
 /// // Gemini 호출 (일운)
@@ -61,7 +64,7 @@
 /// - 결과는 `ai_summaries.total_cost_usd`에 저장
 ///
 /// ## 관련 파일
-/// - `supabase/functions/ai-openai/index.ts`: OpenAI Edge Function (v15)
+/// - `supabase/functions/ai-openai/index.ts`: OpenAI Edge Function
 /// - `supabase/functions/ai-gemini/index.ts`: Gemini Edge Function
 /// - `ai_constants.dart`: 모델명, 가격 정보
 
@@ -161,36 +164,37 @@ class AiApiService {
   SupabaseClient get _client => Supabase.instance.client;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // OpenAI API (GPT-5.2) - 직접 응답
+  // OpenAI API (GPT-5.2)
   // ─────────────────────────────────────────────────────────────────────────
 
   /// OpenAI API 호출 (GPT-5.2)
   ///
-  /// ## v15 아키텍처 (직접 응답)
-  /// Edge Function이 OpenAI 응답을 직접 반환
+  /// ## Edge Function
+  /// `supabase/functions/ai-openai/index.ts`
   ///
   /// ## 파라미터
   /// - `messages`: [{role: 'system', content: ...}, {role: 'user', content: ...}]
   /// - `model`: 모델 ID (기본: 'gpt-5.2')
-  /// - `maxTokens`: 최대 응답 토큰 (기본: 10000)
+  /// - `maxTokens`: 최대 응답 토큰 (기본: 2000)
   /// - `temperature`: 창의성 (0.0~2.0, 기본: 0.7)
   /// - `logType`: 로그 분류 (기본: 'unknown')
-  /// - `userId`: 사용자 ID (Quota 체크용)
+  ///
+  /// ## 응답 처리
+  /// 1. Edge Function 호출
+  /// 2. JSON 응답 파싱 (```json``` 블록 처리)
+  /// 3. 토큰 사용량 추출
+  /// 4. 비용 계산
+  /// 5. 로컬 로그 저장
   Future<AiApiResponse> callOpenAI({
     required List<Map<String, String>> messages,
     required String model,
-    int maxTokens = 10000,
+    int maxTokens = 2000,
     double temperature = 0.7,
     String logType = 'unknown',
-    String? userId,
-    String? taskType,  // 미사용 (호환성 유지)
-    String? profileId, // 미사용 (호환성 유지)
+    String? userId,  // ai_tasks 중복 방지용
   }) async {
     try {
-      print('[AiApiService] OpenAI 호출 시작: $model');
-
-      // userId 가져오기 (없으면 현재 사용자)
-      userId ??= _client.auth.currentUser?.id;
+      print('[AiApiService] OpenAI 호출: $model (userId: ${userId ?? "null"})');
 
       final response = await _client.functions.invoke(
         'ai-openai',
@@ -200,7 +204,7 @@ class AiApiService {
           'max_tokens': maxTokens,
           'temperature': temperature,
           'response_format': {'type': 'json_object'},
-          if (userId != null) 'user_id': userId,
+          if (userId != null) 'user_id': userId,  // Edge Function에서 ai_tasks.user_id로 저장
         },
       );
 
@@ -211,21 +215,6 @@ class AiApiService {
       }
 
       final data = response.data as Map<String, dynamic>;
-
-      // Quota 초과 체크
-      if (data['error'] == 'QUOTA_EXCEEDED') {
-        print('[AiApiService] Quota 초과');
-        return AiApiResponse.failure('QUOTA_EXCEEDED: ${data['message']}');
-      }
-
-      // 성공 여부 확인
-      if (data['success'] != true) {
-        final error = data['error'] ?? 'Unknown error';
-        print('[AiApiService] OpenAI 실패: $error');
-        return AiApiResponse.failure(error.toString());
-      }
-
-      // content 파싱
       final content = _parseJsonContent(data['content'] as String?);
 
       // 토큰 사용량 추출
@@ -242,8 +231,7 @@ class AiApiService {
         cachedTokens: cachedTokens,
       );
 
-      final processingTime = data['processing_time_ms'] as int? ?? 0;
-      print('[AiApiService] OpenAI 완료: prompt=$promptTokens, completion=$completionTokens, time=${processingTime}ms');
+      print('[AiApiService] OpenAI 완료: prompt=$promptTokens, completion=$completionTokens');
 
       // 로컬 로그 저장
       await AiLogger.log(
