@@ -216,9 +216,11 @@ class AiSummaryService {
         status: 'completed',
       );
 
+      // saju_base 타입은 profile_id만으로 unique (idx_ai_summaries_unique_base)
+      // partial index: UNIQUE (profile_id) WHERE (summary_type = 'saju_base')
       await client
           .from(AiSummaries.table_name)
-          .upsert(data, onConflict: 'profile_id,summary_type')
+          .upsert(data, onConflict: 'profile_id')
           .select()
           .single();
 

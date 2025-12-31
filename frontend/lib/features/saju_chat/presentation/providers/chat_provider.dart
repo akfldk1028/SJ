@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
@@ -343,6 +345,45 @@ class ChatNotifier extends _$ChatNotifier {
           print('   ✅ DB 캐시에서 로드: $profileId');
           print('   📋 sajuOrigin: ${cachedSummary.sajuOrigin != null ? '있음' : '없음'}');
         }
+
+        // 2. sajuOrigin이 없으면 GPT-5.2 트리거 (동기 실행)
+        if (cachedSummary.sajuOrigin == null) {
+          if (kDebugMode) {
+            print('   🔄 sajuOrigin 없음 - GPT-5.2 분석 시작...');
+          }
+
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user != null) {
+            final sajuService = SajuAnalysisService();
+            final result = await sajuService.analyzeOnProfileSave(
+              userId: user.id,
+              profileId: profileId,
+              runInBackground: false, // 완료 대기
+            );
+
+            if (result.sajuBase?.success == true) {
+              if (kDebugMode) {
+                print('   ✅ GPT-5.2 분석 완료 - DB에서 다시 조회');
+              }
+              // DB에서 다시 조회하여 sajuOrigin 포함된 데이터 반환
+              final updatedSummary =
+                  await AiSummaryService.getCachedSummary(profileId);
+              if (updatedSummary != null) {
+                _cachedAiSummary = updatedSummary;
+                return updatedSummary;
+              }
+            } else {
+              if (kDebugMode) {
+                print('   ⚠️ GPT-5.2 분석 실패: ${result.sajuBase?.error}');
+              }
+            }
+          } else {
+            if (kDebugMode) {
+              print('   ⚠️ 로그인 필요 - GPT-5.2 스킵');
+            }
+          }
+        }
+
         _cachedAiSummary = cachedSummary;
         return cachedSummary;
       }

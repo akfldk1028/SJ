@@ -1,9 +1,103 @@
 # AI 프롬프트 모듈
 
+● 로그를 확인했습니다:
+
+  1. 프로필 분석 대상이 "이지나"로 정확히 나옵니다 (line 132)
+  2. 하지만 Edge Function이 WORKER_LIMIT 오류로 실패했습니다 - Supabase 컴퓨팅 리소스 부족
+
+  현재 구현 흐름 정리:
+  프로필 생성:
+    └─> GPT-5.2 백그라운드 실행 (fire-and-forget) ✅
+
+  채팅 시작:
+    └─> _ensureAiSummary 호출
+         └─> DB에서 캐시 확인
+              └─> sajuOrigin이 null이면?
+                   └─> GPT-5.2 동기 실행 (대기)
+                   └─> 완료 후 채팅 진행
+
+  사용자가 말한 "비동기로 해야하고"가 채팅에서도 fire-and-forget을 의미하는 건지 확인이 필요합니다. 현재 구현은 채팅에서 saju_origin이 없으면 GPT-5.2가 완료될 때까지 로딩 상태로 대기합니다.
+
+  Supabase Edge Function 오류부터 해결해야 테스트가 가능합니다. 이건 Supabase 콘솔에서 확인이 필요합니다.
+
+● supabase - Get project logs (MCP)(service: "edge-function")
+  ⎿  {
+       "result": [
+         {
+     … +1102 lines (ctrl+o to expand)
+
+● Edge Function 로그 확인 결과:
+  - ai-openai (GPT-5.2): 계속 546 오류 (WORKER_LIMIT - 컴퓨팅 리소스 부족)
+  - ai-gemini: 정상 작동 (200)
+
+  최신 앱 출력을 확인하겠습니다.
+
+● Read(C:\Users\SOGANG1\AppData\Local\Temp\claude\D--Data-20-Flutter-01-SJ\tasks\bdc102a.output)
+  ⎿  Read 100 lines
+
+● 로그 확인 결과:
+
+  분석 대상 확인:
+  - 이름: 이지나 ✅ (정확함)
+  - 생년월일: 1999년 7월 27일
+  - 사주 팔자: 기묘 신미 경진 (시주 미상)
+
+  문제점:
+  - ai-openai Edge Function이 WORKER_LIMIT 오류로 실패 (Supabase 무료 플랜 제한)
+  - GPT-5.2 호출이 150초 후 타임아웃
+
+  현재 구현 흐름 정리:
+
+  1. 프로필 생성 시:
+     └─> GPT-5.2 백그라운드 실행 (fire-and-forget)
+     └─> 화면 멈추지 않음 ✅
+
+  2. 채팅 시작 시 (_ensureAiSummary):
+     └─> DB에서 캐시 확인
+     └─> sajuOrigin 있음 → 바로 채팅 진행
+     └─> sajuOrigin 없음 → GPT-5.2 실행 & 대기 (로딩 표시)
+         └─> 완료 후 채팅 진행
+
+  사용자가 말한 "비동기로 해야하고"가 정확히 어떤 의미인지 확인이 필요합니다:
+  - 현재 구현: 채팅에서 saju_origin 없으면 GPT-5.2 완료까지 로딩 상태로 대기
+  - 다른 옵션: 채팅도 fire-and-forget으로 하고 saju_origin 없이 진행?
+
+  Supabase WORKER_LIMIT 오류는 Edge Function 리소스 한계입니다. 무료 플랜에서는 동시 실행 제한이 있습니다.
+
+
 ## 개요
 
 사주명리학 분석을 위한 AI 프롬프트 템플릿 모듈입니다.
 `saju_analyses` 테이블의 데이터를 AI 모델에 전달하기 위한 프롬프트로 변환합니다.
+
+
+  데이터 흐름 다이어그램
+
+  [신규 사용자]
+      ↓
+  [프로필 생성] → Splash에서 saju_base 없음 감지
+      ↓
+  [백그라운드 GPT-5.2 호출] (Fire-and-forget)
+      ↓
+  [saju_origin 추출 + content에 추가]
+      ↓
+  [ai_summaries DB 저장] (summary_type='saju_base')
+      ↓
+  [Gemini 채팅 시작]
+      ↓
+  [AiSummaryService.getCachedSummary()] → saju_origin 파싱
+      ↓
+  [chat_provider._buildFullSystemPrompt()]
+      ↓
+  [첫 메시지: sajuOrigin 전체 포함]
+  [이후 메시지: 히스토리 참조]
+
+  결론: 코드 흐름은 올바르게 구현되어 있습니다.
+
+  실제 테스트로 검증해 보겠습니다.
+
+
+
 
 ## 파일 구조
 

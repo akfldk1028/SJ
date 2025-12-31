@@ -143,9 +143,14 @@ class AiMutations extends BaseMutations {
           expiresAt: expiresAt,
         );
 
+        // UPSERT: 같은 (profile_id, target_date, summary_type) 조합이면 업데이트
+        // idx_ai_summaries_unique_daily constraint 충돌 방지 (409 Conflict 해결)
         final response = await client
             .from(AiSummaries.table_name)
-            .insert(data)
+            .upsert(
+              data,
+              onConflict: 'profile_id,target_date,summary_type',
+            )
             .select()
             .single();
 

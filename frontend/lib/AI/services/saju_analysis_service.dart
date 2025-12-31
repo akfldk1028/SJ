@@ -378,11 +378,19 @@ class SajuAnalysisService {
         throw Exception(response.error ?? 'GPT API 호출 실패');
       }
 
-      // 4. 결과 저장
+      // 4. saju_origin 추가 (만세력 원본 데이터 - 채팅 시 참조용)
+      // GPT-5.2 응답에 saju_origin이 없을 수 있으므로 inputJson에서 직접 추출
+      final contentWithOrigin = Map<String, dynamic>.from(response.content!);
+      if (!contentWithOrigin.containsKey('saju_origin')) {
+        contentWithOrigin['saju_origin'] = _buildSajuOrigin(inputJson);
+        print('[SajuAnalysisService] saju_origin 추가됨 (from inputJson)');
+      }
+
+      // 5. 결과 저장
       final saveResult = await aiMutations.saveSajuBaseSummary(
         userId: userId,
         profileId: profileId,
-        content: response.content!,
+        content: contentWithOrigin,
         inputData: inputJson,
         modelName: prompt.modelName,
         promptTokens: response.promptTokens,
@@ -579,6 +587,96 @@ class SajuAnalysisService {
 
     return _runDailyFortuneAnalysis(userId, profileId, inputData.toJson());
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // saju_base 전용 분석 (Splash 화면에서 호출)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// saju_base 분석 확인 및 실행 (GPT-5.2)
+  ///
+  /// ## 용도
+  /// - Splash 화면에서 기존 사용자의 saju_base 존재 여부 확인
+  /// - 없으면 GPT-5.2 분석 실행 (fire-and-forget)
+  ///
+  /// ## 호출 시점
+  /// - Splash에서 프로필이 있지만 saju_base 분석이 없을 때 (기존 사용자)
+  /// - 채팅 시작 전 saju_origin 필요할 때
+  ///
+  /// ## 특징
+  /// - saju_base만 분석 (daily_fortune은 별도)
+  /// - 캐시 존재 시 스킵
+  /// - Fire-and-forget 지원
+  ///
+  /// ## 예시
+  /// ```dart
+  /// // Fire-and-forget (Splash 화면)
+  /// sajuAnalysisService.ensureSajuBaseAnalysis(
+  ///   userId: user.id,
+  ///   profileId: profileId,
+  ///   runInBackground: true,  // 즉시 반환
+  /// );
+  ///
+  /// // 완료 대기 (채팅 시작 전)
+  /// final result = await sajuAnalysisService.ensureSajuBaseAnalysis(
+  ///   userId: user.id,
+  ///   profileId: profileId,
+  ///   runInBackground: false,
+  /// );
+  /// ```
+  Future<AnalysisResult> ensureSajuBaseAnalysis({
+    required String userId,
+    required String profileId,
+    bool runInBackground = true,
+    void Function(AnalysisResult)? onComplete,
+  }) async {
+    print('[SajuAnalysisService] 🚀 ensureSajuBaseAnalysis 시작: $profileId');
+
+    // 1. 캐시 확인 (이미 분석된 경우 스킵)
+    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    if (cached.isSuccess && cached.data != null) {
+      print('[SajuAnalysisService] ✅ saju_base 캐시 존재 - 스킵');
+      return AnalysisResult.success(
+        summaryId: cached.data!.id,
+        processingTimeMs: 0,
+      );
+    }
+
+    // 2. 사주 데이터 준비
+    final inputData = await _prepareInputData(profileId);
+    if (inputData == null) {
+      print('[SajuAnalysisService] ❌ 사주 데이터 조회 실패');
+      return AnalysisResult.failure('사주 데이터 조회 실패');
+    }
+
+    // 3. 분석 실행
+    if (runInBackground) {
+      // Fire-and-forget
+      print('[SajuAnalysisService] 🔥 백그라운드 GPT-5.2 분석 시작');
+      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
+    } else {
+      // 완료 대기
+      print('[SajuAnalysisService] ⏳ GPT-5.2 분석 대기 중...');
+      return await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+    }
+  }
+
+  /// saju_base 분석 백그라운드 실행
+  void _runSajuBaseAnalysisInBackground(
+    String userId,
+    String profileId,
+    Map<String, dynamic> inputJson,
+    void Function(AnalysisResult)? onComplete,
+  ) {
+    _runSajuBaseAnalysis(userId, profileId, inputJson).then((result) {
+      print('[SajuAnalysisService] ✅ 백그라운드 GPT-5.2 분석 완료: ${result.success}');
+      if (onComplete != null) {
+        onComplete(result);
+      }
+    }).catchError((e) {
+      print('[SajuAnalysisService] ❌ 백그라운드 GPT-5.2 분석 오류: $e');
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -597,3 +695,80 @@ class SajuAnalysisService {
 /// );
 /// ```
 final sajuAnalysisService = SajuAnalysisService();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 헬퍼 함수
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// inputJson에서 saju_origin 구조 생성
+///
+/// GPT-5.2가 saju_origin을 응답에 포함하지 않을 경우,
+/// 이 함수로 inputJson(만세력 계산 결과)에서 직접 추출하여 DB에 저장
+///
+/// ## 포함 데이터
+/// - saju: 사주팔자 (년월일시 간지)
+/// - oheng: 오행 분포
+/// - yongsin: 용신
+/// - hapchung: 합충형파해 관계
+/// - sinsal: 신살 목록
+/// - gilseong: 길성 목록
+/// - sipsin_info: 십성 정보
+/// - twelve_unsung: 십이운성
+/// - gyeokguk: 격국
+Map<String, dynamic> _buildSajuOrigin(Map<String, dynamic> inputJson) {
+  return {
+    // 기본 사주 정보
+    'saju': {
+      'year': {
+        'gan': inputJson['saju']?['year_gan'],
+        'ji': inputJson['saju']?['year_ji'],
+      },
+      'month': {
+        'gan': inputJson['saju']?['month_gan'],
+        'ji': inputJson['saju']?['month_ji'],
+      },
+      'day': {
+        'gan': inputJson['saju']?['day_gan'],
+        'ji': inputJson['saju']?['day_ji'],
+      },
+      'hour': {
+        'gan': inputJson['saju']?['hour_gan'],
+        'ji': inputJson['saju']?['hour_ji'],
+      },
+    },
+
+    // 오행 분포 (영문 → 한글 변환)
+    'oheng': {
+      '목': inputJson['oheng']?['wood'] ?? 0,
+      '화': inputJson['oheng']?['fire'] ?? 0,
+      '토': inputJson['oheng']?['earth'] ?? 0,
+      '금': inputJson['oheng']?['metal'] ?? 0,
+      '수': inputJson['oheng']?['water'] ?? 0,
+    },
+
+    // 용신 정보
+    'yongsin': inputJson['yongsin'],
+    'day_strength': inputJson['day_strength'],
+
+    // 합충형파해 (가장 중요한 관계 분석)
+    'hapchung': inputJson['hapchung'],
+
+    // 신살 및 길성
+    'sinsal': inputJson['sinsal'],
+    'gilseong': inputJson['gilseong'],
+
+    // 십성, 십이운성, 격국
+    'sipsin_info': inputJson['sipsin_info'],
+    'twelve_unsung': inputJson['twelve_unsung'],
+    'gyeokguk': inputJson['gyeokguk'],
+
+    // 지장간 정보
+    'jijanggan_info': inputJson['jijanggan_info'],
+
+    // 대운 정보
+    'daeun': inputJson['daeun'],
+
+    // 특수 신살 (12신살 등)
+    'twelve_sinsal': inputJson['twelve_sinsal'],
+  };
+}

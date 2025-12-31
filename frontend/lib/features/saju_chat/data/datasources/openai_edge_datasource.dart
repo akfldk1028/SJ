@@ -29,6 +29,15 @@ class OpenAIEdgeDatasource {
     return SupabaseService.anonKey ?? '';
   }
 
+  /// 현재 유효한 Authorization 토큰 (JWT 우선, 없으면 anon key)
+  String get _authToken {
+    final userToken = SupabaseService.accessToken;
+    if (userToken != null && userToken.isNotEmpty) {
+      return userToken;
+    }
+    return _anonKey;
+  }
+
   /// 초기화 여부
   bool get isInitialized => _isInitialized;
 
@@ -46,7 +55,6 @@ class OpenAIEdgeDatasource {
       baseUrl: _edgeFunctionUrl,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_anonKey',
         'apikey': _anonKey,
       },
       connectTimeout: const Duration(seconds: 30),
@@ -95,6 +103,11 @@ class OpenAIEdgeDatasource {
           'response_format': {'type': 'json_object'},
           if (userId != null) 'user_id': userId,
         },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $_authToken', // JWT 토큰 동적 설정
+          },
+        ),
       );
 
       final responseData = response.data as Map<String, dynamic>;
