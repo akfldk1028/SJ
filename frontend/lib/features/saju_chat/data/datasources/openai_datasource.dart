@@ -14,11 +14,11 @@ class OpenAIDatasource {
 
   static const String _baseUrl = 'https://api.openai.com/v1';
 
-  /// GPT 5.2 Thinking 모델 (복잡한 추론용)
-  static const String _thinkingModel = 'gpt-5.2';
+  /// GPT 5.2 Thinking 모델 (복잡한 추론용, 100-150초)
+  static const String _thinkingModel = 'gpt-5.2-thinking';
 
   /// GPT 5.2 Instant 모델 (빠른 응답용)
-  static const String _instantModel = 'gpt-5.2-chat-latest';
+  static const String _instantModel = 'gpt-5.2-instant';
 
   /// 환경변수에서 API 키 가져오기
   static String get _apiKey => dotenv.env['OPENAI_API_KEY'] ?? '';

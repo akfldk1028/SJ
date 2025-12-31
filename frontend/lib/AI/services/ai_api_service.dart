@@ -191,9 +191,10 @@ class AiApiService {
     int maxTokens = 2000,
     double temperature = 0.7,
     String logType = 'unknown',
+    String? userId,  // ai_tasks 중복 방지용
   }) async {
     try {
-      print('[AiApiService] OpenAI 호출: $model');
+      print('[AiApiService] OpenAI 호출: $model (userId: ${userId ?? "null"})');
 
       final response = await _client.functions.invoke(
         'ai-openai',
@@ -203,6 +204,7 @@ class AiApiService {
           'max_tokens': maxTokens,
           'temperature': temperature,
           'response_format': {'type': 'json_object'},
+          if (userId != null) 'user_id': userId,  // Edge Function에서 ai_tasks.user_id로 저장
         },
       );
 
