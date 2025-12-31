@@ -365,13 +365,16 @@ class SajuAnalysisService {
       final prompt = SajuBasePrompt();
       final messages = prompt.buildMessages(inputJson);
 
-      // 3. GPT API 호출
+      // 3. GPT API 호출 (Background Task + Polling 패턴)
       final response = await _apiService.callOpenAI(
         messages: messages,
         model: prompt.modelName,
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
         logType: 'saju_base',
+        userId: userId,
+        taskType: 'saju_base',
+        profileId: profileId,
       );
 
       if (!response.success) {

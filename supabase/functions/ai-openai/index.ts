@@ -4,24 +4,17 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
- * 평생 사주 분석 (GPT-5.2 Thinking) 전용
+ * 평생 사주 분석 (GPT-5.2) 전용
  * API 키는 서버에만 저장 (보안)
  *
  * Quota 시스템:
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
  *
- * v10 변경사항:
- * - 모델명: gpt-5.2-thinking (추론 강화)
- * - max_tokens: 10000 (전체 응답 보장)
- *
- * v11 변경사항:
- * - OpenAI stream: true로 150초 idle timeout 우회
- * - Pro 플랜 400초 wall clock 활용
- *
- * === 모델 변경 금지 ===
- * 이 Edge Function의 기본 모델은 반드시 gpt-5.2-thinking 유지
- * 변경 필요 시 EdgeFunction_task.md 참조
+ * v15 변경사항:
+ * - gpt-5.2-thinking → gpt-5.2 변경 (thinking 제거)
+ * - Background Task + Polling 제거 → 직접 응답 방식
+ * - 스트리밍으로 응답 수집 후 즉시 반환
  */
 
 const corsHeaders = {
@@ -233,8 +226,8 @@ Deno.serve(async (req) => {
     const requestData: OpenAIRequest = await req.json();
     const {
       messages,
-      model = "gpt-5.2-thinking",  // 추론 강화 모델 - 변경 금지
-      max_tokens = 10000,           // 전체 응답 보장
+      model = "gpt-5.2",  // 기본 모델: gpt-5.2 (thinking 아님)
+      max_tokens = 10000,
       temperature = 0.7,
       response_format,
       user_id,
@@ -245,7 +238,7 @@ Deno.serve(async (req) => {
       throw new Error("messages is required");
     }
 
-    // Admin 여부 확인
+    // Admin 여부 확인 (user_id가 있는 경우)
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
@@ -274,7 +267,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[ai-openai] Calling OpenAI: model=${model}, isAdmin=${isAdmin}`);
+    console.log(`[ai-openai] Calling OpenAI API with model=${model}`);
 
     // OpenAI API 요청 body 구성
     const requestBody: Record<string, unknown> = {
@@ -282,8 +275,8 @@ Deno.serve(async (req) => {
       messages,
       max_completion_tokens: max_tokens,
       temperature,
-      stream: true,                    // v11: 스트리밍으로 150초 idle timeout 우회
-      stream_options: { include_usage: true }, // 스트리밍에서도 usage 정보 받기
+      stream: true,
+      stream_options: { include_usage: true },
     };
 
     if (response_format) {
@@ -291,9 +284,8 @@ Deno.serve(async (req) => {
     }
 
     const startTime = Date.now();
-    console.log("[ai-openai] Starting OpenAI API call with streaming...");
 
-    // OpenAI API 호출 (스트리밍)
+    // OpenAI API 호출
     const response = await fetch(OPENAI_BASE_URL, {
       method: "POST",
       headers: {
@@ -305,43 +297,34 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("[ai-openai] OpenAI API Error:", errorData);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: errorData.error?.message || "OpenAI API error",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      console.error("[ai-openai] OpenAI API error:", errorData);
+      throw new Error(errorData.error?.message || "OpenAI API error");
     }
 
     // 스트리밍 응답 수집
     const { content, usage } = await collectStreamResponse(response);
     const elapsed = Date.now() - startTime;
-    console.log(`[ai-openai] OpenAI API responded in ${elapsed}ms`);
+
+    console.log(`[ai-openai] OpenAI responded in ${elapsed}ms`);
 
     if (!content) {
       throw new Error("No response from OpenAI");
     }
 
-    // 토큰 사용량 (스트리밍에서는 usage가 없을 수도 있음)
+    // 토큰 사용량
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
     const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
 
-    // 비용 계산 및 기록
+    // 비용 계산 (GPT-5.2 가격: $3/1M input, $12/1M output)
     const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
+
+    // 토큰 사용량 기록 (user_id가 있는 경우)
     if (user_id && promptTokens > 0) {
       await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin);
     }
 
-    console.log(
-      `[ai-openai] Success: prompt=${promptTokens}, completion=${completionTokens}, cached=${cachedTokens}, isAdmin=${isAdmin}`
-    );
-
+    // 성공 응답
     return new Response(
       JSON.stringify({
         success: true,
@@ -355,11 +338,13 @@ Deno.serve(async (req) => {
         model,
         finish_reason: "stop",
         is_admin: isAdmin,
+        processing_time_ms: elapsed,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+
   } catch (error) {
     console.error("[ai-openai] Error:", error);
 

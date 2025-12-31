@@ -6,14 +6,15 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/services/supabase_service.dart';
 
-/// OpenAI GPT-5.2-Thinking Edge Function 데이터소스
+/// OpenAI GPT-5.2 Edge Function 데이터소스
 ///
 /// Supabase Edge Function (ai-openai)을 통해 OpenAI API 호출
 /// API 키가 서버에만 저장되어 보안 강화
-/// 사주 분석 전용 - 추론 강화 모델 사용
+/// 사주 분석 전용
 ///
-/// 2024-12-31: GPT-5.2-Thinking 모델로 업그레이드 (추론 강화)
-/// === 모델 변경 금지 === EdgeFunction_task.md 참조
+/// v15: 직접 응답 방식 (Polling 제거)
+/// - gpt-5.2 모델 사용 (thinking 아님)
+/// - Edge Function이 응답을 직접 반환
 class OpenAIEdgeDatasource {
   bool _isInitialized = false;
   late final Dio _dio;
@@ -67,7 +68,10 @@ class OpenAIEdgeDatasource {
     }
   }
 
-  /// 사주 분석 요청 (GPT 5.2 Thinking 모드)
+  /// 사주 분석 요청 (GPT 5.2)
+  ///
+  /// v15: 직접 응답 방식
+  /// - ai-openai 호출 → 응답 직접 반환
   ///
   /// [birthInfo] 생년월일시 정보
   /// [chartData] 만세력 계산 결과 (JSON)
@@ -87,8 +91,12 @@ class OpenAIEdgeDatasource {
       final systemPrompt = _buildSajuAnalysisPrompt();
       final userPrompt = _buildUserPrompt(birthInfo, chartData, question);
 
-      // user_id 가져오기 (Admin 체크용)
+      // user_id 가져오기 (Quota 체크용)
       final userId = SupabaseService.currentUserId;
+
+      if (kDebugMode) {
+        print('[OpenAIEdge] ai-openai 호출 시작');
+      }
 
       final response = await _dio.post(
         '',
@@ -97,40 +105,59 @@ class OpenAIEdgeDatasource {
             {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': userPrompt},
           ],
-          'model': 'gpt-5.2-thinking',  // 추론 강화 모델 - 변경 금지
-          'max_tokens': 10000,           // 전체 응답 보장
+          'model': 'gpt-5.2',  // thinking 아닌 일반 모델
+          'max_tokens': 10000,
           'temperature': 0.3,
           'response_format': {'type': 'json_object'},
           if (userId != null) 'user_id': userId,
         },
         options: Options(
           headers: {
-            'Authorization': 'Bearer $_authToken', // JWT 토큰 동적 설정
+            'Authorization': 'Bearer $_authToken',
           },
         ),
       );
 
       final responseData = response.data as Map<String, dynamic>;
 
-      if (responseData['success'] != true) {
+      // Quota 초과 체크
+      if (responseData['error'] == 'QUOTA_EXCEEDED') {
         if (kDebugMode) {
-          print('[OpenAIEdge] Error: ${responseData['error']}');
+          print('[OpenAIEdge] Quota exceeded');
+        }
+        return {
+          'error': 'QUOTA_EXCEEDED',
+          'message': responseData['message'],
+        };
+      }
+
+      // 성공 여부 확인
+      if (responseData['success'] != true) {
+        final error = responseData['error'] ?? 'Unknown error';
+        if (kDebugMode) {
+          print('[OpenAIEdge] Error: $error');
         }
         return _getMockAnalysis(question);
       }
 
+      // content 추출 및 파싱
       final content = responseData['content'] as String? ?? '';
+
+      if (kDebugMode) {
+        final processingTime = responseData['processing_time_ms'] ?? 0;
+        print('[OpenAIEdge] 완료: ${processingTime}ms');
+      }
 
       // JSON 파싱 시도
       try {
         return jsonDecode(content) as Map<String, dynamic>;
       } catch (_) {
-        // JSON 파싱 실패 시 텍스트로 반환
         return {
           'analysis': {'raw_text': content},
           'parse_error': true,
         };
       }
+
     } on DioException catch (e) {
       if (kDebugMode) {
         print('[OpenAIEdge] DioError: ${e.message}');
