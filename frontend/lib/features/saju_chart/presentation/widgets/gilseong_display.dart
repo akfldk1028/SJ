@@ -351,10 +351,12 @@ class SinsalGilseongTable extends StatelessWidget {
           _buildTableHeader(),
           // 천간 행
           _buildGanRow(),
+          // 천간 길성 행 (포스텔러 스타일)
+          _buildGanGilseongRow(),
           // 지지 행
           _buildJiRow(),
-          // 길성 행
-          _buildGilseongTableRow(),
+          // 지지 길성 행 (포스텔러 스타일)
+          _buildJiGilseongRow(),
         ],
       ),
     );
@@ -484,7 +486,8 @@ class SinsalGilseongTable extends StatelessWidget {
     );
   }
 
-  TableRow _buildGilseongTableRow() {
+  /// 천간 길성 행 (포스텔러 스타일)
+  TableRow _buildGanGilseongRow() {
     final pillars = [
       gilseongResult.hourResult,
       gilseongResult.dayResult,
@@ -498,21 +501,81 @@ class SinsalGilseongTable extends StatelessWidget {
       ),
       children: [
         _buildRowLabel('길성'),
-        ...pillars.map((p) => _buildGilseongCell(p)),
+        ...pillars.map((p) => _buildGanGilseongCell(p)),
       ],
     );
   }
 
-  Widget _buildGilseongCell(PillarGilseongResult? pillar) {
-    if (pillar == null || !pillar.hasSinsals) {
-      return const SizedBox(height: 40);
+  /// 지지 길성 행 (포스텔러 스타일)
+  TableRow _buildJiGilseongRow() {
+    final pillars = [
+      gilseongResult.hourResult,
+      gilseongResult.dayResult,
+      gilseongResult.monthResult,
+      gilseongResult.yearResult,
+    ];
+
+    return TableRow(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.3),
+      ),
+      children: [
+        _buildRowLabel('길성'),
+        ...pillars.map((p) => _buildJiGilseongCell(p)),
+      ],
+    );
+  }
+
+  /// 천간 길성 셀 (천간에서 작용하는 신살만 표시)
+  Widget _buildGanGilseongCell(PillarGilseongResult? pillar) {
+    if (pillar == null || !pillar.hasGanSinsals) {
+      return const Center(
+        child: Text(
+          '×',
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+          ),
+        ),
+      );
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: pillar.sinsals.take(3).map((sinsal) {
+        children: pillar.ganSinsals.take(3).map((sinsal) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 1),
+            child: SpecialSinsalBadge(
+              sinsal: sinsal,
+              size: SpecialSinsalBadgeSize.tiny,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// 지지 길성 셀 (지지에서 작용하는 신살만 표시)
+  Widget _buildJiGilseongCell(PillarGilseongResult? pillar) {
+    if (pillar == null || !pillar.hasJiSinsals) {
+      return const Center(
+        child: Text(
+          '×',
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: pillar.jiSinsals.take(4).map((sinsal) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 1),
             child: SpecialSinsalBadge(

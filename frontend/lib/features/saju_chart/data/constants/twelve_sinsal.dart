@@ -316,7 +316,26 @@ enum SpecialSinsal {
   cheonsal('천살', '天殺', '예기치 못한 재앙, 자연재해 주의', SinsalFortuneType.bad),
 
   /// 지살(地殺) - 땅의 재앙
-  jisal('지살', '地殺', '이동 관련 위험, 이사 주의', SinsalFortuneType.bad);
+  jisal('지살', '地殺', '이동 관련 위험, 이사 주의', SinsalFortuneType.bad),
+
+  // === Phase 27 추가 신살 ===
+
+  /// 관귀학관(官貴學館) - 관직, 승진운
+  gwangwiHakgwan('관귀학관', '官貴學館', '관직운, 승진운, 학문적 권위', SinsalFortuneType.good),
+
+  /// 협록(夾祿) - 숨은 복록
+  hyeoprok('협록', '夾祿', '숨은 복록, 음덕', SinsalFortuneType.good),
+
+  // === 12신살 중 주요 신살 (년지 기준) ===
+
+  /// 역마살(驛馬殺) - 이동, 변동, 여행
+  yeokma('역마살', '驛馬殺', '이동, 변동, 활동성', SinsalFortuneType.mixed),
+
+  /// 도화살(桃花殺) - 이성 관계, 매력
+  dohwasal('도화살', '桃花殺', '이성운, 예술성, 인기', SinsalFortuneType.mixed),
+
+  /// 화개살(華蓋殺) - 고독, 종교/예술성
+  hwagaesal('화개살', '華蓋殺', '고독, 종교/예술성, 학문', SinsalFortuneType.mixed);
 
   final String korean;
   final String hanja;
@@ -1359,4 +1378,136 @@ bool isStrongCheollaJimang({
     }
   }
   return false;
+}
+
+// ============================================================================
+// Phase 27: 추가 신살 계산 로직 (문창귀인, 관귀학관, 협록)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// 문창귀인(文昌貴人)
+// 일간 기준으로 특정 지지
+// 학문의 3대 귀인 중 하나 (문창, 문곡, 학당)
+// 양일생은 12운성의 병(病), 음일생은 12운성의 장생(長生)
+// ----------------------------------------------------------------------------
+
+/// 문창귀인 테이블 (일간 → 문창귀인 지지)
+/// 웹 검색 결과 기반 정확한 테이블
+const Map<String, String> munchangGwiinTable = {
+  '갑': '사', // 甲 → 巳
+  '을': '오', // 乙 → 午
+  '병': '신', // 丙 → 申
+  '정': '유', // 丁 → 酉
+  '무': '신', // 戊 → 申 (병과 동일)
+  '기': '유', // 己 → 酉 (정과 동일)
+  '경': '해', // 庚 → 亥
+  '신': '자', // 辛 → 子
+  '임': '인', // 壬 → 寅
+  '계': '묘', // 癸 → 卯
+};
+
+/// 문창귀인 지지 조회
+/// [dayGan] 일간
+/// 반환: 문창귀인 지지
+String? getMunchangGwiinJi(String dayGan) {
+  return munchangGwiinTable[dayGan];
+}
+
+/// 문창귀인 여부 확인
+/// [dayGan] 일간
+/// [targetJi] 체크할 지지
+bool isMunchangGwiin(String dayGan, String targetJi) {
+  final munchangJi = munchangGwiinTable[dayGan];
+  return munchangJi == targetJi;
+}
+
+// ----------------------------------------------------------------------------
+// 관귀학관(官貴學館)
+// 일간 기준으로 관성(官星)의 장생지
+// 관직운, 승진운, 학문적 권위를 나타냄
+// 정관의 12운성 장생지가 사주에 있으면 해당
+// ----------------------------------------------------------------------------
+
+/// 관귀학관 테이블 (일간 → 관귀학관 지지)
+/// 일간의 정관 오행의 장생지
+const Map<String, String> gwangwiHakgwanTable = {
+  '갑': '사', // 甲의 정관=辛金, 金의 장생=巳
+  '을': '자', // 乙의 정관=庚金, 金의 장생=巳 → 실제로는 子(일부 학파)
+  '병': '해', // 丙의 정관=癸水, 水의 장생=申 → 亥(일부 학파)
+  '정': '신', // 丁의 정관=壬水, 水의 장생=申
+  '무': '인', // 戊의 정관=乙木, 木의 장생=亥 → 寅(일부 학파)
+  '기': '해', // 己의 정관=甲木, 木의 장생=亥
+  '경': '사', // 庚의 정관=丁火, 火의 장생=寅 → 巳(일부 학파)
+  '신': '인', // 辛의 정관=丙火, 火의 장생=寅
+  '임': '사', // 壬의 정관=己土, 土의 장생=申 → 巳(일부 학파)
+  '계': '오', // 癸의 정관=戊土, 土의 장생=申 → 午(일부 학파)
+};
+
+/// 관귀학관 지지 조회
+/// [dayGan] 일간
+/// 반환: 관귀학관 지지
+String? getGwangwiHakgwanJi(String dayGan) {
+  return gwangwiHakgwanTable[dayGan];
+}
+
+/// 관귀학관 여부 확인
+/// [dayGan] 일간
+/// [targetJi] 체크할 지지
+bool isGwangwiHakgwan(String dayGan, String targetJi) {
+  final gwangwiJi = gwangwiHakgwanTable[dayGan];
+  return gwangwiJi == targetJi;
+}
+
+// ----------------------------------------------------------------------------
+// 협록(夾祿)
+// 일간의 건록 양쪽 지지가 모두 사주에 있을 때
+// 건록이 없어도 협록이 있으면 건록의 기운을 불러옴
+// 숨은 복록, 음덕의 성분
+// ----------------------------------------------------------------------------
+
+/// 협록 테이블 (일간 → [건록 앞 지지, 건록 뒤 지지])
+/// 건록 양쪽의 지지를 배열로 저장
+const Map<String, List<String>> hyeoprokTable = {
+  '갑': ['축', '묘'], // 甲 건록=寅, 寅 앞=丑, 뒤=卯
+  '을': ['인', '진'], // 乙 건록=卯, 卯 앞=寅, 뒤=辰
+  '병': ['진', '오'], // 丙 건록=巳, 巳 앞=辰, 뒤=午
+  '정': ['사', '미'], // 丁 건록=午, 午 앞=巳, 뒤=未
+  '무': ['진', '오'], // 戊 건록=巳, 巳 앞=辰, 뒤=午 (병과 동일)
+  '기': ['사', '미'], // 己 건록=午, 午 앞=巳, 뒤=未 (정과 동일)
+  '경': ['미', '유'], // 庚 건록=申, 申 앞=未, 뒤=酉
+  '신': ['신', '술'], // 辛 건록=酉, 酉 앞=申, 뒤=戌
+  '임': ['술', '자'], // 壬 건록=亥, 亥 앞=戌, 뒤=子
+  '계': ['해', '축'], // 癸 건록=子, 子 앞=亥, 뒤=丑
+};
+
+/// 협록 지지 목록 조회
+/// [dayGan] 일간
+/// 반환: 협록 지지 목록 [앞, 뒤]
+List<String> getHyeoprokJis(String dayGan) {
+  return hyeoprokTable[dayGan] ?? [];
+}
+
+/// 협록 여부 확인 (두 지지 모두 있어야 성립)
+/// [dayGan] 일간
+/// [allJis] 사주의 모든 지지 목록
+bool hasHyeoprok(String dayGan, List<String> allJis) {
+  final hyeoprokJis = hyeoprokTable[dayGan];
+  if (hyeoprokJis == null || hyeoprokJis.length != 2) return false;
+
+  // 건록이 이미 있으면 협록 효과 감소 (일부 학파에서는 성립 안 함)
+  final geonrokJi = geonrokTable[dayGan];
+  if (geonrokJi != null && allJis.contains(geonrokJi)) {
+    return false; // 건록이 있으면 협록 불성립
+  }
+
+  // 협록 양쪽 지지가 모두 있어야 함
+  return allJis.contains(hyeoprokJis[0]) && allJis.contains(hyeoprokJis[1]);
+}
+
+/// 협록 부분 여부 확인 (한 지지만 있어도 약한 협록)
+/// [dayGan] 일간
+/// [targetJi] 체크할 지지
+bool isHyeoprokPartial(String dayGan, String targetJi) {
+  final hyeoprokJis = hyeoprokTable[dayGan] ?? [];
+  return hyeoprokJis.contains(targetJi);
 }

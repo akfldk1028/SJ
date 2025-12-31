@@ -101,7 +101,15 @@ enum SinSal {
   gwaSukSal('과숙살', '寡宿殺', SinSalType.unlucky),
 
   /// 천라지망 - 진술 충, 구속
-  cheolLaJiMang('천라지망', '天羅地網', SinSalType.unlucky);
+  cheolLaJiMang('천라지망', '天羅地網', SinSalType.unlucky),
+
+  // === Phase 27 추가 신살 ===
+
+  /// 관귀학관 - 관직운, 승진운
+  gwangWiHakGwan('관귀학관', '官貴學館', SinSalType.lucky),
+
+  /// 협록 - 숨은 복록
+  hyeopRok('협록', '夾祿', SinSalType.lucky);
 
   final String korean;
   final String hanja;

@@ -786,6 +786,9 @@ class GongmangTypeBadge extends StatelessWidget {
     return switch (type) {
       GongmangType.jinGong => AppColors.error,
       GongmangType.banGong => AppColors.warning,
+      GongmangType.haeGongChung => AppColors.success,
+      GongmangType.haeGongHap => AppColors.success,
+      GongmangType.haeGongHyung => AppColors.info,
       GongmangType.talGong => AppColors.success,
     };
   }
