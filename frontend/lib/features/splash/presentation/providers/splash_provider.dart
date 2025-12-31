@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/data/query_result.dart';
 import '../../../../core/services/supabase_service.dart';
+import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../saju_chart/data/models/saju_analysis_db_model.dart';
@@ -158,10 +159,26 @@ class Splash extends _$Splash {
               analysis: data.analysis!,
             );
           } else {
-            // 프로필만 있고 분석 없음
+            // 프로필만 있고 saju_base 분석 없음 (기존 사용자)
             if (kDebugMode) {
-              print('[Splash] Profile found but no analysis');
+              print('[Splash] Profile found but no saju_base analysis');
+              print('[Splash] 🔥 Triggering GPT-5.2 analysis in background...');
             }
+
+            // 백그라운드에서 GPT-5.2 분석 시작 (Fire-and-forget)
+            // Gemini 채팅 전에 saju_origin 데이터가 준비되도록 함
+            final profileId = data.profile.id;
+            sajuAnalysisService.ensureSajuBaseAnalysis(
+              userId: userId,
+              profileId: profileId,
+              runInBackground: true,
+              onComplete: (result) {
+                if (kDebugMode) {
+                  print('[Splash] ✅ Background GPT-5.2 analysis completed: ${result.success}');
+                }
+              },
+            );
+
             return SplashState.noAnalysis(
               profile: data.profile.toEntity(),
             );

@@ -100,6 +100,12 @@ class SupabaseService {
   /// 현재 사용자 ID (없으면 null)
   static String? get currentUserId => currentUser?.id;
 
+  /// 현재 사용자 Access Token (JWT)
+  ///
+  /// Edge Function 호출 시 Authorization 헤더에 사용
+  /// verify_jwt: true인 Edge Function은 이 토큰이 필요함
+  static String? get accessToken => _client?.auth.currentSession?.accessToken;
+
   /// saju_analyses 테이블 쿼리 빌더
   static SupabaseQueryBuilder? get sajuAnalysesTable {
     return _client?.from('saju_analyses');
