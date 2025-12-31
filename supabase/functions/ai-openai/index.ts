@@ -15,6 +15,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - 모델명: gpt-5.2-thinking (추론 강화)
  * - max_tokens: 10000 (전체 응답 보장)
  *
+ * v11 변경사항:
+ * - OpenAI stream: true로 150초 idle timeout 우회
+ * - Pro 플랜 400초 wall clock 활용
+ *
  * === 모델 변경 금지 ===
  * 이 Edge Function의 기본 모델은 반드시 gpt-5.2-thinking 유지
  * 변경 필요 시 EdgeFunction_task.md 참조
@@ -168,6 +172,46 @@ async function recordTokenUsage(
   }
 }
 
+/**
+ * OpenAI 스트리밍 응답에서 content 수집
+ */
+async function collectStreamResponse(response: Response): Promise<{ content: string; usage: UsageInfo | null }> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let content = "";
+  let usage: UsageInfo | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split("\n");
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          // content 수집
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) content += delta;
+          // usage 수집 (마지막 청크에 포함)
+          if (parsed.usage) usage = parsed.usage;
+        } catch {
+          // JSON 파싱 실패 무시
+        }
+      }
+    }
+  }
+
+  return { content, usage };
+}
+
 Deno.serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -233,20 +277,23 @@ Deno.serve(async (req) => {
     console.log(`[ai-openai] Calling OpenAI: model=${model}, isAdmin=${isAdmin}`);
 
     // OpenAI API 요청 body 구성
-    // 새로운 모델(o-series, gpt-5.x)은 max_completion_tokens 사용
-    // 기존 모델(gpt-4o, gpt-4o-mini)은 max_tokens도 지원하지만 max_completion_tokens 권장
     const requestBody: Record<string, unknown> = {
       model,
       messages,
-      max_completion_tokens: max_tokens, // deprecated max_tokens → max_completion_tokens
+      max_completion_tokens: max_tokens,
       temperature,
+      stream: true,                    // v11: 스트리밍으로 150초 idle timeout 우회
+      stream_options: { include_usage: true }, // 스트리밍에서도 usage 정보 받기
     };
 
     if (response_format) {
       requestBody.response_format = response_format;
     }
 
-    // OpenAI API 호출
+    const startTime = Date.now();
+    console.log("[ai-openai] Starting OpenAI API call with streaming...");
+
+    // OpenAI API 호출 (스트리밍)
     const response = await fetch(OPENAI_BASE_URL, {
       method: "POST",
       headers: {
@@ -256,15 +303,13 @@ Deno.serve(async (req) => {
       body: JSON.stringify(requestBody),
     });
 
-    const data = await response.json();
-
-    // 오류 처리
-    if (data.error) {
-      console.error("[ai-openai] OpenAI API Error:", data.error);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("[ai-openai] OpenAI API Error:", errorData);
       return new Response(
         JSON.stringify({
           success: false,
-          error: data.error.message || "OpenAI API error",
+          error: errorData.error?.message || "OpenAI API error",
         }),
         {
           status: 400,
@@ -273,29 +318,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 응답 추출
-    const choice = data.choices?.[0];
-    if (!choice) {
+    // 스트리밍 응답 수집
+    const { content, usage } = await collectStreamResponse(response);
+    const elapsed = Date.now() - startTime;
+    console.log(`[ai-openai] OpenAI API responded in ${elapsed}ms`);
+
+    if (!content) {
       throw new Error("No response from OpenAI");
     }
 
-    const content = choice.message?.content || "";
-    const usage: UsageInfo = data.usage || {};
+    // 토큰 사용량 (스트리밍에서는 usage가 없을 수도 있음)
+    const promptTokens = usage?.prompt_tokens || 0;
+    const completionTokens = usage?.completion_tokens || 0;
+    const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
 
-    // 캐시된 토큰 추출
-    const cachedTokens = usage.prompt_tokens_details?.cached_tokens || 0;
-
-    // OpenAI 비용 계산 (USD)
-    // gpt-5.2-thinking: 입력 $3.00/1M, 출력 $12.00/1M (예상 가격)
-    const cost = (usage.prompt_tokens * 3.00 / 1000000) + (usage.completion_tokens * 12.00 / 1000000);
-
-    // 토큰 사용량 기록
-    if (user_id) {
-      await recordTokenUsage(supabase, user_id, usage.prompt_tokens, usage.completion_tokens, cost, isAdmin);
+    // 비용 계산 및 기록
+    const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
+    if (user_id && promptTokens > 0) {
+      await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin);
     }
 
     console.log(
-      `[ai-openai] Success: prompt=${usage.prompt_tokens}, completion=${usage.completion_tokens}, cached=${cachedTokens}, isAdmin=${isAdmin}`
+      `[ai-openai] Success: prompt=${promptTokens}, completion=${completionTokens}, cached=${cachedTokens}, isAdmin=${isAdmin}`
     );
 
     return new Response(
@@ -303,13 +347,13 @@ Deno.serve(async (req) => {
         success: true,
         content,
         usage: {
-          prompt_tokens: usage.prompt_tokens,
-          completion_tokens: usage.completion_tokens,
-          total_tokens: usage.total_tokens,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: promptTokens + completionTokens,
           cached_tokens: cachedTokens,
         },
-        model: data.model,
-        finish_reason: choice.finish_reason,
+        model,
+        finish_reason: "stop",
         is_admin: isAdmin,
       }),
       {

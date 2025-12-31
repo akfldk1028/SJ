@@ -117,14 +117,42 @@ class ActiveProfile extends _$ActiveProfile {
       ref.invalidate(allProfilesProvider);
       ref.invalidate(profileListProvider);
 
-      // AI 분석 백그라운드 실행 (평생 사주 + 오늘의 운세)
+      // GPT-5.2 분석 백그라운드 실행 (fire-and-forget)
+      // 채팅 시작 시 saju_origin 없으면 그때 다시 트리거됨
       _triggerAiAnalysis(profile.id);
 
       return profile;
     });
   }
 
-  /// AI 분석 백그라운드 트리거 (ActiveProfile용)
+  /// GPT-5.2 분석 동기 실행 (완료 대기) - ActiveProfile용
+  Future<void> _triggerAiAnalysisSync(String profileId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[ActiveProfile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    print('[ActiveProfile] GPT-5.2 분석 시작 (동기): $profileId');
+
+    // 동기 실행: GPT-5.2 완료까지 대기
+    final result = await sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: false,  // 완료 대기
+    );
+
+    if (result.sajuBase?.success == true) {
+      print('[ActiveProfile] ✅ GPT-5.2 분석 완료: $profileId');
+    } else {
+      print('[ActiveProfile] ⚠️ GPT-5.2 분석 실패: ${result.sajuBase?.error}');
+    }
+
+    // UI 갱신
+    ref.invalidate(dailyFortuneProvider);
+  }
+
+  /// AI 분석 백그라운드 트리거 (ActiveProfile용) - deprecated
   void _triggerAiAnalysis(String profileId) {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -146,7 +174,7 @@ class ActiveProfile extends _$ActiveProfile {
 
     print('[ActiveProfile] AI 분석 백그라운드 시작: $profileId');
   }
-  
+
   Future<void> deleteProfile(String id) async {
     final repository = ref.read(profileRepositoryProvider);
     await repository.deleteProfile(id);
@@ -498,7 +526,8 @@ class ProfileForm extends _$ProfileForm {
 
       print('[Profile] 사주 분석 저장 완료: ${profile.id}');
 
-      // 4. AI 분석 백그라운드 실행 (평생 사주 + 오늘의 운세)
+      // 4. GPT-5.2 분석 백그라운드 실행 (fire-and-forget)
+      // 채팅 시작 시 saju_origin 없으면 그때 다시 트리거됨
       _triggerAiAnalysis(profile.id);
     } catch (e) {
       // 분석 저장 실패는 무시 (프로필 저장은 이미 완료됨)
@@ -543,7 +572,38 @@ class ProfileForm extends _$ProfileForm {
     );
   }
 
-  /// AI 분석 백그라운드 트리거
+  /// GPT-5.2 분석 동기 실행 (완료 대기)
+  ///
+  /// 프로필 생성 시 GPT-5.2 분석이 완료되어야 채팅에서 saju_origin 참조 가능
+  /// - runInBackground: false → 완료까지 대기
+  /// - 오늘의 운세는 백그라운드로 계속 실행
+  Future<void> _triggerAiAnalysisSync(String profileId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[Profile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    print('[Profile] GPT-5.2 분석 시작 (동기): $profileId');
+
+    // 동기 실행: GPT-5.2 완료까지 대기
+    final result = await sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: false,  // 완료 대기
+    );
+
+    if (result.sajuBase?.success == true) {
+      print('[Profile] ✅ GPT-5.2 분석 완료: $profileId');
+    } else {
+      print('[Profile] ⚠️ GPT-5.2 분석 실패: ${result.sajuBase?.error}');
+    }
+
+    // UI 갱신
+    ref.invalidate(dailyFortuneProvider);
+  }
+
+  /// AI 분석 백그라운드 트리거 (deprecated - 호환성 유지)
   ///
   /// 평생 사주운세 (GPT-5.2) + 오늘의 운세 (Gemini) 병렬 실행
   void _triggerAiAnalysis(String profileId) {

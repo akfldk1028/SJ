@@ -61,6 +61,17 @@ class GeminiEdgeDatasource {
   /// 초기화 상태
   bool get isInitialized => _isInitialized;
 
+  /// 현재 유효한 Authorization 토큰 (JWT 우선, 없으면 anon key)
+  String get _authToken {
+    // 사용자 JWT 토큰이 있으면 사용 (verify_jwt: true 대응)
+    final userToken = SupabaseService.accessToken;
+    if (userToken != null && userToken.isNotEmpty) {
+      return userToken;
+    }
+    // fallback: anon key
+    return _anonKey;
+  }
+
   /// 초기화
   void initialize() {
     if (!SupabaseService.isConnected) {
@@ -75,7 +86,6 @@ class GeminiEdgeDatasource {
       baseUrl: _edgeFunctionUrl,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_anonKey',
         'apikey': _anonKey,
       },
       connectTimeout: const Duration(seconds: 30),
@@ -122,15 +132,25 @@ class GeminiEdgeDatasource {
       // user_id 가져오기 (Admin 체크용)
       final userId = SupabaseService.currentUserId;
 
+      if (kDebugMode) {
+        final hasJwt = SupabaseService.accessToken != null;
+        print('   🔑 [GeminiEdge] Auth: ${hasJwt ? 'JWT 토큰' : 'anon key (fallback)'}');
+      }
+
       final response = await _dio.post(
         '',
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': 2048,
+          'max_tokens': 16384, // 응답 잘림 방지 (2048 → 16384)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
         },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $_authToken', // JWT 토큰 동적 설정
+          },
+        ),
       );
 
       final responseData = response.data as Map<String, dynamic>;

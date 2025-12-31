@@ -14,7 +14,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * v15 변경사항:
  * - 모델명: gemini-3-flash-preview (최신)
  * - responseMimeType 제거 (일반 텍스트 응답)
- * - max_tokens 기본값 1000 → 4096 (채팅 짤림 방지)
+ * - max_tokens 기본값 4096 → 16384 (응답 잘림 방지 강화)
  *
  * === 모델 변경 금지 ===
  * 이 Edge Function의 기본 모델은 반드시 gemini-3-flash-preview 유지
@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
     const {
       messages,
       model = "gemini-3-flash-preview",  // 변경 금지 - EdgeFunction_task.md 참조
-      max_tokens = 4096,                   // 변경 금지 - 채팅 짤림 방지
+      max_tokens = 16384,                  // 응답 잘림 방지 강화 (4096 → 16384)
       temperature = 0.8,
       user_id,
     } = requestData;
