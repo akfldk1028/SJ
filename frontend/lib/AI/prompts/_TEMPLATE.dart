@@ -43,14 +43,15 @@ class _TemplatePrompt extends PromptTemplate {
   /// 사용할 AI 모델
   ///
   /// OpenAI 모델 (분석용):
-  /// - OpenAIModels.gpt52 (최고 정확도)
-  /// - OpenAIModels.gpt4oMini (빠르고 저렴)
+  /// - OpenAIModels.gpt52Thinking (추론 특화, 100-150초)
+  /// - OpenAIModels.gpt52Instant (빠른 응답)
+  /// - OpenAIModels.gpt4oMini (빠르고 저렴, 레거시)
   ///
   /// Google 모델 (대화/일운용):
   /// - GoogleModels.gemini30Flash (빠르고 저렴)
   /// - GoogleModels.gemini30Pro (고급 추론)
   @override
-  String get modelName => OpenAIModels.gpt52; // TODO: 선택!
+  String get modelName => OpenAIModels.gpt52Thinking; // TODO: 선택!
 
   /// 최대 응답 토큰 수
   ///

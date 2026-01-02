@@ -77,6 +77,7 @@ import 'dart:convert';
 
 import '../../core/supabase/generated/saju_analyses.dart';
 import '../../core/supabase/generated/saju_profiles.dart';
+import '../core/ai_constants.dart';
 import '../core/ai_logger.dart';
 import '../data/mutations.dart';
 import '../data/queries.dart';
@@ -361,17 +362,26 @@ class SajuAnalysisService {
         );
       }
 
-      // 2. 프롬프트 생성
+      // 2. 진행 중인 task 확인 (중복 생성 방지)
+      final pendingTask = await aiQueries.getPendingTaskId(userId: userId);
+      if (pendingTask.isSuccess && pendingTask.data != null) {
+        print('[SajuAnalysisService] ⏳ 이미 분석 진행 중: ${pendingTask.data}');
+        // 기존 task 결과 대기
+        return await _waitForExistingTask(pendingTask.data!, profileId);
+      }
+
+      // 3. 프롬프트 생성
       final prompt = SajuBasePrompt();
       final messages = prompt.buildMessages(inputJson);
 
-      // 3. GPT API 호출
+      // 3. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
       final response = await _apiService.callOpenAI(
         messages: messages,
         model: prompt.modelName,
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
         logType: 'saju_base',
+        userId: userId,  // 중복 task 방지용
       );
 
       if (!response.success) {
@@ -439,7 +449,7 @@ class SajuAnalysisService {
         profileName: profileName,
         analysisType: 'saju_base',
         provider: 'openai',
-        model: 'gpt-5.2',
+        model: OpenAIModels.sajuAnalysis, // gpt-5.2-thinking
         success: false,
         error: e.toString(),
         processingTimeMs: stopwatch.elapsedMilliseconds,
@@ -676,6 +686,76 @@ class SajuAnalysisService {
     }).catchError((e) {
       print('[SajuAnalysisService] ❌ 백그라운드 GPT-5.2 분석 오류: $e');
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 중복 방지: 기존 task 대기
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 기존 task 완료 대기 (중복 호출 시)
+  ///
+  /// ## 용도
+  /// 이미 다른 곳에서 GPT-5.2 분석이 진행 중일 때,
+  /// 새로 task를 생성하지 않고 기존 task 완료를 폴링으로 대기.
+  ///
+  /// ## 폴링 설정
+  /// - 간격: 3초
+  /// - 최대: 60회 (180초 = 3분)
+  Future<AnalysisResult> _waitForExistingTask(
+    String taskId,
+    String profileId,
+  ) async {
+    const maxAttempts = 60;
+    const pollInterval = Duration(seconds: 3);
+
+    for (int i = 0; i < maxAttempts; i++) {
+      // task 상태 조회
+      final taskResult = await aiQueries.getTaskStatus(taskId);
+
+      if (!taskResult.isSuccess || taskResult.data == null) {
+        print('[SajuAnalysisService] Task 상태 조회 실패 - 폴링 계속');
+        await Future.delayed(pollInterval);
+        continue;
+      }
+
+      final status = taskResult.data!['status'] as String?;
+
+      switch (status) {
+        case 'completed':
+          print('[SajuAnalysisService] ✅ 기존 task 완료됨! 결과 조회...');
+          // 완료된 분석 결과 조회
+          final cached = await aiQueries.getSajuBaseSummary(profileId);
+          if (cached.isSuccess && cached.data != null) {
+            return AnalysisResult.success(
+              summaryId: cached.data!.id,
+              processingTimeMs: i * 3000,
+            );
+          }
+          // 캐시에 없으면 실패 처리
+          return AnalysisResult.failure('분석 완료됐으나 결과 조회 실패');
+
+        case 'failed':
+          final error = taskResult.data!['error_message'] as String? ?? 'Unknown error';
+          print('[SajuAnalysisService] ❌ 기존 task 실패: $error');
+          return AnalysisResult.failure(error);
+
+        case 'pending':
+        case 'processing':
+          if (i % 10 == 0) {
+            print('[SajuAnalysisService] ⏳ 기존 task 대기 중... ($i/$maxAttempts)');
+          }
+          await Future.delayed(pollInterval);
+          break;
+
+        default:
+          print('[SajuAnalysisService] ❓ 알 수 없는 상태: $status');
+          await Future.delayed(pollInterval);
+      }
+    }
+
+    // 타임아웃
+    print('[SajuAnalysisService] ⏰ 기존 task 대기 타임아웃 (180초)');
+    return AnalysisResult.failure('기존 분석 대기 타임아웃');
   }
 }
 

@@ -46,33 +46,37 @@
 /// OpenAI 모델 식별자
 ///
 /// ## 모델 선택 가이드
-/// - `gpt52`: GPT-5.2 추론 특화 (2025.12 출시) → 사주 분석용
-/// - `gpt52Pro`: GPT-5.2 Pro 최고 품질 → 복잡한 분석용
-/// - `gpt4o`: 레거시 → 호환성 유지용
+/// - `gpt52`: GPT-5.2 Thinking → 사주 분석용 (추론 특화, 100-150초)
+/// - `gpt52Instant`: GPT-5.2 Instant → 대화/경량 작업
+/// - `gpt52Pro`: GPT-5.2 Pro → 최고 품질
+/// - `gpt4o`: GPT-4o → 레거시 호환용
+///
+/// ## GPT-5.2 API 모델 ID (2025.12.11 출시)
+/// - ChatGPT "GPT-5.2 Thinking" → API: `gpt-5.2`
+/// - ChatGPT "GPT-5.2 Instant" → API: `gpt-5.2-chat-latest`
+/// - ChatGPT "GPT-5.2 Pro" → API: `gpt-5.2-pro`
 ///
 /// ## 참고
-/// - 모델 ID는 OpenAI API에서 사용하는 정확한 값
-/// - 버전이 바뀌면 여기만 수정하면 됨
+/// https://openai.com/index/introducing-gpt-5-2/
 abstract class OpenAIModels {
-  /// GPT-5.2 (2025년 12월 출시)
-  /// - Thinking - 추론 특화
+  /// GPT-5.2 Thinking (2025년 12월 출시)
+  /// - API ID: gpt-5.2
+  /// - 추론 특화 (100-150초 추론)
   /// - 사주 분석에 최적화
-  /// - 복잡한 논리 추론 능력 강화
   static const String gpt52 = 'gpt-5.2';
 
-  /// GPT-5.2 Chat (빠른 응답)
-  /// - Instant - 빠른 응답
-  /// - 대화형 질의에 적합
-  static const String gpt52Chat = 'gpt-5.2-chat-latest';
+  /// GPT-5.2 Instant (빠른 응답)
+  /// - API ID: gpt-5.2-chat-latest
+  /// - 빠른 응답 (수 초 이내)
+  static const String gpt52Instant = 'gpt-5.2-chat-latest';
 
   /// GPT-5.2 Pro (최고 품질)
-  /// - Pro - 가장 정확한 분석
-  /// - 비용 높음
+  /// - API ID: gpt-5.2-pro
+  /// - 가장 정확한 분석
   static const String gpt52Pro = 'gpt-5.2-pro';
 
   /// GPT-4o (레거시)
   /// - 이전 버전 호환용
-  /// - Chat Completions API
   static const String gpt4o = 'gpt-4o';
 
   /// GPT-4o Mini (레거시)
@@ -81,7 +85,7 @@ abstract class OpenAIModels {
   static const String gpt4oMini = 'gpt-4o-mini';
 
   /// 사주 분석용 기본 모델
-  /// - GPT-5.2: 추론 능력 강화로 사주 분석에 최적
+  /// - GPT-5.2 Thinking: 추론 능력 강화로 사주 분석에 최적
   /// - 프로필당 1회만 실행되므로 비용 부담 적음
   static const String sajuAnalysis = gpt52;
 }
@@ -166,12 +170,12 @@ abstract class OpenAIPricing {
 
   /// 모델별 가격 조회
   ///
-  /// [model] OpenAI 모델 ID (예: 'gpt-5.2')
+  /// [model] OpenAI 모델 ID (예: 'gpt-5.2-thinking')
   /// 반환: {input, output, cached} 가격 맵 또는 null
   static Map<String, double>? getModelPricing(String model) {
     switch (model) {
-      case 'gpt-5.2':
-      case 'gpt-5.2-chat-latest':
+      case 'gpt-5.2-thinking':
+      case 'gpt-5.2-instant':
       case 'gpt-5.2-pro':
         return {'input': gpt52Input, 'output': gpt52Output, 'cached': gpt52Cached};
       case 'gpt-4o':

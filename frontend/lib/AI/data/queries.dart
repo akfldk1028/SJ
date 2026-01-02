@@ -453,6 +453,69 @@ class AiQueries extends BaseQueries {
       'has_relations': result.hasRelations,
     };
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ai_tasks 조회 (중복 방지)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 진행 중인 AI task 확인 (중복 생성 방지)
+  ///
+  /// ## 용도
+  /// GPT-5.2 분석은 100-150초 소요.
+  /// 그 사이 다른 곳에서 동일 사용자가 분석 요청을 하면
+  /// 이미 진행 중인 task가 있는지 확인하여 중복 생성 방지.
+  ///
+  /// ## 파라미터
+  /// - `userId`: 사용자 UUID
+  /// - `taskType`: task 유형 (saju_analysis 등)
+  ///
+  /// ## 반환값
+  /// - pending/processing task가 있으면: task_id
+  /// - 없으면: null
+  ///
+  /// ## 참고
+  /// - Edge Function에서 user_id로 task 생성
+  /// - 같은 user의 동시 분석 요청 방지
+  Future<QueryResult<String?>> getPendingTaskId({
+    required String userId,
+    String taskType = 'saju_analysis',
+  }) async {
+    return safeSingleQuery(
+      query: (client) async {
+        // ai_tasks 테이블에서 pending/processing 상태 조회
+        // user_id로 필터링 (동일 사용자의 중복 task 방지)
+        final result = await client
+            .from('ai_tasks')
+            .select('id')
+            .eq('task_type', taskType)
+            .eq('user_id', userId)
+            .inFilter('status', ['pending', 'processing'])
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        return result;
+      },
+      fromJson: (json) => json['id'] as String,
+      errorPrefix: '진행 중 task 조회 실패',
+    );
+  }
+
+  /// 진행 중인 task 상세 조회
+  ///
+  /// ## 용도
+  /// task_id로 현재 상태 확인 (폴링용)
+  Future<QueryResult<Map<String, dynamic>?>> getTaskStatus(String taskId) async {
+    return safeSingleQuery(
+      query: (client) => client
+          .from('ai_tasks')
+          .select('id, status, result_data, error_message, created_at, completed_at')
+          .eq('id', taskId)
+          .maybeSingle(),
+      fromJson: (json) => json,
+      errorPrefix: 'task 상태 조회 실패',
+    );
+  }
 }
 
 /// 전역 인스턴스
