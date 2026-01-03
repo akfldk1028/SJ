@@ -30,35 +30,34 @@ temperature = 0.8
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
-| **버전** | v24 | 2026-01-01 |
-| **모델** | `gpt-5.2-2025-12-11` | ⚠️ 변경 금지 - 최신 모델 |
+| **버전** | v24 | 2026-01-01 (DK 구현) |
+| **모델** | `gpt-5.2` | ⚠️ 변경 금지 - GPT-5.2 Thinking |
 | **max_tokens** | `10000` | 전체 응답 보장 |
-| **temperature** | `0.7` | 분석용 |
-| **용도** | 평생 사주 분석 | OpenAI Responses API Background 모드 |
-| **Background** | `true` | Supabase 150초 제한 회피! |
+| **reasoning_effort** | `medium` | 추론 강도 (30-60초) |
+| **용도** | 평생 사주 분석 | OpenAI Responses API Background Mode |
 
 ```typescript
-// ai-openai/index.ts - 핵심 설정 (v24)
-model = "gpt-5.2-2025-12-11"  // 변경 금지 - 최신 모델
-max_tokens = 10000             // 변경 금지 - 전체 응답 보장
-temperature = 0.7
-background = true              // OpenAI Responses API 비동기 모드
+// ai-openai/index.ts v24 - 핵심 설정
+model = "gpt-5.2"           // 변경 금지 - GPT-5.2 Thinking
+max_tokens = 10000          // 변경 금지 - 전체 응답 보장
+reasoning_effort = "medium" // 추론 강도 (Supabase 타임아웃 내)
+run_in_background = true    // OpenAI Responses API background 모드
 ```
 
----
-
-### ai-openai-result (결과 조회용) - NEW!
+### ai-openai-result (결과 조회용) - 신규
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
-| **버전** | v24 | 2026-01-01 |
-| **용도** | Background task 결과 polling | ai-openai와 연동 |
-| **verify_jwt** | `false` | 401 에러 방지 |
+| **버전** | v4 | 2026-01-01 (DK 구현) |
+| **용도** | OpenAI background task 결과 폴링 | ai-openai v24와 연동 |
+| **엔드포인트** | POST /ai-openai-result | `{ task_id: "uuid" }` |
 
 ```typescript
-// ai-openai-result/index.ts - 핵심 설정 (v24)
-// task_id로 OpenAI Responses API 결과 조회
-// ai_tasks 테이블에 결과 캐싱
+// ai-openai-result/index.ts v4 - 핵심 로직
+// 1. ai_tasks 테이블에서 task 조회
+// 2. openai_response_id로 OpenAI /v1/responses/{id} 폴링
+// 3. 상태: queued → in_progress → completed
+// 4. 완료 시 결과 캐싱 및 반환
 ```
 
 ---
@@ -79,12 +78,12 @@ background = true              // OpenAI Responses API 비동기 모드
 | v8 | gpt-4o-mini | max_completion_tokens 수정 |
 | v9 | gpt-5.2 | GPT-5.2로 업그레이드 |
 | v10 | gpt-5.2-thinking | 추론 강화 모델, max_tokens 10000 |
-| **v24** | gpt-5.2-2025-12-11 | **OpenAI Responses API Background 모드** - Supabase 150초 제한 완전 회피! |
+| **v24** | gpt-5.2 | **OpenAI Responses API background 모드 (DK)** |
 
-### ai-openai-result (NEW)
+### ai-openai-result (신규)
 | 버전 | 용도 | 변경 사유 |
 |------|------|----------|
-| **v24** | 결과 조회 | ai-openai background 모드용 polling endpoint |
+| **v4** | 결과 폴링 | OpenAI /v1/responses/{id} 폴링 엔드포인트 (DK) |
 
 ---
 
@@ -114,13 +113,13 @@ background = true              // OpenAI Responses API 비동기 모드
 
 ### openai_edge_datasource.dart
 ```dart
-'model': 'gpt-5.2',            // 변경 금지 - Edge Function이 최신 모델로 오버라이드
-'max_tokens': 10000,           // 변경 금지 - 전체 응답 보장
-'run_in_background': true,     // v24: Background 모드 (Responses API)
+'model': 'gpt-5.2',           // 변경 금지 - GPT-5.2 Thinking
+'max_tokens': 10000,          // 변경 금지 - 전체 응답 보장
+'run_in_background': true,    // v24: Async + Polling 모드
 
-// Polling 설정
-_maxPollingAttempts = 120      // 최대 120회 (240초)
-_pollingInterval = 2초         // 2초 간격
+// 폴링 설정
+static const int _maxPollingAttempts = 120;  // 최대 120회
+static const Duration _pollingInterval = Duration(seconds: 2);  // 2초 간격
 ```
 
 ---
@@ -134,7 +133,7 @@ cd e:/SJ && npx supabase functions deploy ai-gemini --project-ref kfciluyxkomsky
 # ai-openai 배포
 cd e:/SJ && npx supabase functions deploy ai-openai --project-ref kfciluyxkomskyxjaeat
 
-# ai-openai-result 배포 (v24 NEW - polling endpoint)
+# ai-openai-result 배포 (v24 신규)
 cd e:/SJ && npx supabase functions deploy ai-openai-result --project-ref kfciluyxkomskyxjaeat
 ```
 
@@ -144,10 +143,14 @@ cd e:/SJ && npx supabase functions deploy ai-openai-result --project-ref kfciluy
 
 ```
 supabase/backups/
-├── ai-gemini_v15_2024-12-30.ts      (현재 배포됨)
-├── ai-openai_v24_2026-01-01.ts      (현재 배포됨 - Responses API background)
-├── ai-openai-result_v24_2026-01-01.ts (현재 배포됨 - polling endpoint)
+├── ai-gemini_v15_2024-12-30.ts  (현재 배포됨)
+├── ai-openai_v10_2024-12-31.ts  (이전 버전)
 └── ...
+
+supabase/functions/
+├── ai-openai/index.ts         (v24 - 현재 배포됨)
+├── ai-openai/index_DK.ts      (DK 원본 백업)
+└── ai-openai-result/index.ts  (v4 - 현재 배포됨)
 ```
 
 ---

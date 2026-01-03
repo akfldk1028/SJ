@@ -199,12 +199,13 @@ final List<LunarYearData> lunarTable2000_2050 = [
     monthDays: [30, 29, 30, 29, 30, 30, 29, 30, 30, 29, 30, 29],
     solarNewYear: DateTime(2027, 2, 6),
   ),
-  // 2028년 - 윤5월
+  // 2028년 - 윤5월 - 한국 기준 (KASI)
+  // 주의: 합삭이 1월 27일 0시 12분으로, 한국은 1월 27일, 중국은 1월 26일 설날
   LunarYearData(
     year: 2028,
     leapMonth: 5,
     monthDays: [30, 29, 29, 30, 29, 30, 29, 30, 30, 29, 30, 30, 29],
-    solarNewYear: DateTime(2028, 1, 26),
+    solarNewYear: DateTime(2028, 1, 27),  // 수정: 1월 26일 → 1월 27일 (한국 기준)
   ),
   // 2029년
   LunarYearData(

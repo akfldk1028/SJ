@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2024-12-31 (Phase 26 진공/반공/해공 로직 완료)
+> 최종 업데이트: 2026-01-01 (Phase 28 AiApiService Polling 로직 추가)
 
 ---
 
@@ -56,18 +56,29 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - 반공(半空): 일간 음양 ≠ 공망지지 음양 → 50% 작용
   - 해공(解空): 충/합/형으로 공망 해소
   - 탈공(脫空): 대운/세운에서 채워짐
+- **Phase 27 (saju_base 타임아웃 해결) ✅ 완료 (2026-01-01) - DK 솔루션**
+  - ai-openai v24: OpenAI Responses API `background=true` 모드
+  - ai-openai-result v4: 폴링 엔드포인트 신규 생성
+  - Flutter openai_edge_datasource.dart: Async + Polling 패턴
+  - Supabase 150초 타임아웃 완전 회피!
+- **Phase 28 (AiApiService Polling 로직 추가) ✅ 완료 (2026-01-01)**
+  - 문제: AiApiService.callOpenAI()에 polling 로직 누락
+  - openai_edge_datasource.dart (채팅용): polling ✅
+  - ai_api_service.dart (saju_base 분석용): polling ❌ → 빈 응답!
+  - 수정: _pollForOpenAIResult() 메서드 추가, runInBackground 파라미터 추가
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
 다음 작업 후보:
-1. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
-2. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
-3. 만세력 단위 테스트 - 특정 생년월일 계산 검증
-4. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
-5. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
-6. UI/UX 개선 - 채팅 화면, 프로필 화면 디자인
-7. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
-8. 궁합 분석 기능 - compatibility_analyses 테이블 활용
+1. **Phase 28 테스트** - saju_base 저장 확인 (우선순위 높음)
+2. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
+3. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
+4. 만세력 단위 테스트 - 특정 생년월일 계산 검증
+5. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
+6. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
+7. UI/UX 개선 - 채팅 화면, 프로필 화면 디자인
+8. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
+9. 궁합 분석 기능 - compatibility_analyses 테이블 활용
 
 [원하는 작업 선택 또는 새 요청]
 ```

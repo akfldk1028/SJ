@@ -192,7 +192,8 @@
       "WebFetch(domain:zapier.com)",
       "WebFetch(domain:www.aifreeapi.com)",
       "WebFetch(domain:qdyycfffnzwrytjgqfic.supabase.co)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(dart --version:*)"
     ],
     "deny": [],
     "ask": []

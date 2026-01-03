@@ -332,12 +332,13 @@ final List<LunarYearData> lunarTable1950_1999 = [
     monthDays: [29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30, 30],
     solarNewYear: DateTime(1996, 2, 19),
   ),
-  // 1997년
+  // 1997년 - 한국 기준 (KASI)
+  // 주의: 합삭이 2월 8일 0시 6분으로, 한국은 2월 8일, 중국은 2월 7일 설날
   LunarYearData(
     year: 1997,
     leapMonth: 0,
     monthDays: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 29, 30],
-    solarNewYear: DateTime(1997, 2, 7),
+    solarNewYear: DateTime(1997, 2, 8),  // 수정: 2월 7일 → 2월 8일 (한국 기준)
   ),
   // 1998년 - 윤5월
   LunarYearData(

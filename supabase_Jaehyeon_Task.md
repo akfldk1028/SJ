@@ -382,13 +382,431 @@ P2/P3 우선순위 신살 계산 로직 추가 및 UI 표시 구현
 
 ---
 
+## Phase 26: saju_base 생성 실패 분석 (2024-12-31)
+
+### 개요
+프로필 저장 후 `saju_base` (GPT-5.2 평생사주 분석)가 DB에 저장되지 않는 문제 분석
+
+### 문제 현상
+- `daily_fortune` (Gemini): 정상 생성 ✅
+- `saju_base` (GPT-5.2): 생성 안 됨 ❌
+- 사용자 체감: 프로필 저장 20초 미만 (정상처럼 보임)
+
+### 원인 분석
+
+#### 사용자 체감 vs 실제 동작
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ■ 사용자 체감 (20초 미만) - 정상으로 보임                        │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  1. 프로필 저장        → 즉시                              │ │
+│  │  2. 만세력 계산        → 빠름                              │ │
+│  │  3. 화면 전환          → 즉시 반환 (runInBackground=true)  │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  ■ 백그라운드 실패 (사용자 모름)                                 │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  4. GPT-5.2 호출       → 100-150초 소요                    │ │
+│  │  5. Supabase 타임아웃  → 150초 제한 → 546 에러             │ │
+│  │  6. saju_base 저장     → ❌ 실패 (DB에 저장 안 됨)         │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### DB 증거 (최근 프로필)
+| 프로필명 | 생성시간 | daily_fortune | saju_base |
+|----------|----------|---------------|-----------|
+| 박재현 | 06:45 | ✅ 있음 | ❌ 없음 |
+| 박재현 | 06:33 | ✅ 있음 | ❌ 없음 |
+| 김동현 | 06:16 | ✅ 있음 | ❌ 없음 |
+| 이지나 | 06:00 | ✅ 있음 | ❌ 없음 |
+| 김동현 | 04:49 | ✅ 있음 | ✅ 있음 (133초) ← 운좋게 성공 |
+
+#### Edge Function 로그 증거
+| Function | Status | 소요시간 |
+|----------|--------|----------|
+| ai-gemini (daily_fortune) | 200 OK | 10-12초 |
+| ai-openai (saju_base) | 546 Timeout | 150초 |
+
+#### 성공한 saju_base 처리 시간 (DB 기록)
+- 102,484ms ~ 146,331ms (102초 ~ 146초)
+- Supabase Edge Function 타임아웃: **150초**
+- 결과: 타임아웃 경계에서 운에 따라 성공/실패
+
+### 관련 코드
+
+**saju_analysis_service.dart:207-210**
+```dart
+if (runInBackground) {
+  // 백그라운드에서 GPT-5.2 호출 (사용자 모름)
+  _runBothAnalysesInBackground(userId, profileId, inputData, onComplete);
+  return const ProfileAnalysisResult(); // 즉시 반환 ← 사용자는 여기서 20초!
+}
+```
+
+### 해결 → Phase 27에서 완료 ✅
+
+---
+
+## Phase 27: saju_base 타임아웃 해결 - DK 솔루션 (2026-01-01) ✅ 완료
+
+### 개요
+DK가 OpenAI Responses API `background=true` 모드를 활용한 Async + Polling 패턴 구현 완료.
+master 브랜치에서 merge하여 적용됨.
+
+### 핵심 커밋
+- **커밋**: `867de8b` - `[DK] feat: OpenAI Responses API v24 background mode 구현`
+- **병합**: `f425179` - `Merge branch 'master' into Jaehyeon(Test)`
+
+### 문제 원인 (재정리)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Supabase Edge Function 타임아웃 구조                            │
+│  ├─ 150초: HTTP 응답 반환 시간 제한 ← 여기서 걸림!               │
+│  └─ 400초: 응답 반환 후 백그라운드 작업 시간 (Pro 플랜)          │
+│                                                                   │
+│  기존 문제: OpenAI 응답(100-150초) 대기 후 HTTP 응답 반환        │
+│  → 150초 제한에 걸려서 546 Timeout 에러 발생                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 솔루션: OpenAI Responses API Background Mode
+
+#### 1. Edge Function (ai-openai v24)
+```typescript
+// 핵심 변경: OpenAI Responses API 사용
+const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+
+// run_in_background=true 요청 시
+const responsesApiBody = {
+  model,
+  input: inputText,
+  background: true,  // 핵심! OpenAI 클라우드에서 비동기 처리
+  store: true,       // background 모드 필수
+  max_output_tokens,
+};
+
+// 즉시 task_id + openai_response_id 반환 (150초 전에!)
+return { task_id, openai_response_id, status: "queued" };
+```
+
+#### 2. 결과 조회 Edge Function (ai-openai-result v4)
+```typescript
+// OpenAI /v1/responses/{id} 직접 폴링
+const openaiResponse = await fetch(
+  `${OPENAI_RESPONSES_URL}/${task.openai_response_id}`
+);
+
+// 상태 변환: queued → in_progress → completed
+// 완료 시 ai_tasks 테이블에 결과 캐싱
+```
+
+#### 3. Flutter 클라이언트 (openai_edge_datasource.dart)
+```dart
+// 폴링 설정
+static const int _maxPollingAttempts = 120; // 최대 120회
+static const Duration _pollingInterval = Duration(seconds: 2); // 2초 간격 = 최대 240초
+
+// Step 1: Background 모드로 요청
+'run_in_background': true,  // v24 Responses API
+
+// Step 2: 결과 폴링
+return await _pollForResult(taskId);
+```
+
+### 변경된 파일
+
+| 파일 | 버전 | 변경 내용 |
+|------|------|-----------|
+| `supabase/functions/ai-openai/index.ts` | v24 | OpenAI Responses API background 모드 |
+| `supabase/functions/ai-openai-result/index.ts` | v4 (신규) | OpenAI 폴링 엔드포인트 |
+| `frontend/.../openai_edge_datasource.dart` | - | Async + Polling 클라이언트 |
+| `sql/migrations/20241231_create_ai_tasks_table.sql` | - | ai_tasks 테이블 |
+
+### 흐름도
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Before (v10-v23): 타임아웃 발생                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ Flutter → ai-openai → [OpenAI 100-150초 대기] → 응답 반환   ││
+│  │                                    ↑ 150초 초과 → 546 에러  ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                   │
+│  After (v24): Async + Polling                                    │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ Flutter → ai-openai → OpenAI Responses API (background=true)││
+│  │                    ↓ 즉시 반환 (task_id)                     ││
+│  │ Flutter → ai-openai-result (polling) → OpenAI /v1/responses ││
+│  │                    ↓ 상태: queued → in_progress → completed  ││
+│  │ Flutter ← 결과 수신 ← ai_tasks 캐싱                          ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 테스트 필요 항목
+- [ ] 새 프로필 생성 후 saju_base 저장 확인
+- [ ] ai_tasks 테이블에 task 기록 확인
+- [ ] 폴링 정상 작동 확인 (queued → completed)
+
+---
+
+## Phase 28: AiApiService Polling 로직 추가 (2026-01-01) ✅ 완료
+
+### 개요
+`AiApiService.callOpenAI()`에 v24 Background 모드 polling 로직이 누락되어 saju_base 분석 결과가 빈 응답으로 반환되는 문제 수정
+
+### 문제 원인 분석
+
+**두 개의 OpenAI 호출 경로:**
+| 파일 | 용도 | Polling | 문제 |
+|------|------|---------|------|
+| `openai_edge_datasource.dart` | 채팅용 | ✅ 있음 | 정상 |
+| `ai_api_service.dart` | **saju_base 분석용** | ❌ 없음 | **빈 응답!** |
+
+**v24 Background 모드 흐름:**
+```
+1. ai-openai Edge Function: run_in_background=true로 요청
+2. OpenAI Responses API에 background=true로 전달
+3. 즉시 task_id + openai_response_id 반환 (content는 비어있음!)
+4. Flutter 클라이언트가 ai-openai-result로 polling 해야 함
+
+문제: AiApiService는 polling 없이 즉시 content 파싱 시도 → 빈 응답
+```
+
+**증거:**
+- AI API LOG: `"content": "{}"` (빈 JSON)
+- ai_tasks 테이블: 나중에 `status: completed`되면서 `result_data`에 실제 결과 저장됨
+- 앱: Polling 시작 전에 종료됨 (프로필 조회 실패 등)
+
+### 수정 내용
+
+**파일**: `frontend/lib/AI/services/ai_api_service.dart`
+
+1. **Polling 상수 추가** (line 171-175)
+   ```dart
+   static const int _maxPollingAttempts = 120;  // 최대 120회
+   static const Duration _pollingInterval = Duration(seconds: 2);  // 2초 간격 = 최대 240초
+   ```
+
+2. **callOpenAI() 수정** (line 206-322)
+   - `runInBackground` 파라미터 추가 (기본값: true)
+   - `run_in_background: true` body에 추가
+   - task_id 반환 시 `_pollForOpenAIResult()` 호출
+
+3. **_pollForOpenAIResult() 신규 추가** (line 324-465)
+   - `ai-openai-result` Edge Function으로 polling
+   - 상태: `queued` → `in_progress` → `completed`
+   - completed 시 content 파싱, 토큰 사용량 추출, 로그 저장
+
+### 흐름도
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Before (문제): AiApiService polling 없음                        │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ SajuAnalysisService → AiApiService.callOpenAI()             ││
+│  │   → ai-openai v24 (task_id 반환)                            ││
+│  │   → data['content'] 즉시 파싱 → 빈 값! → saju_base 빈 결과  ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                   │
+│  After (수정됨): AiApiService polling 추가                        │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ SajuAnalysisService → AiApiService.callOpenAI()             ││
+│  │   → ai-openai v24 (task_id 반환)                            ││
+│  │   → _pollForOpenAIResult(taskId)                            ││
+│  │     → ai-openai-result (polling)                            ││
+│  │     → OpenAI /v1/responses/{id}                             ││
+│  │     → completed 시 content 반환                              ││
+│  │   → saju_base 정상 저장! ✅                                  ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 테스트 필요 항목
+- [ ] 새 프로필 생성 후 saju_base 저장 확인
+- [ ] ai_tasks 테이블에 task 기록 확인
+- [ ] 폴링 정상 작동 확인 (queued → completed)
+- [ ] AI API LOG에서 content 정상 수신 확인
+
+---
+
+## Phase 29: UI와 DB 불일치 점검 및 프롬프트 강화 (2026-01-01) ✅ 완료
+
+### 개요
+AI 응답(DB)과 Flutter 계산값(UI) 비교 분석 후, 불일치 항목 발견 및 프롬프트 수정
+
+### 점검 결과
+
+| 항목 | Flutter 계산 | AI 응답 (DB) | 상태 |
+|------|-------------|--------------|------|
+| 신강/신약 level | 8단계 (중화신강 등) | "신약" (오류) | ❌ → ✅ 수정됨 |
+| 오행 분포 | 직접 카운트 | 0으로 반환 | ⚠️ AI 미계산 (허용) |
+| 격국 | gyeokguk_service.dart | 정상 | ✅ 정상 |
+| 합충형파해 | hapchung_service.dart | 상세 분석 | ✅ 정상 |
+| 12운성 | twelve_unsung_service.dart | 분석됨 | ✅ 정상 |
+| 12신살 | twelve_sinsal_service.dart | 분석됨 | ✅ 정상 |
+
+### 발견된 불일치
+
+**핵심 문제: 신강/신약 level 불일치**
+
+```
+Flutter 계산: score 53 → "중화신강" (50-62점 범위)
+AI 응답:     score 53 → "신약" (잘못됨!)
+```
+
+**원인**: Phase 28.1에서 8단계 기준을 추가했지만, AI가 여전히 무시하고 자체 판단
+
+### 수정 내용
+
+**파일**: `frontend/lib/AI/prompts/saju_base_prompt.dart`
+
+1. **`_buildDayStrengthSection()` 강화** (line 407-440)
+   - 시각적 강조 박스 추가 (ASCII 테이블)
+   - "재계산 금지" 명시
+   - 8단계 기준표 마크다운 테이블로 표시
+   - 경고 메시지 추가: `점수 $score은 "$level"입니다. 응답에서 이 등급을 그대로 사용하세요.`
+
+2. **JSON 스키마 singang_singak.level 설명 강화** (line 219)
+   ```
+   Before: "위 입력 데이터의 점수에 맞는 8단계 등급 사용"
+   After:  "※필수※ ... 50-62=중화신강 ..." (점수-등급 매핑 명시)
+   ```
+
+### 프롬프트 변경 예시
+
+```
+## 신강/신약 (8단계 판정) - ⚠️ 중요 ⚠️
+
+┌─────────────────────────────────────────────────┐
+│ ★★★ 이 값을 그대로 사용하세요 (재계산 금지) ★★★  │
+├─────────────────────────────────────────────────┤
+│ 점수: 53점                                       │
+│ 등급: 중화신강                                   │
+│ is_singang: true                                 │
+└─────────────────────────────────────────────────┘
+
+**8단계 기준표** (점수 → 등급 매핑):
+| 점수 범위 | 등급 | is_singang |
+|-----------|------|------------|
+| 50-62 | **중화신강** | **true** |
+...
+
+> **경고**: 점수 53은 "중화신강"입니다. 응답에서 이 등급을 그대로 사용하세요.
+```
+
+### 테스트 필요 항목
+- [ ] 새 프로필 생성 후 saju_base level 확인
+- [ ] AI 응답의 singang_singak.level이 Flutter 계산값과 일치하는지 확인
+
+---
+
 ## 다음 작업 예정
 
-1. 채팅 테스트 후 토큰 사용량 확인
-2. 만세력 계산 추가 검증 (다른 생년월일 테스트)
-3. Phase 26 (진공/반공 신살 추가) - 공망의 충/합 위치
-4. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
-5. 필요시 추가 버그 수정
+1. ~~**saju_base 타임아웃 해결**~~ ✅ Phase 27 완료 (DK 솔루션)
+2. ~~**AiApiService polling 로직 추가**~~ ✅ Phase 28 완료
+3. ~~**UI와 DB 불일치 점검**~~ ✅ Phase 29 완료
+4. ~~**음력 테이블 한중 차이 수정**~~ ✅ Phase 30 완료
+5. ~~**12신살 기준 검증**~~ ✅ Phase 31 완료 (일지 기준 유지)
+6. **Phase 29 테스트** - 신강/신약 level 일치 확인
+7. 채팅 테스트 후 토큰 사용량 확인
+8. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
+9. 필요시 추가 버그 수정
+
+---
+
+## Phase 31: 12신살 기준 검증 (2026-01-03) ✅ 완료
+
+### 개요
+포스텔러와 12신살 결과가 다른 문제 분석 및 검증
+
+### 문제 분석
+
+**증상**: 포스텔러와 12신살 결과 차이
+- 포스텔러: 월지/일지(해)=역마살, 시지(진)=반안
+- 우리 앱: 월지/일지(해)=지살, 시지(진)=반안
+
+### 원인 분석
+
+12신살 계산에는 두 가지 기준이 있음:
+1. **년지 기준** (전통 방식)
+2. **일지 기준** (현대 명리학 대세)
+
+| 기준 | 월지/일지(해) | 시지(진) | 년지(축) |
+|------|-------------|---------|---------|
+| 일지 기준 | 지살 | 반안 | 월살 |
+| 년지 기준 | 역마 | 천살 | 화개 |
+
+### 결론
+
+1. **포스텔러는 혼합 기준 사용**
+   - 기본 12신살: 일지 기준 (시지=반안, 년지=월살)
+   - 역마살 등 주요 신살: 년지 기준으로 별도 표시
+
+2. **우리 앱 현황**
+   - **TwelveSinsalService**: 일지 기준 (기본 12신살)
+   - **GilseongService**: 년지 기준 (역마살, 도화살, 화개살 등 주요 신살)
+   - DB와 UI 모두 일관성 있게 일지 기준 사용
+
+3. **변경 없이 유지**
+   - 현대 명리학 기준에 부합
+   - DB와 UI 일관성 유지됨
+
+### 참고 자료
+- [나무위키 - 사주팔자/신살](https://namu.wiki/w/사주팔자/신살)
+- [십이신살의 이해](https://www.sajubaju.com/십이신살의-이해)
+
+---
+
+## Phase 30: 음력 테이블 한중 차이 수정 (2026-01-03) ✅ 완료
+
+### 개요
+음력으로 입력 시 사주(일주/시주)가 포스텔러와 다르게 나오는 문제 해결
+
+### 문제 분석
+
+**증상**: 음력 생년월일로 입력 시 일주/시주의 천간/지지가 포스텔러와 1일 차이
+
+**원인**: 음력 테이블이 중국 기준으로 되어 있어 한국 기준과 1일 차이 발생
+- 한국과 중국은 표준시가 1시간 차이 (UTC+9 vs UTC+8)
+- 합삭(新月) 시각이 자정 경계에 걸리면 설날 날짜가 다름
+- 우리 테이블은 중국 기준으로 되어 있었음
+
+### 수정된 연도 목록
+
+| 연도 | 수정 전 (중국) | 수정 후 (한국) | 합삭 시각 |
+|------|---------------|---------------|----------|
+| 1997년 | 2월 7일 | **2월 8일** | 0시 6분 |
+| 2028년 | 1월 26일 | **1월 27일** | 0시 12분 |
+| 2061년 | 1월 21일 | **1월 22일** | 0시 14분 |
+| 2089년 | 2월 10일 | **2월 11일** | 0시 14분 |
+| 2092년 | 2월 7일 | **2월 8일** | 0시 2분 |
+
+### 수정된 파일
+
+1. **`lunar_table_1950_1999.dart`** (line 335-342)
+   - 1997년 solarNewYear: 2월 7일 → 2월 8일
+
+2. **`lunar_table_2000_2050.dart`** (line 202-209)
+   - 2028년 solarNewYear: 1월 26일 → 1월 27일
+
+3. **`lunar_table_2051_2100.dart`**
+   - 2061년 solarNewYear: 1월 21일 → 1월 22일 (line 76-83)
+   - 2089년 solarNewYear: 2월 10일 → 2월 11일 (line 273-280)
+   - 2092년 solarNewYear: 2월 7일 → 2월 8일 (line 295-302)
+
+### 기술 참고
+
+- 한국천문연구원(KASI) 공식 음양력 변환: https://astro.kasi.re.kr/life/pageView/8
+- 1914년~2099년 사이 한중 설날 차이 연도: 약 15회
+- 각 수정 연도에 주석으로 합삭 시각과 한국/중국 기준 명시
+
+### 영향 범위
+
+- 1997년생 음력 프로필: 일주가 1일 차이나던 문제 해결
+- 2028년 이후 미래 연도: 사전에 수정하여 문제 예방
+- 양력 입력: 영향 없음 (음력→양력 변환 시에만 관련)
 
 ---
 

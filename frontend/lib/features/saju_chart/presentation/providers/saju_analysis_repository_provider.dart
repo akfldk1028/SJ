@@ -258,7 +258,7 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
         },
     ];
 
-    // 12신살 분석
+    // 12신살 분석 (일지 기준 - 현대 명리학 기준)
     final twelveSinsalResult =
         TwelveSinsalService.analyzeFromChart(analysis.chart);
     String formatTwelveSinsal(TwelveSinsal sinsal) =>
