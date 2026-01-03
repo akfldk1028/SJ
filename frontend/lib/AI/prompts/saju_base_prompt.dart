@@ -216,7 +216,7 @@ ${_buildHapchungSection(data.hapchung)}
     "singang_singak": {
       "is_singang": true,
       "score": 0,
-      "level": "신강/신약/중화 등"
+      "level": "※필수※ 위 '신강/신약 (8단계 판정)' 섹션의 점수를 그대로 사용하여 8단계 기준에 맞는 등급 반환: 0-12=극약, 13-25=태약, 26-37=신약, 38-49=중화신약, 50-62=중화신강, 63-74=신강, 75-87=태강, 88-100=극왕"
     },
     "gyeokguk": {
       "name": "격국명",
@@ -407,15 +407,48 @@ ${_buildHapchungSection(data.hapchung)}
   String _buildDayStrengthSection(Map<String, dynamic>? dayStrength) {
     if (dayStrength == null || dayStrength.isEmpty) return '';
 
-    final buffer = StringBuffer('\n## 신강/신약\n');
+    final buffer = StringBuffer('\n## 신강/신약 (8단계 판정) - ⚠️ 중요 ⚠️\n');
 
-    final isSingang = dayStrength['is_singang'] as bool? ?? false;
     final score = dayStrength['score'] as int? ?? 50;
+    final level = dayStrength['level'] as String? ?? _determineLevelFromScore(score);
+    final isSingang = score >= 50;
 
-    buffer.writeln('- 판정: ${isSingang ? '신강(身强)' : '신약(身弱)'}');
-    buffer.writeln('- 점수: $score/100');
+    buffer.writeln('');
+    buffer.writeln('┌─────────────────────────────────────────────────┐');
+    buffer.writeln('│ ★★★ 이 값을 그대로 사용하세요 (재계산 금지) ★★★  │');
+    buffer.writeln('├─────────────────────────────────────────────────┤');
+    buffer.writeln('│ 점수: $score점                                   │');
+    buffer.writeln('│ 등급: $level                                     │');
+    buffer.writeln('│ is_singang: $isSingang                           │');
+    buffer.writeln('└─────────────────────────────────────────────────┘');
+    buffer.writeln('');
+    buffer.writeln('**8단계 기준표** (점수 → 등급 매핑):');
+    buffer.writeln('| 점수 범위 | 등급 | is_singang |');
+    buffer.writeln('|-----------|------|------------|');
+    buffer.writeln('| 88-100 | 극왕 | true |');
+    buffer.writeln('| 75-87 | 태강 | true |');
+    buffer.writeln('| 63-74 | 신강 | true |');
+    buffer.writeln('| 50-62 | **중화신강** | **true** |');
+    buffer.writeln('| 38-49 | 중화신약 | false |');
+    buffer.writeln('| 26-37 | 신약 | false |');
+    buffer.writeln('| 13-25 | 태약 | false |');
+    buffer.writeln('| 0-12 | 극약 | false |');
+    buffer.writeln('');
+    buffer.writeln('> **경고**: 점수 $score은 "$level"입니다. 응답에서 이 등급을 그대로 사용하세요.');
 
     return buffer.toString();
+  }
+
+  /// 점수로부터 8단계 등급 결정 (Flutter day_strength_service.dart와 동일)
+  String _determineLevelFromScore(int score) {
+    if (score >= 88) return '극왕';
+    if (score >= 75) return '태강';
+    if (score >= 63) return '신강';
+    if (score >= 50) return '중화신강';
+    if (score >= 38) return '중화신약';
+    if (score >= 26) return '신약';
+    if (score >= 13) return '태약';
+    return '극약';
   }
 
   String _buildSinsalSection(List<Map<String, dynamic>>? sinsal) {

@@ -169,6 +169,7 @@ class TwelveSinsalAnalysisResult {
 class TwelveSinsalService {
   /// 사주 차트에서 12신살 분석 (일지 기준)
   /// 현대 명리학에서는 일지 기준이 더 적중률이 높은 것으로 인식됨
+  /// 참고: https://namu.wiki/w/사주팔자/신살
   static TwelveSinsalAnalysisResult analyzeFromChart(
     SajuChart chart, {
     bool useYearJi = false, // true: 년지 기준, false: 일지 기준 (기본값: 일지)
@@ -216,7 +217,7 @@ class TwelveSinsalService {
     required String dayGan,
     required String dayJi,
     String? hourJi,
-    bool useYearJi = false, // 기본값: 일지 기준
+    bool useYearJi = false, // 기본값: 일지 기준 (현대 명리학)
   }) {
     final baseJi = useYearJi ? yearJi : dayJi;
 
