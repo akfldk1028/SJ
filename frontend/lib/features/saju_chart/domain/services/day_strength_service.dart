@@ -4,7 +4,14 @@ import '../entities/day_strength.dart';
 import '../entities/saju_chart.dart';
 
 /// 일간 강약 분석 서비스
-/// 포스텔러 로직 참고: 득령/득지/득시/득세 기반 점수 계산
+/// Phase 37: 표준 명리학 점수 계산 방식으로 개선
+///
+/// 점수 가중치 (총 100점):
+/// - 천간: 연간 10점, 월간 10점, 시간 10점 = 30점
+/// - 지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
+/// - 비겁/인성이면 해당 점수 획득, 아니면 0점
+/// - 50점 이상 = 신강, 50점 미만 = 신약
+///
 /// 8단계: 극약(0-12), 태약(13-25), 신약(26-37), 중화신약(38-49),
 ///        중화신강(50-62), 신강(63-74), 태강(75-87), 극왕(88-100)
 class DayStrengthService {
@@ -27,20 +34,26 @@ class DayStrengthService {
         ? _checkDeuksi(dayOheng, chart.hourPillar!.ji)
         : false;
 
-    // 5. 득세 판단 (천간에서 비겁/인성 개수 - 포스텔러 기준)
+    // 5. 년지 득실 판단 (Phase 37 추가)
+    final deuknyeonji = _checkDeuknyeonji(dayOheng, chart.yearPillar.ji);
+
+    // 6. 득세 판단 (천간에서 비겁/인성 개수 - 포스텔러 기준)
     // 포스텔러는 천간만 세는 것으로 추정 (지장간 제외)
     final ganBigeopInseong = _countGanBigeopInseong(chart, dayMaster);
     final deukse = ganBigeopInseong >= 2; // 천간에서 비겁/인성 2개 이상
 
-    // 6. 월령 득실 상태
+    // 7. 월령 득실 상태
     final monthStatus = _checkMonthStatus(dayOheng, chart.monthPillar.ji);
 
-    // 7. 점수 계산 (포스텔러 기준)
-    final score = _calculateScore(
+    // 8. 점수 계산 (Phase 37: 표준 명리학 방식)
+    final score = _calculateScoreV2(
+      chart: chart,
+      dayMaster: dayMaster,
+      dayOheng: dayOheng,
       deukryeong: deukryeong,
       deukji: deukji,
       deuksi: deuksi,
-      deukse: deukse,
+      deuknyeonji: deuknyeonji,
       sipsinDistribution: sipsinDistribution,
     );
 
@@ -113,8 +126,97 @@ class DayStrengthService {
     return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
   }
 
-  /// 점수 계산 (포스텔러/사주플러스 기준 - 50점 중심)
-  /// 득령/득지/득시/득세 + 십신 분포로 점수 결정
+  /// 년지 득실 판단 (Phase 37 추가)
+  bool _checkDeuknyeonji(Oheng dayOheng, String yearJi) {
+    final jeongGi = getJeongGi(yearJi);
+    if (jeongGi == null) return false;
+
+    final jeongGiOheng = cheonganToOheng[jeongGi];
+    if (jeongGiOheng == null) return false;
+
+    // 같은 오행이거나 정기가 일간을 생함
+    return dayOheng == jeongGiOheng || ohengSangsaeng[jeongGiOheng] == dayOheng;
+  }
+
+  /// 천간 십신 체크 (비겁/인성 여부)
+  bool _isGanSupport(String dayMaster, String targetGan) {
+    final sipsin = calculateSipSin(dayMaster, targetGan);
+    final category = sipsinToCategory[sipsin]!;
+    return category == SipSinCategory.bigeop || category == SipSinCategory.inseong;
+  }
+
+  /// 점수 계산 V2 (Phase 37: 표준 명리학 점수 계산 방식)
+  ///
+  /// 가중치 기반 점수 계산 (총 100점):
+  /// - 천간: 연간 10점, 월간 10점, 시간 10점 = 30점
+  /// - 지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
+  /// - 비겁/인성이면 해당 점수 획득, 아니면 0점
+  /// - 50점 이상 = 신강, 50점 미만 = 신약
+  int _calculateScoreV2({
+    required SajuChart chart,
+    required String dayMaster,
+    required Oheng dayOheng,
+    required bool deukryeong,
+    required bool deukji,
+    required bool deuksi,
+    required bool deuknyeonji,
+    required Map<SipSinCategory, int> sipsinDistribution,
+  }) {
+    double score = 0.0;
+
+    // === 천간 점수 (30점) ===
+    // 년간 (10점)
+    if (_isGanSupport(dayMaster, chart.yearPillar.gan)) {
+      score += 10.0;
+    }
+    // 월간 (10점)
+    if (_isGanSupport(dayMaster, chart.monthPillar.gan)) {
+      score += 10.0;
+    }
+    // 시간 (10점) - 시간 모르면 0점
+    if (chart.hourPillar != null && _isGanSupport(dayMaster, chart.hourPillar!.gan)) {
+      score += 10.0;
+    }
+
+    // === 지지 점수 (70점) ===
+    // 월지 (30점 - 가장 중요!)
+    if (deukryeong) {
+      score += 30.0;
+    }
+
+    // 일지 (15점)
+    if (deukji) {
+      score += 15.0;
+    }
+
+    // 시지 (15점) - 시간 모르면 시지 점수 없음
+    if (deuksi) {
+      score += 15.0;
+    }
+
+    // 년지 (10점)
+    if (deuknyeonji) {
+      score += 10.0;
+    }
+
+    // === 시간 모름 보정 ===
+    // 시간을 모르면 최대 점수가 75점(10+10+30+15+10)이므로
+    // 비율 조정하여 100점 만점으로 환산
+    if (chart.hourPillar == null) {
+      // 시간 모름: 75점 만점 → 100점 만점으로 환산
+      score = (score / 75.0) * 100.0;
+    }
+
+    return score.round().clamp(0, 100);
+  }
+
+  /// 점수 계산 (Phase 37: 표준 명리학 점수 계산 방식)
+  ///
+  /// 가중치 기반 점수 계산:
+  /// - 천간: 연간 10점, 월간 10점, 시간 10점 = 30점
+  /// - 지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
+  /// - 비겁/인성이면 해당 점수 획득, 아니면 0점
+  /// - 총 100점 중 50점 이상 = 신강, 50점 미만 = 신약
   int _calculateScore({
     required bool deukryeong,
     required bool deukji,
@@ -122,55 +224,58 @@ class DayStrengthService {
     required bool deukse,
     required Map<SipSinCategory, int> sipsinDistribution,
   }) {
-    // 기본 점수 50 (중화 기준)
-    double score = 50.0;
+    // === 새로운 가중치 기반 점수 계산 ===
+    // 이 점수는 0-100 사이로 계산됨
+    double score = 0.0;
 
-    // 득령: +12점 / -8점 (가장 중요 - 월령은 사주의 50% 영향)
+    // 득령 (월지 30점 - 가장 중요!)
+    // 월지가 비겁/인성이면 30점 획득
     if (deukryeong) {
-      score += 12;
-    } else {
-      score -= 8;
+      score += 30.0;
     }
 
-    // 득지: +8점 / -5점 (일지는 본인의 근본)
+    // 득지 (일지 15점)
     if (deukji) {
-      score += 8;
-    } else {
-      score -= 5;
+      score += 15.0;
     }
 
-    // 득시: +4점 / -2점 (시간은 보조적)
+    // 득시 (시지 15점)
     if (deuksi) {
-      score += 4;
-    } else {
-      score -= 2;
+      score += 15.0;
     }
 
-    // 득세: +6점 / -4점 (세력의 힘)
+    // 년지 (10점) - 득세와 별개로 년지 정기도 확인
+    // 득세가 true면 천간에서 비겁/인성이 2개 이상이므로 년간/월간 포함
+    // 년지는 별도로 체크해야 하지만, 현재 구조에서는 득세로 대체
+    // 추가 점수: 득세면 천간 비겁/인성이 있으므로 일부 점수 부여
     if (deukse) {
-      score += 6;
-    } else {
-      score -= 4;
+      score += 20.0; // 천간 비겁/인성 2개 = 약 20점 (10+10)
     }
 
-    // 십신 분포에 따른 미세 조정 (±5점 이내)
+    // 년지 점수 (별도 계산 필요하나, 간략화하여 십신 분포로 추정)
     final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
     final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
     final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
     final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
     final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
 
-    // 비겁/인성 보너스 (최대 +5점)
-    // 비겁+인성이 3개 초과시 보너스
+    // 비겁+인성 세력에 따른 추가 점수 (0-20점)
+    // 비겁+인성이 많을수록 신강, 재관식상이 많을수록 신약
     final supportCount = bigeopCount + inseongCount;
-    score += ((supportCount - 3) * 1.5).clamp(-3.0, 5.0);
-
-    // 설기(재관식상) - 많을수록 감점 (최대 -5점)
-    // 재성+관성+식상이 많으면 일간의 기운을 빼앗음
     final drainCount = jaeseongCount + gwanseongCount + siksangCount;
-    if (drainCount > 3) {
-      score -= ((drainCount - 3) * 1.5).clamp(0.0, 5.0);
+
+    // 세력 비율에 따른 점수 조정
+    final totalCount = supportCount + drainCount;
+    if (totalCount > 0) {
+      // supportCount / totalCount 비율로 0-20점 배분
+      // 비겁+인성이 전체의 50% 이상이면 신강 쪽으로
+      final supportRatio = supportCount / totalCount;
+      score += (supportRatio * 20.0); // 최대 20점 추가
     }
+
+    // 점수 범위 조정: 0-100 → 경계선 조정
+    // 현재 득령+득지+득시+득세+세력 = 최대 30+15+15+20+20 = 100점
+    // 최소 = 0점 (모두 실령, 실지, 실시, 실세, 재관식상만)
 
     return score.round().clamp(0, 100);
   }
