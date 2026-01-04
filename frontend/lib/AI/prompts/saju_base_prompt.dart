@@ -132,6 +132,19 @@ class SajuBasePrompt extends PromptTemplate {
 
 ### 4단계: 합충형파해(合沖刑破害) 분석
 
+> 아래 데이터에 ★ 강도가 표시되어 있음. 강도가 높을수록 영향력 큼!
+
+**합(合) 결속력 순서**
+- 방합(★5 최강/고정적) > 삼합(★4 유연) > 반합(★3 불완전) > 육합(★2 부드러움)
+- 방합 있으면 해당 오행 매우 강력! 삼합보다 방합 먼저 확인
+
+**충(沖) 파괴력 순서**
+- 왕지충(묘유/자오 ★5 원수충) > 생지충(인신/사해 ★4 역마) > 고지충(진술/축미 ★3)
+- 충 영향력: 일지 > 월지 > 연지 > 시지
+
+**형(刑) 흉의 강도 순서**
+- 삼형(인사신/축술미 ★5 관재/배신) > 상형(2자 ★3) > 자묘형(★2 무례) > 자형(★1)
+- 3자 모두 있으면 흉 최강! 2자만 있으면 감소
 
 ### 5단계: 12운성 분석
 
@@ -144,12 +157,26 @@ class SajuBasePrompt extends PromptTemplate {
 5. **직장운**: 관성 상태, 인성의 지원 여부
 6. **건강운**: 오행 편중, 충형 위치
 
+### 7단계: 전통 vs AI시대 해석 비교
+> 각 요소의 전통적 의미와 현대(AI시대) 적용을 함께 제시
+
+| 요소 | 전통 의미 | AI시대 적용 |
+|------|----------|-------------|
+| 식상(食傷) | 자녀운/표현력/재능 | 콘텐츠창작/SNS/유튜브/블로그 |
+| 역마살 | 먼여행/이사/변동 | 디지털노마드/해외근무/원격근무 |
+| 도화살 | 이성매력/예술성 | 인플루언서/대중인기/연예/마케팅 |
+| 인성(印星) | 학문/스승/자격증 | AI활용능력/온라인학습/코딩/자기계발 |
+| 재성(財星) | 재물/토지/안정 | 디지털자산/투자/N잡/부업/스타트업 |
+| 관성(官星) | 직장/명예/규율 | 대기업/공무원/프리랜서플랫폼 |
+| 비겁(比劫) | 형제/경쟁/협력 | 네트워킹/커뮤니티/협업/팀워크 |
+| 화개살 | 종교/예술/고독 | IT개발/연구직/1인창업/재택근무 |
+| 문창귀인 | 학문성취/문서운 | 블로그/작가/교육콘텐츠/자격증 |
+
 ## 분석 원칙
 - **원국 우선**: 대운/세운보다 원국의 구조를 먼저 파악
 - **육친 중심**: 십성을 통해 인간관계와 운세 해석
 - **상호작용**: 글자 간 합충형파해를 놓치지 않음
 - **균형 해석**: 좋은 점과 주의할 점을 함께 제시
-- **현대적 적용**: 고전 이론을 현대 생활에 맞게 해석
 
 ## 응답 형식
 반드시 JSON 형식으로만 응답하세요. 추가 설명 없이 순수 JSON만 출력하세요.
@@ -373,6 +400,32 @@ ${_buildHapchungSection(data.hapchung)}
     "numbers": [1, 6],
     "seasons": "유리한 계절",
     "partner_elements": ["궁합이 좋은 띠 2-3개"]
+  },
+
+  "modern_interpretation": {
+    "dominant_elements": [
+      {
+        "element": "사주에서 강한 요소 (예: 식상, 역마살, 도화살 등)",
+        "traditional": "전통적 의미",
+        "modern": "AI시대 적용",
+        "advice": "현대 사회에서 활용법"
+      }
+    ],
+    "career_in_ai_era": {
+      "traditional_path": "전통적 진로 해석",
+      "modern_opportunities": ["AI시대 적합 직업/분야 3-5개"],
+      "digital_strengths": "디지털/IT 분야 강점"
+    },
+    "wealth_in_ai_era": {
+      "traditional_view": "전통적 재물운 해석",
+      "modern_opportunities": ["디지털자산/투자/부업 등 현대 재물 기회"],
+      "risk_factors": "현대 재테크 주의점"
+    },
+    "relationships_in_ai_era": {
+      "traditional_view": "전통적 대인관계 해석",
+      "modern_networking": "온라인/SNS 네트워킹 스타일",
+      "collaboration_style": "현대 협업 방식"
+    }
   }
 }
 ```
@@ -651,10 +704,10 @@ ${_buildHapchungSection(data.hapchung)}
     buffer.writeln('> 합 ${totalHaps}개, 충 ${totalChungs}개, 형/파/해/원진 ${totalNegatives}개');
     buffer.writeln('');
 
-    // 천간합
+    // 천간합 (★★★, 합화 시 ★★★★★)
     final cheonganHaps = hapchung['cheongan_haps'] as List? ?? [];
     if (cheonganHaps.isNotEmpty) {
-      buffer.writeln('### 천간합 (天干合)');
+      buffer.writeln('### 천간합 (天干合) [강도: ★★★]');
       for (final h in cheonganHaps) {
         final desc = h['description'] ?? '${h['gan1']}${h['gan2']}합';
         buffer.writeln('- ${h['pillar1']}주-${h['pillar2']}주: $desc');
@@ -672,10 +725,10 @@ ${_buildHapchungSection(data.hapchung)}
       buffer.writeln('');
     }
 
-    // 지지육합
+    // 지지육합 (★★ - 가장 부드러운 결합)
     final jijiYukhaps = hapchung['jiji_yukhaps'] as List? ?? [];
     if (jijiYukhaps.isNotEmpty) {
-      buffer.writeln('### 지지육합 (地支六合)');
+      buffer.writeln('### 지지육합 (地支六合) [강도: ★★ 부드러운 결합]');
       for (final y in jijiYukhaps) {
         final desc = y['description'] ?? '${y['ji1']}${y['ji2']}합';
         buffer.writeln('- ${y['pillar1']}주-${y['pillar2']}주: $desc');
@@ -683,49 +736,54 @@ ${_buildHapchungSection(data.hapchung)}
       buffer.writeln('');
     }
 
-    // 삼합
+    // 삼합 (★★★★ 완성 / ★★★ 반합)
     final jijiSamhaps = hapchung['jiji_samhaps'] as List? ?? [];
     if (jijiSamhaps.isNotEmpty) {
-      buffer.writeln('### 삼합 (三合)');
+      buffer.writeln('### 삼합 (三合) [강도: ★★★★ 강하고 유연함]');
       for (final s in jijiSamhaps) {
         final jijis = (s['jijis'] as List?)?.join('') ?? '';
         final pillars = (s['pillars'] as List?)?.join(',') ?? '';
         final isFull = s['is_full'] as bool? ?? true;
-        final label = isFull ? '삼합' : '반합';
+        final label = isFull ? '삼합(★★★★)' : '반합(★★★)';
         buffer.writeln('- ${pillars}주: $jijis $label (${s['result_oheng']}국)');
       }
       buffer.writeln('');
     }
 
-    // 방합
+    // 방합 (★★★★★ - 가장 강력!)
     final jijiBanghaps = hapchung['jiji_banghaps'] as List? ?? [];
     if (jijiBanghaps.isNotEmpty) {
-      buffer.writeln('### 방합 (方合)');
+      buffer.writeln('### 방합 (方合) [강도: ★★★★★ 가장 강력! 고정적]');
       for (final b in jijiBanghaps) {
         final jijis = (b['jijis'] as List?)?.join('') ?? '';
         final pillars = (b['pillars'] as List?)?.join(',') ?? '';
-        buffer.writeln('- ${pillars}주: $jijis 방합 (${b['season']}, ${b['direction']}방)');
+        buffer.writeln('- ${pillars}주: $jijis 방합(★★★★★) (${b['season']}, ${b['direction']}방)');
       }
       buffer.writeln('');
     }
 
-    // 지지충
+    // 지지충 (강도별: 왕지충★★★★★ > 생지충★★★★ > 고지충★★★)
     final jijiChungs = hapchung['jiji_chungs'] as List? ?? [];
     if (jijiChungs.isNotEmpty) {
-      buffer.writeln('### 지지충 (地支沖)');
+      buffer.writeln('### 지지충 (地支沖) [왕지충>생지충>고지충]');
       for (final c in jijiChungs) {
-        buffer.writeln('- ${c['pillar1']}주-${c['pillar2']}주: ${c['ji1']}${c['ji2']}충');
+        final ji1 = c['ji1'] as String? ?? '';
+        final ji2 = c['ji2'] as String? ?? '';
+        final chungStrength = _getChungStrength(ji1, ji2);
+        buffer.writeln('- ${c['pillar1']}주-${c['pillar2']}주: $ji1$ji2충 $chungStrength');
       }
       buffer.writeln('');
     }
 
-    // 지지형
+    // 지지형 (삼형★★★★★ > 상형★★★ > 자묘형★★ > 자형★)
     final jijiHyungs = hapchung['jiji_hyungs'] as List? ?? [];
     if (jijiHyungs.isNotEmpty) {
-      buffer.writeln('### 지지형 (地支刑)');
+      buffer.writeln('### 지지형 (地支刑) [삼형>상형>자묘형>자형]');
       for (final h in jijiHyungs) {
         final desc = h['description'] ?? '${h['ji1']}${h['ji2']}형';
-        buffer.writeln('- ${h['pillar1']}주-${h['pillar2']}주: $desc');
+        final hyungType = h['hyung_type'] as String? ?? '';
+        final hyungStrength = _getHyungStrength(hyungType);
+        buffer.writeln('- ${h['pillar1']}주-${h['pillar2']}주: $desc $hyungStrength');
       }
       buffer.writeln('');
     }
@@ -761,5 +819,68 @@ ${_buildHapchungSection(data.hapchung)}
     }
 
     return buffer.toString();
+  }
+
+  /// 충(沖) 강도 판별
+  /// 왕지충(묘유,자오) > 생지충(인신,사해) > 고지충(진술,축미)
+  String _getChungStrength(String ji1, String ji2) {
+    final pair = {ji1, ji2};
+
+    // 왕지충 ★★★★★
+    if (pair.containsAll({'묘', '유'}) || pair.containsAll({'卯', '酉'})) {
+      return '(왕지충★★★★★ 원수충!)';
+    }
+    if (pair.containsAll({'자', '오'}) || pair.containsAll({'子', '午'})) {
+      return '(왕지충★★★★★)';
+    }
+
+    // 생지충 ★★★★
+    if (pair.containsAll({'인', '신'}) || pair.containsAll({'寅', '申'})) {
+      return '(생지충★★★★ 역마충돌!)';
+    }
+    if (pair.containsAll({'사', '해'}) || pair.containsAll({'巳', '亥'})) {
+      return '(생지충★★★★)';
+    }
+
+    // 고지충 ★★★
+    if (pair.containsAll({'진', '술'}) || pair.containsAll({'辰', '戌'})) {
+      return '(고지충★★★ 오래지속)';
+    }
+    if (pair.containsAll({'축', '미'}) || pair.containsAll({'丑', '未'})) {
+      return '(고지충★★★ 오래지속)';
+    }
+
+    return '';
+  }
+
+  /// 형(刑) 강도 판별
+  /// 삼형 > 상형 > 자묘형 > 자형
+  String _getHyungStrength(String hyungType) {
+    switch (hyungType) {
+      case '인사신삼형':
+      case '寅巳申삼형':
+        return '(삼형★★★★★ 관재/배신!)';
+      case '축술미삼형':
+      case '丑戌未삼형':
+        return '(삼형★★★★★ 신의깨짐!)';
+      case '인사형':
+      case '사신형':
+      case '인신형':
+      case '축술형':
+      case '술미형':
+      case '축미형':
+        return '(상형★★★)';
+      case '자묘형':
+      case '子卯형':
+        return '(무례지형★★)';
+      case '자형':
+      case '진진형':
+      case '오오형':
+      case '유유형':
+      case '해해형':
+        return '(자형★)';
+      default:
+        return '';
+    }
   }
 }

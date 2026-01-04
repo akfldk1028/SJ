@@ -735,7 +735,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (haps != null && haps.isNotEmpty) {
           buffer.writeln('**천간합**:');
           for (final h in haps) {
-            buffer.writeln('- ${h['description'] ?? h}');
+            buffer.writeln('- ${h is Map ? (h['description'] ?? h) : h}');
           }
         }
       }
@@ -745,7 +745,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (haps != null && haps.isNotEmpty) {
           buffer.writeln('**지지육합**:');
           for (final h in haps) {
-            buffer.writeln('- ${h['description'] ?? h}');
+            buffer.writeln('- ${h is Map ? (h['description'] ?? h) : h}');
           }
         }
       }
@@ -755,7 +755,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (haps != null && haps.isNotEmpty) {
           buffer.writeln('**지지삼합**:');
           for (final h in haps) {
-            buffer.writeln('- ${h['description'] ?? h}');
+            buffer.writeln('- ${h is Map ? (h['description'] ?? h) : h}');
           }
         }
       }
@@ -765,7 +765,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (items != null && items.isNotEmpty) {
           buffer.writeln('**충**:');
           for (final item in items) {
-            buffer.writeln('- ${item['description'] ?? item}');
+            buffer.writeln('- ${item is Map ? (item['description'] ?? item) : item}');
           }
         }
       }
@@ -775,7 +775,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (items != null && items.isNotEmpty) {
           buffer.writeln('**형**:');
           for (final item in items) {
-            buffer.writeln('- ${item['description'] ?? item}');
+            buffer.writeln('- ${item is Map ? (item['description'] ?? item) : item}');
           }
         }
       }
@@ -785,7 +785,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (items != null && items.isNotEmpty) {
           buffer.writeln('**파**:');
           for (final item in items) {
-            buffer.writeln('- ${item['description'] ?? item}');
+            buffer.writeln('- ${item is Map ? (item['description'] ?? item) : item}');
           }
         }
       }
@@ -795,7 +795,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (items != null && items.isNotEmpty) {
           buffer.writeln('**해**:');
           for (final item in items) {
-            buffer.writeln('- ${item['description'] ?? item}');
+            buffer.writeln('- ${item is Map ? (item['description'] ?? item) : item}');
           }
         }
       }
