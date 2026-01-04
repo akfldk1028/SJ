@@ -2,6 +2,10 @@ import 'lunar_year_data.dart';
 
 /// 음력 데이터 테이블 (2051-2100년)
 /// 한국천문연구원 데이터 기반 (미래 예측치)
+///
+/// ⚠️ 주의: 2051-2100년 데이터는 korean-lunar-calendar 라이브러리로 검증되지 않음
+/// 라이브러리가 2050년까지만 지원하므로 추후 KASI 공식 데이터로 검증 필요
+/// 2024-01-04 현재 기존 데이터 유지
 final List<LunarYearData> lunarTable2051_2100 = [
   // 2051년
   LunarYearData(

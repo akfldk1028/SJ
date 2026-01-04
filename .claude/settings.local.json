@@ -193,7 +193,9 @@
       "WebFetch(domain:www.aifreeapi.com)",
       "WebFetch(domain:qdyycfffnzwrytjgqfic.supabase.co)",
       "Bash(tasklist:*)",
-      "Bash(dart --version:*)"
+      "Bash(dart --version:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
