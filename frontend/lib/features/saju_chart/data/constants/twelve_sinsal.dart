@@ -205,6 +205,92 @@ String? getHwagaeJi(String baseJi) => findJijiBySinsal(baseJi, TwelveSinsal.hwag
 String? getJangsungJi(String baseJi) => findJijiBySinsal(baseJi, TwelveSinsal.jangsung);
 
 // ============================================================================
+// 년지+일지 병행 기준 신살 조회 (Phase 36)
+// 명리학에서는 년지(고전)와 일지(현대) 기준 모두 사용
+// 포스텔러 등 다른 앱과의 호환성을 위해 둘 다 체크
+// ============================================================================
+
+/// 도화살 여부 확인 (년지+일지 병행 기준)
+/// 년지 기준 도화살 또는 일지 기준 도화살 중 하나라도 해당되면 true
+/// [yearJi] 년지
+/// [dayJi] 일지
+/// [targetJi] 체크할 지지
+bool hasDohwasal(String yearJi, String dayJi, String targetJi) {
+  final yearDohwa = getDohwaJi(yearJi);
+  final dayDohwa = getDohwaJi(dayJi);
+  return targetJi == yearDohwa || targetJi == dayDohwa;
+}
+
+/// 역마살 여부 확인 (년지+일지 병행 기준)
+/// 년지 기준 역마살 또는 일지 기준 역마살 중 하나라도 해당되면 true
+/// [yearJi] 년지
+/// [dayJi] 일지
+/// [targetJi] 체크할 지지
+bool hasYeokmasal(String yearJi, String dayJi, String targetJi) {
+  final yearYeokma = getYeokmaJi(yearJi);
+  final dayYeokma = getYeokmaJi(dayJi);
+  return targetJi == yearYeokma || targetJi == dayYeokma;
+}
+
+/// 화개살 여부 확인 (년지+일지 병행 기준)
+/// [yearJi] 년지
+/// [dayJi] 일지
+/// [targetJi] 체크할 지지
+bool hasHwagaesal(String yearJi, String dayJi, String targetJi) {
+  final yearHwagae = getHwagaeJi(yearJi);
+  final dayHwagae = getHwagaeJi(dayJi);
+  return targetJi == yearHwagae || targetJi == dayHwagae;
+}
+
+/// 12신살 여부 확인 (년지+일지 병행 기준)
+/// 특정 신살이 년지 기준 또는 일지 기준으로 해당되는지 확인
+/// [yearJi] 년지
+/// [dayJi] 일지
+/// [targetJi] 체크할 지지
+/// [sinsal] 확인할 12신살
+bool hasTwelveSinsal(String yearJi, String dayJi, String targetJi, TwelveSinsal sinsal) {
+  final yearSinsal = calculateSinsal(yearJi, targetJi);
+  final daySinsal = calculateSinsal(dayJi, targetJi);
+  return yearSinsal == sinsal || daySinsal == sinsal;
+}
+
+/// 도화살 기준 정보 조회 (년지/일지 어느 기준인지)
+/// [yearJi] 년지
+/// [dayJi] 일지
+/// [targetJi] 체크할 지지
+/// 반환: 'year' (년지 기준), 'day' (일지 기준), 'both' (둘 다), null (해당 없음)
+String? getDohwasalBasis(String yearJi, String dayJi, String targetJi) {
+  final yearDohwa = getDohwaJi(yearJi);
+  final dayDohwa = getDohwaJi(dayJi);
+
+  final isYearBasis = targetJi == yearDohwa;
+  final isDayBasis = targetJi == dayDohwa;
+
+  if (isYearBasis && isDayBasis) return 'both';
+  if (isYearBasis) return 'year';
+  if (isDayBasis) return 'day';
+  return null;
+}
+
+/// 역마살 기준 정보 조회 (년지/일지 어느 기준인지)
+/// [yearJi] 년지
+/// [dayJi] 일지
+/// [targetJi] 체크할 지지
+/// 반환: 'year' (년지 기준), 'day' (일지 기준), 'both' (둘 다), null (해당 없음)
+String? getYeokmasalBasis(String yearJi, String dayJi, String targetJi) {
+  final yearYeokma = getYeokmaJi(yearJi);
+  final dayYeokma = getYeokmaJi(dayJi);
+
+  final isYearBasis = targetJi == yearYeokma;
+  final isDayBasis = targetJi == dayYeokma;
+
+  if (isYearBasis && isDayBasis) return 'both';
+  if (isYearBasis) return 'year';
+  if (isDayBasis) return 'day';
+  return null;
+}
+
+// ============================================================================
 // 특수 신살 (12신살 외)
 // ============================================================================
 

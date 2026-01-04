@@ -1309,20 +1309,100 @@ bool hasYeokmasal(String yearJi, String dayJi, String targetJi) {
 
 ---
 
-### 5. 추가 조사 필요 사항
+### 5. 추가 조사 완료 ✅
 
-1. **명리학 원전 확인**: 12신살의 정통 기준이 년지인지 일지인지 확인
-2. **다른 앱 비교**: 천을명리, 만세력 등 다른 앱과도 비교 필요
-3. **전문가 자문**: 명리학 전문가에게 정확한 기준 확인
+#### 명리학 표준 조사 결과
+
+**참고 자료:**
+- [나무위키 - 사주팔자/신살](https://namu.wiki/w/사주팔자/신살)
+- [대구신문 - 12신살의 이론과 적용](https://www.idaegu.co.kr/news/articleView.html?idxno=396467)
+- [사주스터디 - 도화살](https://www.sajustudy.com/88)
+
+**결론:**
+- **고전 명리학**: 년지 기준
+- **현대 명리학**: 일지 기준 (개인 중심)
+- **우리 앱**: 명리학 표준 정확히 준수
+- **포스텔러와 차이**: 포스텔러가 다른 12신살 테이블 사용 (표준과 다름)
 
 ---
 
-### 6. 관련 파일
+### 6. Phase 36 수정 완료 ✅
+
+#### 추가된 기능
+
+**1. 년지+일지 병행 기준 함수 (twelve_sinsal.dart)**
+```dart
+// 도화살 여부 (년지 또는 일지 기준)
+bool hasDohwasal(String yearJi, String dayJi, String targetJi);
+
+// 역마살 여부 (년지 또는 일지 기준)
+bool hasYeokmasal(String yearJi, String dayJi, String targetJi);
+
+// 화개살 여부 (년지 또는 일지 기준)
+bool hasHwagaesal(String yearJi, String dayJi, String targetJi);
+
+// 기준 정보 조회
+String? getDohwasalBasis(String yearJi, String dayJi, String targetJi);
+String? getYeokmasalBasis(String yearJi, String dayJi, String targetJi);
+```
+
+**2. DualBasisSinsalResult 클래스 (twelve_sinsal_service.dart)**
+```dart
+class DualBasisSinsalResult {
+  final TwelveSinsalAnalysisResult yearBasisResult;  // 년지 기준
+  final TwelveSinsalAnalysisResult dayBasisResult;   // 일지 기준
+  final List<String> dohwasalPillars;   // 도화살 있는 주
+  final List<String> yeokmasalPillars;  // 역마살 있는 주
+  final List<String> hwagaesalPillars;  // 화개살 있는 주
+}
+```
+
+**3. 사용 예시**
+```dart
+// 병행 기준 분석
+final result = TwelveSinsalService.analyzeWithDualBasisParams(
+  yearJi: '신',
+  monthJi: '유',
+  dayGan: '정',
+  dayJi: '사',
+  hourJi: '묘',
+);
+
+print(result.dohwasalPillars); // ['월지'] - 월지(유)에 도화살
+print(result.hasYeokmasal);    // false - 역마살 없음
+```
+
+#### 테스트 결과 ✅
+
+```
+=== 이여진 프로필 검증 ===
+사주: 임신/기유/정사/계묘 (년지=신, 일지=사)
+
+년지(신) 기준 - 신자진(수국):
+  시지(묘): 육해 ✅
+  일지(사): 겁살 ✅
+  월지(유): 연살(도화) ✅
+  년지(신): 지살 ✅
+
+일지(사) 기준 - 사유축(금국):
+  시지(묘): 재살 ✅
+  일지(사): 지살 ✅
+  월지(유): 장성 ✅
+  년지(신): 망신 ✅
+
+도화살 (병행): 월지(유) ✅
+역마살 (병행): 없음 ✅
+```
+
+---
+
+### 7. 관련 파일
 
 | 파일 | 역할 |
 |------|------|
-| `twelve_sinsal_service.dart` | 12신살 계산 서비스 (useYearJi 파라미터) |
-| `twelve_sinsal.dart` | 12신살 테이블 및 특수 신살 정의 |
+| `twelve_sinsal_service.dart` | 12신살 계산 서비스 + DualBasisSinsalResult |
+| `twelve_sinsal.dart` | 12신살 테이블 + 병행 기준 함수 |
+| `test/sinsal_dual_basis_test.dart` | Phase 36 테스트 |
 
 ---
 
