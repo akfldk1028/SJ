@@ -400,6 +400,9 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     return Column(
       children: [
         const DisclaimerBanner(),
+        // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
+        if (chatState.isDeepAnalysisRunning)
+          const _DeepAnalysisLoadingBanner(),
         Expanded(
           child: ChatMessageList(
             messages: chatState.messages,
@@ -434,6 +437,70 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           hintText: widget.chatType.inputHint,
         ),
       ],
+    );
+  }
+}
+
+/// GPT-5.2 상세 분석 로딩 배너
+///
+/// 첫 프로필 분석 시 ~2분 소요되므로 사용자에게 진행 상황을 안내합니다.
+/// - 합충형파해, 십성, 신살 등 정밀 분석 진행
+/// - 한 번 저장되면 이후에는 빠르게 로드됨
+class _DeepAnalysisLoadingBanner extends StatelessWidget {
+  const _DeepAnalysisLoadingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withOpacity(0.3),
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // 로딩 스피너
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 안내 텍스트
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '상세 사주 분석 중...',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '합충형파해, 십성, 신살 등 정밀 분석 진행 (약 1~2분 소요)',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

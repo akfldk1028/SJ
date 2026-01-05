@@ -506,6 +506,13 @@ class ChatNotifier extends _$ChatNotifier {
         buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
       }
 
+      // ═══════════════════════════════════════════════════════════════════════════
+      // v3.0 토큰 최적화: GPT-5.2 분석 결과(aiSummary) 주석처리
+      // - Gemini 시스템 프롬프트 토큰 절약 (~2000 토큰 감소)
+      // - sajuOrigin (원본 사주 데이터)만으로 충분한 맥락 제공
+      // - 필요 시 주석 해제하여 복원 가능
+      // ═══════════════════════════════════════════════════════════════════════════
+      /*
       // 2. AI 분석 결과 추가
       buffer.writeln();
       buffer.writeln('---');
@@ -622,6 +629,7 @@ class ChatNotifier extends _$ChatNotifier {
         buffer.writeln('### 종합 조언');
         buffer.writeln(aiSummary.overallAdvice);
       }
+      */
     }
 
     buffer.writeln();
