@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../domain/entities/daeun.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/entities/saju_analysis.dart';
 import '../../domain/services/hapchung_service.dart';
@@ -20,8 +21,10 @@ import 'possteller_style_table.dart';
 import 'fortune_display.dart';
 import 'day_strength_display.dart';
 import 'oheng_analysis_display.dart';
+import 'gilseong_display.dart';
 import '../../domain/entities/pillar.dart';
 import '../../data/constants/sipsin_relations.dart';
+import '../../domain/services/gilseong_service.dart';
 
 /// 포스텔러 스타일 사주 상세 탭 컨테이너
 /// 여러 분석 탭(궁성, 합충, 십성, 운성, 신살, 공망)을 제공
@@ -172,8 +175,11 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                     _SipSungTab(chart: chart),
                     // 7. 운성 탭
                     _UnsungTab(chart: chart),
-                    // 8. 신살 탭
-                    _SinsalTab(chart: chart),
+                    // 8. 신살 탭 (성별 정보 전달)
+                    _SinsalTab(
+                      chart: chart,
+                      isMale: analysis.daeun?.gender == Gender.male,
+                    ),
                     // 9. 공망 탭
                     _GongmangTab(chart: chart),
                   ],
@@ -523,19 +529,48 @@ class _UnsungTab extends StatelessWidget {
 /// 신살 탭
 class _SinsalTab extends StatelessWidget {
   final SajuChart chart;
+  final bool isMale;
 
-  const _SinsalTab({required this.chart});
+  const _SinsalTab({
+    required this.chart,
+    this.isMale = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final result = TwelveSinsalService.analyzeFromChart(chart);
+    // 12신살 분석 (일지 기준 - 현대 명리학 기준)
+    final twelveSinsalResult = TwelveSinsalService.analyzeFromChart(chart);
+    final gilseongResult = GilseongService.analyzeFromChart(chart);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 요약
+          // 신살과 길성 통합 테이블 (포스텔러 스타일)
+          SinsalGilseongTable(
+            gilseongResult: gilseongResult,
+            yearGan: chart.yearPillar.gan,
+            yearJi: chart.yearPillar.ji,
+            monthGan: chart.monthPillar.gan,
+            monthJi: chart.monthPillar.ji,
+            dayGan: chart.dayPillar.gan,
+            dayJi: chart.dayPillar.ji,
+            hourGan: chart.hourPillar?.gan,
+            hourJi: chart.hourPillar?.ji,
+          ),
+          const SizedBox(height: 16),
+
+          // Phase 24: 확장 신살 정보 (효신살, 고신살/과숙살, 천라지망, 원진살)
+          ExtendedSinsalInfoCard(
+            result: gilseongResult,
+            isMale: isMale,
+          ),
+          const SizedBox(height: 24),
+
+          // 12신살 요약
+          _buildSectionTitle(context, '12신살 요약'),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -547,7 +582,7 @@ class _SinsalTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '주요 신살',
+                  '주요 12신살',
                   style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,
@@ -555,7 +590,7 @@ class _SinsalTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  result.summary,
+                  twelveSinsalResult.summary,
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 14,
@@ -567,10 +602,10 @@ class _SinsalTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // 12신살 테이블
+          // 12신살 상세 테이블
           _buildSectionTitle(context, '각 궁성별 12신살'),
           const SizedBox(height: 12),
-          SinsalTable(result: result),
+          SinsalTable(result: twelveSinsalResult),
         ],
       ),
     );

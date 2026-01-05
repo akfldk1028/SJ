@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../ad/ad.dart';
 import '../../domain/models/chat_type.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
@@ -11,6 +11,7 @@ import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_list.dart';
 import '../widgets/disclaimer_banner.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/suggested_questions.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// 사주 채팅 Shell - 반응형 레이아웃 래퍼
@@ -97,6 +98,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
   /// 새 채팅 시작
   Future<void> _handleNewChat() async {
+    // 새 세션 광고 표시 (Web 제외)
+    if (!kIsWeb) {
+      await ref.read(adControllerProvider.notifier).onNewSession();
+    }
+
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final activeProfile = await ref.read(activeProfileProvider.future);
     await sessionNotifier.createSession(_chatType, activeProfile?.id);
@@ -140,9 +146,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     );
   }
 
-  /// Mobile 레이아웃: Scaffold + Drawer + 뒤로가기 버튼
+  /// Mobile 레이아웃: Scaffold + Drawer
   Widget _buildMobileLayout() {
-    final theme = context.appTheme;
     final sessionState = ref.watch(chatSessionNotifierProvider);
     final currentSession = sessionState.sessions
         .where((s) => s.id == sessionState.currentSessionId)
@@ -150,38 +155,21 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: theme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.backgroundColor,
-        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: theme.primaryColor),
-          onPressed: () => context.go('/menu'),
-          tooltip: '메인으로 돌아가기',
+          icon: const Icon(Icons.menu),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
-        title: Text(
-          currentSession?.title ?? _chatType.title,
-          style: TextStyle(
-            color: theme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
+        title: Text(currentSession?.title ?? _chatType.title),
         actions: [
           IconButton(
-            icon: Icon(Icons.history_rounded, color: theme.textSecondary),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            tooltip: '대화 히스토리',
-          ),
-          IconButton(
-            icon: Icon(Icons.add_rounded, color: theme.primaryColor),
+            icon: const Icon(Icons.add),
             onPressed: _handleNewChat,
             tooltip: '새 채팅',
           ),
         ],
       ),
       drawer: Drawer(
-        backgroundColor: theme.backgroundColor,
         child: ChatHistorySidebar(
           onNewChat: _handleNewChat,
           onSessionSelected: _handleSessionSelected,
@@ -198,16 +186,14 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     );
   }
 
-  /// Desktop 레이아웃: Row [Sidebar | Content] + 뒤로가기 버튼
+  /// Desktop 레이아웃: Row [Sidebar | Content]
   Widget _buildDesktopLayout() {
-    final theme = context.appTheme;
     final sessionState = ref.watch(chatSessionNotifierProvider);
     final currentSession = sessionState.sessions
         .where((s) => s.id == sessionState.currentSessionId)
         .firstOrNull;
 
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
       body: Row(
         children: [
           // 사이드바 (토글 가능)
@@ -218,42 +204,29 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
               onSessionDeleted: _handleSessionDeleted,
               onSessionRenamed: _handleSessionRenamed,
             ),
-            VerticalDivider(
-              width: 1,
-              color: theme.primaryColor.withOpacity(0.1),
-            ),
+            const VerticalDivider(width: 1),
           ],
           // 채팅 영역
           Expanded(
             child: Column(
               children: [
-                // Desktop AppBar (뒤로가기 + 사이드바 토글 + 제목)
+                // Desktop AppBar (사이드바 토글 + 제목)
                 Container(
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: theme.backgroundColor,
                     border: Border(
                       bottom: BorderSide(
-                        color: theme.primaryColor.withOpacity(0.1),
-                        width: 1,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 0.5,
                       ),
                     ),
                   ),
                   child: Row(
                     children: [
-                      // 뒤로가기 버튼
-                      IconButton(
-                        icon: Icon(Icons.arrow_back_rounded, color: theme.primaryColor),
-                        onPressed: () => context.go('/menu'),
-                        tooltip: '메인으로 돌아가기',
-                      ),
                       // 햄버거 아이콘 (사이드바 토글)
                       IconButton(
-                        icon: Icon(
-                          _isSidebarVisible ? Icons.menu_open_rounded : Icons.menu_rounded,
-                          color: theme.textSecondary,
-                        ),
+                        icon: const Icon(Icons.menu),
                         onPressed: () {
                           setState(() {
                             _isSidebarVisible = !_isSidebarVisible;
@@ -266,17 +239,13 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                       Expanded(
                         child: Text(
                           currentSession?.title ?? _chatType.title,
-                          style: TextStyle(
-                            color: theme.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       // 새 채팅 버튼
                       IconButton(
-                        icon: Icon(Icons.add_rounded, color: theme.primaryColor),
+                        icon: const Icon(Icons.add),
                         onPressed: _handleNewChat,
                         tooltip: '새 채팅',
                       ),
@@ -401,7 +370,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       });
     }
 
-    // 메시지가 추가되면 스크롤
+    // 메시지가 추가되면 스크롤 + 광고 체크
     ref.listen(
       chatNotifierProvider(currentSessionId),
       (previous, next) {
@@ -409,8 +378,24 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             previous?.streamingContent != next.streamingContent) {
           widget.onScroll();
         }
+
+        // AI 응답 완료 시 광고 체크 (메시지 수 증가 & 로딩 완료)
+        if (!kIsWeb &&
+            previous?.messages.length != next.messages.length &&
+            !next.isLoading &&
+            next.messages.isNotEmpty &&
+            next.messages.last.isAi) {
+          // 광고 카운터 체크 (비동기)
+          ref.read(adControllerProvider.notifier).onChatMessage();
+        }
       },
     );
+
+    // 마지막 AI 메시지의 suggestedQuestions 가져오기
+    final lastAiMessage = chatState.messages
+        .where((m) => m.isAi)
+        .lastOrNull;
+    final suggestedQuestions = lastAiMessage?.suggestedQuestions;
 
     return Column(
       children: [
@@ -424,6 +409,20 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           ),
         ),
         if (chatState.error != null) ErrorBanner(message: chatState.error!),
+        // 추천 질문 표시 (로딩 중이 아니고 메시지가 있을 때)
+        if (!chatState.isLoading && chatState.messages.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SuggestedQuestions(
+              questions: suggestedQuestions,
+              onQuestionSelected: (question) {
+                print('[_ChatContent] 추천 질문 선택: $question');
+                ref
+                    .read(chatNotifierProvider(currentSessionId).notifier)
+                    .sendMessage(question, widget.chatType);
+              },
+            ),
+          ),
         ChatInputField(
           onSend: (text) {
             print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text');

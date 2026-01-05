@@ -55,6 +55,12 @@ class SupabaseService {
   /// Supabase 연결 여부
   static bool get isConnected => _client != null;
 
+  /// Supabase URL (Edge Function 호출용)
+  static String? get supabaseUrl => dotenv.env['SUPABASE_URL'];
+
+  /// Supabase Anon Key (Edge Function Authorization용)
+  static String? get anonKey => dotenv.env['SUPABASE_ANON_KEY'];
+
   /// 현재 인증된 사용자
   static User? get currentUser => _client?.auth.currentUser;
 
@@ -93,6 +99,12 @@ class SupabaseService {
 
   /// 현재 사용자 ID (없으면 null)
   static String? get currentUserId => currentUser?.id;
+
+  /// 현재 사용자 Access Token (JWT)
+  ///
+  /// Edge Function 호출 시 Authorization 헤더에 사용
+  /// verify_jwt: true인 Edge Function은 이 토큰이 필요함
+  static String? get accessToken => _client?.auth.currentSession?.accessToken;
 
   /// saju_analyses 테이블 쿼리 빌더
   static SupabaseQueryBuilder? get sajuAnalysesTable {

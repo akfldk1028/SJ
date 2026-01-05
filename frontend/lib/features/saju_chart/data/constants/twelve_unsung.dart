@@ -5,6 +5,8 @@
 /// 양간(갑병무경임)은 순행, 음간(을정기신계)은 역행
 library;
 
+import 'gongmang_table.dart' show isYangGan;
+
 // ============================================================================
 // 12운성 정의
 // ============================================================================
@@ -137,10 +139,7 @@ const List<String> jijiOrder = [
   '해',
 ];
 
-/// 양간 여부 확인
-bool isYangGan(String gan) {
-  return gan == '갑' || gan == '병' || gan == '무' || gan == '경' || gan == '임';
-}
+// isYangGan은 gongmang_table.dart에서 import
 
 /// 12운성 계산
 /// [gan] 천간 (갑, 을, 병, ...)

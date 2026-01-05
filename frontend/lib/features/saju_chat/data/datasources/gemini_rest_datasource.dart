@@ -2,7 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import '../../../../AI/core/ai_constants.dart';
+import '../../../../AI/core/ai_logger.dart';
+import '../services/conversation_window_manager.dart';
+import '../services/token_counter.dart';
 
 /// Gemini API 응답 (토큰 사용량 포함)
 class GeminiResponse {
@@ -11,6 +17,10 @@ class GeminiResponse {
   final int? candidatesTokenCount;
   final int? totalTokenCount;
   final int? thoughtsTokenCount;
+  /// 응답이 MAX_TOKENS로 잘렸는지 여부
+  final bool wasTruncated;
+  /// finishReason (STOP, MAX_TOKENS, SAFETY 등)
+  final String? finishReason;
 
   const GeminiResponse({
     required this.content,
@@ -18,6 +28,8 @@ class GeminiResponse {
     this.candidatesTokenCount,
     this.totalTokenCount,
     this.thoughtsTokenCount,
+    this.wasTruncated = false,
+    this.finishReason,
   });
 
   /// 총 토큰 사용량 (AI 응답 저장용)
@@ -27,15 +39,22 @@ class GeminiResponse {
 /// Gemini 3.0 REST API 데이터소스
 ///
 /// REST API를 직접 호출하여 Gemini 3.0 사용
+/// 토큰 제한 관리 포함 (ConversationWindowManager)
 class GeminiRestDatasource {
   late final Dio _dio;
   final List<Map<String, dynamic>> _conversationHistory = [];
   String? _systemPrompt;
   bool _isInitialized = false;
 
+  /// 대화 윈도우 관리자 (토큰 제한)
+  final ConversationWindowManager _windowManager = ConversationWindowManager();
+
+  /// 마지막 트리밍 정보
+  WindowedConversation? _lastWindowResult;
+
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta';
-  static const String _model = 'gemini-3-pro-preview'; // Gemini 3.0 Pro (Thinking 지원)
+  static const String _model = 'gemini-3-flash-preview'; // Gemini 3.0 Flash (빠른 응답)
 
   /// 환경변수에서 API 키 가져오기
   static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
@@ -68,6 +87,13 @@ class GeminiRestDatasource {
   void startNewSession(String systemPrompt) {
     _conversationHistory.clear();
     _systemPrompt = systemPrompt;
+    _windowManager.setSystemPrompt(systemPrompt);
+    _lastWindowResult = null;
+
+    if (kDebugMode) {
+      final promptTokens = TokenCounter.estimateSystemPromptTokens(systemPrompt);
+      print('[GeminiDatasource] 새 세션 시작, 시스템 프롬프트 토큰: $promptTokens');
+    }
   }
 
   /// 메시지 전송 및 응답 받기 (토큰 사용량 포함)
@@ -115,6 +141,26 @@ class GeminiRestDatasource {
           {'text': text}
         ],
       });
+
+      // 로컬 로그 저장
+      await AiLogger.log(
+        provider: 'gemini',
+        model: _model,
+        type: 'chat',
+        request: {
+          'message': message,
+          'system_prompt_length': _systemPrompt?.length ?? 0,
+        },
+        response: {'content': text},
+        tokens: {
+          'prompt': promptTokenCount,
+          'completion': candidatesTokenCount,
+          'total': totalTokenCount,
+          'thoughts': thoughtsTokenCount,
+        },
+        costUsd: _calculateCost(promptTokenCount ?? 0, candidatesTokenCount ?? 0),
+        success: true,
+      );
 
       return GeminiResponse(
         content: text,
@@ -185,6 +231,10 @@ class GeminiRestDatasource {
       int? totalTokenCount;
       int? thoughtsTokenCount;
 
+      // 🔧 finishReason 추적 (MAX_TOKENS 감지용)
+      String? lastFinishReason;
+      bool wasTruncated = false;
+
       await for (final chunk in stream) {
         final chunkStr = utf8.decode(chunk);
         final lines = chunkStr.split('\n');
@@ -208,6 +258,18 @@ class GeminiRestDatasource {
 
               final candidates = data['candidates'] as List?;
               if (candidates != null && candidates.isNotEmpty) {
+                // 🔧 finishReason 확인 (MAX_TOKENS면 응답이 잘린 것)
+                final finishReason = candidates[0]['finishReason'] as String?;
+                if (finishReason != null) {
+                  lastFinishReason = finishReason;
+                  if (finishReason == 'MAX_TOKENS') {
+                    wasTruncated = true;
+                    if (kDebugMode) {
+                      print('[GeminiDatasource] ⚠️ 응답이 MAX_TOKENS로 잘림! candidatesTokenCount: $candidatesTokenCount');
+                    }
+                  }
+                }
+
                 final content = candidates[0]['content'] as Map<String, dynamic>?;
                 if (content != null) {
                   final parts = content['parts'] as List?;
@@ -220,11 +282,19 @@ class GeminiRestDatasource {
                   }
                 }
               }
-            } catch (_) {
-              // JSON 파싱 오류 무시
+            } catch (e) {
+              // 🔧 파싱 오류 로깅 (디버그 모드)
+              if (kDebugMode) {
+                print('[GeminiDatasource] JSON 파싱 오류: $e');
+              }
             }
           }
         }
+      }
+
+      // 🔧 응답 잘림 감지 시 로그
+      if (kDebugMode && lastFinishReason != null) {
+        print('[GeminiDatasource] 스트리밍 완료 - finishReason: $lastFinishReason, wasTruncated: $wasTruncated');
       }
 
       // 대화 기록에 AI 응답 추가
@@ -237,13 +307,35 @@ class GeminiRestDatasource {
         });
       }
 
-      // 마지막 스트리밍 응답 저장 (토큰 사용량 포함)
+      // 마지막 스트리밍 응답 저장 (토큰 사용량 + 잘림 여부 포함)
       _lastStreamingResponse = GeminiResponse(
         content: accumulated,
         promptTokenCount: promptTokenCount,
         candidatesTokenCount: candidatesTokenCount,
         totalTokenCount: totalTokenCount,
         thoughtsTokenCount: thoughtsTokenCount,
+        wasTruncated: wasTruncated,
+        finishReason: lastFinishReason,
+      );
+
+      // 로컬 로그 저장
+      await AiLogger.log(
+        provider: 'gemini',
+        model: _model,
+        type: 'chat_stream',
+        request: {
+          'message': message,
+          'system_prompt_length': _systemPrompt?.length ?? 0,
+        },
+        response: {'content': accumulated},
+        tokens: {
+          'prompt': promptTokenCount,
+          'completion': candidatesTokenCount,
+          'total': totalTokenCount,
+          'thoughts': thoughtsTokenCount,
+        },
+        costUsd: _calculateCost(promptTokenCount ?? 0, candidatesTokenCount ?? 0),
+        success: true,
       );
     } on DioException catch (e) {
       throw Exception('스트리밍 오류: ${e.message}');
@@ -252,13 +344,22 @@ class GeminiRestDatasource {
     }
   }
 
-  /// 요청 본문 생성
+  /// 요청 본문 생성 (토큰 제한 적용)
   Map<String, dynamic> _buildRequestBody() {
+    // 토큰 제한에 맞게 대화 윈도우잉
+    _lastWindowResult = _windowManager.windowMessages(_conversationHistory);
+
+    if (kDebugMode && _lastWindowResult!.wasTrimmed) {
+      print('[GeminiDatasource] 토큰 제한으로 ${_lastWindowResult!.removedCount}개 메시지 트리밍');
+      print('[GeminiDatasource] 현재 토큰: ${_lastWindowResult!.estimatedTokens}');
+    }
+
+    final windowedMessages = _lastWindowResult!.messages;
     final contents = <Map<String, dynamic>>[];
 
     // 시스템 프롬프트가 있으면 첫 번째 사용자 메시지에 포함
-    if (_systemPrompt != null && _conversationHistory.isNotEmpty) {
-      final firstUserMsg = _conversationHistory.first;
+    if (_systemPrompt != null && windowedMessages.isNotEmpty) {
+      final firstUserMsg = windowedMessages.first;
       if (firstUserMsg['role'] == 'user') {
         contents.add({
           'role': 'user',
@@ -266,12 +367,18 @@ class GeminiRestDatasource {
             {'text': '$_systemPrompt\n\n${firstUserMsg['parts'][0]['text']}'}
           ],
         });
-        contents.addAll(_conversationHistory.skip(1));
+        contents.addAll(windowedMessages.skip(1));
       } else {
-        contents.addAll(_conversationHistory);
+        contents.addAll(windowedMessages);
       }
     } else {
-      contents.addAll(_conversationHistory);
+      contents.addAll(windowedMessages);
+    }
+
+    // [디버깅 로그 추가]
+    final maxTokens = TokenLimits.questionAnswerMaxTokens;
+    if (kDebugMode) {
+      print('[gemini_rest_datasource.dart] _buildRequestBody: maxOutputTokens = $maxTokens');
     }
 
     return {
@@ -280,11 +387,7 @@ class GeminiRestDatasource {
         'temperature': 0.7,
         'topK': 40,
         'topP': 0.95,
-        'maxOutputTokens': 8192,
-        // Thinking 모드 활성화 - 사주 분석 추론 강화
-        'thinkingConfig': {
-          'thinkingBudget': 2048, // 추론에 사용할 토큰 수
-        },
+        'maxOutputTokens': maxTokens,
       },
       'safetySettings': [
         {
@@ -306,6 +409,14 @@ class GeminiRestDatasource {
       ],
     };
   }
+
+  /// 현재 토큰 사용량 정보 조회
+  TokenUsageInfo getTokenUsageInfo() {
+    return _windowManager.getTokenUsageInfo(_conversationHistory);
+  }
+
+  /// 마지막 윈도우잉 결과 조회
+  WindowedConversation? get lastWindowResult => _lastWindowResult;
 
   /// Mock 응답 생성
   String _getMockResponse(String userMessage) {
@@ -362,5 +473,13 @@ class GeminiRestDatasource {
   void dispose() {
     _conversationHistory.clear();
     _systemPrompt = null;
+  }
+
+  /// Gemini 비용 계산 (USD)
+  /// gemini-3-flash: 입력 $0.50/1M, 출력 $3.00/1M
+  double _calculateCost(int promptTokens, int completionTokens) {
+    const inputPrice = 0.50 / 1000000;
+    const outputPrice = 3.00 / 1000000;
+    return (promptTokens * inputPrice) + (completionTokens * outputPrice);
   }
 }

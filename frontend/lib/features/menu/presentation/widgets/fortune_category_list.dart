@@ -1,89 +1,92 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
-/// Fortune category horizontal scroll list - 와이어프레임 스타일
+/// Fortune category grid - 테마 적용 (정통운세 그리드)
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class FortuneCategoryList extends StatelessWidget {
   const FortuneCategoryList({super.key});
+
+  // ⚡ 캐싱된 색상 상수
+  static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
+  static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    final screenWidth = MediaQuery.of(context).size.width;
-    // 4개 박스가 화면에 맞게 배치되도록 계산 (padding 40 + gap 36)
-    final boxWidth = (screenWidth - 40 - 36) / 4;
 
     final categories = [
-      {'icon': '💰', 'name': '재물운', 'score': 92},
-      {'icon': '💕', 'name': '애정운', 'score': 78},
-      {'icon': '💼', 'name': '직장운', 'score': 85},
-      {'icon': '🏥', 'name': '건강운', 'score': 70},
+      {'name': '정통사주', 'icon': Icons.menu_book_rounded},
+      {'name': '정통궁합', 'icon': Icons.favorite_rounded},
+      {'name': '삼풍이', 'icon': Icons.notifications_rounded},
+      {'name': '취업운세', 'icon': Icons.work_rounded},
+      {'name': '능력평가', 'icon': Icons.bar_chart_rounded},
+      {'name': '연예인궁합', 'icon': Icons.star_rounded},
+      {'name': '관상', 'icon': Icons.face_rounded},
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: categories.asMap().entries.map((entry) {
-          final index = entry.key;
-          final cat = entry.value;
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.only(right: index < categories.length - 1 ? 12 : 0),
-              height: 110,
-              decoration: BoxDecoration(
-                color: theme.isDark ? null : theme.cardColor,
-                gradient: theme.isDark
-                    ? LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF1A1A24),
-                          const Color(0xFF14141C),
-                        ],
-                      )
-                    : null,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: theme.primaryColor.withOpacity(theme.isDark ? 0.1 : 0.12),
-                ),
-                boxShadow: theme.isDark
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    cat['icon'] as String,
-                    style: const TextStyle(fontSize: 28),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    cat['name'] as String,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${cat['score']}점',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.primaryColor,
-                    ),
-                  ),
-                ],
-              ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.isDark ? _shadowDark : _shadowLight,
+              offset: const Offset(0, 4),
+              blurRadius: 16,
             ),
-          );
-        }).toList(),
+          ],
+        ),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 20,
+          alignment: WrapAlignment.start,
+          children: categories.map((category) => _buildCategoryItem(
+            context,
+            category['name'] as String,
+            category['icon'] as IconData,
+          )).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryItem(BuildContext context, String name, IconData icon) {
+    final theme = context.appTheme;
+
+    return SizedBox(
+      width: 70,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: theme.isDark
+                  ? theme.primaryColor.withValues(alpha: 0.15)
+                  : theme.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: theme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: theme.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

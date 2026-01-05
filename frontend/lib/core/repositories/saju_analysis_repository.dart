@@ -9,6 +9,9 @@ import '../../features/saju_chart/domain/entities/yongsin.dart';
 import '../../features/saju_chart/domain/entities/sinsal.dart';
 import '../../features/saju_chart/domain/entities/daeun.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
+import '../../features/saju_chart/data/constants/cheongan_jiji.dart';
+import '../../features/saju_chart/domain/services/gilseong_service.dart';
+import '../../features/saju_chart/domain/services/hapchung_service.dart';
 
 /// Supabase saju_analyses 테이블 Repository
 /// 복잡한 JSONB 필드 매핑 처리
@@ -86,15 +89,19 @@ class SajuAnalysisRepository {
     return {
       'profile_id': profileId,
 
-      // 4주 (만세력 기본)
-      'year_gan': chart.yearPillar.gan,
-      'year_ji': chart.yearPillar.ji,
-      'month_gan': chart.monthPillar.gan,
-      'month_ji': chart.monthPillar.ji,
-      'day_gan': chart.dayPillar.gan,
-      'day_ji': chart.dayPillar.ji,
-      'hour_gan': chart.hourPillar?.gan,
-      'hour_ji': chart.hourPillar?.ji,
+      // 4주 (만세력 기본) - 한글(한자) 형식으로 저장
+      'year_gan': _formatWithHanja(chart.yearPillar.gan, isCheongan: true),
+      'year_ji': _formatWithHanja(chart.yearPillar.ji, isCheongan: false),
+      'month_gan': _formatWithHanja(chart.monthPillar.gan, isCheongan: true),
+      'month_ji': _formatWithHanja(chart.monthPillar.ji, isCheongan: false),
+      'day_gan': _formatWithHanja(chart.dayPillar.gan, isCheongan: true),
+      'day_ji': _formatWithHanja(chart.dayPillar.ji, isCheongan: false),
+      'hour_gan': chart.hourPillar?.gan != null
+          ? _formatWithHanja(chart.hourPillar!.gan, isCheongan: true)
+          : null,
+      'hour_ji': chart.hourPillar?.ji != null
+          ? _formatWithHanja(chart.hourPillar!.ji, isCheongan: false)
+          : null,
 
       // 보정된 출생시간
       'corrected_datetime': chart.correctedDateTime.toIso8601String(),
@@ -110,6 +117,12 @@ class SajuAnalysisRepository {
       'daeun': analysis.daeun != null ? _daeunToJson(analysis.daeun!) : null,
       'current_seun':
           analysis.currentSeun != null ? _seunToJson(analysis.currentSeun!) : null,
+
+      // 길성(吉星) 분석 결과 - Phase 16-C 추가
+      'gilseong': _gilseongToJson(analysis.chart),
+
+      // 합충형파해(合沖刑破害) 분석 결과
+      'hapchung': _hapchungToJson(analysis.chart),
 
       // AI 요약은 별도로 업데이트
       // 'ai_summary': null,
@@ -176,7 +189,7 @@ class SajuAnalysisRepository {
         'ji': info.monthJiSipsin.korean,
       },
       'day': {
-        'gan': '일간',
+        'gan': '비견',  // 일간 자신은 비견
         'ji': info.dayJiSipsin.korean,
       },
       'hour': info.hourGanSipsin != null
@@ -208,6 +221,141 @@ class SajuAnalysisRepository {
               'type': s.sinsal.type.name,
             })
         .toList();
+  }
+
+  /// 길성(吉星) 분석 결과를 JSON으로 변환
+  /// Phase 16-C: 기둥별 특수 신살 저장
+  Map<String, dynamic> _gilseongToJson(SajuChart chart) {
+    final result = GilseongService.analyzeFromChart(chart);
+
+    // 기둥별 결과를 JSON으로 변환
+    Map<String, dynamic> pillarToJson(PillarGilseongResult pillar) {
+      return {
+        'pillarName': pillar.pillarName,
+        'gan': pillar.gan,
+        'ji': pillar.ji,
+        'sinsals': pillar.sinsals.map((s) => {
+          'name': s.korean,       // 한글: 천덕귀인
+          'hanja': s.hanja,       // 한자: 天德貴人
+          'meaning': s.meaning,   // 설명
+          'fortuneType': s.fortuneType.name, // good/bad/mixed
+        }).toList(),
+      };
+    }
+
+    return {
+      'year': pillarToJson(result.yearResult),
+      'month': pillarToJson(result.monthResult),
+      'day': pillarToJson(result.dayResult),
+      'hour': result.hourResult != null
+          ? pillarToJson(result.hourResult!)
+          : null,
+      'hasGwiMunGwanSal': result.hasGwiMunGwanSal,
+      'totalGoodCount': result.totalGoodCount,
+      'totalBadCount': result.totalBadCount,
+      'allUniqueSinsals': result.allUniqueSinsals.map((s) => {
+        'name': s.korean,
+        'hanja': s.hanja,
+        'fortuneType': s.fortuneType.name,
+      }).toList(),
+      'summary': result.summary,
+    };
+  }
+
+  /// 합충형파해(合沖刑破害) 분석 결과를 JSON으로 변환
+  /// 천간합/충, 지지육합/삼합/방합/충/형/파/해/원진 저장
+  Map<String, dynamic> _hapchungToJson(SajuChart chart) {
+    final result = HapchungService.analyzeSaju(
+      yearGan: chart.yearPillar.gan,
+      monthGan: chart.monthPillar.gan,
+      dayGan: chart.dayPillar.gan,
+      hourGan: chart.hourPillar?.gan ?? '',
+      yearJi: chart.yearPillar.ji,
+      monthJi: chart.monthPillar.ji,
+      dayJi: chart.dayPillar.ji,
+      hourJi: chart.hourPillar?.ji ?? '',
+    );
+
+    return {
+      // 집계 정보
+      'has_relations': result.hasRelations,
+      'total_haps': result.totalHaps,
+      'total_chungs': result.totalChungs,
+      'total_negatives': result.totalNegatives,
+
+      // 천간 관계
+      'cheongan_haps': result.cheonganHaps.map((h) => {
+            'gan1': h.gan1,
+            'gan2': h.gan2,
+            'pillar1': h.pillar1,
+            'pillar2': h.pillar2,
+            'description': h.description,
+          }).toList(),
+      'cheongan_chungs': result.cheonganChungs.map((c) => {
+            'gan1': c.gan1,
+            'gan2': c.gan2,
+            'pillar1': c.pillar1,
+            'pillar2': c.pillar2,
+            'description': c.description,
+          }).toList(),
+
+      // 지지 관계 - 합
+      'jiji_yukhaps': result.jijiYukhaps.map((y) => {
+            'ji1': y.ji1,
+            'ji2': y.ji2,
+            'pillar1': y.pillar1,
+            'pillar2': y.pillar2,
+            'description': y.description,
+          }).toList(),
+      'jiji_samhaps': result.jijiSamhaps.map((s) => {
+            'jijis': s.jijis,
+            'pillars': s.pillars,
+            'result_oheng': s.resultOheng,
+            'is_full': s.isFullSamhap,
+          }).toList(),
+      'jiji_banghaps': result.jijiBanghaps.map((b) => {
+            'jijis': b.jijis,
+            'pillars': b.pillars,
+            'season': b.season,
+            'direction': b.direction,
+          }).toList(),
+
+      // 지지 관계 - 충
+      'jiji_chungs': result.jijiChungs.map((c) => {
+            'ji1': c.ji1,
+            'ji2': c.ji2,
+            'pillar1': c.pillar1,
+            'pillar2': c.pillar2,
+            'description': c.description,
+          }).toList(),
+
+      // 지지 관계 - 형/파/해/원진
+      'jiji_hyungs': result.jijiHyungs.map((h) => {
+            'ji1': h.ji1,
+            'ji2': h.ji2,
+            'pillar1': h.pillar1,
+            'pillar2': h.pillar2,
+            'description': h.description,
+          }).toList(),
+      'jiji_pas': result.jijiPas.map((p) => {
+            'ji1': p.ji1,
+            'ji2': p.ji2,
+            'pillar1': p.pillar1,
+            'pillar2': p.pillar2,
+          }).toList(),
+      'jiji_haes': result.jijiHaes.map((h) => {
+            'ji1': h.ji1,
+            'ji2': h.ji2,
+            'pillar1': h.pillar1,
+            'pillar2': h.pillar2,
+          }).toList(),
+      'wonjins': result.wonjins.map((w) => {
+            'ji1': w.ji1,
+            'ji2': w.ji2,
+            'pillar1': w.pillar1,
+            'pillar2': w.pillar2,
+          }).toList(),
+    };
   }
 
   Map<String, dynamic> _daeunToJson(DaeUnResult daeun) {
@@ -242,24 +390,24 @@ class SajuAnalysisRepository {
   // ============================================================
 
   SajuAnalysis _fromSupabaseMap(Map<String, dynamic> map) {
-    // SajuChart 구성
+    // SajuChart 구성 - 한글(한자) 형식에서 한글만 추출
     final chart = SajuChart(
       yearPillar: Pillar(
-        gan: map['year_gan'] as String,
-        ji: map['year_ji'] as String,
+        gan: _extractHangul(map['year_gan'] as String),
+        ji: _extractHangul(map['year_ji'] as String),
       ),
       monthPillar: Pillar(
-        gan: map['month_gan'] as String,
-        ji: map['month_ji'] as String,
+        gan: _extractHangul(map['month_gan'] as String),
+        ji: _extractHangul(map['month_ji'] as String),
       ),
       dayPillar: Pillar(
-        gan: map['day_gan'] as String,
-        ji: map['day_ji'] as String,
+        gan: _extractHangul(map['day_gan'] as String),
+        ji: _extractHangul(map['day_ji'] as String),
       ),
       hourPillar: map['hour_gan'] != null
           ? Pillar(
-              gan: map['hour_gan'] as String,
-              ji: map['hour_ji'] as String,
+              gan: _extractHangul(map['hour_gan'] as String),
+              ji: _extractHangul(map['hour_ji'] as String),
             )
           : null,
       birthDateTime: DateTime.parse(map['corrected_datetime'] as String),
@@ -490,5 +638,34 @@ class SajuAnalysisRepository {
 
     if (response == null) return null;
     return response['ai_summary'] as Map<String, dynamic>?;
+  }
+
+  // ============================================================
+  // 헬퍼 함수: 한글(한자) 형식 변환
+  // ============================================================
+
+  /// 한글을 한글(한자) 형식으로 변환
+  /// 예: "갑" → "갑(甲)", "자" → "자(子)"
+  /// 이미 한자가 포함되어 있으면 그대로 반환
+  String _formatWithHanja(String hangul, {required bool isCheongan}) {
+    // 이미 한자가 포함되어 있으면 그대로 반환
+    if (hangul.contains('(') && hangul.contains(')')) {
+      return hangul;
+    }
+
+    final hanja = isCheongan ? cheonganHanja[hangul] : jijiHanja[hangul];
+    if (hanja != null) {
+      return '$hangul($hanja)';
+    }
+    return hangul;
+  }
+
+  /// 한글(한자) 형식에서 한글만 추출
+  /// 예: "갑(甲)" → "갑", "자(子)" → "자"
+  String _extractHangul(String formatted) {
+    if (formatted.contains('(')) {
+      return formatted.substring(0, formatted.indexOf('('));
+    }
+    return formatted;
   }
 }

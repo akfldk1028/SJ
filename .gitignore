@@ -12,6 +12,10 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Supadart (contains API keys)
+supadart.yaml
+frontend/supadart.yaml
+
 # Logs
 *.log
 
@@ -32,6 +36,8 @@ docs/Image
 
 UI/
 .swarm
-wireframes/node_modules/zod
-wireframes/screenshots
+.playwright-mcp
+.claude-flow
+docs/01_Team_TODO
+.claude
 wireframes

@@ -162,15 +162,96 @@ class TwelveSinsalAnalysisResult {
 }
 
 // ============================================================================
+// 년지+일지 병행 기준 분석 결과 (Phase 36)
+// ============================================================================
+
+/// 년지+일지 병행 기준 12신살 분석 결과
+class DualBasisSinsalResult {
+  /// 년지 기준 12신살 결과 (포스텔러 방식)
+  final TwelveSinsalAnalysisResult yearBasisResult;
+
+  /// 일지 기준 12신살 결과 (현대 명리학 방식)
+  final TwelveSinsalAnalysisResult dayBasisResult;
+
+  /// 도화살이 있는 주(柱) 목록 (년지+일지 병행 기준)
+  final List<String> dohwasalPillars;
+
+  /// 역마살이 있는 주(柱) 목록 (년지+일지 병행 기준)
+  final List<String> yeokmasalPillars;
+
+  /// 화개살이 있는 주(柱) 목록 (년지+일지 병행 기준)
+  final List<String> hwagaesalPillars;
+
+  /// 년지
+  final String yearJi;
+
+  /// 일지
+  final String dayJi;
+
+  /// 일간
+  final String dayGan;
+
+  const DualBasisSinsalResult({
+    required this.yearBasisResult,
+    required this.dayBasisResult,
+    required this.dohwasalPillars,
+    required this.yeokmasalPillars,
+    required this.hwagaesalPillars,
+    required this.yearJi,
+    required this.dayJi,
+    required this.dayGan,
+  });
+
+  /// 도화살 있는지 여부
+  bool get hasDohwasal => dohwasalPillars.isNotEmpty;
+
+  /// 역마살 있는지 여부
+  bool get hasYeokmasal => yeokmasalPillars.isNotEmpty;
+
+  /// 화개살 있는지 여부
+  bool get hasHwagaesal => hwagaesalPillars.isNotEmpty;
+
+  /// 도화살 요약 (예: "시지, 월지")
+  String get dohwasalSummary => dohwasalPillars.join(', ');
+
+  /// 역마살 요약 (예: "일지")
+  String get yeokmasalSummary => yeokmasalPillars.join(', ');
+
+  /// 화개살 요약
+  String get hwagaesalSummary => hwagaesalPillars.join(', ');
+
+  /// 주요 신살 요약 (포스텔러 호환)
+  String get summary {
+    final parts = <String>[];
+    if (hasDohwasal) parts.add('도화살($dohwasalSummary)');
+    if (hasYeokmasal) parts.add('역마살($yeokmasalSummary)');
+    if (hasHwagaesal) parts.add('화개살($hwagaesalSummary)');
+    return parts.isEmpty ? '주요 신살 없음' : parts.join(', ');
+  }
+
+  @override
+  String toString() => '''
+DualBasisSinsalResult:
+  년지 기준: ${yearBasisResult.summary}
+  일지 기준: ${dayBasisResult.summary}
+  도화살(병행): $dohwasalSummary
+  역마살(병행): $yeokmasalSummary
+  화개살(병행): $hwagaesalSummary
+''';
+}
+
+// ============================================================================
 // 12신살 계산 서비스
 // ============================================================================
 
 /// 12신살 계산 서비스
 class TwelveSinsalService {
-  /// 사주 차트에서 12신살 분석 (년지 기준)
+  /// 사주 차트에서 12신살 분석 (일지 기준)
+  /// 현대 명리학에서는 일지 기준이 더 적중률이 높은 것으로 인식됨
+  /// 참고: https://namu.wiki/w/사주팔자/신살
   static TwelveSinsalAnalysisResult analyzeFromChart(
     SajuChart chart, {
-    bool useYearJi = true, // true: 년지 기준, false: 일지 기준
+    bool useYearJi = false, // true: 년지 기준, false: 일지 기준 (기본값: 일지)
   }) {
     final baseJi = useYearJi ? chart.yearPillar.ji : chart.dayPillar.ji;
     final dayGan = chart.dayPillar.gan;
@@ -215,7 +296,7 @@ class TwelveSinsalService {
     required String dayGan,
     required String dayJi,
     String? hourJi,
-    bool useYearJi = true,
+    bool useYearJi = false, // 기본값: 일지 기준 (현대 명리학)
   }) {
     final baseJi = useYearJi ? yearJi : dayJi;
 
@@ -419,6 +500,142 @@ class TwelveSinsalService {
   /// 천을귀인 여부 확인
   static bool checkCheonEulGwin(String dayGan, String targetJi) {
     return isCheonEulGwin(dayGan, targetJi);
+  }
+
+  // ============================================================================
+  // 년지+일지 병행 기준 분석 (Phase 36)
+  // 포스텔러 등 다른 앱과의 호환성을 위해 년지와 일지 기준 모두 분석
+  // ============================================================================
+
+  /// 도화살 여부 확인 (년지+일지 병행 기준)
+  /// 년지 또는 일지 기준으로 도화살이 있으면 true
+  static bool checkDohwasal(String yearJi, String dayJi, String targetJi) {
+    return hasDohwasal(yearJi, dayJi, targetJi);
+  }
+
+  /// 역마살 여부 확인 (년지+일지 병행 기준)
+  /// 년지 또는 일지 기준으로 역마살이 있으면 true
+  static bool checkYeokmasal(String yearJi, String dayJi, String targetJi) {
+    return hasYeokmasal(yearJi, dayJi, targetJi);
+  }
+
+  /// 화개살 여부 확인 (년지+일지 병행 기준)
+  static bool checkHwagaesal(String yearJi, String dayJi, String targetJi) {
+    return hasHwagaesal(yearJi, dayJi, targetJi);
+  }
+
+  /// 사주 차트에서 12신살 분석 (년지+일지 병행 기준)
+  /// 포스텔러 방식: 년지 기준으로 12신살 계산
+  /// 반환: 년지 기준 결과와 일지 기준 결과 모두 포함
+  static DualBasisSinsalResult analyzeWithDualBasis(SajuChart chart) {
+    final yearJi = chart.yearPillar.ji;
+    final dayJi = chart.dayPillar.ji;
+    final dayGan = chart.dayPillar.gan;
+
+    // 년지 기준 12신살 분석
+    final yearBasisResult = analyzeFromChart(chart, useYearJi: true);
+
+    // 일지 기준 12신살 분석
+    final dayBasisResult = analyzeFromChart(chart, useYearJi: false);
+
+    // 각 지지별 도화살/역마살/화개살 (년지+일지 병행)
+    final pillars = [
+      (name: '년지', ji: yearJi),
+      (name: '월지', ji: chart.monthPillar.ji),
+      (name: '일지', ji: dayJi),
+      if (chart.hourPillar != null) (name: '시지', ji: chart.hourPillar!.ji),
+    ];
+
+    final dohwasalPillars = <String>[];
+    final yeokmasalPillars = <String>[];
+    final hwagaesalPillars = <String>[];
+
+    for (final pillar in pillars) {
+      if (hasDohwasal(yearJi, dayJi, pillar.ji)) {
+        dohwasalPillars.add(pillar.name);
+      }
+      if (hasYeokmasal(yearJi, dayJi, pillar.ji)) {
+        yeokmasalPillars.add(pillar.name);
+      }
+      if (hasHwagaesal(yearJi, dayJi, pillar.ji)) {
+        hwagaesalPillars.add(pillar.name);
+      }
+    }
+
+    return DualBasisSinsalResult(
+      yearBasisResult: yearBasisResult,
+      dayBasisResult: dayBasisResult,
+      dohwasalPillars: dohwasalPillars,
+      yeokmasalPillars: yeokmasalPillars,
+      hwagaesalPillars: hwagaesalPillars,
+      yearJi: yearJi,
+      dayJi: dayJi,
+      dayGan: dayGan,
+    );
+  }
+
+  /// 개별 파라미터로 12신살 분석 (년지+일지 병행 기준)
+  static DualBasisSinsalResult analyzeWithDualBasisParams({
+    required String yearJi,
+    required String monthJi,
+    required String dayGan,
+    required String dayJi,
+    String? hourJi,
+  }) {
+    // 년지 기준 12신살 분석
+    final yearBasisResult = analyze(
+      yearJi: yearJi,
+      monthJi: monthJi,
+      dayGan: dayGan,
+      dayJi: dayJi,
+      hourJi: hourJi,
+      useYearJi: true,
+    );
+
+    // 일지 기준 12신살 분석
+    final dayBasisResult = analyze(
+      yearJi: yearJi,
+      monthJi: monthJi,
+      dayGan: dayGan,
+      dayJi: dayJi,
+      hourJi: hourJi,
+      useYearJi: false,
+    );
+
+    // 각 지지별 도화살/역마살/화개살 (년지+일지 병행)
+    final pillars = [
+      (name: '년지', ji: yearJi),
+      (name: '월지', ji: monthJi),
+      (name: '일지', ji: dayJi),
+      if (hourJi != null) (name: '시지', ji: hourJi),
+    ];
+
+    final dohwasalPillars = <String>[];
+    final yeokmasalPillars = <String>[];
+    final hwagaesalPillars = <String>[];
+
+    for (final pillar in pillars) {
+      if (hasDohwasal(yearJi, dayJi, pillar.ji)) {
+        dohwasalPillars.add(pillar.name);
+      }
+      if (hasYeokmasal(yearJi, dayJi, pillar.ji)) {
+        yeokmasalPillars.add(pillar.name);
+      }
+      if (hasHwagaesal(yearJi, dayJi, pillar.ji)) {
+        hwagaesalPillars.add(pillar.name);
+      }
+    }
+
+    return DualBasisSinsalResult(
+      yearBasisResult: yearBasisResult,
+      dayBasisResult: dayBasisResult,
+      dohwasalPillars: dohwasalPillars,
+      yeokmasalPillars: yeokmasalPillars,
+      hwagaesalPillars: hwagaesalPillars,
+      yearJi: yearJi,
+      dayJi: dayJi,
+      dayGan: dayGan,
+    );
   }
 
   // ============================================================================

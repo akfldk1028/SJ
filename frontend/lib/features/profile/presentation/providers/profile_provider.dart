@@ -1,15 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../../domain/entities/gender.dart';
 import '../../domain/entities/relationship_type.dart';
 import '../../domain/repositories/profile_repository.dart';
+import '../../../saju_chart/domain/entities/lunar_date.dart';
+import '../../../saju_chart/domain/entities/lunar_validation.dart';
+import '../../../saju_chart/domain/services/lunar_solar_converter.dart';
 import '../../data/datasources/profile_local_datasource.dart';
 import '../../data/repositories/profile_repository_impl.dart';
+import '../../../saju_chart/domain/entities/daeun.dart' as daeun_entities;
+import '../../../saju_chart/domain/entities/saju_chart.dart';
+import '../../../saju_chart/domain/services/jasi_service.dart';
+import '../../../saju_chart/domain/services/saju_calculation_service.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
-import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
+import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
+    hide sajuAnalysisService;
 import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
+import '../../../menu/presentation/providers/daily_fortune_provider.dart';
+import '../../../../AI/services/saju_analysis_service.dart';
 
 part 'profile_provider.g.dart';
 
@@ -101,15 +112,69 @@ class ActiveProfile extends _$ActiveProfile {
     state = await AsyncValue.guard(() async {
       final repository = ref.read(profileRepositoryProvider);
       await repository.saveProfile(profile);
-      
+
       // 목록 갱신을 위해 allProfilesProvider invalidate
       ref.invalidate(allProfilesProvider);
       ref.invalidate(profileListProvider);
-      
+
+      // GPT-5.2 분석 백그라운드 실행 (fire-and-forget)
+      // 채팅 시작 시 saju_origin 없으면 그때 다시 트리거됨
+      _triggerAiAnalysis(profile.id);
+
       return profile;
     });
   }
-  
+
+  /// GPT-5.2 분석 동기 실행 (완료 대기) - ActiveProfile용
+  Future<void> _triggerAiAnalysisSync(String profileId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[ActiveProfile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    print('[ActiveProfile] GPT-5.2 분석 시작 (동기): $profileId');
+
+    // 동기 실행: GPT-5.2 완료까지 대기
+    final result = await sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: false,  // 완료 대기
+    );
+
+    if (result.sajuBase?.success == true) {
+      print('[ActiveProfile] ✅ GPT-5.2 분석 완료: $profileId');
+    } else {
+      print('[ActiveProfile] ⚠️ GPT-5.2 분석 실패: ${result.sajuBase?.error}');
+    }
+
+    // UI 갱신
+    ref.invalidate(dailyFortuneProvider);
+  }
+
+  /// AI 분석 백그라운드 트리거 (ActiveProfile용) - deprecated
+  void _triggerAiAnalysis(String profileId) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[ActiveProfile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    // Fire-and-forget: 백그라운드에서 실행
+    sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: true,
+      onComplete: (result) {
+        // 분석 완료 시 UI 갱신을 위해 provider invalidate
+        print('[ActiveProfile] AI 분석 완료 - UI 갱신');
+        ref.invalidate(dailyFortuneProvider);
+      },
+    );
+
+    print('[ActiveProfile] AI 분석 백그라운드 시작: $profileId');
+  }
+
   Future<void> deleteProfile(String id) async {
     final repository = ref.read(profileRepositoryProvider);
     await repository.deleteProfile(id);
@@ -138,6 +203,16 @@ class ProfileFormState {
   final RelationshipType relationType;
   final String? memo;
 
+  // Phase 18: 윤달 유효성 검증 필드
+  /// 윤달 검증 에러 메시지
+  final String? leapMonthError;
+
+  /// 해당 연도 윤달 정보 (조회 결과)
+  final LeapMonthInfo? leapMonthInfo;
+
+  /// 윤달 체크박스 활성화 가능 여부
+  final bool canSelectLeapMonth;
+
   const ProfileFormState({
     this.displayName = '',
     this.gender,
@@ -151,6 +226,9 @@ class ProfileFormState {
     this.timeCorrection = 0,
     this.relationType = RelationshipType.me,
     this.memo,
+    this.leapMonthError,
+    this.leapMonthInfo,
+    this.canSelectLeapMonth = false,
   });
 
   /// 폼 유효성 검사
@@ -170,8 +248,14 @@ class ProfileFormState {
       if (birthTimeMinutes! < 0 || birthTimeMinutes! > 1439) return false;
     }
 
+    // Phase 18: 윤달 유효성 검사 (음력일 때만)
+    if (isLunar && leapMonthError != null) return false;
+
     return true;
   }
+
+  /// 윤달 선택 가능 여부
+  bool get isLeapMonthSelectable => isLunar && canSelectLeapMonth;
 
   /// 진태양시 보정값 계산
   int calculateTimeCorrection() {
@@ -192,6 +276,10 @@ class ProfileFormState {
     int? timeCorrection,
     RelationshipType? relationType,
     String? memo,
+    String? leapMonthError,
+    LeapMonthInfo? leapMonthInfo,
+    bool? canSelectLeapMonth,
+    bool clearLeapMonthError = false,
   }) {
     return ProfileFormState(
       displayName: displayName ?? this.displayName,
@@ -206,6 +294,9 @@ class ProfileFormState {
       timeCorrection: timeCorrection ?? this.timeCorrection,
       relationType: relationType ?? this.relationType,
       memo: memo ?? this.memo,
+      leapMonthError: clearLeapMonthError ? null : (leapMonthError ?? this.leapMonthError),
+      leapMonthInfo: leapMonthInfo ?? this.leapMonthInfo,
+      canSelectLeapMonth: canSelectLeapMonth ?? this.canSelectLeapMonth,
     );
   }
 }
@@ -227,16 +318,81 @@ class ProfileForm extends _$ProfileForm {
     state = state.copyWith(gender: value);
   }
 
+  /// LunarSolarConverter 인스턴스 (윤달 검증용)
+  final _lunarConverter = LunarSolarConverter();
+
   void updateBirthDate(DateTime value) {
     state = state.copyWith(birthDate: value);
+    // 생년월일 변경 시 윤달 정보 업데이트
+    _updateLeapMonthInfo();
   }
 
   void updateIsLunar(bool value) {
     state = state.copyWith(isLunar: value);
+    if (value) {
+      // 음력 선택 시 윤달 정보 업데이트
+      _updateLeapMonthInfo();
+    } else {
+      // 양력 선택 시 윤달 관련 필드 초기화
+      state = state.copyWith(
+        isLeapMonth: false,
+        leapMonthInfo: null,
+        canSelectLeapMonth: false,
+        clearLeapMonthError: true,
+      );
+    }
   }
 
   void updateIsLeapMonth(bool value) {
     state = state.copyWith(isLeapMonth: value);
+    // 윤달 선택 변경 시 유효성 검증
+    _validateLeapMonth();
+  }
+
+  /// 윤달 정보 업데이트 (생년월일/음력 변경 시 호출)
+  void _updateLeapMonthInfo() {
+    final date = state.birthDate;
+    if (date == null || !state.isLunar) return;
+
+    final leapMonthInfo = _lunarConverter.getLeapMonthInfo(date.year);
+    final canSelect = leapMonthInfo.hasLeapMonth &&
+        leapMonthInfo.leapMonth == date.month;
+
+    state = state.copyWith(
+      leapMonthInfo: leapMonthInfo,
+      canSelectLeapMonth: canSelect,
+      // 윤달 선택 불가능한데 체크되어 있으면 해제
+      isLeapMonth: canSelect ? state.isLeapMonth : false,
+      clearLeapMonthError: true,
+    );
+
+    // 윤달이 체크되어 있으면 유효성 검증
+    if (state.isLeapMonth) {
+      _validateLeapMonth();
+    }
+  }
+
+  /// 윤달 유효성 검증
+  void _validateLeapMonth() {
+    final date = state.birthDate;
+    if (date == null || !state.isLunar || !state.isLeapMonth) {
+      state = state.copyWith(clearLeapMonthError: true);
+      return;
+    }
+
+    final lunarDate = LunarDate(
+      year: date.year,
+      month: date.month,
+      day: date.day,
+      isLeapMonth: state.isLeapMonth,
+    );
+
+    final result = _lunarConverter.validateLunarDate(lunarDate);
+    if (!result.isValid) {
+      state = state.copyWith(leapMonthError: result.errorMessage);
+    } else {
+      state = state.copyWith(clearLeapMonthError: true);
+    }
   }
 
   void updateBirthTime(int? minutes) {
@@ -272,6 +428,7 @@ class ProfileForm extends _$ProfileForm {
 
   /// 기존 프로필로 폼 초기화 (수정 모드)
   void loadProfile(SajuProfile profile) {
+    // 기본 상태 설정
     state = ProfileFormState(
       displayName: profile.displayName,
       gender: profile.gender,
@@ -286,6 +443,11 @@ class ProfileForm extends _$ProfileForm {
       relationType: profile.relationType,
       memo: profile.memo,
     );
+
+    // 음력일 경우 윤달 정보 업데이트
+    if (profile.isLunar) {
+      _updateLeapMonthInfo();
+    }
   }
 
   /// 폼 초기화
@@ -339,23 +501,130 @@ class ProfileForm extends _$ProfileForm {
   }
 
   /// 사주 분석 결과를 DB에 저장
+  ///
+  /// 직접 profile 객체로 사주 계산 후 저장 (activeProfileProvider 의존 제거)
   Future<void> _saveAnalysisToDb(Ref ref, SajuProfile profile) async {
     try {
-      // 사주 분석 Provider를 통해 분석 결과 가져오기
-      // 프로필 저장이 await로 완료된 후 호출되므로 추가 지연 불필요
+      // 1. 직접 사주 차트 계산 (activeProfileProvider 미사용)
+      final calculationService = ref.read(sajuCalculationServiceProvider);
+      final chart = _calculateChartForProfile(calculationService, profile);
 
-      // 분석 결과 Provider가 갱신되면 자동으로 분석 실행
-      final analysis = await ref.read(currentSajuAnalysisProvider.future);
+      // 2. 사주 분석 계산
+      final analysisService = ref.read(sajuAnalysisServiceProvider);
+      final daeunGender = profile.gender.name == 'male'
+          ? daeun_entities.Gender.male
+          : daeun_entities.Gender.female;
+      final analysis = analysisService.analyze(
+        chart: chart,
+        gender: daeunGender,
+        currentYear: DateTime.now().year,
+      );
 
-      if (analysis != null) {
-        // DB에 저장
-        final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
-        await dbNotifier.saveFromAnalysis(analysis);
-      }
+      // 3. DB에 저장 (profile.id 직접 전달)
+      final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
+      await dbNotifier.saveFromAnalysisWithProfileId(profile.id, analysis);
+
+      print('[Profile] 사주 분석 저장 완료: ${profile.id}');
+
+      // 4. GPT-5.2 분석 백그라운드 실행 (fire-and-forget)
+      // 채팅 시작 시 saju_origin 없으면 그때 다시 트리거됨
+      _triggerAiAnalysis(profile.id);
     } catch (e) {
       // 분석 저장 실패는 무시 (프로필 저장은 이미 완료됨)
       // ignore: avoid_print
       print('[Profile] 사주 분석 저장 실패 (무시됨): $e');
     }
+  }
+
+  /// 프로필로부터 사주차트 직접 계산 (Provider 의존 없음)
+  SajuChart _calculateChartForProfile(
+    SajuCalculationService service,
+    SajuProfile profile,
+  ) {
+    DateTime birthDateTime;
+    if (profile.birthTimeUnknown || profile.birthTimeMinutes == null) {
+      birthDateTime = DateTime(
+        profile.birthDate.year,
+        profile.birthDate.month,
+        profile.birthDate.day,
+        12,
+        0,
+      );
+    } else {
+      final hours = profile.birthTimeMinutes! ~/ 60;
+      final minutes = profile.birthTimeMinutes! % 60;
+      birthDateTime = DateTime(
+        profile.birthDate.year,
+        profile.birthDate.month,
+        profile.birthDate.day,
+        hours,
+        minutes,
+      );
+    }
+
+    return service.calculate(
+      birthDateTime: birthDateTime,
+      birthCity: profile.birthCity,
+      isLunarCalendar: profile.isLunar,
+      isLeapMonth: profile.isLeapMonth,
+      birthTimeUnknown: profile.birthTimeUnknown,
+      jasiMode: profile.useYaJasi ? JasiMode.yaJasi : JasiMode.joJasi,
+    );
+  }
+
+  /// GPT-5.2 분석 동기 실행 (완료 대기)
+  ///
+  /// 프로필 생성 시 GPT-5.2 분석이 완료되어야 채팅에서 saju_origin 참조 가능
+  /// - runInBackground: false → 완료까지 대기
+  /// - 오늘의 운세는 백그라운드로 계속 실행
+  Future<void> _triggerAiAnalysisSync(String profileId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[Profile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    print('[Profile] GPT-5.2 분석 시작 (동기): $profileId');
+
+    // 동기 실행: GPT-5.2 완료까지 대기
+    final result = await sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: false,  // 완료 대기
+    );
+
+    if (result.sajuBase?.success == true) {
+      print('[Profile] ✅ GPT-5.2 분석 완료: $profileId');
+    } else {
+      print('[Profile] ⚠️ GPT-5.2 분석 실패: ${result.sajuBase?.error}');
+    }
+
+    // UI 갱신
+    ref.invalidate(dailyFortuneProvider);
+  }
+
+  /// AI 분석 백그라운드 트리거 (deprecated - 호환성 유지)
+  ///
+  /// 평생 사주운세 (GPT-5.2) + 오늘의 운세 (Gemini) 병렬 실행
+  void _triggerAiAnalysis(String profileId) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      print('[Profile] AI 분석 스킵: 로그인 필요');
+      return;
+    }
+
+    // Fire-and-forget: 백그라운드에서 실행
+    sajuAnalysisService.analyzeOnProfileSave(
+      userId: user.id,
+      profileId: profileId,
+      runInBackground: true,
+      onComplete: (result) {
+        // 분석 완료 시 UI 갱신을 위해 provider invalidate
+        print('[Profile] AI 분석 완료 - UI 갱신');
+        ref.invalidate(dailyFortuneProvider);
+      },
+    );
+
+    print('[Profile] AI 분석 백그라운드 시작: $profileId');
   }
 }

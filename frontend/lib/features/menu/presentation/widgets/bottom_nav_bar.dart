@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 
-/// 커스텀 Bottom Navigation Bar - 동양풍 다크 테마
+/// 커스텀 Bottom Navigation Bar - Curved 디자인
 ///
-/// 레퍼런스 컬러만 사용:
-/// - 골드: #C4A962
-/// - 카드 배경: #1A1A24
+/// 위젯 트리 최적화:
+/// - const 생성자 사용
+/// - 작은 위젯으로 분리
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class BottomNavBar extends StatelessWidget {
+  // ⚡ 캐싱된 색상 상수
+  static const _shadowColor = Color.fromRGBO(0, 0, 0, 0.3);
+  static const _selectedBg = Color.fromRGBO(92, 107, 192, 0.2);
+  static const _selectedBorder = Color.fromRGBO(92, 107, 192, 0.5);
+  static const _unselectedIcon = Color.fromRGBO(255, 255, 255, 0.5);
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
@@ -18,24 +23,15 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
-
     return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A2E),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: _shadowColor,
             blurRadius: 20,
-            offset: const Offset(0, -5),
+            offset: Offset(0, -5),
           ),
-          // 골드 글로우
-          if (theme.isDark)
-            BoxShadow(
-              color: theme.primaryColor.withOpacity(0.05),
-              blurRadius: 30,
-              offset: const Offset(0, -10),
-            ),
         ],
       ),
       child: SafeArea(
@@ -45,25 +41,25 @@ class BottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _BottomNavItem(
-                icon: Icons.auto_awesome_rounded,
-                label: '운세',
+                icon: Icons.home_rounded,
+                label: '홈',
                 isSelected: selectedIndex == 0,
                 onTap: () => onTap(0),
               ),
               _BottomNavItem(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'AI 상담',
+                icon: Icons.person_rounded,
+                label: '프로필',
                 isSelected: selectedIndex == 1,
                 onTap: () => onTap(1),
               ),
               _BottomNavItem(
-                icon: Icons.people_outline_rounded,
-                label: '인맥',
+                icon: Icons.history_rounded,
+                label: '히스토리',
                 isSelected: selectedIndex == 2,
                 onTap: () => onTap(2),
               ),
               _BottomNavItem(
-                icon: Icons.settings_outlined,
+                icon: Icons.settings_rounded,
                 label: '설정',
                 isSelected: selectedIndex == 3,
                 onTap: () => onTap(3),
@@ -76,7 +72,7 @@ class BottomNavBar extends StatelessWidget {
   }
 }
 
-/// Bottom Nav 아이템 - 골드 테마
+/// Bottom Nav 아이템
 class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -92,8 +88,6 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
-
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -105,13 +99,13 @@ class _BottomNavItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.primaryColor.withOpacity(0.15)
+              ? BottomNavBar._selectedBg
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: isSelected
               ? Border.all(
-                  color: theme.primaryColor.withOpacity(0.3),
-                  width: 1,
+                  color: BottomNavBar._selectedBorder,
+                  width: 1.5,
                 )
               : null,
         ),
@@ -121,16 +115,16 @@ class _BottomNavItem extends StatelessWidget {
             Icon(
               icon,
               color: isSelected
-                  ? theme.primaryColor
-                  : theme.textMuted,
+                  ? const Color(0xFF7E57C2)
+                  : BottomNavBar._unselectedIcon,
               size: 24,
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
-                  color: theme.primaryColor,
+                style: const TextStyle(
+                  color: Color(0xFF7E57C2),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),

@@ -130,9 +130,23 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
   }
 
   @override
-  Future<List<ChatMessage>> getSessionMessages(String sessionId) async {
-    final models = await _localDatasource.getSessionMessages(sessionId);
+  Future<List<ChatMessage>> getSessionMessages(
+    String sessionId, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final models = await _localDatasource.getSessionMessages(
+      sessionId,
+      limit: limit,
+      offset: offset,
+      fromEnd: true, // 최신 메시지부터 로드
+    );
     return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<int> getSessionMessageCount(String sessionId) async {
+    return await _localDatasource.getSessionMessageCount(sessionId);
   }
 
   @override
@@ -149,6 +163,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
   }
 
   /// 메시지를 Supabase에 저장
+  /// 로컬 ID를 전달하여 Realtime 중복 방지
   Future<void> _syncMessageToSupabase(ChatMessage message) async {
     try {
       if (!_authService.isLoggedIn) {
@@ -159,6 +174,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
       }
 
       await _supabaseRepository.addMessage(
+        id: message.id, // 로컬 ID 전달 → Realtime 중복 방지
         sessionId: message.sessionId,
         content: message.content,
         role: message.role,
@@ -172,6 +188,31 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
     } catch (e) {
       if (kDebugMode) {
         print('[ChatRepo] Supabase 메시지 저장 실패 (로컬은 저장됨): $e');
+      }
+    }
+  }
+
+  @override
+  Future<void> deleteMessage(String messageId) async {
+    // 1. 로컬 삭제
+    await _localDatasource.deleteMessage(messageId);
+
+    // 2. Supabase 삭제 (비동기)
+    _deleteMessageFromSupabase(messageId);
+  }
+
+  /// Supabase에서 메시지 삭제
+  Future<void> _deleteMessageFromSupabase(String messageId) async {
+    try {
+      if (!_authService.isLoggedIn) return;
+
+      await _supabaseRepository.deleteMessage(messageId);
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 메시지 삭제 완료: $messageId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 메시지 삭제 실패: $e');
       }
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_fonts.dart';
 import '../../domain/entities/chat_message.dart';
 
 /// 채팅 메시지 버블 위젯
@@ -23,7 +24,6 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.isUser;
     final theme = Theme.of(context);
-    final appTheme = context.appTheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -36,7 +36,7 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser && showAvatar) ...[
-            _buildAvatar(theme, appTheme),
+            _buildAvatar(theme),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -46,117 +46,78 @@ class MessageBubble extends StatelessWidget {
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                gradient: _getBubbleGradient(isUser, appTheme),
+                color: isUser
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
                   bottomLeft: Radius.circular(isUser ? 16 : 4),
                   bottomRight: Radius.circular(isUser ? 4 : 16),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _getShadowColor(isUser, appTheme),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
-              child: Text(
-                message.content,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: _getTextColor(isUser, appTheme),
-                ),
-              ),
+              child: _buildMessageContent(theme, isUser),
             ),
           ),
           if (isUser && showAvatar) ...[
             const SizedBox(width: 8),
-            _buildAvatar(theme, appTheme),
+            _buildAvatar(theme),
           ],
         ],
       ),
     );
   }
 
-  LinearGradient _getBubbleGradient(bool isUser, AppThemeExtension appTheme) {
+  /// 메시지 내용 빌드
+  ///
+  /// AI 메시지: Markdown 렌더링 + Gowun Dodum 폰트
+  /// 사용자 메시지: Noto Sans KR (깔끔한 산세리프)
+  Widget _buildMessageContent(ThemeData theme, bool isUser) {
+    // 사용자 메시지: Noto Sans KR (plain text)
     if (isUser) {
-      // 사용자 버블: 골드/테라코타 계열
-      return LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: appTheme.isDark
-            ? [const Color(0xFFD4A54A), const Color(0xFFB8894A)] // 밝은 골드
-            : [const Color(0xFFD4846A), const Color(0xFFC27256)], // 테라코타
+      final userStyle = AppFonts.userMessage(
+        color: theme.colorScheme.onPrimary,
       );
-    } else {
-      // AI 버블: 다크 틸/쿨 그레이 계열
-      return LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: appTheme.isDark
-            ? [const Color(0xFF2A3540), const Color(0xFF1E2830)] // 틸 다크
-            : [const Color(0xFFF5F5F5), const Color(0xFFEBEBEB)], // 쿨 그레이
-      );
+      return Text(message.content, style: userStyle);
     }
-  }
 
-  Color _getShadowColor(bool isUser, AppThemeExtension appTheme) {
-    if (isUser) {
-      return appTheme.isDark
-          ? const Color(0xFFD4A54A).withOpacity(0.3)
-          : const Color(0xFFD4846A).withOpacity(0.25);
-    } else {
-      return appTheme.isDark
-          ? Colors.black.withOpacity(0.3)
-          : Colors.grey.withOpacity(0.15);
-    }
-  }
+    // AI 메시지: Markdown 렌더링
+    final aiStyle = AppFonts.aiMessage(
+      color: theme.colorScheme.onSurface,
+    );
 
-  Color _getTextColor(bool isUser, AppThemeExtension appTheme) {
-    if (isUser) {
-      return Colors.white;
-    } else {
-      return appTheme.isDark
-          ? const Color(0xFFE8E8E8)
-          : const Color(0xFF2D2D2D);
-    }
-  }
-
-  Widget _buildAvatar(ThemeData theme, AppThemeExtension appTheme) {
-    final isUserMessage = message.isUser;
-
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isUserMessage
-              ? (appTheme.isDark
-                  ? [const Color(0xFFD4A54A), const Color(0xFFB8894A)]
-                  : [const Color(0xFFD4846A), const Color(0xFFC27256)])
-              : (appTheme.isDark
-                  ? [const Color(0xFF4A6572), const Color(0xFF344955)]
-                  : [const Color(0xFF78909C), const Color(0xFF607D8B)]),
+    return MarkdownBody(
+      data: message.content,
+      selectable: true,
+      styleSheet: MarkdownStyleSheet(
+        p: aiStyle,
+        strong: aiStyle.copyWith(fontWeight: FontWeight.bold),
+        em: aiStyle.copyWith(fontStyle: FontStyle.italic),
+        code: aiStyle.copyWith(
+          fontFamily: 'monospace',
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: isUserMessage
-                ? (appTheme.isDark
-                    ? const Color(0xFFD4A54A).withOpacity(0.3)
-                    : const Color(0xFFD4846A).withOpacity(0.25))
-                : Colors.black.withOpacity(0.15),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        listBullet: aiStyle,
+        a: aiStyle.copyWith(
+          color: theme.colorScheme.primary,
+          decoration: TextDecoration.underline,
+        ),
       ),
+    );
+  }
+
+  Widget _buildAvatar(ThemeData theme) {
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: message.isUser
+          ? theme.colorScheme.primaryContainer
+          : theme.colorScheme.secondaryContainer,
       child: Icon(
-        isUserMessage ? Icons.person : Icons.auto_awesome,
+        message.isUser ? Icons.person : Icons.auto_awesome,
         size: 18,
-        color: Colors.white,
+        color: message.isUser
+            ? theme.colorScheme.onPrimaryContainer
+            : theme.colorScheme.onSecondaryContainer,
       ),
     );
   }

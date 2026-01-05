@@ -2,6 +2,10 @@ import 'lunar_year_data.dart';
 
 /// 음력 데이터 테이블 (2051-2100년)
 /// 한국천문연구원 데이터 기반 (미래 예측치)
+///
+/// ⚠️ 주의: 2051-2100년 데이터는 korean-lunar-calendar 라이브러리로 검증되지 않음
+/// 라이브러리가 2050년까지만 지원하므로 추후 KASI 공식 데이터로 검증 필요
+/// 2024-01-04 현재 기존 데이터 유지
 final List<LunarYearData> lunarTable2051_2100 = [
   // 2051년
   LunarYearData(
@@ -73,12 +77,13 @@ final List<LunarYearData> lunarTable2051_2100 = [
     monthDays: [29, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30, 29],
     solarNewYear: DateTime(2060, 2, 2),
   ),
-  // 2061년 - 윤3월
+  // 2061년 - 윤3월 - 한국 기준 (KASI)
+  // 주의: 합삭이 1월 22일 0시 14분으로, 한국은 1월 22일, 중국은 1월 21일 설날
   LunarYearData(
     year: 2061,
     leapMonth: 3,
     monthDays: [30, 29, 30, 29, 29, 30, 30, 29, 30, 30, 29, 30, 29],
-    solarNewYear: DateTime(2061, 1, 21),
+    solarNewYear: DateTime(2061, 1, 22),  // 수정: 1월 21일 → 1월 22일 (한국 기준)
   ),
   // 2062년
   LunarYearData(
@@ -269,12 +274,13 @@ final List<LunarYearData> lunarTable2051_2100 = [
     monthDays: [30, 29, 29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 30],
     solarNewYear: DateTime(2088, 1, 24),
   ),
-  // 2089년
+  // 2089년 - 한국 기준 (KASI)
+  // 주의: 합삭이 2월 11일 0시 14분으로, 한국은 2월 11일, 중국은 2월 10일 설날
   LunarYearData(
     year: 2089,
     leapMonth: 0,
     monthDays: [30, 29, 29, 30, 29, 30, 29, 30, 29, 30, 30, 29],
-    solarNewYear: DateTime(2089, 2, 10),
+    solarNewYear: DateTime(2089, 2, 11),  // 수정: 2월 10일 → 2월 11일 (한국 기준)
   ),
   // 2090년 - 윤8월
   LunarYearData(
@@ -290,12 +296,13 @@ final List<LunarYearData> lunarTable2051_2100 = [
     monthDays: [30, 29, 30, 29, 30, 29, 29, 30, 30, 29, 30, 30],
     solarNewYear: DateTime(2091, 2, 18),
   ),
-  // 2092년
+  // 2092년 - 한국 기준 (KASI)
+  // 주의: 합삭이 2월 8일 0시 2분으로, 한국은 2월 8일, 중국은 2월 7일 설날
   LunarYearData(
     year: 2092,
     leapMonth: 0,
     monthDays: [29, 30, 29, 30, 29, 30, 29, 29, 30, 30, 29, 30],
-    solarNewYear: DateTime(2092, 2, 7),
+    solarNewYear: DateTime(2092, 2, 8),  // 수정: 2월 7일 → 2월 8일 (한국 기준)
   ),
   // 2093년 - 윤6월
   LunarYearData(

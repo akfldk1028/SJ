@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'openai_datasource.dart';
-import 'gemini_rest_datasource.dart';
+import 'openai_edge_datasource.dart';
+import 'gemini_edge_datasource.dart';
 
 /// AI 파이프라인 매니저
 ///
@@ -14,18 +14,22 @@ import 'gemini_rest_datasource.dart';
 /// - 각 AI 모듈은 독립적으로 동작
 /// - 스트리밍 응답으로 실시간 UX 제공
 /// - 분석 결과 캐싱으로 중복 호출 방지
+///
+/// 2025-12-30: Edge Function 전환 - API 키 보안 강화
+/// - OpenAIDatasource → OpenAIEdgeDatasource
+/// - GeminiRestDatasource → GeminiEdgeDatasource
 class AIPipelineManager {
-  final OpenAIDatasource _gptDatasource;
-  final GeminiRestDatasource _geminiDatasource;
+  final OpenAIEdgeDatasource _gptDatasource;
+  final GeminiEdgeDatasource _geminiDatasource;
 
   /// 분석 결과 캐시 (세션별)
   final Map<String, Map<String, dynamic>> _analysisCache = {};
 
   AIPipelineManager({
-    OpenAIDatasource? gptDatasource,
-    GeminiRestDatasource? geminiDatasource,
-  })  : _gptDatasource = gptDatasource ?? OpenAIDatasource(),
-        _geminiDatasource = geminiDatasource ?? GeminiRestDatasource();
+    OpenAIEdgeDatasource? gptDatasource,
+    GeminiEdgeDatasource? geminiDatasource,
+  })  : _gptDatasource = gptDatasource ?? OpenAIEdgeDatasource(),
+        _geminiDatasource = geminiDatasource ?? GeminiEdgeDatasource();
 
   /// 초기화
   void initialize() {
@@ -169,7 +173,16 @@ $userMessage
 - 딱딱한 분석 용어보다는 쉬운 말로
 - 적절한 이모지 사용
 - 긍정적이고 희망적인 톤
-- 구체적인 조언 포함''';
+- 구체적인 조언 포함
+
+## AI 시대 해석 가이드 (참고용 - 전통 의미와 함께 설명)
+설명할 때 전통 의미 먼저, 현대 적용은 "요즘 시대에는~" 형태로 덧붙이기
+- 식상: 전통(자녀/표현력) → 요즘(콘텐츠창작/SNS/유튜브)
+- 역마살: 전통(먼여행/이사) → 요즘(디지털노마드/해외근무/출장)
+- 도화살: 전통(이성매력) → 요즘(인플루언서/대중인기/연예계)
+- 인성: 전통(학문/자격증) → 요즘(AI활용능력/온라인학습/코딩)
+- 재성: 전통(재물/토지) → 요즘(디지털자산/투자/N잡/부업)
+※ 이 해석은 참고용이며, 해석자마다 다를 수 있음을 언급해도 좋음''';
   }
 
   /// Fallback 분석 (GPT 사용 불가시)

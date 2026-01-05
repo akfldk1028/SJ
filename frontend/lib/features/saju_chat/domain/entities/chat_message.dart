@@ -14,6 +14,9 @@ class ChatMessage {
   /// AI 응답의 토큰 사용량 (user 메시지는 null)
   final int? tokensUsed;
 
+  /// AI가 제안한 후속 질문 목록 (user 메시지는 null)
+  final List<String>? suggestedQuestions;
+
   const ChatMessage({
     required this.id,
     required this.sessionId,
@@ -22,6 +25,7 @@ class ChatMessage {
     required this.createdAt,
     this.status = MessageStatus.sent,
     this.tokensUsed,
+    this.suggestedQuestions,
   });
 
   ChatMessage copyWith({
@@ -32,6 +36,7 @@ class ChatMessage {
     DateTime? createdAt,
     MessageStatus? status,
     int? tokensUsed,
+    List<String>? suggestedQuestions,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -41,6 +46,7 @@ class ChatMessage {
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
       tokensUsed: tokensUsed ?? this.tokensUsed,
+      suggestedQuestions: suggestedQuestions ?? this.suggestedQuestions,
     );
   }
 

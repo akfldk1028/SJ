@@ -10,11 +10,11 @@ import '../../data/models/saju_analysis_db_model.dart';
 import '../../data/repositories/saju_analysis_repository.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/entities/saju_analysis.dart';
-import '../../domain/entities/daeun.dart';
 import '../../domain/entities/pillar.dart';
 import '../../domain/services/unsung_service.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
 import '../../domain/services/daeun_service.dart';
+import '../../domain/services/hapchung_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'saju_analysis_repository_provider.g.dart';
@@ -98,10 +98,21 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
     final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
+    return saveFromAnalysisWithProfileId(activeProfile.id, analysis);
+  }
+
+  /// SajuAnalysis 결과를 특정 profileId로 저장
+  ///
+  /// 새 프로필 저장 시 race condition 방지를 위해 profileId 직접 전달
+  /// analysis에 이미 대운 정보(daeun)가 포함되어 있으므로 activeProfile 불필요
+  Future<SajuAnalysisDbModel?> saveFromAnalysisWithProfileId(
+    String profileId,
+    SajuAnalysis analysis,
+  ) async {
     final repository = ref.read(sajuAnalysisRepositoryProvider);
 
-    // 기존 데이터 확인
-    final existing = await repository.getByProfileId(activeProfile.id);
+    // 기존 데이터 확인 (profileId 직접 사용)
+    final existing = await repository.getByProfileId(profileId);
 
     // OhengDistribution을 Map으로 변환 (한글(한자) 형식)
     final ohengMap = {
@@ -247,7 +258,7 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
         },
     ];
 
-    // 12신살 분석
+    // 12신살 분석 (일지 기준 - 현대 명리학 기준)
     final twelveSinsalResult =
         TwelveSinsalService.analyzeFromChart(analysis.chart);
     String formatTwelveSinsal(TwelveSinsal sinsal) =>
@@ -281,13 +292,10 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
         },
     ];
 
-    // 대운 계산
+    // 대운 (analysis에서 이미 계산됨)
+    // analysis.daeun이 null인 경우를 대비해 빈 맵 사용
+    final daeunResult = analysis.daeun;
     final daeunService = DaeUnService();
-    final daeunResult = daeunService.calculate(
-      chart: analysis.chart,
-      gender: activeProfile.gender == '남' ? Gender.male : Gender.female,
-      birthDateTime: analysis.chart.birthDateTime,
-    );
 
     String formatPillar(Pillar pillar) {
       final ganHanja = cheonganHanja[pillar.gan] ?? '';
@@ -295,18 +303,20 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       return '${pillar.gan}($ganHanja)${pillar.ji}($jiHanja)';
     }
 
-    final daeunMap = {
-      'startAge': daeunResult.startAge,
-      'isForward': daeunResult.isForward,
-      'list': daeunResult.daeUnList.map((daeun) {
-        return {
-          'pillar': formatPillar(daeun.pillar),
-          'startAge': daeun.startAge,
-          'endAge': daeun.endAge,
-          'order': daeun.order,
-        };
-      }).toList(),
-    };
+    final daeunMap = daeunResult != null
+        ? {
+            'startAge': daeunResult.startAge,
+            'isForward': daeunResult.isForward,
+            'list': daeunResult.daeUnList.map((daeun) {
+              return {
+                'pillar': formatPillar(daeun.pillar),
+                'startAge': daeun.startAge,
+                'endAge': daeun.endAge,
+                'order': daeun.order,
+              };
+            }).toList(),
+          }
+        : <String, dynamic>{};
 
     // 현재 세운 계산
     final currentYear = DateTime.now().year;
@@ -319,9 +329,118 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       'pillar': formatPillar(currentSeunData.pillar),
     };
 
+    // 합충형파해 분석
+    final hapchungResult = HapchungService.analyzeSaju(
+      yearGan: analysis.chart.yearPillar.gan,
+      monthGan: analysis.chart.monthPillar.gan,
+      dayGan: analysis.chart.dayPillar.gan,
+      hourGan: analysis.chart.hourPillar?.gan ?? '',
+      yearJi: analysis.chart.yearPillar.ji,
+      monthJi: analysis.chart.monthPillar.ji,
+      dayJi: analysis.chart.dayPillar.ji,
+      hourJi: analysis.chart.hourPillar?.ji ?? '',
+    );
+
+    final hapchungMap = {
+      // 집계 정보
+      'has_relations': hapchungResult.hasRelations,
+      'total_haps': hapchungResult.totalHaps,
+      'total_chungs': hapchungResult.totalChungs,
+      'total_negatives': hapchungResult.totalNegatives,
+      // 천간 관계
+      'cheongan_haps': hapchungResult.cheonganHaps
+          .map((h) => {
+                'gan1': h.gan1,
+                'gan2': h.gan2,
+                'pillar1': h.pillar1,
+                'pillar2': h.pillar2,
+                'description': h.description,
+              })
+          .toList(),
+      'cheongan_chungs': hapchungResult.cheonganChungs
+          .map((c) => {
+                'gan1': c.gan1,
+                'gan2': c.gan2,
+                'pillar1': c.pillar1,
+                'pillar2': c.pillar2,
+                'description': c.description,
+              })
+          .toList(),
+      // 지지 관계 - 합
+      'jiji_yukhaps': hapchungResult.jijiYukhaps
+          .map((y) => {
+                'ji1': y.ji1,
+                'ji2': y.ji2,
+                'pillar1': y.pillar1,
+                'pillar2': y.pillar2,
+                'description': y.description,
+              })
+          .toList(),
+      'jiji_samhaps': hapchungResult.jijiSamhaps
+          .map((s) => {
+                'jijis': s.jijis,
+                'pillars': s.pillars,
+                'result_oheng': s.resultOheng,
+                'is_full': s.isFullSamhap,
+              })
+          .toList(),
+      'jiji_banghaps': hapchungResult.jijiBanghaps
+          .map((b) => {
+                'jijis': b.jijis,
+                'pillars': b.pillars,
+                'season': b.season,
+                'direction': b.direction,
+              })
+          .toList(),
+      // 지지 관계 - 충
+      'jiji_chungs': hapchungResult.jijiChungs
+          .map((c) => {
+                'ji1': c.ji1,
+                'ji2': c.ji2,
+                'pillar1': c.pillar1,
+                'pillar2': c.pillar2,
+                'description': c.description,
+              })
+          .toList(),
+      // 지지 관계 - 형/파/해/원진
+      'jiji_hyungs': hapchungResult.jijiHyungs
+          .map((h) => {
+                'ji1': h.ji1,
+                'ji2': h.ji2,
+                'pillar1': h.pillar1,
+                'pillar2': h.pillar2,
+                'description': h.description,
+              })
+          .toList(),
+      'jiji_pas': hapchungResult.jijiPas
+          .map((p) => {
+                'ji1': p.ji1,
+                'ji2': p.ji2,
+                'pillar1': p.pillar1,
+                'pillar2': p.pillar2,
+              })
+          .toList(),
+      'jiji_haes': hapchungResult.jijiHaes
+          .map((h) => {
+                'ji1': h.ji1,
+                'ji2': h.ji2,
+                'pillar1': h.pillar1,
+                'pillar2': h.pillar2,
+              })
+          .toList(),
+      'wonjins': hapchungResult.wonjins
+          .map((w) => {
+                'ji1': w.ji1,
+                'ji2': w.ji2,
+                'pillar1': w.pillar1,
+                'pillar2': w.pillar2,
+              })
+          .toList(),
+    };
+
     final model = SajuAnalysisDbModel.fromSajuChart(
       id: existing?.id ?? _generateUuid(),
-      profileId: activeProfile.id,
+      profileId: profileId,
       chart: analysis.chart,
       ohengDistribution: ohengMap,
       dayStrength: dayStrengthMap,
@@ -334,6 +453,7 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
       currentSeun: currentSeunMap,
       twelveUnsung: twelveUnsungList,
       twelveSinsal: twelveSinsalList,
+      hapchung: hapchungMap,
     );
 
     final saved = await repository.save(model);

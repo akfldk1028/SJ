@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../ad/ad.dart';
 import '../../domain/entities/chat_message.dart';
 import 'message_bubble.dart';
 import 'streaming_message_bubble.dart';
@@ -10,6 +12,12 @@ import 'thinking_bubble.dart';
 /// 위젯 트리 최적화:
 /// - ListView.builder 사용 (가상화)
 /// - const 생성자 사용
+/// - 모듈형 광고 삽입 (N개 메시지마다)
+///
+/// 광고 유형 (ad_strategy.dart에서 설정):
+/// - inlineBanner: 간단한 배너 ($1~3 eCPM)
+/// - nativeMedium: 채팅 버블 스타일 ($3~15 eCPM) ★ 기본값
+/// - nativeCompact: 컴팩트 네이티브 ($2~8 eCPM)
 class ChatMessageList extends StatelessWidget {
   final List<ChatMessage> messages;
   final String? streamingContent;
@@ -30,15 +38,31 @@ class ChatMessageList extends StatelessWidget {
     final showLoadingBubble = isLoading && streamingContent == null;
     final showStreamingBubble = streamingContent != null;
     final extraItemCount = (showLoadingBubble || showStreamingBubble) ? 1 : 0;
-    final itemCount = messages.length + extraItemCount;
+
+    // 인라인 광고 위치 계산 (Web 제외)
+    final (totalCount, adIndices) = _calculateItemsWithAds(
+      messageCount: messages.length,
+      extraItems: extraItemCount,
+    );
+
+    // 디버그: 광고 위치 로깅
+    debugPrint('[ChatMessageList] messages: ${messages.length}, ads: ${adIndices.length}, indices: $adIndices');
 
     return ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: itemCount,
+      itemCount: totalCount,
       itemBuilder: (context, index) {
+        // 광고 인덱스인 경우 광고 표시 (Factory 패턴 사용)
+        if (!kIsWeb && adIndices.contains(index)) {
+          return ChatAdWidget(index: index);
+        }
+
+        // 실제 메시지 인덱스 계산 (광고 위치 제외)
+        final messageIndex = _toMessageIndex(index, adIndices);
+
         // 마지막 아이템: 로딩 또는 스트리밍 버블
-        if (index == messages.length) {
+        if (messageIndex >= messages.length) {
           if (showStreamingBubble) {
             return StreamingMessageBubble(
               content: streamingContent!,
@@ -47,14 +71,54 @@ class ChatMessageList extends StatelessWidget {
           if (showLoadingBubble) {
             return const ThinkingBubble();
           }
+          return const SizedBox.shrink();
         }
 
-        final message = messages[index];
+        final message = messages[messageIndex];
         return MessageBubble(
           key: ValueKey(message.id),
           message: message,
         );
       },
     );
+  }
+
+  /// 광고 포함 아이템 계산
+  ///
+  /// Returns: (총 아이템 수, 광고 인덱스 Set)
+  (int, Set<int>) _calculateItemsWithAds({
+    required int messageCount,
+    required int extraItems,
+  }) {
+    // Web이거나 메시지가 최소 개수 미만이면 광고 없음
+    if (kIsWeb || messageCount < AdStrategy.inlineAdMinMessages) {
+      return (messageCount + extraItems, {});
+    }
+
+    const interval = AdStrategy.inlineAdMessageInterval;
+    const maxAds = AdStrategy.inlineAdMaxCount;
+    final Set<int> adIndices = {};
+    int adCount = 0;
+
+    // interval번째 메시지 뒤에 광고 삽입
+    for (int i = interval; i <= messageCount && adCount < maxAds; i += interval) {
+      // 광고 위치 = 메시지 인덱스 + 이미 삽입된 광고 수
+      final adIndex = i + adCount;
+      adIndices.add(adIndex);
+      adCount++;
+    }
+
+    return (messageCount + adCount + extraItems, adIndices);
+  }
+
+  /// ListView 인덱스를 실제 메시지 인덱스로 변환
+  int _toMessageIndex(int index, Set<int> adIndices) {
+    int adsBefore = 0;
+    for (final adIndex in adIndices) {
+      if (adIndex < index) {
+        adsBefore++;
+      }
+    }
+    return index - adsBefore;
   }
 }

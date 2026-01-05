@@ -1,26 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/mystic_background.dart';
+import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
+import '../../../../core/config/admin_config.dart';
 import '../widgets/profile_name_input.dart';
 import '../widgets/gender_toggle_buttons.dart';
 import '../widgets/calendar_type_dropdown.dart';
 import '../widgets/birth_date_picker.dart';
 import '../widgets/birth_time_picker.dart';
 import '../widgets/birth_time_options.dart';
+import '../widgets/lunar_options.dart';
 import '../widgets/city_search_field.dart';
 import '../widgets/time_correction_banner.dart';
 import '../widgets/profile_action_buttons.dart';
 import '../widgets/relationship_type_dropdown.dart';
 import '../providers/profile_provider.dart';
+import '../../domain/entities/saju_profile.dart';
+import '../../domain/entities/gender.dart';
+import '../../domain/entities/relationship_type.dart';
 
-/// 프로필 입력/수정 화면 - 동양풍 다크 테마
+/// 프로필 입력/수정 화면
+///
+/// 작은 위젯들을 조립만 하는 역할
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({
     super.key,
     this.profileId,
   });
 
+  /// 수정 모드일 경우 기존 프로필 ID
   final String? profileId;
 
   @override
@@ -31,6 +39,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   @override
   void initState() {
     super.initState();
+    // 화면 진입 시 폼 초기화
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeForm();
     });
@@ -40,185 +49,121 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     final formNotifier = ref.read(profileFormProvider.notifier);
 
     if (widget.profileId != null) {
+      // 수정 모드: 기존 프로필 로드
       final repository = ref.read(profileRepositoryProvider);
       final profile = await repository.getById(widget.profileId!);
       if (profile != null) {
         formNotifier.loadProfile(profile);
       }
     } else {
+      // 신규 모드: 폼 초기화
       formNotifier.reset();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
     final isEditing = widget.profileId != null;
 
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
-      body: MysticBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 헤더
-              _buildHeader(context, theme, isEditing),
-              // 컨텐츠
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 아바타 섹션
-                      _buildAvatarSection(theme),
-                      const SizedBox(height: 32),
-                      // 폼 컨테이너
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: theme.isDark ? null : Colors.white,
-                          gradient: theme.isDark
-                              ? LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    const Color(0xFF1A1A24),
-                                    const Color(0xFF14141C),
-                                  ],
-                                )
-                              : null,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: theme.primaryColor.withOpacity(theme.isDark ? 0.15 : 0.2),
-                          ),
-                          boxShadow: theme.isDark
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            RelationshipTypeDropdown(),
-                            SizedBox(height: 20),
-                            ProfileNameInput(),
-                            SizedBox(height: 20),
-                            GenderToggleButtons(),
-                            SizedBox(height: 20),
-                            _BirthDateSection(),
-                            SizedBox(height: 20),
-                            CitySearchField(),
-                            SizedBox(height: 12),
-                            TimeCorrectionBanner(),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const ProfileActionButtons(),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+      appBar: AppBar(
+        title: Text(isEditing ? '프로필 수정' : '프로필 만들기'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, AppThemeExtension theme, bool isEditing) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.cardColor.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.primaryColor.withOpacity(0.15),
-                ),
-              ),
-              child: Icon(
-                Icons.arrow_back_rounded,
-                color: theme.primaryColor,
-                size: 20,
-              ),
+        // Admin 버튼 - 개발 환경에서만 표시
+        actions: [
+          if (AdminConfig.isAdminModeAvailable && !isEditing)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings),
+              tooltip: '개발자 모드',
+              onPressed: () => _handleAdminLogin(context, ref),
             ),
-          ),
-          const Spacer(),
-          Text(
-            isEditing ? '프로필 수정' : '프로필 만들기',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: theme.textPrimary,
-            ),
-          ),
-          const Spacer(),
-          const SizedBox(width: 40),
         ],
       ),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RelationshipTypeDropdown(),
+            SizedBox(height: 24),
+            ProfileNameInput(),
+            SizedBox(height: 24),
+            GenderToggleButtons(),
+            SizedBox(height: 24),
+            _BirthDateSection(),
+            SizedBox(height: 24),
+            CitySearchField(),
+            SizedBox(height: 16),
+            TimeCorrectionBanner(),
+            SizedBox(height: 32),
+            ProfileActionButtons(),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildAvatarSection(AppThemeExtension theme) {
-    return Column(
-      children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.primaryColor,
-                theme.accentColor ?? theme.primaryColor,
-              ],
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: theme.primaryColor.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              '은',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w600,
-                color: theme.isDark ? const Color(0xFF0A0A0F) : Colors.white,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '사진 변경',
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.primaryColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+  /// Admin 프로필 자동 생성 및 채팅 화면 이동
+  Future<void> _handleAdminLogin(BuildContext context, WidgetRef ref) async {
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
     );
+
+    try {
+      // 1. Admin 프로필 생성
+      final now = DateTime.now();
+      final adminProfile = SajuProfile(
+        id: const Uuid().v4(),
+        displayName: AdminConfig.displayName,
+        gender: Gender.female,
+        birthDate: AdminConfig.birthDate,
+        isLunar: AdminConfig.isLunar,
+        isLeapMonth: AdminConfig.isLeapMonth,
+        birthTimeMinutes: null,
+        birthTimeUnknown: AdminConfig.birthTimeUnknown,
+        useYaJasi: true,
+        birthCity: AdminConfig.birthCity,
+        timeCorrection: 0,
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+        relationType: RelationshipType.admin, // Admin relation type!
+        memo: '개발자 테스트 계정',
+      );
+
+      // 2. 프로필 저장 (사주 분석 자동 실행됨)
+      final activeProfileNotifier = ref.read(activeProfileProvider.notifier);
+      await activeProfileNotifier.saveProfile(adminProfile);
+
+      // 3. 로딩 다이얼로그 닫기
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // 4. 채팅 화면으로 이동
+      if (context.mounted) {
+        context.go('/saju/chat');
+      }
+    } catch (e) {
+      // 에러 처리
+      if (context.mounted) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Admin 로그인 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -232,6 +177,8 @@ class _BirthDateSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CalendarTypeDropdown(),
+        // Phase 18: 음력 선택 시 윤달 옵션 표시
+        LunarOptions(),
         SizedBox(height: 12),
         BirthDatePicker(),
         SizedBox(height: 12),

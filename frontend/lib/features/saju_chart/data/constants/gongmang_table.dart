@@ -250,44 +250,322 @@ List<GongmangAnalysis> analyzeAllGongmang({
 // ============================================================================
 
 /// 공망 유형
+/// - 진공(眞空): 일간의 음양과 공망지지의 음양이 일치할 때 (작용력 100%)
+/// - 반공(半空): 일간의 음양과 공망지지의 음양이 불일치할 때 (작용력 50%)
+/// - 해공(解空)/탈공(脫空): 충/합/형으로 공망이 해소될 때 (작용력 0%)
 enum GongmangType {
   /// 진공(眞空) - 완전한 공망
-  jinGong('진공', '眞空', '공망의 기운이 완전히 작용'),
+  /// 양간(甲丙戊庚壬)이 양지(子寅辰午申戌)를 공망으로 가질 때
+  /// 음간(乙丁己辛癸)이 음지(丑卯巳未酉亥)를 공망으로 가질 때
+  jinGong('진공', '眞空', '일간과 공망지지의 음양이 일치하여 공망 작용이 강함'),
 
   /// 반공(半空) - 부분 공망
-  banGong('반공', '半空', '공망의 기운이 일부만 작용'),
+  /// 양간이 음지를 공망으로 가질 때
+  /// 음간이 양지를 공망으로 가질 때
+  banGong('반공', '半空', '일간과 공망지지의 음양이 불일치하여 공망 작용이 반감됨'),
 
-  /// 탈공(脫空) - 공망 해소
-  talGong('탈공', '脫空', '공망이 해소되어 작용하지 않음');
+  /// 해공(解空) - 충으로 공망 해소
+  /// 공망 지지가 충을 받으면 공망이 해소됨
+  haeGongChung('해공(충)', '解空(沖)', '충(沖)으로 공망이 깨어나 작용하지 않음'),
+
+  /// 해공(解空) - 합으로 공망 해소
+  /// 공망 지지가 육합/삼합을 이루면 공망이 해소됨
+  haeGongHap('해공(합)', '解空(合)', '합(合)으로 공망이 채워져 작용하지 않음'),
+
+  /// 해공(解空) - 형으로 공망 해소 (약한 효과)
+  /// 공망 지지가 형을 받으면 약하게 해소됨
+  haeGongHyung('해공(형)', '解空(刑)', '형(刑)으로 공망이 자극되어 약하게 해소됨'),
+
+  /// 탈공(脫空) - 운에서 채워져 공망 해소
+  /// 대운/세운에서 공망 지지가 들어오면 채워짐
+  talGong('탈공', '脫空', '운에서 공망 지지가 채워져 작용하지 않음');
 
   final String korean;
   final String hanja;
   final String description;
 
   const GongmangType(this.korean, this.hanja, this.description);
+
+  /// 해공(공망 해소) 여부
+  bool get isResolved =>
+      this == haeGongChung ||
+      this == haeGongHap ||
+      this == haeGongHyung ||
+      this == talGong;
+
+  /// 공망 작용 강도 (0~100)
+  int get effectStrength => switch (this) {
+        GongmangType.jinGong => 100, // 진공: 100% 작용
+        GongmangType.banGong => 50, // 반공: 50% 작용
+        GongmangType.haeGongChung => 0, // 충으로 해소: 0%
+        GongmangType.haeGongHap => 10, // 합으로 해소: 약간 남음
+        GongmangType.haeGongHyung => 20, // 형으로 해소: 일부 남음
+        GongmangType.talGong => 0, // 운에서 채워짐: 0%
+      };
 }
 
-/// 공망 유형 판단 (간략화된 버전)
-/// 실제로는 운에서 공망이 채워지는지 등을 봐야 함
+// ============================================================================
+// 음양 판단
+// ============================================================================
+
+/// 양지(陽支) 리스트: 자, 인, 진, 오, 신, 술
+const List<String> yangJiList = ['자', '인', '진', '오', '신', '술'];
+
+/// 음지(陰支) 리스트: 축, 묘, 사, 미, 유, 해
+const List<String> eumJiList = ['축', '묘', '사', '미', '유', '해'];
+
+/// 양간(陽干) 리스트: 갑, 병, 무, 경, 임
+const List<String> yangGanList = ['갑', '병', '무', '경', '임'];
+
+/// 음간(陰干) 리스트: 을, 정, 기, 신, 계
+const List<String> eumGanList = ['을', '정', '기', '신', '계'];
+
+/// 천간이 양간인지 확인
+bool isYangGan(String gan) => yangGanList.contains(gan);
+
+/// 천간이 음간인지 확인
+bool isEumGan(String gan) => eumGanList.contains(gan);
+
+/// 지지가 양지인지 확인
+bool isYangJi(String ji) => yangJiList.contains(ji);
+
+/// 지지가 음지인지 확인
+bool isEumJi(String ji) => eumJiList.contains(ji);
+
+/// 천간과 지지의 음양이 일치하는지 확인
+bool isSameYinYang(String gan, String ji) {
+  return (isYangGan(gan) && isYangJi(ji)) || (isEumGan(gan) && isEumJi(ji));
+}
+
+// ============================================================================
+// 해공(解空) 관계 테이블
+// ============================================================================
+
+/// 지지충 테이블 (6충)
+const Map<String, String> _jijiChungMap = {
+  '자': '오',
+  '오': '자',
+  '축': '미',
+  '미': '축',
+  '인': '신',
+  '신': '인',
+  '묘': '유',
+  '유': '묘',
+  '진': '술',
+  '술': '진',
+  '사': '해',
+  '해': '사',
+};
+
+/// 지지육합 테이블 (6합)
+const Map<String, String> _jijiYukhapMap = {
+  '자': '축',
+  '축': '자',
+  '인': '해',
+  '해': '인',
+  '묘': '술',
+  '술': '묘',
+  '진': '유',
+  '유': '진',
+  '사': '신',
+  '신': '사',
+  '오': '미',
+  '미': '오',
+};
+
+/// 지지삼합 테이블 (4국, 왕지 포함 반합)
+const Map<String, Set<String>> _jijiSamhapMap = {
+  // 인오술 화국
+  '인': {'오', '술'},
+  '오': {'인', '술'},
+  '술': {'인', '오'},
+  // 사유축 금국
+  '사': {'유', '축'},
+  '유': {'사', '축'},
+  '축': {'사', '유'},
+  // 신자진 수국
+  '신': {'자', '진'},
+  '자': {'신', '진'},
+  '진': {'신', '자'},
+  // 해묘미 목국
+  '해': {'묘', '미'},
+  '묘': {'해', '미'},
+  '미': {'해', '묘'},
+};
+
+/// 지지형 관계 (무은지형, 지세지형)
+const Map<String, Set<String>> _jijiHyungMap = {
+  // 무은지형: 인→사→신
+  '인': {'사', '신'},
+  '사': {'인', '신'},
+  '신': {'인', '사'},
+  // 지세지형: 축→술→미
+  '축': {'술', '미'},
+  '술': {'축', '미'},
+  '미': {'축', '술'},
+};
+
+/// 두 지지가 충인지 확인
+bool hasChung(String ji1, String ji2) => _jijiChungMap[ji1] == ji2;
+
+/// 두 지지가 육합인지 확인
+bool hasYukhap(String ji1, String ji2) => _jijiYukhapMap[ji1] == ji2;
+
+/// 두 지지가 삼합(반합 포함)인지 확인
+bool hasSamhap(String ji1, String ji2) {
+  final partners = _jijiSamhapMap[ji1];
+  return partners != null && partners.contains(ji2);
+}
+
+/// 두 지지가 형인지 확인
+bool hasHyung(String ji1, String ji2) {
+  final partners = _jijiHyungMap[ji1];
+  return partners != null && partners.contains(ji2);
+}
+
+// ============================================================================
+// 공망 유형 판단 (개선된 버전)
+// ============================================================================
+
+/// 공망 유형 판단 결과
+class GongmangTypeResult {
+  final GongmangType type;
+  final String reason;
+  final String? relatedJi; // 해공 원인이 된 지지
+
+  const GongmangTypeResult({
+    required this.type,
+    required this.reason,
+    this.relatedJi,
+  });
+}
+
+/// 공망 유형 판단 (개선된 버전)
+/// [dayGan] 일간
+/// [dayJi] 일지
+/// [targetJi] 확인할 지지 (년지/월지/시지)
+/// [allJijis] 사주 내 모든 지지 (년지, 월지, 일지, 시지)
+/// [currentDaeunJi] 현재 대운의 지지 (옵션)
+/// [currentSaeunJi] 현재 세운의 지지 (옵션)
+GongmangTypeResult determineGongmangTypeAdvanced({
+  required String dayGan,
+  required String dayJi,
+  required String targetJi,
+  required List<String> allJijis,
+  String? currentDaeunJi,
+  String? currentSaeunJi,
+}) {
+  final gongmangJijis = getDayGongmang(dayGan, dayJi);
+
+  // 대상이 공망이 아니면 해당 없음 (일반적인 탈공)
+  if (!gongmangJijis.contains(targetJi)) {
+    return const GongmangTypeResult(
+      type: GongmangType.talGong,
+      reason: '공망 지지가 아님',
+    );
+  }
+
+  // 1. 대운/세운에서 공망 지지가 들어오면 탈공
+  if (currentDaeunJi == targetJi) {
+    return GongmangTypeResult(
+      type: GongmangType.talGong,
+      reason: '대운에서 $targetJi가 들어와 공망이 채워짐',
+      relatedJi: currentDaeunJi,
+    );
+  }
+  if (currentSaeunJi == targetJi) {
+    return GongmangTypeResult(
+      type: GongmangType.talGong,
+      reason: '세운에서 $targetJi가 들어와 공망이 채워짐',
+      relatedJi: currentSaeunJi,
+    );
+  }
+
+  // 2. 사주 내 다른 지지와의 관계 확인 (해공)
+  for (final otherJi in allJijis) {
+    if (otherJi == targetJi) continue; // 자기 자신 제외
+
+    // 충(沖)으로 해공 - 가장 강력
+    if (hasChung(targetJi, otherJi)) {
+      return GongmangTypeResult(
+        type: GongmangType.haeGongChung,
+        reason: '$targetJi와 $otherJi가 충(沖)하여 공망이 해소됨',
+        relatedJi: otherJi,
+      );
+    }
+  }
+
+  for (final otherJi in allJijis) {
+    if (otherJi == targetJi) continue;
+
+    // 육합으로 해공
+    if (hasYukhap(targetJi, otherJi)) {
+      return GongmangTypeResult(
+        type: GongmangType.haeGongHap,
+        reason: '$targetJi와 $otherJi가 육합(六合)하여 공망이 채워짐',
+        relatedJi: otherJi,
+      );
+    }
+
+    // 삼합(반합)으로 해공
+    if (hasSamhap(targetJi, otherJi)) {
+      return GongmangTypeResult(
+        type: GongmangType.haeGongHap,
+        reason: '$targetJi와 $otherJi가 삼합(三合) 관계로 공망이 완화됨',
+        relatedJi: otherJi,
+      );
+    }
+  }
+
+  for (final otherJi in allJijis) {
+    if (otherJi == targetJi) continue;
+
+    // 형(刑)으로 해공 - 가장 약함
+    if (hasHyung(targetJi, otherJi)) {
+      return GongmangTypeResult(
+        type: GongmangType.haeGongHyung,
+        reason: '$targetJi와 $otherJi가 형(刑)하여 공망이 약하게 해소됨',
+        relatedJi: otherJi,
+      );
+    }
+  }
+
+  // 3. 해공이 없으면 진공/반공 판단 (음양 일치 여부)
+  if (isSameYinYang(dayGan, targetJi)) {
+    // 일간과 공망지지의 음양이 일치 → 진공
+    final ganType = isYangGan(dayGan) ? '양간' : '음간';
+    final jiType = isYangJi(targetJi) ? '양지' : '음지';
+    return GongmangTypeResult(
+      type: GongmangType.jinGong,
+      reason: '$dayGan($ganType)와 $targetJi($jiType)의 음양 일치로 진공',
+    );
+  } else {
+    // 일간과 공망지지의 음양이 불일치 → 반공
+    final ganType = isYangGan(dayGan) ? '양간' : '음간';
+    final jiType = isYangJi(targetJi) ? '양지' : '음지';
+    return GongmangTypeResult(
+      type: GongmangType.banGong,
+      reason: '$dayGan($ganType)와 $targetJi($jiType)의 음양 불일치로 반공',
+    );
+  }
+}
+
+/// 공망 유형 판단 (간략화된 버전 - 호환성 유지)
+/// @deprecated 대신 determineGongmangTypeAdvanced 사용 권장
 GongmangType determineGongmangType({
   required String dayGan,
   required String dayJi,
   required String targetJi,
-  String? currentDaeunJi, // 현재 대운의 지지
-  String? currentSaeunJi, // 현재 세운의 지지
+  String? currentDaeunJi,
+  String? currentSaeunJi,
 }) {
-  final gongmangJijis = getDayGongmang(dayGan, dayJi);
-
-  // 대상이 공망이 아니면 해당 없음
-  if (!gongmangJijis.contains(targetJi)) {
-    return GongmangType.talGong;
-  }
-
-  // 대운이나 세운에서 공망 지지가 들어오면 탈공
-  if (currentDaeunJi == targetJi || currentSaeunJi == targetJi) {
-    return GongmangType.talGong;
-  }
-
-  // 그 외에는 진공
-  return GongmangType.jinGong;
+  final result = determineGongmangTypeAdvanced(
+    dayGan: dayGan,
+    dayJi: dayJi,
+    targetJi: targetJi,
+    allJijis: [dayJi], // 간략 버전에서는 일지만 포함
+    currentDaeunJi: currentDaeunJi,
+    currentSaeunJi: currentSaeunJi,
+  );
+  return result.type;
 }

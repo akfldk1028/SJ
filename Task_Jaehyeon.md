@@ -3,6 +3,164 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
+> 최종 업데이트: 2026-01-01 (Phase 28 AiApiService Polling 로직 추가)
+
+---
+
+## 🚀 새 세션 시작 가이드
+
+### 프롬프트 예시
+
+**기본 프롬프트** (새 세션 시작):
+```
+@Task_Jaehyeon.md 읽고 현재 상황 파악해.
+Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
+
+[요청 내용 입력]
+```
+
+**상세 프롬프트** (특정 작업 이어하기):
+```
+@Task_Jaehyeon.md 읽고 현재 상황 파악해.
+Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
+
+현재 상태:
+- MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
+- Phase 17-A (보안 강화) ✅ 완료 (2025-12-29)
+- Phase 18 (윤달 유효성 검증) ✅ 완료 (2025-12-30)
+- Phase 19 (토큰 사용량 추적) ✅ 완료 (2025-12-30)
+- Phase 20 (AI Edge Function 통합) ✅ 완료 (2025-12-30)
+  - gemini_edge_datasource.dart, openai_edge_datasource.dart 생성
+  - saju_chat_edge_datasource.dart 생성
+  - API 키가 Supabase Secrets에만 저장 (보안 강화)
+- Phase 21 (Edge Function 모델 최종 확정) ✅ 완료 (2024-12-31)
+  - ai-gemini v15: gemini-3-flash-preview, max_tokens 4096
+  - ai-openai v10: gpt-5.2-thinking, max_tokens 10000
+  - EdgeFunction_task.md 생성 (모델 변경 금지 문서)
+- Phase 22 (만세력 계산 로직 수정) ✅ 완료 (2024-12-31)
+  - 지장간 테이블 수정 (자/묘/오/유 왕지 여기 추가)
+  - 12신살 기준 변경 (년지→일지 기준)
+  - 신강/신약 점수 계산 가중치 조정
+- Phase 23 (누락된 신살/귀인 추가) ✅ 완료 (2024-12-31)
+  - P1 신살: 금여, 삼기귀인, 복성귀인, 낙정관살
+  - P2 신살: 문곡귀인, 태극귀인, 천의귀인, 천주귀인, 암록귀인, 홍란살, 천희살
+- Phase 24 (P2/P3 추가 신살 구현) ✅ 완료 (2024-12-31)
+  - 건록, 비인살, 효신살, 고신살, 과숙살, 원진살, 천라지망
+  - 신살 UI 표시 (ExtendedSinsalInfoCard 위젯)
+- Phase 25 (야자시/조자시 로직 검증) ✅ 완료 (2024-12-31)
+  - 툴팁 설명 수정 (기존 설명 오류 수정)
+  - JasiService enum 주석 상세화
+  - 테스트 케이스 19개 추가
+- Phase 26 (진공/반공/해공 로직) ✅ 완료 (2024-12-31)
+  - 진공(眞空): 일간 음양 = 공망지지 음양 → 100% 작용
+  - 반공(半空): 일간 음양 ≠ 공망지지 음양 → 50% 작용
+  - 해공(解空): 충/합/형으로 공망 해소
+  - 탈공(脫空): 대운/세운에서 채워짐
+- **Phase 27 (saju_base 타임아웃 해결) ✅ 완료 (2026-01-01) - DK 솔루션**
+  - ai-openai v24: OpenAI Responses API `background=true` 모드
+  - ai-openai-result v4: 폴링 엔드포인트 신규 생성
+  - Flutter openai_edge_datasource.dart: Async + Polling 패턴
+  - Supabase 150초 타임아웃 완전 회피!
+- **Phase 28 (AiApiService Polling 로직 추가) ✅ 완료 (2026-01-01)**
+  - 문제: AiApiService.callOpenAI()에 polling 로직 누락
+  - openai_edge_datasource.dart (채팅용): polling ✅
+  - ai_api_service.dart (saju_base 분석용): polling ❌ → 빈 응답!
+  - 수정: _pollForOpenAIResult() 메서드 추가, runInBackground 파라미터 추가
+- 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
+- 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
+
+다음 작업 후보:
+1. **Phase 28 테스트** - saju_base 저장 확인 (우선순위 높음)
+2. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
+3. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
+4. 만세력 단위 테스트 - 특정 생년월일 계산 검증
+5. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
+6. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
+7. UI/UX 개선 - 채팅 화면, 프로필 화면 디자인
+8. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
+9. 궁합 분석 기능 - compatibility_analyses 테이블 활용
+
+[원하는 작업 선택 또는 새 요청]
+```
+
+### 🛠️ Flutter 개발 환경 (2025-12-30 업데이트)
+
+| 항목 | 경로/값 |
+|------|---------|
+| **Flutter SDK** | `C:\Users\SOGANG\flutter\flutter\bin\flutter.bat` |
+| **프로젝트 위치** | `E:\SJ\frontend` |
+| **Pub Cache** | `C:\Users\SOGANG\AppData\Local\Pub\Cache` (기본값) |
+
+#### ⚠️ Windows symlink 에러 해결
+
+```
+ERROR_INVALID_FUNCTION: Try moving your Flutter project to the same drive as your Flutter SDK.
+```
+
+**원인**: Flutter SDK(C드라이브)와 프로젝트(E드라이브)가 다른 드라이브에 있어서 Windows 플랫폼 빌드 시 symlink 생성 실패
+
+**해결 방법**:
+- **Chrome(web) 빌드는 문제없음** - symlink 에러 무시하고 실행 가능
+- Windows 데스크톱 빌드 필요 시: 개발자 모드 활성화 또는 PUB_CACHE를 E 드라이브로 이동
+
+#### Flutter 실행 명령어
+
+```powershell
+# E:\SJ\frontend 에서 실행
+
+# 1. 의존성 설치
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat pub get
+
+# 2. 코드 생성 (flutter clean 이후 필수!)
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat pub run build_runner build --delete-conflicting-outputs
+
+# 3. Chrome으로 실행
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome
+
+# 또는 포트 지정
+C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome --web-port=9999
+```
+
+#### 주의사항
+- `flutter clean` 실행 후에는 **반드시** `build_runner` 재실행 필요
+- `.g.dart`, `.freezed.dart` 파일이 없으면 빌드 에러 발생
+
+---
+
+### 핵심 파일 경로
+| 파일 | 용도 |
+|------|------|
+| `frontend/lib/features/saju_chart/` | 만세력 기능 전체 |
+| `frontend/lib/features/saju_chat/` | AI 채팅 기능 |
+| `frontend/lib/features/profile/` | 프로필 입력/관리 |
+| `frontend/lib/core/repositories/` | DB 연동 Repository |
+| `frontend/lib/AI/` | AI 모듈 (프롬프트, 페르소나, 서비스) |
+| `frontend/lib/ad/` | 광고 모듈 (AdMob 연동) |
+| `supabase/functions/` | Edge Functions |
+| `.claude/team/` | 팀원별 역할/TODO 정의 |
+
+### Phase 18 관련 파일 (2025-12-30 추가)
+| 파일 | 용도 |
+|------|------|
+| `saju_chart/domain/entities/lunar_validation.dart` | 윤달 검증 결과/정보 엔티티 |
+| `saju_chart/domain/services/lunar_solar_converter.dart` | 음양력 변환 + 윤달 검증 |
+| `profile/presentation/providers/profile_provider.dart` | 프로필 폼 상태 관리 |
+| `profile/presentation/widgets/lunar_options.dart` | 윤달 옵션 UI 위젯 |
+| `profile/presentation/screens/profile_edit_screen.dart` | 프로필 입력 화면 |
+
+### Phase 19 관련 파일 (2025-12-30 추가)
+| 파일 | 용도 |
+|------|------|
+| `core/services/quota_service.dart` | Quota 조회/광고 보너스 RPC 호출 |
+| `core/services/ai_chat_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `core/services/ai_summary_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `shared/widgets/quota_exceeded_dialog.dart` | Quota 초과 다이얼로그 |
+| `supabase/functions/saju-chat/index.ts` | Edge Function v6 (quota 체크) |
+| `supabase/functions/generate-ai-summary/index.ts` | Edge Function v8 (quota 체크) |
+
+### 현재 개발 단계
+- **MVP (v0.1)**: 만세력 + AI 채팅 기본 완료 ✅
+- **다음 단계 (v0.2)**: 인증 체계 강화 (Phase 17)
 
 ---
 
@@ -36,7 +194,1424 @@
 | **Phase 13-D (채팅 연동)** | ✅ **완료** (2025-12-23) |
 | **Phase 13 전체** | ✅ **완료** 🎉 |
 | **Phase 14-A (tokens_used)** | ✅ **완료** (2025-12-23) |
-| **Phase 14 (채팅 DB 최적화)** | 🔄 **진행 중** |
+| **Phase 14-B (suggested_questions)** | ✅ **완료** (2025-12-24) |
+| **Phase 14-C (cached 버그 수정)** | ✅ **완료** (2025-12-24, 배포 완료) |
+| **Phase 14 (채팅 DB 최적화)** | ✅ **완료** 🎉 |
+| **만세력 기능 구현 현황** | ✅ **전체 완료** (2025-12-24 검증) |
+| **Phase 15 (한글+한자 페어 수정)** | ✅ **완료** (2025-12-24) |
+| **Phase 15-D (sipsin_info 수정)** | ✅ **완료** (2025-12-24) |
+| **Phase 16 (길성 기능 구현)** | ✅ **완료** (2025-12-24) |
+| **Phase 16-C (길성 DB 저장)** | ✅ **완료** (2025-12-25) |
+| **Phase 16-D (길성 마이그레이션)** | ✅ **완료** (2025-12-25, 18/18 레코드) |
+| **Supabase MCP 상태 체크** | ✅ **완료** (2025-12-25) |
+| **Phase 16-E (데이터 표준화)** | ✅ **완료** (2025-12-25, oheng/yongsin) |
+| **Phase 16-F (JSONB 형식 통일)** | ✅ **완료** (2025-12-29, 6개 마이그레이션) |
+| **Phase 16-G (hapchung/gilseong 마이그레이션)** | ✅ **완료** (2025-12-29, Edge Function) |
+| **DKBB Merge** | ✅ **완료** (2025-12-29) |
+| **광고 모듈 (AdMob)** | ✅ **추가됨** (DK 작업) |
+| **페르소나 시스템** | ✅ **추가됨** (Jina 작업) |
+| **관계(궁합) 관리** | ✅ **추가됨** |
+| **성능 최적화** | ✅ **완료** (withOpacity → const Color 캐싱) |
+| **음양력 변환 (LunarSolarConverter)** | ✅ **이미 구현됨** (1900-2100년, 윤달 처리 포함) |
+| **Phase 17-A (보안 강화)** | ✅ **완료** (2025-12-29, search_path 수정 13개 + 인덱스 확인) |
+| **Phase 17-B~D (인증 체계 강화)** | 📋 **계획 수립** (v0.2 예정) |
+| **대운(大運) 계산** | ✅ **이미 구현됨** (daeun_service.dart) |
+| **Phase 18 (윤달 유효성 검증)** | ✅ **완료** (2025-12-30) |
+| **Phase 19 (토큰 사용량 추적)** | ✅ **완료** (2025-12-30, quota 체크 + QUOTA_EXCEEDED 처리) |
+| **Phase 20 (AI Edge Function 통합)** | ✅ **완료** (2025-12-30, API 키 보안 강화) |
+| **Phase 21 (Edge Function 모델 최종 확정)** | ✅ **완료** (2024-12-31, gpt-5.2-thinking + gemini-3-flash-preview) |
+| **Phase 22 (만세력 계산 로직 수정)** | ✅ **완료** (2024-12-31) |
+| **Phase 23 (누락된 신살/귀인 추가)** | ✅ **완료** (2024-12-31, 11개 신살 추가) |
+| **Phase 24 (P2/P3 추가 신살)** | ✅ **완료** (2024-12-31, 7개 신살 추가) |
+| **Phase 25 (야자시/조자시 검증)** | ✅ **완료** (2024-12-31, 테스트 19개) |
+| **Phase 26 (진공/반공/해공)** | ✅ **완료** (2024-12-31, 공망 유형 세분화) |
+
+---
+
+## 🎯 Phase 26: 진공/반공/해공 로직 구현 (2024-12-31)
+
+### 완료 내용
+
+공망(空亡)의 유형을 세분화하여 진공/반공/해공/탈공 로직 구현
+
+#### 공망 유형 정의
+
+| 유형 | 한자 | 조건 | 작용력 |
+|------|------|------|--------|
+| 진공 | 眞空 | 일간 음양 = 공망지지 음양 | 100% |
+| 반공 | 半空 | 일간 음양 ≠ 공망지지 음양 | 50% |
+| 해공(충) | 解空(沖) | 공망지지가 충을 받음 | 0% |
+| 해공(합) | 解空(合) | 공망지지가 육합/삼합 | 10% |
+| 해공(형) | 解空(刑) | 공망지지가 형을 받음 | 20% |
+| 탈공 | 脫空 | 대운/세운에서 채워짐 | 0% |
+
+#### 음양 분류
+
+- **양간(陽干)**: 갑(甲), 병(丙), 무(戊), 경(庚), 임(壬)
+- **음간(陰干)**: 을(乙), 정(丁), 기(己), 신(辛), 계(癸)
+- **양지(陽支)**: 자(子), 인(寅), 진(辰), 오(午), 신(申), 술(戌)
+- **음지(陰支)**: 축(丑), 묘(卯), 사(巳), 미(未), 유(酉), 해(亥)
+
+#### 해공 우선순위
+
+1. **충(沖)**: 가장 강력한 해공 (공망 완전 해소)
+2. **합(合)**: 육합/삼합으로 해공 (약간의 잔여 효과)
+3. **형(刑)**: 가장 약한 해공 (일부 효과 잔존)
+
+### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `gongmang_table.dart` | GongmangType enum 확장, 음양 판단 함수, 해공 판단 로직 |
+| `gongmang_service.dart` | `_analyzeGongmangAdvanced` 메서드, 상세 해석 추가 |
+
+### API 사용법
+
+```dart
+// 개선된 공망 분석
+final result = GongmangService.analyze(
+  dayGan: '갑',
+  dayJi: '자',
+  yearJi: '술',
+  monthJi: '해',
+  hourJi: '묘',
+);
+
+// 진공/반공/해공 결과
+print(result.detailedSummary); // "진공(眞空): 년지 | 반공(半空): 월지"
+print(result.jinGongCount);     // 진공 개수
+print(result.activeGongmangCount); // 실제 작용하는 공망 개수
+print(result.averageEffectStrength); // 평균 작용 강도
+```
+
+### 참고 문헌
+
+- [순리사주학 - 공망과 삼재](https://www.eroun.net/news/articleView.html?idxno=41170)
+- [사주바주 - 공망의 의미와 원리](https://www.sajubaju.com/19a9948c-494c-8096-a887-c92f539e263b)
+- [정해 만세력 - 공망](https://doc.8-codes.com/docs/lecture/20/)
+
+---
+
+## 🎯 Phase 23: 누락된 신살/귀인 추가 구현 (2024-12-31)
+
+### 완료 내용
+
+웹 검색 결과와 비교하여 누락된 신살/귀인 계산 로직 추가
+
+#### 추가된 신살 (11개)
+| 신살 | 한자 | 기준 | 타입 |
+|------|------|------|------|
+| 금여 | 金輿 | 일간 → 지지 | 길 |
+| 삼기귀인 | 三奇貴人 | 천간 조합 | 길 |
+| 복성귀인 | 福星貴人 | 일주/연간 | 길 |
+| 낙정관살 | 落井關殺 | 일간 → 지지 | 흉 |
+| 문곡귀인 | 文曲貴人 | 일간 → 지지 | 길 |
+| 태극귀인 | 太極貴人 | 일간 → 지지 | 길 |
+| 천의귀인 | 天醫貴人 | 월지 → 지지 | 길 |
+| 천주귀인 | 天廚貴人 | 일간 → 지지 | 길 |
+| 암록귀인 | 暗祿貴人 | 일간 → 지지 | 길 |
+| 홍란살 | 紅鸞煞 | 년지 → 지지 | 길 |
+| 천희살 | 天喜煞 | 년지 → 지지 | 길 |
+
+### 수정된 파일
+| 파일 | 변경 내용 |
+|------|-----------|
+| `twelve_sinsal.dart` | SpecialSinsal enum + 계산 로직 |
+| `sinsal.dart` | SinSal enum 추가 |
+| `gilseong_service.dart` | GilseongAnalysisResult 확장 + 분석 로직 |
+
+---
+
+## 🎯 Phase 21: Edge Function 모델 최종 확정 (2024-12-31)
+
+### 완료 내용
+
+| Edge Function | 버전 | 모델 | max_tokens | 비고 |
+|---------------|------|------|------------|------|
+| ai-gemini | **v15** | `gemini-3-flash-preview` | 4096 | 채팅/일운 분석용 |
+| ai-openai | **v10** | `gpt-5.2-thinking` | 10000 | 사주 분석용 (추론 강화) |
+
+### 생성된 문서
+
+- **EdgeFunction_task.md**: Edge Function 관리 문서 (모델 변경 금지 규칙)
+- 모든 Edge Function 코드에 `// 변경 금지` 주석 추가
+
+### 백업 파일
+
+- `supabase/backups/ai-gemini_v15_2024-12-30.ts`
+- `supabase/backups/ai-openai_v10_2024-12-31.ts`
+
+---
+
+## 🔐 Phase 20: AI Edge Function 통합 (완료)
+
+### 개요
+
+프론트엔드에서 직접 AI API를 호출하는 방식을 **Edge Function 경유**로 변경하여 API 키 보안 강화
+
+### 현재 문제점
+
+```
+현재 구조 (❌ 보안 취약):
+┌─────────────────────────────────────────────────────────────┐
+│  Flutter App                                                │
+│      │                                                      │
+│      ├──→ GeminiRestDatasource ──→ Gemini API (직접 호출)   │
+│      │         └── API 키가 .env에 포함 ❌                   │
+│      │                                                      │
+│      └──→ OpenAIDatasource ──→ OpenAI API (직접 호출)       │
+│                └── API 키가 .env에 포함 ❌                   │
+└─────────────────────────────────────────────────────────────┘
+
+※ .env는 .gitignore 되어있지만, APK 빌드 시 포함될 수 있음
+```
+
+### 목표 구조
+
+```
+목표 구조 (✅ 보안 강화):
+┌─────────────────────────────────────────────────────────────┐
+│  Flutter App                                                │
+│      │                                                      │
+│      ├──→ Edge Function (ai-gemini) ──→ Gemini API          │
+│      │         └── API 키는 Supabase Secrets에만 ✅          │
+│      │                                                      │
+│      └──→ Edge Function (ai-openai) ──→ OpenAI API          │
+│                └── API 키는 Supabase Secrets에만 ✅          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Edge Function 현황 (Supabase 배포됨)
+
+| Function | 버전 | 용도 | 상태 |
+|----------|------|------|------|
+| **ai-gemini** | v8 | Gemini 3.0 대화용 | ✅ ACTIVE → **Flutter 연동 완료** |
+| **ai-openai** | v6 | GPT-5.2 분석용 | ✅ ACTIVE → **Flutter 연동 완료** |
+| **saju-chat** | v6 | 사주 채팅 (quota 포함) | ✅ ACTIVE → **Flutter 연동 완료** |
+| generate-ai-summary | v8 | AI 요약 생성 | ✅ ACTIVE (사용중) |
+
+### TODO 작업 목록
+
+| 단계 | 작업 | 파일 | 상태 |
+|------|------|------|------|
+| **20-A** | GeminiRestDatasource → Edge Function 호출로 변경 | `gemini_edge_datasource.dart` | ✅ **완료** (2025-12-30) |
+| **20-B** | OpenAIDatasource → Edge Function 호출로 변경 | `openai_edge_datasource.dart` | ✅ **완료** (2025-12-30) |
+| **20-C** | Repository/Pipeline Edge 버전으로 전환 | `chat_repository_impl.dart`, `ai_pipeline_manager.dart` | ✅ **완료** (2025-12-30) |
+| **20-D** | .env에서 AI API 키 삭제 (SUPABASE만 유지) | `frontend/.env` | ⏭️ **스킵** (개발 편의) |
+| **20-E** | saju-chat Edge Function 연동 | `saju_chat_edge_datasource.dart` | ✅ **완료** (2025-12-30) |
+
+### 생성/수정된 파일 (2025-12-30)
+
+| 파일 | 설명 | 상태 |
+|------|------|------|
+| `gemini_edge_datasource.dart` | Gemini Edge Function 호출 (신규) | ✅ 생성 |
+| `openai_edge_datasource.dart` | OpenAI Edge Function 호출 (신규) | ✅ 생성 |
+| `saju_chat_edge_datasource.dart` | saju-chat Edge Function 호출 (신규) | ✅ 생성 |
+| `chat_repository_impl.dart` | Edge Datasource 사용으로 변경 | ✅ 수정 |
+| `ai_pipeline_manager.dart` | Edge Datasource 사용으로 변경 | ✅ 수정 |
+| `chat_provider.dart` | Edge Datasource 사용으로 변경 | ✅ 수정 |
+| `README.md` | Edge Function 문서 추가 | ✅ 수정 |
+
+### 레거시 파일 (참고용으로 유지)
+
+| 파일 | 설명 |
+|------|------|
+| `gemini_rest_datasource.dart` | Gemini API 직접 호출 (개발용) |
+| `openai_datasource.dart` | OpenAI API 직접 호출 (개발용) |
+
+### 구현 예시
+
+**Before (현재 - gemini_rest_datasource.dart:53):**
+```dart
+static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+
+_dio = Dio(BaseOptions(
+  baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  queryParameters: {'key': _apiKey},  // ❌ API 키 노출
+));
+```
+
+**After (목표):**
+```dart
+_dio = Dio(BaseOptions(
+  baseUrl: '${Supabase.instance.client.supabaseUrl}/functions/v1/ai-gemini',
+  headers: {
+    'Authorization': 'Bearer ${Supabase.instance.client.supabaseKey}',
+    'Content-Type': 'application/json',
+  },
+));
+```
+
+### 참고: Edge Function 요청/응답 형식
+
+**ai-gemini 요청:**
+```json
+{
+  "messages": [
+    {"role": "system", "content": "시스템 프롬프트"},
+    {"role": "user", "content": "사용자 메시지"}
+  ],
+  "model": "gemini-2.5-flash",
+  "max_tokens": 50000,
+  "temperature": 0.8
+}
+```
+
+**ai-gemini 응답:**
+```json
+{
+  "success": true,
+  "content": "AI 응답 텍스트",
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 200,
+    "total_tokens": 300
+  },
+  "model": "gemini-2.5-flash",
+  "finish_reason": "stop"
+}
+```
+
+---
+
+## 🔧 JH_AI 작업 현황 (2025-12-30)
+
+### 대운(大運) 계산 - 이미 구현됨 ✅
+
+> **요청**: 대운 계산기 만들기
+> **결과**: 이미 완전 구현되어 있음!
+
+| 파일 | 용도 | 상태 |
+|------|------|------|
+| `saju_chart/domain/entities/daeun.dart` | 대운/세운/월운 엔티티 | ✅ 완료 |
+| `saju_chart/domain/services/daeun_service.dart` | 대운 계산 서비스 | ✅ 완료 |
+| `saju_chart/presentation/widgets/fortune_display.dart` | 대운 UI | ✅ 완료 |
+
+**구현된 기능:**
+- 순행/역행 판단 (남양순, 여음순)
+- 대운수(시작 나이) 계산 (절입일 기준)
+- 10개 대운 주기 생성
+- 세운(년운) 계산
+- 현재 대운 찾기
+
+### 음양력 변환 - 이미 구현됨 ✅
+
+| 파일 | 용도 | 상태 |
+|------|------|------|
+| `saju_chart/domain/services/lunar_solar_converter.dart` | 음양력 변환 서비스 | ✅ 완료 |
+| `saju_chart/domain/entities/lunar_date.dart` | 음력 날짜 엔티티 | ✅ 완료 |
+| `saju_chart/data/constants/lunar_data/` | 1900-2100년 데이터 테이블 | ✅ 완료 |
+
+**구현된 기능:**
+- `solarToLunar(DateTime)` - 양력 → 음력 변환
+- `lunarToSolar(LunarDate)` - 음력 → 양력 변환
+- `hasLeapMonth(year)` - 윤달 여부 확인
+- `getLeapMonth(year)` - 해당 연도 윤달 월 반환
+- `getLunarMonthDays(year, month, isLeapMonth)` - 음력 월 일수
+- `validateLunarDate(LunarDate)` - 음력 날짜 유효성 검증 **(Phase 18 추가)**
+- `getLeapMonthInfo(year)` - 연도별 윤달 상세 정보 **(Phase 18 추가)**
+- `canSelectLeapMonth(year, month)` - 윤달 선택 가능 여부 **(Phase 18 추가)**
+
+### 다음 작업 후보 (JH_AI)
+
+| 우선순위 | 작업 | 설명 | 상태 |
+|---------|------|------|------|
+| ~~**P0**~~ | ~~**윤달 유효성 검증**~~ | ~~Phase 18~~ | ✅ **완료** |
+| P1 | **절입시간 계산 검증** | `solar_term_service.dart` 정확도 확인 | 📋 대기 |
+| P1 | **만세력 단위 테스트** | 특정 생년월일 계산 검증 | 📋 대기 |
+| P2 | **AI 프롬프트 개선** | `saju_base_prompt.dart` 품질 향상 | 📋 대기 |
+| P2 | **합충형파해 AI 해석** | 관계 분석 결과를 AI에 전달 | 📋 대기 |
+
+---
+
+## 💰 Phase 19: 토큰 사용량 추적 시스템 ✅ 완료 (2025-12-30)
+
+### 개요
+
+AI 상담 수익화를 위한 일일 토큰 quota 시스템 구현
+- **일일 무료 quota**: 50,000 토큰
+- **광고 시청 시 보너스**: 5,000 토큰
+- **quota 초과 시**: 광고 시청 또는 결제 유도
+
+### 구현 완료 내역
+
+| 단계 | 작업 | 상태 |
+|------|------|------|
+| Phase 19-A | `user_daily_token_usage` 테이블 생성 | ✅ |
+| Phase 19-B | DB 트리거 (chat_messages, ai_summaries 토큰 자동 집계) | ✅ |
+| Phase 19-C | RPC 함수 (check_user_quota, add_ad_bonus_tokens) | ✅ |
+| Phase 19-D | Edge Function quota 체크 (saju-chat v6, generate-ai-summary v8) | ✅ |
+| Phase 19-E | Flutter QUOTA_EXCEEDED 처리 (QuotaService, 다이얼로그) | ✅ |
+
+### DB 테이블: user_daily_token_usage
+
+```sql
+CREATE TABLE user_daily_token_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  usage_date DATE DEFAULT CURRENT_DATE,
+  chat_tokens INT DEFAULT 0,           -- AI 채팅 토큰
+  ai_analysis_tokens INT DEFAULT 0,    -- AI 분석 토큰
+  ai_chat_tokens INT DEFAULT 0,        -- 세션 채팅 토큰
+  total_tokens INT GENERATED ALWAYS AS (chat_tokens + ai_analysis_tokens + ai_chat_tokens) STORED,
+  daily_quota INT DEFAULT 50000,       -- 일일 한도
+  is_quota_exceeded BOOL GENERATED ALWAYS AS (total_tokens >= daily_quota) STORED,
+  ads_watched INT DEFAULT 0,           -- 시청한 광고 수
+  bonus_tokens_earned INT DEFAULT 0,   -- 광고로 얻은 보너스
+  UNIQUE(user_id, usage_date)
+);
+```
+
+### RPC 함수
+
+| 함수 | 용도 | 반환 |
+|------|------|------|
+| `check_user_quota(p_user_id)` | quota 상태 조회 | {can_use, tokens_used, quota_limit, remaining} |
+| `add_ad_bonus_tokens(p_user_id, p_bonus_tokens)` | 광고 보너스 추가 | {new_quota, ads_watched, bonus_earned} |
+
+### Edge Function 변경사항
+
+**saju-chat v6 & generate-ai-summary v8:**
+- JWT에서 user_id 추출
+- `check_user_quota()` RPC로 quota 확인
+- quota 초과 시 HTTP 429 반환:
+  ```json
+  {
+    "error": "QUOTA_EXCEEDED",
+    "message": "오늘 토큰 사용량을 초과했습니다.",
+    "tokens_used": 52340,
+    "quota_limit": 50000,
+    "ads_required": true
+  }
+  ```
+- AI 호출 후 토큰 사용량 DB 저장
+
+### Flutter 구현 파일
+
+| 파일 | 용도 |
+|------|------|
+| `core/services/quota_service.dart` | **신규** - Quota 조회/광고 보너스 RPC 호출 |
+| `core/services/ai_chat_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `core/services/ai_summary_service.dart` | QUOTA_EXCEEDED 처리 추가 |
+| `shared/widgets/quota_exceeded_dialog.dart` | **신규** - Quota 초과 다이얼로그 |
+
+### 사용 예시
+
+**Flutter에서 AI 호출 시:**
+```dart
+final result = await AiChatService.sendMessage(messages: messages);
+
+if (result.quotaExceeded) {
+  // 광고 시청 다이얼로그 표시
+  final watched = await QuotaExceededDialog.show(
+    context,
+    tokensUsed: result.tokensUsed ?? 0,
+    quotaLimit: result.quotaLimit ?? 50000,
+  );
+
+  if (watched == true) {
+    // 광고 시청 완료 → 재시도
+    final retryResult = await AiChatService.sendMessage(messages: messages);
+  }
+}
+```
+
+### 다음 단계 (TODO)
+
+- [ ] 실제 광고 SDK 연동 (Google AdMob)
+- [ ] 결제 시스템 연동 (프리미엄 구독)
+- [ ] 토큰 사용량 통계 대시보드
+
+---
+
+## 🌙 Phase 18: 윤달 유효성 검증 ✅ 완료 (2025-12-30)
+
+### 구현 완료 내역
+
+| 단계 | 작업 | 상태 |
+|------|------|------|
+| Phase 18-A | `validateLunarDate()`, `getLeapMonthInfo()`, `canSelectLeapMonth()` 추가 | ✅ |
+| Phase 18-B | `ProfileFormState` 확장 (leapMonthError, leapMonthInfo, canSelectLeapMonth) | ✅ |
+| Phase 18-C | `lunar_options.dart` 생성 (윤달 체크박스 + 정보 배너 + 에러 메시지) | ✅ |
+| Phase 18-D | `profile_edit_screen.dart`에 `LunarOptions` 위젯 추가 | ✅ |
+
+### 생성/수정 파일
+
+| 파일 | 변경 |
+|------|------|
+| `saju_chart/domain/entities/lunar_validation.dart` | **신규** - LunarValidationResult, LeapMonthInfo 엔티티 |
+| `saju_chart/domain/services/lunar_solar_converter.dart` | 검증 메서드 3개 추가 |
+| `profile/presentation/providers/profile_provider.dart` | State 확장 + 검증 로직 |
+| `profile/presentation/widgets/lunar_options.dart` | **신규** - 윤달 옵션 UI 위젯 |
+| `profile/presentation/screens/profile_edit_screen.dart` | LunarOptions import + 추가 |
+
+### 동작 방식
+
+1. **양력 선택**: 윤달 옵션 숨김
+2. **음력 선택**:
+   - 해당 연도 윤달 정보 조회 및 표시
+   - 윤달이 있는 연도/월: 체크박스 활성화 + 정보 배너 (녹색)
+   - 윤달이 없는 연도/월: 체크박스 비활성화 + 정보 배너 (회색)
+3. **유효성 검증**:
+   - 연도 범위 (1900-2100)
+   - 윤달 유효성 (해당 연도/월에 윤달 존재 여부)
+   - 일수 범위 (29일 또는 30일)
+   - 에러 시 빨간색 에러 메시지 표시 + 저장 버튼 비활성화
+
+---
+
+## 🆕 DKBB Merge 후 추가된 사항 (2025-12-27~29)
+
+### 새로 추가된 주요 파일들
+
+| 분류 | 파일 | 설명 |
+|------|------|------|
+| **프로젝트 메모리** | `.claude/MEMORY.md` | 프로젝트 개요, 핵심 플로우, 기술 스택 정리 |
+| **실행 가이드** | `.claude/RUN.md` | Flutter 실행 명령어 모음 (팀원별 가이드) |
+| **AI 가이드** | `AI/jh_ai_todo.md` | JH_AI 사주 분석 프롬프트 수정 가이드 |
+| **AI 가이드** | `AI/jina_todo.md` | Jina AI 대화 프롬프트 수정 가이드 |
+| **광고 모듈** | `lib/ad/README.md` | AdMob 광고 연동 가이드 (배너/전면/보상형) |
+| **팀 가이드** | `.claude/team/DK/TODO.md` | DK 빌드, 광고, DB 연결 가이드 |
+| **팀 가이드** | `.claude/team/Jina/TODO.md` | Jina Gemini 3.0 대화 생성 TODO |
+
+### 새로 추가된 기능
+
+| 기능 | 파일 | 상태 | 담당 |
+|------|------|------|------|
+| **페르소나 시스템** | `AI/jina/personas/` | ✅ 추가됨 | Jina |
+| **광고 모듈** | `lib/ad/` | ✅ 추가됨 | DK |
+| **관계(궁합) 관리** | `features/profile/data/relation_*` | ✅ 추가됨 | - |
+| **파일 로깅** | `AI/core/file_logger.dart` | ✅ 추가됨 | - |
+| **채팅 사이드바** | `saju_chat/widgets/chat_history_sidebar/` | ✅ 추가됨 | - |
+
+### 페르소나 시스템 상세
+
+| 페르소나 | 파일 | 특징 |
+|----------|------|------|
+| 친근한 언니 | `friendly_sister.dart` | 기본값, 따뜻한 반말 |
+| 현명한 학자 | `wise_scholar.dart` | 존댓말, 심층 분석 |
+| 귀여운 친구 | `cute_friend.dart` | 발랄한 반말 |
+| 할머니 | `grandma.dart` | 정겨운 사투리 |
+
+### 광고 모듈 상세
+
+| 유형 | 위치 | 용도 |
+|------|------|------|
+| 배너 | 메인 화면 하단 | 상시 노출 |
+| 전면 | 화면 전환 | 5개 메시지마다 |
+| 보상형 | 프리미엄 기능 | 사용자 선택 |
+| Native (채팅 내) | 채팅 버블 사이 | 자연스러운 광고 |
+
+### 성능 최적화 (DK 작업)
+
+| 커밋 | 내용 |
+|------|------|
+| `1757f15` | `withOpacity → const Color` 캐싱 최적화 |
+| `ddd2e43` | 메뉴 화면 프레임 렉 최적화 |
+
+---
+
+## Supabase 현황 (2025-12-29 Phase 17-A 완료)
+
+### DB 테이블 현황
+| 테이블 | RLS | 행 수 | 설명 |
+|--------|-----|-------|------|
+| saju_profiles | ✅ | 45 | 사주 프로필 |
+| saju_analyses | ✅ | 33 | 만세력 분석 데이터 (**JSONB 100% 표준화 + hapchung/gilseong 완료**) |
+| chat_sessions | ✅ | 12 | 채팅 세션 |
+| chat_messages | ✅ | 24 | 채팅 메시지 |
+| compatibility_analyses | ✅ | 0 | 궁합 분석 (미사용) |
+| ai_summaries | ✅ | 23 | AI 분석 캐시 |
+| ai_api_logs | ✅ | 24 | API 호출 로그 |
+| profile_relations | ✅ | 0 | 프로필 관계 (미사용) |
+
+### DB Functions 현황 (13개 - search_path 보안 수정 완료 ✅)
+| 함수 | 용도 | 보안 |
+|------|------|------|
+| db_health_check() | 데이터 무결성 검사 | ✅ 수정됨 |
+| get_compatibility_data() | 궁합 분석 데이터 조회 | ✅ 수정됨 |
+| normalize_oheng_distribution() | 오행 JSONB 표준화 | ✅ 수정됨 |
+| normalize_yongsin() | 용신 JSONB 표준화 | ✅ 수정됨 |
+| get_gan_hanja(gan text) | 천간 한자 매핑 | ✅ 수정됨 |
+| get_gan_oheng(gan text) | 천간 오행 매핑 | ✅ 수정됨 |
+| calculate_sipsin(day_gan, target_gan) | 십신 계산 | ✅ 수정됨 |
+| convert_jijanggan_array(...) | 지장간 변환 | ✅ 수정됨 |
+| standardize_oheng_key(text) | 오행 키 표준화 | ✅ 수정됨 |
+| standardize_oheng_value(text) | 오행 값 표준화 | ✅ 수정됨 |
+| cleanup_old_ai_logs() | 오래된 AI 로그 정리 | ✅ 수정됨 |
+| update_ai_summaries_updated_at() | 트리거 함수 | ✅ 수정됨 |
+| update_profile_relations_updated_at() | 트리거 함수 | ✅ 수정됨 |
+
+### 인덱스 현황 (최적화 확인 완료 ✅)
+| 테이블 | 인덱스 | 상태 |
+|--------|--------|------|
+| chat_messages | `idx_chat_messages_session_created` (session_id, created_at) | ✅ 존재 |
+| chat_messages | `idx_chat_messages_session_id` | ✅ 존재 |
+| chat_sessions | `idx_chat_sessions_profile_updated` (profile_id, updated_at) | ✅ 존재 |
+| saju_analyses | `idx_saju_analyses_gilseong`, `idx_saju_analyses_hapchung` (GIN) | ✅ 존재 |
+
+### Edge Functions 현황
+| 함수 | 버전 | JWT | 상태 | 용도 |
+|------|------|-----|------|------|
+| saju-chat | v5 | ✅ | ACTIVE | AI 채팅 |
+| generate-ai-summary | v7 | ✅ | ACTIVE | AI 요약 생성 |
+| ai-openai | v6 | ❌ | ACTIVE | OpenAI API 프록시 |
+| ai-gemini | v6 | ✅ | ACTIVE | Gemini API 프록시 |
+| migrate-hapchung | v1 | ✅ | ACTIVE | 합충형파해 마이그레이션 (33/33 완료) |
+| migrate-gilseong | v5 | ✅ | ACTIVE | 길성 마이그레이션 (33/33 완료) |
+
+### 보안 권고사항 (Advisory) - Phase 17-A 후 상태
+✅ **Function Search Path Mutable** (13건) → **해결됨** (2025-12-29)
+- 마이그레이션: `fix_function_search_path_security`
+
+⚠️ **Anonymous Access Policies** (8건) → Phase 17-D (v1.0)에서 처리 예정
+- ai_api_logs, ai_summaries, chat_messages, chat_sessions
+- compatibility_analyses, profile_relations, saju_analyses, saju_profiles
+- 개발 편의를 위해 현재 유지 중
+
+⚠️ **Leaked Password Protection Disabled** → Phase 17-B (v0.2)에서 활성화 예정
+- HaveIBeenPwned 연동 비활성화 상태
+
+---
+
+## 📋 Phase 16-F 데이터 형식 검증 결과 (2025-12-25)
+
+> **검증 목적**: 한글+한자 페어가 만세력/사주 분석에 필수인지 확인
+> **검증 방법**: Context7 (Tyme4j 만세력 라이브러리), Flutter 코드 분석, DB 현황 확인
+
+### 🔍 핵심 발견 1: 만세력 라이브러리는 한자가 원본
+
+| 라이브러리 | 데이터 형식 | 예시 |
+|------------|------------|------|
+| **Tyme4j** (Java) | 한자 기본 | `甲`, `子`, `甲子` |
+| **lunar-javascript** | 한자 기본 | `甲`, `子`, `丙寅` |
+| **우리 시스템** | 한글(한자) 페어 | `갑(甲)`, `자(子)` |
+
+```java
+// Tyme4j - 전문 만세력 라이브러리
+HeavenStem stem = cycle.getHeavenStem();
+stem.getName(); // Output: 甲  ← 한자가 원본!
+
+EarthBranch branch = cycle.getEarthBranch();
+branch.getName(); // Output: 子  ← 한자가 원본!
+```
+
+### 🔍 핵심 발견 2: 한글 동음이의어 문제
+
+| 한글 | 천간 한자 | 지지 한자 | 구분 |
+|------|----------|----------|------|
+| **신** | 辛 (금) | 申 (원숭이) | ⚠️ 동음이의어 |
+| 기타 | 고유 | 고유 | ✅ 문제없음 |
+
+**우리 시스템 해결책**: 천간/지지 테이블 분리로 혼동 방지
+```dart
+// cheongan_jiji.dart
+"cheongan": [{"hangul": "신", "hanja": "辛", ...}]  // 천간 신
+"jiji": [{"hangul": "신", "hanja": "申", ...}]      // 지지 신
+```
+
+### 🔍 핵심 발견 3: Flutter 비교 로직은 한글로 동작
+
+```dart
+// hapchung_relations.dart - 천간끼리만 비교 (지지와 혼동 없음)
+const Map<String, String> _cheonganHapPairs = {
+  '갑': '기',  // 甲-己 합
+  '을': '경',  // 乙-庚 합
+  ...
+};
+bool isCheonganHap(String gan1, String gan2) {
+  return _cheonganHapPairs[gan1] == gan2;  // 한글 == 한글
+}
+```
+
+**왜 문제없는가?**
+- 천간 10개 내에서 동음이의어 없음 → 천간끼리 비교 OK
+- 지지 12개 내에서 동음이의어 없음 → 지지끼리 비교 OK
+- 천간 vs 지지 비교는 없음 (다른 카테고리)
+
+### ✅ 검증 결론
+
+| 질문 | 답변 | 근거 |
+|------|------|------|
+| 비교 로직에 문제 있나? | ❌ **없음** | 천간/지지 각각 내에서만 비교 |
+| 한글만으로 분석 가능? | ✅ **가능** | 카테고리 분리로 동음이의어 혼동 없음 |
+| 한글+한자 페어 필요한가? | ✅ **권장** | 데이터 완전성, AI 정확도, UI 표시 |
+| 지금 DB 문제는? | 🚨 **구조 불일치** | pillar vs gan/ji 스키마 다름 |
+
+### 📊 한글+한자 페어를 유지해야 하는 이유
+
+| 이유 | 설명 | 중요도 |
+|------|------|--------|
+| **데이터 완전성** | 한글만 저장 시 한자 정보 영구 손실 | 🔴 높음 |
+| **AI 분석 정확도** | Gemini에게 "갑(甲)" 전달 → 더 정확한 해석 | 🔴 높음 |
+| **사용자 UI** | 한자 함께 표시 → 전문성 있는 화면 | 🟡 중간 |
+| **디버깅** | 문제 발생 시 한자로 정확한 데이터 확인 | 🟡 중간 |
+| **국제화 대비** | 향후 중국어/일본어 지원 시 한자 필수 | 🟢 낮음 |
+
+### 🎯 최종 결정: 데이터 형식 표준
+
+| 데이터 유형 | 표준 형식 | 예시 | 비고 |
+|------------|----------|------|------|
+| **천간/지지 (원본)** | 한글(한자) | `갑(甲)`, `자(子)` | DB 컬럼 저장 형식 |
+| **십신 (파생)** | 한글만 | `비견`, `정인` | Flutter에서 재계산 가능 |
+| **격국 (파생)** | 영어 enum + 한글/한자 | `pyeonjaeGyeok` + `편재격` + `偏財格` | 3개 필드 분리 |
+| **대운/세운 간지** | 한글(한자) | `{gan: "병(丙)", ji: "자(子)"}` | 원본 데이터 |
+| **오행** | 한글 키 | `{목: 2, 화: 1, ...}` | 이미 통일됨 |
+
+---
+
+## 🚨 Phase 16-F: JSONB 데이터 형식 통일 (필수 - 궁합 분석 전)
+
+> **문제**: saju_analyses 테이블의 JSONB 필드들이 레거시/현재 형식 혼재
+> **핵심**: 한글+한자 형식은 OK, **스키마 구조가 불일치**가 진짜 문제
+> **영향**: 두 사람 사주 비교 시 데이터 불일치로 AI 궁합 분석 불가
+
+### 발견된 불일치 현황 (2025-12-25)
+
+#### 🔴 심각 - 구조 자체가 다름
+| 필드 | 레거시 형식 | Flutter 표준 형식 | 레거시 수 |
+|------|------------|------------------|----------|
+| **sipsin_info** | `dayJi`, `hourJi` | `day.ji`, `hour.ji` | 6개 |
+| **jijanggan_info** | `["기","정"]` | `[{gan, type, sipsin}]` | 11개 |
+| **gyeokguk** | `name: 정인격(正印格)` | `gyeokguk + korean + hanja` | 6개 |
+
+#### 🟡 중간 - 값 형식이 다름
+| 필드 | 레거시 형식 | Flutter 표준 형식 | 레거시 수 |
+|------|------------|------------------|----------|
+| **day_strength.level** | `신강(身强)`, `medium` | `singang`, `junghwaSingang` | 5개 |
+| **daeun.list** | `pillar: 임(壬)자(子)` | `{gan: 임, ji: 자}` | 4개 |
+| **current_seun** | `pillar: 을(乙)사(巳)` | `{gan: 을, ji: 사}` | 4개 |
+
+#### ✅ 이미 수정됨
+| 필드 | 상태 |
+|------|------|
+| **oheng_distribution** | ✅ 한글 키로 통일 완료 (`목`, `화`, `토`, `금`, `수`) |
+| **yongsin** | ✅ 한글 값으로 통일 완료 |
+| **twelve_unsung** | ✅ 일관됨 |
+| **twelve_sinsal** | ✅ 일관됨 |
+| **gilseong** | ✅ 마이그레이션 완료 (33/33) |
+| **hapchung** | ✅ 마이그레이션 완료 (33/33) |
+
+### Flutter 표준 형식 정의
+
+```dart
+// day_strength
+{ "level": "junghwaSingang", "score": 52, "isStrong": true, ... }
+
+// gyeokguk
+{ "gyeokguk": "pyeonjaeGyeok", "korean": "편재격", "hanja": "偏財格", ... }
+
+// sipsin_info
+{ "year": {"gan": "정인", "ji": "편재"}, "month": {...}, "day": {...}, "hour": {...} }
+
+// jijanggan_info
+{ "dayJi": [{"gan": "무(戊)", "type": "여기", "sipsin": "정재(正財)"}, ...], ... }
+
+// daeun.list
+[{ "gan": "병", "ji": "자", "startAge": 3, "endAge": 12, "order": 1 }, ...]
+
+// current_seun
+{ "gan": "을(乙)", "ji": "사(巳)", "year": 2025, "age": 32 }
+```
+
+### 마이그레이션 완료 현황 ✅ (2025-12-29 최종)
+
+| 단계 | 작업 | 마이그레이션 | 상태 |
+|------|------|-------------|------|
+| F-1 | day_strength.level 표준 enum 통일 (18개) | `f1_day_strength_level_standardize` | ✅ 완료 |
+| F-2 | gyeokguk 구조 통일 (17개) | `f2_gyeokguk_standardize` | ✅ 완료 |
+| F-3 | sipsin_info nested 구조 변환 (6개) | `f3_sipsin_info_restructure` | ✅ 완료 |
+| F-4 | daeun 한글(한자) 페어 적용 | `f4_fix_daeun_add_hanja_pairs` | ✅ 완료 |
+| F-5 | current_seun 한글(한자) 페어 적용 (15개) | `f5_current_seun_standardize` | ✅ 완료 |
+| F-6 | jijanggan_info 구조 + 십신 계산 (11개) | `f6_jijanggan_info_standardize` | ✅ 완료 |
+
+### 추가 수정 사항 (SQL 직접 실행)
+| 항목 | 수정 내용 | 상태 |
+|------|----------|------|
+| jijanggan_info.type | 여기→여기(餘氣), 중기→중기(中氣), 정기→정기(正氣) | ✅ 완료 |
+| jijanggan_info.sipsin | 한글→한글(한자) 페어 | ✅ 완료 |
+| sinsal_list | type/location/relatedJi 한글(한자) 페어 | ✅ 완료 |
+
+### 생성된 PostgreSQL 함수
+- `get_gan_hanja(gan text)` - 천간 한자 매핑
+- `get_gan_oheng(gan text)` - 천간 오행 매핑
+- `calculate_sipsin(day_gan text, target_gan text)` - 십신 계산
+- `convert_jijanggan_array(day_gan text, gan_array jsonb, pillar_name text)` - 지장간 변환
+
+### 표준 데이터 형식 (마이그레이션 후)
+```json
+// day_strength
+{ "level": "junghwaSingang", "score": 52, "isStrong": true }
+
+// gyeokguk
+{ "gyeokguk": "jeonginGyeok", "korean": "정인격", "hanja": "正印格" }
+
+// sipsin_info
+{ "year": {"gan": "정인", "ji": "편재"}, "day": {"gan": "비견", "ji": "정인"} }
+
+// daeun.list
+[{ "gan": "임(壬)", "ji": "자(子)", "order": 1, "startAge": 5, "endAge": 14 }]
+
+// current_seun
+{ "gan": "을(乙)", "ji": "사(巳)", "year": 2025, "age": 32 }
+
+// jijanggan_info
+{ "dayJi": [{"gan": "무(戊)", "type": "여기", "sipsin": "정재"}, ...] }
+
+// hapchung (NEW - Phase 16-G)
+{
+  "cheongan_haps": [{"gan1": "정", "gan2": "임", "pillar1": "년", "pillar2": "시", "description": "정임합화목(丁壬合化木) - 인수지합"}],
+  "cheongan_chungs": [...],
+  "jiji_yukhaps": [...], "jiji_samhaps": [...], "jiji_banghaps": [...],
+  "jiji_chungs": [...], "jiji_hyungs": [...], "jiji_pas": [...], "jiji_haes": [...],
+  "wonjins": [...],
+  "total_haps": N, "total_chungs": N, "total_negatives": N, "has_relations": true/false
+}
+
+// gilseong (Phase 16-D, 16-G 업데이트)
+{
+  "year": {"pillarName": "년주", "gan": "정", "ji": "묘", "sinsals": [...]},
+  "month": {...}, "day": {...}, "hour": {...},
+  "allUniqueSinsals": ["천을귀인", "천덕귀인", ...],
+  "hasGwiMunGwanSal": false
+}
+```
+
+---
+
+## ✅ Phase 16-G: hapchung/gilseong 마이그레이션 완료 (2025-12-29)
+
+> **목적**: NULL 레코드에 합충형파해(hapchung)와 길성(gilseong) 데이터 채우기
+> **방식**: Edge Function으로 서버사이드 일괄 마이그레이션
+> **결과**: 100% 완료 (33/33 레코드)
+
+### 마이그레이션 결과
+
+| 필드 | 마이그레이션 전 | 마이그레이션 후 | Edge Function |
+|------|----------------|-----------------|---------------|
+| **hapchung** | 3/33 (9%) | **33/33 (100%)** | `migrate-hapchung` v1 |
+| **gilseong** | 22/33 (67%) | **33/33 (100%)** | `migrate-gilseong` v5 |
+
+### Edge Function 상세
+
+**migrate-hapchung (v1 - NEW)**
+- Flutter `hapchung_service.dart` → TypeScript 포팅
+- 천간합(5), 천간충(4), 지지육합(6), 삼합(4), 방합(4), 충(6), 형(3형), 파(6), 해(6), 원진(6) 분석
+- 6쌍 기둥 조합 (년-월, 년-일, 년-시, 월-일, 월-시, 일-시) 비교
+- `extractHangul()` 함수로 한글(한자) 페어에서 한글 추출
+
+**migrate-gilseong (v5 - UPDATED)**
+- Flutter `gilseong_service.dart` → TypeScript 포팅
+- 11종 특수신살 분석: 천을귀인, 양인살, 백호대살, 현침살, 천덕귀인, 월덕귀인, 천문성, 황은대사, 학당귀인, 괴강살, 귀문관살
+- 기둥별 (년/월/일/시) 개별 분석 + 전체 요약
+
+### 실행 로그
+
+```
+hapchung 마이그레이션:
+- 대상: 31개 (NULL 30개 + 구형식 1개)
+- 성공: 31/31 (100%)
+
+gilseong 마이그레이션:
+- 대상: 11개 (NULL)
+- 성공: 11/11 (100%)
+```
+
+### Edge Function 활용 방안
+
+> 향후 로직 변경이나 새 레코드 마이그레이션 시 재사용 가능
+
+```bash
+# hapchung 재마이그레이션 (필요시)
+curl -X POST "https://kfciluyxkomskyxjaeat.supabase.co/functions/v1/migrate-hapchung" \
+  -H "Authorization: Bearer <anon_key>" \
+  -H "Content-Type: application/json"
+
+# gilseong 재마이그레이션 (필요시)
+curl -X POST "https://kfciluyxkomskyxjaeat.supabase.co/functions/v1/migrate-gilseong" \
+  -H "Authorization: Bearer <anon_key>" \
+  -H "Content-Type: application/json"
+```
+
+---
+
+## 🔐 Phase 17: 인증 체계 강화
+
+### ✅ Phase 17-A: 보안 강화 (2025-12-29 완료)
+
+**작업 내용:**
+1. **Function search_path 보안 수정** - 13개 함수 완료
+   - 마이그레이션: `fix_function_search_path_security`
+   - Search path injection 공격 방지
+
+2. **인덱스 최적화 확인** - 모두 이미 적용됨
+   - `chat_messages(session_id, created_at)` ✅
+   - `chat_sessions(profile_id, updated_at)` ✅
+   - `saju_analyses` GIN 인덱스 (gilseong, hapchung) ✅
+
+3. **Edge Function 구현 상태 확인** - 모두 완료
+   - `generate-ai-summary` v7 ✅
+   - `ai-gemini` v6 ✅
+
+4. **RLS 정책 검증** - 정상 동작
+   - `saju_profiles`: `auth.uid() = user_id` ✅
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| Function search_path | ✅ 수정됨 | 13개 함수 |
+| 인덱스 최적화 | ✅ 확인됨 | 이미 적용 |
+| Edge Functions | ✅ 구현됨 | 6개 ACTIVE |
+| RLS 정책 | ✅ 적용됨 | user_id 기반 |
+| 익명 인증 | ⚠️ 허용 중 | 개발 편의용 |
+
+### Phase 17-B: 인증 방식 추가 (v0.2 예정)
+```
+우선순위:
+1. 이메일/비밀번호 인증 (기본)
+2. Google OAuth (글로벌)
+3. Apple Sign-In (iOS App Store 필수)
+4. Kakao 로그인 (한국 사용자 - 선택)
+```
+
+**Flutter 패키지:**
+- `supabase_flutter` (이미 설치)
+- `google_sign_in`
+- `sign_in_with_apple`
+- `kakao_flutter_sdk` (선택)
+
+**새로운 Feature 구조:**
+```
+features/auth/
+├── data/repositories/auth_repository_impl.dart
+├── domain/
+│   ├── entities/user.dart
+│   └── repositories/auth_repository.dart
+└── presentation/
+    ├── providers/auth_provider.dart
+    ├── screens/login_screen.dart, signup_screen.dart
+    └── widgets/social_login_buttons.dart
+```
+
+### Phase 17-C: 익명 → 정규 전환 (v0.3 예정)
+1. 계정 연결(Link) 기능 구현
+2. 익명 사용자 데이터 마이그레이션
+3. 데이터 병합 로직
+
+### Phase 17-D: 프로덕션 보안 강화 (v1.0 예정)
+```sql
+-- 익명 사용자 접근 차단 정책
+CREATE POLICY "no_anonymous_access" ON saju_profiles
+  FOR ALL
+  USING (
+    auth.jwt()->>'is_anonymous' IS NULL
+    OR auth.jwt()->>'is_anonymous' = 'false'
+  );
+```
+
+**추가 보안 조치:**
+- [ ] Leaked Password Protection 활성화
+- [ ] Rate Limiting 적용
+- [ ] 2FA 옵션 (선택적)
+- [ ] 미사용 인덱스 정리
+- [ ] 로그인 실패 모니터링
+
+### 마일스톤 요약
+| 버전 | 단계 | 주요 작업 |
+|------|------|----------|
+| v0.1 | MVP | 익명 인증 유지 (현재) |
+| v0.2 | 베타 | 이메일 + Google 로그인 |
+| v0.3 | 베타2 | Apple + Kakao + 계정 연결 |
+| v1.0 | 프로덕션 | 보안 강화 + 익명 차단 |
+
+---
+
+## 📊 데이터 연동 현황 (2025-12-25 검증)
+
+### 한글+한자 페어 일관성 ✅
+| 데이터 타입 | 저장 방식 | 예시 |
+|------------|----------|------|
+| 천간/지지 (DB 컬럼) | `한글(한자)` 페어 | `"무(戊)"`, `"오(午)"` |
+| 신살 (DB JSONB) | 별도 필드 | `name: "화개살"`, `hanja: "華蓋殺"` |
+| Flutter enum | 별도 속성 | `korean: '천을귀인'`, `hanja: '天乙貴人'` |
+
+### DB 저장 컬럼 (saju_analyses) - 2025-12-29 최종
+| 컬럼 | 타입 | Flutter 계산 | DB 저장 | 마이그레이션 |
+|------|------|-------------|---------|-------------|
+| year_gan, year_ji 등 | TEXT | ✅ | ✅ `한글(한자)` | - |
+| oheng_distribution | JSONB | ✅ | ✅ | ✅ 완료 |
+| day_strength | JSONB | ✅ | ✅ | ✅ F-1 |
+| yongsin | JSONB | ✅ | ✅ | ✅ 완료 |
+| gyeokguk | JSONB | ✅ | ✅ | ✅ F-2 |
+| sipsin_info | JSONB | ✅ | ✅ | ✅ F-3 |
+| jijanggan_info | JSONB | ✅ | ✅ | ✅ F-6 |
+| daeun | JSONB | ✅ | ✅ | ✅ F-4 |
+| current_seun | JSONB | ✅ | ✅ | ✅ F-5 |
+| twelve_sinsal | JSONB | ✅ | ✅ | ✅ 일관됨 |
+| twelve_unsung | JSONB | ✅ | ✅ | ✅ 일관됨 |
+| sinsal_list | JSONB | ✅ | ✅ | ✅ 완료 |
+| **gilseong** | JSONB | ✅ | ✅ | ✅ **33/33 (100%)** |
+| **hapchung** | JSONB | ✅ | ✅ | ✅ **33/33 (100%)** |
+
+### 길성/합충 저장 현황 ✅ (Phase 16-G 마이그레이션 완료)
+- **Flutter**: `gilseong_service.dart`, `hapchung_service.dart`에서 실시간 계산 → UI 표시 ✅
+- **DB**: `gilseong`, `hapchung` JSONB 컬럼 → **33/33 레코드 100% 채움** ✅
+- **Edge Function**: `migrate-gilseong` v5, `migrate-hapchung` v1 (로직 변경 시 재사용 가능)
+- **AI 프롬프트**: 길성/합충 정보 활용 가능 ✅
+- **UI 위치**: "신살" 탭 → "신살과 길성" 섹션, "합충" 탭에서 확인
+
+### sinsal_list JSONB 구조
+```json
+{
+  "name": "화개살",       // 한글
+  "hanja": "華蓋殺",      // 한자
+  "type": "neutral",      // lucky/unlucky/neutral
+  "location": "년지",
+  "relatedJi": "술",
+  "description": "년지에 화개살 - 예술성과 영성이 강함"
+}
+```
+
+---
+
+## ✅ Phase 16: 길성(吉星) 기능 구현 (2025-12-24) - 완료
+
+### 문제 발견
+포스텔러 만세력에서는 "신살과 길성" 섹션에서 각 기둥별로 특수 신살(길성/흉성)을 표시하지만,
+우리 앱에서는 12신살만 표시하고 **길성 행**이 없었음.
+
+### 구현된 신살 vs 포스텔러 신살
+| 신살 | 기존 구현 | 추가 구현 |
+|------|----------|----------|
+| 천을귀인 | ✅ | - |
+| 천덕귀인 | ❌ | ✅ |
+| 월덕귀인 | ❌ | ✅ |
+| 도화살 | ✅ | - |
+| 역마살 | ✅ | - |
+| 화개살 | ✅ | - |
+| 양인살 | ✅ | - |
+| 공망 | ✅ | - |
+| 원진살 | ✅ | - |
+| 귀문관살 | ✅ | ✅ (개선) |
+| 괴강살 | ✅ | - |
+| **백호대살** | ❌ | ✅ |
+| **현침살** | ❌ | ✅ |
+| **천문성** | ❌ | ✅ |
+| **황은대사** | ❌ | ✅ |
+| **학당귀인** | ❌ | ✅ |
+
+### 신규 신살 계산 로직
+
+**백호대살(白虎大殺)** - 일주 기준
+- 갑진, 을미, 병술, 정축, 무진, 임술, 계축
+
+**현침살(懸針殺)** - 천간/지지 체크
+- 천간: 갑(甲), 신(辛)
+- 지지: 신(申), 묘(卯), 오(午)
+- 강력 일주: 갑신, 신묘, 갑오
+
+**천덕귀인(天德貴人)** - 월지 기준
+| 월지 | 천덕귀인 |
+|------|---------|
+| 인 | 정 |
+| 묘 | 신(申) |
+| 진 | 임 |
+| 사 | 신(辛) |
+| 오 | 해 |
+| 미 | 갑 |
+| 신 | 계 |
+| 유 | 인 |
+| 술 | 병 |
+| 해 | 을 |
+| 자 | 사 |
+| 축 | 경 |
+
+**월덕귀인(月德貴人)** - 월지 삼합 기준
+| 월지 삼합 | 월덕귀인 |
+|-----------|---------|
+| 인오술 | 병 |
+| 신자진 | 임 |
+| 사유축 | 경 |
+| 해묘미 | 갑 |
+
+**천문성(天門星)** - 지지 체크
+- 1순위 (강): 해, 묘, 미, 술
+- 2순위 (약): 인, 유
+
+**황은대사(皇恩大赦)** - 월지 기준 특정 지지 조합
+
+**학당귀인(學堂貴人)** - 일간 기준
+| 일간 | 학당귀인 지지 |
+|------|-------------|
+| 갑 | 사 |
+| 을 | 오 |
+| 병 | 인 |
+| 정 | 유 |
+| 무 | 인 |
+| 기 | 유 |
+| 경 | 사 |
+| 신 | 자 |
+| 임 | 신 |
+| 계 | 묘 |
+
+### 추가/수정된 파일
+1. `frontend/lib/features/saju_chart/data/constants/twelve_sinsal.dart`
+   - SpecialSinsal enum 확장 (7개 → 14개)
+   - SinsalFortuneType enum 추가
+   - 새로운 신살 계산 함수들 추가
+
+2. `frontend/lib/features/saju_chart/domain/services/gilseong_service.dart` (신규)
+   - GilseongService 클래스
+   - PillarGilseongResult 모델
+   - GilseongAnalysisResult 모델
+
+3. `frontend/lib/features/saju_chart/presentation/widgets/gilseong_display.dart` (신규)
+   - SpecialSinsalBadge 위젯
+   - GilseongRow 위젯
+   - SinsalGilseongTable 위젯 (포스텔러 스타일)
+   - GilseongSummaryCard 위젯
+
+4. `frontend/lib/features/saju_chart/presentation/widgets/saju_detail_tabs.dart`
+   - _SinsalTab에 SinsalGilseongTable 통합
+
+### 검증
+- Flutter analyze 통과 ✅
+- 새로운 신살 로직 7개 추가 완료
+
+---
+
+## ✅ Phase 16-C: 길성 DB 저장 구현 (2025-12-25) - 완료
+
+### 문제 발견
+- Flutter `GilseongService`에서 새 길성(천덕귀인, 월덕귀인 등)을 실시간 계산 ✅
+- **DB에는 저장 안 됨** ❌ → AI 프롬프트에서 새 길성 정보 활용 불가
+
+### 해결
+
+**1. DB 마이그레이션 (add_gilseong_column)**
+```sql
+ALTER TABLE saju_analyses
+ADD COLUMN IF NOT EXISTS gilseong JSONB;
+
+COMMENT ON COLUMN saju_analyses.gilseong IS
+  '길성(吉星) 분석 결과 - 기둥별 특수 신살 JSONB';
+
+CREATE INDEX IF NOT EXISTS idx_saju_analyses_gilseong
+ON saju_analyses USING GIN (gilseong)
+WHERE gilseong IS NOT NULL;
+```
+
+**2. Flutter Repository 수정**
+- `saju_analysis_repository.dart`에 `_gilseongToJson()` 메서드 추가
+- `GilseongService.analyzeFromChart()` 결과를 JSONB로 변환하여 저장
+
+**3. gilseong JSONB 구조**
+```json
+{
+  "year": {
+    "pillarName": "년주",
+    "gan": "갑",
+    "ji": "술",
+    "sinsals": [
+      {"name": "천문성", "hanja": "天門星", "meaning": "영적 감각", "fortuneType": "good"}
+    ]
+  },
+  "month": { ... },
+  "day": { ... },
+  "hour": { ... },
+  "hasGwiMunGwanSal": false,
+  "totalGoodCount": 3,
+  "totalBadCount": 1,
+  "allUniqueSinsals": [...],
+  "summary": "천덕귀인, 월덕귀인, 천문성"
+}
+```
+
+### 저장되는 새 길성 목록
+| 신살 | 한자 | fortuneType |
+|------|------|-------------|
+| 천덕귀인 | 天德貴人 | good |
+| 월덕귀인 | 月德貴人 | good |
+| 백호대살 | 白虎大殺 | bad |
+| 현침살 | 懸針殺 | mixed |
+| 천문성 | 天門星 | good |
+| 황은대사 | 皇恩大赦 | good |
+| 학당귀인 | 學堂貴人 | good |
+| 귀문관살 | 鬼門關殺 | mixed |
+| 괴강살 | 魁罡殺 | mixed |
+| 양인살 | 羊刃殺 | bad |
+| 천을귀인 | 天乙貴人 | good |
+
+### 수정된 파일
+- `frontend/lib/core/repositories/saju_analysis_repository.dart`
+  - import 추가: `gilseong_service.dart`
+  - `_gilseongToJson()` 메서드 추가
+  - `_toSupabaseMap()`에 `'gilseong': _gilseongToJson(analysis.chart)` 추가
+
+### 검증
+- Flutter analyze 통과 ✅
+- 한글(한자) 형식 17개 모두 정상 ✅
+- 기존 데이터: 앱에서 프로필 저장 시 자동 업데이트됨
+
+---
+
+## ✅ Phase 15-D: sipsin_info day.gan 수정 (2025-12-24) - 완료
+
+### 문제 발견
+DB `saju_analyses.sipsin_info` JSONB에서 `day.gan`이 **"일간"**으로 하드코딩되어 저장됨.
+- Flutter UI: `day.gan = "비견"` ✅ (정확)
+- Supabase DB: `day.gan = "일간"` ❌ (틀림)
+
+### 원인
+`core/repositories/saju_analysis_repository.dart`의 `_sipsinInfoToJson()` 메서드:
+```dart
+'day': {
+  'gan': '일간',  // ❌ 하드코딩
+  'ji': info.dayJiSipsin.korean,
+},
+```
+
+### 해결
+1. **Flutter 코드 수정**: `'gan': '일간'` → `'gan': '비견'`
+2. **DB 마이그레이션**: 11개 레코드의 `sipsin_info.day.gan`을 "일간" → "비견"으로 수정
+
+### 검증
+- 일간 자신의 십신은 **항상 비견** (같은 오행, 같은 음양)
+- 일간이 을(乙), 무(戊), 경(庚) 등 다 다르더라도 자기 자신 = 비견
+- 포스텔러에서도 일주 천간 십성 = "비견"으로 표시됨
+
+### 수정된 파일
+- `frontend/lib/core/repositories/saju_analysis_repository.dart` (라인 179)
+
+---
+
+## ✅ Phase 15: 한글+한자 페어 DB 수정 (2025-12-24) - 완료
+
+### 문제 발견
+DB `saju_analyses` 테이블에서 천간/지지 데이터가 **일관성 없이 저장**되고 있음.
+
+### 현재 DB 상태 (불일치)
+```sql
+-- ❌ 잘못된 데이터 (한글만)
+year_gan: "갑", year_ji: "묘", month_gan: "무", month_ji: "진"
+
+-- ✅ 올바른 데이터 (한글+한자 페어)
+year_gan: "정(丁)", year_ji: "축(丑)", month_gan: "신(辛)", month_ji: "해(亥)"
+```
+
+### 영향 받는 컬럼 (saju_analyses 테이블)
+| 컬럼 | 올바른 형식 | 현재 문제 |
+|------|-------------|-----------|
+| year_gan | `갑(甲)` | 일부 `갑` |
+| year_ji | `자(子)` | 일부 `자` |
+| month_gan | `을(乙)` | 일부 `을` |
+| month_ji | `축(丑)` | 일부 `축` |
+| day_gan | `병(丙)` | 일부 `병` |
+| day_ji | `인(寅)` | 일부 `인` |
+| hour_gan | `정(丁)` | 일부 `정` |
+| hour_ji | `묘(卯)` | 일부 `묘` |
+
+### 한글-한자 매핑 테이블
+
+**천간 (10개)**
+| 한글 | 한자 | 올바른 형식 |
+|------|------|-------------|
+| 갑 | 甲 | 갑(甲) |
+| 을 | 乙 | 을(乙) |
+| 병 | 丙 | 병(丙) |
+| 정 | 丁 | 정(丁) |
+| 무 | 戊 | 무(戊) |
+| 기 | 己 | 기(己) |
+| 경 | 庚 | 경(庚) |
+| 신 | 辛 | 신(辛) |
+| 임 | 壬 | 임(壬) |
+| 계 | 癸 | 계(癸) |
+
+**지지 (12개)**
+| 한글 | 한자 | 올바른 형식 |
+|------|------|-------------|
+| 자 | 子 | 자(子) |
+| 축 | 丑 | 축(丑) |
+| 인 | 寅 | 인(寅) |
+| 묘 | 卯 | 묘(卯) |
+| 진 | 辰 | 진(辰) |
+| 사 | 巳 | 사(巳) |
+| 오 | 午 | 오(午) |
+| 미 | 未 | 미(未) |
+| 신 | 申 | 신(申) |
+| 유 | 酉 | 유(酉) |
+| 술 | 戌 | 술(戌) |
+| 해 | 亥 | 해(亥) |
+
+### 수정 필요 사항
+
+1. **Flutter 코드 수정**: DB 저장 시 한글+한자 형식으로 변환
+   - `saju_analysis_db_model.dart` 또는 관련 서비스
+
+2. **기존 DB 데이터 마이그레이션**: 한글만 있는 데이터 → 한글(한자) 형식으로 UPDATE
+
+3. **검증**: 모든 프로필의 saju_analyses 데이터가 올바른 형식인지 확인
+
+### 작업 순서
+- [x] 15-A: Flutter 코드에서 한글→한글(한자) 변환 로직 확인/수정 ✅
+- [x] 15-B: DB 마이그레이션 SQL 작성 및 실행 ✅
+- [x] 15-C: 전체 데이터 검증 ✅
+
+### 완료 내용 (2025-12-24)
+
+**15-A: Flutter 코드 수정**
+- `core/repositories/saju_analysis_repository.dart`의 `_toSupabaseMap()` 메서드 수정
+- `_formatWithHanja()`, `_extractHangul()` 헬퍼 함수 추가
+- DB 저장 시 자동으로 한글(한자) 형식 변환
+
+**15-B: DB 마이그레이션**
+- Supabase MCP로 `update_saju_analyses_hangul_hanja_format` 마이그레이션 적용
+- 천간 10개, 지지 12개에 대한 변환 규칙 적용
+- 컬럼 코멘트 추가 (데이터 형식 문서화)
+
+**15-C: 검증 결과**
+- 마이그레이션 전: 한글만 12개, 한글(한자) 4개
+- 마이그레이션 후: 한글(한자) 16개 (100%)
+- 8개 컬럼 모두 유효성 검증 통과
+
+---
+
+## 📊 만세력 기능 구현 현황 (2025-12-24 검증 완료)
+
+> **결론: 만세력 핵심 기능 78개 모두 구현 완료** ✅
+> AI 채팅 기능은 새 협업자 2명이 담당 예정
+> Supabase DB 관리는 JH_BE가 메인 담당
+
+### 기본 사주팔자 계산 서비스
+
+| 카테고리 | 기능 | 서비스 파일 | 상태 |
+|----------|------|-------------|------|
+| 년/월/일/시 기둥 | 사주팔자 4기둥 계산 | `saju_calculation_service.dart` | ✅ |
+| 음양력 변환 | 양력↔음력 변환 (1900-2100) | `lunar_solar_converter.dart` | ✅ |
+| 절기 계산 | 24절기 기반 월주 결정 | `solar_term_service.dart` | ✅ |
+| 진태양시 보정 | 도시별 경도 보정 | `true_solar_time_service.dart` | ✅ |
+| 서머타임 보정 | DST 자동 보정 | `dst_service.dart` | ✅ |
+| 야자시/조자시 | 자시 처리 옵션 | `jasi_service.dart` | ✅ |
+
+### 합충형파해 (合沖刑破害) - `hapchung_service.dart`
+
+| 기능 | 상세 | 상태 |
+|------|------|------|
+| 천간합 (5합) | 갑기/을경/병신/정임/무계 | ✅ |
+| 천간충 | 갑경/을신/병임/정계/무갑 등 | ✅ |
+| 지지육합 | 자축/인해/묘술/진유/사신/오미 | ✅ |
+| 지지삼합 | 인오술/사유축/신자진/해묘미 | ✅ |
+| 지지반합 | 삼합의 2개 조합 | ✅ |
+| 지지방합 | 인묘진/사오미/신유술/해자축 | ✅ |
+| 지지충 (6충) | 자오/축미/인신/묘유/진술/사해 | ✅ |
+| 지지형 | 무례지형/은혜지형/자형 등 | ✅ |
+| 지지파 | 자유파/축진파 등 | ✅ |
+| 지지해 | 자미해/축오해 등 | ✅ |
+| 원진 | 자미원진/축오원진 등 | ✅ |
+
+### 12운성 (十二運星) - `unsung_service.dart`
+
+| 기능 | 상태 | 기능 | 상태 |
+|------|------|------|------|
+| 장생 | ✅ | 쇠 | ✅ |
+| 목욕 | ✅ | 병 | ✅ |
+| 관대 | ✅ | 사 | ✅ |
+| 건록 | ✅ | 묘 | ✅ |
+| 제왕 | ✅ | 절 | ✅ |
+| | | 태/양 | ✅ |
+
+### 12신살 (十二神煞) - `twelve_sinsal_service.dart`
+
+| 기능 | 상태 | 기능 | 상태 |
+|------|------|------|------|
+| 겁살 | ✅ | 장성 | ✅ |
+| 재살 | ✅ | 반안 | ✅ |
+| 천살 | ✅ | 역마 | ✅ |
+| 지살 | ✅ | 육해 | ✅ |
+| 연살(도화) | ✅ | 화개 | ✅ |
+| 월살/망신 | ✅ | | |
+
+### 특수 신살 - `sinsal_service.dart`
+
+| 기능 | 상태 | 기능 | 상태 |
+|------|------|------|------|
+| 천을귀인 | ✅ | 공망 | ✅ |
+| 도화살 | ✅ | 원진살 | ✅ |
+| 역마살 | ✅ | 귀문관살 | ✅ |
+| 화개살 | ✅ | 괴강살 | ✅ |
+| 양인살 | ✅ | | |
+
+### 신강/신약 분석 - `day_strength_service.dart`
+
+| 기능 | 상세 | 상태 |
+|------|------|------|
+| 8단계 판정 | 극약/태약/신약/중화신약/중화신강/신강/태강/극왕 | ✅ |
+| 득령 | 월지 정기 기준 | ✅ |
+| 득지 | 일지 정기 기준 | ✅ |
+| 득시 | 시지 정기 기준 | ✅ |
+| 득세 | 천간 비겁/인성 | ✅ |
+| 십신 분포 | 비겁/인성/재성/관성/식상 카운트 | ✅ |
+
+### 용신 (用神) - `yongsin_service.dart`
+
+| 기능 | 상태 |
+|------|------|
+| 용신 선정 (억부법 기반) | ✅ |
+| 희신 (용신을 생하는 오행) | ✅ |
+| 기신 (용신을 극하는 오행) | ✅ |
+| 구신 (용신을 설기하는 오행) | ✅ |
+| 한신 (기신을 생하는 오행) | ✅ |
+
+### 격국 (格局) - `gyeokguk_service.dart`
+
+| 기능 | 상태 |
+|------|------|
+| 기본 격국 (정관격/정재격/식신격/정인격 등) | ✅ |
+| 특수 격국 (종왕격/종살격/종재격) | ✅ |
+| 중화격 (균형 잡힌 사주) | ✅ |
+
+### 대운/세운 - `daeun_service.dart`
+
+| 기능 | 상태 |
+|------|------|
+| 대운 계산 (10년 주기) | ✅ |
+| 대운수 계산 (절입일 기반) | ✅ |
+| 순행/역행 (성별+음양년 기준) | ✅ |
+| 세운 계산 (연도별 년주) | ✅ |
+
+### 지장간 (地藏干) - `jijanggan_service.dart`
+
+| 기능 | 상태 |
+|------|------|
+| 여기/중기/정기 분석 | ✅ |
+| 십성 계산 (일간 기준) | ✅ |
+| 세력 분석 (지장간별 일수) | ✅ |
+
+### 공망 (空亡) - `gongmang_service.dart`
+
+| 기능 | 상태 |
+|------|------|
+| 공망 지지 (일주 기준 2개) | ✅ |
+| 순(旬) 정보 (갑자순/갑술순 등) | ✅ |
+| 궁성별 분석 (년지/월지/시지) | ✅ |
+| 공망 유형 (진공/반공/탈공) | ✅ |
+
+### 구현 요약
+
+| 분류 | 기능 수 | 상태 |
+|------|---------|------|
+| 기본 사주 계산 | 6개 | ✅ |
+| 합충형파해 | 11개 | ✅ |
+| 12운성 | 12개 | ✅ |
+| 12신살 | 12개 | ✅ |
+| 특수 신살 | 9개 | ✅ |
+| 신강/신약 | 6개 | ✅ |
+| 용신 | 5개 | ✅ |
+| 격국 | 3개 | ✅ |
+| 대운/세운 | 4개 | ✅ |
+| 지장간 | 3개 | ✅ |
+| 공망 | 4개 | ✅ |
+| RuleEngine | 3개 | ✅ |
+| **총합** | **78개** | **✅ 완료** |
 
 ---
 
@@ -2325,24 +3900,159 @@ Supabase Edge Function으로 ai_summary 생성 기능 구현해줘.
 
 ---
 
-### 14.2 Phase 14-B: suggested_questions 구현
+### 14.2 Phase 14-B: suggested_questions 구현 ✅ 완료 (2025-12-24)
 
 **목표**: AI 응답 생성 시 후속 질문 3개 함께 생성
 
 **작업 항목**:
-- [ ] 시스템 프롬프트에 후속 질문 생성 지시 추가
-- [ ] AI 응답 파싱하여 suggested_questions 추출
-- [ ] chat_message 저장 시 suggested_questions 포함
-- [ ] UI에 추천 질문 칩 표시 (widgets/suggested_questions.dart)
+- [x] 시스템 프롬프트에 후속 질문 생성 지시 추가
+- [x] AI 응답 파싱하여 suggested_questions 추출
+- [x] chat_message 저장 시 suggested_questions 포함
+- [x] UI에 추천 질문 칩 표시 (widgets/suggested_questions.dart)
+
+**구현 내용**:
+
+1. **시스템 프롬프트 4개 파일 수정** (`frontend/assets/prompts/*.md`)
+   - `general.md`, `saju_analysis.md`, `daily_fortune.md`, `compatibility.md`
+   - 형식: `[SUGGESTED_QUESTIONS]질문1|질문2|질문3[/SUGGESTED_QUESTIONS]`
+
+2. **SuggestedQuestionsParser 유틸리티** (`frontend/lib/core/utils/suggested_questions_parser.dart`)
+   - AI 응답에서 태그 파싱하여 cleanedContent + suggestedQuestions 반환
+
+3. **ChatMessage entity 수정** (`frontend/lib/features/saju_chat/domain/entities/chat_message.dart`)
+   - `suggestedQuestions` 필드 추가 (List<String>?)
+
+4. **ChatMessageModel 수정** (`frontend/lib/features/saju_chat/data/models/chat_message_model.dart`)
+   - Hive/Supabase 직렬화 지원
+
+5. **ChatProvider 통합** (`frontend/lib/features/saju_chat/presentation/providers/chat_provider.dart`)
+   - 스트리밍 완료 후 파싱하여 DB 저장
+
+6. **UI 표시** (`frontend/lib/features/saju_chat/presentation/screens/saju_chat_shell.dart`)
+   - 마지막 AI 메시지의 suggestedQuestions를 SuggestedQuestions 위젯에 전달
 
 **관련 파일**:
-- `frontend/assets/prompts/*.md` (프롬프트 파일)
-- `frontend/lib/features/saju_chat/presentation/widgets/suggested_questions.dart` (신규)
-- `frontend/lib/features/saju_chat/presentation/widgets/chat_message_bubble.dart`
+- `frontend/assets/prompts/general.md` ✅
+- `frontend/assets/prompts/saju_analysis.md` ✅
+- `frontend/assets/prompts/daily_fortune.md` ✅
+- `frontend/assets/prompts/compatibility.md` ✅
+- `frontend/lib/core/utils/suggested_questions_parser.dart` ✅ (신규)
+- `frontend/lib/features/saju_chat/domain/entities/chat_message.dart` ✅
+- `frontend/lib/features/saju_chat/data/models/chat_message_model.dart` ✅
+- `frontend/lib/features/saju_chat/presentation/providers/chat_provider.dart` ✅
+- `frontend/lib/features/saju_chat/presentation/widgets/suggested_questions.dart` ✅
+- `frontend/lib/features/saju_chat/presentation/screens/saju_chat_shell.dart` ✅
 
 ---
 
-### 새 세션 시작 프롬프트 (Phase 14-B: suggested_questions)
+### 14.3 Phase 14-C: AI Summary 캐시 버그 수정 ✅ 완료 (2025-12-24)
+
+**문제**: AI Summary 생성 시 항상 `cached: false` 반환
+
+**원인 분석**:
+1. Flutter `saju_chart_provider.dart`에서 `isLoggedIn=false`면 `saju_analyses` 저장 스킵
+2. Edge Function `generate-ai-summary`에서 `update`만 사용 → 레코드 없으면 저장 실패
+3. 따라서 매번 새로 생성하고 `cached: false` 반환
+
+**시나리오**:
+```
+1. 프로필 생성 → saju_profiles INSERT ✅
+2. 사주 분석 → isLoggedIn=false → saju_analyses 저장 스킵 ❌
+3. 채팅 시작 → Edge Function 호출
+4. Edge Function: saju_analyses.ai_summary 조회 → 레코드 없음!
+5. AI Summary 새로 생성
+6. UPDATE 시도 → 0 rows affected (레코드 없어서)
+7. cached: false 반환 (매번 반복)
+```
+
+**해결책**: Edge Function에서 `update` → `upsert` 변경
+
+**작업 항목**:
+- [x] Edge Function `generate-ai-summary/index.ts` 수정
+  - `update()` → SELECT 후 INSERT/UPDATE 분리 (upsert는 check constraint 문제)
+  - `saju_analysis` 데이터에서 필수 컬럼 추출하여 INSERT 가능하게 구현
+  - 기존 레코드가 있으면 ai_summary만 UPDATE, 없으면 전체 INSERT
+- [x] Edge Function 배포 (Supabase MCP로 배포 완료 - v4)
+- [x] 테스트: 기존 프로필로 채팅 시작 → 두 번째부터 `cached: true` 확인 ✅
+
+**수정된 코드** (`supabase/functions/generate-ai-summary/index.ts`):
+```typescript
+// 기존 레코드 확인
+const { data: existing } = await supabase
+  .from("saju_analyses")
+  .select("id, ai_summary")
+  .eq("profile_id", profile_id)
+  .single();
+
+// 기존 ai_summary가 있으면 캐시 반환
+if (!force_regenerate && existing?.ai_summary) {
+  return { success: true, ai_summary: existing.ai_summary, cached: true };
+}
+
+// DB에 저장: 기존 레코드가 있으면 UPDATE, 없으면 INSERT
+if (existing) {
+  // UPDATE: ai_summary만 업데이트
+  await supabase
+    .from("saju_analyses")
+    .update({ ai_summary: aiSummary, updated_at: new Date().toISOString() })
+    .eq("profile_id", profile_id);
+} else {
+  // INSERT: 새 레코드 생성 (saju_analysis 데이터에서 필수 컬럼 추출)
+  await supabase
+    .from("saju_analyses")
+    .insert({ profile_id, year_gan, year_ji, ..., ai_summary });
+}
+```
+
+**중요 발견 (2025-12-24)**:
+- `upsert`는 check constraint 문제로 실패 (천간/지지 regex 검증)
+- SELECT 후 INSERT/UPDATE 분리 방식으로 해결
+
+**관련 파일**:
+- `supabase/functions/generate-ai-summary/index.ts` ✅
+
+**배포 방법**:
+```bash
+# Supabase CLI로 배포
+cd supabase
+supabase functions deploy generate-ai-summary
+```
+
+---
+
+### Phase 14 완료 (2025-12-24) 🎉
+
+**완료된 작업**:
+- Phase 14-A: tokens_used 컬럼에 Gemini 토큰 사용량 저장 ✅
+- Phase 14-B: AI 응답에서 suggested_questions 추출 및 UI 표시 ✅
+- Phase 14-C: AI Summary 캐시 버그 수정 (SELECT → INSERT/UPDATE 분리) ✅
+
+**테스트 결과**:
+```
+첫 번째 호출: cached: false, db_saved: true
+두 번째 호출: cached: true (DB에서 캐시된 결과 반환)
+```
+
+---
+
+### 다음 작업 선택 프롬프트
+
+```
+@Task_Jaehyeon.md 읽고 Phase 15 또는 다음 작업 선택해.
+
+Phase 14 ✅ 완료:
+- tokens_used, suggested_questions, cached 버그 수정 모두 완료
+
+다음 작업 후보:
+- Phase 14-D: context_summary 구현 (긴 대화 요약)
+- 앱 테스트 및 버그 수정
+- 다른 기능 추가
+- 다른 작업
+```
+
+---
+
+### 참고: Phase 14-B 프롬프트 (완료됨)
 
 ```
 context7, supabase mcp써서 아래 프롬포트 제대로 해봐
@@ -2390,5 +4100,190 @@ Phase 14-A 작업:
 
 Gemini API 응답에서 토큰 사용량 추출하여 DB에 저장하는 기능 구현해줘.
 ```
+
+---
+
+## Phase 23: 누락된 신살/귀인 추가 구현 (2024-12-31) ✅ 완료
+
+### 개요
+웹 검색 결과와 비교하여 누락된 신살/귀인 계산 로직 추가
+
+### 추가된 신살 목록
+
+#### P1 (우선순위 높음) - 완료 ✅
+| 신살 | 한자 | 기준 | 설명 |
+|------|------|------|------|
+| 금여 | 金輿 | 일간 → 지지 | 좋은 배우자 운, 물질적 풍요 |
+| 삼기귀인 | 三奇貴人 | 천간 조합 | 천상삼기(갑무경), 인중삼기(신임계), 지하삼기(을병정) |
+| 복성귀인 | 福星貴人 | 일주/연간 | 복록, 조력자 만남 |
+| 낙정관살 | 落井關殺 | 일간 → 지지 | 추락/익사 위험, 배신 주의 |
+
+#### P2 (보통) - 완료 ✅
+| 신살 | 한자 | 기준 | 설명 |
+|------|------|------|------|
+| 문곡귀인 | 文曲貴人 | 일간 → 지지 | 학문, 예술, 문서운 |
+| 태극귀인 | 太極貴人 | 일간 → 지지 | 큰 귀인의 도움 |
+| 천의귀인 | 天醫貴人 | 월지 → 지지 | 의료 관련, 건강운 |
+| 천주귀인 | 天廚貴人 | 일간 → 지지 | 식복, 음식 관련 |
+| 암록귀인 | 暗祿貴人 | 일간 → 지지 | 숨은 재물운, 음덕 |
+| 홍란살 | 紅鸞煞 | 년지 → 지지 | 결혼운, 연애운 |
+| 천희살 | 天喜煞 | 년지 → 지지 | 경사, 기쁜 일 |
+
+### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `twelve_sinsal.dart` | SpecialSinsal enum에 11개 신살 추가 + 계산 로직 함수 |
+| `sinsal.dart` | SinSal enum에 11개 신살 추가 |
+| `gilseong_service.dart` | GilseongAnalysisResult에 새 필드 추가 + 분석 로직 |
+
+---
+
+## Phase 24: P2/P3 추가 신살 구현 (2024-12-31) ✅ 완료
+
+### 개요
+P2/P3 우선순위 신살 계산 로직 추가 및 UI 표시 구현
+
+### 추가된 신살 목록
+
+| 신살 | 한자 | 기준 | 설명 | 타입 |
+|------|------|------|------|------|
+| 건록 | 健祿 | 일간 → 지지 | 자신감, 추진력, 재정 건전 | 길 |
+| 비인살 | 飛刃殺 | 일간 → 지지 | 양인의 충, 은밀한 위험 | 흉 |
+| 효신살 | 梟神殺 | 일주 조합 | 어머니 영향, 든든한 배경 | 중립 |
+| 고신살 | 孤神殺 | 년지 → 지지 | 남자 배우자운 약화 | 흉 |
+| 과숙살 | 寡宿殺 | 년지 → 지지 | 여자 배우자운 약화 | 흉 |
+| 원진살 | 怨嗔殺 | 지지 쌍 | 관계 불화, 갈등 | 흉 |
+| 천라지망 | 天羅地網 | 진술 동시 | 구속, 답답함 | 흉 |
+
+### 계산 로직 테이블
+
+**건록 (일간 → 지지)** - 일간과 같은 오행의 양지/음지
+| 갑 | 을 | 병 | 정 | 무 | 기 | 경 | 신 | 임 | 계 |
+|---|---|---|---|---|---|---|---|---|---|
+| 인 | 묘 | 사 | 오 | 사 | 오 | 신 | 유 | 해 | 자 |
+
+**비인살 (일간 → 지지)** - 양인살의 충(沖) 위치
+| 갑 | 을 | 병 | 정 | 무 | 기 | 경 | 신 | 임 | 계 |
+|---|---|---|---|---|---|---|---|---|---|
+| 유 | 술 | 자 | 축 | 자 | 축 | 묘 | 진 | 오 | 미 |
+
+**효신살 일주 목록**
+- 갑자, 을해, 병인, 정묘, 무오, 기사, 경진, 경술, 신축, 신미, 임신, 계유
+
+**고신살 (년지 그룹 → 지지)** - 남자 배우자운
+| 해자축 | 인묘진 | 사오미 | 신유술 |
+|--------|--------|--------|--------|
+| 인 | 사 | 신 | 해 |
+
+**과숙살 (년지 그룹 → 지지)** - 여자 배우자운
+| 인묘진 | 사오미 | 신유술 | 해자축 |
+|--------|--------|--------|--------|
+| 축 | 진 | 미 | 술 |
+
+**원진살 조합** - 육친 불화
+- 자-미, 축-오, 인-유, 묘-신, 진-해, 사-술
+
+**천라지망** - 사주에 진(辰)과 술(戌) 동시 존재
+
+### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `twelve_sinsal.dart` | SpecialSinsal enum에 7개 신살 추가 + 계산 함수 (`isGeonrok`, `isBiinsal`, `isHyosinsal`, `isGosinsal`, `isGwasuksal`, `isWonJinsal`, `hasCheollaJimang`) |
+| `sinsal.dart` | SinSal enum에 Phase 24 신살 추가 (geonRok, biInSal, hyoSinSal, goSinSal, gwaSukSal, cheolLaJiMang) |
+| `gilseong_service.dart` | GilseongAnalysisResult에 새 필드 추가 (`hasHyosinsal`, `hasGosinsal`, `hasGwasuksal`, `hasCheollaJimang`, `wonJinsalCount`) |
+| `gilseong_display.dart` | `ExtendedSinsalInfoCard` 위젯 추가 |
+| `saju_detail_tabs.dart` | `_SinsalTab`에 성별 전달 및 `ExtendedSinsalInfoCard` 통합 |
+
+### 테스트 결과 (박재현 1997.11.29 08:03)
+
+**사주**: 정축/신해/을해/경진
+
+| 신살 | 결과 |
+|------|------|
+| 효신살 | ✅ 을해 일주 해당 |
+| 원진살 | 2개 발견 (진-해 원진 관계) |
+| 양인살 | ✅ 시주 진 |
+| 귀문관살 | ✅ 인신사해 2개 이상 |
+| 천문성 | ✅ 월주/일주 해 |
+
+### UI 표시
+
+`ExtendedSinsalInfoCard` 위젯:
+- 효신살: 어머니 영향 강함 (accent 색상)
+- 고신살(남자): 배우자운 주의 (error 색상)
+- 과숙살(여자): 배우자운 주의 (error 색상)
+- 천라지망: 진술충 - 답답함 (error 색상)
+- 원진살 N개: 관계 갈등 주의 (warning 색상)
+
+---
+
+## Phase 25: 야자시/조자시 로직 검증 (2024-12-31) ✅ 완료
+
+### 개요
+시간 모름(시주 없음) 및 야자시/조자시 옵션의 로직 검증 및 UI 수정
+
+### 명리학 이론 정리
+
+| 학설 | 23:00-24:00 | 00:00-01:00 | 사용 비율 |
+|------|-------------|-------------|----------|
+| **야자시(夜子時)** | 당일 일주 유지 | 익일 일주 적용 | ~20% |
+| **정자시(正子時)** | 익일 일주 적용 | 익일 일주 (이미 다음 날짜) | ~80% |
+
+**핵심 차이점**:
+- 야자시: 자정(00:00)을 기준으로 일주 변경
+- 정자시: 자시 시작(23:00)을 기준으로 일주 변경
+
+### 발견된 문제점
+
+**UI 툴팁 설명 오류** (`birth_time_options.dart`):
+```
+이전 (틀림):
+야자시: 23:00-01:00을 다음날 자시로 계산
+조자시: 23:00-01:00을 당일 자시로 계산
+
+수정 (정확):
+✓ 야자시(夜子時) - 전통 방식
+  • 23:00-24:00 → 당일 일주 유지
+  • 00:00-01:00 → 익일 일주 적용
+
+✗ 정자시(正子時) - 현대 방식 (80%)
+  • 23:00-01:00 → 모두 익일 일주 적용
+```
+
+**참고**: 기존 `JasiService` 로직은 정확했음. 툴팁 설명만 수정 필요.
+
+### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `birth_time_options.dart` | 툴팁 설명 수정 + 라벨 변경 ("야자시/조자시" → "야자시 적용") |
+| `jasi_service.dart` | enum 주석 상세화 (사용 비율, 참고 링크 추가) |
+| `jasi_service_test.dart` | 테스트 케이스 19개 추가 |
+
+### 테스트 결과
+
+```
+✅ 19개 테스트 모두 통과
+- isJasiHour: 5개 (23시, 0시 판단)
+- 야자시 모드: 3개 (23시=당일, 0시=+1일)
+- 정자시 모드: 3개 (23시=+1일, 0시=당일)
+- 월/년 경계: 4개 (월말/연말 처리)
+- getModeDescription: 2개
+- 밀레니엄 베이비 예시: 2개 (1999.12.31 23:30)
+```
+
+### 밀레니엄 베이비 예시 (2000년 1월 1일 00:00)
+
+| 모드 | 1999.12.31 23:30 태어난 경우 |
+|------|------------------------------|
+| 야자시 | 1999년 12월 31일 일주 (정사일) |
+| 정자시 | 2000년 1월 1일 일주 (무오일) |
+
+### 참고 자료
+- [나무위키 - 사주팔자](https://namu.wiki/w/사주팔자)
+- [초코서당 - 야자시/조자시 기본편](https://chocosd.com/3441/)
+- [사주 만세력마다 일주가 다르게 나오는 이유](https://www.postype.com/@mimina/post/15210215)
 
 ---

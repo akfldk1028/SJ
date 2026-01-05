@@ -42,9 +42,11 @@ enum JiJangGanType {
 /// 지지별 지장간 테이블
 /// 순서: [여기, 중기, 정기] (세력 순)
 const Map<String, List<JiJangGan>> jiJangGanTable = {
-  // 자(子) - 계수(癸水)만 있음
+  // 자(子) - 임수(여기), 계수(정기)
+  // 왕지(旺支)로 중기 없음, 여기 10일 + 정기 20일
   '자': [
-    JiJangGan(gan: '계', strength: 100, type: JiJangGanType.jeongGi),
+    JiJangGan(gan: '임', strength: 10, type: JiJangGanType.yeoGi),
+    JiJangGan(gan: '계', strength: 20, type: JiJangGanType.jeongGi),
   ],
 
   // 축(丑) - 계수, 신금, 기토
@@ -61,9 +63,11 @@ const Map<String, List<JiJangGan>> jiJangGanTable = {
     JiJangGan(gan: '갑', strength: 16, type: JiJangGanType.jeongGi),
   ],
 
-  // 묘(卯) - 을목만 있음
+  // 묘(卯) - 갑목(여기), 을목(정기)
+  // 왕지(旺支)로 중기 없음, 여기 10일 + 정기 20일
   '묘': [
-    JiJangGan(gan: '을', strength: 100, type: JiJangGanType.jeongGi),
+    JiJangGan(gan: '갑', strength: 10, type: JiJangGanType.yeoGi),
+    JiJangGan(gan: '을', strength: 20, type: JiJangGanType.jeongGi),
   ],
 
   // 진(辰) - 을목, 계수, 무토
@@ -80,10 +84,12 @@ const Map<String, List<JiJangGan>> jiJangGanTable = {
     JiJangGan(gan: '병', strength: 16, type: JiJangGanType.jeongGi),
   ],
 
-  // 오(午) - 기토, 정화
+  // 오(午) - 병화(여기), 기토(중기), 정화(정기)
+  // 왕지이나 예외적으로 중기 있음: 여기 10일 + 중기 9일 + 정기 11일
   '오': [
-    JiJangGan(gan: '기', strength: 9, type: JiJangGanType.yeoGi),
-    JiJangGan(gan: '정', strength: 21, type: JiJangGanType.jeongGi),
+    JiJangGan(gan: '병', strength: 10, type: JiJangGanType.yeoGi),
+    JiJangGan(gan: '기', strength: 9, type: JiJangGanType.jungGi),
+    JiJangGan(gan: '정', strength: 11, type: JiJangGanType.jeongGi),
   ],
 
   // 미(未) - 정화, 을목, 기토
@@ -100,9 +106,11 @@ const Map<String, List<JiJangGan>> jiJangGanTable = {
     JiJangGan(gan: '경', strength: 16, type: JiJangGanType.jeongGi),
   ],
 
-  // 유(酉) - 신금만 있음
+  // 유(酉) - 경금(여기), 신금(정기)
+  // 왕지(旺支)로 중기 없음, 여기 10일 + 정기 20일
   '유': [
-    JiJangGan(gan: '신', strength: 100, type: JiJangGanType.jeongGi),
+    JiJangGan(gan: '경', strength: 10, type: JiJangGanType.yeoGi),
+    JiJangGan(gan: '신', strength: 20, type: JiJangGanType.jeongGi),
   ],
 
   // 술(戌) - 신금, 정화, 무토
@@ -167,16 +175,16 @@ String? getYeoGi(String ji) {
 /// 지장간 세력 비율 테이블 (절기 일수 기반)
 /// 각 지지별 [여기 일수, 중기 일수, 정기 일수]
 const Map<String, List<int>> jiJangGanDaysTable = {
-  '자': [0, 0, 30], // 계수만
+  '자': [10, 0, 20], // 임수10일(여기), 계수20일(정기) - 왕지
   '축': [9, 3, 18], // 계수9일, 신금3일, 기토18일
   '인': [7, 7, 16], // 무토7일, 병화7일, 갑목16일
-  '묘': [0, 0, 30], // 을목만
+  '묘': [10, 0, 20], // 갑목10일(여기), 을목20일(정기) - 왕지
   '진': [9, 3, 18], // 을목9일, 계수3일, 무토18일
   '사': [7, 7, 16], // 무토7일, 경금7일, 병화16일
-  '오': [9, 0, 21], // 기토9일, 정화21일 (중기 없음)
+  '오': [10, 9, 11], // 병화10일(여기), 기토9일(중기), 정화11일(정기) - 왕지 예외
   '미': [9, 3, 18], // 정화9일, 을목3일, 기토18일
   '신': [7, 7, 16], // 무토7일, 임수7일, 경금16일
-  '유': [0, 0, 30], // 신금만
+  '유': [10, 0, 20], // 경금10일(여기), 신금20일(정기) - 왕지
   '술': [9, 3, 18], // 신금9일, 정화3일, 무토18일
   '해': [7, 7, 16], // 무토7일, 갑목7일, 임수16일
 };

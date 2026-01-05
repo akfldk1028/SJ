@@ -7,7 +7,11 @@ import '../../domain/models/menu_item.dart';
 /// - const 생성자 사용
 /// - 100줄 이하 유지
 /// - 애니메이션은 별도 처리
+/// ⚡ 성능 최적화: withOpacity → const Color 캐싱 + withValues
 class MenuCard extends StatelessWidget {
+  // ⚡ 캐싱된 색상 상수 (고정 색상만)
+  static const _borderColor = Color.fromRGBO(255, 255, 255, 0.2);
+  static const _subtitleColor = Color.fromRGBO(255, 255, 255, 0.8);
   final MenuItem menuItem;
   final VoidCallback onTap;
   final Animation<double> animation;
@@ -79,17 +83,17 @@ class _MenuCardContentState extends State<_MenuCardContent> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                widget.menuItem.color.withOpacity(0.3),
-                widget.menuItem.color.withOpacity(0.1),
+                widget.menuItem.color.withValues(alpha: 0.3),
+                widget.menuItem.color.withValues(alpha: 0.1),
               ],
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: MenuCard._borderColor,
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: widget.menuItem.color.withOpacity(0.3),
+                color: widget.menuItem.color.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -121,9 +125,9 @@ class _MenuCardContentState extends State<_MenuCardContent> {
                 // 서브타이틀
                 Text(
                   widget.menuItem.subtitle,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.8),
+                    color: MenuCard._subtitleColor,
                     height: 1.3,
                   ),
                   textAlign: TextAlign.center,
@@ -160,13 +164,13 @@ class _MenuIcon extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            color.withOpacity(0.8),
-            color.withOpacity(0.5),
+            color.withValues(alpha: 0.8),
+            color.withValues(alpha: 0.5),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha: 0.4),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
