@@ -21,4 +21,9 @@ abstract class Routes {
 
   // Settings
   static const String settings = '/settings';
+  static const String settingsProfile = '/settings/profile';
+  static const String settingsNotification = '/settings/notification';
+  static const String settingsTerms = '/settings/terms';
+  static const String settingsPrivacy = '/settings/privacy';
+  static const String settingsDisclaimer = '/settings/disclaimer';
 }

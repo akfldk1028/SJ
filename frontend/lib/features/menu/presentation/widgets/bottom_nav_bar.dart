@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 
-/// 커스텀 Bottom Navigation Bar - Curved 디자인
+/// 커스텀 Bottom Navigation Bar - 동양풍 다크 테마
 ///
-/// 위젯 트리 최적화:
-/// - const 생성자 사용
-/// - 작은 위젯으로 분리
+/// 레퍼런스 컬러만 사용:
+/// - 골드: #C4A962
+/// - 카드 배경: #1A1A24
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
@@ -17,15 +18,24 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: theme.cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
+          // 골드 글로우
+          if (theme.isDark)
+            BoxShadow(
+              color: theme.primaryColor.withOpacity(0.05),
+              blurRadius: 30,
+              offset: const Offset(0, -10),
+            ),
         ],
       ),
       child: SafeArea(
@@ -35,25 +45,25 @@ class BottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _BottomNavItem(
-                icon: Icons.home_rounded,
-                label: '홈',
+                icon: Icons.auto_awesome_rounded,
+                label: '운세',
                 isSelected: selectedIndex == 0,
                 onTap: () => onTap(0),
               ),
               _BottomNavItem(
-                icon: Icons.person_rounded,
-                label: '프로필',
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'AI 상담',
                 isSelected: selectedIndex == 1,
                 onTap: () => onTap(1),
               ),
               _BottomNavItem(
-                icon: Icons.history_rounded,
-                label: '히스토리',
+                icon: Icons.people_outline_rounded,
+                label: '인맥',
                 isSelected: selectedIndex == 2,
                 onTap: () => onTap(2),
               ),
               _BottomNavItem(
-                icon: Icons.settings_rounded,
+                icon: Icons.settings_outlined,
                 label: '설정',
                 isSelected: selectedIndex == 3,
                 onTap: () => onTap(3),
@@ -66,7 +76,7 @@ class BottomNavBar extends StatelessWidget {
   }
 }
 
-/// Bottom Nav 아이템
+/// Bottom Nav 아이템 - 골드 테마
 class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -82,6 +92,8 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -93,13 +105,13 @@ class _BottomNavItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF5C6BC0).withOpacity(0.2)
+              ? theme.primaryColor.withOpacity(0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: isSelected
               ? Border.all(
-                  color: const Color(0xFF5C6BC0).withOpacity(0.5),
-                  width: 1.5,
+                  color: theme.primaryColor.withOpacity(0.3),
+                  width: 1,
                 )
               : null,
         ),
@@ -109,16 +121,16 @@ class _BottomNavItem extends StatelessWidget {
             Icon(
               icon,
               color: isSelected
-                  ? const Color(0xFF7E57C2)
-                  : Colors.white.withOpacity(0.5),
+                  ? theme.primaryColor
+                  : theme.textMuted,
               size: 24,
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFF7E57C2),
+                style: TextStyle(
+                  color: theme.primaryColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),

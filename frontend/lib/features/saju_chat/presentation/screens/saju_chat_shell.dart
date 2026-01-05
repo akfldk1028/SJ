@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/models/chat_type.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
@@ -138,8 +140,9 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     );
   }
 
-  /// Mobile 레이아웃: Scaffold + Drawer
+  /// Mobile 레이아웃: Scaffold + Drawer + 뒤로가기 버튼
   Widget _buildMobileLayout() {
+    final theme = context.appTheme;
     final sessionState = ref.watch(chatSessionNotifierProvider);
     final currentSession = sessionState.sessions
         .where((s) => s.id == sessionState.currentSessionId)
@@ -147,21 +150,38 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: theme.backgroundColor,
       appBar: AppBar(
+        backgroundColor: theme.backgroundColor,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          icon: Icon(Icons.arrow_back_rounded, color: theme.primaryColor),
+          onPressed: () => context.go('/menu'),
+          tooltip: '메인으로 돌아가기',
         ),
-        title: Text(currentSession?.title ?? _chatType.title),
+        title: Text(
+          currentSession?.title ?? _chatType.title,
+          style: TextStyle(
+            color: theme.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.history_rounded, color: theme.textSecondary),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            tooltip: '대화 히스토리',
+          ),
+          IconButton(
+            icon: Icon(Icons.add_rounded, color: theme.primaryColor),
             onPressed: _handleNewChat,
             tooltip: '새 채팅',
           ),
         ],
       ),
       drawer: Drawer(
+        backgroundColor: theme.backgroundColor,
         child: ChatHistorySidebar(
           onNewChat: _handleNewChat,
           onSessionSelected: _handleSessionSelected,
@@ -178,14 +198,16 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     );
   }
 
-  /// Desktop 레이아웃: Row [Sidebar | Content]
+  /// Desktop 레이아웃: Row [Sidebar | Content] + 뒤로가기 버튼
   Widget _buildDesktopLayout() {
+    final theme = context.appTheme;
     final sessionState = ref.watch(chatSessionNotifierProvider);
     final currentSession = sessionState.sessions
         .where((s) => s.id == sessionState.currentSessionId)
         .firstOrNull;
 
     return Scaffold(
+      backgroundColor: theme.backgroundColor,
       body: Row(
         children: [
           // 사이드바 (토글 가능)
@@ -196,29 +218,42 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
               onSessionDeleted: _handleSessionDeleted,
               onSessionRenamed: _handleSessionRenamed,
             ),
-            const VerticalDivider(width: 1),
+            VerticalDivider(
+              width: 1,
+              color: theme.primaryColor.withOpacity(0.1),
+            ),
           ],
           // 채팅 영역
           Expanded(
             child: Column(
               children: [
-                // Desktop AppBar (사이드바 토글 + 제목)
+                // Desktop AppBar (뒤로가기 + 사이드바 토글 + 제목)
                 Container(
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
+                    color: theme.backgroundColor,
                     border: Border(
                       bottom: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        width: 0.5,
+                        color: theme.primaryColor.withOpacity(0.1),
+                        width: 1,
                       ),
                     ),
                   ),
                   child: Row(
                     children: [
+                      // 뒤로가기 버튼
+                      IconButton(
+                        icon: Icon(Icons.arrow_back_rounded, color: theme.primaryColor),
+                        onPressed: () => context.go('/menu'),
+                        tooltip: '메인으로 돌아가기',
+                      ),
                       // 햄버거 아이콘 (사이드바 토글)
                       IconButton(
-                        icon: const Icon(Icons.menu),
+                        icon: Icon(
+                          _isSidebarVisible ? Icons.menu_open_rounded : Icons.menu_rounded,
+                          color: theme.textSecondary,
+                        ),
                         onPressed: () {
                           setState(() {
                             _isSidebarVisible = !_isSidebarVisible;
@@ -231,13 +266,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                       Expanded(
                         child: Text(
                           currentSession?.title ?? _chatType.title,
-                          style: Theme.of(context).textTheme.titleMedium,
+                          style: TextStyle(
+                            color: theme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       // 새 채팅 버튼
                       IconButton(
-                        icon: const Icon(Icons.add),
+                        icon: Icon(Icons.add_rounded, color: theme.primaryColor),
                         onPressed: _handleNewChat,
                         tooltip: '새 채팅',
                       ),

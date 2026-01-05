@@ -60,9 +60,14 @@ class ChatSessionLocalDatasource {
     final sessions = <ChatSessionModel>[];
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        sessions.add(ChatSessionModel.fromHiveMap(map));
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          sessions.add(ChatSessionModel.fromHiveMap(map));
+        } catch (e) {
+          // 손상된 데이터 무시
+          print('[ChatSessionLocalDatasource] 손상된 세션 데이터 무시: $e');
+        }
       }
     }
 
@@ -78,10 +83,15 @@ class ChatSessionLocalDatasource {
 
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['id'] == id) {
-          return ChatSessionModel.fromHiveMap(map);
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['id'] == id) {
+            return ChatSessionModel.fromHiveMap(map);
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
+          print('[ChatSessionLocalDatasource] 손상된 세션 데이터 무시: $e');
         }
       }
     }
@@ -99,11 +109,15 @@ class ChatSessionLocalDatasource {
     int? existingIndex;
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['id'] == session.id) {
-          existingIndex = i;
-          break;
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['id'] == session.id) {
+            existingIndex = i;
+            break;
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
         }
       }
     }
@@ -131,11 +145,15 @@ class ChatSessionLocalDatasource {
 
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['id'] == id) {
-          await box.deleteAt(i);
-          return;
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['id'] == id) {
+            await box.deleteAt(i);
+            return;
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
         }
       }
     }
@@ -163,10 +181,15 @@ class ChatSessionLocalDatasource {
     final messages = <ChatMessageModel>[];
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['sessionId'] == sessionId) {
-          messages.add(ChatMessageModel.fromHiveMap(map));
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['sessionId'] == sessionId) {
+            messages.add(ChatMessageModel.fromHiveMap(map));
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
+          print('[ChatSessionLocalDatasource] 손상된 메시지 데이터 무시: $e');
         }
       }
     }
@@ -185,11 +208,15 @@ class ChatSessionLocalDatasource {
     int? existingIndex;
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['id'] == message.id) {
-          existingIndex = i;
-          break;
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['id'] == message.id) {
+            existingIndex = i;
+            break;
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
         }
       }
     }
@@ -213,10 +240,14 @@ class ChatSessionLocalDatasource {
     // 역순으로 삭제 (인덱스 변경 문제 방지)
     for (var i = box.length - 1; i >= 0; i--) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['sessionId'] == sessionId) {
-          await box.deleteAt(i);
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['sessionId'] == sessionId) {
+            await box.deleteAt(i);
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
         }
       }
     }
@@ -229,11 +260,15 @@ class ChatSessionLocalDatasource {
 
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['id'] == id) {
-          await box.deleteAt(i);
-          return;
+      if (raw != null && raw is Map) {
+        try {
+          final map = Map<dynamic, dynamic>.from(raw);
+          if (map['id'] == id) {
+            await box.deleteAt(i);
+            return;
+          }
+        } catch (e) {
+          // 손상된 데이터 무시
         }
       }
     }

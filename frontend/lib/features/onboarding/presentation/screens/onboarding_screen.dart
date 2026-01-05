@@ -1,9 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
@@ -16,7 +18,7 @@ import '../../../profile/presentation/widgets/gender_toggle_buttons.dart';
 import '../../../profile/presentation/widgets/profile_name_input.dart';
 import '../../../profile/presentation/widgets/time_correction_banner.dart';
 
-/// 앱 최초 실행 시 사주 정보 입력 화면 (온보딩)
+/// 앱 최초 실행 시 사주 정보 입력 화면 (온보딩) - 동양풍 다크 테마
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -28,23 +30,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    // 폼 상태 초기화
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(profileFormProvider.notifier).reset();
     });
   }
 
   Future<void> _onSave() async {
-    // 유효성 검사 (Form State StateNotifier 내부 로직 이용)
     final formNotifier = ref.read(profileFormProvider.notifier);
-    
+
     try {
         await formNotifier.saveProfile();
         if (mounted) {
             context.go(Routes.menu);
         }
     } catch (e) {
-        // 에러 처리
         if (mounted) {
              ShadToaster.of(context).show(
               ShadToast.destructive(
@@ -58,55 +57,158 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('사주 정보 입력'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '정확한 만세력을 위해\n정보를 입력해주세요.',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  height: 1.4,
+      backgroundColor: theme.backgroundColor,
+      body: MysticBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                // 헤더 아이콘
+                Center(
+                  child: Text(
+                    '🔮',
+                    style: TextStyle(
+                      fontSize: 60,
+                      shadows: [
+                        Shadow(
+                          color: theme.primaryColor.withOpacity(0.5),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              
-              // 1. 이름
-              const ProfileNameInput(),
-              const SizedBox(height: 24),
-              
-              // 2. 성별
-              const GenderToggleButtons(),
-              const SizedBox(height: 24),
-              
-              // 3. 생년월일시
-              _buildBirthSection(context),
-              const SizedBox(height: 24),
-              
-              // 4. 출생 도시
-              const CitySearchField(),
-              const SizedBox(height: 16),
-              
-              // 5. 진태양시 보정 배너
-              const TimeCorrectionBanner(),
-              const SizedBox(height: 40),
-              
-              // 완료 버튼
-              ShadButton(
-                size: ShadButtonSize.lg,
-                onPressed: _onSave,
-                child: const Text('만세력 보러가기'),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 24),
+                // 타이틀
+                Center(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [
+                        theme.primaryColor,
+                        theme.accentColor ?? theme.primaryColor,
+                      ],
+                    ).createShader(bounds),
+                    child: const Text(
+                      '당신의 운명을\n알아보세요',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'AI가 분석하는 정확한 사주풀이로\n오늘의 운세와 인생의 방향을 확인하세요',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.textSecondary,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 40),
+
+                // 폼 컨테이너
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: theme.isDark ? null : theme.cardColor,
+                    gradient: theme.isDark
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFF1A1A24),
+                              const Color(0xFF14141C),
+                            ],
+                          )
+                        : null,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: theme.primaryColor.withOpacity(theme.isDark ? 0.15 : 0.12),
+                    ),
+                    boxShadow: theme.isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 1. 이름
+                      const ProfileNameInput(),
+                      const SizedBox(height: 20),
+
+                      // 2. 성별
+                      const GenderToggleButtons(),
+                      const SizedBox(height: 20),
+
+                      // 3. 생년월일시
+                      _buildBirthSection(context),
+                      const SizedBox(height: 20),
+
+                      // 4. 출생 도시
+                      const CitySearchField(),
+                      const SizedBox(height: 12),
+
+                      // 5. 진태양시 보정 배너
+                      const TimeCorrectionBanner(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // 완료 버튼 - 골드 그라데이션
+                GestureDetector(
+                  onTap: _onSave,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.primaryColor,
+                          theme.accentColor ?? theme.primaryColor,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.primaryColor.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '시작하기',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -117,10 +219,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // '생년월일시' 라벨은 CalendarTypeDropdown 내부에 포함되어 있으므로 제거
         const CalendarTypeDropdown(),
         const SizedBox(height: 12),
-        const BirthDateInputWidget(), // 텍스트 입력 위젯으로 교체
+        const BirthDateInputWidget(),
         const SizedBox(height: 12),
         const BirthTimePicker(),
         const SizedBox(height: 12),

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/widgets/mystic_background.dart';
+import '../../../../router/routes.dart';
 
-/// 설정 화면
+/// 설정 화면 - 동양풍 다크 테마
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -16,15 +19,15 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.backgroundColor,
-        title: Text(
-          AppStrings.settingsTitle,
-          style: TextStyle(color: theme.textPrimary),
-        ),
-        iconTheme: IconThemeData(color: theme.textPrimary),
-      ),
-      body: ListView(
+      body: MysticBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // 헤더
+              _buildHeader(context, theme),
+              // 컨텐츠
+              Expanded(
+                child: ListView(
         children: [
           // 테마 설정 섹션
           _buildSectionHeader(context, '화면 설정'),
@@ -37,13 +40,13 @@ class SettingsScreen extends ConsumerWidget {
             context,
             icon: Icons.person,
             title: AppStrings.settingsProfile,
-            onTap: () {},
+            onTap: () => context.push(Routes.settingsProfile),
           ),
           _buildSettingsTile(
             context,
             icon: Icons.notifications,
             title: AppStrings.settingsNotification,
-            onTap: () {},
+            onTap: () => context.push(Routes.settingsNotification),
           ),
 
           const SizedBox(height: 16),
@@ -54,22 +57,67 @@ class SettingsScreen extends ConsumerWidget {
             context,
             icon: Icons.description,
             title: AppStrings.settingsTerms,
-            onTap: () {},
+            onTap: () => context.push(Routes.settingsTerms),
           ),
           _buildSettingsTile(
             context,
             icon: Icons.privacy_tip,
             title: AppStrings.settingsPrivacy,
-            onTap: () {},
+            onTap: () => context.push(Routes.settingsPrivacy),
           ),
           _buildSettingsTile(
             context,
             icon: Icons.info,
             title: AppStrings.settingsDisclaimer,
-            onTap: () {},
+            onTap: () => context.push(Routes.settingsDisclaimer),
           ),
 
-          const SizedBox(height: 32),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppThemeExtension theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => context.go('/menu'),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: theme.cardColor.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.primaryColor.withOpacity(0.15),
+                ),
+              ),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: theme.primaryColor,
+                size: 20,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '설정',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: theme.textPrimary,
+            ),
+          ),
+          const Spacer(),
+          const SizedBox(width: 40),
         ],
       ),
     );

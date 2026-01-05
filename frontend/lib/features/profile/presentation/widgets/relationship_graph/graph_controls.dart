@@ -1,59 +1,65 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_theme.dart';
+
 class GraphControls extends StatelessWidget {
   const GraphControls({
     super.key,
     required this.onZoomIn,
     required this.onZoomOut,
-    required this.onFitToScreen,
   });
 
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
-  final VoidCallback onFitToScreen;
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
+
     return Positioned(
       right: 16,
-      bottom: 16,
+      bottom: 90, // FAB와 겹치지 않도록 위로 올림
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildControlButton(
+            context,
             icon: Icons.add,
             onPressed: onZoomIn,
-            tooltip: 'Zoom In',
+            tooltip: '확대',
+            appTheme: appTheme,
           ),
           const SizedBox(height: 8),
           _buildControlButton(
+            context,
             icon: Icons.remove,
             onPressed: onZoomOut,
-            tooltip: 'Zoom Out',
-          ),
-          const SizedBox(height: 8),
-          _buildControlButton(
-            icon: Icons.fit_screen,
-            onPressed: onFitToScreen,
-            tooltip: 'Fit to Screen',
+            tooltip: '축소',
+            appTheme: appTheme,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildControlButton({
+  Widget _buildControlButton(
+    BuildContext context, {
     required IconData icon,
     required VoidCallback onPressed,
     required String tooltip,
+    required AppThemeExtension appTheme,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appTheme.isDark
+            ? const Color(0xFF2A3540)
+            : Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: appTheme.isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -64,7 +70,9 @@ class GraphControls extends StatelessWidget {
         onPressed: onPressed,
         tooltip: tooltip,
         iconSize: 24,
-        color: Colors.black87,
+        color: appTheme.isDark
+            ? Colors.white
+            : Colors.black87,
       ),
     );
   }

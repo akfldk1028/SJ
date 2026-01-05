@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/theme/app_theme.dart';
 import '../../../domain/entities/saju_profile.dart';
 import '../../../domain/entities/gender.dart';
 import '../../../domain/entities/relationship_type.dart';
@@ -89,6 +90,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appTheme = context.appTheme;
     final profile = widget.profile;
 
     return Container(
@@ -96,7 +98,9 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: appTheme.isDark
+            ? const Color(0xFF1A1A24) // 다크 배경
+            : theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SingleChildScrollView(
@@ -111,7 +115,9 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: appTheme.isDark
+                      ? Colors.grey[600]
+                      : Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -151,6 +157,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
 
   Widget _buildProfileHeader(BuildContext context, SajuProfile profile) {
     final theme = Theme.of(context);
+    final appTheme = context.appTheme;
     final relationColor = _getRelationColor(profile.relationType);
 
     return Row(
@@ -160,9 +167,19 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: relationColor.withOpacity(0.2),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [relationColor, relationColor.withOpacity(0.7)],
+            ),
             shape: BoxShape.circle,
-            border: Border.all(color: relationColor, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: relationColor.withOpacity(0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Center(
             child: Text(
@@ -170,7 +187,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                   ? profile.displayName.substring(0, 1)
                   : '?',
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: relationColor,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -189,13 +206,14 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                     profile.displayName,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: appTheme.isDark ? Colors.white : null,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: relationColor.withOpacity(0.1),
+                      color: relationColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -213,14 +231,14 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
               Text(
                 '${profile.birthDateFormatted} (${profile.calendarTypeLabel})',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
+                  color: appTheme.isDark ? Colors.grey[400] : Colors.grey[600],
                 ),
               ),
               if (!profile.birthTimeUnknown && profile.birthTimeFormatted != null)
                 Text(
                   '${profile.birthTimeFormatted} 출생',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+                    color: appTheme.isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
             ],
@@ -231,22 +249,31 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
   }
 
   Widget _buildSajuDisplay(BuildContext context, SajuChart chart) {
+    final appTheme = context.appTheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: appTheme.isDark
+            ? const Color(0xFF252530) // 다크 카드 배경
+            : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(
+          color: appTheme.isDark
+              ? const Color(0xFF3A3A4A)
+              : Colors.grey[200]!,
+        ),
       ),
       child: Column(
         children: [
           // 사주팔자 한자 헤더
           Text(
             chart.fullSajuHanja,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               letterSpacing: 8,
+              color: appTheme.isDark ? Colors.white : Colors.black,
             ),
           ),
           const SizedBox(height: 4),
@@ -254,11 +281,14 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
             chart.fullSaju,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: appTheme.isDark ? Colors.grey[400] : Colors.grey[600],
               letterSpacing: 4,
             ),
           ),
-          const Divider(height: 24),
+          Divider(
+            height: 24,
+            color: appTheme.isDark ? const Color(0xFF3A3A4A) : null,
+          ),
 
           // 4개 기둥 표시
           Row(
@@ -282,20 +312,32 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: appTheme.isDark
+                  ? const Color(0xFF1A1A24)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(
+                color: appTheme.isDark
+                    ? const Color(0xFF3A3A4A)
+                    : Colors.grey[300]!,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('일간(나): ', style: TextStyle(fontSize: 13)),
+                Text(
+                  '일간(나): ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: appTheme.isDark ? Colors.grey[400] : Colors.black,
+                  ),
+                ),
                 Text(
                   '${chart.dayMaster} (${_getOhengText(chart.dayPillar.ganOheng)})',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: _getOhengColor(chart.dayPillar.ganOheng),
+                    color: _getOhengColor(chart.dayPillar.ganOheng, appTheme.isDark),
                   ),
                 ),
               ],
@@ -313,22 +355,31 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
     bool isUnknown, {
     bool isDayMaster = false,
   }) {
+    final appTheme = context.appTheme;
+
     if (isUnknown || pillar == null) {
       return _buildUnknownPillar(context, label);
     }
 
     final ganHanja = cheonganHanja[pillar.gan] ?? '';
     final jiHanja = jijiHanja[pillar.ji] ?? '';
-    final ganColor = _getOhengColor(pillar.ganOheng);
-    final jiColor = _getOhengColor(pillar.jiOheng);
+    final ganColor = _getOhengColor(pillar.ganOheng, appTheme.isDark);
+    final jiColor = _getOhengColor(pillar.jiOheng, appTheme.isDark);
 
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: isDayMaster
           ? BoxDecoration(
-              color: Colors.amber.withOpacity(0.1),
+              color: appTheme.isDark
+                  ? const Color(0xFFD4A54A).withOpacity(0.15)
+                  : Colors.amber.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber, width: 2),
+              border: Border.all(
+                color: appTheme.isDark
+                    ? const Color(0xFFD4A54A)
+                    : Colors.amber,
+                width: 2,
+              ),
             )
           : null,
       child: Column(
@@ -338,61 +389,89 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
             label,
             style: TextStyle(
               fontSize: 11,
-              color: isDayMaster ? Colors.amber[800] : Colors.grey[600],
+              color: isDayMaster
+                  ? (appTheme.isDark ? const Color(0xFFD4A54A) : Colors.amber[800])
+                  : (appTheme.isDark ? Colors.grey[400] : Colors.grey[600]),
               fontWeight: isDayMaster ? FontWeight.bold : FontWeight.normal,
             ),
           ),
           const SizedBox(height: 6),
-          // 천간
+          // 천간 - 오행 색상 배경에 흰색 텍스트
           Container(
-            width: 36,
-            height: 36,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: ganColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: ganColor),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [ganColor, ganColor.withOpacity(0.8)],
+              ),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: ganColor.withOpacity(0.4),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Center(
               child: Text(
                 ganHanja,
-                style: TextStyle(
-                  fontSize: 20,
+                style: const TextStyle(
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: ganColor,
+                  color: Colors.white,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             pillar.gan,
-            style: const TextStyle(fontSize: 11),
+            style: TextStyle(
+              fontSize: 11,
+              color: appTheme.isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
           ),
           const SizedBox(height: 6),
-          // 지지
+          // 지지 - 오행 색상 배경에 흰색 텍스트
           Container(
-            width: 36,
-            height: 36,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: jiColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: jiColor),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [jiColor, jiColor.withOpacity(0.8)],
+              ),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: jiColor.withOpacity(0.4),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Center(
               child: Text(
                 jiHanja,
-                style: TextStyle(
-                  fontSize: 20,
+                style: const TextStyle(
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: jiColor,
+                  color: Colors.white,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             pillar.ji,
-            style: const TextStyle(fontSize: 11),
+            style: TextStyle(
+              fontSize: 11,
+              color: appTheme.isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
           ),
         ],
       ),
@@ -400,57 +479,76 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
   }
 
   Widget _buildUnknownPillar(BuildContext context, String label) {
+    final appTheme = context.appTheme;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 11,
+            color: appTheme.isDark ? Colors.grey[400] : Colors.grey[600],
+          ),
         ),
         const SizedBox(height: 6),
         Container(
-          width: 36,
-          height: 36,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.grey[400]!),
+            color: appTheme.isDark
+                ? const Color(0xFF3A3A4A)
+                : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
             child: Text(
               '?',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[500],
+                color: appTheme.isDark ? Colors.grey[500] : Colors.grey[400],
               ),
             ),
           ),
         ),
-        const SizedBox(height: 2),
-        Text('미상', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        const SizedBox(height: 4),
+        Text(
+          '미상',
+          style: TextStyle(
+            fontSize: 11,
+            color: appTheme.isDark ? Colors.grey[500] : Colors.grey[500],
+          ),
+        ),
         const SizedBox(height: 6),
         Container(
-          width: 36,
-          height: 36,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.grey[400]!),
+            color: appTheme.isDark
+                ? const Color(0xFF3A3A4A)
+                : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
             child: Text(
               '?',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[500],
+                color: appTheme.isDark ? Colors.grey[500] : Colors.grey[400],
               ),
             ),
           ),
         ),
-        const SizedBox(height: 2),
-        Text('미상', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        const SizedBox(height: 4),
+        Text(
+          '미상',
+          style: TextStyle(
+            fontSize: 11,
+            color: appTheme.isDark ? Colors.grey[500] : Colors.grey[500],
+          ),
+        ),
       ],
     );
   }
@@ -489,20 +587,21 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
     return const Color(0xFF95A5A6);
   }
 
-  Color _getOhengColor(String oheng) {
+  Color _getOhengColor(String oheng, bool isDark) {
+    // 다크 테마에서는 더 밝고 선명한 색상 사용
     switch (oheng) {
       case '목':
-        return const Color(0xFF4CAF50);
+        return isDark ? const Color(0xFF66BB6A) : const Color(0xFF43A047); // 초록
       case '화':
-        return const Color(0xFFF44336);
+        return isDark ? const Color(0xFFEF5350) : const Color(0xFFE53935); // 빨강
       case '토':
-        return const Color(0xFFFF9800);
+        return isDark ? const Color(0xFFFFB74D) : const Color(0xFFFFA726); // 주황
       case '금':
-        return const Color(0xFFFFD700);
+        return isDark ? const Color(0xFFFFD54F) : const Color(0xFFFFC107); // 금색
       case '수':
-        return const Color(0xFF2196F3);
+        return isDark ? const Color(0xFF42A5F5) : const Color(0xFF1E88E5); // 파랑
       default:
-        return Colors.grey;
+        return isDark ? Colors.grey[400]! : Colors.grey;
     }
   }
 

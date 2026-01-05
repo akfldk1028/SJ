@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
 import '../widgets/fortune_category_list.dart';
 import '../widgets/daily_advice_section.dart';
-import '../widgets/today_message_card.dart';
 
-/// Main menu screen - 테마 적용
+/// Main menu screen - 기존 레이아웃 + 새 디자인 스타일
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
 
@@ -37,35 +37,36 @@ class _MenuScreenState extends State<MenuScreen> {
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(theme),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 100),
-                children: [
-                  const FortuneSummaryCard(),
-                  const SizedBox(height: 24),
-                  SajuMiniCard(),
-                  const SizedBox(height: 24),
-                  const SectionHeader(
-                    title: '오늘의 운세',
-                  ),
-                  const SizedBox(height: 12),
-                  const FortuneCategoryList(),
-                  const SizedBox(height: 24),
-                  const SectionHeader(
-                    title: '오늘의 조언',
-                  ),
-                  const SizedBox(height: 12),
-                  const DailyAdviceSection(),
-                  const SizedBox(height: 24),
-                  const TodayMessageCard(),
-                ],
+      body: MysticBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(theme),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  children: [
+                    const FortuneSummaryCard(),
+                    const SizedBox(height: 24),
+                    const SajuMiniCard(),
+                    const SizedBox(height: 24),
+                    const SectionHeader(
+                      title: '오늘의 운세',
+                      actionText: '전체보기',
+                    ),
+                    const SizedBox(height: 12),
+                    const FortuneCategoryList(),
+                    const SizedBox(height: 24),
+                    const SectionHeader(
+                      title: '오늘의 조언',
+                    ),
+                    const SizedBox(height: 12),
+                    const DailyAdviceSection(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNav(theme),
@@ -77,9 +78,6 @@ class _MenuScreenState extends State<MenuScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: theme.backgroundColor,
-      ),
       child: Row(
         children: [
           // Menu button - 설정 화면으로 이동
@@ -89,21 +87,15 @@ class _MenuScreenState extends State<MenuScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: theme.cardColor,
+                color: theme.cardColor.withOpacity(0.8),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.isDark
-                        ? const Color.fromRGBO(0, 0, 0, 0.3)
-                        : const Color.fromRGBO(0, 0, 0, 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                border: Border.all(
+                  color: theme.primaryColor.withOpacity(0.15),
+                ),
               ),
               child: Icon(
                 Icons.menu_rounded,
-                color: theme.textPrimary,
+                color: theme.textSecondary,
                 size: 20,
               ),
             ),
@@ -125,12 +117,15 @@ class _MenuScreenState extends State<MenuScreen> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Text(
-                      formattedDate['full']!,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textPrimary,
+                    Flexible(
+                      child: Text(
+                        formattedDate['full']!,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -159,17 +154,11 @@ class _MenuScreenState extends State<MenuScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: theme.cardColor,
+              color: theme.cardColor.withOpacity(0.8),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.isDark
-                      ? const Color.fromRGBO(0, 0, 0, 0.3)
-                      : const Color.fromRGBO(0, 0, 0, 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(
+                color: theme.primaryColor.withOpacity(0.15),
+              ),
             ),
             child: Row(
               children: [
@@ -208,11 +197,15 @@ class _MenuScreenState extends State<MenuScreen> {
       height: 70,
       decoration: BoxDecoration(
         color: theme.cardColor,
+        border: Border(
+          top: BorderSide(
+            color: theme.primaryColor.withOpacity(theme.isDark ? 0.1 : 0.08),
+            width: 1,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: theme.isDark
-                ? const Color.fromRGBO(0, 0, 0, 0.3)
-                : const Color.fromRGBO(0, 0, 0, 0.05),
+            color: Colors.black.withOpacity(theme.isDark ? 0.2 : 0.08),
             offset: const Offset(0, -2),
             blurRadius: 10,
           ),

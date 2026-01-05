@@ -38,14 +38,15 @@ class AppThemeNotifier extends _$AppThemeNotifier {
         if (savedTheme != null) {
           return AppThemeType.values.firstWhere(
             (type) => type.name == savedTheme,
-            orElse: () => AppThemeType.defaultLight,
+            orElse: () => AppThemeType.streetLamp,
           );
         }
       }
     } catch (e) {
       debugPrint('테마 로드 오류: $e');
     }
-    return AppThemeType.defaultLight;
+    // 기본 테마를 가로등불로 설정
+    return AppThemeType.streetLamp;
   }
 
   /// 테마 변경

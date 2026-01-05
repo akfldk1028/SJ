@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../../domain/entities/relationship_type.dart';
@@ -31,18 +32,21 @@ class RelationshipScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final viewMode = ref.watch(viewModeProvider);
 
+    final theme = context.appTheme;
+
     // 목업 데이터 사용 시
     if (_useMockData) {
       final profiles = MockProfiles.profiles;
       return Scaffold(
+        backgroundColor: theme.backgroundColor,
         appBar: _buildAppBar(context, ref, viewMode),
         body: viewMode == ViewModeType.list
             ? _buildListView(context, ref, profiles)
             : const RelationshipGraphView(),
         floatingActionButton: FloatingActionButton(
           onPressed: () => context.push(Routes.profileEdit),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          child: const Icon(Icons.person_add, color: Colors.white),
+          backgroundColor: theme.primaryColor,
+          child: Icon(Icons.person_add, color: theme.isDark ? const Color(0xFF0A0A0F) : Colors.white),
         ),
       );
     }
@@ -51,6 +55,7 @@ class RelationshipScreen extends ConsumerWidget {
     final profilesAsync = ref.watch(allProfilesProvider);
 
     return Scaffold(
+      backgroundColor: theme.backgroundColor,
       appBar: _buildAppBar(context, ref, viewMode),
       body: profilesAsync.when(
         data: (profiles) {
@@ -66,8 +71,8 @@ class RelationshipScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(Routes.profileEdit),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.person_add, color: Colors.white),
+        backgroundColor: theme.primaryColor,
+        child: Icon(Icons.person_add, color: theme.isDark ? const Color(0xFF0A0A0F) : Colors.white),
       ),
     );
   }
@@ -77,8 +82,23 @@ class RelationshipScreen extends ConsumerWidget {
     WidgetRef ref,
     ViewModeType viewMode,
   ) {
+    final theme = context.appTheme;
+
     return AppBar(
-      title: const Text('인연 관계도'),
+      backgroundColor: theme.backgroundColor,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back_rounded, color: theme.primaryColor),
+        onPressed: () => context.go('/menu'),
+        tooltip: '메인으로 돌아가기',
+      ),
+      title: Text(
+        '인연 관계도',
+        style: TextStyle(
+          color: theme.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       centerTitle: true,
       actions: [
         // View mode toggle
@@ -87,6 +107,7 @@ class RelationshipScreen extends ConsumerWidget {
             viewMode == ViewModeType.list
                 ? Icons.account_tree_outlined
                 : Icons.list_outlined,
+            color: theme.textSecondary,
           ),
           tooltip: viewMode == ViewModeType.list ? '그래프 보기' : '리스트 보기',
           onPressed: () {
@@ -98,7 +119,7 @@ class RelationshipScreen extends ConsumerWidget {
         ),
         // Search
         IconButton(
-          icon: const Icon(Icons.search),
+          icon: Icon(Icons.search, color: theme.textSecondary),
           onPressed: () {
             // TODO: Search functionality
           },

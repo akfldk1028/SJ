@@ -1,23 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/pillar.dart';
 import '../providers/saju_chart_provider.dart';
 import 'pillar_display.dart';
 import 'saju_detail_tabs.dart';
 
+/// 사주 상세 시트 - 동양풍 다크 테마
 class SajuDetailSheet extends ConsumerWidget {
   const SajuDetailSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
     final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
 
     return Container(
-      constraints: const BoxConstraints(maxHeight: 600),
+      constraints: const BoxConstraints(maxHeight: 650),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: theme.isDark
+              ? [
+                  const Color(0xFF1A1A24),
+                  theme.backgroundColor,
+                ]
+              : [
+                  const Color(0xFFFFFFFF), // 순백
+                  const Color(0xFFF8F9FA), // 연한 그레이
+                ],
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(
+          color: theme.primaryColor.withOpacity(0.15),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -28,7 +45,7 @@ class SajuDetailSheet extends ConsumerWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.textMuted,
+              color: theme.primaryColor.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -41,39 +58,64 @@ class SajuDetailSheet extends ConsumerWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '사주 상세 분석',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [
+                          theme.primaryColor,
+                          theme.accentColor ?? theme.primaryColor,
+                        ],
+                      ).createShader(bounds),
+                      child: const Text(
+                        '나의 사주팔자',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '만세력과 오행 분포를 확인합니다.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textMuted,
-                          ),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textMuted,
+                      ),
                     ),
                   ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: theme.primaryColor.withOpacity(0.15),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: theme.textSecondary,
+                      size: 18,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          const Divider(color: AppColors.border, height: 1),
+          Divider(color: theme.primaryColor.withOpacity(0.1), height: 1),
           // Content
           Expanded(
             child: sajuAnalysisAsync.when(
               data: (analysis) {
                 if (analysis == null) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       '분석 정보를 불러올 수 없습니다.',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: theme.textSecondary),
                     ),
                   );
                 }
@@ -87,14 +129,35 @@ class SajuDetailSheet extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. 만세력 차트 (Reference Chart)
-                      _buildSectionTitle(context, '만세력 (Four Pillars)'),
+                      _buildSectionTitle(context, theme, '만세력 (Four Pillars)'),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
+                          color: theme.isDark ? null : Colors.white,
+                          gradient: theme.isDark
+                              ? LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(0xFF252530),
+                                    const Color(0xFF1E1E28),
+                                  ],
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.primaryColor.withOpacity(theme.isDark ? 0.15 : 0.2),
+                          ),
+                          boxShadow: theme.isDark
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -126,54 +189,101 @@ class SajuDetailSheet extends ConsumerWidget {
                       const SizedBox(height: 32),
 
                       // 2. 오행 분포 (Five Elements)
-                      _buildSectionTitle(context, '오행 분포'),
+                      _buildSectionTitle(context, theme, '오행 분석'),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
+                          color: theme.isDark ? null : Colors.white,
+                          gradient: theme.isDark
+                              ? LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(0xFF252530),
+                                    const Color(0xFF1E1E28),
+                                  ],
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.primaryColor.withOpacity(theme.isDark ? 0.15 : 0.2),
+                          ),
+                          boxShadow: theme.isDark
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                         ),
                         child: Column(
                           children: [
-                            _buildOhengBar(
-                                context, '목 (Wood)', oheng.mok, AppColors.wood),
-                            _buildOhengBar(
-                                context, '화 (Fire)', oheng.hwa, AppColors.fire),
-                            _buildOhengBar(context, '토 (Earth)', oheng.to,
-                                AppColors.earth),
-                            _buildOhengBar(context, '금 (Metal)', oheng.geum,
-                                AppColors.metal),
-                            _buildOhengBar(
-                                context, '수 (Water)', oheng.su, AppColors.water),
+                            _buildOhengBar(context, theme, '목(木)', oheng.mok,
+                                theme.woodColor ?? const Color(0xFF7EDA98)),
+                            _buildOhengBar(context, theme, '화(火)', oheng.hwa,
+                                theme.fireColor ?? const Color(0xFFE87C7C)),
+                            _buildOhengBar(context, theme, '토(土)', oheng.to,
+                                theme.earthColor ?? const Color(0xFFD4A574)),
+                            _buildOhengBar(context, theme, '금(金)', oheng.geum,
+                                theme.metalColor ?? const Color(0xFFE8E8E8)),
+                            _buildOhengBar(context, theme, '수(水)', oheng.su,
+                                theme.waterColor ?? const Color(0xFF7EB8DA)),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
 
                       // 3. 상세 분석 버튼
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (_) => const SajuDetailTabs(),
-                            );
-                          },
-                          icon: const Icon(Icons.analytics_outlined, size: 20),
-                          label: const Text('상세 분석 보기'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const SajuDetailTabs(),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                theme.primaryColor,
+                                theme.accentColor ?? theme.primaryColor,
+                              ],
                             ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.primaryColor.withOpacity(0.3),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.analytics_outlined,
+                                color: theme.isDark ? const Color(0xFF0A0A0F) : Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '상세 분석 보기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.isDark ? const Color(0xFF0A0A0F) : Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -182,10 +292,12 @@ class SajuDetailSheet extends ConsumerWidget {
                   ),
                 );
               },
-              loading: () => const Center(
+              loading: () => Center(
                 child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(),
+                  padding: const EdgeInsets.all(40),
+                  child: CircularProgressIndicator(
+                    color: theme.primaryColor,
+                  ),
                 ),
               ),
               error: (err, stack) => Center(
@@ -193,7 +305,7 @@ class SajuDetailSheet extends ConsumerWidget {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     '오류가 발생했습니다:\n$err',
-                    style: const TextStyle(color: AppColors.error),
+                    style: TextStyle(color: theme.fireColor ?? Colors.red),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -205,56 +317,71 @@ class SajuDetailSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(BuildContext context, AppThemeExtension theme, String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
-          ),
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: theme.primaryColor,
+      ),
     );
   }
 
-  Widget _buildOhengBar(BuildContext context, String label, int count, Color color) {
+  Widget _buildOhengBar(BuildContext context, AppThemeExtension theme, String label, int count, Color color) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           SizedBox(
-            width: 80,
+            width: 50,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.textSecondary,
+              ),
             ),
           ),
           Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                if (count > 0)
-                  Container(
-                    height: 12,
-                    width: count * 40.0, // Scale factor
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(6),
+            child: Container(
+              height: 24,
+              decoration: BoxDecoration(
+                color: theme.backgroundColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Stack(
+                children: [
+                  if (count > 0)
+                    FractionallySizedBox(
+                      widthFactor: (count / 8).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              color,
+                              color.withOpacity(0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            '$count개',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          SizedBox(
+            width: 24,
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],

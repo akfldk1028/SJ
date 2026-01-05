@@ -37,9 +37,6 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   final TransformationController _transformationController =
       TransformationController();
 
-  // 현재 스케일 추적
-  double _currentScale = 1.0;
-
   @override
   void dispose() {
     _transformationController.dispose();
@@ -48,18 +45,21 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
   // === 줌 컨트롤 ===
   void _handleZoomIn() {
-    _currentScale = (_currentScale * 1.2).clamp(0.3, 3.0);
-    _transformationController.value = Matrix4.identity()..scale(_currentScale);
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final newScale = (currentScale * 1.3).clamp(0.5, 3.0);
+    final center = _transformationController.value.getTranslation();
+    _transformationController.value = Matrix4.identity()
+      ..translate(center.x, center.y)
+      ..scale(newScale);
   }
 
   void _handleZoomOut() {
-    _currentScale = (_currentScale * 0.8).clamp(0.3, 3.0);
-    _transformationController.value = Matrix4.identity()..scale(_currentScale);
-  }
-
-  void _handleFitToScreen() {
-    _currentScale = 1.0;
-    _transformationController.value = Matrix4.identity();
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final newScale = (currentScale * 0.7).clamp(0.5, 3.0);
+    final center = _transformationController.value.getTranslation();
+    _transformationController.value = Matrix4.identity()
+      ..translate(center.x, center.y)
+      ..scale(newScale);
   }
 
   // === 노드 탭 핸들러 (사주 빠른보기) ===
@@ -174,20 +174,17 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       ),
     );
 
-    // 화면에 자동 맞춤 (FittedBox로 스케일링)
+    // 반응형 그래프 - 화면에 자동 맞춤
     return Stack(
       children: [
-        // 그래프 영역 - FittedBox로 화면에 맞춤
+        // 그래프 영역 - 자동으로 화면에 맞춤
         Positioned.fill(
           child: InteractiveViewer(
             transformationController: _transformationController,
             constrained: false,
-            minScale: 0.3,
+            minScale: 0.5,
             maxScale: 3.0,
-            boundaryMargin: const EdgeInsets.all(100),
-            onInteractionUpdate: (details) {
-              _currentScale = _transformationController.value.getMaxScaleOnAxis();
-            },
+            boundaryMargin: const EdgeInsets.all(50),
             child: Center(
               child: FittedBox(
                 fit: BoxFit.contain,
@@ -197,11 +194,10 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
           ),
         ),
 
-        // 줌 컨트롤
+        // 줌 컨트롤 (+/- 만)
         GraphControls(
           onZoomIn: _handleZoomIn,
           onZoomOut: _handleZoomOut,
-          onFitToScreen: _handleFitToScreen,
         ),
       ],
     );
