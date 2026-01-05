@@ -9,6 +9,8 @@ import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../saju_chart/domain/entities/saju_analysis.dart';
+import '../../../saju_chart/domain/entities/sinsal.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
 import '../../data/datasources/gemini_edge_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
@@ -51,6 +53,10 @@ class ChatState {
 
   /// 토큰 사용량이 80% 이상인지 확인
   bool get isNearTokenLimit => tokenUsage?.isNearLimit ?? false;
+
+  /// GPT-5.2 상세 분석 실행 중 여부
+  /// v3.0: aiSummary 주석처리로 현재 미사용 (항상 false)
+  bool get isDeepAnalysisRunning => false;
 
   ChatState copyWith({
     List<ChatMessage>? messages,
@@ -466,6 +472,7 @@ class ChatNotifier extends _$ChatNotifier {
   String _buildFullSystemPrompt({
     required String basePrompt,
     AiSummary? aiSummary,
+    SajuAnalysis? sajuAnalysis,  // v3.1: 로컬 사주 데이터 직접 사용
     AiPersona? persona,
     bool isFirstMessage = true,
   }) {
@@ -484,27 +491,38 @@ class ChatNotifier extends _$ChatNotifier {
     // 기본 프롬프트 추가
     buffer.writeln(basePrompt);
 
-    // AI Summary가 있을 때만 추가 정보 포함
+    // ═══════════════════════════════════════════════════════════════════════════
+    // v3.1: 사주 데이터 직접 주입 (Edge Function sajuOrigin null 문제 해결)
+    // - 로컬 SajuAnalysis를 우선 사용 (항상 유효)
+    // - sajuOrigin (Edge Function 반환)은 fallback
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (isFirstMessage && sajuAnalysis != null) {
+      // v3.1: 로컬 SajuAnalysis 직접 사용 (Edge Function 의존성 제거)
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+      buffer.writeln('## 사주 기본 데이터');
+      buffer.writeln();
+      _addSajuAnalysisToPrompt(buffer, sajuAnalysis);
+    } else if (isFirstMessage && aiSummary?.sajuOrigin != null) {
+      // v2.x fallback: Edge Function sajuOrigin 사용
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+      buffer.writeln('## 사주 원본 데이터 (GPT-5.2 분석용)');
+      buffer.writeln();
+      _addSajuOriginToPrompt(buffer, aiSummary!.sajuOrigin!);
+    } else if (!isFirstMessage) {
+      // 이후 메시지에서는 간략 참조만
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+      buffer.writeln('## 사주 정보');
+      buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
+    }
+
+    // AI Summary가 있을 때 추가 정보 포함
     if (aiSummary != null) {
-      // 1. 원본 사주 데이터 추가 (sajuOrigin에서)
-      // - 합충형파해, 십성, 신살 등 복잡한 정보 포함
-      // - Gemini가 까먹지 않도록 시스템 프롬프트에 포함
-      // - v2.1: 첫 메시지에만 전체 포함 (토큰 최적화)
-      if (isFirstMessage && aiSummary.sajuOrigin != null) {
-        buffer.writeln();
-        buffer.writeln('---');
-        buffer.writeln();
-        buffer.writeln('## 사주 원본 데이터 (GPT-5.2 분석용)');
-        buffer.writeln();
-        _addSajuOriginToPrompt(buffer, aiSummary.sajuOrigin!);
-      } else if (!isFirstMessage) {
-        // 이후 메시지에서는 간략 참조만
-        buffer.writeln();
-        buffer.writeln('---');
-        buffer.writeln();
-        buffer.writeln('## 사주 정보');
-        buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
-      }
 
       // ═══════════════════════════════════════════════════════════════════════════
       // v3.0 토큰 최적화: GPT-5.2 분석 결과(aiSummary) 주석처리
@@ -640,6 +658,111 @@ class ChatNotifier extends _$ChatNotifier {
     buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하여 깊이 있는 상담을 제공하세요.');
 
     return buffer.toString();
+  }
+
+  /// v3.1: SajuAnalysis (로컬 계산 데이터)를 프롬프트에 추가하는 헬퍼 메서드
+  ///
+  /// Edge Function sajuOrigin이 null일 때 사용
+  /// 로컬에서 계산한 SajuAnalysis를 직접 사용하여 사주 데이터 제공
+  void _addSajuAnalysisToPrompt(StringBuffer buffer, SajuAnalysis sajuAnalysis) {
+    final chart = sajuAnalysis.chart;
+
+    // 1. 사주팔자 테이블
+    buffer.writeln('### 사주팔자');
+    buffer.writeln('| 구분 | 년주 | 월주 | 일주 | 시주 |');
+    buffer.writeln('|------|------|------|------|------|');
+
+    final yearGan = chart.yearPillar.gan;
+    final yearJi = chart.yearPillar.ji;
+    final monthGan = chart.monthPillar.gan;
+    final monthJi = chart.monthPillar.ji;
+    final dayGan = chart.dayPillar.gan;
+    final dayJi = chart.dayPillar.ji;
+    final hourGan = chart.hourPillar?.gan ?? '?';
+    final hourJi = chart.hourPillar?.ji ?? '?';
+
+    buffer.writeln('| 천간 | $yearGan | $monthGan | $dayGan | $hourGan |');
+    buffer.writeln('| 지지 | $yearJi | $monthJi | $dayJi | $hourJi |');
+    buffer.writeln();
+
+    // 2. 일주 강조 (가장 중요한 정보)
+    buffer.writeln('### 일주 (나의 본질)');
+    buffer.writeln('- 일간: $dayGan');
+    buffer.writeln('- 일지: $dayJi');
+    buffer.writeln('- 일주: $dayGan$dayJi');
+    buffer.writeln();
+
+    // 3. 오행 분포
+    final oheng = sajuAnalysis.ohengDistribution;
+    buffer.writeln('### 오행 분포');
+    buffer.writeln('- 목: ${oheng.mok}');
+    buffer.writeln('- 화: ${oheng.hwa}');
+    buffer.writeln('- 토: ${oheng.to}');
+    buffer.writeln('- 금: ${oheng.geum}');
+    buffer.writeln('- 수: ${oheng.su}');
+    if (oheng.missingOheng.isNotEmpty) {
+      buffer.writeln('- 부족: ${oheng.missingOheng.map((o) => o.korean).join(', ')}');
+    }
+    buffer.writeln();
+
+    // 4. 용신
+    final yongsin = sajuAnalysis.yongsin;
+    buffer.writeln('### 용신');
+    buffer.writeln('- 용신: ${yongsin.yongsin.korean}');
+    buffer.writeln('- 희신: ${yongsin.heesin.korean}');
+    buffer.writeln('- 기신: ${yongsin.gisin.korean}');
+    buffer.writeln('- 구신: ${yongsin.gusin.korean}');
+    buffer.writeln();
+
+    // 5. 신강/신약
+    final dayStrength = sajuAnalysis.dayStrength;
+    buffer.writeln('### 신강/신약');
+    buffer.writeln('- 상태: ${dayStrength.level.korean}');
+    buffer.writeln('- 점수: ${dayStrength.score}/100');
+    buffer.writeln('- 득령: ${dayStrength.deukryeong ? 'O' : 'X'}');
+    buffer.writeln('- 득지: ${dayStrength.deukji ? 'O' : 'X'}');
+    buffer.writeln('- 득세: ${dayStrength.deukse ? 'O' : 'X'}');
+    buffer.writeln();
+
+    // 6. 격국
+    final gyeokguk = sajuAnalysis.gyeokguk;
+    buffer.writeln('### 격국');
+    buffer.writeln('- 격국: ${gyeokguk.gyeokguk.korean}');
+    buffer.writeln('- 강도: ${gyeokguk.strength}/100');
+    buffer.writeln('- 설명: ${gyeokguk.reason}');
+    buffer.writeln();
+
+    // 7. 십성
+    final sipsin = sajuAnalysis.sipsinInfo;
+    buffer.writeln('### 십성 배치');
+    buffer.writeln('| 구분 | 년주 | 월주 | 일주 | 시주 |');
+    buffer.writeln('|------|------|------|------|------|');
+    final yearGanSipsin = sipsin.yearGanSipsin.korean;
+    final monthGanSipsin = sipsin.monthGanSipsin.korean;
+    final hourGanSipsin = sipsin.hourGanSipsin?.korean ?? '-';
+    buffer.writeln('| 천간 | $yearGanSipsin | $monthGanSipsin | (일간) | $hourGanSipsin |');
+    final yearJiSipsin = sipsin.yearJiSipsin.korean;
+    final monthJiSipsin = sipsin.monthJiSipsin.korean;
+    final dayJiSipsin = sipsin.dayJiSipsin.korean;
+    final hourJiSipsin = sipsin.hourJiSipsin?.korean ?? '-';
+    buffer.writeln('| 지지 | $yearJiSipsin | $monthJiSipsin | $dayJiSipsin | $hourJiSipsin |');
+    buffer.writeln();
+
+    // 8. 신살
+    final sinsalList = sajuAnalysis.sinsalList;
+    if (sinsalList.isNotEmpty) {
+      buffer.writeln('### 신살');
+      final luckySinsals = sinsalList.where((s) => s.sinsal.type == SinSalType.lucky).toList();
+      final unluckySinsals = sinsalList.where((s) => s.sinsal.type == SinSalType.unlucky).toList();
+
+      if (luckySinsals.isNotEmpty) {
+        buffer.writeln('**길신**: ${luckySinsals.map((s) => s.sinsal.korean).join(', ')}');
+      }
+      if (unluckySinsals.isNotEmpty) {
+        buffer.writeln('**흉신**: ${unluckySinsals.map((s) => s.sinsal.korean).join(', ')}');
+      }
+      buffer.writeln();
+    }
   }
 
   /// sajuOrigin 데이터를 프롬프트에 추가하는 헬퍼 메서드
@@ -957,9 +1080,16 @@ class ChatNotifier extends _$ChatNotifier {
       // v2.0: AIContext 제거, AiSummary.sajuOrigin으로 통합
       // v2.1: 첫 메시지에만 sajuOrigin 전체 포함 (토큰 최적화)
       final isFirstMessage = state.messages.where((m) => m.role == 'assistant').isEmpty;
+
+      // v3.1: 로컬 SajuAnalysis 가져오기 (Edge Function sajuOrigin null 문제 해결)
+      final sajuAnalysis = isFirstMessage
+          ? await ref.read(currentSajuAnalysisProvider.future)
+          : null;
+
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiSummary: aiSummary,
+        sajuAnalysis: sajuAnalysis,  // v3.1: 로컬 사주 데이터
         persona: currentPersona,
         isFirstMessage: isFirstMessage,
       );
