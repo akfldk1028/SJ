@@ -195,7 +195,8 @@
       "Bash(tasklist:*)",
       "Bash(dart --version:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(dir \"%APPDATA%\\\\Claude\")"
     ],
     "deny": [],
     "ask": []

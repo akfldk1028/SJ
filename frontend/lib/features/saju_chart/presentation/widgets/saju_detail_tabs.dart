@@ -538,7 +538,7 @@ class _SinsalTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 12신살 분석 (일지 기준 - 현대 명리학 기준)
+    // 12신살 분석 (년지 기준 - 포스텔러 호환, Phase 39)
     final twelveSinsalResult = TwelveSinsalService.analyzeFromChart(chart);
     final gilseongResult = GilseongService.analyzeFromChart(chart);
 
