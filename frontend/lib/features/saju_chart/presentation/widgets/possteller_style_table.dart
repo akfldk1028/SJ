@@ -39,7 +39,7 @@ class PosstellerStyleTable extends StatelessWidget {
     // 분석 데이터 계산
     final jijangganResult = JiJangGanService.analyzeFromChart(chart);
     final unsungResult = UnsungService.analyzeFromChart(chart);
-    // 12신살 분석 (일지 기준 - 현대 명리학 기준)
+    // 12신살 분석 (년지 기준 - 포스텔러 호환, Phase 39)
     final sinsalResult = TwelveSinsalService.analyzeFromChart(chart);
     final dayGan = chart.dayPillar.gan;
 
