@@ -1480,6 +1480,71 @@ static TwelveSinsalAnalysisResult analyzeFromChart(SajuChart chart, {
 
 ---
 
+## Phase 40: GPT 프롬프트 오행 데이터 수정 (2026-01-06) ✅ 완료
+
+### 개요
+ai_summaries.content.saju_origin.oheng이 모두 0으로 저장되는 문제 해결
+
+### 문제 현상
+- DB의 `saju_analyses.oheng_distribution`에는 정상 데이터 저장됨: `{"금(金)":2,"목(木)":2,"수(水)":1,"토(土)":2,"화(火)":1}`
+- 그러나 `ai_summaries.content.saju_origin.oheng`은 모두 0: `{"금":0,"목":0,"수":0,"토":0,"화":0}`
+
+### 원인 분석
+
+**1단계: queries.dart 키 불일치** (이전 세션에서 수정 완료)
+- DB는 한글(한자) 키: `목(木)`, `화(火)` 등
+- 읽을 때 영어 키로 시도: `wood`, `fire` 등
+- 수정: 한글(한자) 키로 읽도록 변경
+
+**2단계: GPT 프롬프트 템플릿 문제** (이번 수정)
+- `saju_base_prompt.dart` 232줄에 JSON 스키마가 하드코딩:
+  ```dart
+  "oheng": {"목": 0, "화": 0, "토": 0, "금": 0, "수": 0},
+  ```
+- GPT가 이 템플릿의 0 값을 그대로 복사하여 응답
+- 실제 오행 데이터(`data.ohengString`)는 프롬프트 상단에 있지만, GPT가 스키마 채우기에서 무시
+
+### 수정 내용
+
+**파일 1: `frontend/lib/AI/prompts/prompt_template.dart`**
+```dart
+// 추가된 getter (line 438-449)
+/// 오행 분포 JSON 문자열 (한글 키)
+///
+/// GPT 프롬프트 JSON 스키마에 직접 삽입용
+/// 예: {"목": 2, "화": 1, "토": 3, "금": 1, "수": 1}
+String get ohengJson {
+  final mok = oheng['wood'] ?? 0;
+  final hwa = oheng['fire'] ?? 0;
+  final to = oheng['earth'] ?? 0;
+  final geum = oheng['metal'] ?? 0;
+  final su = oheng['water'] ?? 0;
+  return '{"목": $mok, "화": $hwa, "토": $to, "금": $geum, "수": $su}';
+}
+```
+
+**파일 2: `frontend/lib/AI/prompts/saju_base_prompt.dart`**
+```dart
+// Before (line 232)
+"oheng": {"목": 0, "화": 0, "토": 0, "금": 0, "수": 0},
+
+// After
+"oheng": ${data.ohengJson},
+```
+
+### 테스트 필요 항목
+- [ ] 새 프로필 생성 후 ai_summaries.content.saju_origin.oheng 확인
+- [ ] 김동현(음력 1994-11-28 09:20) 테스트: oheng이 `{"목":2,"화":1,"토":2,"금":2,"수":1}`로 저장되는지 확인
+
+### 관련 파일
+| 파일 | 역할 |
+|------|------|
+| `AI/prompts/prompt_template.dart` | SajuInputData 클래스 + ohengJson getter |
+| `AI/prompts/saju_base_prompt.dart` | GPT-5.2 평생 사주 분석 프롬프트 |
+| `AI/data/queries.dart` | DB → SajuInputData 변환 (이전 세션에서 수정) |
+
+---
+
 ## 참고사항
 
 ### Edge Function 배포 명령어
