@@ -32,6 +32,8 @@ import 'grandma.dart';
 import 'persona_base.dart';
 import 'wise_scholar.dart';
 import 'baby_monk.dart';
+import 'scenario_writer.dart';
+import 'newbie_shaman.dart';
 
 /// 페르소나 레지스트리
 ///
@@ -52,8 +54,9 @@ class PersonaRegistry {
     CuteFriendPersona(),
     WiseScholarPersona(),
     GrandmaPersona(),
-    // 새 페르소나는 여기에 추가:
     BabyMonkPersona(),
+    SajuScenarioBuilderPersona(),
+    NewbieShamanPersona(),
   ];
 
   /// 기본 페르소나 ID
