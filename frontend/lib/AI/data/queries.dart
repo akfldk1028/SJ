@@ -226,14 +226,14 @@ class AiQueries extends BaseQueries {
         saju['hour_ji'] = _extractHangul(analysis.hourJi!);
       }
 
-      // 오행 분포
+      // 오행 분포 (DB에는 한글(한자) 키로 저장됨: 목(木), 화(火), 토(土), 금(金), 수(水))
       final ohengRaw = analysis.ohengDistribution;
       final oheng = <String, int>{
-        'wood': (ohengRaw['wood'] as num?)?.toInt() ?? 0,
-        'fire': (ohengRaw['fire'] as num?)?.toInt() ?? 0,
-        'earth': (ohengRaw['earth'] as num?)?.toInt() ?? 0,
-        'metal': (ohengRaw['metal'] as num?)?.toInt() ?? 0,
-        'water': (ohengRaw['water'] as num?)?.toInt() ?? 0,
+        'wood': (ohengRaw['목(木)'] as num?)?.toInt() ?? 0,
+        'fire': (ohengRaw['화(火)'] as num?)?.toInt() ?? 0,
+        'earth': (ohengRaw['토(土)'] as num?)?.toInt() ?? 0,
+        'metal': (ohengRaw['금(金)'] as num?)?.toInt() ?? 0,
+        'water': (ohengRaw['수(水)'] as num?)?.toInt() ?? 0,
       };
 
       // 생시 변환 (minutes → HH:mm)

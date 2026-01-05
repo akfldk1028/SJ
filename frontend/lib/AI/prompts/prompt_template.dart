@@ -435,6 +435,19 @@ class SajuInputData {
     return '목${oheng['wood'] ?? 0} 화${oheng['fire'] ?? 0} 토${oheng['earth'] ?? 0} 금${oheng['metal'] ?? 0} 수${oheng['water'] ?? 0}';
   }
 
+  /// 오행 분포 JSON 문자열 (한글 키)
+  ///
+  /// GPT 프롬프트 JSON 스키마에 직접 삽입용
+  /// 예: {"목": 2, "화": 1, "토": 3, "금": 1, "수": 1}
+  String get ohengJson {
+    final mok = oheng['wood'] ?? 0;
+    final hwa = oheng['fire'] ?? 0;
+    final to = oheng['earth'] ?? 0;
+    final geum = oheng['metal'] ?? 0;
+    final su = oheng['water'] ?? 0;
+    return '{"목": $mok, "화": $hwa, "토": $to, "금": $geum, "수": $su}';
+  }
+
   /// 일간 (일주 천간) - 나를 대표하는 오행
   ///
   /// 예: "병" (병화일간)
