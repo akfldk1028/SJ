@@ -4,16 +4,20 @@ import '../entities/day_strength.dart';
 import '../entities/saju_chart.dart';
 
 /// 일간 강약 분석 서비스
-/// Phase 37: 표준 명리학 점수 계산 방식으로 개선
+/// Phase 38: 비율 기준 등급 결정 방식 (삼주/사주 일관성 유지)
 ///
-/// 점수 가중치 (총 100점):
-/// - 천간: 연간 10점, 월간 10점, 시간 10점 = 30점
-/// - 지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
-/// - 비겁/인성이면 해당 점수 획득, 아니면 0점
-/// - 50점 이상 = 신강, 50점 미만 = 신약
+/// 점수 가중치:
+/// - 사주(시간 있음): 100점 만점
+///   천간: 연간 10점, 월간 10점, 시간 10점 = 30점
+///   지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
 ///
-/// 8단계: 극약(0-12), 태약(13-25), 신약(26-37), 중화신약(38-49),
-///        중화신강(50-62), 신강(63-74), 태강(75-87), 극왕(88-100)
+/// - 삼주(시간 모름): 75점 만점
+///   천간: 연간 10점, 월간 10점 = 20점
+///   지지: 연지 10점, 월지 30점, 일지 15점 = 55점
+///
+/// 등급 결정: 점수/만점 비율로 결정 (시간 유무와 관계없이 일관된 등급)
+/// - 88%+ = 극왕, 75-87% = 태강, 63-74% = 신강, 50-62% = 중화신강
+/// - 38-49% = 중화신약, 26-37% = 신약, 13-25% = 태약, 0-12% = 극약
 class DayStrengthService {
   /// 사주로부터 일간 강약 분석
   DayStrength analyze(SajuChart chart) {
@@ -45,20 +49,22 @@ class DayStrengthService {
     // 7. 월령 득실 상태
     final monthStatus = _checkMonthStatus(dayOheng, chart.monthPillar.ji);
 
-    // 8. 점수 계산 (Phase 37: 표준 명리학 방식)
-    final score = _calculateScoreV2(
+    // 8. 점수 계산 (Phase 38: 비율 기준 등급 결정)
+    final (rawScore, maxScore) = _calculateScoreV3(
       chart: chart,
       dayMaster: dayMaster,
-      dayOheng: dayOheng,
       deukryeong: deukryeong,
       deukji: deukji,
       deuksi: deuksi,
       deuknyeonji: deuknyeonji,
-      sipsinDistribution: sipsinDistribution,
     );
 
-    // 8. 8단계 등급 결정
-    final level = _determineLevel8(score);
+    // 9. 비율 기준 등급 결정 (삼주/사주 일관성 유지)
+    final ratio = rawScore / maxScore;
+    final level = _determineLevelByRatio(ratio);
+
+    // UI 표시용 점수 (100점 만점 환산)
+    final score = (ratio * 100).round().clamp(0, 100);
 
     // 세부 정보
     final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
@@ -145,26 +151,25 @@ class DayStrengthService {
     return category == SipSinCategory.bigeop || category == SipSinCategory.inseong;
   }
 
-  /// 점수 계산 V2 (Phase 37: 표준 명리학 점수 계산 방식)
+  /// 점수 계산 V3 (Phase 38: 비율 기준 등급 결정)
   ///
-  /// 가중치 기반 점수 계산 (총 100점):
-  /// - 천간: 연간 10점, 월간 10점, 시간 10점 = 30점
-  /// - 지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
-  /// - 비겁/인성이면 해당 점수 획득, 아니면 0점
-  /// - 50점 이상 = 신강, 50점 미만 = 신약
-  int _calculateScoreV2({
+  /// 반환: (획득 점수, 만점) 튜플
+  /// - 사주(시간 있음): 100점 만점
+  /// - 삼주(시간 모름): 75점 만점
+  ///
+  /// 명리학 원칙: "삼주 내에서 강약을 판단"
+  /// 참고: https://brunch.co.kr/@saju/5
+  (double, double) _calculateScoreV3({
     required SajuChart chart,
     required String dayMaster,
-    required Oheng dayOheng,
     required bool deukryeong,
     required bool deukji,
     required bool deuksi,
     required bool deuknyeonji,
-    required Map<SipSinCategory, int> sipsinDistribution,
   }) {
     double score = 0.0;
 
-    // === 천간 점수 (30점) ===
+    // === 천간 점수 ===
     // 년간 (10점)
     if (_isGanSupport(dayMaster, chart.yearPillar.gan)) {
       score += 10.0;
@@ -173,12 +178,12 @@ class DayStrengthService {
     if (_isGanSupport(dayMaster, chart.monthPillar.gan)) {
       score += 10.0;
     }
-    // 시간 (10점) - 시간 모르면 0점
+    // 시간 (10점) - 시간 모르면 계산에서 제외
     if (chart.hourPillar != null && _isGanSupport(dayMaster, chart.hourPillar!.gan)) {
       score += 10.0;
     }
 
-    // === 지지 점수 (70점) ===
+    // === 지지 점수 ===
     // 월지 (30점 - 가장 중요!)
     if (deukryeong) {
       score += 30.0;
@@ -189,7 +194,7 @@ class DayStrengthService {
       score += 15.0;
     }
 
-    // 시지 (15점) - 시간 모르면 시지 점수 없음
+    // 시지 (15점) - 시간 모르면 계산에서 제외
     if (deuksi) {
       score += 15.0;
     }
@@ -199,97 +204,25 @@ class DayStrengthService {
       score += 10.0;
     }
 
-    // === 시간 모름 보정 ===
-    // 시간을 모르면 최대 점수가 75점(10+10+30+15+10)이므로
-    // 비율 조정하여 100점 만점으로 환산
-    if (chart.hourPillar == null) {
-      // 시간 모름: 75점 만점 → 100점 만점으로 환산
-      score = (score / 75.0) * 100.0;
-    }
+    // 만점 결정: 시간 있음 = 100점, 시간 없음 = 75점
+    final maxScore = chart.hourPillar == null ? 75.0 : 100.0;
 
-    return score.round().clamp(0, 100);
+    return (score, maxScore);
   }
 
-  /// 점수 계산 (Phase 37: 표준 명리학 점수 계산 방식)
+  /// 비율 기준 8단계 등급 결정 (Phase 38)
   ///
-  /// 가중치 기반 점수 계산:
-  /// - 천간: 연간 10점, 월간 10점, 시간 10점 = 30점
-  /// - 지지: 연지 10점, 월지 30점, 일지 15점, 시지 15점 = 70점
-  /// - 비겁/인성이면 해당 점수 획득, 아니면 0점
-  /// - 총 100점 중 50점 이상 = 신강, 50점 미만 = 신약
-  int _calculateScore({
-    required bool deukryeong,
-    required bool deukji,
-    required bool deuksi,
-    required bool deukse,
-    required Map<SipSinCategory, int> sipsinDistribution,
-  }) {
-    // === 새로운 가중치 기반 점수 계산 ===
-    // 이 점수는 0-100 사이로 계산됨
-    double score = 0.0;
-
-    // 득령 (월지 30점 - 가장 중요!)
-    // 월지가 비겁/인성이면 30점 획득
-    if (deukryeong) {
-      score += 30.0;
-    }
-
-    // 득지 (일지 15점)
-    if (deukji) {
-      score += 15.0;
-    }
-
-    // 득시 (시지 15점)
-    if (deuksi) {
-      score += 15.0;
-    }
-
-    // 년지 (10점) - 득세와 별개로 년지 정기도 확인
-    // 득세가 true면 천간에서 비겁/인성이 2개 이상이므로 년간/월간 포함
-    // 년지는 별도로 체크해야 하지만, 현재 구조에서는 득세로 대체
-    // 추가 점수: 득세면 천간 비겁/인성이 있으므로 일부 점수 부여
-    if (deukse) {
-      score += 20.0; // 천간 비겁/인성 2개 = 약 20점 (10+10)
-    }
-
-    // 년지 점수 (별도 계산 필요하나, 간략화하여 십신 분포로 추정)
-    final bigeopCount = sipsinDistribution[SipSinCategory.bigeop] ?? 0;
-    final inseongCount = sipsinDistribution[SipSinCategory.inseong] ?? 0;
-    final jaeseongCount = sipsinDistribution[SipSinCategory.jaeseong] ?? 0;
-    final gwanseongCount = sipsinDistribution[SipSinCategory.gwanseong] ?? 0;
-    final siksangCount = sipsinDistribution[SipSinCategory.siksang] ?? 0;
-
-    // 비겁+인성 세력에 따른 추가 점수 (0-20점)
-    // 비겁+인성이 많을수록 신강, 재관식상이 많을수록 신약
-    final supportCount = bigeopCount + inseongCount;
-    final drainCount = jaeseongCount + gwanseongCount + siksangCount;
-
-    // 세력 비율에 따른 점수 조정
-    final totalCount = supportCount + drainCount;
-    if (totalCount > 0) {
-      // supportCount / totalCount 비율로 0-20점 배분
-      // 비겁+인성이 전체의 50% 이상이면 신강 쪽으로
-      final supportRatio = supportCount / totalCount;
-      score += (supportRatio * 20.0); // 최대 20점 추가
-    }
-
-    // 점수 범위 조정: 0-100 → 경계선 조정
-    // 현재 득령+득지+득시+득세+세력 = 최대 30+15+15+20+20 = 100점
-    // 최소 = 0점 (모두 실령, 실지, 실시, 실세, 재관식상만)
-
-    return score.round().clamp(0, 100);
-  }
-
-  /// 8단계 등급 결정 (포스텔러 기준)
-  DayStrengthLevel _determineLevel8(int score) {
-    if (score >= 88) return DayStrengthLevel.geukwang;    // 극왕
-    if (score >= 75) return DayStrengthLevel.taegang;     // 태강
-    if (score >= 63) return DayStrengthLevel.singang;     // 신강
-    if (score >= 50) return DayStrengthLevel.junghwaSingang; // 중화신강
-    if (score >= 38) return DayStrengthLevel.junghwaSinyak;  // 중화신약
-    if (score >= 26) return DayStrengthLevel.sinyak;      // 신약
-    if (score >= 13) return DayStrengthLevel.taeyak;      // 태약
-    return DayStrengthLevel.geukyak;                       // 극약
+  /// 시간 유무와 관계없이 비율로 등급 결정
+  /// → 삼주/사주 간 등급 일관성 유지
+  DayStrengthLevel _determineLevelByRatio(double ratio) {
+    if (ratio >= 0.88) return DayStrengthLevel.geukwang;       // 88%+ 극왕
+    if (ratio >= 0.75) return DayStrengthLevel.taegang;        // 75-87% 태강
+    if (ratio >= 0.63) return DayStrengthLevel.singang;        // 63-74% 신강
+    if (ratio >= 0.50) return DayStrengthLevel.junghwaSingang; // 50-62% 중화신강
+    if (ratio >= 0.38) return DayStrengthLevel.junghwaSinyak;  // 38-49% 중화신약
+    if (ratio >= 0.26) return DayStrengthLevel.sinyak;         // 26-37% 신약
+    if (ratio >= 0.13) return DayStrengthLevel.taeyak;         // 13-25% 태약
+    return DayStrengthLevel.geukyak;                            // 0-12% 극약
   }
 
   /// 십신 분포 계산 (천간 + 지장간 전체)
