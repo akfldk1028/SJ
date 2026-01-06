@@ -8,6 +8,7 @@ import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
+import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/domain/entities/saju_analysis.dart';
 import '../../../saju_chart/domain/entities/sinsal.dart';
@@ -469,14 +470,31 @@ class ChatNotifier extends _$ChatNotifier {
   /// v2.1: 토큰 최적화
   /// - isFirstMessage=true: sajuOrigin 전체 포함 (첫 메시지)
   /// - isFirstMessage=false: sajuOrigin 생략 (대화 히스토리에 이미 있음)
+  ///
+  /// v3.3: 현재 날짜 + 프로필 정보 추가
+  /// - AI가 현재 연도(2026년) 인식
+  /// - 사용자 생년월일, 성별 정보 제공
   String _buildFullSystemPrompt({
     required String basePrompt,
     AiSummary? aiSummary,
     SajuAnalysis? sajuAnalysis,  // v3.1: 로컬 사주 데이터 직접 사용
+    SajuProfile? profile,  // v3.3: 프로필 정보 (생년월일, 성별)
     AiPersona? persona,
     bool isFirstMessage = true,
   }) {
     final buffer = StringBuffer();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // v3.3: 현재 날짜 정보 추가 (AI가 오늘 날짜 인식)
+    // ═══════════════════════════════════════════════════════════════════════════
+    final now = DateTime.now();
+    final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    final weekday = weekdays[now.weekday - 1];
+    buffer.writeln('## 현재 날짜');
+    buffer.writeln('오늘은 ${now.year}년 ${now.month}월 ${now.day}일 ($weekday요일)입니다.');
+    buffer.writeln();
+    buffer.writeln('---');
+    buffer.writeln();
 
     // 0. 페르소나 지시문 추가 (가장 먼저)
     if (persona != null) {
@@ -490,6 +508,30 @@ class ChatNotifier extends _$ChatNotifier {
 
     // 기본 프롬프트 추가
     buffer.writeln(basePrompt);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // v3.3: 프로필 기본 정보 추가 (생년월일, 성별)
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (isFirstMessage && profile != null) {
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+      buffer.writeln('## 상담 대상자 정보');
+      buffer.writeln('- 이름: ${profile.displayName}');
+      buffer.writeln('- 성별: ${profile.gender.displayName}');
+      buffer.writeln('- 생년월일: ${profile.birthDateFormatted} (${profile.calendarTypeLabel})');
+      if (profile.birthTimeFormatted != null) {
+        buffer.writeln('- 출생시간: ${profile.birthTimeFormatted}');
+      } else if (profile.birthTimeUnknown) {
+        buffer.writeln('- 출생시간: 모름');
+      }
+      buffer.writeln('- 출생지역: ${profile.birthCity}');
+
+      // 나이 계산
+      final age = now.year - profile.birthDate.year;
+      final koreanAge = age + 1;
+      buffer.writeln('- 만 나이: $age세 (한국 나이: $koreanAge세)');
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // v3.1: 사주 데이터 직접 주입 (Edge Function sajuOrigin null 문제 해결)
@@ -1018,7 +1060,33 @@ class ChatNotifier extends _$ChatNotifier {
     final currentSession = await sessionRepository.getSession(currentSessionId);
     final profileId = currentSession?.profileId;
 
-    // [2] AI Summary 준비
+    // ═══════════════════════════════════════════════════════════════════════════
+    // [2] AI Summary 준비 (v3.2: 비동기 - 블로킹 제거)
+    // - v3.1에서 로컬 SajuAnalysis 사용하므로 aiSummary는 캐시용
+    // - Edge Function 호출을 백그라운드로 변경하여 첫 메시지 속도 개선
+    // ═══════════════════════════════════════════════════════════════════════════
+    AiSummary? aiSummary = _cachedAiSummary; // 캐시 있으면 즉시 사용
+    if (state.messages.isEmpty && _cachedAiSummary == null && profileId != null) {
+      if (kDebugMode) {
+        print('');
+        print('┌──────────────────────────────────────────────────────────────┐');
+        print('│  📦 [2] AI SUMMARY (비동기)                                  │');
+        print('└──────────────────────────────────────────────────────────────┘');
+        print('   🔄 백그라운드 캐시 생성 시작 (블로킹 없음)...');
+      }
+      // v3.2: 비동기 (fire-and-forget) - await 제거로 블로킹 방지
+      _ensureAiSummary(profileId).then((summary) {
+        _cachedAiSummary = summary;
+        if (kDebugMode) {
+          print('   ✅ [비동기] AI Summary 캐시 완료');
+        }
+      });
+    } else if (_cachedAiSummary != null && kDebugMode) {
+      print('   ✅ 캐시된 AI Summary 사용');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+    // v3.1 이전 동기 코드 (주석처리) - Edge Function 블로킹으로 첫 메시지 느림
     AiSummary? aiSummary;
     if (state.messages.isEmpty) {
       if (kDebugMode) {
@@ -1028,14 +1096,14 @@ class ChatNotifier extends _$ChatNotifier {
         print('└──────────────────────────────────────────────────────────────┘');
         print('   🔄 첫 메시지 - AI Summary 확인/생성...');
       }
-      aiSummary = await _ensureAiSummary(profileId);
+      aiSummary = await _ensureAiSummary(profileId);  // ← 동기 호출 (느림!)
     } else {
-      // 이미 메시지가 있으면 캐시된 요약 사용
       aiSummary = _cachedAiSummary;
       if (kDebugMode) {
         print('   ✅ 캐시된 AI Summary 사용');
       }
     }
+    ═══════════════════════════════════════════════════════════════════════════ */
 
     // 사용자 메시지 추가 (sessionId 포함)
     final userMessage = ChatMessage(
@@ -1086,10 +1154,16 @@ class ChatNotifier extends _$ChatNotifier {
           ? await ref.read(currentSajuAnalysisProvider.future)
           : null;
 
+      // v3.3: 프로필 정보 가져오기 (Supabase에서 조회됨)
+      final activeProfile = isFirstMessage
+          ? await ref.read(activeProfileProvider.future)
+          : null;
+
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiSummary: aiSummary,
         sajuAnalysis: sajuAnalysis,  // v3.1: 로컬 사주 데이터
+        profile: activeProfile,  // v3.3: 프로필 정보 (생년월일, 성별)
         persona: currentPersona,
         isFirstMessage: isFirstMessage,
       );
@@ -1097,22 +1171,27 @@ class ChatNotifier extends _$ChatNotifier {
       // [4] 시스템 프롬프트 구성
       if (kDebugMode) {
         print('');
-        print('┌──────────────────────────────────────────────────────────────┐');
-        print('│  ⚙️ [4] SYSTEM PROMPT BUILD                                  │');
-        print('└──────────────────────────────────────────────────────────────┘');
-        print('   👤 페르소나: ${currentPersona.displayName}');
-        print('   🔢 isFirstMessage: $isFirstMessage');
+        print('[4] SYSTEM PROMPT BUILD (v3.3)');
+        print('   현재 날짜: ${DateTime.now().year}년 ${DateTime.now().month}월 ${DateTime.now().day}일');
+        print('   페르소나: ${currentPersona.displayName}');
+        print('   isFirstMessage: $isFirstMessage');
+        if (activeProfile != null) {
+          print('   프로필: ${activeProfile.displayName} (${activeProfile.gender.displayName})');
+          print('   생년월일: ${activeProfile.birthDateFormatted}');
+        } else {
+          print('   프로필 없음');
+        }
         if (aiSummary != null) {
-          print('   ✅ AI Summary 포함');
+          print('   AI Summary 포함');
           if (isFirstMessage && aiSummary.sajuOrigin != null) {
-            print('   📋 sajuOrigin: ✅ 전체 포함 (합충형파해, 십성, 신살 등)');
+            print('   sajuOrigin: 전체 포함 (합충형파해, 십성, 신살 등)');
           } else {
-            print('   📋 sajuOrigin: ⏭️ 생략 (대화 히스토리 참조)');
+            print('   sajuOrigin: 생략 (대화 히스토리 참조)');
           }
         } else {
-          print('   ❌ AI Summary 없음');
+          print('   AI Summary 없음');
         }
-        print('   📏 프롬프트 길이: ${systemPrompt.length} chars');
+        print('   프롬프트 길이: ${systemPrompt.length} chars');
       }
 
       // 스트리밍 응답 (세션별 독립된 repository 사용)

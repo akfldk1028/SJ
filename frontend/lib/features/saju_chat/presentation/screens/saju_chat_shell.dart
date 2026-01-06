@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../ad/ad.dart';
+import '../../../../router/routes.dart';
 import '../../domain/models/chat_type.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
@@ -157,11 +159,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
       key: _scaffoldKey,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(Routes.menu),
+          tooltip: '메뉴로 돌아가기',
         ),
         title: Text(currentSession?.title ?? _chatType.title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            tooltip: '채팅 기록',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _handleNewChat,
@@ -224,9 +232,15 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                   ),
                   child: Row(
                     children: [
+                      // 뒤로가기 버튼
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => context.go(Routes.menu),
+                        tooltip: '메뉴로 돌아가기',
+                      ),
                       // 햄버거 아이콘 (사이드바 토글)
                       IconButton(
-                        icon: const Icon(Icons.menu),
+                        icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
                         onPressed: () {
                           setState(() {
                             _isSidebarVisible = !_isSidebarVisible;

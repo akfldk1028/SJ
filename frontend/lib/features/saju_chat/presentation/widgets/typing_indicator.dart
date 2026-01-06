@@ -54,10 +54,18 @@ class _TypingIndicatorState extends State<TypingIndicator>
     while (mounted) {
       for (int i = 0; i < 3; i++) {
         if (!mounted) return;
-        await _controllers[i].forward();
-        await _controllers[i].reverse();
-        await Future.delayed(const Duration(milliseconds: 50));
+        try {
+          await _controllers[i].forward();
+          if (!mounted) return;
+          await _controllers[i].reverse();
+          if (!mounted) return;
+          await Future.delayed(const Duration(milliseconds: 50));
+        } catch (_) {
+          // AnimationController가 dispose된 경우 무시
+          return;
+        }
       }
+      if (!mounted) return;
       await Future.delayed(const Duration(milliseconds: 200));
     }
   }
