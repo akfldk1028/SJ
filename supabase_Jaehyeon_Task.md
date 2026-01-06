@@ -1532,9 +1532,16 @@ String get ohengJson {
 "oheng": ${data.ohengJson},
 ```
 
-### 테스트 필요 항목
-- [ ] 새 프로필 생성 후 ai_summaries.content.saju_origin.oheng 확인
-- [ ] 김동현(음력 1994-11-28 09:20) 테스트: oheng이 `{"목":2,"화":1,"토":2,"금":2,"수":1}`로 저장되는지 확인
+### 테스트 결과 ✅ 검증 완료 (2026-01-06)
+
+**김동현 프로필** (profile_id: `39f79705-504d-49b2-bb37-b829e0623a2e`)
+
+| summary_type | input_data.oheng | content.saju_origin.oheng | 상태 |
+|--------------|------------------|---------------------------|------|
+| saju_base | `{fire:1, wood:2, earth:2, metal:2, water:1}` | `{금:2, 목:2, 수:1, 토:2, 화:1}` | ✅ 정상 |
+| daily_fortune | `{fire:1, wood:2, earth:2, metal:2, water:1}` | `null` (정상 - 일운은 없음) | ✅ 정상 |
+
+**참고**: daily_fortune은 `saju_origin` 필드가 없는 것이 정상 동작입니다.
 
 ### 관련 파일
 | 파일 | 역할 |

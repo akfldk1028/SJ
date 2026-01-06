@@ -62,13 +62,26 @@ class JijiRelationResult {
   String toString() => '$pillar1($ji1) - $pillar2($ji2): ${type.korean}';
 }
 
+/// 반합 타입
+enum SamhapHalfType {
+  full('완전삼합', '完全三合'), // 3개 모두 있음
+  halfWithWangji('반합(왕지)', '半合(旺支)'), // 왕지 포함 2개
+  halfLoose('반합', '半合'); // 왕지 없이 2개 (포스텔러 기준)
+
+  final String korean;
+  final String hanja;
+
+  const SamhapHalfType(this.korean, this.hanja);
+}
+
 /// 삼합 분석 결과
 class SamhapResult {
   final List<String> jijis;
   final List<String> pillars;
   final String resultOheng;
   final String description;
-  final bool isFullSamhap; // 완전 삼합 여부
+  final bool isFullSamhap; // 완전 삼합 여부 (하위 호환)
+  final SamhapHalfType halfType; // 반합 타입 (Phase 41 추가)
 
   const SamhapResult({
     required this.jijis,
@@ -76,7 +89,11 @@ class SamhapResult {
     required this.resultOheng,
     required this.description,
     required this.isFullSamhap,
+    this.halfType = SamhapHalfType.full,
   });
+
+  /// 표시용 라벨 (삼합/반합(왕지)/반합)
+  String get displayLabel => halfType.korean;
 }
 
 /// 방합 분석 결과
@@ -87,6 +104,7 @@ class BanghapResult {
   final String season;
   final String direction;
   final String description;
+  final bool isFullBanghap; // 완전 방합 여부 (Phase 41 추가)
 
   const BanghapResult({
     required this.jijis,
@@ -95,7 +113,11 @@ class BanghapResult {
     required this.season,
     required this.direction,
     required this.description,
+    this.isFullBanghap = true,
   });
+
+  /// 표시용 라벨 (방합/반방합)
+  String get displayLabel => isFullBanghap ? '방합' : '반방합';
 }
 
 /// 종합 분석 결과
@@ -327,7 +349,7 @@ class HapchungService {
     );
   }
 
-  /// 삼합 분석
+  /// 삼합 분석 (포스텔러 기준 - 느슨한 반합 포함)
   static List<SamhapResult> _analyzeSamhap(List<(String, String)> jis) {
     final results = <SamhapResult>[];
     final jijiSet = jis.map((e) => e.$1).toSet();
@@ -347,24 +369,44 @@ class HapchungService {
           resultOheng: samhap.resultOheng,
           description: samhap.description,
           isFullSamhap: true,
+          halfType: SamhapHalfType.full,
         ));
       }
     }
 
-    // 반합 확인 (완전 삼합이 없을 때만)
-    if (results.isEmpty) {
-      for (var i = 0; i < jis.length; i++) {
-        for (var j = i + 1; j < jis.length; j++) {
-          final halfSamhap = findJijiHalfSamhap(jis[i].$1, jis[j].$1);
-          if (halfSamhap != null) {
-            results.add(SamhapResult(
-              jijis: [jis[i].$1, jis[j].$1],
-              pillars: [jis[i].$2, jis[j].$2],
-              resultOheng: halfSamhap.resultOheng,
-              description: '${jis[i].$1}${jis[j].$1} 반합(${halfSamhap.resultOheng}국)',
-              isFullSamhap: false,
-            ));
-          }
+    // 반합 확인 - 포스텔러 기준 (느슨한 해석: 왕지 없어도 2개면 인정)
+    // 완전 삼합이 있어도 다른 조합의 반합은 추가로 표시
+    final foundFullSamhapOhengs = results.map((r) => r.resultOheng).toSet();
+
+    for (var i = 0; i < jis.length; i++) {
+      for (var j = i + 1; j < jis.length; j++) {
+        // 포스텔러 기준: 왕지 없어도 2개면 반합
+        final (halfSamhap, halfType) =
+            findJijiHalfSamhapWithType(jis[i].$1, jis[j].$1);
+
+        if (halfSamhap != null && halfType != null) {
+          // 이미 완전 삼합이 있는 오행은 반합 생략
+          if (foundFullSamhapOhengs.contains(halfSamhap.resultOheng)) continue;
+
+          // 같은 지지 조합의 반합이 이미 있는지 확인 (중복 방지)
+          final pairKey = {jis[i].$1, jis[j].$1};
+          final alreadyExists = results.any((r) =>
+              !r.isFullSamhap && r.jijis.toSet().containsAll(pairKey));
+          if (alreadyExists) continue;
+
+          final samhapHalfType = halfType == 'half_with_wangji'
+              ? SamhapHalfType.halfWithWangji
+              : SamhapHalfType.halfLoose;
+
+          results.add(SamhapResult(
+            jijis: [jis[i].$1, jis[j].$1],
+            pillars: [jis[i].$2, jis[j].$2],
+            resultOheng: halfSamhap.resultOheng,
+            description:
+                '${jis[i].$1}${jis[j].$1} 반합(${halfSamhap.resultOheng}국)',
+            isFullSamhap: false,
+            halfType: samhapHalfType,
+          ));
         }
       }
     }
@@ -372,11 +414,12 @@ class HapchungService {
     return results;
   }
 
-  /// 방합 분석
+  /// 방합 분석 (포스텔러 기준 - 반방합 포함)
   static List<BanghapResult> _analyzeBanghap(List<(String, String)> jis) {
     final results = <BanghapResult>[];
     final jijiSet = jis.map((e) => e.$1).toSet();
 
+    // 완전 방합 확인
     for (final banghap in jijiBanghapList) {
       if (banghap.matches(jijiSet)) {
         final matchingPillars = jis
@@ -394,7 +437,39 @@ class HapchungService {
           season: banghap.season,
           direction: banghap.direction,
           description: banghap.description,
+          isFullBanghap: true,
         ));
+      }
+    }
+
+    // 반방합 확인 - 포스텔러 기준 (2개면 반방합)
+    final foundFullBanghapOhengs = results.map((r) => r.resultOheng).toSet();
+
+    for (var i = 0; i < jis.length; i++) {
+      for (var j = i + 1; j < jis.length; j++) {
+        final halfBanghap = findJijiHalfBanghap(jis[i].$1, jis[j].$1);
+
+        if (halfBanghap != null) {
+          // 이미 완전 방합이 있는 오행은 반방합 생략
+          if (foundFullBanghapOhengs.contains(halfBanghap.resultOheng)) continue;
+
+          // 같은 지지 조합의 반방합이 이미 있는지 확인 (중복 방지)
+          final pairKey = {jis[i].$1, jis[j].$1};
+          final alreadyExists = results.any((r) =>
+              !r.isFullBanghap && r.jijis.toSet().containsAll(pairKey));
+          if (alreadyExists) continue;
+
+          results.add(BanghapResult(
+            jijis: [jis[i].$1, jis[j].$1],
+            pillars: [jis[i].$2, jis[j].$2],
+            resultOheng: halfBanghap.resultOheng,
+            season: halfBanghap.season,
+            direction: halfBanghap.direction,
+            description:
+                '${jis[i].$1}${jis[j].$1} 반방합(${halfBanghap.direction}방 ${halfBanghap.resultOheng})',
+            isFullBanghap: false,
+          ));
+        }
       }
     }
 
