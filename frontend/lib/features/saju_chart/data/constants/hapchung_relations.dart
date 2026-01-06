@@ -221,12 +221,33 @@ class JijiSamhap {
     return jijis.contains(ji1) && jijis.contains(ji2) && jijis.contains(ji3);
   }
 
-  /// 반합 (두 지지) 확인 - 왕지 포함 필수
+  /// 반합 (두 지지) 확인 - 왕지 포함 필수 (엄격한 해석)
   bool isHalfMatch(String a, String b) {
     final pair = {a, b};
     // 왕지(ji2)가 포함되어야 반합
     if (!pair.contains(ji2)) return false;
     return pair.contains(ji1) || pair.contains(ji3);
+  }
+
+  /// 반합 (두 지지) 확인 - 왕지 없어도 2개면 OK (포스텔러 기준, 느슨한 해석)
+  /// 예: 인술(寅戌) - 화국 반합 (왕지 오(午) 없어도 인정)
+  bool isHalfMatchLoose(String a, String b) {
+    final pair = {a, b};
+    final members = {ji1, ji2, ji3};
+    // 삼합 구성원 중 2개가 있으면 반합
+    return pair.intersection(members).length == 2;
+  }
+
+  /// 반합 타입 반환
+  /// - 'full': 완전 삼합 (3개)
+  /// - 'half_with_wangji': 왕지 포함 반합
+  /// - 'half_loose': 왕지 없는 반합 (포스텔러 기준)
+  /// - null: 해당 없음
+  String? getHalfType(String a, String b) {
+    final pair = {a, b};
+    if (!isHalfMatchLoose(a, b)) return null;
+    if (pair.contains(ji2)) return 'half_with_wangji';
+    return 'half_loose';
   }
 }
 
@@ -270,12 +291,33 @@ JijiSamhap? findJijiSamhap(Set<String> jijis) {
   return null;
 }
 
-/// 두 지지가 반합인지 확인 (왕지 포함 필수)
+/// 두 지지가 반합인지 확인 (왕지 포함 필수 - 엄격한 해석)
 JijiSamhap? findJijiHalfSamhap(String ji1, String ji2) {
   for (final samhap in jijiSamhapList) {
     if (samhap.isHalfMatch(ji1, ji2)) return samhap;
   }
   return null;
+}
+
+/// 두 지지가 반합인지 확인 (왕지 없어도 OK - 포스텔러 기준, 느슨한 해석)
+/// 예: 인술(寅戌) - 화국 반합 (왕지 오(午) 없어도 인정)
+JijiSamhap? findJijiHalfSamhapLoose(String ji1, String ji2) {
+  for (final samhap in jijiSamhapList) {
+    if (samhap.isHalfMatchLoose(ji1, ji2)) return samhap;
+  }
+  return null;
+}
+
+/// 반합 타입과 함께 삼합 정보 반환 (포스텔러 기준)
+/// Returns: (JijiSamhap?, halfType) where halfType is 'half_with_wangji' or 'half_loose'
+(JijiSamhap?, String?) findJijiHalfSamhapWithType(String ji1, String ji2) {
+  for (final samhap in jijiSamhapList) {
+    final halfType = samhap.getHalfType(ji1, ji2);
+    if (halfType != null) {
+      return (samhap, halfType);
+    }
+  }
+  return (null, null);
 }
 
 // ============================================================================
@@ -302,8 +344,18 @@ class JijiBanghap {
     required this.description,
   });
 
+  /// 완전 방합 (3개) 확인
   bool matches(Set<String> jijis) {
     return jijis.contains(ji1) && jijis.contains(ji2) && jijis.contains(ji3);
+  }
+
+  /// 반방합 (2개) 확인 - 포스텔러 기준
+  /// 예: 인진(寅辰) - 동방목 반방합 (묘(卯) 없어도 인정)
+  bool isHalfMatch(String a, String b) {
+    final pair = {a, b};
+    final members = {ji1, ji2, ji3};
+    // 방합 구성원 중 2개가 있으면 반방합
+    return pair.intersection(members).length == 2;
   }
 }
 
@@ -347,10 +399,19 @@ const List<JijiBanghap> jijiBanghapList = [
   ),
 ];
 
-/// 세 지지가 방합인지 확인
+/// 세 지지가 방합인지 확인 (완전 방합)
 JijiBanghap? findJijiBanghap(Set<String> jijis) {
   for (final banghap in jijiBanghapList) {
     if (banghap.matches(jijis)) return banghap;
+  }
+  return null;
+}
+
+/// 두 지지가 반방합인지 확인 (포스텔러 기준)
+/// 예: 인진(寅辰) - 동방목 반방합
+JijiBanghap? findJijiHalfBanghap(String ji1, String ji2) {
+  for (final banghap in jijiBanghapList) {
+    if (banghap.isHalfMatch(ji1, ji2)) return banghap;
   }
   return null;
 }
