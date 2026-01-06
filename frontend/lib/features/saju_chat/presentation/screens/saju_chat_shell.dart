@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../ad/ad.dart';
+import '../../../../router/routes.dart';
 import '../../domain/models/chat_type.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
@@ -157,11 +159,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
       key: _scaffoldKey,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(Routes.menu),
+          tooltip: '메뉴로 돌아가기',
         ),
         title: Text(currentSession?.title ?? _chatType.title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            tooltip: '채팅 기록',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _handleNewChat,
@@ -224,9 +232,15 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                   ),
                   child: Row(
                     children: [
+                      // 뒤로가기 버튼
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => context.go(Routes.menu),
+                        tooltip: '메뉴로 돌아가기',
+                      ),
                       // 햄버거 아이콘 (사이드바 토글)
                       IconButton(
-                        icon: const Icon(Icons.menu),
+                        icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
                         onPressed: () {
                           setState(() {
                             _isSidebarVisible = !_isSidebarVisible;
@@ -400,6 +414,9 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     return Column(
       children: [
         const DisclaimerBanner(),
+        // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
+        if (chatState.isDeepAnalysisRunning)
+          const _DeepAnalysisLoadingBanner(),
         Expanded(
           child: ChatMessageList(
             messages: chatState.messages,
@@ -434,6 +451,70 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           hintText: widget.chatType.inputHint,
         ),
       ],
+    );
+  }
+}
+
+/// GPT-5.2 상세 분석 로딩 배너
+///
+/// 첫 프로필 분석 시 ~2분 소요되므로 사용자에게 진행 상황을 안내합니다.
+/// - 합충형파해, 십성, 신살 등 정밀 분석 진행
+/// - 한 번 저장되면 이후에는 빠르게 로드됨
+class _DeepAnalysisLoadingBanner extends StatelessWidget {
+  const _DeepAnalysisLoadingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withOpacity(0.3),
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // 로딩 스피너
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 안내 텍스트
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '상세 사주 분석 중...',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '합충형파해, 십성, 신살 등 정밀 분석 진행 (약 1~2분 소요)',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

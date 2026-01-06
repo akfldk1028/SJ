@@ -21,7 +21,9 @@ enum AiPersona {
   master,
   cute,
   professional,
-  babyMonk;
+  babyMonk,
+  scenarioWriter,
+  newbieShaman;
 
   /// PersonaRegistry ID 매핑
   ///
@@ -38,6 +40,10 @@ enum AiPersona {
         return 'friendly_sister';
       case AiPersona.babyMonk:
         return 'baby_monk';
+      case AiPersona.scenarioWriter:
+        return 'saju_scenario_builder';
+      case AiPersona.newbieShaman:
+        return 'newbie_shaman';
     }
   }
 
@@ -57,6 +63,10 @@ enum AiPersona {
         return 'AI 상담사';
       case AiPersona.babyMonk:
         return '아기동자';
+      case AiPersona.scenarioWriter:
+        return '송작가';
+      case AiPersona.newbieShaman:
+        return '하꼬무당(장비장군)';
     }
   }
 
@@ -73,6 +83,10 @@ enum AiPersona {
         return '🔮';
       case AiPersona.babyMonk:
         return '👶';
+      case AiPersona.scenarioWriter:
+        return '🗣️';
+      case AiPersona.newbieShaman:
+        return '😱';
     }
   }
 
@@ -89,6 +103,10 @@ enum AiPersona {
         return '전문적이고 정중한 말투';
       case AiPersona.babyMonk:
         return '반말과 팩폭, 꼬마도사';
+      case AiPersona.scenarioWriter:
+        return '사주 스토리텔러';
+      case AiPersona.newbieShaman:
+        return '장비장군이 오셨다';
     }
   }
 
@@ -111,6 +129,10 @@ enum AiPersona {
         return AiPersona.professional;
       case 'babyMonk':
         return AiPersona.babyMonk;
+      case 'scenarioWriter':
+        return AiPersona.scenarioWriter;
+      case 'newbieShaman':
+        return AiPersona.newbieShaman;
       default:
         return AiPersona.professional;
     }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +7,7 @@ import '../../../../core/services/supabase_service.dart';
 import '../../../../AI/core/ai_logger.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
+import '../services/sse_stream_client.dart';
 
 /// Gemini API 응답 (토큰 사용량 포함)
 class GeminiResponse {
@@ -40,6 +40,7 @@ class GeminiEdgeDatasource {
   String? _systemPrompt;
   bool _isInitialized = false;
   late final Dio _dio;
+  late final SseStreamClient _sseClient;
 
   /// 대화 윈도우 관리자 (토큰 제한)
   final ConversationWindowManager _windowManager = ConversationWindowManager();
@@ -91,6 +92,9 @@ class GeminiEdgeDatasource {
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 120),
     ));
+
+    // SSE 스트리밍 클라이언트 초기화
+    _sseClient = SseStreamClient(_dio);
 
     _isInitialized = true;
     if (kDebugMode) {
@@ -225,35 +229,231 @@ class GeminiEdgeDatasource {
   /// 마지막 스트리밍 응답의 토큰 사용량 getter
   GeminiResponse? get lastStreamingResponse => _lastStreamingResponse;
 
-  /// 스트리밍 응답 (Edge Function은 스트리밍 미지원, 일반 응답으로 대체)
+  /// 스트리밍 응답 (SSE - Server-Sent Events)
   ///
-  /// 참고: Edge Function에서 스트리밍을 지원하려면 SSE 구현 필요
-  /// 현재는 전체 응답을 받은 후 한 번에 yield
+  /// v17: 모듈화된 SseStreamClient 사용
+  /// 응답이 실시간으로 yield되어 ChatGPT처럼 타이핑 효과 제공
+  ///
+  /// Web 플랫폼 참고:
+  /// - Chrome/Firefox는 fetch API가 SSE를 버퍼링할 수 있음
+  /// - 완전한 실시간 효과는 모바일에서 최적
   Stream<String> sendMessageStream(String message) async* {
     _lastStreamingResponse = null;
+    bool hasYieldedContent = false;
 
+    // Mock 모드
     if (!_isInitialized) {
-      final mockResponse = _getMockResponse(message);
-      // Mock 스트리밍 효과
-      for (int i = 0; i < mockResponse.length; i++) {
-        await Future.delayed(const Duration(milliseconds: 20));
-        yield mockResponse.substring(0, i + 1);
-      }
-      _lastStreamingResponse = GeminiResponse(content: mockResponse);
+      yield* _mockStreamingResponse(message);
       return;
     }
 
     try {
-      // Edge Function 호출 (일반 응답)
-      final response = await sendMessageWithMetadata(message);
+      // 대화 기록에 사용자 메시지 추가
+      _addUserMessage(message);
 
-      // 전체 응답을 한 번에 yield (스트리밍 효과 시뮬레이션)
-      // 실제 스트리밍을 원하면 Edge Function에서 SSE 구현 필요
-      yield response.content;
+      // Edge Function 호출 준비
+      final messages = _buildMessagesForEdge();
+      final userId = SupabaseService.currentUserId;
 
-      _lastStreamingResponse = response;
+      if (kDebugMode) {
+        print('[GeminiEdge] SSE 스트리밍 요청 시작...');
+      }
+
+      // 모듈화된 SSE 클라이언트로 스트리밍
+      // Web 플랫폼에서는 자동으로 시뮬레이션 스트리밍 적용
+      await for (final chunk in _sseClient.streamRequestWithSimulation(
+        url: '',
+        data: {
+          'messages': messages,
+          'model': 'gemini-3-flash-preview',
+          'max_tokens': 16384,
+          'temperature': 0.8,
+          'stream': true,
+          if (userId != null) 'user_id': userId,
+        },
+        headers: {
+          'Authorization': 'Bearer $_authToken',
+        },
+      )) {
+        // 텍스트 청크 yield
+        if (chunk.accumulatedText.isNotEmpty) {
+          hasYieldedContent = true;
+          yield chunk.accumulatedText;
+        }
+
+        // 완료 시 후처리
+        if (chunk.isDone) {
+          await _handleStreamCompletion(
+            message: message,
+            content: chunk.accumulatedText,
+            promptTokens: chunk.promptTokens,
+            completionTokens: chunk.completionTokens,
+            totalTokens: chunk.totalTokens,
+            finishReason: chunk.finishReason,
+          );
+        }
+      }
+    } on SseException catch (e) {
+      if (kDebugMode) {
+        print('[GeminiEdge] SSE 에러: ${e.message}');
+      }
+      yield* _handleStreamError(
+        originalError: e,
+        message: message,
+        hasYieldedContent: hasYieldedContent,
+      );
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('[GeminiEdge] Dio 에러: ${e.message}');
+      }
+      yield* _handleStreamError(
+        originalError: e,
+        message: message,
+        hasYieldedContent: hasYieldedContent,
+      );
     } catch (e) {
+      if (kDebugMode) {
+        print('[GeminiEdge] 알 수 없는 에러: $e');
+      }
+      _rollbackUserMessage();
       throw Exception('AI 스트리밍 오류: $e');
+    }
+  }
+
+  /// Mock 스트리밍 응답 (개발/테스트용)
+  Stream<String> _mockStreamingResponse(String message) async* {
+    final mockResponse = _getMockResponse(message);
+    for (int i = 0; i < mockResponse.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 20));
+      yield mockResponse.substring(0, i + 1);
+    }
+    _lastStreamingResponse = GeminiResponse(content: mockResponse);
+  }
+
+  /// 사용자 메시지 추가
+  void _addUserMessage(String message) {
+    _conversationHistory.add({
+      'role': 'user',
+      'parts': [
+        {'text': message}
+      ],
+    });
+  }
+
+  /// 마지막 사용자 메시지 롤백 (에러 시)
+  void _rollbackUserMessage() {
+    if (_conversationHistory.isNotEmpty &&
+        _conversationHistory.last['role'] == 'user') {
+      _conversationHistory.removeLast();
+    }
+  }
+
+  /// 스트리밍 완료 처리
+  Future<void> _handleStreamCompletion({
+    required String message,
+    required String content,
+    int? promptTokens,
+    int? completionTokens,
+    int? totalTokens,
+    String? finishReason,
+  }) async {
+    // 대화 기록에 AI 응답 추가
+    _conversationHistory.add({
+      'role': 'model',
+      'parts': [
+        {'text': content}
+      ],
+    });
+
+    // 로컬 로그 저장
+    await AiLogger.log(
+      provider: 'gemini-edge-stream',
+      model: 'gemini-3-flash-preview',
+      type: 'chat-stream',
+      request: {
+        'message': message,
+        'system_prompt_length': _systemPrompt?.length ?? 0,
+      },
+      response: {'content': content},
+      tokens: {
+        'prompt': promptTokens,
+        'completion': completionTokens,
+        'total': totalTokens,
+      },
+      costUsd: _calculateCost(promptTokens ?? 0, completionTokens ?? 0),
+      success: true,
+    );
+
+    _lastStreamingResponse = GeminiResponse(
+      content: content,
+      promptTokenCount: promptTokens,
+      candidatesTokenCount: completionTokens,
+      totalTokenCount: totalTokens,
+      finishReason: finishReason,
+    );
+
+    if (kDebugMode) {
+      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $totalTokens');
+    }
+  }
+
+  /// 스트리밍 에러 처리 및 폴백
+  ///
+  /// Web 플랫폼에서 SSE 연결 실패 시:
+  /// - 비스트리밍 API로 전체 응답 수신
+  /// - 클라이언트 측에서 타이핑 효과 시뮬레이션
+  Stream<String> _handleStreamError({
+    required dynamic originalError,
+    required String message,
+    required bool hasYieldedContent,
+  }) async* {
+    _rollbackUserMessage();
+
+    // 이미 콘텐츠가 전송된 경우 폴백 불가
+    if (hasYieldedContent) {
+      if (kDebugMode) {
+        print('[GeminiEdge] 콘텐츠 전송 후 에러, 폴백 불가');
+      }
+      throw Exception('AI 스트리밍 중단: $originalError');
+    }
+
+    // 비스트리밍 API로 폴백 시도
+    if (kDebugMode) {
+      print('[GeminiEdge] 비스트리밍 API로 폴백...');
+    }
+    try {
+      final response = await sendMessageWithMetadata(message);
+      final content = response.content;
+      _lastStreamingResponse = response;
+
+      // Web 플랫폼: 클라이언트 측 타이핑 시뮬레이션
+      // 단어 단위로 yield하여 스트리밍 효과 제공
+      if (kIsWeb && content.isNotEmpty) {
+        if (kDebugMode) {
+          print('[GeminiEdge] Web 폴백 시뮬레이션: ${content.length}자 타이핑 효과');
+        }
+
+        final words = content.split(' ');
+        final buffer = StringBuffer();
+
+        for (int i = 0; i < words.length; i++) {
+          if (i > 0) buffer.write(' ');
+          buffer.write(words[i]);
+
+          yield buffer.toString();
+
+          // 단어당 24ms 지연 (글자당 8ms * 평균 3글자)
+          await Future.delayed(const Duration(milliseconds: 24));
+        }
+      } else {
+        // 모바일/데스크톱 또는 빈 응답: 바로 yield
+        yield content;
+      }
+    } catch (fallbackError) {
+      if (kDebugMode) {
+        print('[GeminiEdge] 폴백도 실패: $fallbackError');
+      }
+      throw Exception('AI 응답 오류: $originalError');
     }
   }
 

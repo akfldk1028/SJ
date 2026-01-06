@@ -229,7 +229,7 @@ ${_buildHapchungSection(data.hapchung)}
       "day": {"gan": "일간", "ji": "일지"},
       "hour": {"gan": "시간", "ji": "시지"}
     },
-    "oheng": {"목": 0, "화": 0, "토": 0, "금": 0, "수": 0},
+    "oheng": ${data.ohengJson},
     "day_master": "일간 오행",
     "yongsin": {
       "yongsin": "용신",

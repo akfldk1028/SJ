@@ -466,7 +466,8 @@ class HapchungTab extends StatelessWidget {
 
   Widget _buildSamhapCard(BuildContext context, {required SamhapResult samhap}) {
     final color = AppColors.success;
-    final label = samhap.isFullSamhap ? '삼합' : '반합';
+    // Phase 41: halfType 기반 라벨 표시
+    final label = samhap.isFullSamhap ? '삼합' : samhap.displayLabel;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -549,6 +550,8 @@ class HapchungTab extends StatelessWidget {
       required BanghapResult banghap,
     }) {
     final color = AppColors.success;
+    // Phase 41: isFullBanghap 기반 라벨 표시
+    final label = banghap.displayLabel;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -592,7 +595,7 @@ class HapchungTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        '방합',
+                        label,
                         style: TextStyle(
                           color: color,
                           fontSize: 10,
@@ -602,7 +605,7 @@ class HapchungTab extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${banghap.direction} ${banghap.season}',
+                      '${banghap.direction}방 ${banghap.season}',
                       style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 11,

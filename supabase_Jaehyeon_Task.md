@@ -708,7 +708,7 @@ AI 응답:     score 53 → "신약" (잘못됨!)
 2. ~~**AiApiService polling 로직 추가**~~ ✅ Phase 28 완료
 3. ~~**UI와 DB 불일치 점검**~~ ✅ Phase 29 완료
 4. ~~**음력 테이블 한중 차이 수정**~~ ✅ Phase 30 완료
-5. ~~**12신살 기준 검증**~~ ✅ Phase 31 완료 (일지 기준 유지)
+5. ~~**12신살 기준 검증**~~ ✅ Phase 31 완료 → Phase 39에서 년지 기준으로 변경
 6. ~~**1994년 음력 테이블 수정**~~ ✅ Phase 32 완료 (2월/11월 대소월 오류)
 7. ~~**김동현 프로필 재생성**~~ ✅ Phase 35 완료 (사주 검증 완료)
 8. ~~**Phase 29 테스트 - 신강/신약 level 일치 확인**~~ ✅ Phase 35 완료
@@ -741,18 +741,18 @@ AI 응답:     score 53 → "신약" (잘못됨!)
 
 ### 결론
 
-1. **포스텔러는 혼합 기준 사용**
-   - 기본 12신살: 일지 기준 (시지=반안, 년지=월살)
-   - 역마살 등 주요 신살: 년지 기준으로 별도 표시
+1. **포스텔러는 년지 기준 사용**
+   - 12신살: 년지 기준
+   - 역마살 등 주요 신살: 년지 기준
 
-2. **우리 앱 현황**
-   - **TwelveSinsalService**: 일지 기준 (기본 12신살)
+2. **우리 앱 현황 (Phase 39 업데이트)**
+   - **TwelveSinsalService**: ~~일지 기준~~ → **년지 기준으로 변경** (포스텔러 호환)
    - **GilseongService**: 년지 기준 (역마살, 도화살, 화개살 등 주요 신살)
-   - DB와 UI 모두 일관성 있게 일지 기준 사용
+   - `useYearJi` 기본값: false → **true**로 변경
 
-3. **변경 없이 유지**
-   - 현대 명리학 기준에 부합
-   - DB와 UI 일관성 유지됨
+3. **Phase 39에서 년지 기준으로 변경**
+   - 포스텔러와 동일한 결과를 위해 년지 기준 적용
+   - 도화살: 년지+일지 병행 기준 함수 추가 (hasDohwasal)
 
 ### 참고 자료
 - [나무위키 - 사주팔자/신살](https://namu.wiki/w/사주팔자/신살)
@@ -1403,6 +1403,152 @@ print(result.hasYeokmasal);    // false - 역마살 없음
 | `twelve_sinsal_service.dart` | 12신살 계산 서비스 + DualBasisSinsalResult |
 | `twelve_sinsal.dart` | 12신살 테이블 + 병행 기준 함수 |
 | `test/sinsal_dual_basis_test.dart` | Phase 36 테스트 |
+
+---
+
+## Phase 38: 신강/신약 비율 기준 등급 결정 (2026-01-05) ✅ 완료
+
+### 개요
+삼주(시간 모름)와 사주(시간 있음) 간 등급 일관성 유지를 위해 점수/만점 비율 기준으로 등급 결정
+
+### 점수 체계
+| 구성 | 사주 (시간 있음) | 삼주 (시간 모름) |
+|------|-----------------|-----------------|
+| 천간 | 연간 10 + 월간 10 + 시간 10 = 30점 | 연간 10 + 월간 10 = 20점 |
+| 지지 | 연지 10 + 월지 30 + 일지 15 + 시지 15 = 70점 | 연지 10 + 월지 30 + 일지 15 = 55점 |
+| **만점** | **100점** | **75점** |
+
+### 비율 기준 8단계 등급
+| 비율 | 등급 |
+|------|------|
+| 88%+ | 극왕 |
+| 75-87% | 태강 |
+| 63-74% | 신강 |
+| 50-62% | 중화신강 |
+| 38-49% | 중화신약 |
+| 26-37% | 신약 |
+| 13-25% | 태약 |
+| 0-12% | 극약 |
+
+### 수정 파일
+- `frontend/lib/features/saju_chart/domain/services/day_strength_service.dart`
+
+---
+
+## Phase 39: 12신살 년지 기준 변경 (2026-01-05) ✅ 완료
+
+### 개요
+포스텔러 앱과 12신살 결과가 다르게 나오는 문제 해결
+
+### 문제
+- 포스텔러: 시지(진)=천살, 월지/일지(해)=역마살
+- 우리 앱 (기존): 시지(진)=반안, 월지/일지(해)=지살
+
+### 원인
+- 우리 앱: 일지(해) 기준 → 해묘미(목국) 삼합
+- 포스텔러: 년지(축) 기준 → 사유축(금국) 삼합
+
+### 수정 내용
+```dart
+// Before:
+static TwelveSinsalAnalysisResult analyzeFromChart(SajuChart chart, {
+  bool useYearJi = false, // 일지 기준
+})
+
+// After:
+static TwelveSinsalAnalysisResult analyzeFromChart(SajuChart chart, {
+  bool useYearJi = true, // 년지 기준 (포스텔러 호환)
+})
+```
+
+### 수정 파일
+| 파일 | 변경 내용 |
+|------|-----------|
+| `twelve_sinsal_service.dart` | `useYearJi` 기본값 true로 변경 |
+| `possteller_style_table.dart` | 주석 업데이트 |
+| `saju_detail_tabs.dart` | 주석 업데이트 |
+| `twelve_sinsal_basis_test.dart` | **신규** - 년지/일지 기준 비교 테스트 |
+
+### 테스트 결과 (박재현 사주)
+```
+년지(축) 기준 (포스텔러 방식):
+  시지(진): 천살 ✅
+  일지(해): 역마 ✅
+  월지(해): 역마 ✅
+  년지(축): 화개
+```
+
+---
+
+## Phase 40: GPT 프롬프트 오행 데이터 수정 (2026-01-06) ✅ 완료
+
+### 개요
+ai_summaries.content.saju_origin.oheng이 모두 0으로 저장되는 문제 해결
+
+### 문제 현상
+- DB의 `saju_analyses.oheng_distribution`에는 정상 데이터 저장됨: `{"금(金)":2,"목(木)":2,"수(水)":1,"토(土)":2,"화(火)":1}`
+- 그러나 `ai_summaries.content.saju_origin.oheng`은 모두 0: `{"금":0,"목":0,"수":0,"토":0,"화":0}`
+
+### 원인 분석
+
+**1단계: queries.dart 키 불일치** (이전 세션에서 수정 완료)
+- DB는 한글(한자) 키: `목(木)`, `화(火)` 등
+- 읽을 때 영어 키로 시도: `wood`, `fire` 등
+- 수정: 한글(한자) 키로 읽도록 변경
+
+**2단계: GPT 프롬프트 템플릿 문제** (이번 수정)
+- `saju_base_prompt.dart` 232줄에 JSON 스키마가 하드코딩:
+  ```dart
+  "oheng": {"목": 0, "화": 0, "토": 0, "금": 0, "수": 0},
+  ```
+- GPT가 이 템플릿의 0 값을 그대로 복사하여 응답
+- 실제 오행 데이터(`data.ohengString`)는 프롬프트 상단에 있지만, GPT가 스키마 채우기에서 무시
+
+### 수정 내용
+
+**파일 1: `frontend/lib/AI/prompts/prompt_template.dart`**
+```dart
+// 추가된 getter (line 438-449)
+/// 오행 분포 JSON 문자열 (한글 키)
+///
+/// GPT 프롬프트 JSON 스키마에 직접 삽입용
+/// 예: {"목": 2, "화": 1, "토": 3, "금": 1, "수": 1}
+String get ohengJson {
+  final mok = oheng['wood'] ?? 0;
+  final hwa = oheng['fire'] ?? 0;
+  final to = oheng['earth'] ?? 0;
+  final geum = oheng['metal'] ?? 0;
+  final su = oheng['water'] ?? 0;
+  return '{"목": $mok, "화": $hwa, "토": $to, "금": $geum, "수": $su}';
+}
+```
+
+**파일 2: `frontend/lib/AI/prompts/saju_base_prompt.dart`**
+```dart
+// Before (line 232)
+"oheng": {"목": 0, "화": 0, "토": 0, "금": 0, "수": 0},
+
+// After
+"oheng": ${data.ohengJson},
+```
+
+### 테스트 결과 ✅ 검증 완료 (2026-01-06)
+
+**김동현 프로필** (profile_id: `39f79705-504d-49b2-bb37-b829e0623a2e`)
+
+| summary_type | input_data.oheng | content.saju_origin.oheng | 상태 |
+|--------------|------------------|---------------------------|------|
+| saju_base | `{fire:1, wood:2, earth:2, metal:2, water:1}` | `{금:2, 목:2, 수:1, 토:2, 화:1}` | ✅ 정상 |
+| daily_fortune | `{fire:1, wood:2, earth:2, metal:2, water:1}` | `null` (정상 - 일운은 없음) | ✅ 정상 |
+
+**참고**: daily_fortune은 `saju_origin` 필드가 없는 것이 정상 동작입니다.
+
+### 관련 파일
+| 파일 | 역할 |
+|------|------|
+| `AI/prompts/prompt_template.dart` | SajuInputData 클래스 + ohengJson getter |
+| `AI/prompts/saju_base_prompt.dart` | GPT-5.2 평생 사주 분석 프롬프트 |
+| `AI/data/queries.dart` | DB → SajuInputData 변환 (이전 세션에서 수정) |
 
 ---
 
