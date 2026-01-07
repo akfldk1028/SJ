@@ -3,25 +3,31 @@ import '../entities/saju_chart.dart';
 
 /// 신살(神煞) 탐지 서비스
 /// fortuneteller 로직 참고
+///
+/// ⚠️ 12신살 기준: 년지 + 일지 병행 사용 (포스텔러 동일 기준)
+/// - 전통: 년지만 사용
+/// - 현대: 일지만 사용
+/// - 권장 (포스텔러): 년지 OR 일지 둘 중 하나라도 해당되면 인정
 class SinSalService {
   /// 사주에서 신살 탐지
   List<SinSalResult> findSinSals(SajuChart chart) {
     final results = <SinSalResult>[];
     final dayMaster = chart.dayPillar.gan;
+    final yearJi = chart.yearPillar.ji; // 년지 추가
     final dayJi = chart.dayPillar.ji;
     final jis = _getAllJis(chart);
 
     // 1. 천을귀인
     results.addAll(_findCheonEulGwiIn(dayMaster, jis));
 
-    // 2. 도화살
-    results.addAll(_findDoHwaSal(dayJi, jis));
+    // 2. 도화살 (년지+일지 병행 기준)
+    results.addAll(_findDoHwaSal(yearJi, dayJi, jis));
 
-    // 3. 역마
-    results.addAll(_findYeokMa(dayJi, jis));
+    // 3. 역마 (년지+일지 병행 기준)
+    results.addAll(_findYeokMa(yearJi, dayJi, jis));
 
-    // 4. 화개살
-    results.addAll(_findHwaGaeSal(dayJi, jis));
+    // 4. 화개살 (년지+일지 병행 기준)
+    results.addAll(_findHwaGaeSal(yearJi, dayJi, jis));
 
     // 5. 양인살
     results.addAll(_findYangInSal(dayMaster, jis));
@@ -88,8 +94,13 @@ class SinSalService {
   }
 
   /// 도화살 탐지
-  /// 일지(또는 년지) 기준
-  List<SinSalResult> _findDoHwaSal(String dayJi, List<_JiWithLocation> jis) {
+  /// ⚠️ 년지 + 일지 병행 기준 (포스텔러 동일)
+  /// 년지 기준 도화살 OR 일지 기준 도화살 중 하나라도 해당되면 인정
+  List<SinSalResult> _findDoHwaSal(
+    String yearJi,
+    String dayJi,
+    List<_JiWithLocation> jis,
+  ) {
     final results = <SinSalResult>[];
 
     // 삼합 기준 도화살
@@ -108,16 +119,26 @@ class SinSalService {
       '미': '자', // 해묘미 → 자
     };
 
-    final doHwaJi = table[dayJi];
-    if (doHwaJi == null) return results;
+    // 년지 기준 도화살과 일지 기준 도화살 모두 계산
+    final yearDoHwaJi = table[yearJi];
+    final dayDoHwaJi = table[dayJi];
 
     for (final ji in jis) {
-      if (ji.ji == doHwaJi) {
+      // 년지 기준 OR 일지 기준 중 하나라도 해당되면 인정
+      final isYearBasis = yearDoHwaJi != null && ji.ji == yearDoHwaJi;
+      final isDayBasis = dayDoHwaJi != null && ji.ji == dayDoHwaJi;
+
+      if (isYearBasis || isDayBasis) {
+        // 중복 방지
+        final basisInfo = <String>[];
+        if (isYearBasis) basisInfo.add('년지 기준');
+        if (isDayBasis) basisInfo.add('일지 기준');
+
         results.add(SinSalResult(
           sinsal: SinSal.doHwaSal,
           location: ji.location,
           relatedJi: ji.ji,
-          description: '${ji.location}에 도화살 - 이성 매력이 강함',
+          description: '${ji.location}에 도화살 (${basisInfo.join(', ')}) - 이성 매력이 강함',
         ));
       }
     }
@@ -126,7 +147,13 @@ class SinSalService {
   }
 
   /// 역마 탐지
-  List<SinSalResult> _findYeokMa(String dayJi, List<_JiWithLocation> jis) {
+  /// ⚠️ 년지 + 일지 병행 기준 (포스텔러 동일)
+  /// 년지 기준 역마 OR 일지 기준 역마 중 하나라도 해당되면 인정
+  List<SinSalResult> _findYeokMa(
+    String yearJi,
+    String dayJi,
+    List<_JiWithLocation> jis,
+  ) {
     final results = <SinSalResult>[];
 
     // 삼합 기준 역마
@@ -145,16 +172,25 @@ class SinSalService {
       '미': '사', // 해묘미 → 사
     };
 
-    final yeokMaJi = table[dayJi];
-    if (yeokMaJi == null) return results;
+    // 년지 기준 역마와 일지 기준 역마 모두 계산
+    final yearYeokMaJi = table[yearJi];
+    final dayYeokMaJi = table[dayJi];
 
     for (final ji in jis) {
-      if (ji.ji == yeokMaJi) {
+      // 년지 기준 OR 일지 기준 중 하나라도 해당되면 인정
+      final isYearBasis = yearYeokMaJi != null && ji.ji == yearYeokMaJi;
+      final isDayBasis = dayYeokMaJi != null && ji.ji == dayYeokMaJi;
+
+      if (isYearBasis || isDayBasis) {
+        final basisInfo = <String>[];
+        if (isYearBasis) basisInfo.add('년지 기준');
+        if (isDayBasis) basisInfo.add('일지 기준');
+
         results.add(SinSalResult(
           sinsal: SinSal.yeokMa,
           location: ji.location,
           relatedJi: ji.ji,
-          description: '${ji.location}에 역마 - 이동과 변화가 많음',
+          description: '${ji.location}에 역마 (${basisInfo.join(', ')}) - 이동과 변화가 많음',
         ));
       }
     }
@@ -163,7 +199,13 @@ class SinSalService {
   }
 
   /// 화개살 탐지
-  List<SinSalResult> _findHwaGaeSal(String dayJi, List<_JiWithLocation> jis) {
+  /// ⚠️ 년지 + 일지 병행 기준 (포스텔러 동일)
+  /// 년지 기준 화개살 OR 일지 기준 화개살 중 하나라도 해당되면 인정
+  List<SinSalResult> _findHwaGaeSal(
+    String yearJi,
+    String dayJi,
+    List<_JiWithLocation> jis,
+  ) {
     final results = <SinSalResult>[];
 
     // 삼합 기준 화개
@@ -182,16 +224,25 @@ class SinSalService {
       '미': '미', // 해묘미 → 미
     };
 
-    final hwaGaeJi = table[dayJi];
-    if (hwaGaeJi == null) return results;
+    // 년지 기준 화개살과 일지 기준 화개살 모두 계산
+    final yearHwaGaeJi = table[yearJi];
+    final dayHwaGaeJi = table[dayJi];
 
     for (final ji in jis) {
-      if (ji.ji == hwaGaeJi) {
+      // 년지 기준 OR 일지 기준 중 하나라도 해당되면 인정
+      final isYearBasis = yearHwaGaeJi != null && ji.ji == yearHwaGaeJi;
+      final isDayBasis = dayHwaGaeJi != null && ji.ji == dayHwaGaeJi;
+
+      if (isYearBasis || isDayBasis) {
+        final basisInfo = <String>[];
+        if (isYearBasis) basisInfo.add('년지 기준');
+        if (isDayBasis) basisInfo.add('일지 기준');
+
         results.add(SinSalResult(
           sinsal: SinSal.hwaGaeSal,
           location: ji.location,
           relatedJi: ji.ji,
-          description: '${ji.location}에 화개살 - 예술성과 영성이 강함',
+          description: '${ji.location}에 화개살 (${basisInfo.join(', ')}) - 예술성과 영성이 강함',
         ));
       }
     }
