@@ -393,7 +393,7 @@ const Map<String, Set<String>> _jijiSamhapMap = {
   '미': {'해', '묘'},
 };
 
-/// 지지형 관계 (무은지형, 지세지형)
+/// 지지형 관계 (무은지형, 지세지형, 무례지형)
 const Map<String, Set<String>> _jijiHyungMap = {
   // 무은지형: 인→사→신
   '인': {'사', '신'},
@@ -403,6 +403,9 @@ const Map<String, Set<String>> _jijiHyungMap = {
   '축': {'술', '미'},
   '술': {'축', '미'},
   '미': {'축', '술'},
+  // 무례지형: 자↔묘 (Phase 42 추가)
+  '자': {'묘'},
+  '묘': {'자'},
 };
 
 /// 두 지지가 충인지 확인
