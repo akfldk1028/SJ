@@ -13,11 +13,10 @@ import '../../../profile/domain/entities/relationship_type.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
-import '../../../profile/presentation/widgets/birth_date_picker.dart';
+import '../../../profile/presentation/widgets/birth_date_input_widget.dart';
+import '../../../profile/presentation/widgets/birth_time_input_widget.dart';
 import '../../../profile/presentation/widgets/birth_time_options.dart';
-import '../../../profile/presentation/widgets/birth_time_picker.dart';
 import '../../../profile/presentation/widgets/calendar_type_dropdown.dart';
-import '../../../profile/presentation/widgets/lunar_options.dart';
 import '../../../profile/presentation/widgets/city_search_field.dart';
 import '../../../profile/presentation/widgets/gender_toggle_buttons.dart';
 import '../../../profile/presentation/widgets/profile_name_input.dart';
@@ -156,12 +155,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CalendarTypeDropdown(),
-        // 음력 선택 시 윤달 옵션 표시
-        LunarOptions(),
         SizedBox(height: 12),
-        BirthDatePicker(), // 캘린더 날짜 선택기
+        BirthDateInputWidget(), // 날짜 직접 입력
         SizedBox(height: 12),
-        BirthTimePicker(),
+        BirthTimeInputWidget(), // 시간 직접 입력 + 오전/오후
         SizedBox(height: 12),
         BirthTimeOptions(),
       ],

@@ -8,10 +8,9 @@ import '../../../../core/widgets/mystic_background.dart';
 import '../widgets/profile_name_input.dart';
 import '../widgets/gender_toggle_buttons.dart';
 import '../widgets/calendar_type_dropdown.dart';
-import '../widgets/birth_date_picker.dart';
-import '../widgets/birth_time_picker.dart';
+import '../widgets/birth_date_input_widget.dart';
+import '../widgets/birth_time_input_widget.dart';
 import '../widgets/birth_time_options.dart';
-import '../widgets/lunar_options.dart';
 import '../widgets/city_search_field.dart';
 import '../widgets/time_correction_banner.dart';
 import '../widgets/profile_action_buttons.dart';
@@ -192,12 +191,10 @@ class _BirthDateSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CalendarTypeDropdown(),
-        // Phase 18: 음력 선택 시 윤달 옵션 표시
-        LunarOptions(),
         SizedBox(height: 12),
-        BirthDatePicker(),
+        BirthDateInputWidget(), // 날짜 직접 입력
         SizedBox(height: 12),
-        BirthTimePicker(),
+        BirthTimeInputWidget(), // 시간 직접 입력 + 오전/오후
         SizedBox(height: 12),
         BirthTimeOptions(),
       ],

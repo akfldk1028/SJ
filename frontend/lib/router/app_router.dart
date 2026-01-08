@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'routes.dart';
+import '../core/widgets/main_shell.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/menu/presentation/screens/menu_screen.dart';
@@ -19,8 +20,25 @@ import '../features/settings/presentation/screens/notification_settings_screen.d
 import '../features/settings/presentation/screens/terms_of_service_screen.dart';
 import '../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../features/settings/presentation/screens/disclaimer_screen.dart';
+import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
 
 part 'app_router.g.dart';
+
+/// 현재 경로에서 네비게이션 인덱스 가져오기
+int _getNavIndex(String location) {
+  if (location.startsWith('/menu') || location.startsWith('/saju/detail')) {
+    return 0; // 운세
+  } else if (location.startsWith('/relationships')) {
+    return 1; // 인맥
+  } else if (location.startsWith('/saju/chat')) {
+    return 2; // AI 상담
+  } else if (location.startsWith('/calendar')) {
+    return 3; // 캘린더
+  } else if (location.startsWith('/settings')) {
+    return 4; // 설정
+  }
+  return 0;
+}
 
 @riverpod
 GoRouter appRouter(Ref ref) {
@@ -28,6 +46,7 @@ GoRouter appRouter(Ref ref) {
     initialLocation: Routes.splash,
     debugLogDiagnostics: true,
     routes: [
+      // 독립 라우트 (네비게이션 바 없음)
       GoRoute(
         path: Routes.splash,
         name: 'splash',
@@ -37,11 +56,6 @@ GoRouter appRouter(Ref ref) {
         path: Routes.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: Routes.menu,
-        name: 'menu',
-        builder: (context, state) => const MenuScreen(),
       ),
       GoRoute(
         path: Routes.profileSelect,
@@ -54,34 +68,11 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const ProfileEditScreen(),
       ),
       GoRoute(
-        path: Routes.relationshipList,
-        name: 'relationships',
-        builder: (context, state) => const RelationshipScreen(),
-      ),
-      GoRoute(
-        path: Routes.sajuChat,
-        name: 'sajuChat',
-        builder: (context, state) {
-          // Query parameter에서 chatType 가져오기
-          final chatType = state.uri.queryParameters['type'];
-          return SajuChatShell(chatType: chatType);
-        },
-      ),
-      GoRoute(
         path: Routes.history,
         name: 'history',
         builder: (context, state) => const HistoryScreen(),
       ),
-      GoRoute(
-        path: Routes.calendar,
-        name: 'calendar',
-        builder: (context, state) => const CalendarScreen(),
-      ),
-      GoRoute(
-        path: Routes.settings,
-        name: 'settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
+      // 설정 하위 페이지들 (네비게이션 바 없음)
       GoRoute(
         path: Routes.settingsProfile,
         name: 'settingsProfile',
@@ -106,6 +97,52 @@ GoRouter appRouter(Ref ref) {
         path: Routes.settingsDisclaimer,
         name: 'settingsDisclaimer',
         builder: (context, state) => const DisclaimerScreen(),
+      ),
+
+      // ShellRoute - 네비게이션 바 공유
+      ShellRoute(
+        builder: (context, state, child) {
+          final navIndex = _getNavIndex(state.uri.path);
+          return MainShell(
+            currentIndex: navIndex,
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            path: Routes.menu,
+            name: 'menu',
+            builder: (context, state) => const MenuScreen(),
+          ),
+          GoRoute(
+            path: Routes.relationshipList,
+            name: 'relationships',
+            builder: (context, state) => const RelationshipScreen(),
+          ),
+          GoRoute(
+            path: Routes.sajuChat,
+            name: 'sajuChat',
+            builder: (context, state) {
+              final chatType = state.uri.queryParameters['type'];
+              return SajuChatShell(chatType: chatType);
+            },
+          ),
+          GoRoute(
+            path: Routes.calendar,
+            name: 'calendar',
+            builder: (context, state) => const CalendarScreen(),
+          ),
+          GoRoute(
+            path: Routes.settings,
+            name: 'settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: Routes.sajuDetail,
+            name: 'sajuDetail',
+            builder: (context, state) => const SajuDetailScreen(),
+          ),
+        ],
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

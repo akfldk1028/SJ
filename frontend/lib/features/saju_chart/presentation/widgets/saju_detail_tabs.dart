@@ -29,7 +29,9 @@ import '../../domain/services/gilseong_service.dart';
 /// 포스텔러 스타일 사주 상세 탭 컨테이너
 /// 여러 분석 탭(궁성, 합충, 십성, 운성, 신살, 공망)을 제공
 class SajuDetailTabs extends ConsumerStatefulWidget {
-  const SajuDetailTabs({super.key});
+  final bool isFullPage;
+
+  const SajuDetailTabs({super.key, this.isFullPage = false});
 
   @override
   ConsumerState<SajuDetailTabs> createState() => _SajuDetailTabsState();
@@ -67,46 +69,51 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
   @override
   Widget build(BuildContext context) {
     final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
+    final isFullPage = widget.isFullPage;
 
     return Container(
-      constraints: const BoxConstraints(maxHeight: 700),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      constraints: isFullPage ? null : const BoxConstraints(maxHeight: 700),
+      decoration: isFullPage
+          ? null
+          : BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: isFullPage ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.textMuted,
-              borderRadius: BorderRadius.circular(2),
+          // Handle bar (팝업 모드에서만 표시)
+          if (!isFullPage)
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textMuted,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '사주 풀이 자세히 보기',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                ),
-              ],
+          // Header (팝업 모드에서만 표시)
+          if (!isFullPage)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '사주 풀이 자세히 보기',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
             ),
-          ),
           // Tab Bar
           Container(
             decoration: BoxDecoration(

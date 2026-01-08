@@ -88,7 +88,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(theme),
+      // bottomNavigationBar는 MainShell에서 제공 (ShellRoute)
     );
   }
 
@@ -293,118 +293,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(AppThemeExtension theme) {
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: theme.isDark
-                ? const Color.fromRGBO(0, 0, 0, 0.3)
-                : const Color.fromRGBO(0, 0, 0, 0.05),
-            offset: const Offset(0, -2),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(theme, Icons.auto_awesome_rounded, '운세', true, null),
-          _buildNavItem(theme, Icons.people_outline_rounded, '인맥', false, () {
-            context.push('/relationships');
-          }),
-          // AI 상담 - 중앙 강조 버튼
-          _buildCenterAiButton(theme),
-          _buildNavItem(theme, Icons.calendar_month_rounded, '캘린더', false, () {
-            context.push('/calendar');
-          }),
-          _buildNavItem(theme, Icons.settings_outlined, '설정', false, () {
-            context.push('/settings');
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// AI 상담 중앙 강조 버튼
-  Widget _buildCenterAiButton(AppThemeExtension theme) {
-    return GestureDetector(
-      onTap: () => context.push('/saju/chat'),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.primaryColor,
-              theme.primaryColor.withOpacity(0.8),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: theme.primaryColor.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.forum_rounded,
-              color: theme.isDark ? Colors.black : Colors.white,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'AI 상담',
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w700,
-                color: theme.isDark ? Colors.black : Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(AppThemeExtension theme, IconData icon, String label, bool isActive, VoidCallback? onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isActive ? theme.primaryColor : theme.textMuted,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? theme.primaryColor : theme.textMuted,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

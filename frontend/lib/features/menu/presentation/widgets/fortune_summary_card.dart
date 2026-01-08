@@ -215,117 +215,132 @@ class FortuneSummaryCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-            // Time-based fortune section
+            // Time-based fortune section (푸른 계열)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               decoration: BoxDecoration(
                 color: theme.isDark
-                    ? theme.primaryColor.withValues(alpha: 0.1)
-                    : theme.backgroundColor,
+                    ? const Color(0xFF1E3A5F).withValues(alpha: 0.6) // 다크 블루
+                    : const Color(0xFFE8F4FC), // 라이트 블루
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // 해/달 아이콘 - 오른쪽 하단
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Icon(
+                      _getTimeIcon(hour),
+                      size: 64,
+                      color: _getTimeIconColor(hour).withValues(alpha: 0.6),
+                    ),
+                  ),
+                  // 메인 콘텐츠
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '시간대별 운세',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '전체보기',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.cardColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: theme.isDark
+                                    ? theme.textMuted.withValues(alpha: 0.3)
+                                    : Colors.grey[200]!,
+                              ),
+                            ),
+                            child: Text(
+                              timeSlot,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: theme.textPrimary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              _getTimeRange(hour),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.textMuted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Small circular score
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.primaryColor.withValues(alpha: 0.3),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '$timeScore',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.primaryColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
                       Text(
-                        '시간대별 운세',
+                        timeMessage,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.textPrimary,
+                          color: theme.textSecondary,
+                          height: 1.6,
                         ),
                       ),
+                      const SizedBox(height: 8),
                       Text(
-                        '전체보기',
+                        '1/3',
                         style: TextStyle(
                           fontSize: 11,
                           color: theme.textMuted,
                         ),
+                        textAlign: TextAlign.right,
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.cardColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: theme.isDark
-                                ? theme.textMuted.withValues(alpha: 0.3)
-                                : Colors.grey[200]!,
-                          ),
-                        ),
-                        child: Text(
-                          timeSlot,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: theme.textPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _getTimeRange(hour),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: theme.textMuted,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Small circular score
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.primaryColor.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$timeScore',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: theme.primaryColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    timeMessage,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.textSecondary,
-                      height: 1.6,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '1/3',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.textMuted,
-                    ),
-                    textAlign: TextAlign.right,
                   ),
                 ],
               ),
@@ -349,9 +364,10 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
-  /// 메시지를 그대로 반환 (전체 표시)
+  /// 메시지 포맷팅 - 문장 마침표 뒤에 줄바꿈 추가
   String _formatMessage(String message) {
-    return message;
+    // 마침표 뒤에 공백이 있으면 줄바꿈으로 대체
+    return message.replaceAll('. ', '.\n');
   }
 
   /// 메시지 자르기
@@ -371,6 +387,28 @@ class FortuneSummaryCard extends ConsumerWidget {
     }
   }
 
+  /// 시간대에 따른 아이콘 반환 (해/달)
+  IconData _getTimeIcon(int hour) {
+    if (hour >= 6 && hour < 18) {
+      // 낮 (6시-18시): 해
+      return Icons.wb_sunny_rounded;
+    } else {
+      // 밤 (18시-6시): 달
+      return Icons.nightlight_round;
+    }
+  }
+
+  /// 시간대에 따른 아이콘 색상 반환
+  Color _getTimeIconColor(int hour) {
+    if (hour >= 6 && hour < 18) {
+      // 낮: 흰색 베이스 (살짝 연한 노랑)
+      return const Color(0xFFFFF8E1);
+    } else {
+      // 밤: 흰색 베이스 (살짝 연한 파랑)
+      return const Color(0xFFE8EAF6);
+    }
+  }
+
   Widget _buildActionButton(BuildContext context, String text, bool isPrimary) {
     final theme = context.appTheme;
 
@@ -387,24 +425,30 @@ class FortuneSummaryCard extends ConsumerWidget {
                   : Colors.grey[300]!,
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isPrimary ? Colors.white : theme.textPrimary,
-            ),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isPrimary ? Colors.white : theme.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: isPrimary ? Colors.white : theme.textMuted,
+              ),
+            ],
           ),
-          const SizedBox(width: 4),
-          Icon(
-            Icons.chevron_right,
-            size: 18,
-            color: isPrimary ? Colors.white : theme.textMuted,
-          ),
-        ],
+        ),
       ),
     );
   }
