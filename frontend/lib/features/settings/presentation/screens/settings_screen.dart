@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -8,133 +9,132 @@ import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 
-/// 설정 화면 - 동양풍 다크 테마
+/// 설정 화면 - shadcn_ui 기반
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = context.appTheme;
+    final shadTheme = ShadTheme.of(context);
+    final appTheme = context.appTheme;
     final currentThemeType = ref.watch(appThemeNotifierProvider);
 
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
+      backgroundColor: appTheme.backgroundColor,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text('설정', style: TextStyle(color: appTheme.textPrimary)),
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: appTheme.textPrimary),
+          onPressed: () => context.go('/menu'),
+        ),
+      ),
       body: MysticBackground(
         child: SafeArea(
-          child: Column(
-            children: [
-              // 헤더
-              _buildHeader(context, theme),
-              // 컨텐츠
-              Expanded(
-                child: ListView(
-        children: [
-          // 테마 설정 섹션
-          _buildSectionHeader(context, '화면 설정'),
-          _buildThemeSelector(context, ref, currentThemeType),
-          const SizedBox(height: 16),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              // 테마 설정 섹션
+              _buildSectionHeader(context, '화면 설정'),
+              const SizedBox(height: 8),
+              _buildThemeSelector(context, ref, currentThemeType),
+              const SizedBox(height: 24),
 
-          // 계정 설정 섹션
-          _buildSectionHeader(context, '계정 설정'),
-          _buildSettingsTile(
-            context,
-            icon: Icons.person,
-            title: AppStrings.settingsProfile,
-            onTap: () => context.push(Routes.settingsProfile),
-          ),
-          _buildSettingsTile(
-            context,
-            icon: Icons.notifications,
-            title: AppStrings.settingsNotification,
-            onTap: () => context.push(Routes.settingsNotification),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 정보 섹션
-          _buildSectionHeader(context, '정보'),
-          _buildSettingsTile(
-            context,
-            icon: Icons.description,
-            title: AppStrings.settingsTerms,
-            onTap: () => context.push(Routes.settingsTerms),
-          ),
-          _buildSettingsTile(
-            context,
-            icon: Icons.privacy_tip,
-            title: AppStrings.settingsPrivacy,
-            onTap: () => context.push(Routes.settingsPrivacy),
-          ),
-          _buildSettingsTile(
-            context,
-            icon: Icons.info,
-            title: AppStrings.settingsDisclaimer,
-            onTap: () => context.push(Routes.settingsDisclaimer),
-          ),
-
-                    const SizedBox(height: 32),
+              // 계정 설정 섹션
+              _buildSectionHeader(context, '계정 설정'),
+              const SizedBox(height: 8),
+              ShadCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.user,
+                      title: AppStrings.settingsProfile,
+                      onTap: () => context.push(Routes.settingsProfile),
+                    ),
+                    const Divider(height: 1),
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.bell,
+                      title: AppStrings.settingsNotification,
+                      onTap: () => context.push(Routes.settingsNotification),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+              const SizedBox(height: 24),
 
-  Widget _buildHeader(BuildContext context, AppThemeExtension theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => context.go('/menu'),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.cardColor.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.primaryColor.withOpacity(0.15),
+              // 정보 섹션
+              _buildSectionHeader(context, '정보'),
+              const SizedBox(height: 8),
+              ShadCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.fileText,
+                      title: AppStrings.settingsTerms,
+                      onTap: () => context.push(Routes.settingsTerms),
+                    ),
+                    const Divider(height: 1),
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.shield,
+                      title: AppStrings.settingsPrivacy,
+                      onTap: () => context.push(Routes.settingsPrivacy),
+                    ),
+                    const Divider(height: 1),
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.info,
+                      title: AppStrings.settingsDisclaimer,
+                      onTap: () => context.push(Routes.settingsDisclaimer),
+                    ),
+                  ],
                 ),
               ),
-              child: Icon(
-                Icons.arrow_back_rounded,
-                color: theme.primaryColor,
-                size: 20,
+              const SizedBox(height: 24),
+
+              // 개발자 도구 섹션
+              _buildSectionHeader(context, '개발자 도구'),
+              const SizedBox(height: 8),
+              ShadCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.play,
+                      title: '온보딩 다시 보기',
+                      onTap: () => context.go(Routes.onboarding),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 32),
+              ],
             ),
           ),
-          const Spacer(),
-          Text(
-            '설정',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: theme.textPrimary,
-            ),
-          ),
-          const Spacer(),
-          const SizedBox(width: 40),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
-    final theme = context.appTheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: theme.primaryColor,
-        ),
+    final appTheme = context.appTheme;
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: appTheme.textMuted,
       ),
     );
   }
@@ -144,65 +144,21 @@ class SettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppThemeType currentThemeType,
   ) {
-    final theme = context.appTheme;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.06),
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-          ),
+    return ShadCard(
+      title: Row(
+        children: [
+          Icon(LucideIcons.palette, size: 18),
+          const SizedBox(width: 8),
+          const Text('테마 선택'),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.palette_rounded,
-                  color: theme.primaryColor,
-                  size: 22,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '테마 선택',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: AppThemeType.values.map((themeType) {
-                final isSelected = themeType == currentThemeType;
-                return _buildThemeOption(
-                  context,
-                  ref,
-                  themeType,
-                  isSelected,
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: AppThemeType.values.map((themeType) {
+          final isSelected = themeType == currentThemeType;
+          return _buildThemeOption(context, ref, themeType, isSelected);
+        }).toList(),
       ),
     );
   }
@@ -213,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
     AppThemeType themeType,
     bool isSelected,
   ) {
-    final theme = context.appTheme;
+    final appTheme = context.appTheme;
     final previewColor = AppTheme.getPreviewColor(themeType);
     final themeName = AppTheme.getThemeName(themeType);
     final themeIcon = AppTheme.getThemeIcon(themeType);
@@ -223,14 +179,12 @@ class SettingsScreen extends ConsumerWidget {
         ref.read(appThemeNotifierProvider.notifier).setTheme(themeType);
       },
       child: Container(
-        width: 95,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
           color: isSelected
               ? previewColor.withOpacity(0.15)
-              : theme.isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.grey.withOpacity(0.05),
+              : appTheme.cardColor.withOpacity(0.5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? previewColor : Colors.transparent,
@@ -241,34 +195,36 @@ class SettingsScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: previewColor,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 themeIcon,
-                color: Colors.white,
-                size: 22,
+                color: appTheme.isDark ? Colors.black : Colors.white,
+                size: 18,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               themeName,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 9,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? previewColor : theme.textSecondary,
+                color: isSelected ? previewColor : appTheme.textMuted,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             if (isSelected) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Icon(
-                Icons.check_circle_rounded,
+                Icons.check_circle,
                 color: previewColor,
-                size: 16,
+                size: 12,
               ),
             ],
           ],
@@ -283,30 +239,31 @@ class SettingsScreen extends ConsumerWidget {
     required String title,
     required VoidCallback onTap,
   }) {
-    final theme = context.appTheme;
+    final appTheme = context.appTheme;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: theme.textSecondary),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: theme.textPrimary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: Icon(
-          Icons.chevron_right,
-          color: theme.textMuted,
-        ),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: appTheme.textMuted),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: appTheme.textPrimary,
+                ),
+              ),
+            ),
+            Icon(
+              LucideIcons.chevronRight,
+              size: 18,
+              color: appTheme.textMuted,
+            ),
+          ],
         ),
       ),
     );

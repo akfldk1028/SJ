@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -29,12 +31,16 @@ void main() async {
   // Supabase 초기화 (오프라인 모드 지원)
   await SupabaseService.initialize();
 
-  // AdMob SDK 초기화 (Web 제외)
-  if (!kIsWeb) {
-    await AdService.instance.initialize();
-    // 광고 사전 로드
-    await AdService.instance.loadInterstitialAd();
-    await AdService.instance.loadRewardedAd();
+  // AdMob SDK 초기화 (모바일만 - Android/iOS)
+  final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  if (isMobile) {
+    try {
+      await AdService.instance.initialize();
+      await AdService.instance.loadInterstitialAd();
+      await AdService.instance.loadRewardedAd();
+    } catch (e) {
+      debugPrint('[AdService] 초기화 실패: $e');
+    }
   }
 
   runApp(

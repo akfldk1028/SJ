@@ -16,9 +16,13 @@ abstract class Routes {
   // Saju
   static const String sajuChat = '/saju/chat';
   static const String sajuChart = '/saju/chart';
+  static const String sajuDetail = '/saju/detail';
 
   // History
   static const String history = '/history';
+
+  // Calendar
+  static const String calendar = '/calendar';
 
   // Settings
   static const String settings = '/settings';

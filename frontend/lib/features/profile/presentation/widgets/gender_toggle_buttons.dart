@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/gender.dart';
 import '../providers/profile_provider.dart';
 
@@ -12,6 +13,7 @@ class GenderToggleButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
     final formState = ref.watch(profileFormProvider);
     final selectedGender = formState.gender;
 
@@ -20,7 +22,9 @@ class GenderToggleButtons extends ConsumerWidget {
       children: [
         Text(
           '성별',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: theme.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -69,6 +73,8 @@ class _GenderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     if (isSelected) {
       return ShadButton(
         width: double.infinity,
@@ -80,7 +86,10 @@ class _GenderButton extends StatelessWidget {
     return ShadButton.outline(
       width: double.infinity,
       onPressed: onTap,
-      child: Text(label),
+      child: Text(
+        label,
+        style: TextStyle(color: theme.textPrimary),
+      ),
     );
   }
 }

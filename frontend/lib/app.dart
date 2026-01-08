@@ -15,23 +15,53 @@ class MantokApp extends ConsumerWidget {
     final currentTheme = ref.watch(currentThemeDataProvider);
     final themeExt = ref.watch(currentThemeExtensionProvider);
 
-    return ShadApp(
+    // shadcn_ui 테마 데이터 생성
+    final shadThemeData = themeExt.isDark
+        ? ShadThemeData(
+            brightness: Brightness.dark,
+            colorScheme: ShadColorScheme.fromName(
+              'slate',
+              brightness: Brightness.dark,
+            ).copyWith(
+              background: themeExt.backgroundColor,
+              foreground: themeExt.textPrimary,
+              card: themeExt.cardColor,
+              cardForeground: themeExt.textPrimary,
+              primary: themeExt.primaryColor,
+              primaryForeground: Colors.black,
+              muted: themeExt.cardColor,
+              mutedForeground: themeExt.textMuted,
+              border: themeExt.textMuted.withOpacity(0.2),
+              input: themeExt.textMuted.withOpacity(0.2),
+            ),
+          )
+        : ShadThemeData(
+            brightness: Brightness.light,
+            colorScheme: ShadColorScheme.fromName(
+              'slate',
+              brightness: Brightness.light,
+            ).copyWith(
+              background: themeExt.backgroundColor,
+              foreground: themeExt.textPrimary,
+              card: themeExt.cardColor,
+              cardForeground: themeExt.textPrimary,
+              primary: themeExt.primaryColor,
+              primaryForeground: Colors.white,
+              muted: themeExt.cardColor,
+              mutedForeground: themeExt.textMuted,
+              border: themeExt.textMuted.withOpacity(0.2),
+              input: themeExt.textMuted.withOpacity(0.2),
+            ),
+          );
+
+    return ShadApp.router(
+      title: '만톡',
       debugShowCheckedModeBanner: false,
+      routerConfig: router,
+      theme: shadThemeData,
       materialThemeBuilder: (context, theme) {
-        return ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: themeExt.primaryColor,
-            brightness: themeExt.isDark ? Brightness.dark : Brightness.light,
-          ),
-          useMaterial3: true,
-        );
+        return currentTheme;
       },
-      home: MaterialApp.router(
-        title: '만톡',
-        debugShowCheckedModeBanner: false,
-        theme: currentTheme,
-        routerConfig: router,
-      ),
     );
   }
 }

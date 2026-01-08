@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../ad/ad.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../domain/models/chat_type.dart';
 import '../providers/chat_provider.dart';
@@ -151,19 +152,26 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// Mobile 레이아웃: Scaffold + Drawer
   Widget _buildMobileLayout() {
     final sessionState = ref.watch(chatSessionNotifierProvider);
+    final appTheme = context.appTheme;
     final currentSession = sessionState.sessions
         .where((s) => s.id == sessionState.currentSessionId)
         .firstOrNull;
 
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: appTheme.backgroundColor,
       appBar: AppBar(
+        backgroundColor: appTheme.backgroundColor,
+        foregroundColor: appTheme.textPrimary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.menu),
           tooltip: '메뉴로 돌아가기',
         ),
-        title: Text(currentSession?.title ?? _chatType.title),
+        title: Text(
+          currentSession?.title ?? _chatType.title,
+          style: TextStyle(color: appTheme.textPrimary),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
@@ -178,6 +186,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         ],
       ),
       drawer: Drawer(
+        backgroundColor: appTheme.cardColor,
         child: ChatHistorySidebar(
           onNewChat: _handleNewChat,
           onSessionSelected: _handleSessionSelected,
@@ -197,11 +206,13 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// Desktop 레이아웃: Row [Sidebar | Content]
   Widget _buildDesktopLayout() {
     final sessionState = ref.watch(chatSessionNotifierProvider);
+    final appTheme = context.appTheme;
     final currentSession = sessionState.sessions
         .where((s) => s.id == sessionState.currentSessionId)
         .firstOrNull;
 
     return Scaffold(
+      backgroundColor: appTheme.backgroundColor,
       body: Row(
         children: [
           // 사이드바 (토글 가능)
@@ -212,7 +223,10 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
               onSessionDeleted: _handleSessionDeleted,
               onSessionRenamed: _handleSessionRenamed,
             ),
-            const VerticalDivider(width: 1),
+            VerticalDivider(
+              width: 1,
+              color: appTheme.primaryColor.withOpacity(0.1),
+            ),
           ],
           // 채팅 영역
           Expanded(
@@ -223,9 +237,10 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
+                    color: appTheme.backgroundColor,
                     border: Border(
                       bottom: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
+                        color: appTheme.primaryColor.withOpacity(0.1),
                         width: 0.5,
                       ),
                     ),
@@ -234,13 +249,16 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                     children: [
                       // 뒤로가기 버튼
                       IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: appTheme.textPrimary),
                         onPressed: () => context.go(Routes.menu),
                         tooltip: '메뉴로 돌아가기',
                       ),
                       // 햄버거 아이콘 (사이드바 토글)
                       IconButton(
-                        icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
+                        icon: Icon(
+                          _isSidebarVisible ? Icons.menu_open : Icons.menu,
+                          color: appTheme.textPrimary,
+                        ),
                         onPressed: () {
                           setState(() {
                             _isSidebarVisible = !_isSidebarVisible;
@@ -253,13 +271,15 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                       Expanded(
                         child: Text(
                           currentSession?.title ?? _chatType.title,
-                          style: Theme.of(context).textTheme.titleMedium,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: appTheme.textPrimary,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       // 새 채팅 버튼
                       IconButton(
-                        icon: const Icon(Icons.add),
+                        icon: Icon(Icons.add, color: appTheme.textPrimary),
                         onPressed: _handleNewChat,
                         tooltip: '새 채팅',
                       ),
@@ -312,6 +332,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
   Widget build(BuildContext context) {
     final sessionState = ref.watch(chatSessionNotifierProvider);
     final currentSessionId = sessionState.currentSessionId;
+    final appTheme = context.appTheme;
 
     // 세션이 없으면 환영 메시지 + 입력 필드
     if (currentSessionId == null) {
@@ -326,20 +347,20 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                   Icon(
                     Icons.chat_bubble_outline,
                     size: 64,
-                    color: Theme.of(context).colorScheme.outline,
+                    color: appTheme.textMuted,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     '무엇이든 물어보세요',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: appTheme.textPrimary,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '사주, 운세, 궁합 등 궁금한 것을 입력해주세요',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
+                          color: appTheme.textMuted,
                         ),
                   ),
                 ],
@@ -465,16 +486,16 @@ class _DeepAnalysisLoadingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final appTheme = context.appTheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withOpacity(0.3),
+        color: appTheme.primaryColor.withOpacity(0.1),
         border: Border(
           bottom: BorderSide(
-            color: colorScheme.outlineVariant,
+            color: appTheme.primaryColor.withOpacity(0.2),
             width: 0.5,
           ),
         ),
@@ -487,7 +508,7 @@ class _DeepAnalysisLoadingBanner extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(appTheme.primaryColor),
             ),
           ),
           const SizedBox(width: 12),
@@ -498,16 +519,18 @@ class _DeepAnalysisLoadingBanner extends StatelessWidget {
               children: [
                 Text(
                   '상세 사주 분석 중...',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onSurface,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: appTheme.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '합충형파해, 십성, 신살 등 정밀 분석 진행 (약 1~2분 소요)',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: appTheme.textSecondary,
                   ),
                 ),
               ],
