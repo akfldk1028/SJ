@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
 
 /// 양력/음력 선택 드롭다운
@@ -11,6 +12,7 @@ class CalendarTypeDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
     ref.watch(profileFormProvider);
 
     return Column(
@@ -18,7 +20,9 @@ class CalendarTypeDropdown extends ConsumerWidget {
       children: [
         Text(
           '생년월일시',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: theme.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
         ShadSelect<bool>(

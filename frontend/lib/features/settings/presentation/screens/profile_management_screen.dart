@@ -1,94 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/mystic_background.dart';
-
-/// 프로필 관리 화면
+/// 프로필 관리 화면 - shadcn_ui 기반
 class ProfileManagementScreen extends ConsumerWidget {
   const ProfileManagementScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = context.appTheme;
+    final theme = ShadTheme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
-      body: MysticBackground(
-        child: SafeArea(
+      appBar: AppBar(
+        title: const Text('프로필 관리'),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context, theme),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
+              // 계정 정보 카드
+              _buildSectionHeader(context, '계정 정보'),
+              const SizedBox(height: 8),
+              ShadCard(
+                child: Column(
                   children: [
-                    // 계정 정보 카드
-                    _buildInfoCard(
-                      context,
-                      theme,
-                      title: '계정 정보',
-                      children: [
-                        _buildInfoRow(theme, '이메일', 'user@example.com'),
-                        const Divider(height: 1),
-                        _buildInfoRow(theme, '가입일', '2024년 1월 1일'),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                    _buildInfoRow(context, '이메일', 'user@example.com'),
+                    const Divider(height: 24),
+                    _buildInfoRow(context, '가입일', '2024년 1월 1일'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                    // 프로필 설정 카드
-                    _buildInfoCard(
+              // 프로필 설정 카드
+              _buildSectionHeader(context, '프로필 설정'),
+              const SizedBox(height: 8),
+              ShadCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _buildActionRow(
                       context,
-                      theme,
-                      title: '프로필 설정',
-                      children: [
-                        _buildActionRow(
-                          theme,
-                          icon: Icons.person,
-                          title: '닉네임 변경',
-                          onTap: () => _showEditDialog(context, '닉네임'),
-                        ),
-                        const Divider(height: 1),
-                        _buildActionRow(
-                          theme,
-                          icon: Icons.image,
-                          title: '프로필 이미지 변경',
-                          onTap: () {},
-                        ),
-                      ],
+                      icon: LucideIcons.user,
+                      title: '닉네임 변경',
+                      onTap: () => _showEditDialog(context, '닉네임'),
                     ),
-                    const SizedBox(height: 16),
-
-                    // 계정 관리 카드
-                    _buildInfoCard(
+                    const Divider(height: 1),
+                    _buildActionRow(
                       context,
-                      theme,
-                      title: '계정 관리',
-                      children: [
-                        _buildActionRow(
-                          theme,
-                          icon: Icons.lock,
-                          title: '비밀번호 변경',
-                          onTap: () {},
-                        ),
-                        const Divider(height: 1),
-                        _buildActionRow(
-                          theme,
-                          icon: Icons.logout,
-                          title: '로그아웃',
-                          onTap: () => _showLogoutDialog(context),
-                          isDestructive: false,
-                        ),
-                        const Divider(height: 1),
-                        _buildActionRow(
-                          theme,
-                          icon: Icons.delete_forever,
-                          title: '계정 탈퇴',
-                          onTap: () => _showDeleteAccountDialog(context),
-                          isDestructive: true,
-                        ),
-                      ],
+                      icon: LucideIcons.image,
+                      title: '프로필 이미지 변경',
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 계정 관리 카드
+              _buildSectionHeader(context, '계정 관리'),
+              const SizedBox(height: 8),
+              ShadCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _buildActionRow(
+                      context,
+                      icon: LucideIcons.lock,
+                      title: '비밀번호 변경',
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    _buildActionRow(
+                      context,
+                      icon: LucideIcons.logOut,
+                      title: '로그아웃',
+                      onTap: () => _showLogoutDialog(context),
+                    ),
+                    const Divider(height: 1),
+                    _buildActionRow(
+                      context,
+                      icon: LucideIcons.trash2,
+                      title: '계정 탈퇴',
+                      onTap: () => _showDeleteAccountDialog(context),
+                      isDestructive: true,
                     ),
                   ],
                 ),
@@ -100,121 +103,49 @@ class ProfileManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppThemeExtension theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.cardColor.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.primaryColor.withOpacity(0.15),
-                ),
-              ),
-              child: Icon(
-                Icons.arrow_back_rounded,
-                color: theme.primaryColor,
-                size: 20,
-              ),
-            ),
-          ),
-          const Spacer(),
-          Text(
-            '프로필 관리',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: theme.textPrimary,
-            ),
-          ),
-          const Spacer(),
-          const SizedBox(width: 40),
-        ],
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final theme = ShadTheme.of(context);
+    return Text(
+      title,
+      style: theme.textTheme.small.copyWith(
+        fontWeight: FontWeight.w600,
+        color: theme.colorScheme.mutedForeground,
       ),
     );
   }
 
-  Widget _buildInfoCard(
-    BuildContext context,
-    AppThemeExtension theme, {
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.06),
-            offset: const Offset(0, 2),
-            blurRadius: 8,
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final theme = ShadTheme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.p.copyWith(
+            color: theme.colorScheme.mutedForeground,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: theme.primaryColor,
-              ),
-            ),
+        ),
+        Text(
+          value,
+          style: theme.textTheme.p.copyWith(
+            fontWeight: FontWeight.w500,
           ),
-          const Divider(height: 1),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(AppThemeExtension theme, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: theme.textPrimary,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildActionRow(
-    AppThemeExtension theme, {
+    BuildContext context, {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    final color = isDestructive ? Colors.red[400] : theme.textPrimary;
+    final theme = ShadTheme.of(context);
+    final color = isDestructive
+        ? theme.colorScheme.destructive
+        : theme.colorScheme.foreground;
 
     return InkWell(
       onTap: onTap,
@@ -227,16 +158,13 @@ class ProfileManagementScreen extends ConsumerWidget {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: color,
-                ),
+                style: theme.textTheme.p.copyWith(color: color),
               ),
             ),
             Icon(
-              Icons.chevron_right,
-              color: theme.textMuted,
-              size: 20,
+              LucideIcons.chevronRight,
+              size: 18,
+              color: theme.colorScheme.mutedForeground,
             ),
           ],
         ),
@@ -245,55 +173,45 @@ class ProfileManagementScreen extends ConsumerWidget {
   }
 
   void _showEditDialog(BuildContext context, String field) {
-    final theme = context.appTheme;
-    showDialog(
+    final controller = TextEditingController();
+
+    showShadDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.cardColor,
-        title: Text(
-          '$field 변경',
-          style: TextStyle(color: theme.textPrimary),
-        ),
-        content: TextField(
-          decoration: InputDecoration(
-            hintText: '새 $field을 입력하세요',
-            hintStyle: TextStyle(color: theme.textMuted),
-          ),
-          style: TextStyle(color: theme.textPrimary),
-        ),
+      builder: (context) => ShadDialog(
+        title: Text('$field 변경'),
+        description: Text('새 $field을 입력해주세요'),
         actions: [
-          TextButton(
+          ShadButton.outline(
             onPressed: () => Navigator.pop(context),
-            child: Text('취소', style: TextStyle(color: theme.textSecondary)),
+            child: const Text('취소'),
           ),
-          TextButton(
+          ShadButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('저장', style: TextStyle(color: theme.primaryColor)),
+            child: const Text('저장'),
           ),
         ],
+        child: ShadInput(
+          controller: controller,
+          placeholder: Text('새 $field'),
+        ),
       ),
     );
   }
 
   void _showLogoutDialog(BuildContext context) {
-    final theme = context.appTheme;
-    showDialog(
+    showShadDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.cardColor,
-        title: Text('로그아웃', style: TextStyle(color: theme.textPrimary)),
-        content: Text(
-          '로그아웃 하시겠습니까?',
-          style: TextStyle(color: theme.textSecondary),
-        ),
+      builder: (context) => ShadDialog.alert(
+        title: const Text('로그아웃'),
+        description: const Text('로그아웃 하시겠습니까?'),
         actions: [
-          TextButton(
+          ShadButton.outline(
             onPressed: () => Navigator.pop(context),
-            child: Text('취소', style: TextStyle(color: theme.textSecondary)),
+            child: const Text('취소'),
           ),
-          TextButton(
+          ShadButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('로그아웃', style: TextStyle(color: theme.primaryColor)),
+            child: const Text('로그아웃'),
           ),
         ],
       ),
@@ -301,27 +219,19 @@ class ProfileManagementScreen extends ConsumerWidget {
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
-    final theme = context.appTheme;
-    showDialog(
+    showShadDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.cardColor,
-        title: Text(
-          '계정 탈퇴',
-          style: TextStyle(color: Colors.red[400]),
-        ),
-        content: Text(
-          '정말 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.',
-          style: TextStyle(color: theme.textSecondary),
-        ),
+      builder: (context) => ShadDialog.alert(
+        title: const Text('계정 탈퇴'),
+        description: const Text('정말 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.'),
         actions: [
-          TextButton(
+          ShadButton.outline(
             onPressed: () => Navigator.pop(context),
-            child: Text('취소', style: TextStyle(color: theme.textSecondary)),
+            child: const Text('취소'),
           ),
-          TextButton(
+          ShadButton.destructive(
             onPressed: () => Navigator.pop(context),
-            child: Text('탈퇴', style: TextStyle(color: Colors.red[400])),
+            child: const Text('탈퇴'),
           ),
         ],
       ),

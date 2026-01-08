@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/config/admin_config.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../widgets/profile_name_input.dart';
 import '../widgets/gender_toggle_buttons.dart';
 import '../widgets/calendar_type_dropdown.dart';
@@ -64,43 +66,56 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.profileId != null;
+    final theme = context.appTheme;
 
     return Scaffold(
+      backgroundColor: theme.backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEditing ? '프로필 수정' : '프로필 만들기'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          isEditing ? '프로필 수정' : '프로필 만들기',
+          style: TextStyle(color: theme.textPrimary),
+        ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: theme.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         // Admin 버튼 - 개발 환경에서만 표시
         actions: [
           if (AdminConfig.isAdminModeAvailable && !isEditing)
             IconButton(
-              icon: const Icon(Icons.admin_panel_settings),
+              icon: Icon(Icons.admin_panel_settings, color: theme.textPrimary),
               tooltip: '개발자 모드',
               onPressed: () => _handleAdminLogin(context, ref),
             ),
         ],
       ),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RelationshipTypeDropdown(),
-            SizedBox(height: 24),
-            ProfileNameInput(),
-            SizedBox(height: 24),
-            GenderToggleButtons(),
-            SizedBox(height: 24),
-            _BirthDateSection(),
-            SizedBox(height: 24),
-            CitySearchField(),
-            SizedBox(height: 16),
-            TimeCorrectionBanner(),
-            SizedBox(height: 32),
-            ProfileActionButtons(),
-          ],
+      body: MysticBackground(
+        child: SafeArea(
+          child: const SingleChildScrollView(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                RelationshipTypeDropdown(),
+                SizedBox(height: 24),
+                ProfileNameInput(),
+                SizedBox(height: 24),
+                GenderToggleButtons(),
+                SizedBox(height: 24),
+                _BirthDateSection(),
+                SizedBox(height: 24),
+                CitySearchField(),
+                SizedBox(height: 16),
+                TimeCorrectionBanner(),
+                SizedBox(height: 32),
+                ProfileActionButtons(),
+              ],
+            ),
+          ),
         ),
       ),
     );

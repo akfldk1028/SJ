@@ -1,9 +1,11 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
@@ -35,50 +37,55 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     });
   }
 
+  /// 모바일 플랫폼 체크 (광고 표시용)
+  bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(theme),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 100),
-                children: [
-                  const FortuneSummaryCard(),
-                  const SizedBox(height: 24),
-                  const SajuMiniCard(),
-                  const SizedBox(height: 24),
-                  // Native 광고 1 (사주 카드 아래) - 즉시 로드
-                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 0),
-                  if (!kIsWeb) const SizedBox(height: 24),
-                  const SectionHeader(
-                    title: '오늘의 운세',
-                  ),
-                  const SizedBox(height: 12),
-                  const FortuneCategoryList(),
-                  const SizedBox(height: 24),
-                  // Native 광고 2 - 500ms 지연
-                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 500),
-                  if (!kIsWeb) const SizedBox(height: 24),
-                  const SectionHeader(
-                    title: '오늘의 조언',
-                  ),
-                  const SizedBox(height: 12),
-                  const DailyAdviceSection(),
-                  const SizedBox(height: 24),
-                  const TodayMessageCard(),
-                  const SizedBox(height: 24),
-                  // Native 광고 3 (맨 하단) - 1000ms 지연
-                  if (!kIsWeb) const CardNativeAdWidget(loadDelayMs: 1000),
-                ],
+      body: MysticBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(theme),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  children: [
+                    const FortuneSummaryCard(),
+                    const SizedBox(height: 24),
+                    const SajuMiniCard(),
+                    const SizedBox(height: 24),
+                    // Native 광고 1 (사주 카드 아래) - 즉시 로드
+                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
+                    if (_isMobile) const SizedBox(height: 24),
+                    const SectionHeader(
+                      title: '오늘의 운세',
+                    ),
+                    const SizedBox(height: 12),
+                    const FortuneCategoryList(),
+                    const SizedBox(height: 24),
+                    // Native 광고 2 - 500ms 지연
+                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
+                    if (_isMobile) const SizedBox(height: 24),
+                    const SectionHeader(
+                      title: '오늘의 조언',
+                    ),
+                    const SizedBox(height: 12),
+                    const DailyAdviceSection(),
+                    const SizedBox(height: 24),
+                    const TodayMessageCard(),
+                    const SizedBox(height: 24),
+                    // Native 광고 3 (맨 하단) - 1000ms 지연
+                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 1000),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNav(theme),
@@ -139,12 +146,15 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Text(
-                      formattedDate['full']!,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textPrimary,
+                    Flexible(
+                      child: Text(
+                        formattedDate['full']!,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -289,7 +299,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
 
   Widget _buildBottomNav(AppThemeExtension theme) {
     return Container(
-      height: 70,
+      height: 80,
       decoration: BoxDecoration(
         color: theme.cardColor,
         boxShadow: [
@@ -306,11 +316,13 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildNavItem(theme, Icons.auto_awesome_rounded, '운세', true, null),
-          _buildNavItem(theme, Icons.chat_bubble_outline_rounded, 'AI 상담', false, () {
-            context.push('/saju/chat');
-          }),
           _buildNavItem(theme, Icons.people_outline_rounded, '인맥', false, () {
             context.push('/relationships');
+          }),
+          // AI 상담 - 중앙 강조 버튼
+          _buildCenterAiButton(theme),
+          _buildNavItem(theme, Icons.calendar_month_rounded, '캘린더', false, () {
+            context.push('/calendar');
           }),
           _buildNavItem(theme, Icons.settings_outlined, '설정', false, () {
             context.push('/settings');
@@ -320,12 +332,59 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     );
   }
 
-  Widget _buildNavItem(AppThemeExtension theme, IconData icon, String label, bool isActive, VoidCallback? onTap) {
+  /// AI 상담 중앙 강조 버튼
+  Widget _buildCenterAiButton(AppThemeExtension theme) {
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 70,
+      onTap: () => context.push('/saju/chat'),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.primaryColor,
+              theme.primaryColor.withOpacity(0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.primaryColor.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.forum_rounded,
+              color: theme.isDark ? Colors.black : Colors.white,
+              size: 24,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'AI 상담',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                color: theme.isDark ? Colors.black : Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(AppThemeExtension theme, IconData icon, String label, bool isActive, VoidCallback? onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,

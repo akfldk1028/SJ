@@ -42,7 +42,7 @@ class PillarDisplay extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: theme.isDark ? null : const Color(0xFFF5F7FA),
             gradient: theme.isDark
