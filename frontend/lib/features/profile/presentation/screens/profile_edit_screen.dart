@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/config/admin_config.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../widgets/profile_name_input.dart';
 import '../widgets/gender_toggle_buttons.dart';
 import '../widgets/calendar_type_dropdown.dart';
-import '../widgets/birth_date_picker.dart';
-import '../widgets/birth_time_picker.dart';
+import '../widgets/birth_date_input_widget.dart';
+import '../widgets/birth_time_input_widget.dart';
 import '../widgets/birth_time_options.dart';
-import '../widgets/lunar_options.dart';
 import '../widgets/city_search_field.dart';
 import '../widgets/time_correction_banner.dart';
 import '../widgets/profile_action_buttons.dart';
@@ -64,43 +65,56 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.profileId != null;
+    final theme = context.appTheme;
 
     return Scaffold(
+      backgroundColor: theme.backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEditing ? '프로필 수정' : '프로필 만들기'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          isEditing ? '프로필 수정' : '프로필 만들기',
+          style: TextStyle(color: theme.textPrimary),
+        ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: theme.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         // Admin 버튼 - 개발 환경에서만 표시
         actions: [
           if (AdminConfig.isAdminModeAvailable && !isEditing)
             IconButton(
-              icon: const Icon(Icons.admin_panel_settings),
+              icon: Icon(Icons.admin_panel_settings, color: theme.textPrimary),
               tooltip: '개발자 모드',
               onPressed: () => _handleAdminLogin(context, ref),
             ),
         ],
       ),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RelationshipTypeDropdown(),
-            SizedBox(height: 24),
-            ProfileNameInput(),
-            SizedBox(height: 24),
-            GenderToggleButtons(),
-            SizedBox(height: 24),
-            _BirthDateSection(),
-            SizedBox(height: 24),
-            CitySearchField(),
-            SizedBox(height: 16),
-            TimeCorrectionBanner(),
-            SizedBox(height: 32),
-            ProfileActionButtons(),
-          ],
+      body: MysticBackground(
+        child: SafeArea(
+          child: const SingleChildScrollView(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                RelationshipTypeDropdown(),
+                SizedBox(height: 24),
+                ProfileNameInput(),
+                SizedBox(height: 24),
+                GenderToggleButtons(),
+                SizedBox(height: 24),
+                _BirthDateSection(),
+                SizedBox(height: 24),
+                CitySearchField(),
+                SizedBox(height: 16),
+                TimeCorrectionBanner(),
+                SizedBox(height: 32),
+                ProfileActionButtons(),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -177,12 +191,10 @@ class _BirthDateSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CalendarTypeDropdown(),
-        // Phase 18: 음력 선택 시 윤달 옵션 표시
-        LunarOptions(),
         SizedBox(height: 12),
-        BirthDatePicker(),
+        BirthDateInputWidget(), // 날짜 직접 입력
         SizedBox(height: 12),
-        BirthTimePicker(),
+        BirthTimeInputWidget(), // 시간 직접 입력 + 오전/오후
         SizedBox(height: 12),
         BirthTimeOptions(),
       ],

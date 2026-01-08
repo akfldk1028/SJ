@@ -2,11 +2,16 @@
 /// 메뉴 화면의 운세 카드와 동일한 스타일의 네이티브 광고
 library;
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ad_config.dart';
+
+/// 모바일 플랫폼 체크
+bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
 /// 카드 스타일 Native 광고 (Lazy Loading 적용)
 ///
@@ -34,6 +39,8 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
   @override
   void initState() {
     super.initState();
+    if (!_isMobile) return;
+
     // 프레임 완료 후 지연 로드 (UI 블로킹 방지)
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (widget.loadDelayMs > 0) {
@@ -45,7 +52,7 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
   }
 
   void _loadAd() {
-    if (_loadStarted || !mounted) return;
+    if (!_isMobile || _loadStarted || !mounted) return;
     _loadStarted = true;
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
