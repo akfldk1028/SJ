@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../providers/profile_provider.dart';
 
@@ -40,12 +41,16 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '도시',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: theme.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
         Autocomplete<String>(
@@ -66,8 +71,12 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
             return ShadInput(
               controller: _controller,
               focusNode: focusNode,
-              placeholder: const Text('도시명을 입력하세요'),
-              trailing: const Icon(Icons.search, size: 20),
+              placeholder: Text(
+                '도시명을 입력하세요',
+                style: TextStyle(color: theme.textMuted),
+              ),
+              style: TextStyle(color: theme.textPrimary),
+              trailing: Icon(Icons.search, size: 20, color: theme.textSecondary),
               onChanged: (value) {
                 ref.read(profileFormProvider.notifier).updateBirthCity(value);
               },
@@ -77,6 +86,7 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
             return Align(
               alignment: Alignment.topLeft,
               child: Material(
+                color: theme.cardColor,
                 elevation: 4,
                 borderRadius: BorderRadius.circular(8),
                 child: ConstrainedBox(
@@ -91,7 +101,7 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
                     itemBuilder: (context, index) {
                       final city = options.elementAt(index);
                       return ListTile(
-                        title: Text(city),
+                        title: Text(city, style: TextStyle(color: theme.textPrimary)),
                         onTap: () => onSelected(city),
                       );
                     },

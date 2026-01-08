@@ -20,6 +20,9 @@ abstract class Routes {
   // History
   static const String history = '/history';
 
+  // Calendar
+  static const String calendar = '/calendar';
+
   // Settings
   static const String settings = '/settings';
   static const String settingsProfile = '/settings/profile';

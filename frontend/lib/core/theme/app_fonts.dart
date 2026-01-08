@@ -3,10 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// 앱 폰트 설정
 ///
-/// 사주앱에 맞는 한글 폰트 조합:
+/// 통일된 폰트 사용:
 /// - 기본 UI: Noto Sans KR (깔끔, 가독성)
-/// - AI 채팅: Gowun Dodum (전통+현대 느낌)
-/// - 운세/결과: Gowun Batang (고전 명조 느낌)
+/// - 한자: 기본 시스템 폰트 또는 별도 지정
 class AppFonts {
   AppFonts._();
 
@@ -21,24 +20,19 @@ class AppFonts {
     return GoogleFonts.notoSansKrTextTheme();
   }
 
-  /// AI 채팅용 폰트 (Gowun Dodum)
-  /// - 전통과 현대의 조화
-  /// - 사주 앱 분위기에 적합
+  /// AI 채팅용 폰트 (Noto Sans KR)
   static TextStyle get chatStyle {
-    return GoogleFonts.gowunDodum();
+    return GoogleFonts.notoSansKr();
   }
 
-  /// 운세/결과 표시용 폰트 (Gowun Batang)
-  /// - 고전적인 명조체 느낌
-  /// - 운세 결과에 품격 부여
+  /// 운세/결과 표시용 폰트 (Noto Sans KR)
   static TextStyle get fortuneStyle {
-    return GoogleFonts.gowunBatang();
+    return GoogleFonts.notoSansKr();
   }
 
-  /// 강조/제목용 폰트 (Noto Serif KR)
-  /// - 세리프체로 중요한 텍스트 강조
+  /// 강조/제목용 폰트 (Noto Sans KR)
   static TextStyle get titleStyle {
-    return GoogleFonts.notoSerifKr();
+    return GoogleFonts.notoSansKr(fontWeight: FontWeight.w600);
   }
 
   // ============================================
@@ -51,7 +45,7 @@ class AppFonts {
     double fontSize = 15,
     FontWeight fontWeight = FontWeight.normal,
   }) {
-    return GoogleFonts.gowunDodum(
+    return GoogleFonts.notoSansKr(
       color: color,
       fontSize: fontSize,
       fontWeight: fontWeight,
@@ -73,13 +67,13 @@ class AppFonts {
     );
   }
 
-  /// 운세 결과 스타일 (명조체)
+  /// 운세 결과 스타일
   static TextStyle fortuneResult({
     Color? color,
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
   }) {
-    return GoogleFonts.gowunBatang(
+    return GoogleFonts.notoSansKr(
       color: color,
       fontSize: fontSize,
       fontWeight: fontWeight,
@@ -92,7 +86,7 @@ class AppFonts {
     Color? color,
     double fontSize = 14,
   }) {
-    return GoogleFonts.gowunDodum(
+    return GoogleFonts.notoSansKr(
       color: color,
       fontSize: fontSize,
       fontWeight: FontWeight.w600,
@@ -104,7 +98,7 @@ class AppFonts {
     Color? color,
     double fontSize = 18,
   }) {
-    return GoogleFonts.notoSerifKr(
+    return GoogleFonts.notoSansKr(
       color: color,
       fontSize: fontSize,
       fontWeight: FontWeight.w600,
@@ -128,39 +122,40 @@ class AppFonts {
   // ============================================
 
   /// 테마에 적용할 전체 TextTheme 생성
+  /// 모든 텍스트를 Noto Sans KR로 통일
   static TextTheme createTextTheme({bool isDark = false}) {
     final baseColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
 
     return TextTheme(
       // Display
-      displayLarge: GoogleFonts.notoSerifKr(
+      displayLarge: GoogleFonts.notoSansKr(
         fontSize: 32,
         fontWeight: FontWeight.bold,
         color: baseColor,
       ),
-      displayMedium: GoogleFonts.notoSerifKr(
+      displayMedium: GoogleFonts.notoSansKr(
         fontSize: 28,
         fontWeight: FontWeight.bold,
         color: baseColor,
       ),
-      displaySmall: GoogleFonts.notoSerifKr(
+      displaySmall: GoogleFonts.notoSansKr(
         fontSize: 24,
         fontWeight: FontWeight.w600,
         color: baseColor,
       ),
 
       // Headline
-      headlineLarge: GoogleFonts.gowunDodum(
+      headlineLarge: GoogleFonts.notoSansKr(
         fontSize: 22,
         fontWeight: FontWeight.w600,
         color: baseColor,
       ),
-      headlineMedium: GoogleFonts.gowunDodum(
+      headlineMedium: GoogleFonts.notoSansKr(
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: baseColor,
       ),
-      headlineSmall: GoogleFonts.gowunDodum(
+      headlineSmall: GoogleFonts.notoSansKr(
         fontSize: 18,
         fontWeight: FontWeight.w500,
         color: baseColor,
@@ -183,14 +178,14 @@ class AppFonts {
         color: baseColor,
       ),
 
-      // Body (채팅에 사용)
-      bodyLarge: GoogleFonts.gowunDodum(
+      // Body
+      bodyLarge: GoogleFonts.notoSansKr(
         fontSize: 16,
         fontWeight: FontWeight.normal,
         color: baseColor,
         height: 1.6,
       ),
-      bodyMedium: GoogleFonts.gowunDodum(
+      bodyMedium: GoogleFonts.notoSansKr(
         fontSize: 15,
         fontWeight: FontWeight.normal,
         color: baseColor,
