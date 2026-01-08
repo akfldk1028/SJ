@@ -11,6 +11,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
  *
+ * v16 변경사항:
+ * - 스트리밍 지원 추가 (stream: true)
+ * - SSE (Server-Sent Events) 형식으로 실시간 응답
+ * - 기존 비스트리밍 모드와 하위 호환 유지
+ *
  * v15 변경사항:
  * - 모델명: gemini-3-flash-preview (최신)
  * - responseMimeType 제거 (일반 텍스트 응답)
@@ -24,7 +29,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, cache-control",
 };
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
@@ -46,6 +51,7 @@ interface GeminiRequest {
   max_tokens?: number;
   temperature?: number;
   user_id?: string; // Quota 체크용
+  stream?: boolean; // v16: 스트리밍 모드
 }
 
 /**
@@ -166,6 +172,161 @@ async function recordTokenUsage(
   }
 }
 
+/**
+ * 스트리밍 응답 처리 (v16)
+ * Gemini SSE 응답을 클라이언트에 릴레이
+ */
+async function handleStreamingRequest(
+  supabase: ReturnType<typeof createClient>,
+  messages: ChatMessage[],
+  model: string,
+  maxTokens: number,
+  temperature: number,
+  userId: string | undefined,
+  isAdmin: boolean
+): Promise<Response> {
+  // messages를 Gemini 형식으로 변환
+  const systemInstruction = messages
+    .filter((m) => m.role === "system")
+    .map((m) => m.content)
+    .join("\n");
+
+  const contents = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+  // Gemini 스트리밍 API 호출
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+
+  console.log(`[ai-gemini-stream] Calling Gemini streaming API: model=${model}`);
+
+  const geminiResponse = await fetch(geminiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents,
+      systemInstruction: systemInstruction
+        ? { parts: [{ text: systemInstruction }] }
+        : undefined,
+      generationConfig: {
+        // Gemini 3 모델: temperature < 1.0 시 looping 버그 발생 (공식문서 경고)
+        // 반복 버그 방지를 위해 1.0 사용
+        temperature: 1.0,
+        maxOutputTokens: maxTokens,
+        topP: 0.9,
+        topK: 40,
+        // [/SUGGESTED_QUESTIONS] 이후 생성 중단
+        stopSequences: ["[/SUGGESTED_QUESTIONS]"],
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
+      ],
+    }),
+  });
+
+  if (!geminiResponse.ok) {
+    const errorText = await geminiResponse.text();
+    console.error("[ai-gemini-stream] Gemini API error:", errorText);
+    throw new Error(`Gemini API error: ${geminiResponse.status}`);
+  }
+
+  // 토큰 정보 수집용 변수
+  let totalPromptTokens = 0;
+  let totalCompletionTokens = 0;
+
+  // ReadableStream으로 Gemini 응답을 클라이언트에 릴레이
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const reader = geminiResponse.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE 이벤트 파싱 (data: ... 형식)
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || ""; // 마지막 불완전한 라인은 버퍼에 유지
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const jsonStr = line.slice(6).trim();
+              if (!jsonStr || jsonStr === "[DONE]") continue;
+
+              try {
+                const data = JSON.parse(jsonStr);
+
+                // 텍스트 추출
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+                // 토큰 정보 (마지막 청크에 포함)
+                if (data.usageMetadata) {
+                  totalPromptTokens = data.usageMetadata.promptTokenCount || 0;
+                  totalCompletionTokens = data.usageMetadata.candidatesTokenCount || 0;
+                }
+
+                // 클라이언트에 SSE 형식으로 전송
+                if (text) {
+                  const sseData = JSON.stringify({ text, done: false });
+                  controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
+                }
+              } catch (parseError) {
+                console.error("[ai-gemini-stream] Parse error:", parseError);
+              }
+            }
+          }
+        }
+
+        // 스트림 완료 시 토큰 정보 전송
+        const doneData = JSON.stringify({
+          text: "",
+          done: true,
+          usage: {
+            prompt_tokens: totalPromptTokens,
+            completion_tokens: totalCompletionTokens,
+            total_tokens: totalPromptTokens + totalCompletionTokens,
+          },
+        });
+        controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
+
+        // 토큰 사용량 기록 (스트림 완료 후)
+        if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
+          const cost = (totalPromptTokens * 0.075 / 1000000) + (totalCompletionTokens * 0.30 / 1000000);
+          await recordTokenUsage(supabase, userId, totalPromptTokens, totalCompletionTokens, cost, isAdmin);
+          console.log(`[ai-gemini-stream] Token usage recorded: prompt=${totalPromptTokens}, completion=${totalCompletionTokens}`);
+        }
+
+      } catch (error) {
+        console.error("[ai-gemini-stream] Stream error:", error);
+        const errorData = JSON.stringify({ error: "Stream error", done: true });
+        controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
+}
+
 Deno.serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -191,6 +352,7 @@ Deno.serve(async (req) => {
       max_tokens = 16384,                  // 응답 잘림 방지 강화 (4096 → 16384)
       temperature = 0.8,
       user_id,
+      stream = false, // v16: 스트리밍 모드 (기본값 false로 하위 호환)
     } = requestData;
 
     // 필수 파라미터 검증
@@ -227,6 +389,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // v16: 스트리밍 모드 분기
+    if (stream) {
+      console.log(`[ai-gemini] Streaming mode enabled: model=${model}`);
+      return await handleStreamingRequest(
+        supabase,
+        messages,
+        model,
+        max_tokens,
+        temperature,
+        user_id,
+        isAdmin
+      );
+    }
+
+    // ===== 기존 비스트리밍 로직 =====
     console.log(`[ai-gemini] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
 
     // messages를 Gemini 형식으로 변환
@@ -254,10 +431,13 @@ Deno.serve(async (req) => {
           ? { parts: [{ text: systemInstruction }] }
           : undefined,
         generationConfig: {
-          temperature,
+          // Gemini 3 모델: temperature < 1.0 시 looping 버그 발생 (공식문서 경고)
+          temperature: 1.0,
           maxOutputTokens: max_tokens,
           topP: 0.9,
           topK: 40,
+          // [/SUGGESTED_QUESTIONS] 이후 생성 중단
+          stopSequences: ["[/SUGGESTED_QUESTIONS]"],
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },

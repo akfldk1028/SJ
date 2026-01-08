@@ -38,9 +38,12 @@ class SuggestedQuestionsParser {
         .toList();
 
     // 태그 제거한 응답 텍스트
-    final cleanedContent = response
-        .replaceAll(_tagPattern, '')
-        .trim();
+    // 중요: [SUGGESTED_QUESTIONS] 태그 뒤에 쓰레기 문자가 붙을 수 있음 (Gemini 반복 버그)
+    // 태그 시작 위치 이전까지만 유지하고, 태그와 그 뒤 모든 내용 제거
+    final tagStartIndex = response.indexOf('[SUGGESTED_QUESTIONS]');
+    final cleanedContent = tagStartIndex != -1
+        ? response.substring(0, tagStartIndex).trim()
+        : response.replaceAll(_tagPattern, '').trim();
 
     return ParseResult(
       cleanedContent: cleanedContent,

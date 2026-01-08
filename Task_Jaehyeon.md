@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-01 (Phase 28 AiApiService Polling 로직 추가)
+> 최종 업데이트: 2026-01-06 (Phase 41 합충형파해 포스텔러 기준 구현)
 
 ---
 
@@ -39,7 +39,7 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - EdgeFunction_task.md 생성 (모델 변경 금지 문서)
 - Phase 22 (만세력 계산 로직 수정) ✅ 완료 (2024-12-31)
   - 지장간 테이블 수정 (자/묘/오/유 왕지 여기 추가)
-  - 12신살 기준 변경 (년지→일지 기준)
+  - 12신살 기준 변경 (년지→일지 기준) → Phase 39에서 다시 년지 기준으로 변경
   - 신강/신약 점수 계산 가중치 조정
 - Phase 23 (누락된 신살/귀인 추가) ✅ 완료 (2024-12-31)
   - P1 신살: 금여, 삼기귀인, 복성귀인, 낙정관살
@@ -66,6 +66,35 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - openai_edge_datasource.dart (채팅용): polling ✅
   - ai_api_service.dart (saju_base 분석용): polling ❌ → 빈 응답!
   - 수정: _pollForOpenAIResult() 메서드 추가, runInBackground 파라미터 추가
+- **Phase 38 (신강/신약 비율 기준 등급 결정) ✅ 완료 (2026-01-05)**
+  - 점수/만점 비율로 8단계 등급 결정 (삼주/사주 일관성 유지)
+  - 사주: 100점 만점, 삼주: 75점 만점
+  - 비율 기준: 88%+=극왕, 75-87%=태강, 63-74%=신강, 50-62%=중화신강
+  - 38-49%=중화신약, 26-37%=신약, 13-25%=태약, 0-12%=극약
+- **Phase 39 (12신살 년지 기준 변경) ✅ 완료 (2026-01-05)**
+  - 포스텔러 앱과 동일한 결과를 위해 년지 기준으로 변경
+  - `useYearJi` 기본값: false → true
+  - 도화살: 년지+일지 병행 기준 함수 추가 (hasDohwasal)
+  - 테스트 파일 생성: twelve_sinsal_basis_test.dart
+- **Phase 40 (GPT 프롬프트 오행 데이터 수정) ✅ 완료 (2026-01-06)**
+  - 문제: ai_summaries.content.saju_origin.oheng이 모두 0으로 저장됨
+  - 원인: saju_base_prompt.dart JSON 스키마에 오행이 `{"목": 0, ...}`으로 하드코딩
+  - GPT가 스키마의 0 값을 그대로 복사하여 응답
+  - 수정: prompt_template.dart에 `ohengJson` getter 추가
+  - 수정: saju_base_prompt.dart에서 `${data.ohengJson}` 사용하여 실제 값 삽입
+- **Phase 41 (합충형파해 포스텔러 기준 구현) ✅ 완료 (2026-01-06)**
+  - 테스트 프로필: 김동현 (갑술 병자 경인 경진)
+  - 기존 문제: 엄격한 해석 (반합=왕지 필수, 방합=3개 필수)
+  - 포스텔러 기준: 느슨한 해석 (반합=2개면 OK, 반방합 지원)
+  - 수정 파일:
+    - hapchung_relations.dart: isHalfMatchLoose(), findJijiHalfSamhapWithType(), findJijiHalfBanghap() 추가
+    - hapchung_service.dart: SamhapHalfType enum, halfType 필드, 느슨한 반합/반방합 로직
+    - hapchung_tab.dart: displayLabel 기반 라벨 표시
+  - 결과:
+    - 자진반합(수국) ✅ → halfType: halfWithWangji
+    - 인술반합(화국) ✅ → halfType: halfLoose (포스텔러 기준 추가)
+    - 인진반방합(동방목) ✅ → isFullBanghap: false (포스텔러 기준 추가)
+  - 테스트 파일: test/hapchung_fosteller_test.dart
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
@@ -4285,5 +4314,127 @@ P2/P3 우선순위 신살 계산 로직 추가 및 UI 표시 구현
 - [나무위키 - 사주팔자](https://namu.wiki/w/사주팔자)
 - [초코서당 - 야자시/조자시 기본편](https://chocosd.com/3441/)
 - [사주 만세력마다 일주가 다르게 나오는 이유](https://www.postype.com/@mimina/post/15210215)
+
+---
+
+## Phase 38: 신강/신약 비율 기준 등급 결정 (2026-01-05) ✅ 완료
+
+### 개요
+삼주(시간 모름)와 사주(시간 있음) 간 등급 일관성 유지를 위해 점수/만점 비율 기준으로 등급 결정
+
+### 변경 내용
+
+**파일**: `frontend/lib/features/saju_chart/domain/services/day_strength_service.dart`
+
+#### 점수 체계
+| 구성 | 사주 (시간 있음) | 삼주 (시간 모름) |
+|------|-----------------|-----------------|
+| 천간 | 연간 10 + 월간 10 + 시간 10 = 30점 | 연간 10 + 월간 10 = 20점 |
+| 지지 | 연지 10 + 월지 30 + 일지 15 + 시지 15 = 70점 | 연지 10 + 월지 30 + 일지 15 = 55점 |
+| **만점** | **100점** | **75점** |
+
+#### 비율 기준 8단계 등급
+| 비율 | 등급 | is_singang |
+|------|------|------------|
+| 88%+ | 극왕(極旺) | true |
+| 75-87% | 태강(太强) | true |
+| 63-74% | 신강(身强) | true |
+| 50-62% | 중화신강(中和身强) | true |
+| 38-49% | 중화신약(中和身弱) | false |
+| 26-37% | 신약(身弱) | false |
+| 13-25% | 태약(太弱) | false |
+| 0-12% | 극약(極弱) | false |
+
+### 테스트 결과 (박재현 사주)
+
+```
+사주: 정축년 신해월 을해일 경진시
+일간: 을(乙) = 목(木)
+
+득령: true (월지 해의 정기 임수가 을목을 생함)
+득지: true (일지 해의 정기 임수가 을목을 생함)
+득시: false (시지 진의 정기 무토 - 을목이 극함)
+득세: false (천간에서 비겁/인성 1개)
+
+점수: 45/100 = 45%
+등급: 중화신약 (38-49% 범위)
+```
+
+---
+
+## Phase 39: 12신살 년지 기준 변경 (2026-01-05) ✅ 완료
+
+### 개요
+포스텔러 앱과 12신살 결과가 다르게 나오는 문제 해결
+
+### 문제 분석
+
+**증상**: 포스텔러와 12신살 결과 차이
+- 포스텔러: 시지(진)=천살, 월지/일지(해)=역마살
+- 우리 앱: 시지(진)=반안, 월지/일지(해)=지살
+
+**원인**: 12신살 계산 기준 차이
+- 우리 앱 (기존): 일지(해) 기준 → 해묘미(목국) 삼합
+- 포스텔러: 년지(축) 기준 → 사유축(금국) 삼합
+
+### 삼합별 12신살 배치 검증
+
+| 삼합 | 국 | 겁살 시작 | 예시 (축 기준) |
+|------|-----|---------|--------------|
+| 사유축 | 금국 | 인(寅) | 인=겁살, 묘=재살, 진=천살, 사=지살, 오=연살, 미=월살, 신=망신, 유=장성, 술=반안, 해=역마, 자=육해, 축=화개 |
+| 해묘미 | 목국 | 신(申) | 신=겁살, 유=재살, 술=천살, 해=지살, 자=연살, 축=월살, 인=망신, 묘=장성, 진=반안, 사=역마, 오=육해, 미=화개 |
+| 인오술 | 화국 | 해(亥) | 해=겁살, 자=재살, 축=천살... |
+| 신자진 | 수국 | 사(巳) | 사=겁살, 오=재살, 미=천살... |
+
+### 수정 내용
+
+**파일**: `frontend/lib/features/saju_chart/domain/services/twelve_sinsal_service.dart`
+
+```dart
+// Before (Phase 22-38):
+static TwelveSinsalAnalysisResult analyzeFromChart(
+  SajuChart chart, {
+  bool useYearJi = false, // 일지 기준
+})
+
+// After (Phase 39):
+static TwelveSinsalAnalysisResult analyzeFromChart(
+  SajuChart chart, {
+  bool useYearJi = true, // true: 년지 기준 (포스텔러 호환)
+})
+```
+
+### 테스트 결과
+
+```
+=== 박재현 사주 검증 ===
+사주: 정축년 신해월 을해일 경진시
+년지=축 (사유축 삼합), 일지=해 (해묘미 삼합)
+
+년지(축) 기준 결과 (포스텔러 방식):
+  시지(진): 천살 ✅ (포스텔러 일치)
+  일지(해): 역마 ✅ (포스텔러 일치)
+  월지(해): 역마 ✅ (포스텔러 일치)
+  년지(축): 화개
+
+일지(해) 기준 결과 (현대 명리학):
+  시지(진): 반안
+  일지(해): 지살
+  월지(해): 지살
+  년지(축): 월살
+```
+
+### 수정된 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `twelve_sinsal_service.dart` | `useYearJi` 기본값 true로 변경 |
+| `possteller_style_table.dart` | 주석 업데이트 (Phase 39) |
+| `saju_detail_tabs.dart` | 주석 업데이트 (Phase 39) |
+| `twelve_sinsal_basis_test.dart` | **신규 생성** - 년지/일지 기준 비교 테스트 |
+
+### 참고 자료
+- [나무위키 - 12신살](https://namu.wiki/w/12신살)
+- [만세력닷컴 - 12신살 계산](https://manseryeok.com)
 
 ---
