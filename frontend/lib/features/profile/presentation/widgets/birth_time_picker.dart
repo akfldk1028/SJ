@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
 
 /// 출생시간 선택 위젯
@@ -12,6 +13,7 @@ class BirthTimePicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
     final formState = ref.watch(profileFormProvider);
     final birthTimeMinutes = formState.birthTimeMinutes;
     final birthTimeUnknown = formState.birthTimeUnknown;
@@ -25,17 +27,18 @@ class BirthTimePicker extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
+        color: theme.cardColor,
         border: Border.all(
           color: isEnabled
-              ? Theme.of(context).colorScheme.outline
-              : Theme.of(context).disabledColor,
+              ? theme.textMuted.withOpacity(0.3)
+              : theme.textMuted.withOpacity(0.1),
         ),
         borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          const Icon(Icons.access_time, size: 20),
+          Icon(Icons.access_time, size: 20, color: theme.textSecondary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -43,14 +46,14 @@ class BirthTimePicker extends ConsumerWidget {
                   ? '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}'
                   : '시간 모름',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: isEnabled ? null : Theme.of(context).disabledColor,
+                color: isEnabled ? theme.textPrimary : theme.textMuted,
               ),
             ),
           ),
           if (isEnabled)
             TextButton(
               onPressed: () => _showTimePicker(context, ref, hours, minutes),
-              child: const Text('변경'),
+              child: Text('변경', style: TextStyle(color: theme.primaryColor)),
             ),
         ],
       ),

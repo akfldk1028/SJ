@@ -12,6 +12,7 @@ import '../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../features/profile/presentation/screens/relationship_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_shell.dart';
 import '../features/history/presentation/screens/history_screen.dart';
+import '../features/calendar/presentation/screens/calendar_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/settings/presentation/screens/profile_management_screen.dart';
 import '../features/settings/presentation/screens/notification_settings_screen.dart';
@@ -70,6 +71,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.history,
         name: 'history',
         builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: Routes.calendar,
+        name: 'calendar',
+        builder: (context, state) => const CalendarScreen(),
       ),
       GoRoute(
         path: Routes.settings,

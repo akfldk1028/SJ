@@ -88,6 +88,9 @@ dependencies:
   # Graph Visualization - Relationship Graph
   graphview: ^1.5.1
 
+  # Calendar - Date selection
+  table_calendar: ^3.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

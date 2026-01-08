@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
 
 /// 생년월일 직접 입력 위젯 (YYYYMMDD)
@@ -85,12 +86,18 @@ class _BirthDateInputWidgetState extends ConsumerState<BirthDateInputWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ShadInput(
           controller: _controller,
-          placeholder: const Text('생년월일 8자리 (예: 19971129)'),
+          placeholder: Text(
+            '생년월일 8자리 (예: 19971129)',
+            style: TextStyle(color: theme.textMuted),
+          ),
+          style: TextStyle(color: theme.textPrimary),
           keyboardType: TextInputType.number,
           maxLength: 8,
           onChanged: _validateAndSave,

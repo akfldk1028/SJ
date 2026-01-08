@@ -2,10 +2,15 @@
 /// 채팅 버블 스타일의 네이티브 광고 위젯
 library;
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ad_config.dart';
+
+/// 모바일 플랫폼 체크
+bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
 /// 채팅 버블 스타일 Native 광고
 ///
@@ -31,10 +36,14 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   void initState() {
     super.initState();
-    _loadAd();
+    if (_isMobile) {
+      _loadAd();
+    }
   }
 
   void _loadAd() {
+    if (!_isMobile) return;
+
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
       request: const AdRequest(),
@@ -264,10 +273,14 @@ class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
   @override
   void initState() {
     super.initState();
-    _loadAd();
+    if (_isMobile) {
+      _loadAd();
+    }
   }
 
   void _loadAd() {
+    if (!_isMobile) return;
+
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
       request: const AdRequest(),

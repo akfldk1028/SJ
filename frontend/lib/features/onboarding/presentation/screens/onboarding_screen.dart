@@ -5,16 +5,19 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/config/admin_config.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../../../profile/domain/entities/gender.dart';
 import '../../../profile/domain/entities/relationship_type.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
-import '../../../profile/presentation/widgets/birth_date_input_widget.dart';
+import '../../../profile/presentation/widgets/birth_date_picker.dart';
 import '../../../profile/presentation/widgets/birth_time_options.dart';
 import '../../../profile/presentation/widgets/birth_time_picker.dart';
 import '../../../profile/presentation/widgets/calendar_type_dropdown.dart';
+import '../../../profile/presentation/widgets/lunar_options.dart';
 import '../../../profile/presentation/widgets/city_search_field.dart';
 import '../../../profile/presentation/widgets/gender_toggle_buttons.dart';
 import '../../../profile/presentation/widgets/profile_name_input.dart';
@@ -62,9 +65,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Scaffold(
+      backgroundColor: theme.backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('사주 정보 입력'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: theme.textPrimary,
+        title: Text(
+          '사주 정보 입력',
+          style: TextStyle(color: theme.textPrimary),
+        ),
         centerTitle: true,
         // Admin 버튼 - 개발 환경에서만 표시
         actions: [
@@ -85,50 +98,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '정확한 만세력을 위해\n정보를 입력해주세요.',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  height: 1.4,
+      body: MysticBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '정확한 만세력을 위해\n정보를 입력해주세요.',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    height: 1.4,
+                    color: theme.textPrimary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              
-              // 1. 이름
-              const ProfileNameInput(),
-              const SizedBox(height: 24),
-              
-              // 2. 성별
-              const GenderToggleButtons(),
-              const SizedBox(height: 24),
-              
-              // 3. 생년월일시
-              _buildBirthSection(context),
-              const SizedBox(height: 24),
-              
-              // 4. 출생 도시
-              const CitySearchField(),
-              const SizedBox(height: 16),
-              
-              // 5. 진태양시 보정 배너
-              const TimeCorrectionBanner(),
-              const SizedBox(height: 40),
-              
-              // 완료 버튼
-              ShadButton(
-                size: ShadButtonSize.lg,
-                onPressed: _onSave,
-                child: const Text('만세력 보러가기'),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 32),
+
+                // 1. 이름
+                const ProfileNameInput(),
+                const SizedBox(height: 24),
+
+                // 2. 성별
+                const GenderToggleButtons(),
+                const SizedBox(height: 24),
+
+                // 3. 생년월일시
+                _buildBirthSection(context),
+                const SizedBox(height: 24),
+
+                // 4. 출생 도시
+                const CitySearchField(),
+                const SizedBox(height: 16),
+
+                // 5. 진태양시 보정 배너
+                const TimeCorrectionBanner(),
+                const SizedBox(height: 40),
+
+                // 완료 버튼
+                ShadButton(
+                  size: ShadButtonSize.lg,
+                  onPressed: _onSave,
+                  child: const Text('만세력 보러가기'),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -136,17 +152,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildBirthSection(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // '생년월일시' 라벨은 CalendarTypeDropdown 내부에 포함되어 있으므로 제거
-        const CalendarTypeDropdown(),
-        const SizedBox(height: 12),
-        const BirthDateInputWidget(), // 텍스트 입력 위젯으로 교체
-        const SizedBox(height: 12),
-        const BirthTimePicker(),
-        const SizedBox(height: 12),
-        const BirthTimeOptions(),
+        CalendarTypeDropdown(),
+        // 음력 선택 시 윤달 옵션 표시
+        LunarOptions(),
+        SizedBox(height: 12),
+        BirthDatePicker(), // 캘린더 날짜 선택기
+        SizedBox(height: 12),
+        BirthTimePicker(),
+        SizedBox(height: 12),
+        BirthTimeOptions(),
       ],
     );
   }

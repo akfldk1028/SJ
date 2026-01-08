@@ -121,11 +121,83 @@ class MysticBackground extends StatelessWidget {
     ];
   }
 
-  // 틸/청록 색상 정의
+  // 가로등불 테마 색상 - 따뜻한 골드/앰버 계열
+  static const _warmGold = Color(0xFFC4A962);
+  static const _deepAmber = Color(0xFFB8860B);
+  static const _softOrange = Color(0xFFD4A574);
+
+  /// 가로등불 스타일 배경 (따뜻한 골드 톤)
+  List<Widget> _buildStreetLampOrbs(AppThemeExtension theme) {
+    return [
+      // 왼쪽 상단 - 메인 골드 광원 (가로등 느낌)
+      Positioned(
+        top: -100,
+        left: -80,
+        child: _BlurredOrb(
+          size: 400,
+          color: _warmGold.withOpacity(0.30),
+          blurAmount: 120,
+        ),
+      ),
+      // 오른쪽 상단 - 부드러운 앰버
+      Positioned(
+        top: 60,
+        right: -100,
+        child: _BlurredOrb(
+          size: 350,
+          color: _deepAmber.withOpacity(0.20),
+          blurAmount: 100,
+        ),
+      ),
+      // 중앙 왼쪽 - 따뜻한 오렌지 글로우
+      Positioned(
+        top: 300,
+        left: -120,
+        child: _BlurredOrb(
+          size: 320,
+          color: _softOrange.withOpacity(0.18),
+          blurAmount: 90,
+        ),
+      ),
+      // 중앙 오른쪽 - 골드 포인트
+      Positioned(
+        top: 450,
+        right: -60,
+        child: _BlurredOrb(
+          size: 280,
+          color: _warmGold.withOpacity(0.22),
+          blurAmount: 80,
+        ),
+      ),
+      // 하단 중앙 - 부드러운 골드 글로우
+      Positioned(
+        bottom: -50,
+        left: 50,
+        child: _BlurredOrb(
+          size: 360,
+          color: _warmGold.withOpacity(0.18),
+          blurAmount: 110,
+        ),
+      ),
+      // 하단 오른쪽 - 앰버 포인트
+      Positioned(
+        bottom: 100,
+        right: -40,
+        child: _BlurredOrb(
+          size: 220,
+          color: _deepAmber.withOpacity(0.15),
+          blurAmount: 70,
+        ),
+      ),
+    ];
+  }
+
+  // 틸/청록 색상 정의 (동양풍 다크용)
   static const _tealColor = Color(0xFF4ECDC4);
   static const _deepTealColor = Color(0xFF2D8A8A);
 
-  List<Widget> _buildOrbs(AppThemeExtension theme) {
+  /// 동양풍 다크 스타일 배경 (틸/청록 톤)
+  List<Widget> _buildOrientalDarkOrbs(AppThemeExtension theme) {
     return [
       // 왼쪽 상단 - 골드 원 (강한 효과)
       Positioned(
@@ -198,6 +270,16 @@ class MysticBackground extends StatelessWidget {
         ),
       ),
     ];
+  }
+
+  /// 기본 다크 배경 Orbs (테마에 맞게 선택)
+  List<Widget> _buildOrbs(AppThemeExtension theme) {
+    // 가로등불 테마 (골드 primary color 체크)
+    if (theme.primaryColor == const Color(0xFFC4A962)) {
+      return _buildStreetLampOrbs(theme);
+    }
+    // 동양풍 다크 또는 기타 다크 테마
+    return _buildOrientalDarkOrbs(theme);
   }
 }
 

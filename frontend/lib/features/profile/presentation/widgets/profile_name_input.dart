@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
 
 /// 프로필 이름 입력 위젯
@@ -34,17 +35,25 @@ class _ProfileNameInputState extends ConsumerState<ProfileNameInput> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '이름',
-          style: Theme.of(context).textTheme.titleMedium,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: theme.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
         ShadInput(
           controller: _controller,
-          placeholder: const Text('최대 12글자 이내로 입력하세요'),
+          placeholder: Text(
+            '최대 12글자 이내로 입력하세요',
+            style: TextStyle(color: theme.textMuted),
+          ),
+          style: TextStyle(color: theme.textPrimary),
           maxLength: 12,
           onChanged: (value) {
             ref.read(profileFormProvider.notifier).updateDisplayName(value);
