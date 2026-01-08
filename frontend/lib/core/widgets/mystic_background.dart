@@ -121,72 +121,72 @@ class MysticBackground extends StatelessWidget {
     ];
   }
 
-  // 가로등불 테마 색상 - 따뜻한 골드/앰버 계열
-  static const _warmGold = Color(0xFFC4A962);
-  static const _deepAmber = Color(0xFFB8860B);
-  static const _softOrange = Color(0xFFD4A574);
+  // 가로등불 테마 색상 - 골드 + 퍼플 대각선 조합
+  static const _warmGold = Color(0xFFA68B4B);  // 어두운 골드
+  static const _softPurple = Color(0xFFB99AD8);  // 밝은 퍼플
+  static const _deepPurple = Color(0xFFA080C8);  // 밝은 딥퍼플
 
-  /// 가로등불 스타일 배경 (따뜻한 골드 톤)
+  /// 가로등불 스타일 배경 (골드 + 퍼플 대각선)
   List<Widget> _buildStreetLampOrbs(AppThemeExtension theme) {
     return [
-      // 왼쪽 상단 - 메인 골드 광원 (가로등 느낌)
+      // 왼쪽 상단 - 골드 (대각선 시작)
       Positioned(
-        top: -100,
-        left: -80,
+        top: -50,
+        left: -50,
         child: _BlurredOrb(
-          size: 400,
-          color: _warmGold.withOpacity(0.30),
-          blurAmount: 120,
+          size: 240,
+          color: _warmGold.withOpacity(0.25),
+          blurAmount: 55,
         ),
       ),
-      // 오른쪽 상단 - 부드러운 앰버
+      // 오른쪽 상단 - 퍼플
       Positioned(
-        top: 60,
-        right: -100,
-        child: _BlurredOrb(
-          size: 350,
-          color: _deepAmber.withOpacity(0.20),
-          blurAmount: 100,
-        ),
-      ),
-      // 중앙 왼쪽 - 따뜻한 오렌지 글로우
-      Positioned(
-        top: 300,
-        left: -120,
-        child: _BlurredOrb(
-          size: 320,
-          color: _softOrange.withOpacity(0.18),
-          blurAmount: 90,
-        ),
-      ),
-      // 중앙 오른쪽 - 골드 포인트
-      Positioned(
-        top: 450,
-        right: -60,
-        child: _BlurredOrb(
-          size: 280,
-          color: _warmGold.withOpacity(0.22),
-          blurAmount: 80,
-        ),
-      ),
-      // 하단 중앙 - 부드러운 골드 글로우
-      Positioned(
-        bottom: -50,
-        left: 50,
-        child: _BlurredOrb(
-          size: 360,
-          color: _warmGold.withOpacity(0.18),
-          blurAmount: 110,
-        ),
-      ),
-      // 하단 오른쪽 - 앰버 포인트
-      Positioned(
-        bottom: 100,
+        top: 10,
         right: -40,
         child: _BlurredOrb(
           size: 220,
-          color: _deepAmber.withOpacity(0.15),
-          blurAmount: 70,
+          color: _softPurple.withOpacity(0.20),
+          blurAmount: 50,
+        ),
+      ),
+      // 중앙 - 골드 포인트
+      Positioned(
+        top: 280,
+        left: 30,
+        child: _BlurredOrb(
+          size: 190,
+          color: _warmGold.withOpacity(0.18),
+          blurAmount: 45,
+        ),
+      ),
+      // 중앙 오른쪽 - 퍼플
+      Positioned(
+        top: 380,
+        right: -30,
+        child: _BlurredOrb(
+          size: 210,
+          color: _deepPurple.withOpacity(0.18),
+          blurAmount: 50,
+        ),
+      ),
+      // 하단 왼쪽 - 퍼플
+      Positioned(
+        bottom: 100,
+        left: -40,
+        child: _BlurredOrb(
+          size: 190,
+          color: _softPurple.withOpacity(0.15),
+          blurAmount: 45,
+        ),
+      ),
+      // 하단 오른쪽 - 골드 (대각선 끝)
+      Positioned(
+        bottom: -40,
+        right: -30,
+        child: _BlurredOrb(
+          size: 240,
+          color: _warmGold.withOpacity(0.22),
+          blurAmount: 55,
         ),
       ),
     ];
