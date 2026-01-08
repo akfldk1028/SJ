@@ -20,11 +20,8 @@ import '../features/settings/presentation/screens/notification_settings_screen.d
 import '../features/settings/presentation/screens/terms_of_service_screen.dart';
 import '../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../features/settings/presentation/screens/disclaimer_screen.dart';
-<<<<<<< Updated upstream
 import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
-=======
 import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
->>>>>>> Stashed changes
 
 part 'app_router.g.dart';
 
@@ -72,32 +69,11 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const ProfileEditScreen(),
       ),
       GoRoute(
-<<<<<<< Updated upstream
-=======
-        path: Routes.relationshipList,
-        name: 'relationships',
-        builder: (context, state) => const RelationshipScreen(),
-      ),
-      GoRoute(
-        path: Routes.sajuChat,
-        name: 'sajuChat',
-        builder: (context, state) {
-          // Query parameters
-          final chatType = state.uri.queryParameters['type'];
-          final profileId = state.uri.queryParameters['profileId'];
-          return SajuChatShell(
-            chatType: chatType,
-            targetProfileId: profileId,
-          );
-        },
-      ),
-      GoRoute(
         path: Routes.sajuChart,
         name: 'sajuChart',
         builder: (context, state) => const SajuChartScreen(),
       ),
       GoRoute(
->>>>>>> Stashed changes
         path: Routes.history,
         name: 'history',
         builder: (context, state) => const HistoryScreen(),
@@ -154,7 +130,11 @@ GoRouter appRouter(Ref ref) {
             name: 'sajuChat',
             builder: (context, state) {
               final chatType = state.uri.queryParameters['type'];
-              return SajuChatShell(chatType: chatType);
+              final profileId = state.uri.queryParameters['profileId'];
+              return SajuChatShell(
+                chatType: chatType,
+                targetProfileId: profileId,
+              );
             },
           ),
           GoRoute(
