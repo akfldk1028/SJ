@@ -58,8 +58,12 @@ abstract class SajuProfile with _$SajuProfile {
     /// 한 번에 하나의 프로필만 활성화 가능
     @Default(false) bool isActive,
 
-    /// 관계 유형 (가족, 친구, 연인 등)
+    /// 관계 유형 (가족, 친구, 연인 등) - deprecated, profileType 사용 권장
     @Default(RelationshipType.me) RelationshipType relationType,
+
+    /// 프로필 유형: 'primary' (본인) | 'other' (관계인)
+    /// DB의 profile_type 컬럼에 매핑
+    @Default('primary') String profileType,
 
     /// 메모
     String? memo,
@@ -110,4 +114,12 @@ abstract class SajuProfile with _$SajuProfile {
 
     return true;
   }
+
+  // === Profile Type 헬퍼 ===
+
+  /// 본인 프로필 여부
+  bool get isPrimaryProfile => profileType == 'primary';
+
+  /// 관계인 프로필 여부
+  bool get isOtherProfile => profileType == 'other';
 }

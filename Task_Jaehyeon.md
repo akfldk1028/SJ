@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-06 (Phase 42 자묘형 추가 및 합충형파해 전체 검증)
+> 최종 업데이트: 2026-01-09 (Phase 43 사주 관계도 DB 설계 및 궁합 채팅 라우팅)
 
 ---
 
@@ -110,17 +110,34 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - 공망 검증: 6순 공망 테이블 ✅, 진공/반공/해공/탈공 ✅
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
+- **Phase 43 (사주 관계도 DB 설계 및 궁합 채팅 라우팅) ✅ 완료 (2026-01-09)**
+  - DB 마이그레이션 (2026-01-08 완료):
+    - saju_profiles에 profile_type 컬럼 추가 ('primary' | 'other')
+    - 기존 데이터 마이그레이션 완료 (primary: 150개, other: 1개)
+    - profile_relations 테이블 활성화 (1건: 이지나→홍길동 테스트 데이터)
+    - 성능 인덱스 6개 생성 완료
+  - Flutter 코드 (2026-01-09 완료):
+    - SajuProfile/SajuProfileModel에 profileType 필드 추가
+    - **CompatibilityContext 모델 생성** (두 프로필의 사주 분석 컨텍스트)
+      - 파일: `features/saju_chat/domain/models/compatibility_context.dart`
+      - toPromptContext(): AI 프롬프트용 문자열 생성
+      - 관계 유형별 분석 초점 (family, love, friendship, business)
+    - **CompatibilityAnalysisCache 모델** (compatibility_analyses 테이블 매핑)
+    - **궁합 채팅 라우트 추가**:
+      - routes.dart: `sajuChatCompatibility = '/saju/chat/compatibility'`
+      - app_router.dart: 라우트 등록 (from, to, relationType 파라미터)
+    - **SajuChatShell 파라미터 추가**: fromProfileId, toProfileId, relationType
+    - **RelationshipScreen QuickView 연결**: "사주 상담" 버튼 → 궁합 채팅 라우팅
+  - 문서: `docs/02_features/saju_relationship_db.md` v1.1
 
 다음 작업 후보:
-1. **Phase 28 테스트** - saju_base 저장 확인 (우선순위 높음)
-2. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
-3. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
-4. 만세력 단위 테스트 - 특정 생년월일 계산 검증
+1. **Phase 43-B (궁합 채팅 로직)** - SajuChatShell에서 두 사주 분석 로드 및 AI 전달
+2. **Phase 43-C (궁합 분석 캐싱)** - compatibility_analyses 테이블 저장/조회
+3. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
+4. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
 5. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
 6. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
 7. UI/UX 개선 - 채팅 화면, 프로필 화면 디자인
-8. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
-9. 궁합 분석 기능 - compatibility_analyses 테이블 활용
 
 [원하는 작업 선택 또는 새 요청]
 ```

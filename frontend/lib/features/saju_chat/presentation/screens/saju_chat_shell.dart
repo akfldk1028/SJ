@@ -30,9 +30,15 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 class SajuChatShell extends ConsumerStatefulWidget {
   final String? chatType;
 
+  /// 상대방 프로필 ID (궁합/타인 상담 시 사용)
+  /// - null이면 내 프로필 기준 상담
+  /// - 값이 있으면 해당 프로필 기준 상담 (궁합도 가능)
+  final String? targetProfileId;
+
   const SajuChatShell({
     super.key,
     this.chatType,
+    this.targetProfileId,
   });
 
   @override
