@@ -1,7 +1,7 @@
 # 만톡 - 구현 작업 목록
 
 > Main Claude 컨텍스트 유지용 작업 노트
-> 작업 브랜치: Jaehyeon(Test)
+> 작업 브랜치: DKBB (DK), Jaehyeon(Test) (JH)
 > 백엔드(Supabase): 사용자가 직접 처리
 
 ---
@@ -12,17 +12,17 @@
 |------|------|
 | 기획 문서 | ✅ 완료 |
 | CLAUDE.md | ✅ 완료 |
-| JH_Agent (서브에이전트) | ✅ 완료 (9개) |
+| JH_Agent (서브에이전트) | ✅ 완료 (11개) |
 | Flutter 프로젝트 | ✅ 기반 설정 완료 |
 | 의존성 | ✅ 설치 완료 |
 | 폴더 구조 | ✅ 구현 완료 |
 | Phase 1 | ✅ **완료** |
 | Phase 2 | ✅ **부분 완료** (상수/테마) |
 | Phase 4 (Profile) | ✅ **완료** |
-| Phase 5 (Saju Chat) | ✅ **대부분 완료** (Gemini 3.0 연동) |
-| Phase 8 (만세력) | ✅ **기본 완료** |
+| Phase 5 (Saju Chat) | ✅ **완료** (54개 파일) |
+| Phase 8 (만세력) | ✅ **완료** (70개 파일) |
 | Phase 9-10 | 📋 **계획 완료** (경쟁앱 대응 + 웹툰) |
-| **다음 작업** | **Phase 6 또는 Phase 10 (웹툰)** |
+| **다음 작업** | **Phase 6 (Splash/Onboarding) 또는 Phase 9 (MVP 확장)** |
 
 ---
 
@@ -71,9 +71,9 @@ lib/
 ├── features/
 │   ├── splash/ ✅ (placeholder)
 │   ├── onboarding/ ✅ (placeholder)
-│   ├── profile/ ✅ (placeholder)
-│   ├── saju_chart/ ✅ (폴더만)
-│   ├── saju_chat/ ✅ (placeholder)
+│   ├── profile/ ✅ (완료)
+│   ├── saju_chart/ ✅ (완료 - 70개 파일)
+│   ├── saju_chat/ ✅ (완료 - 54개 파일)
 │   ├── history/ ✅ (placeholder)
 │   └── settings/ ✅ (placeholder)
 ├── shared/
@@ -168,54 +168,108 @@ lib/
 - [x] 로컬 저장 (Hive)
 - [x] 유효성 검사
 
-### 4.5 TODO
-- [ ] `dart run build_runner build` 실행
-- [ ] 빌드 테스트
-
 ---
 
-## Phase 5: Feature - Saju Chat (P0) ✅ 대부분 완료
+## Phase 5: Feature - Saju Chat (P0) ✅ 완료
 
 > 참조: docs/02_features/saju_chat.md
-> 2025-12-05: Gemini 3.0 REST API 연동, 스트리밍 응답, UI 위젯 구현 완료
+> 2025-12-05 ~ 2026-01-06: 54개 파일 구현 완료
 
 ### 5.1 Domain 레이어 ✅
 - [x] entities/chat_session.dart
 - [x] entities/chat_message.dart (MessageRole, MessageStatus 포함)
 - [x] models/chat_type.dart (ChatType enum)
+- [x] models/ai_persona.dart (4종 페르소나)
 - [x] repositories/chat_repository.dart (abstract)
+- [x] repositories/chat_session_repository.dart (abstract)
 
 ### 5.2 Data 레이어 ✅
-- [x] datasources/gemini_rest_datasource.dart (REST API + SSE 스트리밍)
-- [x] repositories/chat_repository_impl.dart
-- [ ] datasources/chat_local_datasource.dart (Hive 캐시 - 추후)
-- [x] ~~gemini_datasource.dart~~ (SDK 방식 - 미사용, 삭제 예정)
+
+**Datasources:**
+- [x] gemini_edge_datasource.dart (Supabase Edge Function)
+- [x] gemini_rest_datasource.dart (REST API 직접 호출)
+- [x] openai_datasource.dart (GPT-5.2)
+- [x] openai_edge_datasource.dart (OpenAI Edge Function)
+- [x] saju_chat_edge_datasource.dart (통합 Edge)
+- [x] ai_pipeline_manager.dart (GPT→Gemini 파이프라인)
+- [x] chat_local_datasource.dart (Hive 캐시)
+- [x] chat_session_local_datasource.dart (세션 로컬)
+
+**Models:**
+- [x] chat_message_model.dart (Freezed + JSON)
+- [x] chat_session_model.dart (Freezed + JSON)
+
+**Repositories:**
+- [x] chat_repository_impl.dart
+- [x] chat_session_repository_impl.dart
+
+**Services:**
+- [x] sse_stream_client.dart (SSE 스트리밍)
+- [x] system_prompt_builder.dart (시스템 프롬프트 모듈화)
+- [x] ai_summary_prompt_builder.dart (AI Summary 백업)
+- [x] chat_realtime_service.dart (Supabase Realtime)
+- [x] conversation_window_manager.dart (대화 윈도우)
+- [x] message_queue_service.dart (메시지 큐)
+- [x] token_counter.dart (토큰 계산)
+
+**Supabase:**
+- [x] schema.dart
+- [x] queries.dart
+- [x] mutations.dart
 
 ### 5.3 Presentation 레이어 ✅
-- [x] providers/chat_provider.dart (Riverpod 3.0)
-- [x] screens/saju_chat_screen.dart
-- [x] widgets/message_bubble.dart
-- [x] widgets/streaming_message_bubble.dart
-- [x] widgets/chat_message_list.dart
-- [x] widgets/chat_input_field.dart
-- [x] widgets/send_button.dart
-- [x] widgets/chat_app_bar.dart
-- [x] widgets/typing_indicator.dart
-- [x] widgets/disclaimer_banner.dart
-- [x] widgets/error_banner.dart
-- [ ] widgets/suggested_questions.dart (추후)
-- [ ] widgets/saju_summary_sheet.dart (추후)
 
-### 5.4 수락 조건
+**Providers:**
+- [x] chat_provider.dart (Riverpod 3.0 - 797줄로 모듈화)
+- [x] chat_session_provider.dart
+- [x] persona_provider.dart
+
+**Screens:**
+- [x] saju_chat_shell.dart (메인 채팅 화면)
+
+**Widgets - 채팅:**
+- [x] chat_app_bar.dart
+- [x] chat_bubble.dart
+- [x] chat_input_field.dart
+- [x] chat_message_list.dart
+- [x] message_bubble.dart
+- [x] streaming_message_bubble.dart
+- [x] typing_indicator.dart
+- [x] thinking_bubble.dart
+- [x] send_button.dart
+- [x] disclaimer_banner.dart
+- [x] error_banner.dart
+- [x] suggested_questions.dart
+
+**Widgets - 페르소나:**
+- [x] persona_avatar.dart
+- [x] persona_selector_sheet.dart
+
+**Widgets - 히스토리 사이드바:**
+- [x] chat_history_sidebar/chat_history_sidebar.dart
+- [x] chat_history_sidebar/chat_history_sidebar_widgets.dart
+- [x] chat_history_sidebar/persona_selector_grid.dart
+- [x] chat_history_sidebar/session_group_header.dart
+- [x] chat_history_sidebar/session_list.dart
+- [x] chat_history_sidebar/session_list_tile.dart
+- [x] chat_history_sidebar/sidebar_footer.dart
+- [x] chat_history_sidebar/sidebar_header.dart
+
+### 5.4 수락 조건 ✅
 - [x] AI 인사 메시지 표시 (ChatType별 환영 메시지)
 - [x] 메시지 입력/전송
-- [x] 스트리밍 응답 표시
-- [x] 타이핑 인디케이터
+- [x] SSE 스트리밍 응답 표시
+- [x] 타이핑 인디케이터 (3-dot 애니메이션)
 - [x] 면책 배너 표시
 - [x] 에러 처리 (에러 배너)
-- [ ] 추천 질문 칩 표시 (추후)
-- [ ] 프로필 전환 기능 (추후)
-- [ ] 사주 요약 바텀시트 (추후)
+- [x] 추천 질문 칩 표시
+- [x] 4종 페르소나 선택 (아기 도승/할머니 무당/MZ 타로/점집 도사)
+- [x] 채팅 히스토리 사이드바
+- [x] Supabase 실시간 동기화
+- [x] GPT-5.2 → Gemini 3.0 듀얼 AI 파이프라인
+- [x] 시스템 프롬프트에 현재 날짜 포함 (AI 날짜 인식)
+- [x] 시스템 프롬프트에 프로필 정보 포함
+- [x] 시스템 프롬프트 모듈화 (chat_provider 경량화)
 
 ---
 
@@ -249,45 +303,124 @@ lib/
 
 ---
 
-## Phase 8: Saju Chart (만세력) ✅ 기본 완료
+## Phase 8: Saju Chart (만세력) ✅ 완료
 
-> 2025-12-02: 만세력 계산 로직 구현 완료 (19개 파일)
+> 2025-12-02 ~ 2026-01-06: 70개 파일 구현 완료
+> 포스텔러 만세력 2.2 수준의 정확도 달성
 
-### 8.1 Constants ✅
-- [x] data/constants/cheongan_jiji.dart - 천간(10), 지지(12), 오행
-- [x] data/constants/gapja_60.dart - 60갑자
-- [x] data/constants/solar_term_table.dart - 절기 시각 (2024-2025)
-- [x] data/constants/dst_periods.dart - 서머타임 기간
+### 8.1 Constants ✅ (15개)
+- [x] cheongan_jiji.dart - 천간(10), 지지(12), 오행
+- [x] gapja_60.dart - 60갑자
+- [x] solar_term_table.dart - 절기 시각 (기본)
+- [x] solar_term_table_extended.dart - 절기 시각 (확장)
+- [x] solar_term_calculator.dart - 절기 계산
+- [x] dst_periods.dart - 서머타임 기간
+- [x] sipsin_relations.dart - 십성 관계
+- [x] hapchung_relations.dart - 합충형파해 관계
+- [x] jijanggan_table.dart - 지장간 테이블
+- [x] gongmang_table.dart - 공망 테이블
+- [x] twelve_sinsal.dart - 12신살 테이블
+- [x] twelve_unsung.dart - 12운성 테이블
+- [x] lunar_data/lunar_table.dart - 음력 테이블 (통합)
+- [x] lunar_data/lunar_table_1900_1949.dart
+- [x] lunar_data/lunar_table_1950_1999.dart
+- [x] lunar_data/lunar_table_2000_2050.dart
+- [x] lunar_data/lunar_table_2051_2100.dart
+- [x] lunar_data/lunar_year_data.dart
 
-### 8.2 Domain Entities ✅
-- [x] domain/entities/pillar.dart - 기둥 (천간+지지)
-- [x] domain/entities/saju_chart.dart - 사주 차트
-- [x] domain/entities/lunar_date.dart - 음력 날짜
-- [x] domain/entities/solar_term.dart - 24절기 enum
-- [ ] domain/entities/daewoon.dart - 대운 (추후)
+### 8.2 Domain Entities ✅ (15개)
+- [x] pillar.dart - 기둥 (천간+지지)
+- [x] saju_chart.dart - 사주 차트
+- [x] saju_analysis.dart - 사주 분석 결과
+- [x] saju_context.dart - 사주 컨텍스트
+- [x] lunar_date.dart - 음력 날짜
+- [x] lunar_validation.dart - 음력 검증
+- [x] solar_term.dart - 24절기 enum
+- [x] daeun.dart - 대운
+- [x] day_strength.dart - 신강/신약
+- [x] gyeokguk.dart - 격국
+- [x] yongsin.dart - 용신
+- [x] sinsal.dart - 신살
+- [x] rule.dart - 규칙
+- [x] rule_condition.dart - 규칙 조건
+- [x] compiled_rules.dart - 컴파일된 규칙
 
-### 8.3 Domain Services ✅
-- [x] domain/services/saju_calculation_service.dart - 통합 계산 (메인)
-- [x] domain/services/lunar_solar_converter.dart - 음양력 변환 (Stub)
-- [x] domain/services/solar_term_service.dart - 절입시간
-- [x] domain/services/true_solar_time_service.dart - 진태양시 (25개 도시)
-- [x] domain/services/dst_service.dart - 서머타임
-- [x] domain/services/jasi_service.dart - 야자시/조자시
+### 8.3 Domain Services ✅ (18개)
+- [x] saju_calculation_service.dart - 통합 계산 (메인)
+- [x] saju_analysis_service.dart - 분석 서비스
+- [x] lunar_solar_converter.dart - 음양력 변환 (1900-2100년 완전 구현)
+- [x] solar_term_service.dart - 절입시간
+- [x] true_solar_time_service.dart - 진태양시 (25개 도시)
+- [x] dst_service.dart - 서머타임
+- [x] jasi_service.dart - 야자시/조자시
+- [x] day_strength_service.dart - 신강/신약 계산
+- [x] gyeokguk_service.dart - 격국 판정
+- [x] yongsin_service.dart - 용신 계산
+- [x] sinsal_service.dart - 신살 계산
+- [x] twelve_sinsal_service.dart - 12신살 계산 (년지+일지 기준)
+- [x] unsung_service.dart - 12운성 계산
+- [x] hapchung_service.dart - 합충형파해 (삼합/반합/방합 포함)
+- [x] jijanggan_service.dart - 지장간 계산
+- [x] gongmang_service.dart - 공망 계산
+- [x] gilseong_service.dart - 길성 계산
+- [x] daeun_service.dart - 대운 계산
+- [x] rule_engine.dart - 규칙 엔진
+- [x] rule_validator.dart - 규칙 검증
 
-### 8.4 Data Models ✅
-- [x] data/models/pillar_model.dart - JSON 직렬화
-- [x] data/models/saju_chart_model.dart - JSON 직렬화
+### 8.4 Data Models ✅ (8개)
+- [x] pillar_model.dart - JSON 직렬화
+- [x] saju_chart_model.dart - JSON 직렬화
+- [x] saju_analysis_model.dart - 분석 결과 모델
+- [x] saju_analysis_db_model.dart - DB 모델
+- [x] cheongan_model.dart - 천간 모델
+- [x] jiji_model.dart - 지지 모델
+- [x] oheng_model.dart - 오행 모델
+- [x] rule_models.dart - 규칙 모델
 
-### 8.5 Presentation (미구현)
-- [ ] providers/saju_chart_provider.dart
-- [ ] widgets/saju_summary_card.dart
-- [ ] widgets/pillar_display.dart
+### 8.5 Data Repositories ✅
+- [x] saju_analysis_repository.dart
+- [x] rule_repository_impl.dart
 
-### 8.6 TODO (보완 필요)
-- [ ] 음양력 변환 실제 구현 (현재 Stub)
-- [ ] 절기 테이블 확장 (1900-2100년)
-- [ ] 대운(大運) 계산
-- [ ] 포스텔러 만세력과 검증
+### 8.6 Supabase ✅
+- [x] schema.dart
+- [x] queries.dart
+- [x] mutations.dart
+
+### 8.7 Presentation ✅
+
+**Providers:**
+- [x] saju_chart_provider.dart
+- [x] saju_analysis_repository_provider.dart
+
+**Screens:**
+- [x] saju_chart_screen.dart
+
+**Widgets (15개):**
+- [x] pillar_display.dart - 사주 기둥 표시
+- [x] pillar_column_widget.dart - 기둥 컬럼
+- [x] possteller_style_table.dart - 포스텔러 스타일 테이블
+- [x] saju_info_header.dart - 사주 정보 헤더
+- [x] saju_mini_card.dart - 미니 카드
+- [x] saju_detail_sheet.dart - 상세 시트
+- [x] saju_detail_tabs.dart - 상세 탭
+- [x] oheng_analysis_display.dart - 오행 분석
+- [x] day_strength_display.dart - 신강/신약 표시
+- [x] sinsal_display.dart - 신살 표시
+- [x] sipsung_display.dart - 십성 표시
+- [x] unsung_display.dart - 12운성 표시
+- [x] hapchung_tab.dart - 합충형파해 탭
+- [x] jijanggan_display.dart - 지장간 표시
+- [x] gongmang_display.dart - 공망 표시
+- [x] gilseong_display.dart - 길성 표시
+- [x] fortune_display.dart - 운세 표시
+
+### 8.8 검증 완료 ✅
+- [x] 포스텔러 만세력 2.2와 비교 검증
+- [x] 12신살 기준 수정 (년지 + 일지)
+- [x] 도화살 로직 보완
+- [x] 신강/신약 계산 로직 수정
+- [x] 삼합/반합/방합 구현
+- [x] 음력 변환 2100년까지 확장 (윤달 포함)
 
 ---
 
@@ -299,16 +432,17 @@ lib/
 3. **서브 Agent**: 복잡한 작업은 Task 도구로 분리
 
 ### Git 규칙
-- 작업 브랜치: Jaehyeon(Test)
+- 작업 브랜치: DKBB (DK), Jaehyeon(Test) (JH)
 - master 건들지 않음
 - 기능 단위로 커밋
 
 ### 우선순위
-1. Phase 1-2: 기반 설정 (먼저)
-2. Phase 4: Profile (P0 필수)
-3. Phase 5: Saju Chat (P0 핵심)
-4. Phase 6-7: 나머지 화면
-5. Phase 8: Supabase 연동 후
+1. Phase 1-2: 기반 설정 (완료)
+2. Phase 4: Profile (완료)
+3. Phase 5: Saju Chat (완료)
+4. Phase 8: 만세력 (완료)
+5. Phase 6-7: Splash/Onboarding, History/Settings
+6. Phase 9-10: MVP 확장, 웹툰형 사주
 
 ---
 
@@ -321,7 +455,6 @@ lib/
 | 2025-12-02 | CLAUDE.md 생성 | 완료 |
 | 2025-12-02 | JH_Agent 서브에이전트 생성 (8개) | 완료 |
 | 2025-12-02 | 만세력 정확도 연구 (진태양시, 절입시간 등) | 완료 |
-| 2025-12-02 | 세션 1 종료, Phase 1 시작 대기 | 완료 |
 | 2025-12-02 | **Phase 1 완료**: 의존성, 폴더구조, 라우터, 테마 | 완료 |
 | 2025-12-02 | **Phase 2 부분 완료**: 상수, 테마, Placeholder 화면들 | 진행중 |
 | 2025-12-02 | **Phase 8 기본 완료**: 만세력 계산 로직 19개 파일 구현 | 완료 |
@@ -332,11 +465,23 @@ lib/
 | 2025-12-05 | **Phase 5 대부분 완료**: Saju Chat 18개 파일 구현 | 완료 |
 | 2025-12-05 | Gemini 3.0 REST API 연동 (SDK → REST 마이그레이션) | 완료 |
 | 2025-12-05 | SSE 스트리밍 응답, 타이핑 인디케이터 구현 | 완료 |
+| 2025-12-27 | 만세력 전체 서비스 구현 (18개 서비스) | 완료 |
 | 2025-12-29 | TypeSet 패키지 적용 (WhatsApp 스타일 포맷팅) | 완료 |
 | 2025-12-29 | Gemini 3.0 Flash 모델 적용 | 완료 |
 | 2025-12-29 | GPT→Gemini 파이프라인 검증 완료 | 완료 |
 | 2025-12-29 | **경쟁앱 분석** (점신, 포스텔러) | 완료 |
 | 2025-12-29 | **Phase 9-10 추가**: MVP 확장 + 웹툰형 사주 | 완료 |
+| 2025-12-31 | 지장간, 공망, 합충형파해 서비스 구현 | 완료 |
+| 2026-01-04 | 12신살/12운성 완전 구현 | 완료 |
+| 2026-01-04 | 음력 변환 2100년까지 확장 (윤달 포함) | 완료 |
+| 2026-01-04 | 삼합/반합/방합 구현 | 완료 |
+| 2026-01-04 | DB ai_summary, content 오행값 연동 | 완료 |
+| 2026-01-06 | 12신살 기준 수정 (년지 + 일지) | 완료 |
+| 2026-01-06 | 도화살 로직 보완 | 완료 |
+| 2026-01-06 | chat_provider.dart 모듈화 (1346→797줄) | 완료 |
+| 2026-01-06 | system_prompt_builder.dart 분리 | 완료 |
+| 2026-01-06 | ai_summary_prompt_builder.dart 백업 생성 | 완료 |
+| 2026-01-06 | **TASKS.md 전면 업데이트** | 완료 |
 
 ---
 
@@ -511,6 +656,8 @@ Main Claude → [Orchestrator] → Pipeline → [Quality Gate] → 완료
 | 07 | task_tracker | TASKS.md 관리 | Tracker |
 | **08** | **shadcn_ui_builder** | shadcn_ui 모던 UI | **UI 필수** |
 | **09** | **manseryeok_calculator** | 만세력 계산 로직 | **Domain 전문** |
+| 10 | a2a_protocol | A2A 프로토콜 구현 | Protocol |
+| **11** | **progress_tracker** | Task 통합 관리 | **Tracker 통합** |
 
 ### 호출 방식
 ```

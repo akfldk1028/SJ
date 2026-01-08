@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-06 (Phase 41 합충형파해 포스텔러 기준 구현)
+> 최종 업데이트: 2026-01-06 (Phase 42 자묘형 추가 및 합충형파해 전체 검증)
 
 ---
 
@@ -95,6 +95,19 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
     - 인술반합(화국) ✅ → halfType: halfLoose (포스텔러 기준 추가)
     - 인진반방합(동방목) ✅ → isFullBanghap: false (포스텔러 기준 추가)
   - 테스트 파일: test/hapchung_fosteller_test.dart
+- **Phase 42 (자묘형 추가 및 합충형파해 전체 검증) ✅ 완료 (2026-01-06)**
+  - 자묘형(子卯刑) = 무례지형(無禮之刑) 추가
+  - 수정 파일:
+    - hapchung_relations.dart: HyungType.muRye enum 값 추가, jijiHyungList에 자묘형 추가
+    - gongmang_table.dart: _jijiHyungMap에 자-묘 형 관계 추가 (해공 판단용)
+  - 전체 합충형파해 검증 결과:
+    - **합**: 천간합(5) ✅, 육합(6) ✅, 삼합(4국) ✅, 반합(포스텔러 기준) ✅, 방합(4방) ✅, 반방합 ✅
+    - **충**: 천간충(4) ✅, 지지충(6) ✅
+    - **형**: 무은지형(인사신) ✅, 지세지형(축술미) ✅, 무례지형(자묘) ✅ **NEW**, 자형(진/오/유/해) ✅
+    - **파**: 6파 ✅
+    - **해**: 6해 ✅
+    - **원진**: 6원진 ✅
+  - 공망 검증: 6순 공망 테이블 ✅, 진공/반공/해공/탈공 ✅
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
 
