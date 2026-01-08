@@ -23,7 +23,9 @@ enum AiPersona {
   professional,
   babyMonk,
   scenarioWriter,
-  newbieShaman;
+  newbieShaman,
+  bookOfSaju,
+  saOngJiMa;
 
   /// PersonaRegistry ID 매핑
   ///
@@ -44,6 +46,10 @@ enum AiPersona {
         return 'saju_scenario_builder';
       case AiPersona.newbieShaman:
         return 'newbie_shaman';
+      case AiPersona.bookOfSaju:
+        return 'book_of_saju';
+      case AiPersona.saOngJiMa:
+        return 'sa_ong_ji_ma';
     }
   }
 
@@ -67,6 +73,10 @@ enum AiPersona {
         return '송작가';
       case AiPersona.newbieShaman:
         return '하꼬무당(장비장군)';
+      case AiPersona.bookOfSaju:
+        return '명리의 서';
+      case AiPersona.saOngJiMa:
+        return '새옹지마 할배';
     }
   }
 
@@ -87,6 +97,10 @@ enum AiPersona {
         return '🗣️';
       case AiPersona.newbieShaman:
         return '😱';
+      case AiPersona.bookOfSaju:
+        return '📜';
+      case AiPersona.saOngJiMa:
+        return '👴';
     }
   }
 
@@ -107,6 +121,10 @@ enum AiPersona {
         return '사주 스토리텔러';
       case AiPersona.newbieShaman:
         return '장비장군이 오셨다';
+      case AiPersona.bookOfSaju:
+        return '살아있는 사주 고서';
+      case AiPersona.saOngJiMa:
+        return '긍정 재해석 전문가';
     }
   }
 
@@ -133,6 +151,10 @@ enum AiPersona {
         return AiPersona.scenarioWriter;
       case 'newbieShaman':
         return AiPersona.newbieShaman;
+      case 'bookOfSaju':
+        return AiPersona.bookOfSaju;
+      case 'saOngJiMa':
+        return AiPersona.saOngJiMa;
       default:
         return AiPersona.professional;
     }

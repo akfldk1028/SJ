@@ -34,6 +34,8 @@ import 'wise_scholar.dart';
 import 'baby_monk.dart';
 import 'scenario_writer.dart';
 import 'newbie_shaman.dart';
+import 'detail_book.dart';
+import 'saeongjima.dart';
 
 /// 페르소나 레지스트리
 ///
@@ -57,6 +59,8 @@ class PersonaRegistry {
     BabyMonkPersona(),
     SajuScenarioBuilderPersona(),
     NewbieShamanPersona(),
+    BookOfSajuPersona(),
+    SaOngJiMaPersona(),
   ];
 
   /// 기본 페르소나 ID
