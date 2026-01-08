@@ -4,7 +4,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
 
-/// 출생시간 직접 입력 위젯 (HH:MM + 오전/오후 토글)
+/// 출생시간 직접 입력 위젯 (24시간제 HH:MM)
 class BirthTimeInputWidget extends ConsumerStatefulWidget {
   const BirthTimeInputWidget({super.key});
 
@@ -15,7 +15,6 @@ class BirthTimeInputWidget extends ConsumerStatefulWidget {
 class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
   late final TextEditingController _hourController;
   late final TextEditingController _minuteController;
-  bool _isAm = true; // true = 오전, false = 오후
 
   @override
   void initState() {
@@ -23,26 +22,12 @@ class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
     _hourController = TextEditingController();
     _minuteController = TextEditingController();
 
-    // 초기값 바인딩
+    // 초기값 바인딩 (24시간제 그대로)
     final birthTimeMinutes = ref.read(profileFormProvider).birthTimeMinutes;
     if (birthTimeMinutes != null) {
-      final totalHours = birthTimeMinutes ~/ 60;
+      final hours = birthTimeMinutes ~/ 60;
       final minutes = birthTimeMinutes % 60;
-
-      // 24시간 -> 12시간 변환
-      if (totalHours == 0) {
-        _hourController.text = '12';
-        _isAm = true;
-      } else if (totalHours < 12) {
-        _hourController.text = totalHours.toString();
-        _isAm = true;
-      } else if (totalHours == 12) {
-        _hourController.text = '12';
-        _isAm = false;
-      } else {
-        _hourController.text = (totalHours - 12).toString();
-        _isAm = false;
-      }
+      _hourController.text = hours.toString().padLeft(2, '0');
       _minuteController.text = minutes.toString().padLeft(2, '0');
     }
   }
@@ -64,17 +49,10 @@ class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
     final minute = int.tryParse(minuteText);
 
     if (hour == null || minute == null) return;
-    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return;
+    // 24시간제: 0~23시, 0~59분
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return;
 
-    // 12시간 -> 24시간 변환
-    int totalHours;
-    if (_isAm) {
-      totalHours = hour == 12 ? 0 : hour;
-    } else {
-      totalHours = hour == 12 ? 12 : hour + 12;
-    }
-
-    final totalMinutes = totalHours * 60 + minute;
+    final totalMinutes = hour * 60 + minute;
     ref.read(profileFormProvider.notifier).updateBirthTime(totalMinutes);
   }
 
@@ -104,7 +82,7 @@ class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
             children: [
               Icon(Icons.access_time, size: 20, color: theme.textSecondary),
               const SizedBox(width: 12),
-              // 시간 입력
+              // 시간 입력 (24시간제: 00~23)
               SizedBox(
                 width: 45,
                 child: ShadInput(
@@ -135,49 +113,15 @@ class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
                 ),
               ),
               const SizedBox(width: 12),
-              // 오전/오후 토글
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: theme.textMuted.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildAmPmButton(theme, '오전', _isAm, () {
-                      setState(() => _isAm = true);
-                      _updateTime();
-                    }),
-                    _buildAmPmButton(theme, '오후', !_isAm, () {
-                      setState(() => _isAm = false);
-                      _updateTime();
-                    }),
-                  ],
+              // 24시간제 안내 텍스트
+              Text(
+                '(24시간)',
+                style: TextStyle(
+                  color: theme.textMuted,
+                  fontSize: 12,
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmPmButton(AppThemeExtension theme, String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : theme.textSecondary,
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
       ),
