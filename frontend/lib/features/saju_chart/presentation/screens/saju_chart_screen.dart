@@ -301,6 +301,18 @@ class SajuChartScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+          ShadButton.outline(
+            onPressed: () => context.go(Routes.sajuGraph),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.account_tree_outlined, size: 20),
+                SizedBox(width: 8),
+                Text('사주 관계도 보기'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           ShadButton.secondary(
             onPressed: () => context.go(Routes.profileEdit),
             child: const Text('프로필 수정하기'),

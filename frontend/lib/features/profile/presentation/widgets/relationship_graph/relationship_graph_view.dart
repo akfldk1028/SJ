@@ -9,22 +9,12 @@ import 'me_node_widget.dart';
 import 'profile_node_widget.dart';
 import 'relationship_group_node.dart';
 import 'graph_controls.dart';
-import 'orthogonal_edge_renderer.dart';
 import 'saju_quick_view_sheet.dart';
 
 /// 목업 데이터 사용 여부 (테스트용)
 const bool _useMockData = true;
 
-/// 관계 그래프 뷰
-///
-/// 위젯 구조:
-/// - RelationshipGraphView (StatefulWidget)
-///   └─ LayoutBuilder (반응형)
-///       └─ Stack
-///           ├─ InteractiveViewer (줌/팬)
-///           │   └─ GraphView
-///           │       └─ Node builder (me/group/profile)
-///           └─ GraphControls (줌 버튼)
+/// 관계 그래프 뷰 (SJ-Flow Large Tree 기능 사용)
 class RelationshipGraphView extends ConsumerStatefulWidget {
   const RelationshipGraphView({super.key});
 
@@ -34,51 +24,111 @@ class RelationshipGraphView extends ConsumerStatefulWidget {
 }
 
 class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
-  final TransformationController _transformationController =
-      TransformationController();
+  /// 줌 컨트롤용 TransformationController
+  final TransformationController _transformController = TransformationController();
+
+  /// SJ-Flow GraphViewController (TransformationController 연결)
+  late final GraphViewController _controller;
+
+  /// 그래프 (클래스 레벨 - 한 번만 생성)
+  final Graph graph = Graph()..isTree = true;
+
+  /// 트리 레이아웃 설정
+  final BuchheimWalkerConfiguration builder = BuchheimWalkerConfiguration();
+
+  /// 알고리즘 (late - builder 참조)
+  late final BuchheimWalkerAlgorithm algorithm;
+
+  /// 현재 프로필 목록 (그래프 재구성 감지용)
+  List<SajuProfile> _currentProfiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // GraphViewController 초기화 (TransformationController 연결)
+    _controller = GraphViewController(
+      transformationController: _transformController,
+    );
+
+    // Configuration 설정 (Large Tree 스타일)
+    builder
+      ..siblingSeparation = 50
+      ..levelSeparation = 150
+      ..subtreeSeparation = 60
+      ..useCurvedConnections = false  // 직선 연결
+      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_LEFT_RIGHT;
+
+    // Algorithm 생성 (builder와 TreeEdgeRenderer 연결)
+    algorithm = BuchheimWalkerAlgorithm(
+      builder,
+      TreeEdgeRenderer(builder),
+    );
+
+    // 초기 그래프 구성 (목업 데이터)
+    if (_useMockData) {
+      _buildGraphFromProfiles(MockProfiles.profiles);
+    }
+  }
 
   @override
   void dispose() {
-    _transformationController.dispose();
+    _transformController.dispose();
     super.dispose();
   }
 
   // === 줌 컨트롤 ===
-  void _handleZoomIn() {
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
-    final newScale = (currentScale * 1.3).clamp(0.5, 3.0);
-    final center = _transformationController.value.getTranslation();
-    _transformationController.value = Matrix4.identity()
-      ..translate(center.x, center.y)
-      ..scale(newScale);
+  void _zoomIn() {
+    final currentScale = _transformController.value.getMaxScaleOnAxis();
+    final newScale = (currentScale * 1.3).clamp(0.1, 5.0);
+    final center = Offset(
+      MediaQuery.of(context).size.width / 2,
+      MediaQuery.of(context).size.height / 2,
+    );
+    _transformController.value = Matrix4.identity()
+      ..translate(center.dx, center.dy)
+      ..scale(newScale)
+      ..translate(-center.dx, -center.dy);
   }
 
-  void _handleZoomOut() {
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
-    final newScale = (currentScale * 0.7).clamp(0.5, 3.0);
-    final center = _transformationController.value.getTranslation();
-    _transformationController.value = Matrix4.identity()
-      ..translate(center.x, center.y)
-      ..scale(newScale);
+  void _zoomOut() {
+    final currentScale = _transformController.value.getMaxScaleOnAxis();
+    final newScale = (currentScale / 1.3).clamp(0.1, 5.0);
+    final center = Offset(
+      MediaQuery.of(context).size.width / 2,
+      MediaQuery.of(context).size.height / 2,
+    );
+    _transformController.value = Matrix4.identity()
+      ..translate(center.dx, center.dy)
+      ..scale(newScale)
+      ..translate(-center.dx, -center.dy);
   }
 
-  // === 노드 탭 핸들러 (사주 빠른보기) ===
-  void _onNodeTap(SajuProfile profile) {
+  // === 노드 탭 핸들러 ===
+  void _onNodeTap(Node node) {
+    final nodeId = node.key?.value as String? ?? '';
+    // 그룹 노드 탭 → 확장/축소
+    if (nodeId.startsWith('group_')) {
+      _controller.toggleNodeExpanded(graph, node, animate: true);
+      setState(() {});
+    }
+  }
+
+  // === 프로필 노드 탭 핸들러 ===
+  void _onProfileTap(SajuProfile profile) {
     showSajuQuickView(
       context,
       profile: profile,
       onChatPressed: () {
         Navigator.pop(context);
-        // TODO: Navigate to chat with this profile
       },
       onDetailPressed: () {
         Navigator.pop(context);
-        // TODO: Navigate to detail screen
       },
     );
   }
 
-  // === RelationshipType 문자열 변환 (Web 호환) ===
+  // === RelationshipType 문자열 변환 ===
   String _relationTypeToString(RelationshipType type) {
     if (type == RelationshipType.me) return 'me';
     if (type == RelationshipType.family) return 'family';
@@ -101,137 +151,103 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   Widget build(BuildContext context) {
     // 목업 데이터 또는 실제 데이터
     if (_useMockData) {
-      return _buildResponsiveGraph(context, MockProfiles.profiles);
+      return _buildGraph(context, MockProfiles.profiles);
     }
 
     final profilesAsync = ref.watch(allProfilesProvider);
     return profilesAsync.when(
-      data: (profiles) => _buildResponsiveGraph(context, profiles),
+      data: (profiles) {
+        // 프로필 변경 시 그래프 재구성
+        if (!_isSameProfiles(profiles)) {
+          _buildGraphFromProfiles(profiles);
+        }
+        return _buildGraph(context, profiles);
+      },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
     );
   }
 
-  /// 반응형 그래프 빌더
-  Widget _buildResponsiveGraph(BuildContext context, List<SajuProfile> profiles) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // 화면 크기 판단
-        final screenWidth = constraints.maxWidth;
-        final isCompact = screenWidth < 400;   // 작은 모바일
-        final isMobile = screenWidth < 600;    // 일반 모바일
-        final isTablet = screenWidth < 900;    // 태블릿
-
-        // 화면 크기별 설정
-        final GraphConfig config;
-        if (isCompact) {
-          config = GraphConfig.compact();
-        } else if (isMobile) {
-          config = GraphConfig.mobile();
-        } else if (isTablet) {
-          config = GraphConfig.tablet();
-        } else {
-          config = GraphConfig.desktop();
-        }
-
-        return _buildGraph(context, profiles, config, constraints);
-      },
-    );
+  /// 프로필 목록 비교
+  bool _isSameProfiles(List<SajuProfile> profiles) {
+    if (_currentProfiles.length != profiles.length) return false;
+    for (int i = 0; i < profiles.length; i++) {
+      if (_currentProfiles[i].id != profiles[i].id) return false;
+    }
+    return true;
   }
 
-  /// 그래프 빌드
-  Widget _buildGraph(
-    BuildContext context,
-    List<SajuProfile> profiles,
-    GraphConfig config,
-    BoxConstraints constraints,
-  ) {
-    final graph = _buildGraphFromProfiles(profiles);
-
-    final algorithm = BuchheimWalkerConfiguration()
-      ..siblingSeparation = config.siblingSeparation
-      ..levelSeparation = config.levelSeparation
-      ..subtreeSeparation = config.subtreeSeparation
-      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_LEFT_RIGHT;
-
-    // 그래프 위젯 (고정 크기로 생성)
-    final graphWidget = Container(
-      padding: EdgeInsets.all(config.padding),
-      child: GraphView(
-        graph: graph,
-        algorithm: BuchheimWalkerAlgorithm(
-          algorithm,
-          OrthogonalEdgeRenderer(
-            lineColor: Colors.grey.shade400,
-            strokeWidth: config.edgeWidth,
-          ),
-        ),
-        paint: Paint()
-          ..color = Colors.grey.shade400
-          ..strokeWidth = config.edgeWidth
-          ..style = PaintingStyle.stroke,
-        builder: (Node node) => _buildNode(node, profiles, config),
-      ),
-    );
-
-    // 반응형 그래프 - 화면에 자동 맞춤
-    return Stack(
+  /// 그래프 빌드 (SJ-Flow Large Tree 방식)
+  Widget _buildGraph(BuildContext context, List<SajuProfile> profiles) {
+    return Column(
       children: [
-        // 그래프 영역 - 자동으로 화면에 맞춤
-        Positioned.fill(
-          child: InteractiveViewer(
-            transformationController: _transformationController,
-            constrained: false,
-            minScale: 0.5,
-            maxScale: 3.0,
-            boundaryMargin: const EdgeInsets.all(50),
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: graphWidget,
+        // SJ-Flow GraphView.builder (Expanded로 전체 영역 채움)
+        Expanded(
+          child: Stack(
+            children: [
+              GraphView.builder(
+                controller: _controller,
+                graph: graph,
+                algorithm: algorithm,
+                paint: Paint()
+                  ..color = Colors.grey[500]!
+                  ..strokeWidth = 1.5
+                  ..style = PaintingStyle.stroke,
+                centerGraph: false,  // false로 변경 - 원점(0,0)부터 시작
+                animated: true,
+                autoZoomToFit: true,  // 자동으로 화면에 맞춤
+                panAnimationDuration: const Duration(milliseconds: 500),
+                toggleAnimationDuration: const Duration(milliseconds: 400),
+                builder: (Node node) => _buildNode(node, profiles),
               ),
-            ),
+              // 줌 컨트롤 (우측 하단)
+              GraphControls(
+                onZoomIn: _zoomIn,
+                onZoomOut: _zoomOut,
+                onZoomToFit: () => _controller.zoomToFit(),
+                onResetView: () => _controller.resetView(),
+              ),
+            ],
           ),
-        ),
-
-        // 줌 컨트롤 (+/- 만)
-        GraphControls(
-          onZoomIn: _handleZoomIn,
-          onZoomOut: _handleZoomOut,
         ),
       ],
     );
   }
 
   /// 노드 빌더
-  Widget _buildNode(Node node, List<SajuProfile> profiles, GraphConfig config) {
+  Widget _buildNode(Node node, List<SajuProfile> profiles) {
     final nodeId = node.key?.value as String? ?? '';
 
     // Me 노드
     if (nodeId.startsWith('me_')) {
       if (nodeId == 'me_placeholder') {
-        return MeNodeWidget(profile: null, size: config.meNodeSize);
+        return const MeNodeWidget(profile: null, size: 90);
       }
       final profileId = nodeId.substring(3);
       final profile = profiles.where((p) => p.id == profileId).firstOrNull;
       return MeNodeWidget(
         profile: profile,
-        size: config.meNodeSize,
-        onTap: profile != null ? () => _onNodeTap(profile) : null,
+        size: 90,
+        onTap: profile != null ? () => _onProfileTap(profile) : null,
       );
     }
 
-    // Group 노드
+    // Group 노드 (탭하면 확장/축소)
     if (nodeId.startsWith('group_')) {
       final relationTypeStr = nodeId.substring(6);
       final relationType = _parseRelationType(relationTypeStr);
       final count = profiles.where((p) => p.relationType == relationType).length;
+      final isCollapsed = _controller.isNodeCollapsed(node);
 
-      return RelationshipGroupNode(
-        type: relationType,
-        count: count,
-        width: config.groupNodeWidth,
-        height: config.groupNodeHeight,
+      return GestureDetector(
+        onTap: () => _onNodeTap(node),
+        child: RelationshipGroupNode(
+          type: relationType,
+          count: count,
+          width: 80,
+          height: 45,
+          isCollapsed: isCollapsed,
+        ),
       );
     }
 
@@ -242,25 +258,32 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     }
     return ProfileNodeWidget(
       profile: profile,
-      width: config.profileNodeWidth,
-      height: config.profileNodeHeight,
-      onTap: () => _onNodeTap(profile),
+      width: 110,
+      height: 70,
+      onTap: () => _onProfileTap(profile),
     );
   }
 
-  /// 그래프 구조 생성
-  Graph _buildGraphFromProfiles(List<SajuProfile> profiles) {
-    final graph = Graph();
+  /// 그래프 데이터 구성 (기존 graph에 추가)
+  void _buildGraphFromProfiles(List<SajuProfile> profiles) {
+    // 기존 데이터 클리어 (edges 먼저, 그 다음 nodes)
+    graph.edges.clear();
+    graph.nodes.clear();
+    // 캐시 무효화를 위해 notifyGraphObserver 호출
+    graph.notifyGraphObserver();
+
+    _currentProfiles = profiles;
 
     if (profiles.isEmpty) {
       graph.addNode(Node.Id('me_placeholder'));
-      return graph;
+      return;
     }
 
     // Me 프로필 찾기
     final meProfile = profiles
-        .where((p) => p.relationType == RelationshipType.me)
-        .firstOrNull ?? profiles.first;
+            .where((p) => p.relationType == RelationshipType.me)
+            .firstOrNull ??
+        profiles.first;
 
     // Me 노드 생성
     final meNode = Node.Id('me_${meProfile.id}');
@@ -270,7 +293,9 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     final profilesByRelation = <RelationshipType, List<SajuProfile>>{};
     for (final profile in profiles) {
       if (profile.id == meProfile.id) continue;
-      profilesByRelation.putIfAbsent(profile.relationType, () => []).add(profile);
+      profilesByRelation
+          .putIfAbsent(profile.relationType, () => [])
+          .add(profile);
     }
 
     // 그룹 노드 및 프로필 노드 생성
@@ -280,64 +305,24 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
       // 그룹 노드
       final groupNode = Node.Id('group_${_relationTypeToString(relationType)}');
-      graph.addNode(groupNode);
       graph.addEdge(meNode, groupNode);
 
       // 개별 프로필 노드
       for (final profile in groupProfiles) {
         final profileNode = Node.Id(profile.id);
-        graph.addNode(profileNode);
         graph.addEdge(groupNode, profileNode);
       }
     }
 
-    return graph;
+    print('[Graph] ===== 그래프 구축 완료 =====');
+    print('[Graph] 노드 수: ${graph.nodeCount()}, 엣지 수: ${graph.edges.length}');
+    print('[Graph] 노드 목록:');
+    for (final node in graph.nodes) {
+      print('  - ${node.key?.value}');
+    }
+    print('[Graph] 엣지 목록:');
+    for (final edge in graph.edges) {
+      print('  - ${edge.source.key?.value} → ${edge.destination.key?.value}');
+    }
   }
-}
-
-/// 그래프 설정 (FittedBox가 자동 스케일링하므로 고정 크기 사용)
-class GraphConfig {
-  final int siblingSeparation;
-  final int levelSeparation;
-  final int subtreeSeparation;
-  final double padding;
-  final double edgeWidth;
-  final double meNodeSize;
-  final double groupNodeWidth;
-  final double groupNodeHeight;
-  final double profileNodeWidth;
-  final double profileNodeHeight;
-
-  const GraphConfig({
-    required this.siblingSeparation,
-    required this.levelSeparation,
-    required this.subtreeSeparation,
-    required this.padding,
-    required this.edgeWidth,
-    required this.meNodeSize,
-    required this.groupNodeWidth,
-    required this.groupNodeHeight,
-    required this.profileNodeWidth,
-    required this.profileNodeHeight,
-  });
-
-  /// 기본 설정 - FittedBox가 화면에 맞게 스케일링
-  factory GraphConfig.standard() => const GraphConfig(
-    siblingSeparation: 80,
-    levelSeparation: 100,
-    subtreeSeparation: 100,
-    padding: 40,
-    edgeWidth: 2.0,
-    meNodeSize: 90,
-    groupNodeWidth: 80,
-    groupNodeHeight: 45,
-    profileNodeWidth: 110,
-    profileNodeHeight: 70,
-  );
-
-  // 하위 호환성을 위해 유지
-  factory GraphConfig.compact() => GraphConfig.standard();
-  factory GraphConfig.mobile() => GraphConfig.standard();
-  factory GraphConfig.tablet() => GraphConfig.standard();
-  factory GraphConfig.desktop() => GraphConfig.standard();
 }
