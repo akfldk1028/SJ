@@ -619,7 +619,7 @@ class ChatNotifier extends _$ChatNotifier {
         persona: currentPersona,
         isFirstMessage: isFirstMessage,
       );
-
+      /////////////////////////////////////////////////////////////////수정1순우ㅟ
       // [4] 시스템 프롬프트 구성
       if (kDebugMode) {
         print('');
