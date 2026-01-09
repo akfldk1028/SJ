@@ -22,6 +22,10 @@ import '../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../features/settings/presentation/screens/disclaimer_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
+import '../features/daily_fortune/presentation/screens/daily_fortune_detail_screen.dart';
+import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
+import '../features/traditional_saju/presentation/screens/traditional_saju_screen.dart';
+import '../features/compatibility/presentation/screens/compatibility_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -103,6 +107,27 @@ GoRouter appRouter(Ref ref) {
         path: Routes.settingsDisclaimer,
         name: 'settingsDisclaimer',
         builder: (context, state) => const DisclaimerScreen(),
+      ),
+      // Fortune 페이지
+      GoRoute(
+        path: Routes.dailyFortuneDetail,
+        name: 'dailyFortuneDetail',
+        builder: (context, state) => const DailyFortuneDetailScreen(),
+      ),
+      GoRoute(
+        path: Routes.newYearFortune,
+        name: 'newYearFortune',
+        builder: (context, state) => const NewYearFortuneScreen(),
+      ),
+      GoRoute(
+        path: Routes.traditionalSaju,
+        name: 'traditionalSaju',
+        builder: (context, state) => const TraditionalSajuScreen(),
+      ),
+      GoRoute(
+        path: Routes.compatibility,
+        name: 'compatibility',
+        builder: (context, state) => const CompatibilityScreen(),
       ),
 
       // ShellRoute - 네비게이션 바 공유

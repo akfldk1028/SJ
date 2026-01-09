@@ -18,6 +18,12 @@ abstract class Routes {
   static const String sajuChart = '/saju/chart';
   static const String sajuDetail = '/saju/detail';
 
+  // Fortune
+  static const String dailyFortuneDetail = '/fortune/daily';
+  static const String newYearFortune = '/fortune/new-year';
+  static const String traditionalSaju = '/fortune/traditional-saju';
+  static const String compatibility = '/fortune/compatibility';
+
   // History
   static const String history = '/history';
 

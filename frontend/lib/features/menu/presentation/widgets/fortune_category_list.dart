@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Fortune category grid - 테마 적용 (정통운세 그리드)
@@ -15,13 +16,10 @@ class FortuneCategoryList extends StatelessWidget {
     final theme = context.appTheme;
 
     final categories = [
-      {'name': '정통사주', 'icon': Icons.menu_book_rounded},
-      {'name': '정통궁합', 'icon': Icons.favorite_rounded},
-      {'name': '취업운세', 'icon': Icons.work_rounded},
-      {'name': '능력평가', 'icon': Icons.bar_chart_rounded},
-      // {'name': '삼풍이', 'icon': Icons.notifications_rounded},
-      // {'name': '연예인궁합', 'icon': Icons.star_rounded},
-      // {'name': '관상', 'icon': Icons.face_rounded},
+      {'name': '정통사주', 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
+      {'name': '정통궁합', 'icon': Icons.favorite_rounded, 'route': '/fortune/compatibility'},
+      {'name': '신년운세', 'icon': Icons.auto_awesome_rounded, 'route': '/fortune/new-year'},
+      {'name': '오늘운세', 'icon': Icons.wb_sunny_rounded, 'route': '/fortune/daily'},
     ];
 
     return Padding(
@@ -40,15 +38,13 @@ class FortuneCategoryList extends StatelessWidget {
           ],
         ),
         child: Row(
-          children: categories.asMap().entries.map((entry) {
-            final index = entry.key;
-            final category = entry.value;
+          children: categories.map((category) {
             return Expanded(
               child: _buildCategoryItem(
                 context,
                 category['name'] as String,
                 category['icon'] as IconData,
-                isLast: index == categories.length - 1,
+                category['route'] as String,
               ),
             );
           }).toList(),
@@ -57,38 +53,41 @@ class FortuneCategoryList extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, String name, IconData icon, {required bool isLast}) {
+  Widget _buildCategoryItem(BuildContext context, String name, IconData icon, String route) {
     final theme = context.appTheme;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.isDark
-                ? theme.primaryColor.withValues(alpha: 0.15)
-                : theme.backgroundColor,
-            borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: () => context.push(route),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: theme.isDark
+                  ? theme.primaryColor.withValues(alpha: 0.15)
+                  : theme.backgroundColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: theme.textSecondary,
+            ),
           ),
-          child: Icon(
-            icon,
-            size: 28,
-            color: theme.textSecondary,
+          const SizedBox(height: 8),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: theme.textPrimary,
+            ),
+            textAlign: TextAlign.center,
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: theme.textPrimary,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
