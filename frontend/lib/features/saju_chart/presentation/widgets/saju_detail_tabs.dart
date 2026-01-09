@@ -257,30 +257,46 @@ class _ManseryeokTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                PillarDisplay(
-                  label: '시주',
-                  pillar: chart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
-                  size: 32,
-                ),
-                PillarDisplay(
-                  label: '일주 (나)',
-                  pillar: chart.dayPillar,
-                  size: 32,
-                ),
-                PillarDisplay(
-                  label: '월주',
-                  pillar: chart.monthPillar,
-                  size: 32,
-                ),
-                PillarDisplay(
-                  label: '년주',
-                  pillar: chart.yearPillar,
-                  size: 32,
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 반응형 사이즈 조정
+                final availableWidth = constraints.maxWidth;
+                final pillarSize = availableWidth > 400 ? 32.0 : availableWidth > 300 ? 26.0 : 22.0;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '시주',
+                        pillar: chart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
+                        size: pillarSize,
+                      ),
+                    ),
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '일주 (나)',
+                        pillar: chart.dayPillar,
+                        size: pillarSize,
+                      ),
+                    ),
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '월주',
+                        pillar: chart.monthPillar,
+                        size: pillarSize,
+                      ),
+                    ),
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '년주',
+                        pillar: chart.yearPillar,
+                        size: pillarSize,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 24),
@@ -387,6 +403,10 @@ class _SipSungTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 십성이란? 설명 카드
+          _buildExplanationCard(context),
+          const SizedBox(height: 20),
+
           _buildSectionTitle(context, '천간 십성'),
           const SizedBox(height: 12),
           _buildCheonganSipSin(context),
@@ -401,6 +421,66 @@ class _SipSungTab extends StatelessWidget {
           const SizedBox(height: 12),
           SipSungCategoryChart(
             distribution: jijangganResult.categoryDistribution,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExplanationCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accent.withOpacity(0.1),
+            AppColors.accent.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.help_outline_rounded, color: AppColors.accent, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '십성(十星)이란?',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '일간(日干, 나)을 기준으로 다른 간지와의 관계를 나타낸 것입니다. '
+            '오행의 상생상극 관계와 음양 조화에 따라 10가지 관계가 정해집니다.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '• 비겁(比劫): 나와 같은 오행 - 형제, 경쟁자, 자아\n'
+            '• 식상(食傷): 내가 생하는 오행 - 표현력, 재능, 자녀\n'
+            '• 재성(財星): 내가 극하는 오행 - 재물, 아버지(남), 아내(남)\n'
+            '• 관성(官星): 나를 극하는 오행 - 직장, 명예, 남편(여)\n'
+            '• 인성(印星): 나를 생하는 오행 - 학문, 문서, 어머니',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              height: 1.6,
+            ),
           ),
         ],
       ),
