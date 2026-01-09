@@ -33,7 +33,7 @@ class TimeCorrectionBanner extends ConsumerWidget {
         gradient: LinearGradient(
           colors: [
             theme.primaryColor.withOpacity(0.15),
-            theme.accentColor.withOpacity(0.1),
+            (theme.accentColor ?? theme.primaryColor).withOpacity(0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
