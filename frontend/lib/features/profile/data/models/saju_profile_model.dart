@@ -27,7 +27,10 @@ abstract class SajuProfileModel with _$SajuProfileModel {
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default(false) bool isActive,
-    @Default('me') String relationType, // RelationshipType enum name
+    @Default('me') String relationType, // RelationshipType enum name (deprecated)
+    /// 프로필 유형: 'primary' (본인) | 'other' (관계인)
+    /// DB의 profile_type 컬럼에 매핑
+    @Default('primary') String profileType,
     String? memo,
   }) = _SajuProfileModel;
 
@@ -55,6 +58,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       updatedAt: updatedAt,
       isActive: isActive,
       relationType: RelationshipType.values.byName(relationType),
+      profileType: profileType,
       memo: memo,
     );
   }
@@ -77,6 +81,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       updatedAt: entity.updatedAt,
       isActive: entity.isActive,
       relationType: entity.relationType.name,
+      profileType: entity.profileType,
       memo: entity.memo,
     );
   }
@@ -99,6 +104,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       'updatedAt': updatedAt.millisecondsSinceEpoch,
       'isActive': isActive,
       'relationType': relationType,
+      'profileType': profileType,
       'memo': memo,
     };
   }
@@ -121,6 +127,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int),
       isActive: (map['isActive'] as bool?) ?? false,
       relationType: (map['relationType'] as String?) ?? 'me',
+      profileType: (map['profileType'] as String?) ?? 'primary',
       memo: map['memo'] as String?,
     );
   }
@@ -135,6 +142,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       'user_id': userId,
       'display_name': displayName,
       'relation_type': relationType,
+      'profile_type': profileType, // NEW: 'primary' | 'other'
       'memo': memo,
       'birth_date': birthDate.toIso8601String().split('T')[0], // DATE 형식
       'birth_time_minutes': birthTimeMinutes,
@@ -169,7 +177,16 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       updatedAt: DateTime.parse(map['updated_at'] as String),
       isActive: map['is_primary'] as bool? ?? false,
       relationType: map['relation_type'] as String? ?? 'me',
+      profileType: map['profile_type'] as String? ?? 'primary',
       memo: map['memo'] as String?,
     );
   }
+
+  // === 헬퍼 메서드 ===
+
+  /// 본인 프로필 여부
+  bool get isPrimaryProfile => profileType == 'primary';
+
+  /// 관계인 프로필 여부
+  bool get isOtherProfile => profileType == 'other';
 }

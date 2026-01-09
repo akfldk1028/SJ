@@ -1605,6 +1605,59 @@ String get ohengJson {
 
 ---
 
+## Phase 43: 사주 관계도 DB 설계 및 궁합 채팅 라우팅 (2026-01-08~09) ✅ 완료
+
+### DB 마이그레이션 (2026-01-08 완료)
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| profile_type 컬럼 추가 | ✅ | saju_profiles에 'primary' \| 'other' 컬럼 |
+| 기존 데이터 마이그레이션 | ✅ | primary: 150개, other: 1개 |
+| profile_relations 활성화 | ✅ | 1건 테스트 데이터 (이지나→홍길동) |
+| 성능 인덱스 생성 | ✅ | 6개 인덱스 추가 |
+
+### Flutter 코드 (2026-01-09 완료)
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `saju_profile_model.dart` | profileType 필드 추가 |
+| `compatibility_context.dart` | **CompatibilityContext** 모델 생성 (두 프로필 사주 컨텍스트) |
+| `compatibility_context.dart` | **CompatibilityAnalysisCache** 모델 (DB 캐시 매핑) |
+| `routes.dart` | sajuChatCompatibility 라우트 추가 |
+| `app_router.dart` | 궁합 채팅 라우트 등록 (from, to, relationType 파라미터) |
+| `saju_chat_shell.dart` | fromProfileId, toProfileId, relationType 파라미터 추가 |
+| `relationship_screen.dart` | QuickView "사주 상담" 버튼 → 궁합 채팅 라우팅 연결 |
+
+### CompatibilityContext 모델
+
+```dart
+class CompatibilityContext {
+  final SajuProfileModel fromProfile;      // 나의 프로필
+  final SajuAnalysisModel fromAnalysis;    // 나의 사주 분석
+  final SajuProfileModel toProfile;        // 상대방 프로필
+  final SajuAnalysisModel toAnalysis;      // 상대방 사주 분석
+  final ProfileRelationType relationType;  // 관계 유형 (19종)
+
+  String toPromptContext();  // AI 프롬프트용 문자열 생성
+  String get analysisType;   // family, love, friendship, business, general
+}
+```
+
+### 궁합 채팅 라우트
+
+```
+/saju/chat/compatibility?from={나의 profile_id}&to={상대방 profile_id}&relationType={관계유형}
+```
+
+### 관련 문서
+- `docs/02_features/saju_relationship_db.md` v1.1
+
+### 다음 작업
+- **Phase 43-B**: SajuChatShell에서 두 사주 분석 로드 및 AI 전달
+- **Phase 43-C**: compatibility_analyses 테이블 저장/조회 (캐싱)
+
+---
+
 ## 참고사항
 
 ### Edge Function 배포 명령어

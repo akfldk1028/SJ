@@ -195,8 +195,10 @@ class RelationshipScreen extends ConsumerWidget {
           relation: relation,
           onChatPressed: () {
             Navigator.pop(context);
-            // TODO: 채팅 화면으로 이동
-            // context.push('/saju/chat?profileId=${relation.toProfileId}');
+            // 상대방 프로필 기준 채팅 화면으로 이동
+            context.push(
+              '${Routes.sajuChat}?profileId=${relation.toProfileId}',
+            );
           },
           onEditPressed: () {
             Navigator.pop(context);

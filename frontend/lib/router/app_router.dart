@@ -21,6 +21,7 @@ import '../features/settings/presentation/screens/terms_of_service_screen.dart';
 import '../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../features/settings/presentation/screens/disclaimer_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
+import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -66,6 +67,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.profileEdit,
         name: 'profileEdit',
         builder: (context, state) => const ProfileEditScreen(),
+      ),
+      GoRoute(
+        path: Routes.sajuChart,
+        name: 'sajuChart',
+        builder: (context, state) => const SajuChartScreen(),
       ),
       GoRoute(
         path: Routes.history,
@@ -124,7 +130,11 @@ GoRouter appRouter(Ref ref) {
             name: 'sajuChat',
             builder: (context, state) {
               final chatType = state.uri.queryParameters['type'];
-              return SajuChatShell(chatType: chatType);
+              final profileId = state.uri.queryParameters['profileId'];
+              return SajuChatShell(
+                chatType: chatType,
+                targetProfileId: profileId,
+              );
             },
           ),
           GoRoute(
