@@ -12,10 +12,12 @@ abstract class Routes {
   static const String profileSelect = '/profile/select';
   static const String profileEdit = '/profile/edit';
   static const String relationshipList = '/relationships';
+  static const String relationshipAdd = '/relationships/add';
 
   // Saju
   static const String sajuChat = '/saju/chat';
   static const String sajuChart = '/saju/chart';
+  static const String sajuGraph = '/saju/graph';
   static const String sajuDetail = '/saju/detail';
 
   // Fortune

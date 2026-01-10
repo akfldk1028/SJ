@@ -11,6 +11,7 @@ import '../features/menu/presentation/screens/menu_screen.dart';
 import '../features/profile/presentation/screens/profile_select_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../features/profile/presentation/screens/relationship_screen.dart';
+import '../features/profile/presentation/screens/relationship_add_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_shell.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/calendar/presentation/screens/calendar_screen.dart';
@@ -22,6 +23,7 @@ import '../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../features/settings/presentation/screens/disclaimer_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
+import '../features/saju_chart/presentation/screens/saju_graph_screen.dart';
 import '../features/daily_fortune/presentation/screens/daily_fortune_detail_screen.dart';
 import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
 import '../features/traditional_saju/presentation/screens/traditional_saju_screen.dart';
@@ -76,6 +78,16 @@ GoRouter appRouter(Ref ref) {
         path: Routes.sajuChart,
         name: 'sajuChart',
         builder: (context, state) => const SajuChartScreen(),
+      ),
+      GoRoute(
+        path: Routes.relationshipAdd,
+        name: 'relationshipAdd',
+        builder: (context, state) => const RelationshipAddScreen(),
+      ),
+      GoRoute(
+        path: Routes.sajuGraph,
+        name: 'sajuGraph',
+        builder: (context, state) => const SajuGraphScreen(),
       ),
       GoRoute(
         path: Routes.history,

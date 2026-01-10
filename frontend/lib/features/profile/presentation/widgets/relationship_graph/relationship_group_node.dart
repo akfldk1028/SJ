@@ -4,6 +4,7 @@ import '../../../domain/entities/relationship_type.dart';
 /// 관계 그룹 노드 (가족, 친구, 연인 등)
 ///
 /// 모던 글래스모피즘 스타일
+/// - isCollapsed: 접힘 상태 표시 (SJ-Flow Large Tree 기능)
 class RelationshipGroupNode extends StatelessWidget {
   const RelationshipGroupNode({
     super.key,
@@ -12,6 +13,7 @@ class RelationshipGroupNode extends StatelessWidget {
     this.width = 80,
     this.height = 45,
     this.onTap,
+    this.isCollapsed = false,
   });
 
   final RelationshipType type;
@@ -19,6 +21,7 @@ class RelationshipGroupNode extends StatelessWidget {
   final double width;
   final double height;
   final VoidCallback? onTap;
+  final bool isCollapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +109,15 @@ class RelationshipGroupNode extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  // 확장/축소 인디케이터
+                  const SizedBox(width: 2),
+                  Icon(
+                    isCollapsed
+                        ? Icons.expand_more_rounded
+                        : Icons.expand_less_rounded,
+                    size: fontSize * 0.8,
+                    color: Colors.white.withOpacity(0.7),
                   ),
                 ],
               ),

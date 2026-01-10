@@ -2,15 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_theme.dart';
 
+/// 그래프 컨트롤 버튼 (SJ-Flow 지원)
+///
+/// - 확대/축소
+/// - 화면 맞춤 (zoomToFit)
+/// - 뷰 리셋
 class GraphControls extends StatelessWidget {
   const GraphControls({
     super.key,
     required this.onZoomIn,
     required this.onZoomOut,
+    this.onZoomToFit,
+    this.onResetView,
   });
 
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
+  final VoidCallback? onZoomToFit;
+  final VoidCallback? onResetView;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +46,26 @@ class GraphControls extends StatelessWidget {
             tooltip: '축소',
             appTheme: appTheme,
           ),
+          if (onZoomToFit != null) ...[
+            const SizedBox(height: 8),
+            _buildControlButton(
+              context,
+              icon: Icons.fit_screen,
+              onPressed: onZoomToFit!,
+              tooltip: '화면 맞춤',
+              appTheme: appTheme,
+            ),
+          ],
+          if (onResetView != null) ...[
+            const SizedBox(height: 8),
+            _buildControlButton(
+              context,
+              icon: Icons.center_focus_strong,
+              onPressed: onResetView!,
+              tooltip: '초기화',
+              appTheme: appTheme,
+            ),
+          ],
         ],
       ),
     );

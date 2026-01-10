@@ -655,7 +655,7 @@ class ChatNotifier extends _$ChatNotifier {
         targetProfile: targetProfile,  // v3.4: 궁합 상대방 프로필
         targetSajuAnalysis: targetSajuAnalysis,  // v3.4: 궁합 상대방 사주
       );
-
+      /////////////////////////////////////////////////////////////////수정1순우ㅟ
       // [4] 시스템 프롬프트 구성
       if (kDebugMode) {
         print('');
