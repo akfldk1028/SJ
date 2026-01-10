@@ -205,6 +205,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         scrollController: _scrollController,
         onScroll: _scrollToBottom,
         onCreateSession: _handleNewChat,
+        targetProfileId: widget.targetProfileId,
       ),
     );
   }
@@ -299,6 +300,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                     scrollController: _scrollController,
                     onScroll: _scrollToBottom,
                     onCreateSession: _handleNewChat,
+                    targetProfileId: widget.targetProfileId,
                   ),
                 ),
               ],
@@ -319,11 +321,15 @@ class _ChatContent extends ConsumerStatefulWidget {
   final VoidCallback onScroll;
   final VoidCallback? onCreateSession;
 
+  /// 궁합 채팅 시 상대방 프로필 ID
+  final String? targetProfileId;
+
   const _ChatContent({
     required this.chatType,
     required this.scrollController,
     required this.onScroll,
     this.onCreateSession,
+    this.targetProfileId,
   });
 
   @override
@@ -376,10 +382,15 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           ChatInputField(
             onSend: (text) async {
               // 세션 생성 + 대기 메시지 설정 (UI 리빌드 후 자동 전송)
-              print('[_ChatContent] 세션 생성 요청: text=$text');
+              print('[_ChatContent] 세션 생성 요청: text=$text, targetProfileId=${widget.targetProfileId}');
               final activeProfile = await ref.read(activeProfileProvider.future);
               ref.read(chatSessionNotifierProvider.notifier)
-                  .createSession(widget.chatType, activeProfile?.id, initialMessage: text);
+                  .createSession(
+                    widget.chatType,
+                    activeProfile?.id,
+                    initialMessage: text,
+                    targetProfileId: widget.targetProfileId,
+                  );
             },
             enabled: true,
             hintText: widget.chatType.inputHint,
@@ -400,12 +411,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       // 다음 프레임에서 실행 (build 중 state 변경 방지)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        print('[_ChatContent] postFrameCallback에서 sendMessage 호출');
+        print('[_ChatContent] postFrameCallback에서 sendMessage 호출, targetProfileId=${widget.targetProfileId}');
 
         final msg = pendingMessage; // 캡처
         ref.read(chatSessionNotifierProvider.notifier).clearPendingMessage();
         ref.read(chatNotifierProvider(currentSessionId).notifier)
-            .sendMessage(msg, widget.chatType);
+            .sendMessage(msg, widget.chatType, targetProfileId: widget.targetProfileId);
 
         _isProcessingPendingMessage = false;
       });
@@ -463,16 +474,16 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                 print('[_ChatContent] 추천 질문 선택: $question');
                 ref
                     .read(chatNotifierProvider(currentSessionId).notifier)
-                    .sendMessage(question, widget.chatType);
+                    .sendMessage(question, widget.chatType, targetProfileId: widget.targetProfileId);
               },
             ),
           ),
         ChatInputField(
           onSend: (text) {
-            print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text');
+            print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text, targetProfileId=${widget.targetProfileId}');
             ref
                 .read(chatNotifierProvider(currentSessionId).notifier)
-                .sendMessage(text, widget.chatType);
+                .sendMessage(text, widget.chatType, targetProfileId: widget.targetProfileId);
           },
           enabled: !chatState.isLoading,
           hintText: widget.chatType.inputHint,

@@ -38,9 +38,9 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
   }
 
   @override
-  Future<ChatSession> createSession(ChatType chatType, String? profileId) async {
+  Future<ChatSession> createSession(ChatType chatType, String? profileId, {String? targetProfileId}) async {
     if (kDebugMode) {
-      print('[ChatRepo] createSession 호출: chatType=$chatType, profileId=$profileId');
+      print('[ChatRepo] createSession 호출: chatType=$chatType, profileId=$profileId, targetProfileId=$targetProfileId');
     }
     final now = DateTime.now();
     final newSession = ChatSessionModel(
@@ -48,6 +48,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
       title: '새 대화', // 초기 타이틀, 첫 메시지로 나중에 업데이트
       chatType: chatType.name,
       profileId: profileId,
+      targetProfileId: targetProfileId,
       createdAt: now,
       updatedAt: now,
       messageCount: 0,
@@ -85,10 +86,11 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
         profileId: session.profileId!,
         chatType: ChatType.fromString(session.chatType.name),
         title: session.title,
+        targetProfileId: session.targetProfileId,
       );
 
       if (kDebugMode) {
-        print('[ChatRepo] Supabase 세션 저장 완료: ${session.id}');
+        print('[ChatRepo] Supabase 세션 저장 완료: ${session.id}, targetProfileId=${session.targetProfileId}');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -269,6 +271,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
       title: title,
       chatType: session.chatType,
       profileId: session.profileId,
+      targetProfileId: session.targetProfileId,
       createdAt: session.createdAt,
       updatedAt: DateTime.now(),
       messageCount: messageCount,

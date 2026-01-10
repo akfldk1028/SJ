@@ -10,6 +10,12 @@ class ChatSession {
   final String title;
   final ChatType chatType;
   final String? profileId;
+
+  /// 궁합 채팅 시 상대방 프로필 ID
+  /// - null이면 일반 채팅 (내 사주만)
+  /// - 값이 있으면 궁합/타인 상담 (상대방 사주 포함)
+  final String? targetProfileId;
+
   final DateTime createdAt;
   final DateTime updatedAt;
   final int messageCount;
@@ -20,6 +26,7 @@ class ChatSession {
     required this.title,
     required this.chatType,
     this.profileId,
+    this.targetProfileId,
     required this.createdAt,
     required this.updatedAt,
     this.messageCount = 0,
@@ -31,6 +38,7 @@ class ChatSession {
     String? title,
     ChatType? chatType,
     String? profileId,
+    String? targetProfileId,
     DateTime? createdAt,
     DateTime? updatedAt,
     int? messageCount,
@@ -41,6 +49,7 @@ class ChatSession {
       title: title ?? this.title,
       chatType: chatType ?? this.chatType,
       profileId: profileId ?? this.profileId,
+      targetProfileId: targetProfileId ?? this.targetProfileId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       messageCount: messageCount ?? this.messageCount,

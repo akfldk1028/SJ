@@ -13,7 +13,8 @@ abstract class ChatSessionRepository {
   Future<ChatSession?> getSession(String id);
 
   /// 새 세션 생성
-  Future<ChatSession> createSession(ChatType chatType, String? profileId);
+  /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID
+  Future<ChatSession> createSession(ChatType chatType, String? profileId, {String? targetProfileId});
 
   /// 세션 업데이트
   Future<void> updateSession(ChatSession session);

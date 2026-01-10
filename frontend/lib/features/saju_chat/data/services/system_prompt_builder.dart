@@ -11,8 +11,10 @@ import '../../domain/models/ai_persona.dart';
 /// - 페르소나 설정
 /// - 프로필 정보 (생년월일, 성별)
 /// - 사주 분석 데이터
+/// - 궁합 상대방 정보 (v3.5 Phase 44)
 ///
 /// v3.3: chat_provider.dart에서 분리
+/// v3.5 (Phase 44): 궁합 채팅을 위한 상대방 프로필/사주 지원
 class SystemPromptBuilder {
   final StringBuffer _buffer = StringBuffer();
 
@@ -24,6 +26,8 @@ class SystemPromptBuilder {
   /// [profile] - 프로필 정보
   /// [persona] - AI 페르소나
   /// [isFirstMessage] - 첫 메시지 여부 (토큰 최적화)
+  /// [targetProfile] - 궁합 채팅 상대방 프로필 (선택)
+  /// [targetSajuAnalysis] - 궁합 채팅 상대방 사주 (선택)
   String build({
     required String basePrompt,
     AiSummary? aiSummary,
@@ -31,8 +35,13 @@ class SystemPromptBuilder {
     SajuProfile? profile,
     AiPersona? persona,
     bool isFirstMessage = true,
+    SajuProfile? targetProfile,
+    SajuAnalysis? targetSajuAnalysis,
   }) {
     _buffer.clear();
+
+    // 궁합 모드 여부
+    final isCompatibilityMode = targetProfile != null;
 
     // 1. 현재 날짜
     _addCurrentDate();
@@ -47,12 +56,12 @@ class SystemPromptBuilder {
 
     // 4. 프로필 정보 (첫 메시지만)
     if (isFirstMessage && profile != null) {
-      _addProfileInfo(profile);
+      _addProfileInfo(profile, isCompatibilityMode ? '나 (상담 요청자)' : null);
     }
 
     // 5. 사주 데이터 (첫 메시지만)
     if (isFirstMessage && sajuAnalysis != null) {
-      _addSajuAnalysis(sajuAnalysis);
+      _addSajuAnalysis(sajuAnalysis, isCompatibilityMode ? '나의 사주' : null);
     } else if (isFirstMessage && aiSummary?.sajuOrigin != null) {
       _addSajuOrigin(aiSummary!.sajuOrigin!);
     } else if (!isFirstMessage) {
@@ -63,8 +72,17 @@ class SystemPromptBuilder {
       _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
-    // 6. 마무리 지시문
-    _addClosingInstructions();
+    // 6. 상대방 정보 추가 (궁합 모드) - Phase 44 핵심
+    if (isFirstMessage && isCompatibilityMode) {
+      _addTargetProfileInfo(targetProfile);
+      if (targetSajuAnalysis != null) {
+        _addSajuAnalysis(targetSajuAnalysis, '상대방의 사주');
+      }
+      _addCompatibilityInstructions();
+    }
+
+    // 7. 마무리 지시문
+    _addClosingInstructions(isCompatibilityMode: isCompatibilityMode);
 
     return _buffer.toString();
   }
@@ -93,7 +111,8 @@ class SystemPromptBuilder {
   }
 
   /// 프로필 정보 추가
-  void _addProfileInfo(SajuProfile profile) {
+  /// [label] - 궁합 모드에서 '나 (상담 요청자)' 등 커스텀 라벨
+  void _addProfileInfo(SajuProfile profile, [String? label]) {
     final now = DateTime.now();
     final age = now.year - profile.birthDate.year;
     final koreanAge = age + 1;
@@ -101,7 +120,7 @@ class SystemPromptBuilder {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
-    _buffer.writeln('## 상담 대상자 정보');
+    _buffer.writeln('## ${label ?? '상담 대상자 정보'}');
     _buffer.writeln('- 이름: ${profile.displayName}');
     _buffer.writeln('- 성별: ${profile.gender.displayName}');
     _buffer.writeln('- 생년월일: ${profile.birthDateFormatted} (${profile.calendarTypeLabel})');
@@ -116,14 +135,39 @@ class SystemPromptBuilder {
     _buffer.writeln('- 만 나이: $age세 (한국 나이: ${koreanAge}세)');
   }
 
+  /// 상대방 프로필 정보 추가 (궁합 모드)
+  void _addTargetProfileInfo(SajuProfile targetProfile) {
+    final now = DateTime.now();
+    final age = now.year - targetProfile.birthDate.year;
+    final koreanAge = age + 1;
+
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('## 상대방 (궁합 대상자) 정보');
+    _buffer.writeln('- 이름: ${targetProfile.displayName}');
+    _buffer.writeln('- 성별: ${targetProfile.gender.displayName}');
+    _buffer.writeln('- 생년월일: ${targetProfile.birthDateFormatted} (${targetProfile.calendarTypeLabel})');
+
+    if (targetProfile.birthTimeFormatted != null) {
+      _buffer.writeln('- 출생시간: ${targetProfile.birthTimeFormatted}');
+    } else if (targetProfile.birthTimeUnknown) {
+      _buffer.writeln('- 출생시간: 모름');
+    }
+
+    _buffer.writeln('- 출생지역: ${targetProfile.birthCity}');
+    _buffer.writeln('- 만 나이: $age세 (한국 나이: ${koreanAge}세)');
+  }
+
   /// 사주 분석 데이터 추가 (로컬 계산)
-  void _addSajuAnalysis(SajuAnalysis sajuAnalysis) {
+  /// [label] - 궁합 모드에서 '나의 사주', '상대방의 사주' 등 커스텀 라벨
+  void _addSajuAnalysis(SajuAnalysis sajuAnalysis, [String? label]) {
     final chart = sajuAnalysis.chart;
 
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
-    _buffer.writeln('## 사주 기본 데이터');
+    _buffer.writeln('## ${label ?? '사주 기본 데이터'}');
     _buffer.writeln();
 
     // 사주팔자 테이블
@@ -384,13 +428,41 @@ class SystemPromptBuilder {
     }
   }
 
-  /// 마무리 지시문 추가
-  void _addClosingInstructions() {
+  /// 궁합 모드 지시문 추가
+  void _addCompatibilityInstructions() {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
-    _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
-    _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
-    _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하여 깊이 있는 상담을 제공하세요.');
+    _buffer.writeln('## 궁합 분석 가이드');
+    _buffer.writeln();
+    _buffer.writeln('이 상담은 **궁합 분석** 모드입니다. 두 사람의 사주를 비교 분석해주세요.');
+    _buffer.writeln();
+    _buffer.writeln('### 분석 포인트');
+    _buffer.writeln('1. **일간 궁합**: 두 사람의 일간(日干) 오행 관계 분석');
+    _buffer.writeln('2. **지지 궁합**: 년지, 일지 등 지지 간의 합/충/형/파/해 관계');
+    _buffer.writeln('3. **오행 보완**: 서로 부족한 오행을 채워주는지');
+    _buffer.writeln('4. **용신 관계**: 상대방이 나의 용신을 강화하는지');
+    _buffer.writeln('5. **성격 궁합**: 십성 배치로 본 성격 조화');
+    _buffer.writeln();
+    _buffer.writeln('### 응답 형식');
+    _buffer.writeln('- 두 사람의 사주를 비교하며 설명');
+    _buffer.writeln('- 긍정적인 면과 주의할 점 균형 있게 제시');
+    _buffer.writeln('- 구체적인 조언과 함께 희망적인 메시지 포함');
+  }
+
+  /// 마무리 지시문 추가
+  void _addClosingInstructions({bool isCompatibilityMode = false}) {
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+    if (isCompatibilityMode) {
+      _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+      _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+      _buffer.writeln('합충형파해 관계를 적극 활용하여 깊이 있는 궁합 분석을 제공하세요.');
+    } else {
+      _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
+      _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
+      _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하여 깊이 있는 상담을 제공하세요.');
+    }
   }
 }

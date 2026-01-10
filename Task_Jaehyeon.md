@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-09 (Phase 44 궁합 채팅 targetProfileId 연동 준비)
+> 최종 업데이트: 2026-01-10 (Phase 44 궁합 채팅 targetProfileId 연동 완료 ✅)
 
 ---
 
@@ -19,42 +19,27 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 [요청 내용 입력]
 ```
 
-**상세 프롬프트** (Phase 44 궁합 채팅 구현):
+**상세 프롬프트** (다음 작업 예시):
 ```
 @Task_Jaehyeon.md 읽고 현재 상황 파악해.
 Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
 
 현재 상태:
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
-- Phase 43까지 완료 (합충형파해 전체 검증, 사주 관계도 DB, 라우팅 통합)
-- **Phase 44 (궁합 채팅 targetProfileId 연동) 🔄 진행 예정**
+- Phase 44 완료 ✅ (궁합 채팅 targetProfileId 연동)
+  - DB: chat_sessions.target_profile_id 컬럼 추가
+  - Flutter: 상대방 프로필/사주 조회 → 시스템 프롬프트 포함
 
-현재 문제:
-1. targetProfileId가 SajuChatShell → ChatNotifier로 전달 안 됨
-2. AI가 상대방(김동현) 사주 정보 로드 못함 → "생년월일 정보를 몰라서..."
-3. [SUGGESTED_QUESTIONS] 태그 파싱 오류 (닫는 태그 누락 시 그대로 노출)
+검증 필요:
+1. 인연 관계도 → 김동현 → "사주 상담" → AI가 두 사람 사주 인식하는지
+2. 새로고침 후에도 상대방 정보 유지되는지
 
-DB 상태:
-- 김동현: relation_type=friend, 1994-11-28, 사주 분석 완료 ✅
-- profile_relations: 관계 데이터 존재 ✅
+다음 작업 후보:
+1. Phase 44-B (궁합 분석 캐싱) - compatibility_analyses 저장/조회
+2. [SUGGESTED_QUESTIONS] 태그 파싱 개선
+3. 절입시간 계산 검증
 
-수정 필요 파일:
-1. saju_chat_shell.dart: targetProfileId를 _ChatContent에 전달
-2. chat_provider.dart: targetProfileId 기반 프로필/사주 로드 로직 추가
-3. suggested_questions_parser.dart: fallback 파싱 (닫는 태그 없어도 처리)
-
-목표 데이터 흐름:
-인연 관계도 → 상대방 클릭 → QuickView → "사주 상담"
-    ↓
-/saju/chat?profileId=김동현UUID
-    ↓
-SajuChatShell(targetProfileId: xxx)
-    ↓
-ChatNotifier.sendMessage() → targetProfileId로 사주 조회
-    ↓
-AI가 나 + 상대방 사주 모두 인식 → 궁합 분석 가능
-
-Phase 44 구현해줘.
+[원하는 작업 선택]
 ```
 
 ### 📜 이전 Phase 요약 (Phase 22~42)
@@ -90,37 +75,39 @@ Phase 44 구현해줘.
     - master 브랜치 머지 충돌 해결 (ShellRoute 구조 유지)
   - 문서: `docs/02_features/saju_relationship_db.md` v1.2
 
-- **Phase 44 (궁합 채팅 targetProfileId 연동) 🔄 진행 예정**
-  - **현재 문제** (2026-01-09 발견):
-    1. `targetProfileId`가 `SajuChatShell` → `ChatNotifier`로 전달 안 됨
-    2. AI가 상대방(김동현) 사주 정보 로드 못함 → "생년월일 정보를 몰라서..."
-    3. `[SUGGESTED_QUESTIONS]` 태그 파싱 오류 (닫는 태그 누락 시 그대로 노출)
-  - **DB 상태 확인 완료**:
-    - 김동현: `relation_type=friend`, 1994-11-28, 사주 분석 완료 ✅
-    - profile_relations: 관계 데이터 존재 ✅
-  - **수정 필요 파일**:
-    1. `saju_chat_shell.dart`: targetProfileId를 _ChatContent에 전달
-    2. `chat_provider.dart`: targetProfileId 기반 프로필/사주 로드 로직 추가
-    3. `suggested_questions_parser.dart`: fallback 파싱 (닫는 태그 없어도 처리)
-  - **데이터 흐름 (목표)**:
+- **Phase 44 (궁합 채팅 targetProfileId 연동) ✅ 완료 (2026-01-10)**
+  - **Step 1: DB 마이그레이션** ✅ 완료
+    - `chat_sessions.target_profile_id` 컬럼 추가 (FK → saju_profiles)
+    - 부분 인덱스 생성: `idx_chat_sessions_target_profile`
+  - **Step 2: Flutter 코드 수정** ✅ 완료 (8개 파일)
+    1. `chat_session.dart`: targetProfileId 필드 추가
+    2. `chat_session_model.dart`: JSON/Hive/Supabase 매핑 추가
+    3. `saju_chat_shell.dart`: _ChatContent에 targetProfileId 전달
+    4. `chat_session_provider.dart`: createSession()에 targetProfileId 파라미터
+    5. `chat_session_repository.dart` (interface): createSession() 시그니처 수정
+    6. `chat_session_repository_impl.dart`: targetProfileId 처리 로직 추가
+    7. `chat_provider.dart`: sendMessage()에서 상대방 프로필/사주 조회
+    8. `system_prompt_builder.dart`: 궁합 모드 지원 (상대방 정보 + 궁합 분석 가이드)
+    9. `core/repositories/chat_repository.dart`: Supabase createSession/fromMap 수정
+  - **구현 내용**:
+    - 궁합 채팅 시 상대방 프로필/사주를 DB에서 조회
+    - 시스템 프롬프트에 나 + 상대방 정보 모두 포함
+    - 궁합 분석 가이드 (일간 궁합, 지지 궁합, 오행 보완, 용신 관계)
+    - 세션 재접속 시에도 상대방 정보 유지
+  - **검증 테스트 (TODO)**:
     ```
-    인연 관계도 → 상대방 클릭 → QuickView → "사주 상담"
-        ↓
-    /saju/chat?profileId=김동현UUID
-        ↓
-    SajuChatShell(targetProfileId: xxx)
-        ↓
-    ChatNotifier.sendMessage() → targetProfileId로 사주 조회
-        ↓
-    AI가 나 + 상대방 사주 모두 인식 → 궁합 분석 가능
+    1. 인연 관계도 → 김동현 클릭 → "사주 상담"
+    2. /saju/chat?profileId=김동현UUID 라우트 확인
+    3. AI에게 "나랑 동현이 궁합 어때?" 질문
+    4. AI가 두 사람 사주 모두 언급하는지 확인
+    5. 브라우저 새로고침 후에도 상대방 정보 유지 확인
     ```
 
 다음 작업 후보:
-1. **Phase 44 (궁합 채팅 targetProfileId 연동)** - 상대방 사주 로드 및 AI 전달 ⭐ 우선
-2. Phase 44-B (궁합 분석 캐싱) - compatibility_analyses 테이블 저장/조회
-3. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
-4. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
-5. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
+1. Phase 44-B (궁합 분석 캐싱) - compatibility_analyses 테이블 저장/조회
+2. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
+3. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
+4. [SUGGESTED_QUESTIONS] 태그 파싱 개선 - fallback 파싱 추가
 
 [원하는 작업 선택 또는 새 요청]
 ```
