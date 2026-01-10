@@ -57,17 +57,19 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   children: [
                     const FortuneSummaryCard(),
                     const SizedBox(height: 24),
-                    const SajuMiniCard(),
-                    const SizedBox(height: 24),
-                    // Native 광고 1 (사주 카드 아래) - 즉시 로드
-                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                    if (_isMobile) const SizedBox(height: 24),
+                    // 오늘의 운세 섹션 - 내 사주 위로 이동
                     const SectionHeader(
                       title: '오늘의 운세',
                     ),
                     const SizedBox(height: 12),
                     const FortuneCategoryList(),
                     const SizedBox(height: 24),
+                    // 내 사주 카드
+                    const SajuMiniCard(),
+                    const SizedBox(height: 24),
+                    // Native 광고 1 (사주 카드 아래) - 즉시 로드
+                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
+                    if (_isMobile) const SizedBox(height: 24),
                     // Native 광고 2 - 500ms 지연
                     if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
                     if (_isMobile) const SizedBox(height: 24),

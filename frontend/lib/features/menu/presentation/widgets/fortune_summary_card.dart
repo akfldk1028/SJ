@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_fortune_provider.dart';
 
@@ -164,21 +165,24 @@ class FortuneSummaryCard extends ConsumerWidget {
                               color: theme.textPrimary,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '더보기',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: theme.primaryColor,
+                          GestureDetector(
+                            onTap: () => context.push('/fortune/daily'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.primaryColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '더보기',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.primaryColor,
+                                ),
                               ),
                             ),
                           ),
@@ -251,11 +255,14 @@ class FortuneSummaryCard extends ConsumerWidget {
                               color: theme.textPrimary,
                             ),
                           ),
-                          Text(
-                            '전체보기',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: theme.textMuted,
+                          GestureDetector(
+                            onTap: () => context.push('/fortune/daily'),
+                            child: Text(
+                              '전체보기',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.textMuted,
+                              ),
                             ),
                           ),
                         ],
@@ -350,11 +357,11 @@ class FortuneSummaryCard extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildActionButton(context, '내일의 운세', false),
+                  child: _buildActionButton(context, '내일의 운세', false, '/fortune/daily'),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildActionButton(context, '지정일 운세', false),
+                  child: _buildActionButton(context, '지정일 운세', false, '/fortune/daily'),
                 ),
               ],
             ),
@@ -409,44 +416,47 @@ class FortuneSummaryCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildActionButton(BuildContext context, String text, bool isPrimary) {
+  Widget _buildActionButton(BuildContext context, String text, bool isPrimary, String route) {
     final theme = context.appTheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: isPrimary ? theme.primaryColor : theme.cardColor,
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-          color: isPrimary
-              ? theme.primaryColor
-              : theme.isDark
-                  ? theme.textMuted.withValues(alpha: 0.3)
-                  : Colors.grey[300]!,
+    return GestureDetector(
+      onTap: () => context.push(route),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isPrimary ? theme.primaryColor : theme.cardColor,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: isPrimary
+                ? theme.primaryColor
+                : theme.isDark
+                    ? theme.textMuted.withValues(alpha: 0.3)
+                    : Colors.grey[300]!,
+          ),
         ),
-      ),
-      child: Center(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isPrimary ? Colors.white : theme.textPrimary,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isPrimary ? Colors.white : theme.textPrimary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: isPrimary ? Colors.white : theme.textMuted,
-              ),
-            ],
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: isPrimary ? Colors.white : theme.textMuted,
+                ),
+              ],
+            ),
           ),
         ),
       ),

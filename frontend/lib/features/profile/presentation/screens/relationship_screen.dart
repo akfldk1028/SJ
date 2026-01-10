@@ -45,16 +45,19 @@ class RelationshipScreen extends ConsumerWidget {
 
           return relationsByCategoryAsync.when(
             data: (relationsByCategory) {
-              // 관계가 없으면 빈 상태 표시
+              // 그래프 뷰는 목업 데이터 사용 (테스트용)
+              if (viewMode == ViewModeType.graph) {
+                return const RelationshipGraphView();
+              }
+
+              // 리스트 뷰: 관계가 없으면 빈 상태 표시
               if (relationsByCategory.isEmpty) {
                 return EmptyRelationState(
-                  onAddPressed: () => context.push(Routes.profileEdit),
+                  onAddPressed: () => context.push(Routes.relationshipAdd),
                 );
               }
 
-              return viewMode == ViewModeType.list
-                  ? _buildListView(context, ref, relationsByCategory)
-                  : const RelationshipGraphView();
+              return _buildListView(context, ref, relationsByCategory);
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => _buildErrorState(context, err),
@@ -64,7 +67,7 @@ class RelationshipScreen extends ConsumerWidget {
         error: (err, stack) => _buildErrorState(context, err),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(Routes.profileEdit),
+        onPressed: () => context.push(Routes.relationshipAdd),
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.person_add, color: Colors.white),
       ),
@@ -166,7 +169,7 @@ class RelationshipScreen extends ConsumerWidget {
             return RelationCategorySection(
               categoryLabel: category,
               relations: relations,
-              onAddPressed: () => context.push(Routes.profileEdit),
+              onAddPressed: () => context.push(Routes.relationshipAdd),
               onRelationTap: (relation) {
                 _showRelationDetail(context, ref, relation);
               },
@@ -195,8 +198,10 @@ class RelationshipScreen extends ConsumerWidget {
           relation: relation,
           onChatPressed: () {
             Navigator.pop(context);
-            // TODO: 채팅 화면으로 이동
-            // context.push('/saju/chat?profileId=${relation.toProfileId}');
+            // 상대방 프로필 기준 채팅 화면으로 이동
+            context.push(
+              '${Routes.sajuChat}?profileId=${relation.toProfileId}',
+            );
           },
           onEditPressed: () {
             Navigator.pop(context);

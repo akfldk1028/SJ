@@ -11,6 +11,7 @@ import '../features/menu/presentation/screens/menu_screen.dart';
 import '../features/profile/presentation/screens/profile_select_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../features/profile/presentation/screens/relationship_screen.dart';
+import '../features/profile/presentation/screens/relationship_add_screen.dart';
 import '../features/saju_chat/presentation/screens/saju_chat_shell.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/calendar/presentation/screens/calendar_screen.dart';
@@ -21,6 +22,12 @@ import '../features/settings/presentation/screens/terms_of_service_screen.dart';
 import '../features/settings/presentation/screens/privacy_policy_screen.dart';
 import '../features/settings/presentation/screens/disclaimer_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
+import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
+import '../features/saju_chart/presentation/screens/saju_graph_screen.dart';
+import '../features/daily_fortune/presentation/screens/daily_fortune_detail_screen.dart';
+import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
+import '../features/traditional_saju/presentation/screens/traditional_saju_screen.dart';
+import '../features/compatibility/presentation/screens/compatibility_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -68,6 +75,21 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const ProfileEditScreen(),
       ),
       GoRoute(
+        path: Routes.sajuChart,
+        name: 'sajuChart',
+        builder: (context, state) => const SajuChartScreen(),
+      ),
+      GoRoute(
+        path: Routes.relationshipAdd,
+        name: 'relationshipAdd',
+        builder: (context, state) => const RelationshipAddScreen(),
+      ),
+      GoRoute(
+        path: Routes.sajuGraph,
+        name: 'sajuGraph',
+        builder: (context, state) => const SajuGraphScreen(),
+      ),
+      GoRoute(
         path: Routes.history,
         name: 'history',
         builder: (context, state) => const HistoryScreen(),
@@ -98,6 +120,27 @@ GoRouter appRouter(Ref ref) {
         name: 'settingsDisclaimer',
         builder: (context, state) => const DisclaimerScreen(),
       ),
+      // Fortune 페이지
+      GoRoute(
+        path: Routes.dailyFortuneDetail,
+        name: 'dailyFortuneDetail',
+        builder: (context, state) => const DailyFortuneDetailScreen(),
+      ),
+      GoRoute(
+        path: Routes.newYearFortune,
+        name: 'newYearFortune',
+        builder: (context, state) => const NewYearFortuneScreen(),
+      ),
+      GoRoute(
+        path: Routes.traditionalSaju,
+        name: 'traditionalSaju',
+        builder: (context, state) => const TraditionalSajuScreen(),
+      ),
+      GoRoute(
+        path: Routes.compatibility,
+        name: 'compatibility',
+        builder: (context, state) => const CompatibilityScreen(),
+      ),
 
       // ShellRoute - 네비게이션 바 공유
       ShellRoute(
@@ -124,7 +167,11 @@ GoRouter appRouter(Ref ref) {
             name: 'sajuChat',
             builder: (context, state) {
               final chatType = state.uri.queryParameters['type'];
-              return SajuChatShell(chatType: chatType);
+              final profileId = state.uri.queryParameters['profileId'];
+              return SajuChatShell(
+                chatType: chatType,
+                targetProfileId: profileId,
+              );
             },
           ),
           GoRoute(

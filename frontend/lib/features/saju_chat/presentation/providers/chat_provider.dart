@@ -12,6 +12,8 @@ import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/domain/entities/saju_analysis.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
+import '../../../../core/repositories/saju_profile_repository.dart';
+import '../../../../core/repositories/saju_analysis_repository.dart';
 import '../../data/datasources/gemini_edge_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
@@ -458,6 +460,7 @@ class ChatNotifier extends _$ChatNotifier {
   /// 시스템 프롬프트 빌드
   ///
   /// v3.4: SystemPromptBuilder 클래스로 분리 (모듈화)
+  /// v3.5 (Phase 44): 궁합 채팅을 위한 상대방 프로필/사주 지원
   /// - system_prompt_builder.dart 참조
   String _buildFullSystemPrompt({
     required String basePrompt,
@@ -466,6 +469,8 @@ class ChatNotifier extends _$ChatNotifier {
     SajuProfile? profile,
     AiPersona? persona,
     bool isFirstMessage = true,
+    SajuProfile? targetProfile,
+    SajuAnalysis? targetSajuAnalysis,
   }) {
     final builder = SystemPromptBuilder();
     return builder.build(
@@ -475,11 +480,14 @@ class ChatNotifier extends _$ChatNotifier {
       profile: profile,
       persona: persona,
       isFirstMessage: isFirstMessage,
+      targetProfile: targetProfile,
+      targetSajuAnalysis: targetSajuAnalysis,
     );
   }
 
   /// 메시지 전송
-  Future<void> sendMessage(String content, ChatType chatType) async {
+  /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID (선택)
+  Future<void> sendMessage(String content, ChatType chatType, {String? targetProfileId}) async {
     if (content.trim().isEmpty) return;
 
     // 더블클릭/중복 호출 방지
@@ -503,6 +511,9 @@ class ChatNotifier extends _$ChatNotifier {
       print('╚══════════════════════════════════════════════════════════════╝');
       print('   📌 페르소나: ${selectedPersona.displayName} (${selectedPersona.name})');
       print('   📌 세션: $sessionId');
+      if (targetProfileId != null) {
+        print('   📌 상대방 프로필: $targetProfileId');
+      }
     }
 
     final currentSessionId = sessionId;
@@ -611,6 +622,29 @@ class ChatNotifier extends _$ChatNotifier {
           ? await ref.read(activeProfileProvider.future)
           : null;
 
+      // v3.4 (Phase 44): 상대방 프로필/사주 조회 (궁합 채팅)
+      SajuProfile? targetProfile;
+      SajuAnalysis? targetSajuAnalysis;
+      if (isFirstMessage && targetProfileId != null) {
+        if (kDebugMode) {
+          print('   🎯 궁합 모드: 상대방 프로필 조회 시작...');
+        }
+        final profileRepo = SajuProfileRepository();
+        final analysisRepo = SajuAnalysisRepository();
+        targetProfile = await profileRepo.getById(targetProfileId);
+        if (targetProfile != null) {
+          targetSajuAnalysis = await analysisRepo.getByProfileId(targetProfileId);
+          if (kDebugMode) {
+            print('   ✅ 상대방 프로필: ${targetProfile.displayName}');
+            print('   ✅ 상대방 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
+          }
+        } else {
+          if (kDebugMode) {
+            print('   ⚠️ 상대방 프로필 조회 실패');
+          }
+        }
+      }
+
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiSummary: aiSummary,
@@ -618,20 +652,29 @@ class ChatNotifier extends _$ChatNotifier {
         profile: activeProfile,  // v3.3: 프로필 정보 (생년월일, 성별)
         persona: currentPersona,
         isFirstMessage: isFirstMessage,
+        targetProfile: targetProfile,  // v3.4: 궁합 상대방 프로필
+        targetSajuAnalysis: targetSajuAnalysis,  // v3.4: 궁합 상대방 사주
       );
-
+      /////////////////////////////////////////////////////////////////수정1순우ㅟ
       // [4] 시스템 프롬프트 구성
       if (kDebugMode) {
         print('');
-        print('[4] SYSTEM PROMPT BUILD (v3.3)');
+        print('[4] SYSTEM PROMPT BUILD (v3.5 Phase 44)');
         print('   현재 날짜: ${DateTime.now().year}년 ${DateTime.now().month}월 ${DateTime.now().day}일');
         print('   페르소나: ${currentPersona.displayName}');
         print('   isFirstMessage: $isFirstMessage');
         if (activeProfile != null) {
-          print('   프로필: ${activeProfile.displayName} (${activeProfile.gender.displayName})');
-          print('   생년월일: ${activeProfile.birthDateFormatted}');
+          print('   [나] 프로필: ${activeProfile.displayName} (${activeProfile.gender.displayName})');
+          print('   [나] 생년월일: ${activeProfile.birthDateFormatted}');
         } else {
-          print('   프로필 없음');
+          print('   [나] 프로필 없음');
+        }
+        if (targetProfile != null) {
+          print('   [상대방] 프로필: ${targetProfile.displayName} (${targetProfile.gender.displayName})');
+          print('   [상대방] 생년월일: ${targetProfile.birthDateFormatted}');
+          print('   [상대방] 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
+        } else if (targetProfileId != null) {
+          print('   [상대방] 프로필 조회 실패 (targetProfileId: $targetProfileId)');
         }
         if (aiSummary != null) {
           print('   AI Summary 포함');

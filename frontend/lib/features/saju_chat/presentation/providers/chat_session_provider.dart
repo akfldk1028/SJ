@@ -87,12 +87,18 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
 
   /// 새 세션 생성 및 현재 세션으로 설정
   /// [initialMessage]: 세션 생성 후 바로 전송할 메시지 (선택)
-  Future<ChatSession?> createSession(ChatType type, String? profileId, {String? initialMessage}) async {
-    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, initialMessage=$initialMessage');
+  /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID (선택)
+  Future<ChatSession?> createSession(
+    ChatType type,
+    String? profileId, {
+    String? initialMessage,
+    String? targetProfileId,
+  }) async {
+    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, targetProfileId=$targetProfileId, initialMessage=$initialMessage');
     try {
       final repository = ref.read(chatSessionRepositoryProvider);
-      final newSession = await repository.createSession(type, profileId);
-      print('[ChatSessionNotifier] 세션 생성 완료: id=${newSession.id}');
+      final newSession = await repository.createSession(type, profileId, targetProfileId: targetProfileId);
+      print('[ChatSessionNotifier] 세션 생성 완료: id=${newSession.id}, targetProfileId=${newSession.targetProfileId}');
 
       // 세션 목록에 추가 (맨 앞에) + 대기 메시지 설정
       state = state.copyWith(

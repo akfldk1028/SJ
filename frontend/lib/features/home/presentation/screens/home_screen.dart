@@ -88,24 +88,7 @@ class HomeScreen extends ConsumerWidget {
                 // Fortune Card (오늘의 총운)
                 _buildFortuneCard(theme),
 
-                const SizedBox(height: 20),
-
-                // Saju Mini Card (나의 사주팔자)
-                myProfileAsync.when(
-                  data: (profile) {
-                    if (profile != null) {
-                      return GestureDetector(
-                        onTap: () => context.push(Routes.sajuChart),
-                        child: const SajuMiniCard(),
-                      );
-                    }
-                    return _buildNoProfileCard(theme, context);
-                  },
-                  loading: () => _buildLoadingCard(theme),
-                  error: (_, __) => _buildNoProfileCard(theme, context),
-                ),
-
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
                 // Section Header - 오늘의 운세
                 Padding(
@@ -134,8 +117,25 @@ class HomeScreen extends ConsumerWidget {
 
                 const SizedBox(height: 16),
 
-                // Category Fortune List
+                // Category Fortune List (재물운, 애정운, 직장운, 건강운)
                 _buildCategoryList(theme),
+
+                const SizedBox(height: 24),
+
+                // Saju Mini Card (나의 사주팔자)
+                myProfileAsync.when(
+                  data: (profile) {
+                    if (profile != null) {
+                      return GestureDetector(
+                        onTap: () => context.push(Routes.sajuChart),
+                        child: const SajuMiniCard(),
+                      );
+                    }
+                    return _buildNoProfileCard(theme, context);
+                  },
+                  loading: () => _buildLoadingCard(theme),
+                  error: (_, __) => _buildNoProfileCard(theme, context),
+                ),
 
                 const SizedBox(height: 28),
 
@@ -178,12 +178,12 @@ class HomeScreen extends ConsumerWidget {
             end: Alignment.bottomRight,
             colors: [
               theme.cardColor,
-              theme.cardColor.withOpacity(0.8),
+              theme.cardColor.withValues(alpha:0.8),
             ],
           ),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: theme.primaryColor.withOpacity(0.15),
+            color: theme.primaryColor.withValues(alpha:0.15),
           ),
         ),
         child: Icon(
@@ -206,12 +206,12 @@ class HomeScreen extends ConsumerWidget {
             end: Alignment.bottomRight,
             colors: [
               theme.cardColor,
-              theme.cardColor.withOpacity(0.8),
+              theme.cardColor.withValues(alpha:0.8),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: theme.primaryColor.withOpacity(0.15),
+            color: theme.primaryColor.withValues(alpha:0.15),
           ),
         ),
         child: Row(
@@ -246,12 +246,12 @@ class HomeScreen extends ConsumerWidget {
             end: Alignment.bottomRight,
             colors: [
               theme.cardColor,
-              theme.cardColor.withOpacity(0.9),
+              theme.cardColor.withValues(alpha:0.9),
             ],
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: theme.primaryColor.withOpacity(0.2),
+            color: theme.primaryColor.withValues(alpha:0.2),
           ),
         ),
         child: Stack(
@@ -267,7 +267,7 @@ class HomeScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      theme.primaryColor.withOpacity(0.08),
+                      theme.primaryColor.withValues(alpha:0.08),
                       Colors.transparent,
                     ],
                   ),
@@ -361,7 +361,7 @@ class HomeScreen extends ConsumerWidget {
                                   ],
                                 )
                               : null,
-                          color: isFilled ? null : theme.textMuted.withOpacity(0.2),
+                          color: isFilled ? null : theme.textMuted.withValues(alpha:0.2),
                         ),
                       );
                     }),
@@ -400,12 +400,12 @@ class HomeScreen extends ConsumerWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   theme.cardColor,
-                  theme.cardColor.withOpacity(0.9),
+                  theme.cardColor.withValues(alpha:0.9),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: theme.primaryColor.withOpacity(0.1),
+                color: theme.primaryColor.withValues(alpha:0.1),
               ),
             ),
             child: Column(
@@ -450,12 +450,12 @@ class HomeScreen extends ConsumerWidget {
             end: Alignment.bottomRight,
             colors: [
               theme.cardColor,
-              theme.cardColor.withOpacity(0.9),
+              theme.cardColor.withValues(alpha:0.9),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: theme.primaryColor.withOpacity(0.15),
+            color: theme.primaryColor.withValues(alpha:0.15),
           ),
         ),
         child: Stack(
@@ -465,7 +465,7 @@ class HomeScreen extends ConsumerWidget {
               right: 20,
               child: Text(
                 '🪷',
-                style: TextStyle(fontSize: 24, color: Colors.white.withOpacity(0.6)),
+                style: TextStyle(fontSize: 24, color: Colors.white.withValues(alpha:0.6)),
               ),
             ),
             Padding(
@@ -499,12 +499,12 @@ class HomeScreen extends ConsumerWidget {
               end: Alignment.bottomRight,
               colors: [
                 theme.cardColor,
-                theme.cardColor.withOpacity(0.9),
+                theme.cardColor.withValues(alpha:0.9),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: theme.primaryColor.withOpacity(0.15),
+              color: theme.primaryColor.withValues(alpha:0.15),
             ),
           ),
           child: Column(

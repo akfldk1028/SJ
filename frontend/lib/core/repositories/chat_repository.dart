@@ -19,11 +19,13 @@ class ChatRepository {
 
   /// 새 채팅 세션 생성
   /// [id]: 로컬에서 생성한 UUID를 사용 (동기화를 위해)
+  /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID
   Future<ChatSession?> createSession({
     String? id,
     required String profileId,
     required ChatType chatType,
     String? title,
+    String? targetProfileId,
   }) async {
     if (_client == null) return null;
 
@@ -32,6 +34,7 @@ class ChatRepository {
       'profile_id': profileId,
       'chat_type': chatType.name,
       'title': title,
+      if (targetProfileId != null) 'target_profile_id': targetProfileId,
     };
 
     final response = await _client
@@ -255,6 +258,7 @@ class ChatRepository {
       title: map['title'] as String? ?? '',
       chatType: ChatType.fromString(map['chat_type'] as String?),
       profileId: map['profile_id'] as String?,
+      targetProfileId: map['target_profile_id'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
       messageCount: map['message_count'] as int? ?? 0,

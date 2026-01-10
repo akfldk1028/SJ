@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/pillar.dart';
 import '../providers/saju_chart_provider.dart';
 import 'pillar_display.dart';
+import 'personalized_oheng_widget.dart';
 
 /// 메인 페이지의 사주 카드 - 만세력 + 오행분석 + 상세분석 버튼
 class SajuMiniCard extends ConsumerWidget {
@@ -59,7 +60,7 @@ class SajuMiniCard extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: theme.primaryColor.withOpacity(0.1),
+                          color: theme.primaryColor.withValues(alpha:0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -126,7 +127,7 @@ class SajuMiniCard extends ConsumerWidget {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: theme.isDark
-                              ? theme.primaryColor.withOpacity(0.05)
+                              ? theme.primaryColor.withValues(alpha:0.05)
                               : theme.backgroundColor,
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -160,6 +161,17 @@ class SajuMiniCard extends ConsumerWidget {
                   },
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 개인화된 오행 관계 설명 (일간 기준)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: PersonalizedOhengWidget(
+                    dayMaster: sajuChart.dayMaster,
+                    theme: theme,
+                  ),
                 ),
 
                 const SizedBox(height: 16),
@@ -332,7 +344,7 @@ class _OhengRadarPainter extends CustomPainter {
     for (int level = 1; level <= 4; level++) {
       final levelRadius = radius * (level / 4);
       final bgPaint = Paint()
-        ..color = theme.textMuted.withOpacity(level == 4 ? 0.2 : 0.08)
+        ..color = theme.textMuted.withValues(alpha:level == 4 ? 0.2 : 0.08)
         ..style = PaintingStyle.stroke
         ..strokeWidth = level == 4 ? 1.5 : 1;
       _drawPentagon(canvas, center, levelRadius, bgPaint);
@@ -340,7 +352,7 @@ class _OhengRadarPainter extends CustomPainter {
 
     // 축선 그리기
     final axisPaint = Paint()
-      ..color = theme.textMuted.withOpacity(0.15)
+      ..color = theme.textMuted.withValues(alpha:0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -356,7 +368,7 @@ class _OhengRadarPainter extends CustomPainter {
     // 데이터 오각형 그리기
     final dataPath = Path();
     final dataFillPaint = Paint()
-      ..color = theme.primaryColor.withOpacity(0.25)
+      ..color = theme.primaryColor.withValues(alpha:0.25)
       ..style = PaintingStyle.fill;
     final dataStrokePaint = Paint()
       ..color = theme.primaryColor

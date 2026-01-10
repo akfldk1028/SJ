@@ -1605,6 +1605,211 @@ String get ohengJson {
 
 ---
 
+## Phase 43: 사주 관계도 DB 설계 및 궁합 채팅 라우팅 (2026-01-08~09) ✅ 완료
+
+### DB 마이그레이션 (2026-01-08 완료)
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| profile_type 컬럼 추가 | ✅ | saju_profiles에 'primary' \| 'other' 컬럼 |
+| 기존 데이터 마이그레이션 | ✅ | primary: 150개, other: 1개 |
+| profile_relations 활성화 | ✅ | 1건 테스트 데이터 (이지나→홍길동) |
+| 성능 인덱스 생성 | ✅ | 6개 인덱스 추가 |
+
+### Flutter 코드 (2026-01-09 완료)
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `saju_profile_model.dart` | profileType 필드 추가 |
+| `compatibility_context.dart` | **CompatibilityContext** 모델 생성 (두 프로필 사주 컨텍스트) |
+| `compatibility_context.dart` | **CompatibilityAnalysisCache** 모델 (DB 캐시 매핑) |
+| `routes.dart` | sajuChatCompatibility 라우트 추가 |
+| `app_router.dart` | 궁합 채팅 라우트 등록 (from, to, relationType 파라미터) |
+| `saju_chat_shell.dart` | fromProfileId, toProfileId, relationType 파라미터 추가 |
+| `relationship_screen.dart` | QuickView "사주 상담" 버튼 → 궁합 채팅 라우팅 연결 |
+
+### CompatibilityContext 모델
+
+```dart
+class CompatibilityContext {
+  final SajuProfileModel fromProfile;      // 나의 프로필
+  final SajuAnalysisModel fromAnalysis;    // 나의 사주 분석
+  final SajuProfileModel toProfile;        // 상대방 프로필
+  final SajuAnalysisModel toAnalysis;      // 상대방 사주 분석
+  final ProfileRelationType relationType;  // 관계 유형 (19종)
+
+  String toPromptContext();  // AI 프롬프트용 문자열 생성
+  String get analysisType;   // family, love, friendship, business, general
+}
+```
+
+### 궁합 채팅 라우트
+
+```
+/saju/chat/compatibility?from={나의 profile_id}&to={상대방 profile_id}&relationType={관계유형}
+```
+
+### 관련 문서
+- `docs/02_features/saju_relationship_db.md` v1.1
+
+### 다음 작업
+- **Phase 43-B**: SajuChatShell에서 두 사주 분석 로드 및 AI 전달
+- **Phase 43-C**: compatibility_analyses 테이블 저장/조회 (캐싱)
+
+---
+
+## Phase 44: 궁합 채팅 targetProfileId 연동 (2026-01-10) ✅ 완료
+
+### 개요
+궁합 채팅 시 상대방 프로필/사주를 AI에게 전달하여 두 사람의 궁합 분석이 가능하도록 구현
+
+### 구현 완료 (2026-01-10)
+
+**Step 1: DB 마이그레이션** ✅
+- `chat_sessions.target_profile_id` 컬럼 추가 (FK → saju_profiles)
+- 부분 인덱스 생성: `idx_chat_sessions_target_profile`
+- 마이그레이션 이름: `add_target_profile_id_to_chat_sessions`
+
+**Step 2: Flutter 코드 수정** ✅ (9개 파일)
+1. `chat_session.dart`: targetProfileId 필드 추가
+2. `chat_session_model.dart`: JSON/Hive/Supabase 매핑 추가
+3. `saju_chat_shell.dart`: _ChatContent에 targetProfileId 전달, sendMessage에 파라미터 추가
+4. `chat_session_provider.dart`: createSession()에 targetProfileId 파라미터
+5. `chat_session_repository.dart` (interface): createSession() 시그니처 수정
+6. `chat_session_repository_impl.dart`: targetProfileId 처리 로직 추가
+7. `chat_provider.dart`: sendMessage()에서 상대방 프로필/사주 조회, 디버그 로그 개선
+8. `system_prompt_builder.dart`: 궁합 모드 지원 (_addTargetProfileInfo, _addCompatibilityInstructions)
+9. `core/repositories/chat_repository.dart`: Supabase createSession/fromMap 수정
+
+### 해결된 문제
+
+**이전 증상**: `/saju/chat?profileId=xxx` 라우트로 접근해도 AI가 상대방 사주를 모름
+- "동현이의 생년월일 정보를 몰라서..." 응답
+
+**해결**:
+1. ✅ `chat_sessions` 테이블에 `target_profile_id` 컬럼 추가
+2. ✅ `_ChatContent` 위젯에 `targetProfileId` props 전달
+3. ✅ `sendMessage()`에서 상대방 프로필/사주 조회 로직 추가
+4. ✅ 시스템 프롬프트에 궁합 분석 가이드 포함
+
+### DB 구조 분석 결과 (2026-01-10)
+
+**현재 테이블 구조**:
+```
+chat_sessions (93개 세션)
+├── id (PK)
+├── profile_id (FK → saju_profiles) ← 나의 프로필
+├── title
+├── chat_type ('general' | 'dailyFortune' | 'sajuAnalysis' | 'compatibility')
+├── message_count
+├── context_summary
+└── ❌ target_profile_id 없음!
+
+profile_relations (6개 관계)
+├── from_profile_id → 나
+├── to_profile_id → 상대방
+├── from_profile_analysis_id → saju_analyses (나 사주) ✅
+├── to_profile_analysis_id → saju_analyses (상대방 사주) ✅
+└── relation_type
+
+saju_analyses (142개 분석)
+├── profile_id (1:1 매핑)
+├── year/month/day/hour_gan/ji (사주팔자)
+├── oheng_distribution (오행)
+├── yongsin (용신/희신/기신/구신)
+├── sipsin_info (십성)
+├── hapchung (합충형파해) ← 궁합 분석에 핵심!
+└── ai_summary
+```
+
+### Step 1: DB 마이그레이션 (⭐ 먼저 실행)
+
+**마이그레이션 SQL**:
+```sql
+-- 1. chat_sessions에 target_profile_id 컬럼 추가
+ALTER TABLE chat_sessions
+ADD COLUMN target_profile_id uuid REFERENCES saju_profiles(id);
+
+-- 2. 궁합 세션 조회 최적화 인덱스
+CREATE INDEX idx_chat_sessions_target_profile
+ON chat_sessions(target_profile_id)
+WHERE target_profile_id IS NOT NULL;
+
+-- 3. 컬럼 코멘트
+COMMENT ON COLUMN chat_sessions.target_profile_id IS
+'궁합 채팅 시 상대방 프로필 ID. NULL이면 일반 채팅';
+```
+
+**RLS 정책**: 기존 `profile_id` 기반 정책으로 충분 (추가 불필요)
+
+### Step 2: Flutter 코드 수정
+
+**수정 파일 목록**:
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `chat_session.dart` | `targetProfileId` 필드 추가 |
+| `chat_session_model.dart` | JSON 매핑 추가 |
+| `saju_chat_shell.dart` | `_ChatContent`에 `targetProfileId` props 전달 |
+| `chat_session_provider.dart` | `createSession()`에 `targetProfileId` 파라미터 |
+| `chat_provider.dart` | `sendMessage()`에서 상대방 사주 조회 |
+| `system_prompt_builder.dart` | `buildForCompatibility()` 메서드 추가 |
+
+**데이터 흐름**:
+```
+Route: /saju/chat?profileId=김동현UUID
+    ↓
+SajuChatShell(targetProfileId: xxx)
+    ↓
+_ChatContent(targetProfileId: xxx) ← 수정 필요
+    ↓
+createSession(chatType, myProfileId, targetProfileId) ← 수정 필요
+    ↓
+chat_sessions INSERT (target_profile_id = xxx)
+    ↓
+sendMessage() → targetProfileId 기반 상대방 조회 ← 수정 필요
+    ↓
+saju_profiles + saju_analyses JOIN
+    ↓
+SystemPromptBuilder.buildForCompatibility() ← 신규
+    ↓
+Gemini AI → 나 + 상대방 사주 모두 인식!
+```
+
+### 조회 쿼리 (sendMessage에서 사용)
+
+```sql
+-- 상대방 프로필 + 사주 한 번에 조회
+SELECT
+    sp.id, sp.display_name, sp.birth_date, sp.gender,
+    sa.year_gan, sa.year_ji, sa.month_gan, sa.month_ji,
+    sa.day_gan, sa.day_ji, sa.hour_gan, sa.hour_ji,
+    sa.oheng_distribution, sa.yongsin, sa.day_strength,
+    sa.sipsin_info, sa.hapchung
+FROM saju_profiles sp
+JOIN saju_analyses sa ON sp.id = sa.profile_id
+WHERE sp.id = :targetProfileId;
+```
+
+### 다음 작업 (Phase 44-B)
+
+**compatibility_analyses 캐싱** (선택):
+- 궁합 분석 결과를 DB에 저장하여 재사용
+- 테이블: `compatibility_analyses`
+- 구현 시 Phase 44-B로 진행
+
+### 검증 테스트 (TODO)
+
+```
+1. 인연 관계도 → 김동현 클릭 → "사주 상담"
+2. /saju/chat?profileId=김동현UUID 라우트 확인
+3. AI에게 "나랑 동현이 궁합 어때?" 질문
+4. AI가 두 사람 사주 모두 언급하는지 확인
+5. 브라우저 새로고침 후에도 상대방 정보 유지 확인
+```
+
+---
+
 ## 참고사항
 
 ### Edge Function 배포 명령어

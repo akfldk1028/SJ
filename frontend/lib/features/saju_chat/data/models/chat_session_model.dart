@@ -16,6 +16,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
     required String title,
     required String chatType, // ChatType enum을 문자열로 저장
     String? profileId,
+    String? targetProfileId, // 궁합 채팅 시 상대방 프로필 ID
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default(0) int messageCount,
@@ -35,6 +36,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
       title: title,
       chatType: ChatType.fromString(chatType),
       profileId: profileId,
+      targetProfileId: targetProfileId,
       createdAt: createdAt,
       updatedAt: updatedAt,
       messageCount: messageCount,
@@ -49,6 +51,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
       title: entity.title,
       chatType: entity.chatType.name,
       profileId: entity.profileId,
+      targetProfileId: entity.targetProfileId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       messageCount: entity.messageCount,
@@ -63,6 +66,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
       'title': title,
       'chatType': chatType,
       'profileId': profileId,
+      'targetProfileId': targetProfileId,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
       'messageCount': messageCount,
@@ -77,6 +81,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
       title: map['title'] as String,
       chatType: map['chatType'] as String,
       profileId: map['profileId'] as String?,
+      targetProfileId: map['targetProfileId'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] as int),
       messageCount: (map['messageCount'] as int?) ?? 0,
@@ -89,6 +94,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
     return {
       'id': id,
       'profile_id': profileId,
+      'target_profile_id': targetProfileId,
       'title': title,
       'chat_type': chatType,
       'message_count': messageCount,
@@ -102,6 +108,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
   Map<String, dynamic> toSupabaseInsert() {
     return {
       'profile_id': profileId,
+      'target_profile_id': targetProfileId,
       'title': title,
       'chat_type': chatType,
     };
@@ -114,6 +121,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
       title: (map['title'] as String?) ?? '새 대화',
       chatType: (map['chat_type'] as String?) ?? 'general',
       profileId: map['profile_id'] as String?,
+      targetProfileId: map['target_profile_id'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
       messageCount: (map['message_count'] as int?) ?? 0,

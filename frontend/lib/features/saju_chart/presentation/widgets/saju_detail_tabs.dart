@@ -257,30 +257,46 @@ class _ManseryeokTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                PillarDisplay(
-                  label: '시주',
-                  pillar: chart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
-                  size: 32,
-                ),
-                PillarDisplay(
-                  label: '일주 (나)',
-                  pillar: chart.dayPillar,
-                  size: 32,
-                ),
-                PillarDisplay(
-                  label: '월주',
-                  pillar: chart.monthPillar,
-                  size: 32,
-                ),
-                PillarDisplay(
-                  label: '년주',
-                  pillar: chart.yearPillar,
-                  size: 32,
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 반응형 사이즈 조정
+                final availableWidth = constraints.maxWidth;
+                final pillarSize = availableWidth > 400 ? 32.0 : availableWidth > 300 ? 26.0 : 22.0;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '시주',
+                        pillar: chart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
+                        size: pillarSize,
+                      ),
+                    ),
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '일주 (나)',
+                        pillar: chart.dayPillar,
+                        size: pillarSize,
+                      ),
+                    ),
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '월주',
+                        pillar: chart.monthPillar,
+                        size: pillarSize,
+                      ),
+                    ),
+                    Flexible(
+                      child: PillarDisplay(
+                        label: '년주',
+                        pillar: chart.yearPillar,
+                        size: pillarSize,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 24),
@@ -387,6 +403,10 @@ class _SipSungTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 십성이란? 설명 카드
+          _buildExplanationCard(context),
+          const SizedBox(height: 20),
+
           _buildSectionTitle(context, '천간 십성'),
           const SizedBox(height: 12),
           _buildCheonganSipSin(context),
@@ -401,6 +421,66 @@ class _SipSungTab extends StatelessWidget {
           const SizedBox(height: 12),
           SipSungCategoryChart(
             distribution: jijangganResult.categoryDistribution,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExplanationCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accent.withOpacity(0.1),
+            AppColors.accent.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.help_outline_rounded, color: AppColors.accent, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '십성(十星)이란?',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '일간(日干, 나)을 기준으로 다른 간지와의 관계를 나타낸 것입니다. '
+            '오행의 상생상극 관계와 음양 조화에 따라 10가지 관계가 정해집니다.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '• 비겁(比劫): 나와 같은 오행 - 형제, 경쟁자, 자아\n'
+            '• 식상(食傷): 내가 생하는 오행 - 표현력, 재능, 자녀\n'
+            '• 재성(財星): 내가 극하는 오행 - 재물, 아버지(남), 아내(남)\n'
+            '• 관성(官星): 나를 극하는 오행 - 직장, 명예, 남편(여)\n'
+            '• 인성(印星): 나를 생하는 오행 - 학문, 문서, 어머니',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              height: 1.6,
+            ),
           ),
         ],
       ),
@@ -477,6 +557,38 @@ class _UnsungTab extends StatelessWidget {
 
   const _UnsungTab({required this.chart});
 
+  // 12운성별 색상
+  static const _unsungColors = {
+    '장생': Color(0xFF4CAF50),  // 녹색 - 탄생
+    '목욕': Color(0xFF2196F3),  // 파랑 - 성장
+    '관대': Color(0xFF9C27B0),  // 보라 - 성인
+    '건록': Color(0xFFFF9800),  // 주황 - 전성
+    '제왕': Color(0xFFE91E63),  // 분홍 - 정점
+    '쇠': Color(0xFF795548),    // 갈색 - 쇠퇴 시작
+    '병': Color(0xFF607D8B),    // 청회색 - 쇠약
+    '사': Color(0xFF9E9E9E),    // 회색 - 죽음
+    '묘': Color(0xFF455A64),    // 진한 회색 - 무덤
+    '절': Color(0xFF37474F),    // 더 진한 회색 - 완전 소멸
+    '태': Color(0xFF00BCD4),    // 시안 - 잉태
+    '양': Color(0xFF8BC34A),    // 연녹색 - 양육
+  };
+
+  // 12운성별 아이콘
+  static const _unsungIcons = {
+    '장생': Icons.child_care_rounded,       // 탄생
+    '목욕': Icons.bathtub_rounded,          // 목욕
+    '관대': Icons.school_rounded,           // 성인
+    '건록': Icons.work_rounded,             // 일하는 시기
+    '제왕': Icons.emoji_events_rounded,     // 정점/왕관
+    '쇠': Icons.trending_down_rounded,      // 쇠퇴
+    '병': Icons.local_hospital_rounded,     // 병
+    '사': Icons.brightness_3_rounded,       // 달/죽음
+    '묘': Icons.landscape_rounded,          // 무덤
+    '절': Icons.radio_button_unchecked,     // 절
+    '태': Icons.pregnant_woman_rounded,     // 잉태
+    '양': Icons.child_friendly_rounded,     // 양육
+  };
+
   @override
   Widget build(BuildContext context) {
     final result = UnsungService.analyzeFromChart(chart);
@@ -486,49 +598,533 @@ class _UnsungTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 요약
+          // 운성이란? 설명 카드
+          _buildExplanationCard(context),
+          const SizedBox(height: 16),
+
+          // 궁성이란? 설명 카드
+          _buildGungseongExplanationCard(context),
+          const SizedBox(height: 16),
+
+          // 요약 카드 (개선된 디자인)
+          _buildSummaryCard(context, result),
+          const SizedBox(height: 20),
+
+          // 12운성 상세 카드 리스트
+          _buildSectionHeader(context, '궁성별 12운성', '각 궁의 운성과 그 의미', AppColors.accent, Icons.analytics_rounded),
+          const SizedBox(height: 12),
+          _buildUnsungDetailCards(context, result),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExplanationCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accent.withOpacity(0.1),
+            AppColors.accent.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.help_outline_rounded, color: AppColors.accent, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '12운성(十二運星)이란?',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '12운성은 일간(日干)의 기운이 각 지지(地支)에서 어떤 상태인지를 나타냅니다. '
+            '마치 사람의 일생처럼 탄생(장생)부터 죽음(사)까지의 순환을 12단계로 표현합니다.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildCycleItem('장생', '탄생'),
+                  _buildCycleArrow(),
+                  _buildCycleItem('목욕', '성장'),
+                  _buildCycleArrow(),
+                  _buildCycleItem('관대', '성인'),
+                  _buildCycleArrow(),
+                  _buildCycleItem('건록', '전성'),
+                  _buildCycleArrow(),
+                  _buildCycleItem('제왕', '정점'),
+                  _buildCycleArrow(),
+                  _buildCycleItem('쇠', '쇠퇴'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCycleItem(String name, String desc) {
+    final color = _unsungColors[name] ?? AppColors.textSecondary;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            name,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          desc,
+          style: TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 9,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCycleArrow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.textMuted),
+    );
+  }
+
+  Widget _buildGungseongExplanationCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF009688).withOpacity(0.1),
+            const Color(0xFF009688).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF009688).withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_tree_rounded, color: const Color(0xFF009688), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '궁성(宮星)이란?',
+                style: TextStyle(
+                  color: const Color(0xFF009688),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '궁성은 사주팔자의 4개 기둥(년주, 월주, 일주, 시주)이 각각 나타내는 삶의 영역입니다. '
+            '각 궁성의 운성을 통해 그 영역에서의 기운 상태를 파악할 수 있습니다.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                _buildGungseongRow('년주(年柱)', '조상궁', '조상, 유년기, 사회적 배경'),
+                const SizedBox(height: 8),
+                _buildGungseongRow('월주(月柱)', '부모궁', '부모, 청년기, 성장환경'),
+                const SizedBox(height: 8),
+                _buildGungseongRow('일주(日柱)', '자신궁', '자신, 배우자, 중년기'),
+                const SizedBox(height: 8),
+                _buildGungseongRow('시주(時柱)', '자녀궁', '자녀, 노년기, 결과'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGungseongRow(String pillar, String palace, String meaning) {
+    return Row(
+      children: [
+        Container(
+          width: 70,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF009688).withOpacity(0.15),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            pillar,
+            style: TextStyle(
+              color: const Color(0xFF009688),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceHover,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            palace,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            meaning,
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard(BuildContext context, UnsungAnalysisResult result) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: AppColors.accent, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                '12운성 요약',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.accent.withOpacity(0.2)),
             ),
             child: Row(
               children: [
-                Icon(Icons.analytics_outlined,
-                    color: AppColors.accent, size: 24),
-                const SizedBox(width: 12),
+                Icon(Icons.format_quote_rounded, color: AppColors.accent.withOpacity(0.5), size: 18),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     result.summary,
                     style: TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 14,
+                      fontSize: 13,
+                      height: 1.4,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // 12운성 테이블
-          _buildSectionTitle(context, '각 궁성별 12운성'),
-          const SizedBox(height: 12),
-          UnsungTable(result: result),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
+  Widget _buildUnsungDetailCards(BuildContext context, UnsungAnalysisResult result) {
+    final items = [
+      result.yearUnsung,
+      result.monthUnsung,
+      result.dayUnsung,
+      result.hourUnsung,
+    ].whereType<UnsungResult>().toList();
+
+    return Column(
+      children: items.map((item) => _buildUnsungItemCard(context, item)).toList(),
+    );
+  }
+
+  Widget _buildUnsungItemCard(BuildContext context, UnsungResult item) {
+    final unsungName = item.unsung.korean;
+    final color = _unsungColors[unsungName] ?? AppColors.textSecondary;
+    final icon = _unsungIcons[unsungName] ?? Icons.circle;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 상단
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
+              children: [
+                // 궁성
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    item.pillarName,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // 일간 → 지지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    '${item.dayGan}→${item.jiji}',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // 운성 뱃지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        unsungName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 하단: 설명
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceHover,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        item.unsung.hanja,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item.unsung.meaning,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withOpacity(0.15)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.lightbulb_outline, size: 16, color: color.withOpacity(0.7)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          UnsungService.getDetailedInterpretation(item.unsung),
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -543,6 +1139,38 @@ class _SinsalTab extends StatelessWidget {
     this.isMale = true,
   });
 
+  // 신살별 색상 정의
+  static const _sinsalColors = {
+    '역마살': Color(0xFF2196F3),   // 파랑 - 이동/변화
+    '도화살': Color(0xFFE91E63),   // 분홍 - 매력/인기
+    '화개살': Color(0xFF9C27B0),   // 보라 - 예술/종교
+    '장성살': Color(0xFF4CAF50),   // 녹색 - 성공/권위
+    '겁살': Color(0xFFFF5722),     // 주황 - 위험/손재
+    '재살': Color(0xFFF44336),     // 빨강 - 재앙
+    '천살': Color(0xFF607D8B),     // 청회 - 하늘의 액
+    '지살': Color(0xFF795548),     // 갈색 - 땅의 액
+    '연살': Color(0xFFFFEB3B),     // 노랑 - 해의 액
+    '월살': Color(0xFF00BCD4),     // 시안 - 달의 액
+    '망신살': Color(0xFF9E9E9E),   // 회색 - 망신
+    '반안살': Color(0xFF8BC34A),   // 연녹색 - 안정
+  };
+
+  // 신살별 아이콘 정의
+  static const _sinsalIcons = {
+    '역마살': Icons.flight_takeoff_rounded,
+    '도화살': Icons.favorite_rounded,
+    '화개살': Icons.palette_rounded,
+    '장성살': Icons.military_tech_rounded,
+    '겁살': Icons.warning_amber_rounded,
+    '재살': Icons.dangerous_rounded,
+    '천살': Icons.cloud_rounded,
+    '지살': Icons.landscape_rounded,
+    '연살': Icons.wb_sunny_rounded,
+    '월살': Icons.nightlight_rounded,
+    '망신살': Icons.sentiment_dissatisfied_rounded,
+    '반안살': Icons.anchor_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
     // 12신살 분석 (년지 기준 - 포스텔러 호환, Phase 39)
@@ -554,7 +1182,34 @@ class _SinsalTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 신살이란? 설명 카드
+          _buildExplanationCard(context),
+          const SizedBox(height: 16),
+
+          // 12신살 요약 카드 (개선된 디자인)
+          _buildSinsalSummaryCard(context, twelveSinsalResult),
+          const SizedBox(height: 20),
+
+          // 주요 신살 하이라이트
+          if (twelveSinsalResult.yeokmaResult != null ||
+              twelveSinsalResult.dohwaResult != null ||
+              twelveSinsalResult.hwagaeResult != null ||
+              twelveSinsalResult.jangsungResult != null) ...[
+            _buildSectionHeader(context, '주요 신살', '특히 주목해야 할 신살', AppColors.accent, Icons.star_rounded),
+            const SizedBox(height: 12),
+            _buildKeySinsalCards(context, twelveSinsalResult),
+            const SizedBox(height: 20),
+          ],
+
+          // 12신살 상세 카드 리스트
+          _buildSectionHeader(context, '12신살 상세', '각 궁성별 신살 분석', AppColors.textSecondary, Icons.grid_view_rounded),
+          const SizedBox(height: 12),
+          _buildSinsalDetailCards(context, twelveSinsalResult),
+          const SizedBox(height: 20),
+
           // 신살과 길성 통합 테이블 (포스텔러 스타일)
+          _buildSectionHeader(context, '신살·길성 테이블', '전체 신살 현황', AppColors.textSecondary, Icons.table_chart_rounded),
+          const SizedBox(height: 12),
           SinsalGilseongTable(
             gilseongResult: gilseongResult,
             yearGan: chart.yearPillar.gan,
@@ -573,58 +1228,542 @@ class _SinsalTab extends StatelessWidget {
             result: gilseongResult,
             isMale: isMale,
           ),
-          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
 
-          // 12신살 요약
-          _buildSectionTitle(context, '12신살 요약'),
+  Widget _buildExplanationCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF9C27B0).withOpacity(0.1),
+            const Color(0xFF9C27B0).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF9C27B0).withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.help_outline_rounded, color: const Color(0xFF9C27B0), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '신살(神殺)이란?',
+                style: TextStyle(
+                  color: const Color(0xFF9C27B0),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '신살은 사주팔자에 나타나는 특별한 기운으로, 길한 영향(길신)과 흉한 영향(흉신)을 분석합니다. '
+            '12신살은 년지를 기준으로 각 지지의 특성을 파악하는 대표적인 신살 체계입니다.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Row(
+              children: [
+                _buildLegendItem('길신(吉神)', AppColors.success),
+                const SizedBox(width: 16),
+                _buildLegendItem('흉신(凶神)', AppColors.error),
+                const SizedBox(width: 16),
+                _buildLegendItem('혼합', AppColors.accent),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: color),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSinsalSummaryCard(BuildContext context, TwelveSinsalAnalysisResult result) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 길흉 통계
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatBox('길(吉)', result.goodSinsalCount, AppColors.success),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildStatBox('흉(凶)', result.badSinsalCount, AppColors.error),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildStatBox('혼합', result.mixedSinsalCount, AppColors.accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 요약 텍스트
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: AppColors.accent, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    result.summary,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKeySinsalCards(BuildContext context, TwelveSinsalAnalysisResult result) {
+    final keyItems = <Widget>[];
+
+    if (result.jangsungResult != null) {
+      keyItems.add(_buildKeySinsalCard(
+        context,
+        sinsal: result.jangsungResult!.sinsal,
+        pillarName: result.jangsungResult!.pillarName,
+        description: '권위와 성공을 상징하며, 출세와 명예를 얻을 수 있는 좋은 기운입니다.',
+      ));
+    }
+    if (result.yeokmaResult != null) {
+      keyItems.add(_buildKeySinsalCard(
+        context,
+        sinsal: result.yeokmaResult!.sinsal,
+        pillarName: result.yeokmaResult!.pillarName,
+        description: '이동과 변화의 기운으로, 활동적이고 여행이나 이사가 많을 수 있습니다.',
+      ));
+    }
+    if (result.dohwaResult != null) {
+      keyItems.add(_buildKeySinsalCard(
+        context,
+        sinsal: result.dohwaResult!.sinsal,
+        pillarName: result.dohwaResult!.pillarName,
+        description: '매력과 인기의 기운으로, 이성운과 대인관계에 영향을 줍니다.',
+      ));
+    }
+    if (result.hwagaeResult != null) {
+      keyItems.add(_buildKeySinsalCard(
+        context,
+        sinsal: result.hwagaeResult!.sinsal,
+        pillarName: result.hwagaeResult!.pillarName,
+        description: '예술성과 영적 감수성을 나타내며, 종교나 예술 분야에 재능이 있습니다.',
+      ));
+    }
+
+    return Column(children: keyItems);
+  }
+
+  Widget _buildKeySinsalCard(
+    BuildContext context, {
+    required dynamic sinsal,
+    required String pillarName,
+    required String description,
+  }) {
+    final sinsalName = sinsal.korean;
+    final color = _sinsalColors[sinsalName] ?? AppColors.accent;
+    final icon = _sinsalIcons[sinsalName] ?? Icons.star_rounded;
+    final fortuneType = sinsal.fortuneType;
+    final fortuneColor = fortuneType == '길' ? AppColors.success :
+                         fortuneType == '흉' ? AppColors.error : AppColors.accent;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // 아이콘
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 14),
+          // 내용
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      sinsalName,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: fortuneColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        fortuneType,
+                        style: TextStyle(
+                          color: fortuneColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceHover,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        pillarName,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSinsalDetailCards(BuildContext context, TwelveSinsalAnalysisResult result) {
+    final items = [
+      result.yearResult,
+      result.monthResult,
+      result.dayResult,
+      result.hourResult,
+    ].whereType<TwelveSinsalResult>().toList();
+
+    return Column(
+      children: items.map((item) => _buildSinsalItemCard(context, item)).toList(),
+    );
+  }
+
+  Widget _buildSinsalItemCard(BuildContext context, TwelveSinsalResult item) {
+    final sinsalName = item.sinsal.korean;
+    final color = _sinsalColors[sinsalName] ?? AppColors.textSecondary;
+    final icon = _sinsalIcons[sinsalName] ?? Icons.circle;
+    final fortuneType = item.sinsal.fortuneType;
+    final fortuneColor = fortuneType == '길' ? AppColors.success :
+                         fortuneType == '흉' ? AppColors.error : AppColors.accent;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          // 상단
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
+              children: [
+                // 궁성
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    item.pillarName,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // 지지
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withOpacity(0.4)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      item.jiji,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // 신살 뱃지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        sinsalName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 길흉 뱃지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: fortuneColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: fortuneColor.withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    fortuneType == '길' ? '길(吉)' : fortuneType == '흉' ? '흉(凶)' : '혼합',
+                    style: TextStyle(
+                      color: fortuneColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 하단: 설명
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '주요 12신살',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  twelveSinsalResult.summary,
+                  item.sinsal.meaning,
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  TwelveSinsalService.getDetailedInterpretation(item.sinsal),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // 12신살 상세 테이블
-          _buildSectionTitle(context, '각 궁성별 12신살'),
-          const SizedBox(height: 12),
-          SinsalTable(result: twelveSinsalResult),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
-          ),
     );
   }
 }
@@ -638,72 +1777,562 @@ class _GongmangTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = GongmangService.analyzeFromChart(chart);
+    final hasGongmang = result.hasGongmang;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 공망 지지 표시
-          _buildSectionTitle(context, '공망 지지'),
-          const SizedBox(height: 12),
-          GongmangJijiDisplay(gongmangJijis: result.gongmangJijis),
-          const SizedBox(height: 24),
+          // 공망이란? 설명 카드
+          _buildExplanationCard(context),
+          const SizedBox(height: 16),
 
-          // 요약
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: result.hasGongmang
-                  ? AppColors.warning.withOpacity(0.1)
-                  : AppColors.success.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: result.hasGongmang
-                    ? AppColors.warning.withOpacity(0.3)
-                    : AppColors.success.withOpacity(0.3),
+          // 공망 지지 표시 (개선된 디자인)
+          _buildGongmangJijiCard(context, result),
+          const SizedBox(height: 16),
+
+          // 요약 카드 (개선된 디자인)
+          _buildSummaryCard(context, result),
+          const SizedBox(height: 20),
+
+          // 각 궁성별 공망 상세 카드
+          _buildSectionHeader(context, '궁성별 공망 분석', '각 궁의 공망 여부와 해석', AppColors.textSecondary, Icons.grid_view_rounded),
+          const SizedBox(height: 12),
+          _buildGongmangDetailCards(context, result),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExplanationCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF607D8B).withOpacity(0.1),
+            const Color(0xFF607D8B).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF607D8B).withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.help_outline_rounded, color: const Color(0xFF607D8B), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '공망(空亡)이란?',
+                style: TextStyle(
+                  color: const Color(0xFF607D8B),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '공망은 \'비어있다\'는 의미로, 일주를 기준으로 특정 지지가 빈 상태를 말합니다. '
+            '공망에 해당하는 궁성은 그 영역의 기운이 약해지거나 허무하게 될 수 있습니다.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(
-                  result.hasGongmang
-                      ? Icons.warning_amber_rounded
-                      : Icons.check_circle_outline,
-                  color: result.hasGongmang ? AppColors.warning : AppColors.success,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
+                Icon(Icons.lightbulb_outline, color: AppColors.warning, size: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    result.summary,
+                    '공망은 반드시 나쁜 것만은 아닙니다. 흉한 것이 공망이면 오히려 흉함이 줄어들기도 합니다.',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      height: 1.4,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // 상세 결과
-          _buildSectionTitle(context, '각 궁성별 공망 분석'),
-          const SizedBox(height: 12),
-          GongmangTable(result: result),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
           ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGongmangJijiCard(BuildContext context, GongmangAnalysisResult result) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 순(旬) 정보
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.calendar_today_rounded, color: AppColors.accent, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      '일주: ${result.dayGapja}',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceHover,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${result.sunInfo.sunName} 소속',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // 공망 지지 표시
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '공망 지지',
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 20),
+              _buildGongmangJijiBox(result.sunInfo.gongmang1),
+              const SizedBox(width: 12),
+              _buildGongmangJijiBox(result.sunInfo.gongmang2),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGongmangJijiBox(String jiji) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.error.withOpacity(0.15),
+            AppColors.error.withOpacity(0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withOpacity(0.4), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.error.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          jiji,
+          style: TextStyle(
+            color: AppColors.error,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(BuildContext context, GongmangAnalysisResult result) {
+    final hasGongmang = result.hasGongmang;
+    final color = hasGongmang ? AppColors.warning : AppColors.success;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          // 통계
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatBox('공망 궁', result.gongmangCount, AppColors.error),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildStatBox('정상 궁', result.allResults.length - result.gongmangCount, AppColors.success),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 요약 메시지
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasGongmang ? Icons.info_outline_rounded : Icons.check_circle_outline_rounded,
+                  color: color,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    result.summary,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 공망 궁성 목록
+          if (hasGongmang) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: result.allResults
+                  .where((r) => r.isGongmang)
+                  .map((r) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.blur_circular_rounded, size: 14, color: AppColors.error),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${r.pillarName} (${r.jiji})',
+                              style: TextStyle(
+                                color: AppColors.error,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGongmangDetailCards(BuildContext context, GongmangAnalysisResult result) {
+    return Column(
+      children: result.allResults.map((item) => _buildGongmangItemCard(context, item)).toList(),
+    );
+  }
+
+  Widget _buildGongmangItemCard(BuildContext context, GongmangResult item) {
+    final isGongmang = item.isGongmang;
+    final color = isGongmang ? AppColors.error : AppColors.success;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isGongmang ? color.withOpacity(0.3) : AppColors.border),
+        boxShadow: isGongmang
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        children: [
+          // 상단
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isGongmang ? color.withOpacity(0.08) : AppColors.surfaceHover,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
+              children: [
+                // 궁성
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.pillarName,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 지지
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isGongmang ? color.withOpacity(0.15) : AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isGongmang ? color.withOpacity(0.5) : AppColors.border,
+                      width: isGongmang ? 2 : 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      item.jiji,
+                      style: TextStyle(
+                        color: isGongmang ? color : AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // 상태 뱃지
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isGongmang ? Icons.blur_circular_rounded : Icons.check_circle_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isGongmang ? '공망' : '정상',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 하단: 해석
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isGongmang) ...[
+                  Text(
+                    item.interpretation,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: color.withOpacity(0.15)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.lightbulb_outline, size: 16, color: color.withOpacity(0.7)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            GongmangService.getDetailedInterpretation(item),
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      Icon(Icons.check_rounded, color: AppColors.success, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '공망에 해당하지 않아 정상적인 기운을 발휘합니다.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

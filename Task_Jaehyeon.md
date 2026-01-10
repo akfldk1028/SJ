@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-06 (Phase 42 자묘형 추가 및 합충형파해 전체 검증)
+> 최종 업데이트: 2026-01-10 (Phase 44 궁합 채팅 targetProfileId 연동 완료 ✅)
 
 ---
 
@@ -19,85 +19,36 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 [요청 내용 입력]
 ```
 
-**상세 프롬프트** (특정 작업 이어하기):
+**상세 프롬프트** (다음 작업 예시):
 ```
 @Task_Jaehyeon.md 읽고 현재 상황 파악해.
 Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해서 작업해.
 
 현재 상태:
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
-- Phase 17-A (보안 강화) ✅ 완료 (2025-12-29)
-- Phase 18 (윤달 유효성 검증) ✅ 완료 (2025-12-30)
-- Phase 19 (토큰 사용량 추적) ✅ 완료 (2025-12-30)
-- Phase 20 (AI Edge Function 통합) ✅ 완료 (2025-12-30)
-  - gemini_edge_datasource.dart, openai_edge_datasource.dart 생성
-  - saju_chat_edge_datasource.dart 생성
-  - API 키가 Supabase Secrets에만 저장 (보안 강화)
-- Phase 21 (Edge Function 모델 최종 확정) ✅ 완료 (2024-12-31)
-  - ai-gemini v15: gemini-3-flash-preview, max_tokens 4096
-  - ai-openai v10: gpt-5.2-thinking, max_tokens 10000
-  - EdgeFunction_task.md 생성 (모델 변경 금지 문서)
-- Phase 22 (만세력 계산 로직 수정) ✅ 완료 (2024-12-31)
-  - 지장간 테이블 수정 (자/묘/오/유 왕지 여기 추가)
-  - 12신살 기준 변경 (년지→일지 기준) → Phase 39에서 다시 년지 기준으로 변경
-  - 신강/신약 점수 계산 가중치 조정
-- Phase 23 (누락된 신살/귀인 추가) ✅ 완료 (2024-12-31)
-  - P1 신살: 금여, 삼기귀인, 복성귀인, 낙정관살
-  - P2 신살: 문곡귀인, 태극귀인, 천의귀인, 천주귀인, 암록귀인, 홍란살, 천희살
-- Phase 24 (P2/P3 추가 신살 구현) ✅ 완료 (2024-12-31)
-  - 건록, 비인살, 효신살, 고신살, 과숙살, 원진살, 천라지망
-  - 신살 UI 표시 (ExtendedSinsalInfoCard 위젯)
-- Phase 25 (야자시/조자시 로직 검증) ✅ 완료 (2024-12-31)
-  - 툴팁 설명 수정 (기존 설명 오류 수정)
-  - JasiService enum 주석 상세화
-  - 테스트 케이스 19개 추가
-- Phase 26 (진공/반공/해공 로직) ✅ 완료 (2024-12-31)
-  - 진공(眞空): 일간 음양 = 공망지지 음양 → 100% 작용
-  - 반공(半空): 일간 음양 ≠ 공망지지 음양 → 50% 작용
-  - 해공(解空): 충/합/형으로 공망 해소
-  - 탈공(脫空): 대운/세운에서 채워짐
-- **Phase 27 (saju_base 타임아웃 해결) ✅ 완료 (2026-01-01) - DK 솔루션**
-  - ai-openai v24: OpenAI Responses API `background=true` 모드
-  - ai-openai-result v4: 폴링 엔드포인트 신규 생성
-  - Flutter openai_edge_datasource.dart: Async + Polling 패턴
-  - Supabase 150초 타임아웃 완전 회피!
-- **Phase 28 (AiApiService Polling 로직 추가) ✅ 완료 (2026-01-01)**
-  - 문제: AiApiService.callOpenAI()에 polling 로직 누락
-  - openai_edge_datasource.dart (채팅용): polling ✅
-  - ai_api_service.dart (saju_base 분석용): polling ❌ → 빈 응답!
-  - 수정: _pollForOpenAIResult() 메서드 추가, runInBackground 파라미터 추가
-- **Phase 38 (신강/신약 비율 기준 등급 결정) ✅ 완료 (2026-01-05)**
-  - 점수/만점 비율로 8단계 등급 결정 (삼주/사주 일관성 유지)
-  - 사주: 100점 만점, 삼주: 75점 만점
-  - 비율 기준: 88%+=극왕, 75-87%=태강, 63-74%=신강, 50-62%=중화신강
-  - 38-49%=중화신약, 26-37%=신약, 13-25%=태약, 0-12%=극약
-- **Phase 39 (12신살 년지 기준 변경) ✅ 완료 (2026-01-05)**
-  - 포스텔러 앱과 동일한 결과를 위해 년지 기준으로 변경
-  - `useYearJi` 기본값: false → true
-  - 도화살: 년지+일지 병행 기준 함수 추가 (hasDohwasal)
-  - 테스트 파일 생성: twelve_sinsal_basis_test.dart
-- **Phase 40 (GPT 프롬프트 오행 데이터 수정) ✅ 완료 (2026-01-06)**
-  - 문제: ai_summaries.content.saju_origin.oheng이 모두 0으로 저장됨
-  - 원인: saju_base_prompt.dart JSON 스키마에 오행이 `{"목": 0, ...}`으로 하드코딩
-  - GPT가 스키마의 0 값을 그대로 복사하여 응답
-  - 수정: prompt_template.dart에 `ohengJson` getter 추가
-  - 수정: saju_base_prompt.dart에서 `${data.ohengJson}` 사용하여 실제 값 삽입
-- **Phase 41 (합충형파해 포스텔러 기준 구현) ✅ 완료 (2026-01-06)**
-  - 테스트 프로필: 김동현 (갑술 병자 경인 경진)
-  - 기존 문제: 엄격한 해석 (반합=왕지 필수, 방합=3개 필수)
-  - 포스텔러 기준: 느슨한 해석 (반합=2개면 OK, 반방합 지원)
-  - 수정 파일:
-    - hapchung_relations.dart: isHalfMatchLoose(), findJijiHalfSamhapWithType(), findJijiHalfBanghap() 추가
-    - hapchung_service.dart: SamhapHalfType enum, halfType 필드, 느슨한 반합/반방합 로직
-    - hapchung_tab.dart: displayLabel 기반 라벨 표시
-  - 결과:
-    - 자진반합(수국) ✅ → halfType: halfWithWangji
-    - 인술반합(화국) ✅ → halfType: halfLoose (포스텔러 기준 추가)
-    - 인진반방합(동방목) ✅ → isFullBanghap: false (포스텔러 기준 추가)
-  - 테스트 파일: test/hapchung_fosteller_test.dart
-- **Phase 42 (자묘형 추가 및 합충형파해 전체 검증) ✅ 완료 (2026-01-06)**
-  - 자묘형(子卯刑) = 무례지형(無禮之刑) 추가
-  - 수정 파일:
+- Phase 44 완료 ✅ (궁합 채팅 targetProfileId 연동)
+  - DB: chat_sessions.target_profile_id 컬럼 추가
+  - Flutter: 상대방 프로필/사주 조회 → 시스템 프롬프트 포함
+
+검증 필요:
+1. 인연 관계도 → 김동현 → "사주 상담" → AI가 두 사람 사주 인식하는지
+2. 새로고침 후에도 상대방 정보 유지되는지
+
+다음 작업 후보:
+1. Phase 44-B (궁합 분석 캐싱) - compatibility_analyses 저장/조회
+2. [SUGGESTED_QUESTIONS] 태그 파싱 개선
+3. 절입시간 계산 검증
+
+[원하는 작업 선택]
+```
+
+### 📜 이전 Phase 요약 (Phase 22~42)
+
+- **Phase 22-26**: 만세력 계산 로직 (지장간, 12신살, 야자시, 공망)
+- **Phase 27-28**: OpenAI Background + Polling 타임아웃 해결
+- **Phase 38-40**: 신강/신약 비율, 12신살 년지 기준, 오행 데이터 수정
+- **Phase 41-42**: 합충형파해 포스텔러 기준 구현, 자묘형 추가
+- **Phase 43**: 사주 관계도 DB + 라우팅 통합
     - hapchung_relations.dart: HyungType.muRye enum 값 추가, jijiHyungList에 자묘형 추가
     - gongmang_table.dart: _jijiHyungMap에 자-묘 형 관계 추가 (해공 판단용)
   - 전체 합충형파해 검증 결과:
@@ -110,17 +61,53 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - 공망 검증: 6순 공망 테이블 ✅, 진공/반공/해공/탈공 ✅
 - 대운(大運) 계산: ✅ 이미 구현됨 (daeun_service.dart)
 - 음양력 변환: ✅ 이미 구현됨 (lunar_solar_converter.dart)
+- **Phase 43 (사주 관계도 DB + 라우팅 통합) ✅ 완료 (2026-01-09)**
+  - DB 마이그레이션 (2026-01-08 완료):
+    - saju_profiles에 profile_type 컬럼 추가 ('primary' | 'other')
+    - 기존 데이터 마이그레이션 완료 (primary: 150개, other: 1개)
+    - profile_relations 테이블 활성화
+    - 성능 인덱스 6개 생성 완료
+  - Flutter 코드 (2026-01-09 완료):
+    - **라우팅 통합**: `/saju/chat/compatibility` 제거, `/saju/chat?profileId=xxx`로 통합
+    - **SajuChatShell 파라미터 단순화**: `targetProfileId` 하나로 통합
+    - **CompatibilityContext 모델 생성** (두 프로필 사주 분석 컨텍스트)
+    - `/saju/chart` 라우트 추가 (만세력 결과 화면)
+    - master 브랜치 머지 충돌 해결 (ShellRoute 구조 유지)
+  - 문서: `docs/02_features/saju_relationship_db.md` v1.2
+
+- **Phase 44 (궁합 채팅 targetProfileId 연동) ✅ 완료 (2026-01-10)**
+  - **Step 1: DB 마이그레이션** ✅ 완료
+    - `chat_sessions.target_profile_id` 컬럼 추가 (FK → saju_profiles)
+    - 부분 인덱스 생성: `idx_chat_sessions_target_profile`
+  - **Step 2: Flutter 코드 수정** ✅ 완료 (8개 파일)
+    1. `chat_session.dart`: targetProfileId 필드 추가
+    2. `chat_session_model.dart`: JSON/Hive/Supabase 매핑 추가
+    3. `saju_chat_shell.dart`: _ChatContent에 targetProfileId 전달
+    4. `chat_session_provider.dart`: createSession()에 targetProfileId 파라미터
+    5. `chat_session_repository.dart` (interface): createSession() 시그니처 수정
+    6. `chat_session_repository_impl.dart`: targetProfileId 처리 로직 추가
+    7. `chat_provider.dart`: sendMessage()에서 상대방 프로필/사주 조회
+    8. `system_prompt_builder.dart`: 궁합 모드 지원 (상대방 정보 + 궁합 분석 가이드)
+    9. `core/repositories/chat_repository.dart`: Supabase createSession/fromMap 수정
+  - **구현 내용**:
+    - 궁합 채팅 시 상대방 프로필/사주를 DB에서 조회
+    - 시스템 프롬프트에 나 + 상대방 정보 모두 포함
+    - 궁합 분석 가이드 (일간 궁합, 지지 궁합, 오행 보완, 용신 관계)
+    - 세션 재접속 시에도 상대방 정보 유지
+  - **검증 테스트 (TODO)**:
+    ```
+    1. 인연 관계도 → 김동현 클릭 → "사주 상담"
+    2. /saju/chat?profileId=김동현UUID 라우트 확인
+    3. AI에게 "나랑 동현이 궁합 어때?" 질문
+    4. AI가 두 사람 사주 모두 언급하는지 확인
+    5. 브라우저 새로고침 후에도 상대방 정보 유지 확인
+    ```
 
 다음 작업 후보:
-1. **Phase 28 테스트** - saju_base 저장 확인 (우선순위 높음)
+1. Phase 44-B (궁합 분석 캐싱) - compatibility_analyses 테이블 저장/조회
 2. Phase 17-B (인증 방식 추가) - 이메일/Google/Apple 로그인
 3. 절입시간 계산 검증 - solar_term_service.dart 정확도 확인
-4. 만세력 단위 테스트 - 특정 생년월일 계산 검증
-5. AI 프롬프트 개선 - saju_base_prompt.dart 품질 향상
-6. 합충형파해 AI 해석 - 관계 분석 결과를 AI에 전달
-7. UI/UX 개선 - 채팅 화면, 프로필 화면 디자인
-8. 시간 모름 처리 개선 - 삼주(三柱) 분석 모드
-9. 궁합 분석 기능 - compatibility_analyses 테이블 활용
+4. [SUGGESTED_QUESTIONS] 태그 파싱 개선 - fallback 파싱 추가
 
 [원하는 작업 선택 또는 새 요청]
 ```
