@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:graphview/GraphView.dart';
 import '../../../domain/entities/saju_profile.dart';
 import '../../../domain/entities/relationship_type.dart';
 import '../../../data/mock/mock_profiles.dart';
 import '../../providers/profile_provider.dart';
+import '../../../../../router/routes.dart';
 import 'me_node_widget.dart';
 import 'profile_node_widget.dart';
 import 'relationship_group_node.dart';
@@ -12,7 +14,7 @@ import 'graph_controls.dart';
 import 'saju_quick_view_sheet.dart';
 
 /// 목업 데이터 사용 여부 (테스트용)
-const bool _useMockData = true;
+const bool _useMockData = false;
 
 /// 관계 그래프 뷰 (SJ-Flow Large Tree 기능 사용)
 class RelationshipGraphView extends ConsumerStatefulWidget {
@@ -121,6 +123,8 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: profile,
       onChatPressed: () {
         Navigator.pop(context);
+        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}');
       },
       onDetailPressed: () {
         Navigator.pop(context);

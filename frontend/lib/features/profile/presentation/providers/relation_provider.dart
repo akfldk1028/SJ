@@ -151,7 +151,7 @@ Future<bool> relationExists(
 class RelationNotifier extends _$RelationNotifier {
   @override
   FutureOr<void> build() {
-    // 초기 상태 없음
+    // 초기 상태 없음 - 즉시 완료
   }
 
   /// 관계 생성
@@ -169,34 +169,39 @@ class RelationNotifier extends _$RelationNotifier {
       throw Exception('로그인이 필요합니다');
     }
 
-    state = const AsyncValue.loading();
+    // AsyncValue.guard를 사용하여 안전하게 상태 관리
+    ProfileRelationModel? createdModel;
 
-    final result = await relationMutations.create(
-      userId: user.id,
-      fromProfileId: fromProfileId,
-      toProfileId: toProfileId,
-      relationType: relationType,
-      displayName: displayName,
-      memo: memo,
-      isFavorite: isFavorite,
-      sortOrder: sortOrder,
-    );
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.create(
+        userId: user.id,
+        fromProfileId: fromProfileId,
+        toProfileId: toProfileId,
+        relationType: relationType,
+        displayName: displayName,
+        memo: memo,
+        isFavorite: isFavorite,
+        sortOrder: sortOrder,
+      );
 
-    return switch (result) {
-      QuerySuccess(:final data) => () {
-          state = const AsyncValue.data(null);
+      switch (result) {
+        case QuerySuccess(:final data):
+          createdModel = data;
           _invalidateRelatedProviders(fromProfileId);
-          return data;
-        }(),
-      QueryFailure(:final message) => () {
-          state = AsyncValue.error(message, StackTrace.current);
+          return;
+        case QueryFailure(:final message):
           throw Exception(message);
-        }(),
-      QueryOffline() => () {
-          state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
+        case QueryOffline():
           throw Exception('오프라인 상태입니다');
-        }(),
-    };
+      }
+    });
+
+    // 에러가 발생했으면 다시 던지기
+    if (state.hasError) {
+      throw state.error!;
+    }
+
+    return createdModel;
   }
 
   /// 관계 업데이트
@@ -209,32 +214,35 @@ class RelationNotifier extends _$RelationNotifier {
     bool? isFavorite,
     int? sortOrder,
   }) async {
-    state = const AsyncValue.loading();
+    ProfileRelationModel? updatedModel;
 
-    final result = await relationMutations.update(
-      relationId: relationId,
-      relationType: relationType,
-      displayName: displayName,
-      memo: memo,
-      isFavorite: isFavorite,
-      sortOrder: sortOrder,
-    );
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.update(
+        relationId: relationId,
+        relationType: relationType,
+        displayName: displayName,
+        memo: memo,
+        isFavorite: isFavorite,
+        sortOrder: sortOrder,
+      );
 
-    return switch (result) {
-      QuerySuccess(:final data) => () {
-          state = const AsyncValue.data(null);
+      switch (result) {
+        case QuerySuccess(:final data):
+          updatedModel = data;
           _invalidateRelatedProviders(fromProfileId);
-          return data;
-        }(),
-      QueryFailure(:final message) => () {
-          state = AsyncValue.error(message, StackTrace.current);
+          return;
+        case QueryFailure(:final message):
           throw Exception(message);
-        }(),
-      QueryOffline() => () {
-          state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
+        case QueryOffline():
           throw Exception('오프라인 상태입니다');
-        }(),
-    };
+      }
+    });
+
+    if (state.hasError) {
+      throw state.error!;
+    }
+
+    return updatedModel;
   }
 
   /// 관계 삭제
@@ -242,20 +250,22 @@ class RelationNotifier extends _$RelationNotifier {
     required String relationId,
     required String fromProfileId,
   }) async {
-    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.delete(relationId);
 
-    final result = await relationMutations.delete(relationId);
+      switch (result) {
+        case QuerySuccess():
+          _invalidateRelatedProviders(fromProfileId);
+          return;
+        case QueryFailure(:final message):
+          throw Exception(message);
+        case QueryOffline():
+          throw Exception('오프라인 상태입니다');
+      }
+    });
 
-    switch (result) {
-      case QuerySuccess():
-        state = const AsyncValue.data(null);
-        _invalidateRelatedProviders(fromProfileId);
-      case QueryFailure(:final message):
-        state = AsyncValue.error(message, StackTrace.current);
-        throw Exception(message);
-      case QueryOffline():
-        state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
-        throw Exception('오프라인 상태입니다');
+    if (state.hasError) {
+      throw state.error!;
     }
   }
 
@@ -265,28 +275,31 @@ class RelationNotifier extends _$RelationNotifier {
     required String fromProfileId,
     required bool isFavorite,
   }) async {
-    state = const AsyncValue.loading();
+    ProfileRelationModel? updatedModel;
 
-    final result = await relationMutations.toggleFavorite(
-      relationId,
-      isFavorite,
-    );
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.toggleFavorite(
+        relationId,
+        isFavorite,
+      );
 
-    return switch (result) {
-      QuerySuccess(:final data) => () {
-          state = const AsyncValue.data(null);
+      switch (result) {
+        case QuerySuccess(:final data):
+          updatedModel = data;
           _invalidateRelatedProviders(fromProfileId);
-          return data;
-        }(),
-      QueryFailure(:final message) => () {
-          state = AsyncValue.error(message, StackTrace.current);
+          return;
+        case QueryFailure(:final message):
           throw Exception(message);
-        }(),
-      QueryOffline() => () {
-          state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
+        case QueryOffline():
           throw Exception('오프라인 상태입니다');
-        }(),
-    };
+      }
+    });
+
+    if (state.hasError) {
+      throw state.error!;
+    }
+
+    return updatedModel;
   }
 
   /// 정렬 순서 일괄 업데이트
@@ -294,20 +307,22 @@ class RelationNotifier extends _$RelationNotifier {
     required String fromProfileId,
     required Map<String, int> relationSortOrders,
   }) async {
-    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.updateSortOrders(relationSortOrders);
 
-    final result = await relationMutations.updateSortOrders(relationSortOrders);
+      switch (result) {
+        case QuerySuccess():
+          _invalidateRelatedProviders(fromProfileId);
+          return;
+        case QueryFailure(:final message):
+          throw Exception(message);
+        case QueryOffline():
+          throw Exception('오프라인 상태입니다');
+      }
+    });
 
-    switch (result) {
-      case QuerySuccess():
-        state = const AsyncValue.data(null);
-        _invalidateRelatedProviders(fromProfileId);
-      case QueryFailure(:final message):
-        state = AsyncValue.error(message, StackTrace.current);
-        throw Exception(message);
-      case QueryOffline():
-        state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
-        throw Exception('오프라인 상태입니다');
+    if (state.hasError) {
+      throw state.error!;
     }
   }
 
@@ -317,28 +332,31 @@ class RelationNotifier extends _$RelationNotifier {
     required String fromProfileId,
     required String relationType,
   }) async {
-    state = const AsyncValue.loading();
+    ProfileRelationModel? updatedModel;
 
-    final result = await relationMutations.updateRelationType(
-      relationId,
-      relationType,
-    );
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.updateRelationType(
+        relationId,
+        relationType,
+      );
 
-    return switch (result) {
-      QuerySuccess(:final data) => () {
-          state = const AsyncValue.data(null);
+      switch (result) {
+        case QuerySuccess(:final data):
+          updatedModel = data;
           _invalidateRelatedProviders(fromProfileId);
-          return data;
-        }(),
-      QueryFailure(:final message) => () {
-          state = AsyncValue.error(message, StackTrace.current);
+          return;
+        case QueryFailure(:final message):
           throw Exception(message);
-        }(),
-      QueryOffline() => () {
-          state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
+        case QueryOffline():
           throw Exception('오프라인 상태입니다');
-        }(),
-    };
+      }
+    });
+
+    if (state.hasError) {
+      throw state.error!;
+    }
+
+    return updatedModel;
   }
 
   /// Upsert (있으면 업데이트, 없으면 생성)
@@ -356,34 +374,37 @@ class RelationNotifier extends _$RelationNotifier {
       throw Exception('로그인이 필요합니다');
     }
 
-    state = const AsyncValue.loading();
+    ProfileRelationModel? upsertedModel;
 
-    final result = await relationMutations.upsert(
-      userId: user.id,
-      fromProfileId: fromProfileId,
-      toProfileId: toProfileId,
-      relationType: relationType,
-      displayName: displayName,
-      memo: memo,
-      isFavorite: isFavorite,
-      sortOrder: sortOrder,
-    );
+    state = await AsyncValue.guard(() async {
+      final result = await relationMutations.upsert(
+        userId: user.id,
+        fromProfileId: fromProfileId,
+        toProfileId: toProfileId,
+        relationType: relationType,
+        displayName: displayName,
+        memo: memo,
+        isFavorite: isFavorite,
+        sortOrder: sortOrder,
+      );
 
-    return switch (result) {
-      QuerySuccess(:final data) => () {
-          state = const AsyncValue.data(null);
+      switch (result) {
+        case QuerySuccess(:final data):
+          upsertedModel = data;
           _invalidateRelatedProviders(fromProfileId);
-          return data;
-        }(),
-      QueryFailure(:final message) => () {
-          state = AsyncValue.error(message, StackTrace.current);
+          return;
+        case QueryFailure(:final message):
           throw Exception(message);
-        }(),
-      QueryOffline() => () {
-          state = AsyncValue.error('오프라인 상태입니다', StackTrace.current);
+        case QueryOffline():
           throw Exception('오프라인 상태입니다');
-        }(),
-    };
+      }
+    });
+
+    if (state.hasError) {
+      throw state.error!;
+    }
+
+    return upsertedModel;
   }
 
   /// 관련 Provider들 무효화

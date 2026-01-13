@@ -84,7 +84,7 @@ class MessageQueueService {
 
   MessageQueueService._();
 
-  Box<dynamic>? _box;
+  Box<Map<dynamic, dynamic>>? _box;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Timer? _retryTimer;
 
@@ -99,9 +99,9 @@ class MessageQueueService {
   Future<void> init() async {
     if (_box == null || !_box!.isOpen) {
       if (Hive.isBoxOpen(_boxName)) {
-        _box = Hive.box(_boxName);
+        _box = Hive.box<Map<dynamic, dynamic>>(_boxName);
       } else {
-        _box = await Hive.openBox(_boxName);
+        _box = await Hive.openBox<Map<dynamic, dynamic>>(_boxName);
       }
     }
 
@@ -175,8 +175,7 @@ class MessageQueueService {
     for (var key in _box!.keys) {
       final raw = _box!.get(key);
       if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        messages.add(QueuedMessage.fromHiveMap(map));
+        messages.add(QueuedMessage.fromHiveMap(raw));
       }
     }
 
@@ -275,8 +274,7 @@ class MessageQueueService {
     final raw = _box!.get(messageId);
     if (raw == null) return;
 
-    final map = Map<dynamic, dynamic>.from(raw as Map);
-    final queued = QueuedMessage.fromHiveMap(map);
+    final queued = QueuedMessage.fromHiveMap(raw);
 
     final updated = queued.copyWith(
       status: status,
@@ -309,8 +307,7 @@ class MessageQueueService {
     for (var key in _box!.keys) {
       final raw = _box!.get(key);
       if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        final queued = QueuedMessage.fromHiveMap(map);
+        final queued = QueuedMessage.fromHiveMap(raw);
         if (queued.status == QueuedMessageStatus.maxRetried) {
           toRemove.add(key as String);
         }

@@ -10,6 +10,8 @@ import 'ad/ad.dart';
 import 'app.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
+import 'features/profile/data/datasources/profile_local_datasource.dart';
+import 'features/profile/data/repositories/profile_repository_impl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,16 +22,23 @@ void main() async {
   // Hive 초기화
   await Hive.initFlutter();
 
-  // Hive 박스 열기 (채팅 세션용) - 손상된 데이터 복구 포함
-  await _openHiveBoxSafely('chat_sessions');
-  await _openHiveBoxSafely('chat_messages');
-  await _openHiveBoxSafely('saju_analyses'); // 사주 분석 결과 캐시
+  // Hive 박스 열기 - 손상된 데이터 복구 포함
+  // 중요: 모든 Datasource에서 Box<Map<dynamic, dynamic>> 타입으로 사용하므로
+  // 여기서도 동일한 타입으로 열어야 타입 충돌 방지
+  await _openHiveBoxSafely('saju_profiles');   // 사주 프로필
+  await _openHiveBoxSafely('chat_sessions');   // 채팅 세션
+  await _openHiveBoxSafely('chat_messages');   // 채팅 메시지
+  await _openHiveBoxSafely('saju_analyses');   // 사주 분석 결과 캐시
+  await _openHiveBoxSafely('message_queue');   // 메시지 큐 (오프라인 재전송용)
 
   // AI 로그 서비스 초기화
   await AiLogger.init();
 
   // Supabase 초기화 (오프라인 모드 지원)
   await SupabaseService.initialize();
+
+  // 프로필 클라우드 동기화 (Supabase → Hive)
+  await _syncProfilesFromCloud();
 
   // AdMob SDK 초기화 (모바일만 - Android/iOS)
   final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -50,22 +59,44 @@ void main() async {
   );
 }
 
+/// 프로필 클라우드 동기화 (Supabase → Hive)
+/// 앱 시작 시 다른 기기에서 저장한 프로필을 로컬로 가져옴
+Future<void> _syncProfilesFromCloud() async {
+  try {
+    final datasource = ProfileLocalDatasource();
+    final repository = ProfileRepositoryImpl(datasource);
+    await repository.syncFromCloud();
+    if (kDebugMode) {
+      print('[Main] 프로필 클라우드 동기화 완료');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('[Main] 프로필 클라우드 동기화 실패 (오프라인 모드 계속): $e');
+    }
+    // 동기화 실패해도 앱은 계속 동작 (오프라인 모드)
+  }
+}
+
 /// Hive Box 안전하게 열기
 /// 손상된 데이터가 있으면 클리어하고 다시 열기
+///
+/// 중요: 모든 Datasource에서 Box<Map<dynamic, dynamic>> 타입으로 사용하므로
+/// 여기서도 동일한 타입으로 열어야 타입 충돌 방지
 Future<void> _openHiveBoxSafely(String boxName) async {
   try {
-    final box = await Hive.openBox(boxName);
+    // 모든 Datasource와 동일한 타입으로 열어야 타입 충돌 방지
+    final box = await Hive.openBox<Map<dynamic, dynamic>>(boxName);
 
     // 손상된 데이터 검증 및 정리
     final keysToDelete = <dynamic>[];
     for (var i = 0; i < box.length; i++) {
       try {
         final raw = box.getAt(i);
-        if (raw != null && raw is! Map) {
-          // Map이 아닌 데이터는 손상된 것으로 간주
+        if (raw == null) {
+          // null 데이터는 손상된 것으로 간주
           keysToDelete.add(box.keyAt(i));
           if (kDebugMode) {
-            print('[Hive] 손상된 데이터 발견 ($boxName): index=$i, type=${raw.runtimeType}');
+            print('[Hive] 손상된 데이터 발견 ($boxName): index=$i, null value');
           }
         }
       } catch (e) {
@@ -89,6 +120,6 @@ Future<void> _openHiveBoxSafely(String boxName) async {
     }
     // Box를 완전히 삭제하고 다시 열기
     await Hive.deleteBoxFromDisk(boxName);
-    await Hive.openBox(boxName);
+    await Hive.openBox<Map<dynamic, dynamic>>(boxName);
   }
 }

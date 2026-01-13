@@ -5,37 +5,37 @@ import '../models/chat_session_model.dart';
 /// 채팅 세션 로컬 데이터소스
 ///
 /// Hive를 사용한 채팅 세션/메시지 로컬 저장소
-/// 주의: Box<dynamic>으로 열어서 타입 캐스팅 문제 방지
+/// 주의: main.dart 및 ChatLocalDataSource와 동일한 Box<Map<dynamic, dynamic>> 타입 사용
 class ChatSessionLocalDatasource {
   static const String _sessionsBoxName = 'chat_sessions';
   static const String _messagesBoxName = 'chat_messages';
 
-  Box<dynamic>? _sessionsBox;
-  Box<dynamic>? _messagesBox;
+  Box<Map<dynamic, dynamic>>? _sessionsBox;
+  Box<Map<dynamic, dynamic>>? _messagesBox;
 
-  /// Hive Boxes 초기화 (dynamic 타입으로 열어서 호환성 보장)
+  /// Hive Boxes 초기화 (Map 타입으로 열어서 타입 일관성 보장)
   Future<void> init() async {
     // Sessions Box
     if (_sessionsBox == null || !_sessionsBox!.isOpen) {
       if (Hive.isBoxOpen(_sessionsBoxName)) {
-        _sessionsBox = Hive.box(_sessionsBoxName);
+        _sessionsBox = Hive.box<Map<dynamic, dynamic>>(_sessionsBoxName);
       } else {
-        _sessionsBox = await Hive.openBox(_sessionsBoxName);
+        _sessionsBox = await Hive.openBox<Map<dynamic, dynamic>>(_sessionsBoxName);
       }
     }
 
     // Messages Box
     if (_messagesBox == null || !_messagesBox!.isOpen) {
       if (Hive.isBoxOpen(_messagesBoxName)) {
-        _messagesBox = Hive.box(_messagesBoxName);
+        _messagesBox = Hive.box<Map<dynamic, dynamic>>(_messagesBoxName);
       } else {
-        _messagesBox = await Hive.openBox(_messagesBoxName);
+        _messagesBox = await Hive.openBox<Map<dynamic, dynamic>>(_messagesBoxName);
       }
     }
   }
 
   /// Sessions Box 가져오기 (null safety 보장)
-  Box<dynamic> _getSessionsBox() {
+  Box<Map<dynamic, dynamic>> _getSessionsBox() {
     if (_sessionsBox == null || !_sessionsBox!.isOpen) {
       throw StateError('ChatSessionLocalDatasource not initialized. Call init() first.');
     }
@@ -43,7 +43,7 @@ class ChatSessionLocalDatasource {
   }
 
   /// Messages Box 가져오기 (null safety 보장)
-  Box<dynamic> _getMessagesBox() {
+  Box<Map<dynamic, dynamic>> _getMessagesBox() {
     if (_messagesBox == null || !_messagesBox!.isOpen) {
       throw StateError('ChatSessionLocalDatasource not initialized. Call init() first.');
     }
@@ -60,10 +60,9 @@ class ChatSessionLocalDatasource {
     final sessions = <ChatSessionModel>[];
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          sessions.add(ChatSessionModel.fromHiveMap(map));
+          sessions.add(ChatSessionModel.fromHiveMap(raw));
         } catch (e) {
           // 손상된 데이터 무시
           print('[ChatSessionLocalDatasource] 손상된 세션 데이터 무시: $e');
@@ -83,11 +82,10 @@ class ChatSessionLocalDatasource {
 
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['id'] == id) {
-            return ChatSessionModel.fromHiveMap(map);
+          if (raw['id'] == id) {
+            return ChatSessionModel.fromHiveMap(raw);
           }
         } catch (e) {
           // 손상된 데이터 무시
@@ -109,10 +107,9 @@ class ChatSessionLocalDatasource {
     int? existingIndex;
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['id'] == session.id) {
+          if (raw['id'] == session.id) {
             existingIndex = i;
             break;
           }
@@ -145,10 +142,9 @@ class ChatSessionLocalDatasource {
 
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['id'] == id) {
+          if (raw['id'] == id) {
             await box.deleteAt(i);
             return;
           }
@@ -190,11 +186,10 @@ class ChatSessionLocalDatasource {
     final messages = <ChatMessageModel>[];
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['sessionId'] == sessionId) {
-            messages.add(ChatMessageModel.fromHiveMap(map));
+          if (raw['sessionId'] == sessionId) {
+            messages.add(ChatMessageModel.fromHiveMap(raw));
           }
         } catch (e) {
           // 손상된 데이터 무시
@@ -231,11 +226,8 @@ class ChatSessionLocalDatasource {
     int count = 0;
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null) {
-        final map = Map<dynamic, dynamic>.from(raw as Map);
-        if (map['sessionId'] == sessionId) {
-          count++;
-        }
+      if (raw != null && raw['sessionId'] == sessionId) {
+        count++;
       }
     }
     return count;
@@ -250,10 +242,9 @@ class ChatSessionLocalDatasource {
     int? existingIndex;
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['id'] == message.id) {
+          if (raw['id'] == message.id) {
             existingIndex = i;
             break;
           }
@@ -282,10 +273,9 @@ class ChatSessionLocalDatasource {
     // 역순으로 삭제 (인덱스 변경 문제 방지)
     for (var i = box.length - 1; i >= 0; i--) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['sessionId'] == sessionId) {
+          if (raw['sessionId'] == sessionId) {
             await box.deleteAt(i);
           }
         } catch (e) {
@@ -302,10 +292,9 @@ class ChatSessionLocalDatasource {
 
     for (var i = 0; i < box.length; i++) {
       final raw = box.getAt(i);
-      if (raw != null && raw is Map) {
+      if (raw != null) {
         try {
-          final map = Map<dynamic, dynamic>.from(raw);
-          if (map['id'] == id) {
+          if (raw['id'] == id) {
             await box.deleteAt(i);
             return;
           }

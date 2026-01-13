@@ -31,19 +31,41 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  // 위젯 rebuild를 위한 key (reset 시 갱신)
+  Key _formKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
-    // 폼 상태 초기화
+    // 폼 상태 초기화 및 위젯 rebuild
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(profileFormProvider.notifier).reset();
+      // 위젯들의 controller도 초기화하기 위해 key 변경
+      if (mounted) {
+        setState(() {
+          _formKey = UniqueKey();
+        });
+      }
     });
   }
 
   Future<void> _onSave() async {
     // 유효성 검사 (Form State StateNotifier 내부 로직 이용)
     final formNotifier = ref.read(profileFormProvider.notifier);
-    
+    final formState = ref.read(profileFormProvider);
+
+    // 디버깅: 현재 폼 상태 출력
+    print('[Onboarding] === Form State Debug ===');
+    print('[Onboarding] displayName: "${formState.displayName}"');
+    print('[Onboarding] gender: ${formState.gender}');
+    print('[Onboarding] birthDate: ${formState.birthDate}');
+    print('[Onboarding] birthCity: "${formState.birthCity}"');
+    print('[Onboarding] birthTimeUnknown: ${formState.birthTimeUnknown}');
+    print('[Onboarding] birthTimeMinutes: ${formState.birthTimeMinutes}');
+    print('[Onboarding] isLunar: ${formState.isLunar}');
+    print('[Onboarding] isValid: ${formState.isValid}');
+    print('[Onboarding] ===========================');
+
     try {
         await formNotifier.saveProfile();
         if (mounted) {
@@ -51,6 +73,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         }
     } catch (e) {
         // 에러 처리
+        print('[Onboarding] saveProfile error: $e');
         if (mounted) {
              ShadToaster.of(context).show(
               ShadToast.destructive(
@@ -100,6 +123,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: MysticBackground(
         child: SafeArea(
           child: SingleChildScrollView(
+            key: _formKey,  // key로 rebuild 제어
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

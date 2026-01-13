@@ -4,7 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../AI/services/saju_analysis_service.dart' as ai_saju;
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
@@ -363,7 +363,7 @@ class ChatNotifier extends _$ChatNotifier {
 
           final user = Supabase.instance.client.auth.currentUser;
           if (user != null) {
-            final sajuService = SajuAnalysisService();
+            final sajuService = ai_saju.SajuAnalysisService();
             final result = await sajuService.analyzeOnProfileSave(
               userId: user.id,
               profileId: profileId,
@@ -634,6 +634,43 @@ class ChatNotifier extends _$ChatNotifier {
         targetProfile = await profileRepo.getById(targetProfileId);
         if (targetProfile != null) {
           targetSajuAnalysis = await analysisRepo.getByProfileId(targetProfileId);
+
+          // v3.5: 상대방 사주 분석이 없으면 GPT-5.2로 자동 생성
+          if (targetSajuAnalysis == null) {
+            if (kDebugMode) {
+              print('   ⚠️ 상대방 사주 분석 없음 → GPT-5.2 자동 분석 시작');
+            }
+            try {
+              // 현재 사용자 ID 가져오기 (RLS 필요)
+              final userId = Supabase.instance.client.auth.currentUser?.id;
+              if (userId != null) {
+                // runInBackground: false → 분석 완료까지 대기
+                final aiAnalysisService = ai_saju.SajuAnalysisService();
+                final result = await aiAnalysisService.ensureSajuBaseAnalysis(
+                  userId: userId,
+                  profileId: targetProfileId,
+                  runInBackground: false,  // 채팅 시작 전 완료 필요
+                );
+
+                if (result.success) {
+                  // 분석 완료 후 다시 조회
+                  targetSajuAnalysis = await analysisRepo.getByProfileId(targetProfileId);
+                  if (kDebugMode) {
+                    print('   ✅ 상대방 사주 분석 자동 생성 완료');
+                  }
+                } else {
+                  if (kDebugMode) {
+                    print('   ❌ 상대방 사주 분석 생성 실패: ${result.error}');
+                  }
+                }
+              }
+            } catch (e) {
+              if (kDebugMode) {
+                print('   ❌ 상대방 사주 분석 생성 중 오류: $e');
+              }
+            }
+          }
+
           if (kDebugMode) {
             print('   ✅ 상대방 프로필: ${targetProfile.displayName}');
             print('   ✅ 상대방 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');

@@ -11,8 +11,8 @@ import '../models/saju_analysis_db_model.dart';
 class SajuAnalysisRepository {
   static const String _boxName = 'saju_analyses';
 
-  /// Hive 박스 가져오기
-  Box<dynamic> get _box => Hive.box(_boxName);
+  /// Hive 박스 가져오기 (main.dart에서 Box<Map>으로 열었으므로 동일 타입)
+  Box<Map<dynamic, dynamic>> get _box => Hive.box<Map<dynamic, dynamic>>(_boxName);
 
   // ==================== CREATE ====================
 
@@ -89,7 +89,7 @@ class SajuAnalysisRepository {
   SajuAnalysisDbModel? _getFromHive(String id) {
     final data = _box.get(id);
     if (data == null) return null;
-    return SajuAnalysisDbModel.fromHiveMap(Map<dynamic, dynamic>.from(data));
+    return SajuAnalysisDbModel.fromHiveMap(data);
   }
 
   /// Supabase에서 조회
@@ -112,7 +112,7 @@ class SajuAnalysisRepository {
     for (final key in _box.keys) {
       final data = _box.get(key);
       if (data != null && data['profileId'] == profileId) {
-        return SajuAnalysisDbModel.fromHiveMap(Map<dynamic, dynamic>.from(data));
+        return SajuAnalysisDbModel.fromHiveMap(data);
       }
     }
 
@@ -143,9 +143,7 @@ class SajuAnalysisRepository {
     for (final key in _box.keys) {
       final data = _box.get(key);
       if (data != null) {
-        results.add(
-          SajuAnalysisDbModel.fromHiveMap(Map<dynamic, dynamic>.from(data)),
-        );
+        results.add(SajuAnalysisDbModel.fromHiveMap(data));
       }
     }
     return results;
@@ -234,20 +232,27 @@ class SajuAnalysisRepository {
 
   /// 동기화 대기 목록에 추가
   void _markForSync(String id) {
-    final syncBox = Hive.box('chat_sessions'); // 임시로 기존 박스 사용
-    final pendingSync = List<String>.from(syncBox.get('pending_saju_sync', defaultValue: <String>[]));
+    // chat_sessions Box도 Map 타입으로 열렸으므로 타입 일치
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final pendingData = syncBox.get('pending_saju_sync');
+    final pendingSync = pendingData != null 
+        ? List<String>.from(pendingData['items'] ?? <String>[])
+        : <String>[];
     if (!pendingSync.contains(id)) {
       pendingSync.add(id);
-      syncBox.put('pending_saju_sync', pendingSync);
+      syncBox.put('pending_saju_sync', {'items': pendingSync});
     }
   }
 
   /// 동기화 대기 목록에서 제거
   void _unmarkForSync(String id) {
-    final syncBox = Hive.box('chat_sessions');
-    final pendingSync = List<String>.from(syncBox.get('pending_saju_sync', defaultValue: <String>[]));
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final pendingData = syncBox.get('pending_saju_sync');
+    final pendingSync = pendingData != null 
+        ? List<String>.from(pendingData['items'] ?? <String>[])
+        : <String>[];
     pendingSync.remove(id);
-    syncBox.put('pending_saju_sync', pendingSync);
+    syncBox.put('pending_saju_sync', {'items': pendingSync});
   }
 
   /// 오프라인 데이터 동기화
@@ -258,10 +263,11 @@ class SajuAnalysisRepository {
       return SyncResult(synced: 0, failed: 0, pending: _getPendingSyncCount());
     }
 
-    final syncBox = Hive.box('chat_sessions');
-    final pendingSync = List<String>.from(
-      syncBox.get('pending_saju_sync', defaultValue: <String>[]),
-    );
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final pendingData = syncBox.get('pending_saju_sync');
+    final pendingSync = pendingData != null 
+        ? List<String>.from(pendingData['items'] ?? <String>[])
+        : <String>[];
 
     int synced = 0;
     int failed = 0;
@@ -291,9 +297,11 @@ class SajuAnalysisRepository {
 
   /// 동기화 대기 개수
   int _getPendingSyncCount() {
-    final syncBox = Hive.box('chat_sessions');
-    final pendingSync = syncBox.get('pending_saju_sync', defaultValue: <String>[]);
-    return (pendingSync as List).length;
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final pendingData = syncBox.get('pending_saju_sync');
+    if (pendingData == null) return 0;
+    final items = pendingData['items'];
+    return items is List ? items.length : 0;
   }
 
   /// Supabase에서 모든 데이터 가져와서 로컬 동기화
