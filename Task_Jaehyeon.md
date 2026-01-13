@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-10 (Phase 44 궁합 채팅 targetProfileId 연동 완료 ✅)
+> 최종 업데이트: 2026-01-13 (Phase 46 궁합 채팅 UI 완료 ✅)
 
 ---
 
@@ -27,17 +27,27 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 현재 상태:
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
 - Phase 44 완료 ✅ (궁합 채팅 targetProfileId 연동)
-  - DB: chat_sessions.target_profile_id 컬럼 추가
-  - Flutter: 상대방 프로필/사주 조회 → 시스템 프롬프트 포함
+- Phase 45 완료 ✅ (인연 추가 DB 저장 버그 수정)
+- **Phase 46 완료 ✅ (궁합 채팅 UI - RelationSelectorSheet)**
 
-검증 필요:
-1. 인연 관계도 → 김동현 → "사주 상담" → AI가 두 사람 사주 인식하는지
-2. 새로고침 후에도 상대방 정보 유지되는지
+✅ **Phase 45 완료 내역**:
+- **원인**: `_saveToSupabase()`에서 에러를 catch만 하고 rethrow 안함
+- **수정**: `relation_edit_provider.dart`에 `rethrow` 추가
+- **결과**: 인연 추가 시 DB 정상 저장 확인
+
+✅ **Phase 46 완료 내역**:
+- **새 파일**: `relation_selector_sheet.dart` (인연 선택 Bottom Sheet)
+- **수정 파일**: `saju_chat_shell.dart` (PopupMenu + 궁합 채팅 메서드)
+- **기능**: "+" 버튼 → "일반 채팅" / "궁합 채팅" 선택
+  - 궁합 채팅 선택 시 카테고리별 인연 목록 표시
+  - 인연 선택 시 `@카테고리/이름` 형식으로 채팅 시작
+  - `compatibility_analyses` 테이블에 분석 결과 저장 확인 ✅
 
 다음 작업 후보:
-1. Phase 44-B (궁합 분석 캐싱) - compatibility_analyses 저장/조회
+1. Phase 44-B (궁합 분석 캐싱) - 기존 분석 조회/재사용
 2. [SUGGESTED_QUESTIONS] 태그 파싱 개선
 3. 절입시간 계산 검증
+4. saju_analyses 연동 - 궁합 분석 시 양쪽 사주 분석 ID 연결
 
 [원하는 작업 선택]
 ```
@@ -74,6 +84,24 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
     - `/saju/chart` 라우트 추가 (만세력 결과 화면)
     - master 브랜치 머지 충돌 해결 (ShellRoute 구조 유지)
   - 문서: `docs/02_features/saju_relationship_db.md` v1.2
+
+- **Phase 46 (궁합 채팅 UI) ✅ 완료 (2026-01-13)**
+  - **새 파일**: `relation_selector_sheet.dart`
+    - 인연 선택 Bottom Sheet UI
+    - 카테고리별 그룹핑 (가족, 연인, 친구, 직장, 기타)
+    - `RelationSelection` 결과 반환 (relation + mentionText)
+  - **수정 파일**: `saju_chat_shell.dart`
+    - "+" 버튼을 PopupMenu로 변경 (일반 채팅 / 궁합 채팅)
+    - `_handleCompatibilityChat()` 메서드 추가
+    - `@카테고리/이름` 형식의 초기 메시지로 세션 생성
+  - **DB 저장 확인**: `compatibility_analyses` 테이블에 분석 결과 저장 ✅
+    - `analysis_type`: "friendship" (친구 관계)
+    - `from_profile_analysis_id`, `to_profile_analysis_id`: 아직 NULL (saju_analyses 연동 필요)
+
+- **Phase 45 (인연 추가 DB 저장 버그 수정) ✅ 완료 (2026-01-13)**
+  - **원인**: `_saveToSupabase()`에서 에러를 catch만 하고 rethrow 안함
+  - **수정**: `relation_edit_provider.dart`에 `rethrow` 추가
+  - **결과**: 인연 추가 시 DB 정상 저장 확인
 
 - **Phase 44 (궁합 채팅 targetProfileId 연동) ✅ 완료 (2026-01-10)**
   - **Step 1: DB 마이그레이션** ✅ 완료

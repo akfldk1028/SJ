@@ -122,8 +122,10 @@ class CompatibilityContext {
     buffer.writeln('- 성별: ${profile.gender == 'male' ? '남성' : '여성'}');
     buffer.writeln(
         '- 생년월일: ${profile.birthDate.year}년 ${profile.birthDate.month}월 ${profile.birthDate.day}일');
-    if (profile.birthTime != null) {
-      buffer.writeln('- 태어난 시간: ${profile.birthTime}');
+    if (profile.birthTimeMinutes != null) {
+      final hours = profile.birthTimeMinutes! ~/ 60;
+      final minutes = profile.birthTimeMinutes! % 60;
+      buffer.writeln('- 태어난 시간: ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}');
     }
 
     // 사주 4주

@@ -1810,6 +1810,89 @@ WHERE sp.id = :targetProfileId;
 
 ---
 
+## Phase 45: 인연 추가 DB 저장 버그 수정 (2026-01-13) ✅ 완료
+
+### 개요
+인연 추가 화면에서 저장 시 DB에 데이터가 저장되지 않는 문제
+
+### 원인
+`relation_edit_provider.dart`의 `_saveToSupabase()` 메서드에서:
+- 에러를 `catch`로 잡고 로그만 출력
+- `rethrow` 하지 않아서 상위 코드에서 에러 인식 불가
+- 결과: 저장 실패해도 성공처럼 처리됨
+
+### 해결
+```dart
+// relation_edit_provider.dart
+Future<void> _saveToSupabase() async {
+  try {
+    // ... Supabase 저장 로직
+  } catch (e) {
+    debugPrint('[RelationEdit] Supabase 저장 오류: $e');
+    rethrow;  // ✅ 추가: 에러를 상위로 전파
+  }
+}
+```
+
+### 검증 결과
+| 항목 | 상태 |
+|------|------|
+| `saju_profiles` (other) | ✅ 저장 확인 |
+| `profile_relations` | ✅ 저장 확인 |
+| UI 피드백 | ✅ 정상 |
+
+---
+
+## Phase 46: 궁합 채팅 UI (2026-01-13) ✅ 완료
+
+### 개요
+채팅 화면에서 궁합 채팅을 쉽게 시작할 수 있는 UI 추가
+
+### 구현 내용
+
+#### 새 파일: `relation_selector_sheet.dart`
+- Bottom Sheet UI로 인연 목록 표시
+- 카테고리별 그룹핑 (가족, 연인, 친구, 직장, 기타)
+- 선택 시 `RelationSelection` 반환 (relation + mentionText)
+
+#### 수정 파일: `saju_chat_shell.dart`
+- "+" 버튼 → PopupMenu로 변경
+  - "일반 채팅": 기존 `_handleNewChat()` 호출
+  - "궁합 채팅": 새 `_handleCompatibilityChat()` 호출
+- `_handleCompatibilityChat()`:
+  1. `RelationSelectorSheet.show()` 호출
+  2. 선택된 인연으로 세션 생성
+  3. `targetProfileId` + 초기 메시지(`@카테고리/이름님과의 궁합이 궁금해요`)
+
+### 데이터 흐름
+```
+"+" 클릭 → PopupMenu 표시
+    ├── "일반 채팅" → _handleNewChat()
+    └── "궁합 채팅" → _handleCompatibilityChat()
+                         ├── RelationSelectorSheet 표시
+                         ├── 인연 선택
+                         ├── createSession(targetProfileId, initialMessage)
+                         └── CompatibilityAnalysisService.analyzeCompatibility()
+                              └── compatibility_analyses 테이블 INSERT ✅
+```
+
+### DB 저장 확인
+```sql
+SELECT * FROM compatibility_analyses WHERE analysis_type = 'friendship';
+-- 결과: 1개 레코드 확인 ✅
+-- profile1_id: cd907507-5cad-45bf-b970-1c23fba2301c (박재현)
+-- profile2_id: 9ac2f988-406a-4fbb-85a9-2883d2aa8fb9 (김동현)
+-- analysis_type: friendship
+-- from_profile_analysis_id: NULL (saju_analyses 연동 필요)
+-- to_profile_analysis_id: NULL (saju_analyses 연동 필요)
+```
+
+### 남은 작업 (Phase 44-B)
+- `from_profile_analysis_id`, `to_profile_analysis_id` 연동
+- 기존 궁합 분석 결과 캐싱 (조회/재사용)
+
+---
+
 ## 참고사항
 
 ### Edge Function 배포 명령어

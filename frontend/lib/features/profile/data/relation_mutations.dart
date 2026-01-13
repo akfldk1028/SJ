@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../core/data/data.dart';
 import 'models/profile_relation_model.dart';
 import 'relation_schema.dart';
@@ -20,6 +21,12 @@ class RelationMutations extends BaseMutations {
     bool isFavorite = false,
     int sortOrder = 0,
   }) async {
+    debugPrint('🔍 [RelationMutations.create] 시작');
+    debugPrint('   - userId: $userId');
+    debugPrint('   - fromProfileId: $fromProfileId');
+    debugPrint('   - toProfileId: $toProfileId');
+    debugPrint('   - relationType: $relationType');
+
     return safeMutation(
       mutation: (client) async {
         final data = {
@@ -33,11 +40,19 @@ class RelationMutations extends BaseMutations {
           'sort_order': sortOrder,
         };
 
+        debugPrint('🔍 [RelationMutations.create] Supabase INSERT 호출');
+        debugPrint('   - 테이블: $profileRelationsTable');
+        debugPrint('   - 데이터: $data');
+
         final response = await client
             .from(profileRelationsTable)
             .insert(data)
             .select(relationSelectColumns)
             .single();
+
+        debugPrint('✅ [RelationMutations.create] INSERT 성공');
+        debugPrint('   - 응답: $response');
+
         return ProfileRelationModel.fromSupabaseMap(response);
       },
       errorPrefix: '관계 생성 실패',

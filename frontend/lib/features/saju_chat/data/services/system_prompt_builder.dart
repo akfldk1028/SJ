@@ -4,6 +4,9 @@ import '../../../saju_chart/domain/entities/sinsal.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../domain/models/ai_persona.dart';
 
+/// 궁합 분석 결과 (Gemini)
+typedef CompatibilityAnalysis = Map<String, dynamic>;
+
 /// 시스템 프롬프트 빌더
 ///
 /// AI 채팅을 위한 시스템 프롬프트를 조립하는 클래스
@@ -28,6 +31,7 @@ class SystemPromptBuilder {
   /// [isFirstMessage] - 첫 메시지 여부 (토큰 최적화)
   /// [targetProfile] - 궁합 채팅 상대방 프로필 (선택)
   /// [targetSajuAnalysis] - 궁합 채팅 상대방 사주 (선택)
+  /// [compatibilityAnalysis] - Gemini 궁합 분석 결과 (선택)
   String build({
     required String basePrompt,
     AiSummary? aiSummary,
@@ -37,6 +41,7 @@ class SystemPromptBuilder {
     bool isFirstMessage = true,
     SajuProfile? targetProfile,
     SajuAnalysis? targetSajuAnalysis,
+    CompatibilityAnalysis? compatibilityAnalysis,
   }) {
     _buffer.clear();
 
@@ -78,6 +83,12 @@ class SystemPromptBuilder {
       if (targetSajuAnalysis != null) {
         _addSajuAnalysis(targetSajuAnalysis, '상대방의 사주');
       }
+
+      // 7. Gemini 궁합 분석 결과 추가 (있는 경우)
+      if (compatibilityAnalysis != null) {
+        _addCompatibilityAnalysisResult(compatibilityAnalysis);
+      }
+
       _addCompatibilityInstructions();
     }
 
@@ -463,6 +474,178 @@ class SystemPromptBuilder {
       _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
       _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
       _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하여 깊이 있는 상담을 제공하세요.');
+    }
+  }
+
+  /// Gemini 궁합 분석 결과 추가
+  void _addCompatibilityAnalysisResult(CompatibilityAnalysis analysis) {
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('## 🎯 AI 궁합 분석 결과 (Gemini)');
+    _buffer.writeln();
+
+    // 종합 점수
+    final overallScore = analysis['overall_score'];
+    final overallGrade = analysis['overall_grade'];
+    final summary = analysis['summary'];
+
+    if (overallScore != null) {
+      _buffer.writeln('### 종합 궁합 점수');
+      _buffer.writeln('- **점수**: $overallScore점 / 100점');
+      if (overallGrade != null) {
+        _buffer.writeln('- **등급**: $overallGrade');
+      }
+      _buffer.writeln();
+    }
+
+    if (summary != null) {
+      _buffer.writeln('### 한줄 요약');
+      _buffer.writeln('> $summary');
+      _buffer.writeln();
+    }
+
+    // 카테고리별 점수
+    final categoryScores = analysis['category_scores'] as Map<String, dynamic>?;
+    if (categoryScores != null && categoryScores.isNotEmpty) {
+      _buffer.writeln('### 세부 분석 점수');
+      _addCategoryScore(categoryScores, 'oheng_harmony', '오행 조화');
+      _addCategoryScore(categoryScores, 'hapchung_interaction', '합충형해파 상호작용');
+      _addCategoryScore(categoryScores, 'yongsin_compatibility', '용신 호환성');
+      _addCategoryScore(categoryScores, 'sinsal_synergy', '신살 시너지');
+      _addCategoryScore(categoryScores, 'energy_balance', '에너지 균형');
+      _buffer.writeln();
+    }
+
+    // 상세 분석
+    final detailedAnalysis = analysis['detailed_analysis'] as Map<String, dynamic>?;
+    if (detailedAnalysis != null) {
+      _buffer.writeln('### 상세 분석');
+
+      // 오행 분석
+      final oheng = detailedAnalysis['oheng'] as Map<String, dynamic>?;
+      if (oheng != null) {
+        _buffer.writeln('**오행 관계**');
+        _buffer.writeln('- 나의 일간: ${oheng['my_day_master'] ?? '?'}');
+        _buffer.writeln('- 상대 일간: ${oheng['target_day_master'] ?? '?'}');
+        _buffer.writeln('- 관계: ${oheng['relationship'] ?? '?'}');
+        if (oheng['interpretation'] != null) {
+          _buffer.writeln('- 해석: ${oheng['interpretation']}');
+        }
+        _buffer.writeln();
+      }
+
+      // 합충 분석
+      final hapchung = detailedAnalysis['hapchung'] as Map<String, dynamic>?;
+      if (hapchung != null) {
+        _buffer.writeln('**합충형해파 상호작용**');
+        final haps = hapchung['haps'] as List?;
+        if (haps != null && haps.isNotEmpty) {
+          _buffer.writeln('- 합(合): ${haps.join(', ')}');
+        }
+        final chungs = hapchung['chungs'] as List?;
+        if (chungs != null && chungs.isNotEmpty) {
+          _buffer.writeln('- 충(沖): ${chungs.join(', ')}');
+        }
+        final others = hapchung['others'] as List?;
+        if (others != null && others.isNotEmpty) {
+          _buffer.writeln('- 형/파/해: ${others.join(', ')}');
+        }
+        if (hapchung['interpretation'] != null) {
+          _buffer.writeln('- 해석: ${hapchung['interpretation']}');
+        }
+        _buffer.writeln();
+      }
+
+      // 용신 분석
+      final yongsin = detailedAnalysis['yongsin'] as Map<String, dynamic>?;
+      if (yongsin != null) {
+        _buffer.writeln('**용신 호환성**');
+        if (yongsin['my_yongsin_effect'] != null) {
+          _buffer.writeln('- 나의 영향: ${yongsin['my_yongsin_effect']}');
+        }
+        if (yongsin['target_yongsin_effect'] != null) {
+          _buffer.writeln('- 상대의 영향: ${yongsin['target_yongsin_effect']}');
+        }
+        if (yongsin['synergy'] != null) {
+          _buffer.writeln('- 시너지: ${yongsin['synergy']}');
+        }
+        _buffer.writeln();
+      }
+    }
+
+    // 장점과 주의점
+    final strengths = analysis['strengths'] as List?;
+    if (strengths != null && strengths.isNotEmpty) {
+      _buffer.writeln('### 💚 장점');
+      for (final strength in strengths) {
+        _buffer.writeln('- $strength');
+      }
+      _buffer.writeln();
+    }
+
+    final challenges = analysis['challenges'] as List?;
+    if (challenges != null && challenges.isNotEmpty) {
+      _buffer.writeln('### ⚠️ 주의점');
+      for (final challenge in challenges) {
+        _buffer.writeln('- $challenge');
+      }
+      _buffer.writeln();
+    }
+
+    // 조언
+    final advice = analysis['advice'];
+    if (advice != null) {
+      _buffer.writeln('### 💡 조언');
+      if (advice is Map) {
+        if (advice['for_requester'] != null) {
+          _buffer.writeln('- 나에게: ${advice['for_requester']}');
+        }
+        if (advice['for_target'] != null) {
+          _buffer.writeln('- 상대에게: ${advice['for_target']}');
+        }
+        if (advice['together'] != null) {
+          _buffer.writeln('- 함께: ${advice['together']}');
+        }
+      } else if (advice is String) {
+        _buffer.writeln('$advice');
+      }
+      _buffer.writeln();
+    }
+
+    // 추천 활동
+    final bestActivities = analysis['best_activities'] as List?;
+    if (bestActivities != null && bestActivities.isNotEmpty) {
+      _buffer.writeln('### 🎉 함께 하면 좋은 활동');
+      for (final activity in bestActivities) {
+        _buffer.writeln('- $activity');
+      }
+      _buffer.writeln();
+    }
+
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('**위 AI 분석 결과를 참고하여 대화를 진행하세요.**');
+    _buffer.writeln('사용자의 질문에 맞춰 분석 결과를 자연스럽게 활용하고,');
+    _buffer.writeln('추가적인 통찰과 조언을 제공하세요.');
+  }
+
+  /// 카테고리별 점수 추가 헬퍼
+  void _addCategoryScore(Map<String, dynamic> scores, String key, String label) {
+    final category = scores[key] as Map<String, dynamic>?;
+    if (category != null) {
+      final score = category['score'];
+      final grade = category['grade'];
+      final description = category['description'];
+
+      _buffer.write('- **$label**: ');
+      if (score != null) _buffer.write('$score점');
+      if (grade != null) _buffer.write(' ($grade)');
+      _buffer.writeln();
+
+      if (description != null) {
+        _buffer.writeln('  - $description');
+      }
     }
   }
 }

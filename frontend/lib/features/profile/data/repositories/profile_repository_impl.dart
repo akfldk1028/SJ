@@ -51,25 +51,37 @@ class ProfileRepositoryImpl implements ProfileRepository {
     await _saveToSupabase(model);
   }
 
-  /// Supabase에 프로필 저장 (비동기, 실패 무시)
+  /// Supabase에 프로필 저장 (비동기, 실패 시 throw)
+  ///
+  /// Phase 45: 인연 추가 시 FK 제약 문제 해결을 위해
+  /// Supabase 저장 실패 시 에러를 throw하도록 변경
   Future<void> _saveToSupabase(SajuProfileModel model) async {
+    _log('🔍 _saveToSupabase 시작: ${model.id}');
+
     try {
       // 익명 인증 확인
       final user = await SupabaseService.ensureAuthenticated();
       if (user == null) {
-        _log('Supabase not available, skipping remote save');
-        return;
+        _log('❌ Supabase 인증 실패: user is null');
+        throw Exception('Supabase 인증이 필요합니다');
       }
+      _log('   - user.id: ${user.id}');
 
       final table = SupabaseService.sajuProfilesTable;
-      if (table == null) return;
+      if (table == null) {
+        _log('❌ sajuProfilesTable is null');
+        throw Exception('Supabase 테이블을 사용할 수 없습니다');
+      }
 
       final data = model.toSupabaseMap(user.id);
+      _log('   - upsert 데이터: $data');
+
       await table.upsert(data);
-      _log('Profile saved to Supabase: ${model.id}');
+      _log('✅ Profile saved to Supabase: ${model.id}');
     } catch (e) {
-      _log('Failed to save profile to Supabase: $e');
-      // 로컬 저장은 성공했으므로 에러를 throw하지 않음
+      _log('❌ Failed to save profile to Supabase: $e');
+      // Phase 45: FK 제약 문제로 인해 에러를 throw
+      rethrow;
     }
   }
 

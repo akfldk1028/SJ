@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../AI/services/saju_analysis_service.dart' as ai_saju;
+import '../../../../AI/services/compatibility_analysis_service.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
@@ -471,6 +472,7 @@ class ChatNotifier extends _$ChatNotifier {
     bool isFirstMessage = true,
     SajuProfile? targetProfile,
     SajuAnalysis? targetSajuAnalysis,
+    Map<String, dynamic>? compatibilityAnalysis,
   }) {
     final builder = SystemPromptBuilder();
     return builder.build(
@@ -482,6 +484,7 @@ class ChatNotifier extends _$ChatNotifier {
       isFirstMessage: isFirstMessage,
       targetProfile: targetProfile,
       targetSajuAnalysis: targetSajuAnalysis,
+      compatibilityAnalysis: compatibilityAnalysis,
     );
   }
 
@@ -682,6 +685,52 @@ class ChatNotifier extends _$ChatNotifier {
         }
       }
 
+      // v3.6: Gemini 궁합 분석 실행 (첫 메시지 + 궁합 모드)
+      Map<String, dynamic>? compatibilityAnalysis;
+      if (isFirstMessage && targetProfileId != null && targetProfile != null && profileId != null) {
+        if (kDebugMode) {
+          print('');
+          print('   🎯 Gemini 궁합 분석 시작...');
+        }
+        try {
+          final userId = Supabase.instance.client.auth.currentUser?.id;
+          if (userId != null) {
+            // profile_relations에서 관계 유형 조회
+            final relationResult = await Supabase.instance.client
+                .from('profile_relations')
+                .select('relation_type')
+                .eq('from_profile_id', profileId)
+                .eq('to_profile_id', targetProfileId)
+                .maybeSingle();
+
+            final relationType = relationResult?['relation_type'] as String? ?? 'other';
+
+            final compatibilityService = CompatibilityAnalysisService();
+            final result = await compatibilityService.analyzeCompatibility(
+              userId: userId,
+              fromProfileId: profileId,
+              toProfileId: targetProfileId,
+              relationType: relationType,
+            );
+
+            if (result.success && result.data != null) {
+              compatibilityAnalysis = result.data;
+              if (kDebugMode) {
+                print('   ✅ 궁합 분석 완료: ${result.data?['overall_score']}점');
+              }
+            } else {
+              if (kDebugMode) {
+                print('   ⚠️ 궁합 분석 실패: ${result.error}');
+              }
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('   ❌ 궁합 분석 중 오류: $e');
+          }
+        }
+      }
+
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiSummary: aiSummary,
@@ -691,6 +740,7 @@ class ChatNotifier extends _$ChatNotifier {
         isFirstMessage: isFirstMessage,
         targetProfile: targetProfile,  // v3.4: 궁합 상대방 프로필
         targetSajuAnalysis: targetSajuAnalysis,  // v3.4: 궁합 상대방 사주
+        compatibilityAnalysis: compatibilityAnalysis,  // v3.6: Gemini 궁합 분석 결과
       );
       /////////////////////////////////////////////////////////////////수정1순우ㅟ
       // [4] 시스템 프롬프트 구성
@@ -710,6 +760,7 @@ class ChatNotifier extends _$ChatNotifier {
           print('   [상대방] 프로필: ${targetProfile.displayName} (${targetProfile.gender.displayName})');
           print('   [상대방] 생년월일: ${targetProfile.birthDateFormatted}');
           print('   [상대방] 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
+          print('   [궁합분석] ${compatibilityAnalysis != null ? '${compatibilityAnalysis['overall_score']}점' : '없음'}');
         } else if (targetProfileId != null) {
           print('   [상대방] 프로필 조회 실패 (targetProfileId: $targetProfileId)');
         }

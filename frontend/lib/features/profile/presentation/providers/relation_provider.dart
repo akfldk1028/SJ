@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -164,14 +165,22 @@ class RelationNotifier extends _$RelationNotifier {
     bool isFavorite = false,
     int sortOrder = 0,
   }) async {
+    debugPrint('🔍 [RelationNotifier.create] 시작');
+    debugPrint('   - fromProfileId: $fromProfileId');
+    debugPrint('   - toProfileId: $toProfileId');
+    debugPrint('   - relationType: $relationType');
+
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
+      debugPrint('❌ [RelationNotifier.create] 실패: 로그인 필요');
       throw Exception('로그인이 필요합니다');
     }
+    debugPrint('   - userId: ${user.id}');
 
     // AsyncValue.guard를 사용하여 안전하게 상태 관리
     ProfileRelationModel? createdModel;
 
+    debugPrint('🔍 [RelationNotifier.create] relationMutations.create 호출');
     state = await AsyncValue.guard(() async {
       final result = await relationMutations.create(
         userId: user.id,
@@ -184,23 +193,30 @@ class RelationNotifier extends _$RelationNotifier {
         sortOrder: sortOrder,
       );
 
+      debugPrint('🔍 [RelationNotifier.create] relationMutations 결과: ${result.runtimeType}');
+
       switch (result) {
         case QuerySuccess(:final data):
+          debugPrint('✅ [RelationNotifier.create] 성공: id=${data.id}');
           createdModel = data;
           _invalidateRelatedProviders(fromProfileId);
           return;
         case QueryFailure(:final message):
+          debugPrint('❌ [RelationNotifier.create] 실패: $message');
           throw Exception(message);
         case QueryOffline():
+          debugPrint('❌ [RelationNotifier.create] 오프라인');
           throw Exception('오프라인 상태입니다');
       }
     });
 
     // 에러가 발생했으면 다시 던지기
     if (state.hasError) {
+      debugPrint('❌ [RelationNotifier.create] state 에러: ${state.error}');
       throw state.error!;
     }
 
+    debugPrint('✅ [RelationNotifier.create] 완료');
     return createdModel;
   }
 

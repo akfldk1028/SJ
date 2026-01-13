@@ -330,16 +330,28 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
     });
 
     try {
+      debugPrint('🔍 [_saveRelationship] Step 1: 활성 프로필 확인 시작');
+
       // 1. 활성 프로필 (나) 확인
       final activeProfile = ref.read(activeProfileProvider).value;
       if (activeProfile == null) {
+        debugPrint('❌ [_saveRelationship] Step 1 실패: activeProfile이 null');
         throw Exception('내 프로필이 없습니다. 먼저 내 프로필을 등록해주세요.');
       }
+      debugPrint('✅ [_saveRelationship] Step 1 완료: activeProfile.id = ${activeProfile.id}');
 
       // 2. 새 프로필 생성 (관계인용)
+      debugPrint('🔍 [_saveRelationship] Step 2: 새 프로필 객체 생성');
       final formState = ref.read(profileFormProvider);
+      debugPrint('   - formState.isValid = ${formState.isValid}');
+      debugPrint('   - displayName = ${formState.displayName}');
+      debugPrint('   - gender = ${formState.gender}');
+      debugPrint('   - birthDate = ${formState.birthDate}');
+      debugPrint('   - birthCity = ${formState.birthCity}');
+
       final now = DateTime.now();
       final newProfileId = const Uuid().v4();
+      debugPrint('   - newProfileId = $newProfileId');
 
       final newProfile = SajuProfile(
         id: newProfileId,
@@ -361,12 +373,20 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
         profileType: 'other', // 관계인 프로필 타입
         memo: _memo,
       );
+      debugPrint('✅ [_saveRelationship] Step 2 완료: newProfile 객체 생성됨');
 
       // 3. 프로필 저장
+      debugPrint('🔍 [_saveRelationship] Step 3: 프로필 저장 시작 (repository.save)');
       final repository = ref.read(profileRepositoryProvider);
       await repository.save(newProfile);
+      debugPrint('✅ [_saveRelationship] Step 3 완료: 프로필 저장됨');
 
       // 4. 관계 생성
+      debugPrint('🔍 [_saveRelationship] Step 4: 관계 생성 시작 (relationNotifier.create)');
+      debugPrint('   - fromProfileId = ${activeProfile.id}');
+      debugPrint('   - toProfileId = $newProfileId');
+      debugPrint('   - relationType = ${_selectedRelationType.value}');
+
       await ref.read(relationNotifierProvider.notifier).create(
             fromProfileId: activeProfile.id,
             toProfileId: newProfileId,
@@ -375,13 +395,17 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
             memo: _memo,
             isFavorite: _isFavorite,
           );
+      debugPrint('✅ [_saveRelationship] Step 4 완료: 관계 생성됨');
 
       // 5. 목록 갱신
+      debugPrint('🔍 [_saveRelationship] Step 5: Provider 갱신');
       ref.invalidate(profileListProvider);
       ref.invalidate(allProfilesProvider);
       ref.invalidate(relationsByCategoryProvider(activeProfile.id));
+      debugPrint('✅ [_saveRelationship] Step 5 완료');
 
       // 6. 성공 메시지 및 화면 닫기
+      debugPrint('🔍 [_saveRelationship] Step 6: 성공 처리 및 네비게이션');
       if (mounted) {
         ShadToaster.of(context).show(
           ShadToast(
@@ -390,10 +414,15 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
           ),
         );
         // 네비게이션 후에는 setState가 불필요하므로 여기서 return
+        debugPrint('✅ [_saveRelationship] 모든 단계 완료! 화면 이동');
         context.go(Routes.relationshipList);
         return;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [_saveRelationship] 에러 발생!');
+      debugPrint('   - 에러: $e');
+      debugPrint('   - 스택트레이스: $stackTrace');
+
       if (mounted) {
         ShadToaster.of(context).show(
           ShadToast.destructive(
