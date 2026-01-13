@@ -85,9 +85,8 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^5.2.1
 
-  # Graph Visualization - Relationship Graph (로컬 SJ-Flow 패키지)
-  graphview:
-    path: ../SJ-Flow
+  # Graph Visualization - Relationship Graph
+  graphview: ^1.2.0
 
   # Calendar - Date selection
   table_calendar: ^3.1.2
