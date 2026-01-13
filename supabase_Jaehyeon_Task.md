@@ -1931,3 +1931,64 @@ Task 도구:
 - prompt: "[11_progress_tracker] 현재 상태 확인"
 - subagent_type: general-purpose
 ```
+
+---
+
+## Phase 47: 궁합 분석 아키텍처 재설계 (2026-01-13) 🔄 진행중
+
+### 아키텍처 결정사항
+
+**기존 이해 (잘못됨)**:
+- 인연(to)도 GPT-5.2로 사주 분석 후 `saju_analyses` 저장 필요
+
+**수정된 아키텍처**:
+| 대상 | 사주 계산 | 저장 위치 |
+|------|----------|-----------|
+| 나(userId) | GPT-5.2 | `saju_analyses` 테이블 |
+| 인연(relation) | **Gemini 직접 계산** | `compatibility_analyses.saju_analysis` (JSONB) |
+
+### DB 영향
+
+**영향 없는 테이블**:
+- `saju_analyses`: 인연 사주 저장 안 함 (나만 저장)
+- `saju_profiles`: 변경 없음
+
+**영향 있는 테이블**:
+- `compatibility_analyses.saju_analysis` (JSONB): Gemini가 계산한 인연 사주 저장
+  - 기존: 궁합 분석 결과만 저장
+  - 변경: 인연의 계산된 사주 데이터도 포함
+
+### profile_relations FK 정리
+
+| 컬럼 | 용도 | Phase 47 후 |
+|------|------|-------------|
+| `from_profile_analysis_id` | 나의 `saju_analyses` FK | ✅ 사용 (기존 유지) |
+| `to_profile_analysis_id` | 인연의 `saju_analyses` FK | ❌ **사용 안 함** (NULL 유지) |
+| `compatibility_analysis_id` | 궁합 분석 FK | ✅ 사용 (인연 사주도 여기에 포함) |
+
+### 데이터 흐름 (Phase 47 완료 후)
+
+```
+[궁합 채팅 시작]
+    │
+    ▼
+나(from): saju_profiles → saju_analyses(GPT-5.2 결과) 조회
+    │
+    ▼
+인연(to): saju_profiles → 생년월일/시간만 추출 (saju_analyses 조회 X)
+    │
+    ▼
+Gemini 궁합 분석 호출:
+    - 나: GPT-5.2가 계산한 사주 데이터 전달
+    - 인연: 생년월일/시간만 전달 → Gemini가 사주 직접 계산
+    │
+    ▼
+compatibility_analyses 저장:
+    - overall_score, category_scores, strengths, challenges
+    - saju_analysis: { 궁합 분석 + 인연의 계산된 사주 }
+```
+
+### 참조
+- Frontend 상세: `Task_Jaehyeon.md` Phase 47 참조
+
+---

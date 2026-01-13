@@ -485,6 +485,13 @@ class SystemPromptBuilder {
     _buffer.writeln('## 🎯 AI 궁합 분석 결과 (Gemini)');
     _buffer.writeln();
 
+    // v3.7 (Phase 47): Gemini가 계산한 상대방 사주 추가
+    final sajuAnalysis = analysis['saju_analysis'] as Map<String, dynamic>?;
+    final targetCalculatedSaju = sajuAnalysis?['target_calculated_saju'] as Map<String, dynamic>?;
+    if (targetCalculatedSaju != null) {
+      _addTargetCalculatedSaju(targetCalculatedSaju);
+    }
+
     // 종합 점수
     final overallScore = analysis['overall_score'];
     final overallGrade = analysis['overall_grade'];
@@ -646,6 +653,120 @@ class SystemPromptBuilder {
       if (description != null) {
         _buffer.writeln('  - $description');
       }
+    }
+  }
+
+  /// v3.7 (Phase 47): Gemini가 계산한 상대방 사주 추가
+  ///
+  /// Phase 47에서 인연(to)의 saju_analyses 조회를 제거하고,
+  /// Gemini가 생년월일로 직접 계산한 사주 데이터를 프롬프트에 포함합니다.
+  void _addTargetCalculatedSaju(Map<String, dynamic> calculatedSaju) {
+    _buffer.writeln('### 상대방의 사주 (Gemini 계산)');
+    _buffer.writeln();
+
+    // 사주팔자
+    final saju = calculatedSaju['saju'] as Map<String, dynamic>?;
+    if (saju != null) {
+      _buffer.writeln('#### 사주팔자');
+      _buffer.writeln('| 구분 | 년주 | 월주 | 일주 | 시주 |');
+      _buffer.writeln('|------|------|------|------|------|');
+
+      final year = saju['year'] as Map<String, dynamic>? ?? {};
+      final month = saju['month'] as Map<String, dynamic>? ?? {};
+      final day = saju['day'] as Map<String, dynamic>? ?? {};
+      final hour = saju['hour'] as Map<String, dynamic>? ?? {};
+
+      final yearGan = year['gan'] ?? '?';
+      final yearJi = year['ji'] ?? '?';
+      final monthGan = month['gan'] ?? '?';
+      final monthJi = month['ji'] ?? '?';
+      final dayGan = day['gan'] ?? '?';
+      final dayJi = day['ji'] ?? '?';
+      final hourGan = hour['gan'] ?? '?';
+      final hourJi = hour['ji'] ?? '?';
+
+      _buffer.writeln('| 천간 | $yearGan | $monthGan | $dayGan | $hourGan |');
+      _buffer.writeln('| 지지 | $yearJi | $monthJi | $dayJi | $hourJi |');
+      _buffer.writeln();
+
+      // 일주 (상대방의 본질)
+      _buffer.writeln('#### 일주 (상대방의 본질)');
+      _buffer.writeln('- 일간: $dayGan');
+      _buffer.writeln('- 일지: $dayJi');
+      _buffer.writeln('- 일주: $dayGan$dayJi');
+      _buffer.writeln();
+    }
+
+    // 오행 분포
+    final oheng = calculatedSaju['oheng'] as Map<String, dynamic>?;
+    if (oheng != null) {
+      _buffer.writeln('#### 오행 분포');
+      _buffer.writeln('- 목(木): ${oheng['wood'] ?? 0}');
+      _buffer.writeln('- 화(火): ${oheng['fire'] ?? 0}');
+      _buffer.writeln('- 토(土): ${oheng['earth'] ?? 0}');
+      _buffer.writeln('- 금(金): ${oheng['metal'] ?? 0}');
+      _buffer.writeln('- 수(水): ${oheng['water'] ?? 0}');
+      _buffer.writeln();
+    }
+
+    // 일간 오행
+    final dayMaster = calculatedSaju['day_master'];
+    if (dayMaster != null) {
+      _buffer.writeln('#### 일간 오행');
+      _buffer.writeln('- 일간 오행: $dayMaster');
+      _buffer.writeln();
+    }
+
+    // 합충형해파
+    final hapchung = calculatedSaju['hapchung'] as Map<String, dynamic>?;
+    if (hapchung != null) {
+      _buffer.writeln('#### 합충형해파');
+      _addCalculatedHapchungSection(hapchung, 'cheongan_haps', '천간합');
+      _addCalculatedHapchungSection(hapchung, 'cheongan_chungs', '천간충');
+      _addCalculatedHapchungSection(hapchung, 'jiji_yukhaps', '지지육합');
+      _addCalculatedHapchungSection(hapchung, 'jiji_samhaps', '지지삼합');
+      _addCalculatedHapchungSection(hapchung, 'jiji_chungs', '지지충');
+      _addCalculatedHapchungSection(hapchung, 'jiji_hyungs', '지지형');
+      _addCalculatedHapchungSection(hapchung, 'jiji_pas', '지지파');
+      _addCalculatedHapchungSection(hapchung, 'jiji_haes', '지지해');
+      _buffer.writeln();
+    }
+
+    // 신살
+    final sinsal = calculatedSaju['sinsal'] as List?;
+    if (sinsal != null && sinsal.isNotEmpty) {
+      _buffer.writeln('#### 신살');
+      for (final s in sinsal) {
+        if (s is Map) {
+          final name = s['name'] ?? '?';
+          final type = s['type'] ?? '';
+          final pillar = s['pillar'] ?? '';
+          _buffer.writeln('- $pillar: $name ($type)');
+        }
+      }
+      _buffer.writeln();
+    }
+
+    // 12운성
+    final twelveUnsung = calculatedSaju['twelve_unsung'] as List?;
+    if (twelveUnsung != null && twelveUnsung.isNotEmpty) {
+      _buffer.writeln('#### 12운성');
+      for (final u in twelveUnsung) {
+        if (u is Map) {
+          final pillar = u['pillar'] ?? '?';
+          final unsung = u['unsung'] ?? '?';
+          _buffer.writeln('- $pillar: $unsung');
+        }
+      }
+      _buffer.writeln();
+    }
+  }
+
+  /// 계산된 합충형해파 섹션 헬퍼
+  void _addCalculatedHapchungSection(Map<String, dynamic> hapchung, String key, String label) {
+    final items = hapchung[key] as List?;
+    if (items != null && items.isNotEmpty) {
+      _buffer.writeln('**$label**: ${items.join(', ')}');
     }
   }
 }

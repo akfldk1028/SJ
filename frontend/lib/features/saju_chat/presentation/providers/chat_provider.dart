@@ -759,7 +759,16 @@ class ChatNotifier extends _$ChatNotifier {
         if (targetProfile != null) {
           print('   [상대방] 프로필: ${targetProfile.displayName} (${targetProfile.gender.displayName})');
           print('   [상대방] 생년월일: ${targetProfile.birthDateFormatted}');
-          print('   [상대방] 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
+          // v3.7 (Phase 47): target_calculated_saju 확인
+          final sajuAnalysisData = compatibilityAnalysis?['saju_analysis'] as Map<String, dynamic>?;
+          final hasTargetCalculatedSaju = sajuAnalysisData?['target_calculated_saju'] != null;
+          if (targetSajuAnalysis != null) {
+            print('   [상대방] 사주: 있음 (saju_analyses)');
+          } else if (hasTargetCalculatedSaju) {
+            print('   [상대방] 사주: 있음 (Gemini 계산)');
+          } else {
+            print('   [상대방] 사주: 없음');
+          }
           print('   [궁합분석] ${compatibilityAnalysis != null ? '${compatibilityAnalysis['overall_score']}점' : '없음'}');
         } else if (targetProfileId != null) {
           print('   [상대방] 프로필 조회 실패 (targetProfileId: $targetProfileId)');

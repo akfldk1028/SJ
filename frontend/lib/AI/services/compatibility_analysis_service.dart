@@ -130,8 +130,10 @@ class CompatibilityAnalysisService {
       }
 
       // 2. 두 프로필의 사주 데이터 조회
-      final myData = await _getProfileWithSaju(fromProfileId);
-      final targetData = await _getProfileWithSaju(toProfileId);
+      // - 나(from): saju_analyses 테이블에서 GPT 분석 결과 조회
+      // - 인연(to): saju_analyses 조회 스킵 → Gemini가 직접 계산
+      final myData = await _getMyProfileWithSaju(fromProfileId);
+      final targetData = await _getTargetProfileOnly(toProfileId);
 
       if (myData == null) {
         return CompatibilityAnalysisResult.failure('나의 프로필을 찾을 수 없습니다');
@@ -212,8 +214,10 @@ class CompatibilityAnalysisService {
     }
   }
 
-  /// 프로필 + 사주 분석 데이터 조회
-  Future<Map<String, dynamic>?> _getProfileWithSaju(String profileId) async {
+  /// 나(from) 프로필 + GPT 사주 분석 데이터 조회
+  ///
+  /// 나의 경우 saju_analyses 테이블에서 GPT-5.2가 분석한 결과를 함께 조회합니다.
+  Future<Map<String, dynamic>?> _getMyProfileWithSaju(String profileId) async {
     try {
       // 프로필 조회
       final profile = await _client
@@ -224,7 +228,7 @@ class CompatibilityAnalysisService {
 
       if (profile == null) return null;
 
-      // 사주 분석 조회
+      // 사주 분석 조회 (나의 GPT 분석 결과)
       final sajuAnalysis = await _client
           .from('saju_analyses')
           .select()
@@ -236,12 +240,63 @@ class CompatibilityAnalysisService {
         'saju_analysis': sajuAnalysis,
       };
     } catch (e) {
-      print('[CompatibilityService] 프로필 조회 오류: $e');
+      print('[CompatibilityService] 나의 프로필 조회 오류: $e');
+      return null;
+    }
+  }
+
+  /// 인연(to) 프로필만 조회 (saju_analyses 조회 안함)
+  ///
+  /// 인연의 경우 saju_analyses를 조회하지 않습니다.
+  /// Gemini가 생년월일/시간 정보로 직접 사주를 계산합니다.
+  ///
+  /// ## 반환 데이터
+  /// - profile: saju_profiles 테이블 데이터
+  /// - saju_analysis: null (Gemini가 직접 계산할 것)
+  /// - birth_time_string: 태어난 시간 (HH:mm 형식 또는 null)
+  Future<Map<String, dynamic>?> _getTargetProfileOnly(String profileId) async {
+    try {
+      // 프로필 조회 (saju_analyses는 조회하지 않음!)
+      final profile = await _client
+          .from('saju_profiles')
+          .select()
+          .eq('id', profileId)
+          .maybeSingle();
+
+      if (profile == null) return null;
+
+      // birth_time_minutes를 HH:mm 형식으로 변환
+      String? birthTimeString;
+      final birthTimeMinutes = profile['birth_time_minutes'] as int?;
+      if (birthTimeMinutes != null) {
+        final hours = birthTimeMinutes ~/ 60;
+        final minutes = birthTimeMinutes % 60;
+        birthTimeString =
+            '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+      }
+
+      // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추가
+      final isLunar = profile['is_lunar'] as bool? ?? false;
+      final isLeapMonth = profile['is_leap_month'] as bool? ?? false;
+
+      return {
+        'profile': profile,
+        'saju_analysis': null, // Gemini가 직접 계산할 것
+        'birth_time_string': birthTimeString,
+        'is_lunar': isLunar, // 음력 여부
+        'is_leap_month': isLeapMonth, // 윤달 여부
+      };
+    } catch (e) {
+      print('[CompatibilityService] 인연 프로필 조회 오류: $e');
       return null;
     }
   }
 
   /// Gemini 궁합 분석 실행
+  ///
+  /// ## 데이터 흐름
+  /// - 나(myData): GPT-5.2가 분석한 saju_analyses 데이터 사용
+  /// - 인연(targetData): saju_analysis는 null → Gemini가 직접 계산
   Future<AiApiResponse> _runGeminiAnalysis({
     required Map<String, dynamic> myData,
     required Map<String, dynamic> targetData,
@@ -252,6 +307,21 @@ class CompatibilityAnalysisService {
 
     final targetProfile = targetData['profile'] as Map<String, dynamic>;
     final targetSaju = targetData['saju_analysis'] as Map<String, dynamic>?;
+    final targetBirthTimeString = targetData['birth_time_string'] as String?;
+    // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추출
+    final targetIsLunar = targetData['is_lunar'] as bool? ?? false;
+    final targetIsLeapMonth = targetData['is_leap_month'] as bool? ?? false;
+
+    // 디버그 로그
+    print('[CompatibilityService] 📊 입력 데이터 구성');
+    print('  - 나(from) saju_analysis: ${mySaju != null ? "있음" : "없음"}');
+    print(
+        '  - 인연(to) saju_analysis: ${targetSaju != null ? "있음" : "없음 → Gemini가 계산"}');
+    print('  - 인연 생년월일: ${targetProfile['birth_date']}');
+    print('  - 인연 태어난 시간: ${targetBirthTimeString ?? "미상"}');
+    // v3.7.1: 음력/양력 정보 로그 추가
+    print('  - 인연 음력 여부: ${targetIsLunar ? "음력" : "양력"}');
+    if (targetIsLeapMonth) print('  - 인연 윤달 여부: 윤달');
 
     // 입력 데이터 구성
     final inputData = {
@@ -279,7 +349,12 @@ class CompatibilityAnalysisService {
       'target_profile_id': targetProfile['id'],
       'target_name': targetProfile['display_name'] ?? '상대방',
       'target_birth_date': targetProfile['birth_date'] ?? '',
+      'target_birth_time': targetBirthTimeString, // 인연의 태어난 시간 추가
       'target_gender': targetProfile['gender'] ?? 'male',
+      // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추가
+      'target_is_lunar': targetIsLunar,
+      'target_is_leap_month': targetIsLeapMonth,
+      // 인연의 사주 데이터 (있으면 사용, 없으면 Gemini가 계산)
       'target_saju': targetSaju != null
           ? {
               'year_gan': targetSaju['year_gan'],
@@ -315,6 +390,10 @@ class CompatibilityAnalysisService {
   }
 
   /// 분석 결과 저장
+  ///
+  /// ## 저장 데이터
+  /// - saju_analysis: 궁합 상세 분석 결과
+  /// - target_calculated_saju: Gemini가 계산한 인연의 사주 (있는 경우)
   Future<String> _saveAnalysisResult({
     required String userId,
     required String fromProfileId,
@@ -324,6 +403,28 @@ class CompatibilityAnalysisService {
     required int tokensUsed,
     required int processingTimeMs,
   }) async {
+    // Gemini가 계산한 인연의 사주 데이터 추출
+    final targetCalculatedSaju = analysisData['target_calculated_saju'];
+
+    // saju_analysis에 detailed_analysis와 target_calculated_saju 통합
+    final combinedSajuAnalysis = {
+      ...?analysisData['detailed_analysis'] as Map<String, dynamic>?,
+      if (targetCalculatedSaju != null)
+        'target_calculated_saju': targetCalculatedSaju,
+    };
+
+    // 디버그 로그
+    if (targetCalculatedSaju != null) {
+      print('[CompatibilityService] 💾 Gemini가 계산한 인연 사주 저장');
+      final calculatedSaju = targetCalculatedSaju['saju'];
+      if (calculatedSaju != null) {
+        print('  - 년주: ${calculatedSaju['year']?['gan']}${calculatedSaju['year']?['ji']}');
+        print('  - 월주: ${calculatedSaju['month']?['gan']}${calculatedSaju['month']?['ji']}');
+        print('  - 일주: ${calculatedSaju['day']?['gan']}${calculatedSaju['day']?['ji']}');
+        print('  - 시주: ${calculatedSaju['hour']?['gan'] ?? '?'}${calculatedSaju['hour']?['ji'] ?? '?'}');
+      }
+    }
+
     final response = await _client.from('compatibility_analyses').insert({
       'profile1_id': fromProfileId,
       'profile2_id': toProfileId,
@@ -331,7 +432,7 @@ class CompatibilityAnalysisService {
       'relation_type': relationType,
       'overall_score': analysisData['overall_score'],
       'category_scores': analysisData['category_scores'],
-      'saju_analysis': analysisData['detailed_analysis'],
+      'saju_analysis': combinedSajuAnalysis, // 인연의 계산된 사주도 포함
       'summary': analysisData['summary'],
       'strengths': analysisData['strengths'],
       'challenges': analysisData['challenges'],

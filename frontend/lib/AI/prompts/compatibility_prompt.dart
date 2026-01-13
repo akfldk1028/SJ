@@ -214,29 +214,14 @@ ${data.myUnsungString}
 
 ---
 
-### 상대방
+### 상대방 (인연)
 - 이름: ${data.targetName}
 - 생년월일: ${data.targetBirthDate}
+- 태어난 시간: ${data.targetBirthTime ?? '미상'}
 - 성별: ${data.targetGender == 'male' ? '남성' : '여성'}
 - 관계: ${_getRelationLabel(data.relationType)}
 
-#### 사주 팔자
-${data.targetSajuString}
-
-#### 오행 분포
-${data.targetOhengString}
-
-#### 용신 정보
-${data.targetYongsinString}
-
-#### 합충형해파
-${data.targetHapchungString}
-
-#### 신살
-${data.targetSinsalString}
-
-#### 12운성
-${data.targetUnsungString}
+${data.hasTargetSaju ? _buildTargetExistingSajuSection(data) : _buildTargetCalculationInstructions(data)}
 
 ---
 
@@ -244,8 +229,39 @@ ${data.targetUnsungString}
 
 반드시 아래 JSON 스키마를 정확히 따라주세요:
 
+**중요**: 상대방의 사주를 직접 계산한 경우, "target_calculated_saju" 필드에 계산 결과를 담아주세요.
+상대방의 기존 사주 데이터가 있었다면 이 필드는 null로 두세요.
+
 ```json
 {
+  "target_calculated_saju": {
+    "_comment": "상대방 사주를 직접 계산한 경우에만 채움. 기존 데이터 있으면 null",
+    "saju": {
+      "year": {"gan": "갑", "ji": "자"},
+      "month": {"gan": "병", "ji": "인"},
+      "day": {"gan": "무", "ji": "술"},
+      "hour": {"gan": "계", "ji": "해"}
+    },
+    "oheng": {"wood": 2, "fire": 1, "earth": 2, "metal": 1, "water": 2},
+    "day_master": "일간 오행 (예: 土)",
+    "hapchung": {
+      "cheongan_haps": ["천간합 목록"],
+      "cheongan_chungs": ["천간충 목록"],
+      "jiji_yukhaps": ["지지육합 목록"],
+      "jiji_samhaps": ["삼합 목록"],
+      "jiji_chungs": ["지지충 목록"],
+      "jiji_hyungs": ["지지형 목록"],
+      "jiji_pas": ["지지파 목록"],
+      "jiji_haes": ["지지해 목록"]
+    },
+    "sinsal": [
+      {"name": "신살명", "pillar": "위치", "type": "길/흉"}
+    ],
+    "twelve_unsung": [
+      {"pillar": "년주", "unsung": "운성명"}
+    ]
+  },
+
   "overall_score": 85,
   "overall_grade": "좋음",
   "summary": "두 사람의 궁합에 대한 한 문장 핵심 요약",
@@ -341,6 +357,94 @@ ${data.targetUnsungString}
 ''';
   }
 
+  /// 상대방(인연) 기존 사주 정보 섹션 (사주가 있는 경우)
+  String _buildTargetExistingSajuSection(CompatibilityInputData data) {
+    return '''
+#### 사주 팔자
+${data.targetSajuString}
+
+#### 오행 분포
+${data.targetOhengString}
+
+#### 용신 정보
+${data.targetYongsinString}
+
+#### 합충형해파
+${data.targetHapchungString}
+
+#### 신살
+${data.targetSinsalString}
+
+#### 12운성
+${data.targetUnsungString}''';
+  }
+
+  /// 상대방(인연) 사주 계산 지시 (사주가 없는 경우 - Gemini가 직접 계산)
+  String _buildTargetCalculationInstructions(CompatibilityInputData data) {
+    // v3.7.1 (Phase 47 Fix): 음력/양력 정보 명시
+    final calendarType = data.targetIsLunar ? '음력 (陰曆)' : '양력 (陽曆)';
+    final leapMonthInfo = data.targetIsLeapMonth ? ' [윤달]' : '';
+
+    // 음력인 경우 양력 변환 주의사항 추가
+    final lunarConversionNote = data.targetIsLunar
+        ? '''
+
+🚨 **중요: 음력 → 양력 변환 필수** 🚨
+입력된 생년월일 **${data.targetBirthDate}는 음력 날짜**입니다.
+${data.targetIsLeapMonth ? '⚠️ 윤달(閏月)입니다. 윤달 여부를 반드시 고려하세요.' : ''}
+
+**반드시 다음 순서로 계산하세요:**
+1. 음력 ${data.targetBirthDate}${leapMonthInfo}를 양력으로 변환
+2. 변환된 양력 날짜로 만세력 사주팔자 계산
+3. 입춘(立春) 기준으로 년월 구분
+
+**예시**: 음력 1994-11-28 → 양력 1994-12-30
+(실제 변환 결과는 만세력 표를 참고하세요)'''
+        : '';
+
+    return '''
+#### ⭐ 상대방 사주 직접 계산 지시 ⭐
+
+**중요**: 상대방의 사주 분석 데이터가 없습니다.
+아래 생년월일/시간 정보를 바탕으로 **당신이 직접 만세력 사주팔자를 계산**해주세요.
+
+**계산 대상 정보**:
+- 생년월일: ${data.targetBirthDate}
+- **달력 종류: $calendarType$leapMonthInfo**
+- 태어난 시간: ${data.targetBirthTime ?? '미상 (시주 생략 가능)'}
+- 성별: ${data.targetGender == 'male' ? '남성' : '여성'}
+$lunarConversionNote
+
+**필수 계산 항목**:
+1. **사주팔자 (四柱八字)**:
+   - 년주(年柱): 년간 + 년지
+   - 월주(月柱): 월간 + 월지
+   - 일주(日柱): 일간 + 일지
+   - 시주(時柱): 시간 + 시지 (시간 미상이면 생략)
+
+2. **오행 분포 (五行分布)**:
+   - 사주 8자 중 목(木), 화(火), 토(土), 금(金), 수(水) 각각 개수
+
+3. **합충형해파 분석**:
+   - 천간합/충
+   - 지지육합/삼합/방합
+   - 지지충/형/파/해
+
+4. **주요 신살 (神殺)**:
+   - 도화살, 역마살, 천을귀인, 문창귀인 등 주요 신살만 확인
+
+5. **12운성 (十二運星)**:
+   - 각 지지에서 일간의 12운성 상태
+
+**계산 시 주의사항**:
+- 만세력 계산법 사용 (대한민국 표준시 기준)
+- 입춘(立春) 기준 년월 구분
+- 자시(子時) 구분: 23:00~00:59
+${data.targetIsLunar ? '- **⚠️ 음력 날짜를 반드시 양력으로 변환 후 계산**' : ''}
+
+계산 결과는 응답 JSON의 "target_calculated_saju" 필드에 담아주세요.''';
+  }
+
   /// 관계 유형 라벨
   String _getRelationLabel(String relationType) {
     const labels = {
@@ -390,7 +494,11 @@ class CompatibilityInputData {
   final String targetProfileId;
   final String targetName;
   final String targetBirthDate;
+  final String? targetBirthTime; // 태어난 시간 (HH:mm 또는 null)
   final String targetGender;
+  // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추가
+  final bool targetIsLunar; // 음력 여부
+  final bool targetIsLeapMonth; // 윤달 여부
   final Map<String, dynamic>? targetSaju;
   final Map<String, dynamic>? targetOheng;
   final Map<String, dynamic>? targetYongsin;
@@ -415,7 +523,10 @@ class CompatibilityInputData {
     required this.targetProfileId,
     required this.targetName,
     required this.targetBirthDate,
+    this.targetBirthTime,
     required this.targetGender,
+    this.targetIsLunar = false, // v3.7.1: 기본값 양력
+    this.targetIsLeapMonth = false, // v3.7.1: 기본값 윤달 아님
     this.targetSaju,
     this.targetOheng,
     this.targetYongsin,
@@ -424,6 +535,11 @@ class CompatibilityInputData {
     this.targetUnsung,
     required this.relationType,
   });
+
+  /// 상대방(인연)의 사주 데이터가 있는지 확인
+  /// - GPT가 분석한 사주가 있으면 true
+  /// - 없으면 Gemini가 직접 계산해야 함
+  bool get hasTargetSaju => targetSaju != null && targetSaju!.isNotEmpty;
 
   factory CompatibilityInputData.fromJson(Map<String, dynamic> json) {
     return CompatibilityInputData(
@@ -440,7 +556,11 @@ class CompatibilityInputData {
       targetProfileId: json['target_profile_id'] ?? '',
       targetName: json['target_name'] ?? '상대방',
       targetBirthDate: json['target_birth_date'] ?? '',
+      targetBirthTime: json['target_birth_time'] as String?,
       targetGender: json['target_gender'] ?? 'male',
+      // v3.7.1 (Phase 47 Fix): 음력/양력 정보
+      targetIsLunar: json['target_is_lunar'] as bool? ?? false,
+      targetIsLeapMonth: json['target_is_leap_month'] as bool? ?? false,
       targetSaju: json['target_saju'] as Map<String, dynamic>?,
       targetOheng: json['target_oheng'] as Map<String, dynamic>?,
       targetYongsin: json['target_yongsin'] as Map<String, dynamic>?,
@@ -465,7 +585,11 @@ class CompatibilityInputData {
         'target_profile_id': targetProfileId,
         'target_name': targetName,
         'target_birth_date': targetBirthDate,
+        'target_birth_time': targetBirthTime,
         'target_gender': targetGender,
+        // v3.7.1 (Phase 47 Fix): 음력/양력 정보
+        'target_is_lunar': targetIsLunar,
+        'target_is_leap_month': targetIsLeapMonth,
         'target_saju': targetSaju,
         'target_oheng': targetOheng,
         'target_yongsin': targetYongsin,

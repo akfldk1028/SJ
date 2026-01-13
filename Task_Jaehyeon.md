@@ -4466,3 +4466,91 @@ static TwelveSinsalAnalysisResult analyzeFromChart(
 - [만세력닷컴 - 12신살 계산](https://manseryeok.com)
 
 ---
+
+---
+
+## Phase 47: 궁합 분석 아키텍처 재설계 (2026-01-13) 🔄 진행중
+
+### 개요
+인연(to) 프로필의 사주 분석을 GPT-5.2 대신 Gemini가 직접 계산하도록 변경
+
+### 문제점 (현재)
+
+**현재 흐름**:
+```
+나(from): saju_profiles → saju_analyses(GPT-5.2) → Gemini 궁합 ✅
+인연(to): saju_profiles → saju_analyses 조회 → NULL → "(사주 정보 없음)" ❌
+```
+
+**문제 코드** (`compatibility_analysis_service.dart:216-242`):
+```dart
+// 인연 프로필도 saju_analyses 조회 시도 → NULL 반환
+final sajuAnalysis = await _client
+    .from('saju_analyses')
+    .select()
+    .eq('profile_id', profileId)  // 인연 profileId는 saju_analyses에 없음!
+    .maybeSingle();
+```
+
+**문제 코드** (`compatibility_prompt.dart:500-501`):
+```dart
+String _formatSaju(Map<String, dynamic>? saju) {
+  if (saju == null) return '(사주 정보 없음)';  // ← 인연 사주 못 봄
+  // ...
+}
+```
+
+### 해결 방안 (목표)
+
+**새로운 흐름**:
+```
+나(from): saju_profiles → saju_analyses(GPT-5.2) → Gemini 궁합 ✅ (유지)
+인연(to): saju_profiles(생년월일) → Gemini가 직접 계산 → 궁합 분석 ✅ (신규)
+```
+
+### 수정 계획
+
+#### 1. `compatibility_prompt.dart` 수정
+- 인연(to) 사주 계산 로직 추가 (Gemini에게 지시)
+- 계산 항목: 사주 4주, 오행 분포, 합충형해파, 신살, 12운성
+- 응답 스키마에 `target_calculated_saju` 필드 추가
+
+#### 2. `compatibility_analysis_service.dart` 수정
+- `_getProfileWithSaju()`: 나 vs 인연 분리
+  - 나(from): 기존대로 `saju_analyses` 조회
+  - 인연(to): `saju_profiles`만 조회 (생년월일만 전달)
+- `_runGeminiAnalysis()`: 입력 데이터 구조 변경
+
+#### 3. 응답 스키마 확장
+```json
+{
+  "target_calculated_saju": {
+    "four_pillars": {...},
+    "oheng_distribution": {...},
+    "hapchung_analysis": {...},
+    "sinsal_list": [...],
+    "twelve_unsung": {...}
+  },
+  "overall_score": 85,
+  "category_scores": {...},
+  ...
+}
+```
+
+### 참조 파일
+| 파일 | 용도 |
+|------|------|
+| `compatibility_analysis_service.dart` | 궁합 분석 서비스 (수정 대상) |
+| `compatibility_prompt.dart` | 궁합 프롬프트 (수정 대상) |
+| `saju_base_prompt.dart` | GPT-5.2 사주 프롬프트 (참조용 - 합충형해파 구조) |
+| `compatibility_context.dart` | 궁합 컨텍스트 모델 |
+
+### 진행 상태
+- [x] 현재 구조 분석 완료
+- [x] 문제점 파악 완료
+- [x] 해결 방안 설계 완료
+- [ ] `compatibility_prompt.dart` 수정
+- [ ] `compatibility_analysis_service.dart` 수정
+- [ ] 테스트
+
+---
