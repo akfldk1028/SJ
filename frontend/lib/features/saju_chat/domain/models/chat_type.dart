@@ -1,6 +1,7 @@
 /// 채팅 타입 enum
 enum ChatType {
   dailyFortune,
+  newYearFortune,
   sajuAnalysis,
   compatibility,
   general;
@@ -10,6 +11,8 @@ enum ChatType {
     switch (value) {
       case 'dailyFortune':
         return ChatType.dailyFortune;
+      case 'newYearFortune':
+        return ChatType.newYearFortune;
       case 'sajuAnalysis':
         return ChatType.sajuAnalysis;
       case 'compatibility':
@@ -24,6 +27,8 @@ enum ChatType {
     switch (this) {
       case ChatType.dailyFortune:
         return '오늘의 운세';
+      case ChatType.newYearFortune:
+        return '신년운세';
       case ChatType.sajuAnalysis:
         return '사주 분석';
       case ChatType.compatibility:
@@ -40,6 +45,10 @@ enum ChatType {
         return '안녕하세요! 오늘의 운세를 봐드릴게요. 🌟\n\n'
             '생년월일을 알려주시면 더 정확한 운세를 알려드릴 수 있어요.\n'
             '또는 바로 궁금한 점을 물어보셔도 됩니다!';
+      case ChatType.newYearFortune:
+        return '안녕하세요! 신년운세를 봐드릴게요. 🎊\n\n'
+            '새해의 운세와 월별 운세를 분석해 드리겠습니다.\n'
+            '생년월일을 알려주시면 시작할게요!';
       case ChatType.sajuAnalysis:
         return '안녕하세요! 사주팔자 분석을 도와드릴게요. ✨\n\n'
             '정확한 분석을 위해 다음 정보를 알려주세요:\n'
@@ -60,6 +69,8 @@ enum ChatType {
     switch (this) {
       case ChatType.dailyFortune:
         return '오늘의 운세를 물어보세요...';
+      case ChatType.newYearFortune:
+        return '신년운세에 대해 물어보세요...';
       case ChatType.sajuAnalysis:
         return '생년월일과 시간을 알려주세요...';
       case ChatType.compatibility:

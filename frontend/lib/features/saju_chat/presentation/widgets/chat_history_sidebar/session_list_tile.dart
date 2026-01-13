@@ -101,6 +101,10 @@ class SessionListTile extends StatelessWidget {
         icon = Icons.wb_sunny;
         color = Colors.orange;
         break;
+      case ChatType.newYearFortune:
+        icon = Icons.celebration;
+        color = Colors.red;
+        break;
       case ChatType.sajuAnalysis:
         icon = Icons.auto_awesome;
         color = Colors.purple;

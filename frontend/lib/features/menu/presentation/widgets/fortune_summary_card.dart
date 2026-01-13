@@ -1,15 +1,16 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/illustrations/illustrations.dart';
 import '../providers/daily_fortune_provider.dart';
 
 /// Fortune summary card - AI 데이터 연동
-/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
+/// 시간대별 오행(五行) 기반 디자인
 class FortuneSummaryCard extends ConsumerWidget {
   const FortuneSummaryCard({super.key});
 
-  // ⚡ 캐싱된 색상 상수 (매 빌드마다 새 객체 생성 방지)
   static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
   static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
 
@@ -29,21 +30,31 @@ class FortuneSummaryCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        height: 300,
+        height: 320,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: theme.cardColor,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
         ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: theme.primaryColor),
-              const SizedBox(height: 16),
+              SizedBox(
+                width: 120,
+                height: 120,
+                child: AnimatedYinYangIllustration(
+                  size: 120,
+                  showGlow: true,
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
                 '운세를 불러오는 중...',
-                style: TextStyle(color: theme.textMuted),
+                style: TextStyle(
+                  color: theme.textMuted,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -53,11 +64,9 @@ class FortuneSummaryCard extends ConsumerWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, AppThemeExtension theme, Object error) {
-    // 오류 시에도 샘플 데이터로 UI 표시
     return _buildFortuneCard(context, theme, _getSampleFortuneData());
   }
 
-  /// 샘플 운세 데이터 (오프라인/에러 시 표시용)
   DailyFortuneData _getSampleFortuneData() {
     return DailyFortuneData(
       overallScore: 85,
@@ -96,6 +105,51 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
+  /// 시간대별 테마 정보 (오행 기반)
+  _TimeTheme _getTimeTheme(int hour) {
+    if (hour >= 5 && hour < 11) {
+      // 오전
+      return _TimeTheme(
+        period: '오전',
+        element: '',
+        meaning: '',
+        colors: [const Color(0xFFE65100), const Color(0xFFFF8A65)], // 주황-살몬
+        iconData: Icons.wb_sunny_rounded,
+        iconColor: const Color(0xFFFFE0B2),
+      );
+    } else if (hour >= 11 && hour < 17) {
+      // 오후 - 안정, 균형, 성취
+      return _TimeTheme(
+        period: '오후',
+        element: '',
+        meaning: '',
+        colors: [const Color(0xFFD4A574), const Color(0xFFC9A66B)], // 황금-브라운
+        iconData: Icons.wb_sunny_outlined,
+        iconColor: const Color(0xFFFFF8E1),
+      );
+    } else if (hour >= 17 && hour < 23) {
+      // 저녁
+      return _TimeTheme(
+        period: '저녁',
+        element: '',
+        meaning: '',
+        colors: [const Color(0xFF1a1a2e), const Color(0xFF16213e)], // 네이비
+        iconData: Icons.nightlight_round,
+        iconColor: const Color(0xFFE8EAF6),
+      );
+    } else {
+      // 새벽
+      return _TimeTheme(
+        period: '새벽',
+        element: '',
+        meaning: '',
+        colors: [const Color(0xFF0D47A1), const Color(0xFF1565C0)], // 진한 파랑
+        iconData: Icons.nightlight_round,
+        iconColor: const Color(0xFFBBDEFB),
+      );
+    }
+  }
+
   Widget _buildFortuneCard(
     BuildContext context,
     AppThemeExtension theme,
@@ -103,267 +157,291 @@ class FortuneSummaryCard extends ConsumerWidget {
   ) {
     final score = fortune.overallScore;
     final message = fortune.overallMessage;
-
-    // 시간대별 운세 점수 계산 (현재 시간 기준)
     final hour = DateTime.now().hour;
-    String timeSlot;
-    int timeScore;
-    String timeMessage;
-
-    if (hour >= 7 && hour < 12) {
-      timeSlot = '오전 운세';
-      timeScore = fortune.getCategoryScore('work');
-      timeMessage = fortune.getCategoryMessage('work');
-    } else if (hour >= 12 && hour < 18) {
-      timeSlot = '오후 운세';
-      timeScore = fortune.getCategoryScore('wealth');
-      timeMessage = fortune.getCategoryMessage('wealth');
-    } else {
-      timeSlot = '저녁 운세';
-      timeScore = fortune.getCategoryScore('love');
-      timeMessage = fortune.getCategoryMessage('love');
-    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          // 메인 운세 카드 (시간대별 오행 테마)
+          _buildMainScoreCard(context, theme, score, message, hour),
+          const SizedBox(height: 16),
+          // 4개 카테고리 통계 그리드
+          _buildCategoryStatsGrid(context, theme, fortune),
+          const SizedBox(height: 16),
+          // 오늘의 행운 아이템
+          _buildLuckyItemsRow(theme, fortune.lucky),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainScoreCard(
+    BuildContext context,
+    AppThemeExtension theme,
+    int score,
+    String message,
+    int hour,
+  ) {
+    final timeTheme = _getTimeTheme(hour);
+    final isNight = hour >= 17 || hour < 5;
+
+    return GestureDetector(
+      onTap: () => context.push('/fortune/daily'),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: timeTheme.colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: timeTheme.colors[0].withValues(alpha: 0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            // 배경 일러스트 - 오른쪽 중앙
+            Positioned(
+              right: 10,
+              top: 20,
+              bottom: 20,
+              child: Center(
+                child: _buildTimeIllustration(hour, isNight),
+              ),
+            ),
+            // 플로팅 별 (저녁/새벽만)
+            if (isNight)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _StarsPainter(),
+                ),
+              ),
+            // 콘텐츠
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 상단 라벨 (시간대 + 오행)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              timeTheme.iconData,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${timeTheme.period} 운세',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // 점수 영역
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$score',
+                        style: const TextStyle(
+                          fontSize: 64,
+                          fontWeight: FontWeight.w200,
+                          color: Colors.white,
+                          height: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 10),
+                        child: Text(
+                          _getGradeText(score),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // 메시지 텍스트
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white.withValues(alpha: 0.5),
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 시간대별 일러스트
+  Widget _buildTimeIllustration(int hour, bool isNight) {
+    if (hour >= 5 && hour < 11) {
+      // 오전 - 연꽃 (생명력)
+      return Opacity(
+        opacity: 0.2,
+        child: LotusIllustration(
+          size: 140,
+          primaryColor: Colors.white,
+          showWater: false,
+        ),
+      );
+    } else if (hour >= 11 && hour < 17) {
+      // 오후 - 태극 (균형)
+      return Opacity(
+        opacity: 0.15,
+        child: YinYangIllustration(
+          size: 120,
+          showTrigrams: false,
+          showGlow: false,
+        ),
+      );
+    } else if (hour >= 17 && hour < 23) {
+      // 저녁 - 달 (내면)
+      return Opacity(
+        opacity: 0.25,
+        child: MysticMoonIllustration(
+          size: 140,
+          showClouds: true,
+        ),
+      );
+    } else {
+      // 새벽 - 달 (재생)
+      return Opacity(
+        opacity: 0.2,
+        child: MysticMoonIllustration(
+          size: 130,
+          showClouds: false,
+          showStars: true,
+        ),
+      );
+    }
+  }
+
+  Widget _buildCategoryStatsGrid(
+    BuildContext context,
+    AppThemeExtension theme,
+    DailyFortuneData fortune,
+  ) {
+    final categories = [
+      {'key': 'wealth', 'icon': Icons.account_balance_wallet_outlined, 'label': '재물', 'color': const Color(0xFFF59E0B)},
+      {'key': 'love', 'icon': Icons.favorite_outline_rounded, 'label': '애정', 'color': const Color(0xFFEC4899)},
+      {'key': 'work', 'icon': Icons.work_outline_rounded, 'label': '직장', 'color': const Color(0xFF3B82F6)},
+      {'key': 'health', 'icon': Icons.favorite_outline, 'label': '건강', 'color': const Color(0xFF10B981)},
+    ];
+
+    return GestureDetector(
+      onTap: () => context.push('/fortune/daily'),
+      child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: theme.isDark ? _shadowDark : _shadowLight,
-              blurRadius: 20,
+              blurRadius: 16,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row
+            // 헤더
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left side - Text content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            '오늘의 운세',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: theme.textPrimary,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => context.push('/fortune/daily'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.primaryColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '더보기',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: theme.primaryColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _formatMessage(message),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w400,
-                          color: theme.textPrimary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
+                Text(
+                  '운세 분석',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
                   ),
                 ),
-                // Right side - Large score
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '$score',
-                      style: TextStyle(
-                        fontSize: 72,
-                        fontWeight: FontWeight.w300,
-                        color: theme.textPrimary,
-                        height: 1,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.textMuted,
+                  size: 20,
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            // Time-based fortune section (푸른 계열)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-              decoration: BoxDecoration(
-                color: theme.isDark
-                    ? const Color(0xFF1E3A5F).withValues(alpha: 0.6) // 다크 블루
-                    : const Color(0xFFE8F4FC), // 라이트 블루
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  // 해/달 아이콘 - 오른쪽 하단
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Icon(
-                      _getTimeIcon(hour),
-                      size: 64,
-                      color: _getTimeIconColor(hour).withValues(alpha: 0.6),
-                    ),
-                  ),
-                  // 메인 콘텐츠
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '시간대별 운세',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: theme.textPrimary,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => context.push('/fortune/daily'),
-                            child: Text(
-                              '전체보기',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: theme.textMuted,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.cardColor,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: theme.isDark
-                                    ? theme.textMuted.withValues(alpha: 0.3)
-                                    : Colors.grey[200]!,
-                              ),
-                            ),
-                            child: Text(
-                              timeSlot,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: theme.textPrimary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              _getTimeRange(hour),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: theme.textMuted,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Small circular score
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: theme.primaryColor.withValues(alpha: 0.3),
-                                width: 2,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '$timeScore',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.primaryColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        timeMessage,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: theme.textSecondary,
-                          height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '1/3',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.textMuted,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 16),
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(context, '내일의 운세', false, '/fortune/daily'),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionButton(context, '지정일 운세', false, '/fortune/daily'),
-                ),
-              ],
+            // 2x2 그리드
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 1.6,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: 4,
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final score = fortune.getCategoryScore(cat['key'] as String);
+                return _buildStatCard(
+                  theme,
+                  cat['icon'] as IconData,
+                  cat['label'] as String,
+                  score,
+                  cat['color'] as Color,
+                );
+              },
             ),
           ],
         ),
@@ -371,95 +449,203 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
-  /// 메시지 포맷팅 - 문장 마침표 뒤에 줄바꿈 추가
-  String _formatMessage(String message) {
-    // 마침표 뒤에 공백이 있으면 줄바꿈으로 대체
-    return message.replaceAll('. ', '.\n');
-  }
-
-  /// 메시지 자르기
-  String _truncateMessage(String message, int maxLength) {
-    if (message.length <= maxLength) return message;
-    return '${message.substring(0, maxLength)}...';
-  }
-
-  /// 시간대 범위 반환
-  String _getTimeRange(int hour) {
-    if (hour >= 7 && hour < 12) {
-      return '7:00 - 11:59';
-    } else if (hour >= 12 && hour < 18) {
-      return '12:00 - 17:59';
-    } else {
-      return '18:00 - 23:59';
-    }
-  }
-
-  /// 시간대에 따른 아이콘 반환 (해/달)
-  IconData _getTimeIcon(int hour) {
-    if (hour >= 6 && hour < 18) {
-      // 낮 (6시-18시): 해
-      return Icons.wb_sunny_rounded;
-    } else {
-      // 밤 (18시-6시): 달
-      return Icons.nightlight_round;
-    }
-  }
-
-  /// 시간대에 따른 아이콘 색상 반환
-  Color _getTimeIconColor(int hour) {
-    if (hour >= 6 && hour < 18) {
-      // 낮: 흰색 베이스 (살짝 연한 노랑)
-      return const Color(0xFFFFF8E1);
-    } else {
-      // 밤: 흰색 베이스 (살짝 연한 파랑)
-      return const Color(0xFFE8EAF6);
-    }
-  }
-
-  Widget _buildActionButton(BuildContext context, String text, bool isPrimary, String route) {
-    final theme = context.appTheme;
-
-    return GestureDetector(
-      onTap: () => context.push(route),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isPrimary ? theme.primaryColor : theme.cardColor,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: isPrimary
-                ? theme.primaryColor
-                : theme.isDark
-                    ? theme.textMuted.withValues(alpha: 0.3)
-                    : Colors.grey[300]!,
-          ),
+  Widget _buildStatCard(
+    AppThemeExtension theme,
+    IconData icon,
+    String label,
+    int score,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.isDark
+            ? color.withValues(alpha: 0.1)
+            : color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1,
         ),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isPrimary ? Colors.white : theme.textPrimary,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: 40,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: score / 100,
+                    backgroundColor: color.withValues(alpha: 0.2),
+                    valueColor: AlwaysStoppedAnimation(color),
+                    minHeight: 4,
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: isPrimary ? Colors.white : theme.textMuted,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: theme.textSecondary,
+                ),
+              ),
+              Text(
+                '$score',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildLuckyItemsRow(AppThemeExtension theme, LuckyInfo lucky) {
+    final items = [
+      {'icon': Icons.access_time_rounded, 'label': '시간', 'value': lucky.time},
+      {'icon': Icons.palette_outlined, 'label': '색상', 'value': lucky.color},
+      {'icon': Icons.tag_rounded, 'label': '숫자', 'value': '${lucky.number}'},
+      {'icon': Icons.explore_outlined, 'label': '방향', 'value': lucky.direction},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.isDark ? _shadowDark : _shadowLight,
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              '오늘의 행운',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+              ),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: items.map((item) {
+              return Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      color: theme.primaryColor,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item['value'] as String,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item['label'] as String,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: theme.textMuted,
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getGradeText(int score) {
+    if (score >= 90) return '대길';
+    if (score >= 80) return '길';
+    if (score >= 70) return '중길';
+    if (score >= 60) return '소길';
+    return '평';
+  }
+}
+
+/// 시간대별 테마 데이터
+class _TimeTheme {
+  final String period;
+  final String element;
+  final String meaning;
+  final List<Color> colors;
+  final IconData iconData;
+  final Color iconColor;
+
+  const _TimeTheme({
+    required this.period,
+    required this.element,
+    required this.meaning,
+    required this.colors,
+    required this.iconData,
+    required this.iconColor,
+  });
+}
+
+/// 별 그리기 페인터
+class _StarsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = Random(42);
+    final paint = Paint()..color = Colors.white;
+
+    for (int i = 0; i < 15; i++) {
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final starSize = 1 + random.nextDouble() * 2;
+      paint.color = Colors.white.withValues(alpha: 0.1 + random.nextDouble() * 0.4);
+      canvas.drawCircle(Offset(x, y), starSize, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
