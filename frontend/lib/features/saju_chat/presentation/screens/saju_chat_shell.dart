@@ -16,6 +16,11 @@ import '../widgets/disclaimer_banner.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/relation_selector_sheet.dart';
 import '../widgets/suggested_questions.dart';
+import '../widgets/persona_selector/persona_selector.dart';
+import '../providers/persona_provider.dart';
+import '../providers/chat_persona_provider.dart';
+import '../../domain/models/chat_persona.dart';
+import '../../domain/models/ai_persona.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// 사주 채팅 Shell - 반응형 레이아웃 래퍼
@@ -572,6 +577,8 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     return Column(
       children: [
         const DisclaimerBanner(),
+        // 페르소나 가로 선택기 (원형 이모지 리스트)
+        const _PersonaHorizontalSelector(),
         // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
         if (chatState.isDeepAnalysisRunning)
           const _DeepAnalysisLoadingBanner(),
@@ -676,5 +683,165 @@ class _DeepAnalysisLoadingBanner extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// 페르소나 가로 선택기 (채팅 화면 상단)
+///
+/// 5개 페르소나 선택:
+/// - BasePerson 1개 (MBTI 4축 조절 가능)
+/// - SpecialCharacter 4개 (MBTI 조절 불가, 고정 성격)
+///
+/// ## 위젯 트리 분리
+/// ```
+/// 대화창: 🎭 👶 🗣️ 👴 😱 (5개 선택지)
+/// 사이드바: MBTI 4축 선택기 (Base 선택 시만 활성화)
+/// ```
+class _PersonaHorizontalSelector extends ConsumerWidget {
+  const _PersonaHorizontalSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentPersona = ref.watch(chatPersonaNotifierProvider);
+    final currentQuadrant = ref.watch(mbtiQuadrantNotifierProvider);
+    final canAdjustMbti = ref.watch(canAdjustMbtiProvider);
+    final appTheme = context.appTheme;
+
+    // MBTI 분면별 색상 (BasePerson 선택 시)
+    final quadrantColor = canAdjustMbti ? _getQuadrantColor(currentQuadrant) : appTheme.primaryColor;
+
+    return Container(
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: appTheme.cardColor,
+        border: Border(
+          bottom: BorderSide(
+            color: appTheme.primaryColor.withValues(alpha: 0.1),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // 현재 MBTI 표시 (BasePerson 선택 시만)
+          if (canAdjustMbti)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: quadrantColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: quadrantColor.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    currentQuadrant.name,
+                    style: TextStyle(
+                      color: quadrantColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    currentQuadrant.displayName,
+                    style: TextStyle(
+                      color: quadrantColor.withValues(alpha: 0.8),
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (canAdjustMbti) const SizedBox(width: 12),
+          // 5개 페르소나 원형 리스트
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ChatPersona.values.map((persona) {
+                return _buildPersonaCircle(
+                  context,
+                  ref,
+                  persona,
+                  isSelected: persona == currentPersona,
+                  accentColor: quadrantColor,
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonaCircle(
+    BuildContext context,
+    WidgetRef ref,
+    ChatPersona persona, {
+    required bool isSelected,
+    required Color accentColor,
+  }) {
+    final appTheme = context.appTheme;
+    final isBase = persona == ChatPersona.basePerson;
+
+    return Tooltip(
+      message: '${persona.displayName}\n${persona.description}',
+      child: GestureDetector(
+        onTap: () {
+          ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isSelected
+                ? accentColor.withValues(alpha: 0.2)
+                : appTheme.cardColor,
+            border: Border.all(
+              color: isSelected
+                  ? accentColor
+                  : isBase
+                      ? appTheme.primaryColor.withValues(alpha: 0.4)
+                      : appTheme.primaryColor.withValues(alpha: 0.2),
+              width: isSelected ? 2.5 : isBase ? 2 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              persona.emoji,
+              style: const TextStyle(fontSize: 26),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getQuadrantColor(MbtiQuadrant quadrant) {
+    switch (quadrant) {
+      case MbtiQuadrant.NF:
+        return const Color(0xFFE63946);
+      case MbtiQuadrant.NT:
+        return const Color(0xFF457B9D);
+      case MbtiQuadrant.SF:
+        return const Color(0xFF2A9D8F);
+      case MbtiQuadrant.ST:
+        return const Color(0xFFF4A261);
+    }
   }
 }
