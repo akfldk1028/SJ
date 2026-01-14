@@ -74,19 +74,34 @@ class SupabaseService {
   ///
   /// 로그인되지 않은 경우 익명 사용자로 자동 로그인
   /// 이미 로그인된 경우 아무 작업 안함
+  /// 세션 복원 대기 → 없으면 익명 로그인
   static Future<User?> ensureAuthenticated() async {
     if (_client == null) {
       _logWarning('Supabase not initialized. Cannot authenticate.');
       return null;
     }
 
-    // 이미 로그인된 경우
+    // 1. 현재 세션 확인 (initialize 시점에 자동 복원됨)
+    final currentSession = _client!.auth.currentSession;
+    if (currentSession != null) {
+      _logInfo('Session restored: ${currentSession.user.id}');
+      return currentSession.user;
+    }
+
+    // 2. 현재 로그인된 유저 확인
     if (currentUser != null) {
       _logInfo('User already authenticated: ${currentUser!.id}');
       return currentUser;
     }
 
-    // 익명 로그인 시도
+    // 3. 짧은 대기 후 다시 확인 (세션 복원 비동기 처리 대기)
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (currentUser != null) {
+      _logInfo('User authenticated after delay: ${currentUser!.id}');
+      return currentUser;
+    }
+
+    // 4. 익명 로그인 시도
     try {
       final response = await _client!.auth.signInAnonymously();
       _logInfo('Anonymous sign-in successful: ${response.user?.id}');

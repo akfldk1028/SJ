@@ -23,8 +23,8 @@ class RelationSelection {
 
 /// 인연 선택 Bottom Sheet
 ///
-/// 궁합 채팅 시작을 위해 인연(관계) 목록을 표시하고 선택할 수 있는 시트
-/// 카테고리별로 그룹핑되어 표시됨
+/// + 버튼 클릭 시 바로 인연 목록 표시
+/// 인연을 선택하면 궁합 채팅 시작
 class RelationSelectorSheet extends ConsumerWidget {
   /// 선택 콜백
   final void Function(RelationSelection selection)? onSelected;
@@ -90,7 +90,7 @@ class RelationSelectorSheet extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '궁합 채팅할 인연 선택',
+                        '인연 선택',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -99,7 +99,7 @@ class RelationSelectorSheet extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '상대방을 선택하면 궁합 분석과 함께 채팅이 시작됩니다',
+                        '상대방을 선택하면 궁합 분석 채팅이 시작됩니다',
                         style: TextStyle(
                           fontSize: 13,
                           color: appTheme.textSecondary,

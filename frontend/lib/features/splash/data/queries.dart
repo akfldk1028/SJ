@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/data/data.dart';
 import '../../profile/data/models/saju_profile_model.dart';
 import '../../profile/data/schema.dart' as profile_schema;
@@ -20,20 +22,25 @@ class SplashQueries extends BaseQueries {
   ///
   /// 앱 시작 시 가장 먼저 호출
   /// Returns: (프로필, 분석) 또는 null
-  /// Note: relation_type이 'admin'인 프로필은 제외 (개발자 테스트용)
+  /// Note: 프로덕션에서는 admin 제외, Debug 모드에서는 admin 포함
   Future<QueryResult<SplashPrefetchData?>> prefetchPrimaryData(
     String userId,
   ) async {
     return safeQuery(
       query: (client) async {
-        // 1. Primary 프로필 조회 (admin 제외)
-        final profileResponse = await client
+        // 1. Primary 프로필 조회 (프로덕션에서만 admin 제외)
+        var query = client
             .from(profile_schema.profilesTable)
             .select(primaryProfileColumns)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true)
-            .neq(profile_schema.ProfileColumns.relationType, 'admin')
-            .maybeSingle();
+            .eq(profile_schema.ProfileColumns.isPrimary, true);
+
+        // 프로덕션에서만 admin 제외 (Debug 모드에서는 admin 포함)
+        if (!kDebugMode) {
+          query = query.neq(profile_schema.ProfileColumns.relationType, 'admin');
+        }
+
+        final profileResponse = await query.maybeSingle();
 
         if (profileResponse == null) {
           return null;
@@ -62,19 +69,23 @@ class SplashQueries extends BaseQueries {
     );
   }
 
-  /// Primary 프로필만 조회 (admin 제외)
+  /// Primary 프로필만 조회 (프로덕션에서만 admin 제외)
   Future<QueryResult<SajuProfileModel?>> getPrimaryProfile(
     String userId,
   ) async {
     return safeSingleQuery(
       query: (client) async {
-        final response = await client
+        var query = client
             .from(profile_schema.profilesTable)
             .select(primaryProfileColumns)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true)
-            .neq(profile_schema.ProfileColumns.relationType, 'admin')
-            .maybeSingle();
+            .eq(profile_schema.ProfileColumns.isPrimary, true);
+
+        if (!kDebugMode) {
+          query = query.neq(profile_schema.ProfileColumns.relationType, 'admin');
+        }
+
+        final response = await query.maybeSingle();
         return response;
       },
       fromJson: SajuProfileModel.fromSupabaseMap,
@@ -138,17 +149,21 @@ class SplashQueries extends BaseQueries {
     );
   }
 
-  /// 프로필 존재 여부만 빠르게 확인 (admin 제외)
+  /// 프로필 존재 여부만 빠르게 확인 (프로덕션에서만 admin 제외)
   Future<QueryResult<bool>> hasPrimaryProfile(String userId) async {
     return safeQuery(
       query: (client) async {
-        final response = await client
+        var query = client
             .from(profile_schema.profilesTable)
             .select(profile_schema.ProfileColumns.id)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true)
-            .neq(profile_schema.ProfileColumns.relationType, 'admin')
-            .maybeSingle();
+            .eq(profile_schema.ProfileColumns.isPrimary, true);
+
+        if (!kDebugMode) {
+          query = query.neq(profile_schema.ProfileColumns.relationType, 'admin');
+        }
+
+        final response = await query.maybeSingle();
         return response != null;
       },
       errorPrefix: '프로필 존재 확인 실패',
@@ -173,20 +188,24 @@ class SplashQueries extends BaseQueries {
   /// Pre-fetch 상태 확인
   ///
   /// 빠른 상태 확인용 (데이터 로드 없이)
-  /// Note: relation_type이 'admin'인 프로필은 제외
+  /// Note: 프로덕션에서는 admin 제외, Debug 모드에서는 admin 포함
   Future<QueryResult<PrefetchStatus>> checkPrefetchStatus(
     String userId,
   ) async {
     return safeQuery(
       query: (client) async {
-        // 1. 프로필 존재 확인 (admin 제외)
-        final profileResponse = await client
+        // 1. 프로필 존재 확인 (프로덕션에서만 admin 제외)
+        var profileQuery = client
             .from(profile_schema.profilesTable)
             .select(profile_schema.ProfileColumns.id)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true)
-            .neq(profile_schema.ProfileColumns.relationType, 'admin')
-            .maybeSingle();
+            .eq(profile_schema.ProfileColumns.isPrimary, true);
+
+        if (!kDebugMode) {
+          profileQuery = profileQuery.neq(profile_schema.ProfileColumns.relationType, 'admin');
+        }
+
+        final profileResponse = await profileQuery.maybeSingle();
 
         if (profileResponse == null) {
           return PrefetchStatus.noProfile;

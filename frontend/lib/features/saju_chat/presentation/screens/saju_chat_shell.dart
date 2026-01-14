@@ -60,17 +60,25 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// Desktop 사이드바 표시 여부
   bool _isSidebarVisible = true;
 
+  /// 채팅 입력 필드 컨트롤러 (멘션 삽입용)
+  late final TextEditingController _inputController;
+
+  /// 선택된 인연의 targetProfileId (멘션 전송 시 사용)
+  String? _pendingTargetProfileId;
+
   @override
   void initState() {
     super.initState();
     _chatType = ChatType.fromString(widget.chatType);
     _scrollController = ScrollController();
+    _inputController = TextEditingController();
     _initializeSession();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _inputController.dispose();
     super.dispose();
   }
 
@@ -126,34 +134,28 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// 궁합 채팅 시작 (인연 선택)
   ///
   /// 1. RelationSelectorSheet 표시
-  /// 2. 인연 선택 시 @카테고리/이름 형태로 초기 메시지 설정
-  /// 3. targetProfileId와 함께 새 세션 생성
+  /// 2. 인연 선택 시 @카테고리/이름 형태를 입력 필드에 추가
+  /// 3. 사용자가 메시지를 덧붙여 전송하면 궁합 모드로 처리
   Future<void> _handleCompatibilityChat() async {
     final selection = await RelationSelectorSheet.show(context);
     if (selection == null || !mounted) return;
 
     if (kDebugMode) {
-      print('[SajuChatShell] 🎯 궁합 채팅 시작');
+      print('[SajuChatShell] 🎯 인연 선택됨');
       print('   - 선택된 인연: ${selection.relation.displayName}');
       print('   - toProfileId: ${selection.relation.toProfileId}');
       print('   - 멘션: ${selection.mentionText}');
     }
 
-    // 새 세션 광고 표시 (Web 제외)
-    if (!kIsWeb) {
-      await ref.read(adControllerProvider.notifier).onNewSession();
-    }
-
-    final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
-    final activeProfile = await ref.read(activeProfileProvider.future);
-
-    // 궁합 채팅 세션 생성 (targetProfileId 포함)
-    await sessionNotifier.createSession(
-      _chatType,
-      activeProfile?.id,
-      initialMessage: '${selection.mentionText}님과의 궁합이 궁금해요',
-      targetProfileId: selection.relation.toProfileId,
-    );
+    // 멘션 텍스트를 입력 필드에 추가 (끝에 공백 추가하여 바로 입력 가능)
+    setState(() {
+      _inputController.text = '${selection.mentionText} ';
+      _inputController.selection = TextSelection.collapsed(
+        offset: _inputController.text.length,
+      );
+      // 선택된 인연의 targetProfileId 저장
+      _pendingTargetProfileId = selection.relation.toProfileId;
+    });
   }
 
   /// 세션 선택
@@ -223,48 +225,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             tooltip: '채팅 기록',
           ),
-          // 새 채팅 버튼 (PopupMenu)
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.add),
-            tooltip: '새 채팅',
-            offset: const Offset(0, 40),
-            color: appTheme.cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            onSelected: (value) {
-              if (value == 'normal') {
-                _handleNewChat();
-              } else if (value == 'compatibility') {
-                _handleCompatibilityChat();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem<String>(
-                value: 'normal',
-                child: Row(
-                  children: [
-                    Icon(Icons.chat_bubble_outline,
-                      color: appTheme.textPrimary, size: 20),
-                    const SizedBox(width: 12),
-                    Text('일반 채팅',
-                      style: TextStyle(color: appTheme.textPrimary)),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'compatibility',
-                child: Row(
-                  children: [
-                    Icon(Icons.favorite_outline,
-                      color: appTheme.primaryColor, size: 20),
-                    const SizedBox(width: 12),
-                    Text('궁합 채팅',
-                      style: TextStyle(color: appTheme.textPrimary)),
-                  ],
-                ),
-              ),
-            ],
+          // 인연 선택 버튼 (바로 시트 표시)
+          IconButton(
+            icon: const Icon(Icons.person_add_outlined),
+            onPressed: _handleCompatibilityChat,
+            tooltip: '인연 선택',
           ),
         ],
       ),
@@ -283,6 +248,9 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         onScroll: _scrollToBottom,
         onCreateSession: _handleNewChat,
         targetProfileId: widget.targetProfileId,
+        inputController: _inputController,
+        pendingTargetProfileId: _pendingTargetProfileId,
+        onMentionSent: () => setState(() => _pendingTargetProfileId = null),
       ),
     );
   }
@@ -361,48 +329,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // 새 채팅 버튼 (PopupMenu)
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.add, color: appTheme.textPrimary),
-                        tooltip: '새 채팅',
-                        offset: const Offset(0, 40),
-                        color: appTheme.cardColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        onSelected: (value) {
-                          if (value == 'normal') {
-                            _handleNewChat();
-                          } else if (value == 'compatibility') {
-                            _handleCompatibilityChat();
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem<String>(
-                            value: 'normal',
-                            child: Row(
-                              children: [
-                                Icon(Icons.chat_bubble_outline,
-                                  color: appTheme.textPrimary, size: 20),
-                                const SizedBox(width: 12),
-                                Text('일반 채팅',
-                                  style: TextStyle(color: appTheme.textPrimary)),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'compatibility',
-                            child: Row(
-                              children: [
-                                Icon(Icons.favorite_outline,
-                                  color: appTheme.primaryColor, size: 20),
-                                const SizedBox(width: 12),
-                                Text('궁합 채팅',
-                                  style: TextStyle(color: appTheme.textPrimary)),
-                              ],
-                            ),
-                          ),
-                        ],
+                      // 인연 선택 버튼 (바로 시트 표시)
+                      IconButton(
+                        icon: Icon(Icons.person_add_outlined, color: appTheme.textPrimary),
+                        onPressed: _handleCompatibilityChat,
+                        tooltip: '인연 선택',
                       ),
                     ],
                   ),
@@ -415,6 +346,9 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                     onScroll: _scrollToBottom,
                     onCreateSession: _handleNewChat,
                     targetProfileId: widget.targetProfileId,
+                    inputController: _inputController,
+                    pendingTargetProfileId: _pendingTargetProfileId,
+                    onMentionSent: () => setState(() => _pendingTargetProfileId = null),
                   ),
                 ),
               ],
@@ -438,12 +372,24 @@ class _ChatContent extends ConsumerStatefulWidget {
   /// 궁합 채팅 시 상대방 프로필 ID
   final String? targetProfileId;
 
+  /// 외부 입력 필드 컨트롤러 (멘션 삽입용)
+  final TextEditingController? inputController;
+
+  /// 멘션으로 선택된 인연의 targetProfileId
+  final String? pendingTargetProfileId;
+
+  /// 멘션 전송 완료 후 콜백 (targetProfileId 초기화용)
+  final VoidCallback? onMentionSent;
+
   const _ChatContent({
     required this.chatType,
     required this.scrollController,
     required this.onScroll,
     this.onCreateSession,
     this.targetProfileId,
+    this.inputController,
+    this.pendingTargetProfileId,
+    this.onMentionSent,
   });
 
   @override
@@ -494,17 +440,28 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             ),
           ),
           ChatInputField(
+            controller: widget.inputController,
             onSend: (text) async {
-              // 세션 생성 + 대기 메시지 설정 (UI 리빌드 후 자동 전송)
-              print('[_ChatContent] 세션 생성 요청: text=$text, targetProfileId=${widget.targetProfileId}');
+              // 멘션 패턴 감지: @카테고리/이름
+              final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
+              final hasMention = mentionPattern.hasMatch(text);
+              final targetId = hasMention ? widget.pendingTargetProfileId : widget.targetProfileId;
+
+              print('[_ChatContent] 세션 생성 요청: text=$text, hasMention=$hasMention, targetProfileId=$targetId');
+
               final activeProfile = await ref.read(activeProfileProvider.future);
               ref.read(chatSessionNotifierProvider.notifier)
                   .createSession(
                     widget.chatType,
                     activeProfile?.id,
                     initialMessage: text,
-                    targetProfileId: widget.targetProfileId,
+                    targetProfileId: targetId,
                   );
+
+              // 멘션 전송 완료 시 콜백 호출
+              if (hasMention && widget.onMentionSent != null) {
+                widget.onMentionSent!();
+              }
             },
             enabled: true,
             hintText: widget.chatType.inputHint,
@@ -606,11 +563,23 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             ),
           ),
         ChatInputField(
+          controller: widget.inputController,
           onSend: (text) {
-            print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text, targetProfileId=$effectiveTargetProfileId');
+            // 멘션 패턴 감지: @카테고리/이름
+            final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
+            final hasMention = mentionPattern.hasMatch(text);
+            // 멘션이 있으면 pendingTargetProfileId 사용, 없으면 기존 effectiveTargetProfileId 사용
+            final targetId = hasMention ? widget.pendingTargetProfileId : effectiveTargetProfileId;
+
+            print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text, hasMention=$hasMention, targetProfileId=$targetId');
             ref
                 .read(chatNotifierProvider(currentSessionId).notifier)
-                .sendMessage(text, widget.chatType, targetProfileId: effectiveTargetProfileId);
+                .sendMessage(text, widget.chatType, targetProfileId: targetId);
+
+            // 멘션 전송 완료 시 콜백 호출
+            if (hasMention && widget.onMentionSent != null) {
+              widget.onMentionSent!();
+            }
           },
           enabled: !chatState.isLoading,
           hintText: widget.chatType.inputHint,

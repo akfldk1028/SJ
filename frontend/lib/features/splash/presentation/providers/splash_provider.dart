@@ -140,6 +140,14 @@ class Splash extends _$Splash {
         print('[Splash] Pre-fetching for user: $userId');
       }
 
+      // 1.5. 인증 후 프로필 클라우드 동기화 (인연 프로필 포함)
+      // main.dart에서 호출 시점에는 아직 인증 안 됨 → 여기서 다시 시도
+      final repository = ref.read(profileRepositoryProvider);
+      await repository.syncFromCloud();
+      if (kDebugMode) {
+        print('[Splash] Profile sync from cloud completed');
+      }
+
       // 2. Supabase에서 Pre-fetch
       final result = await splashQueries.prefetchPrimaryData(userId);
 

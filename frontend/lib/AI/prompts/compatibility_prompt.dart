@@ -473,40 +473,71 @@ ${data.targetIsLunar ? '- **⚠️ 음력 날짜를 반드시 양력으로 변�
 }
 
 // =============================================================================
-// 궁합 입력 데이터 클래스
+// 궁합 입력 데이터 클래스 (v4.0 리팩토링)
+// =============================================================================
+// ⚡ 변경사항:
+// - 42개 필드 → 15개 필드로 간소화
+// - saju_analyses 테이블의 row를 직접 사용 (myAnalysis, targetAnalysis)
+// - 불필요한 개별 필드 제거 (mySaju, myOheng... → myAnalysis 하나로 통합)
 // =============================================================================
 
-/// 궁합 분석용 입력 데이터
+/// 궁합 분석용 입력 데이터 (v4.0)
+///
+/// ## 사용법
+/// ```dart
+/// // Supabase에서 saju_analyses row 조회
+/// final myRow = await supabase
+///     .from('saju_analyses')
+///     .select()
+///     .eq('profile_id', myProfileId)
+///     .single();
+///
+/// // CompatibilityInputData에 전달
+/// final inputData = CompatibilityInputData(
+///   myProfileId: myProfileId,
+///   myName: '이지나',
+///   myBirthDate: '1999-07-27',
+///   myGender: 'female',
+///   myAnalysis: myRow,  // 👈 전체 row 전달!
+///   ...
+/// );
+/// ```
 class CompatibilityInputData {
+  // ──────────────────────────────────────────────────────────────────────────
   // 나(분석 요청자) 정보
+  // ──────────────────────────────────────────────────────────────────────────
   final String myProfileId;
   final String myName;
   final String myBirthDate;
   final String myGender;
-  final Map<String, dynamic>? mySaju;
-  final Map<String, dynamic>? myOheng;
-  final Map<String, dynamic>? myYongsin;
-  final Map<String, dynamic>? myHapchung;
-  final List<dynamic>? mySinsal;
-  final List<dynamic>? myUnsung;
 
-  // 상대방 정보
+  /// saju_analyses 테이블의 전체 row (JSONB 컬럼 포함)
+  /// - year_gan, year_ji, month_gan, month_ji, day_gan, day_ji, hour_gan, hour_ji
+  /// - oheng_distribution (JSONB)
+  /// - yongsin (JSONB)
+  /// - hapchung (JSONB)
+  /// - sinsal_list (JSONB)
+  /// - twelve_unsung (JSONB)
+  final Map<String, dynamic>? myAnalysis;
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 상대방(인연) 정보
+  // ──────────────────────────────────────────────────────────────────────────
   final String targetProfileId;
   final String targetName;
   final String targetBirthDate;
-  final String? targetBirthTime; // 태어난 시간 (HH:mm 또는 null)
+  final String? targetBirthTime;
   final String targetGender;
-  // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추가
-  final bool targetIsLunar; // 음력 여부
-  final bool targetIsLeapMonth; // 윤달 여부
-  final Map<String, dynamic>? targetSaju;
-  final Map<String, dynamic>? targetOheng;
-  final Map<String, dynamic>? targetYongsin;
-  final Map<String, dynamic>? targetHapchung;
-  final List<dynamic>? targetSinsal;
-  final List<dynamic>? targetUnsung;
+  final bool targetIsLunar;
+  final bool targetIsLeapMonth;
 
+  /// saju_analyses 테이블의 전체 row (상대방)
+  /// - null이면 Gemini가 직접 사주 계산
+  final Map<String, dynamic>? targetAnalysis;
+
+  // ──────────────────────────────────────────────────────────────────────────
   // 관계 정보
+  // ──────────────────────────────────────────────────────────────────────────
   final String relationType;
 
   CompatibilityInputData({
@@ -514,59 +545,39 @@ class CompatibilityInputData {
     required this.myName,
     required this.myBirthDate,
     required this.myGender,
-    this.mySaju,
-    this.myOheng,
-    this.myYongsin,
-    this.myHapchung,
-    this.mySinsal,
-    this.myUnsung,
+    this.myAnalysis,
     required this.targetProfileId,
     required this.targetName,
     required this.targetBirthDate,
     this.targetBirthTime,
     required this.targetGender,
-    this.targetIsLunar = false, // v3.7.1: 기본값 양력
-    this.targetIsLeapMonth = false, // v3.7.1: 기본값 윤달 아님
-    this.targetSaju,
-    this.targetOheng,
-    this.targetYongsin,
-    this.targetHapchung,
-    this.targetSinsal,
-    this.targetUnsung,
+    this.targetIsLunar = false,
+    this.targetIsLeapMonth = false,
+    this.targetAnalysis,
     required this.relationType,
   });
 
-  /// 상대방(인연)의 사주 데이터가 있는지 확인
-  /// - GPT가 분석한 사주가 있으면 true
-  /// - 없으면 Gemini가 직접 계산해야 함
-  bool get hasTargetSaju => targetSaju != null && targetSaju!.isNotEmpty;
+  /// 상대방 사주 데이터 존재 여부
+  bool get hasTargetSaju => targetAnalysis != null && targetAnalysis!.isNotEmpty;
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // JSON 변환
+  // ──────────────────────────────────────────────────────────────────────────
   factory CompatibilityInputData.fromJson(Map<String, dynamic> json) {
     return CompatibilityInputData(
       myProfileId: json['my_profile_id'] ?? '',
       myName: json['my_name'] ?? '나',
       myBirthDate: json['my_birth_date'] ?? '',
       myGender: json['my_gender'] ?? 'male',
-      mySaju: json['my_saju'] as Map<String, dynamic>?,
-      myOheng: json['my_oheng'] as Map<String, dynamic>?,
-      myYongsin: json['my_yongsin'] as Map<String, dynamic>?,
-      myHapchung: json['my_hapchung'] as Map<String, dynamic>?,
-      mySinsal: json['my_sinsal'] as List<dynamic>?,
-      myUnsung: json['my_unsung'] as List<dynamic>?,
+      myAnalysis: json['my_analysis'] as Map<String, dynamic>?,
       targetProfileId: json['target_profile_id'] ?? '',
       targetName: json['target_name'] ?? '상대방',
       targetBirthDate: json['target_birth_date'] ?? '',
       targetBirthTime: json['target_birth_time'] as String?,
       targetGender: json['target_gender'] ?? 'male',
-      // v3.7.1 (Phase 47 Fix): 음력/양력 정보
       targetIsLunar: json['target_is_lunar'] as bool? ?? false,
       targetIsLeapMonth: json['target_is_leap_month'] as bool? ?? false,
-      targetSaju: json['target_saju'] as Map<String, dynamic>?,
-      targetOheng: json['target_oheng'] as Map<String, dynamic>?,
-      targetYongsin: json['target_yongsin'] as Map<String, dynamic>?,
-      targetHapchung: json['target_hapchung'] as Map<String, dynamic>?,
-      targetSinsal: json['target_sinsal'] as List<dynamic>?,
-      targetUnsung: json['target_unsung'] as List<dynamic>?,
+      targetAnalysis: json['target_analysis'] as Map<String, dynamic>?,
       relationType: json['relation_type'] ?? 'other',
     );
   }
@@ -576,59 +587,59 @@ class CompatibilityInputData {
         'my_name': myName,
         'my_birth_date': myBirthDate,
         'my_gender': myGender,
-        'my_saju': mySaju,
-        'my_oheng': myOheng,
-        'my_yongsin': myYongsin,
-        'my_hapchung': myHapchung,
-        'my_sinsal': mySinsal,
-        'my_unsung': myUnsung,
+        'my_analysis': myAnalysis,
         'target_profile_id': targetProfileId,
         'target_name': targetName,
         'target_birth_date': targetBirthDate,
         'target_birth_time': targetBirthTime,
         'target_gender': targetGender,
-        // v3.7.1 (Phase 47 Fix): 음력/양력 정보
         'target_is_lunar': targetIsLunar,
         'target_is_leap_month': targetIsLeapMonth,
-        'target_saju': targetSaju,
-        'target_oheng': targetOheng,
-        'target_yongsin': targetYongsin,
-        'target_hapchung': targetHapchung,
-        'target_sinsal': targetSinsal,
-        'target_unsung': targetUnsung,
+        'target_analysis': targetAnalysis,
         'relation_type': relationType,
       };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // 문자열 변환 헬퍼 (프롬프트용)
-  // ─────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
+  // 프롬프트용 문자열 변환 (간소화)
+  // ──────────────────────────────────────────────────────────────────────────
 
-  String get mySajuString => _formatSaju(mySaju);
-  String get targetSajuString => _formatSaju(targetSaju);
+  // 사주 팔자 문자열
+  String get mySajuString => _formatSaju(myAnalysis);
+  String get targetSajuString => _formatSaju(targetAnalysis);
 
-  String get myOhengString => _formatOheng(myOheng);
-  String get targetOhengString => _formatOheng(targetOheng);
+  // 오행 분포 문자열
+  String get myOhengString => _formatOheng(myAnalysis?['oheng_distribution']);
+  String get targetOhengString => _formatOheng(targetAnalysis?['oheng_distribution']);
 
-  String get myYongsinString => _formatYongsin(myYongsin);
-  String get targetYongsinString => _formatYongsin(targetYongsin);
+  // 용신 정보 문자열
+  String get myYongsinString => _formatYongsin(myAnalysis?['yongsin']);
+  String get targetYongsinString => _formatYongsin(targetAnalysis?['yongsin']);
 
-  String get myHapchungString => _formatHapchung(myHapchung);
-  String get targetHapchungString => _formatHapchung(targetHapchung);
+  // 합충형해파 문자열
+  String get myHapchungString => _formatHapchung(myAnalysis?['hapchung']);
+  String get targetHapchungString => _formatHapchung(targetAnalysis?['hapchung']);
 
-  String get mySinsalString => _formatSinsal(mySinsal);
-  String get targetSinsalString => _formatSinsal(targetSinsal);
+  // 신살 문자열
+  String get mySinsalString => _formatSinsal(myAnalysis?['sinsal_list']);
+  String get targetSinsalString => _formatSinsal(targetAnalysis?['sinsal_list']);
 
-  String get myUnsungString => _formatUnsung(myUnsung);
-  String get targetUnsungString => _formatUnsung(targetUnsung);
+  // 12운성 문자열
+  String get myUnsungString => _formatUnsung(myAnalysis?['twelve_unsung']);
+  String get targetUnsungString => _formatUnsung(targetAnalysis?['twelve_unsung']);
 
-  String _formatSaju(Map<String, dynamic>? saju) {
-    if (saju == null) return '(사주 정보 없음)';
+  // ──────────────────────────────────────────────────────────────────────────
+  // 포맷 헬퍼 (간소화)
+  // ──────────────────────────────────────────────────────────────────────────
 
-    final year = '${saju['year_gan'] ?? '?'}${saju['year_ji'] ?? '?'}';
-    final month = '${saju['month_gan'] ?? '?'}${saju['month_ji'] ?? '?'}';
-    final day = '${saju['day_gan'] ?? '?'}${saju['day_ji'] ?? '?'}';
-    final hour = saju['hour_gan'] != null && saju['hour_ji'] != null
-        ? '${saju['hour_gan']}${saju['hour_ji']}'
+  /// 사주 팔자 포맷 (saju_analyses row에서 직접 추출)
+  String _formatSaju(Map<String, dynamic>? analysis) {
+    if (analysis == null) return '(사주 정보 없음)';
+
+    final year = '${analysis['year_gan'] ?? '?'}${analysis['year_ji'] ?? '?'}';
+    final month = '${analysis['month_gan'] ?? '?'}${analysis['month_ji'] ?? '?'}';
+    final day = '${analysis['day_gan'] ?? '?'}${analysis['day_ji'] ?? '?'}';
+    final hour = analysis['hour_gan'] != null && analysis['hour_ji'] != null
+        ? '${analysis['hour_gan']}${analysis['hour_ji']}'
         : '(시주 미상)';
 
     return '''
@@ -637,158 +648,71 @@ class CompatibilityInputData {
 | $year | $month | $day | $hour |''';
   }
 
-  String _formatOheng(Map<String, dynamic>? oheng) {
+  /// 오행 분포 포맷
+  String _formatOheng(dynamic oheng) {
     if (oheng == null) return '(오행 정보 없음)';
-
-    return '''
-- 목(木): ${oheng['wood'] ?? 0}개
-- 화(火): ${oheng['fire'] ?? 0}개
-- 토(土): ${oheng['earth'] ?? 0}개
-- 금(金): ${oheng['metal'] ?? 0}개
-- 수(水): ${oheng['water'] ?? 0}개''';
+    final o = oheng as Map<String, dynamic>;
+    return '목${o['wood'] ?? 0} 화${o['fire'] ?? 0} 토${o['earth'] ?? 0} 금${o['metal'] ?? 0} 수${o['water'] ?? 0}';
   }
 
-  String _formatYongsin(Map<String, dynamic>? yongsin) {
+  /// 용신 정보 포맷
+  String _formatYongsin(dynamic yongsin) {
     if (yongsin == null) return '(용신 정보 없음)';
-
-    return '''
-- 용신: ${yongsin['yongsin'] ?? '미정'}
-- 희신: ${yongsin['heesin'] ?? yongsin['huisin'] ?? '미정'}
-- 기신: ${yongsin['gisin'] ?? '미정'}
-- 구신: ${yongsin['gusin'] ?? '미정'}
-- 한신: ${yongsin['hansin'] ?? '미정'}
-- 분석법: ${yongsin['method'] ?? '미정'}''';
+    final y = yongsin as Map<String, dynamic>;
+    return '용신: ${y['yongsin'] ?? '?'} / 희신: ${y['heesin'] ?? y['huisin'] ?? '?'} / 기신: ${y['gisin'] ?? '?'}';
   }
 
-  String _formatHapchung(Map<String, dynamic>? hapchung) {
-    if (hapchung == null) return '(합충형해파 정보 없음)';
+  /// 합충형해파 포맷 (간소화 - JSONB 구조 그대로 활용)
+  String _formatHapchung(dynamic hapchung) {
+    if (hapchung == null) return '(합충 정보 없음)';
+    final h = hapchung as Map<String, dynamic>;
+    final parts = <String>[];
 
-    final buffer = StringBuffer();
-
-    // 천간합
-    final cheonganHaps = hapchung['cheongan_haps'] as List?;
-    if (cheonganHaps != null && cheonganHaps.isNotEmpty) {
-      buffer.writeln('**천간합:**');
-      for (final hap in cheonganHaps) {
-        buffer.writeln('- ${hap['description'] ?? hap}');
+    // 각 항목이 있으면 추가 (간단한 리스트 형식)
+    void addIfNotEmpty(String label, dynamic list) {
+      if (list is List && list.isNotEmpty) {
+        final items = list.map((e) => e is Map ? (e['description'] ?? e.toString()) : e.toString()).join(', ');
+        parts.add('$label: $items');
       }
     }
 
-    // 천간충
-    final cheonganChungs = hapchung['cheongan_chungs'] as List?;
-    if (cheonganChungs != null && cheonganChungs.isNotEmpty) {
-      buffer.writeln('**천간충:**');
-      for (final chung in cheonganChungs) {
-        buffer.writeln('- ${chung['description'] ?? chung}');
-      }
-    }
+    addIfNotEmpty('천간합', h['cheongan_haps']);
+    addIfNotEmpty('천간충', h['cheongan_chungs']);
+    addIfNotEmpty('지지육합', h['jiji_yukhaps']);
+    addIfNotEmpty('지지삼합', h['jiji_samhaps']);
+    addIfNotEmpty('지지충', h['jiji_chungs']);
+    addIfNotEmpty('지지형', h['jiji_hyungs']);
+    addIfNotEmpty('지지파', h['jiji_pas']);
+    addIfNotEmpty('지지해', h['jiji_haes']);
 
-    // 지지육합
-    final jijiYukhaps = hapchung['jiji_yukhaps'] as List?;
-    if (jijiYukhaps != null && jijiYukhaps.isNotEmpty) {
-      buffer.writeln('**지지육합:**');
-      for (final hap in jijiYukhaps) {
-        buffer.writeln('- ${hap['description'] ?? hap}');
-      }
-    }
-
-    // 지지삼합
-    final jijiSamhaps = hapchung['jiji_samhaps'] as List?;
-    if (jijiSamhaps != null && jijiSamhaps.isNotEmpty) {
-      buffer.writeln('**지지삼합:**');
-      for (final hap in jijiSamhaps) {
-        buffer.writeln('- ${hap['description'] ?? hap}');
-      }
-    }
-
-    // 지지방합
-    final jijiBanghaps = hapchung['jiji_banghaps'] as List?;
-    if (jijiBanghaps != null && jijiBanghaps.isNotEmpty) {
-      buffer.writeln('**지지방합:**');
-      for (final hap in jijiBanghaps) {
-        buffer.writeln('- ${hap['description'] ?? hap}');
-      }
-    }
-
-    // 지지충
-    final jijiChungs = hapchung['jiji_chungs'] as List?;
-    if (jijiChungs != null && jijiChungs.isNotEmpty) {
-      buffer.writeln('**지지충:**');
-      for (final chung in jijiChungs) {
-        buffer.writeln('- ${chung['description'] ?? chung}');
-      }
-    }
-
-    // 지지형
-    final jijiHyungs = hapchung['jiji_hyungs'] as List?;
-    if (jijiHyungs != null && jijiHyungs.isNotEmpty) {
-      buffer.writeln('**지지형:**');
-      for (final hyung in jijiHyungs) {
-        buffer.writeln('- ${hyung['description'] ?? hyung}');
-      }
-    }
-
-    // 지지파
-    final jijiPas = hapchung['jiji_pas'] as List?;
-    if (jijiPas != null && jijiPas.isNotEmpty) {
-      buffer.writeln('**지지파:**');
-      for (final pa in jijiPas) {
-        buffer.writeln('- ${pa['description'] ?? pa}');
-      }
-    }
-
-    // 지지해
-    final jijiHaes = hapchung['jiji_haes'] as List?;
-    if (jijiHaes != null && jijiHaes.isNotEmpty) {
-      buffer.writeln('**지지해:**');
-      for (final hae in jijiHaes) {
-        buffer.writeln('- ${hae['description'] ?? hae}');
-      }
-    }
-
-    // 원진
-    final wonjins = hapchung['wonjins'] as List?;
-    if (wonjins != null && wonjins.isNotEmpty) {
-      buffer.writeln('**원진:**');
-      for (final wonjin in wonjins) {
-        buffer.writeln('- ${wonjin['description'] ?? wonjin}');
-      }
-    }
-
-    return buffer.isEmpty ? '(합충형해파 없음)' : buffer.toString();
+    return parts.isEmpty ? '(합충 없음)' : parts.join('\n');
   }
 
-  String _formatSinsal(List<dynamic>? sinsal) {
-    if (sinsal == null || sinsal.isEmpty) return '(신살 정보 없음)';
+  /// 신살 포맷
+  String _formatSinsal(dynamic sinsal) {
+    if (sinsal == null) return '(신살 정보 없음)';
+    final list = sinsal as List;
+    if (list.isEmpty) return '(신살 없음)';
 
-    final buffer = StringBuffer();
-    for (final item in sinsal) {
-      if (item is Map) {
-        final name = item['name'] ?? '미상';
-        final type = item['type'] ?? '';
-        final location = item['location'] ?? '';
-        buffer.writeln('- $name ($type) - $location');
-      } else {
-        buffer.writeln('- $item');
+    return list.map((e) {
+      if (e is Map) {
+        return '${e['name'] ?? '?'}(${e['type'] ?? ''})';
       }
-    }
-    return buffer.toString();
+      return e.toString();
+    }).join(', ');
   }
 
-  String _formatUnsung(List<dynamic>? unsung) {
-    if (unsung == null || unsung.isEmpty) return '(12운성 정보 없음)';
+  /// 12운성 포맷
+  String _formatUnsung(dynamic unsung) {
+    if (unsung == null) return '(12운성 정보 없음)';
+    final list = unsung as List;
+    if (list.isEmpty) return '(12운성 없음)';
 
-    final buffer = StringBuffer();
-    for (final item in unsung) {
-      if (item is Map) {
-        final pillar = item['pillar'] ?? '';
-        final unsungName = item['unsung'] ?? '';
-        final strength = item['strength'] ?? 0;
-        buffer.writeln('- $pillar: $unsungName (강도: $strength)');
-      } else {
-        buffer.writeln('- $item');
+    return list.map((e) {
+      if (e is Map) {
+        return '${e['pillar'] ?? '?'}: ${e['unsung'] ?? '?'}';
       }
-    }
-    return buffer.toString();
+      return e.toString();
+    }).join(', ');
   }
 }

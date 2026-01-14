@@ -69,7 +69,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
     // 초기 그래프 구성 (목업 데이터)
     if (_useMockData) {
-      _buildGraphFromProfiles(MockProfiles.profiles);
+      _buildGraphFromProfiles(MockProfiles.profiles, MockProfiles.profiles.first);
     }
   }
 
@@ -159,13 +159,21 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     }
 
     final profilesAsync = ref.watch(allProfilesProvider);
+    final activeProfileAsync = ref.watch(activeProfileProvider);
+
     return profilesAsync.when(
       data: (profiles) {
-        // 프로필 변경 시 그래프 재구성
-        if (!_isSameProfiles(profiles)) {
-          _buildGraphFromProfiles(profiles);
-        }
-        return _buildGraph(context, profiles);
+        return activeProfileAsync.when(
+          data: (activeProfile) {
+            // 프로필 변경 시 그래프 재구성
+            if (!_isSameProfiles(profiles)) {
+              _buildGraphFromProfiles(profiles, activeProfile);
+            }
+            return _buildGraph(context, profiles);
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
@@ -269,7 +277,9 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   }
 
   /// 그래프 데이터 구성 (기존 graph에 추가)
-  void _buildGraphFromProfiles(List<SajuProfile> profiles) {
+  ///
+  /// [activeProfile] 활성 프로필을 루트 노드(왼쪽)로 사용
+  void _buildGraphFromProfiles(List<SajuProfile> profiles, SajuProfile? activeProfile) {
     // 기존 데이터 클리어 (edges 먼저, 그 다음 nodes)
     graph.edges.clear();
     graph.nodes.clear();
@@ -283,10 +293,9 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       return;
     }
 
-    // Me 프로필 찾기
-    final meProfile = profiles
-            .where((p) => p.relationType == RelationshipType.me)
-            .firstOrNull ??
+    // Me 프로필: activeProfile 우선, 없으면 relationType.me, 그래도 없으면 첫 번째 프로필
+    final meProfile = activeProfile ??
+        profiles.where((p) => p.relationType == RelationshipType.me).firstOrNull ??
         profiles.first;
 
     // Me 노드 생성
