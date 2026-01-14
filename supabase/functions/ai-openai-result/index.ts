@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * AI Task 결과 조회 Edge Function (v24)
+ * AI Task 결과 조회 Edge Function (v25)
  *
  * OpenAI Responses API의 background task 결과 조회
  * task_id로 조회 → openai_response_id로 OpenAI polling
@@ -11,6 +11,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - OpenAI /v1/responses/{id} 직접 polling
  * - queued/in_progress → completed 상태 변환
  * - 결과를 ai_tasks에 캐싱
+ *
+ * v25 변경사항 (2026-01-14):
+ * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규 필드)
+ * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
+ * - gpt_saju_analysis_count 증가 추가
  *
  * 사용법:
  * POST /ai-openai-result
@@ -315,6 +320,11 @@ Deno.serve(async (req) => {
 
 /**
  * 토큰 사용량 기록
+ *
+ * v25 변경사항 (2026-01-14):
+ * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규)
+ * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
+ * - gpt_saju_analysis_count 증가 추가
  */
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
@@ -332,36 +342,36 @@ async function recordTokenUsage(
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, ai_analysis_tokens, total_tokens, total_cost_usd")
+      .select("id, gpt_saju_analysis_tokens, gpt_saju_analysis_count, gpt_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
+      // UPDATE: 개별 필드만 업데이트 (total_tokens, is_quota_exceeded는 GENERATED 컬럼)
       await supabase
         .from("user_daily_token_usage")
         .update({
-          ai_analysis_tokens: (existing.ai_analysis_tokens || 0) + totalTokens,
-          total_tokens: (existing.total_tokens || 0) + totalTokens,
-          total_cost_usd: parseFloat(existing.total_cost_usd || "0") + cost,
+          gpt_saju_analysis_tokens: (existing.gpt_saju_analysis_tokens || 0) + totalTokens,
+          gpt_saju_analysis_count: (existing.gpt_saju_analysis_count || 0) + 1,
+          gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id);
     } else {
+      // INSERT: 새 레코드 생성 (total_tokens, is_quota_exceeded는 자동 계산)
       await supabase
         .from("user_daily_token_usage")
         .insert({
           user_id: userId,
           usage_date: today,
-          chat_tokens: 0,
-          ai_analysis_tokens: totalTokens,
-          ai_chat_tokens: 0,
-          total_tokens: totalTokens,
-          total_cost_usd: cost,
+          gpt_saju_analysis_tokens: totalTokens,
+          gpt_saju_analysis_count: 1,
+          gpt_cost_usd: cost,
         });
     }
-    console.log(`[ai-openai-result v24] Recorded ${totalTokens} tokens for user ${userId}`);
+    console.log(`[ai-openai-result v25] Recorded ${totalTokens} tokens for user ${userId}`);
   } catch (error) {
-    console.error("[ai-openai-result v24] Failed to record token usage:", error);
+    console.error("[ai-openai-result v25] Failed to record token usage:", error);
   }
 }

@@ -496,15 +496,124 @@ class HapchungAnalysis {
   int get negativeCount =>
       chung.length + hyung.length + hae.length + pa.length + wonjin.length;
 
-  /// JSON 변환
+  /// JSON 변환 - 한글(한자) 형식으로 DB 저장
   Map<String, dynamic> toJson() => {
-        'hap': hap,
-        'chung': chung,
-        'hyung': hyung,
-        'hae': hae,
-        'pa': pa,
-        'wonjin': wonjin,
+        'hap': _toHanjaFormat(hap, 'hap'),
+        'chung': _toHanjaFormat(chung, 'chung'),
+        'hyung': _toHanjaFormat(hyung, 'hyung'),
+        'hae': _toHanjaFormat(hae, 'hae'),
+        'pa': _toHanjaFormat(pa, 'pa'),
+        'wonjin': _toHanjaFormat(wonjin, 'wonjin'),
       };
+
+  /// 한글(한자) 형식으로 변환
+  /// 예: "년지↔월지: 자축합토" → "년지(年支)↔월지(月支): 자축합토(子丑合土)"
+  List<String> _toHanjaFormat(List<String> items, String type) {
+    return items.map((item) {
+      // 위치 라벨 한자 변환
+      String result = item
+          .replaceAll('년간', '년간(年干)')
+          .replaceAll('월간', '월간(月干)')
+          .replaceAll('일간', '일간(日干)')
+          .replaceAll('시간', '시간(時干)')
+          .replaceAll('년지', '년지(年支)')
+          .replaceAll('월지', '월지(月支)')
+          .replaceAll('일지', '일지(日支)')
+          .replaceAll('시지', '시지(時支)');
+
+      // 합충형해파 용어 한자 변환
+      result = _addHanjaToTerms(result, type);
+
+      return result;
+    }).toList();
+  }
+
+  /// 사주 용어에 한자 추가
+  String _addHanjaToTerms(String text, String type) {
+    // 천간합
+    text = text
+        .replaceAll('갑기합토', '갑기합토(甲己合土)')
+        .replaceAll('을경합금', '을경합금(乙庚合金)')
+        .replaceAll('병신합수', '병신합수(丙辛合水)')
+        .replaceAll('정임합목', '정임합목(丁壬合木)')
+        .replaceAll('무계합화', '무계합화(戊癸合火)');
+
+    // 지지 육합
+    text = text
+        .replaceAll('자축합토', '자축합토(子丑合土)')
+        .replaceAll('인해합목', '인해합목(寅亥合木)')
+        .replaceAll('묘술합화', '묘술합화(卯戌合火)')
+        .replaceAll('진유합금', '진유합금(辰酉合金)')
+        .replaceAll('사신합수', '사신합수(巳申合水)')
+        .replaceAll('오미합화', '오미합화(午未合火)');
+
+    // 지지 충
+    text = text
+        .replaceAll('자오충', '자오충(子午沖)')
+        .replaceAll('축미충', '축미충(丑未沖)')
+        .replaceAll('인신충', '인신충(寅申沖)')
+        .replaceAll('묘유충', '묘유충(卯酉沖)')
+        .replaceAll('진술충', '진술충(辰戌沖)')
+        .replaceAll('사해충', '사해충(巳亥沖)');
+
+    // 지지 형
+    text = text
+        .replaceAll('인사신 삼형살', '인사신 삼형살(寅巳申 三刑殺)')
+        .replaceAll('축술미 삼형살', '축술미 삼형살(丑戌未 三刑殺)')
+        .replaceAll('자묘형', '자묘형(子卯刑)')
+        .replaceAll('무은지형', '무은지형(無恩之刑)')
+        .replaceAll('지세지형', '지세지형(持勢之刑)')
+        .replaceAll('무례지형', '무례지형(無禮之刑)');
+
+    // 자형
+    text = text
+        .replaceAll('진진자형', '진진자형(辰辰自刑)')
+        .replaceAll('오오자형', '오오자형(午午自刑)')
+        .replaceAll('유유자형', '유유자형(酉酉自刑)')
+        .replaceAll('해해자형', '해해자형(亥亥自刑)');
+
+    // 지지 해
+    text = text
+        .replaceAll('술유해', '술유해(戌酉害)')
+        .replaceAll('신해해', '신해해(申亥害)')
+        .replaceAll('미자해', '미자해(未子害)')
+        .replaceAll('축오해', '축오해(丑午害)')
+        .replaceAll('인사해', '인사해(寅巳害)')
+        .replaceAll('묘진해', '묘진해(卯辰害)');
+
+    // 지지 파
+    text = text
+        .replaceAll('유자파', '유자파(酉子破)')
+        .replaceAll('축진파', '축진파(丑辰破)')
+        .replaceAll('인해파', '인해파(寅亥破)')
+        .replaceAll('묘오파', '묘오파(卯午破)')
+        .replaceAll('신사파', '신사파(申巳破)')
+        .replaceAll('술미파', '술미파(戌未破)');
+
+    // 원진
+    text = text
+        .replaceAll('자미 원진', '자미 원진(子未怨嗔)')
+        .replaceAll('축오 원진', '축오 원진(丑午怨嗔)')
+        .replaceAll('인사 원진', '인사 원진(寅巳怨嗔)')
+        .replaceAll('묘진 원진', '묘진 원진(卯辰怨嗔)')
+        .replaceAll('진묘 원진', '진묘 원진(辰卯怨嗔)')
+        .replaceAll('사인 원진', '사인 원진(巳寅怨嗔)')
+        .replaceAll('오축 원진', '오축 원진(午丑怨嗔)')
+        .replaceAll('미자 원진', '미자 원진(未子怨嗔)')
+        .replaceAll('신해 원진', '신해 원진(申亥怨嗔)')
+        .replaceAll('유술 원진', '유술 원진(酉戌怨嗔)')
+        .replaceAll('술유 원진', '술유 원진(戌酉怨嗔)')
+        .replaceAll('해신 원진', '해신 원진(亥申怨嗔)');
+
+    // 반합 (삼합 일부)
+    text = text
+        .replaceAll('인오술 반합', '인오술 반합(寅午戌 半合)')
+        .replaceAll('해묘미 반합', '해묘미 반합(亥卯未 半合)')
+        .replaceAll('사유축 반합', '사유축 반합(巳酉丑 半合)')
+        .replaceAll('신자진 반합', '신자진 반합(申子辰 半合)');
+
+    return text;
+  }
 }
 
 /// 궁합 계산 결과

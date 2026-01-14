@@ -2046,3 +2046,201 @@ WHERE p.id IN (
 - [ ] `compatibility_analyses` 자동 생성 확인
 
 ---
+
+## Phase 47-C: DB 저장 데이터 한글(한자) 페어 형식 통일 (2026-01-14) ✅ 완료
+
+### 개요
+
+DB에 저장되는 사주 관련 용어들을 일관된 `한글(한자)` 페어 형식으로 통일.
+
+### 영향 테이블
+
+| 테이블 | 영향 컬럼 | 변환 내용 |
+|--------|----------|----------|
+| `saju_analyses` | `oheng_distribution` | 키: `목(木)`, 값: `목(木)` |
+| `saju_analyses` | `yongsin` | `목(木)`, `억부법(抑扶法)` |
+| `saju_analyses` | `gyeokguk` | `정관격(正官格)` |
+| `saju_analyses` | `sipsin_info` | `비견(比肩)` |
+| `saju_analyses` | `sinsal_list` | `도화살(桃花殺)` |
+| `saju_analyses` | `gilseong` | `천덕귀인(天德貴人)` |
+| `saju_analyses` | `hapchung` | 기둥명/간지 한자 추가 |
+| `saju_analyses` | `daeun` | `경(庚)술(戌)` |
+| `saju_analyses` | `current_seun` | `병(丙)오(午)` |
+| `compatibility_analyses` | `saju_analysis.hapchung` | `자축합토(子丑合土)` 등 |
+
+### JSONB 필드 저장 형식 (변경 후)
+
+**oheng_distribution**:
+```json
+{
+  "목(木)": 2,
+  "화(火)": 4,
+  "토(土)": 1,
+  "금(金)": 0,
+  "수(水)": 1,
+  "strongest": "화(火)",
+  "weakest": "금(金)"
+}
+```
+
+**daeun**:
+```json
+{
+  "list": [{
+    "pillar": "경(庚)술(戌)",
+    "gan": "경(庚)",
+    "ji": "술(戌)"
+  }]
+}
+```
+
+**compatibility hapchung**:
+```json
+{
+  "hap": ["년지(年支)↔월지(月支): 자축합토(子丑合土)"],
+  "chung": ["일지(日支)↔시지(時支): 자오충(子午沖)"]
+}
+```
+
+### Flutter 코드 수정
+
+| 파일 | 수정 내용 |
+|------|----------|
+| `compatibility_calculator.dart` | `HapchungAnalysis.toJson()` 한자 변환 |
+| `saju_analysis_repository.dart` | 모든 `_*ToJson()` 메서드 한자 형식 적용 |
+
+### 기존 데이터 처리
+
+- **새 데이터**: 자동으로 한글(한자) 형식 저장
+- **기존 데이터**: 그대로 유지 (마이그레이션 필요 시 별도 SQL 실행)
+
+### 역변환 지원
+
+`_fromSupabaseMap()` 메서드들은 이미 한글(한자) 형식을 파싱하도록 구현됨:
+- `_extractHangul()`: `"갑(甲)"` → `"갑"`
+- `_ohengFromKorean()`: `"목(木)"` → `Oheng.mok`
+- `_parsePillarString()`: `"경(庚)술(戌)"` → `("경", "술")`
+
+---
+
+## Phase 48: 토큰 사용량 추적 시스템 v2 (2026-01-14) ✅ 완료
+
+### 개요
+
+Phase 19에서 구현한 토큰 추적 시스템을 GENERATED 컬럼 기반으로 개선하여 데이터 정확성과 Race Condition 방지.
+
+### 핵심 변경: GENERATED 컬럼
+
+```sql
+-- user_daily_token_usage 테이블의 GENERATED 컬럼
+
+-- 총 토큰 (자동 계산)
+total_tokens INT GENERATED ALWAYS AS (
+  COALESCE(gpt_saju_analysis_tokens, 0) +
+  COALESCE(gemini_fortune_tokens, 0) +
+  COALESCE(gemini_chat_tokens, 0) +
+  COALESCE(compatibility_tokens, 0)
+) STORED
+
+-- quota 초과 여부 (자동 계산)
+is_quota_exceeded BOOLEAN GENERATED ALWAYS AS (
+  total_tokens >= COALESCE(daily_quota, 50000)
+) STORED
+```
+
+### GENERATED 컬럼 vs 일반 컬럼
+
+| 항목 | 일반 컬럼 | GENERATED 컬럼 |
+|------|----------|---------------|
+| Race Condition | ❌ 동시 UPDATE 시 데이터 손실 | ✅ 개별 필드만 UPDATE, 합계 자동 |
+| 데이터 불일치 | ❌ 개별 합 ≠ total 가능 | ✅ 항상 정확 |
+| 직접 UPDATE | 가능 (위험) | 불가 (DEFAULT만 허용) |
+
+### Edge Function 변경 (v18 → v19)
+
+**v18 오류:**
+```
+ERROR: column "total_tokens" can only be updated to DEFAULT
+```
+
+**원인:** GENERATED 컬럼에 직접 UPDATE 시도
+
+**v19 수정:**
+```typescript
+// recordTokenUsage() 함수
+// total_tokens 제거 - GENERATED 컬럼이 자동 계산
+await supabase.update({
+  gemini_chat_tokens: existing.gemini_chat_tokens + newTokens,
+  // total_tokens: ... ← 제거됨
+});
+```
+
+### 토큰 저장 흐름
+
+```
+[ai_summaries INSERT]
+    │
+    ↓ 트리거: update_user_daily_token_usage()
+    │
+    ├─ summary_type = 'saju_base'     → gpt_saju_analysis_tokens
+    ├─ summary_type = 'daily_fortune' → gemini_fortune_tokens
+    └─ summary_type = 'compatibility' → compatibility_tokens
+
+[chat_messages INSERT]
+    │
+    ↓ 트리거: update_daily_chat_tokens()
+    │
+    └─ role = 'assistant'             → gemini_chat_tokens
+
+[Edge Function ai-gemini]
+    │
+    ↓ recordTokenUsage()
+    │
+    └─ 스트리밍 완료 시               → gemini_chat_tokens
+
+                    ↓ 모두 집계
+
+[user_daily_token_usage]
+    │
+    ├─ gpt_saju_analysis_tokens  (직접 저장)
+    ├─ gemini_fortune_tokens     (직접 저장)
+    ├─ gemini_chat_tokens        (직접 저장)
+    ├─ compatibility_tokens      (직접 저장)
+    │
+    ├─ total_tokens              (GENERATED - 자동)
+    └─ is_quota_exceeded         (GENERATED - 자동)
+```
+
+### 마이그레이션 목록
+
+| 버전 | 이름 | 내용 |
+|------|------|------|
+| 20260114110711 | redesign_user_daily_token_usage_detailed | API별 토큰 필드 분리 + GENERATED 컬럼 |
+| 20260114110925 | create_token_usage_auto_update_trigger | ai_summaries → user_daily_token_usage 트리거 |
+| 20260114111329 | create_chat_session_token_update_trigger | chat_messages → user_daily_token_usage 트리거 |
+| 20260114123514 | fix_daily_chat_tokens_trigger_security | SECURITY DEFINER 추가 (RLS 우회) |
+
+### Edge Function 버전
+
+| Function | Version | 변경 내용 |
+|----------|---------|----------|
+| ai-gemini | **v19** | `recordTokenUsage()`에서 `total_tokens` 제거 |
+
+### ai_summaries 영향 분석
+
+| summary_type | 영향 | 설명 |
+|--------------|------|------|
+| saju_base | ✅ 없음 | 트리거로 `gpt_saju_analysis_tokens` 자동 집계 |
+| daily_fortune | ✅ 없음 | 트리거로 `gemini_fortune_tokens` 자동 집계 |
+| compatibility | ✅ 없음 | 트리거로 `compatibility_tokens` 자동 집계 |
+
+**결론:** ai_summaries는 Flutter에서 직접 INSERT하므로 Edge Function 변경과 무관하게 정상 동작.
+
+### 주의사항
+
+⚠️ **GENERATED 컬럼 규칙:**
+- `total_tokens`와 `is_quota_exceeded`는 직접 INSERT/UPDATE 불가
+- 개별 필드(`gpt_saju_analysis_tokens`, `gemini_chat_tokens` 등)만 UPDATE
+- Edge Function, 트리거 모두 이 규칙 준수 필요
+
+---
