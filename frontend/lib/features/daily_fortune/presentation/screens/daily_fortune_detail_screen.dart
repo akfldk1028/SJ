@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 
@@ -119,11 +120,30 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
     final score = fortune.overallScore;
     final scoreColor = _getScoreColor(score);
     final grade = _getScoreGrade(score);
+    final message = fortune.overallMessage;
 
     // 날짜 포맷
     final now = DateTime.now();
     final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     final dateStr = '${now.month}월 ${now.day}일 ${weekdays[now.weekday - 1]}요일';
+
+    // 시간대별 인사말
+    final hour = now.hour;
+    String greeting;
+    IconData greetingIcon;
+    if (hour >= 5 && hour < 12) {
+      greeting = '좋은 아침이에요';
+      greetingIcon = Icons.wb_sunny_rounded;
+    } else if (hour >= 12 && hour < 18) {
+      greeting = '활기찬 오후에요';
+      greetingIcon = Icons.wb_sunny_outlined;
+    } else if (hour >= 18 && hour < 22) {
+      greeting = '편안한 저녁이에요';
+      greetingIcon = Icons.nightlight_round;
+    } else {
+      greeting = '고요한 밤이에요';
+      greetingIcon = Icons.bedtime_rounded;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -131,79 +151,44 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scoreColor.withOpacity(0.2),
-            scoreColor.withOpacity(0.05),
+            scoreColor.withOpacity(0.15),
             theme.cardColor,
           ],
         ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: scoreColor.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scoreColor.withOpacity(0.2)),
         boxShadow: [
           BoxShadow(
-            color: scoreColor.withOpacity(0.2),
+            color: scoreColor.withOpacity(0.15),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // 배경 장식
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    scoreColor.withOpacity(0.15),
-                    scoreColor.withOpacity(0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -30,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    scoreColor.withOpacity(0.1),
-                    scoreColor.withOpacity(0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 콘텐츠
-          Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // 상단: 날짜 + 인사말
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // 날짜
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: theme.cardColor.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(20),
+                    color: theme.cardColor.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.calendar_today_rounded, size: 14, color: theme.textSecondary),
+                      Icon(Icons.calendar_today_rounded, size: 12, color: theme.textMuted),
                       const SizedBox(width: 6),
                       Text(
                         dateStr,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: theme.textSecondary,
                         ),
@@ -211,29 +196,42 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                // 인사말
+                Row(
+                  children: [
+                    Icon(greetingIcon, size: 16, color: scoreColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      greeting,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // 중앙: 점수 + 등급
+            Row(
+              children: [
                 // 점수 원형
                 Container(
-                  width: 160,
-                  height: 160,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        scoreColor.withOpacity(0.25),
-                        scoreColor.withOpacity(0.1),
+                        scoreColor.withOpacity(0.2),
+                        scoreColor.withOpacity(0.05),
                       ],
                     ),
-                    border: Border.all(color: scoreColor.withOpacity(0.4), width: 4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scoreColor.withOpacity(0.3),
-                        blurRadius: 24,
-                        spreadRadius: 2,
-                      ),
-                    ],
+                    border: Border.all(color: scoreColor.withOpacity(0.5), width: 3),
                   ),
                   child: Center(
                     child: Column(
@@ -242,7 +240,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                         Text(
                           '$score',
                           style: TextStyle(
-                            fontSize: 64,
+                            fontSize: 40,
                             fontWeight: FontWeight.w700,
                             color: scoreColor,
                             height: 1,
@@ -251,51 +249,106 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                         Text(
                           '점',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: scoreColor.withOpacity(0.8),
+                            color: scoreColor.withOpacity(0.7),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                // 등급 뱃지
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: scoreColor,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scoreColor.withOpacity(0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 20),
+                // 등급 + 설명
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(_getGradeIcon(score), color: Colors.white, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        grade,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                      // 등급 뱃지
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: scoreColor,
+                          borderRadius: BorderRadius.circular(16),
                         ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_getGradeIcon(score), color: Colors.white, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              grade,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // 운세 요약 메시지
+                      Text(
+                        message,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            // 하단: 4가지 카테고리 미니 요약
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.cardColor.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMiniStat(theme, '재물', fortune.getCategoryScore('wealth'), const Color(0xFFF59E0B)),
+                  _buildMiniStat(theme, '애정', fortune.getCategoryScore('love'), const Color(0xFFEC4899)),
+                  _buildMiniStat(theme, '직장', fortune.getCategoryScore('work'), const Color(0xFF3B82F6)),
+                  _buildMiniStat(theme, '건강', fortune.getCategoryScore('health'), const Color(0xFF10B981)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildMiniStat(AppThemeExtension theme, String label, int score, Color color) {
+    return Column(
+      children: [
+        Text(
+          '$score',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: theme.textMuted,
+          ),
+        ),
+      ],
     );
   }
 
@@ -372,10 +425,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
 
   Widget _buildCategoryScrollSection(BuildContext context, AppThemeExtension theme, DailyFortuneData fortune) {
     final categories = [
-      {'key': 'wealth', 'name': '재물운', 'icon': Icons.account_balance_wallet_rounded, 'color': const Color(0xFF10B981), 'emoji': '💰'},
-      {'key': 'love', 'name': '애정운', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFEC4899), 'emoji': '💕'},
-      {'key': 'work', 'name': '직장운', 'icon': Icons.work_rounded, 'color': const Color(0xFF3B82F6), 'emoji': '💼'},
-      {'key': 'health', 'name': '건강운', 'icon': Icons.monitor_heart_rounded, 'color': const Color(0xFFF59E0B), 'emoji': '🏃'},
+      {'key': 'wealth', 'name': '재물운', 'icon': Icons.account_balance_wallet_rounded, 'color': const Color(0xFFF59E0B)},
+      {'key': 'love', 'name': '애정운', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFEC4899)},
+      {'key': 'work', 'name': '직장운', 'icon': Icons.work_rounded, 'color': const Color(0xFF3B82F6)},
+      {'key': 'health', 'name': '건강운', 'icon': Icons.monitor_heart_rounded, 'color': const Color(0xFF10B981)},
     ];
 
     return Column(
@@ -405,99 +458,106 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              final score = fortune.getCategoryScore(cat['key'] as String);
-              final message = fortune.getCategoryMessage(cat['key'] as String);
-              final color = cat['color'] as Color;
+        // 반응형 2x2 그리드
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = (constraints.maxWidth - 12) / 2;
+            final cardHeight = cardWidth * 0.85;
 
-              return Container(
-                width: 160,
-                margin: EdgeInsets.only(right: index == categories.length - 1 ? 0 : 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withOpacity(0.15),
-                      color.withOpacity(0.05),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: color.withOpacity(0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // 반응형 크기 계산 (기준: 너비 400px)
+            final scaleFactor = (constraints.maxWidth / 400).clamp(0.8, 1.5);
+            final iconSize = (36 * scaleFactor).clamp(32.0, 48.0);
+            final scoreSize = (14 * scaleFactor).clamp(12.0, 18.0);
+            final titleSize = (14 * scaleFactor).clamp(12.0, 18.0);
+            final descSize = (11 * scaleFactor).clamp(10.0, 14.0);
+            final padding = (14 * scaleFactor).clamp(12.0, 20.0);
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: categories.map((cat) {
+                final score = fortune.getCategoryScore(cat['key'] as String);
+                final message = fortune.getCategoryMessage(cat['key'] as String);
+                final color = cat['color'] as Color;
+
+                return SizedBox(
+                  width: cardWidth,
+                  height: cardHeight,
+                  child: Container(
+                    padding: EdgeInsets.all(padding),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          color.withOpacity(0.15),
+                          color.withOpacity(0.05),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: color.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: color.withOpacity(0.4),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: iconSize,
+                              height: iconSize,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ],
-                          ),
-                          child: Icon(cat['icon'] as IconData, color: Colors.white, size: 20),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _getScoreColor(score),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$score',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              child: Icon(cat['icon'] as IconData, color: Colors.white, size: iconSize * 0.5),
                             ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 10 * scaleFactor, vertical: 4 * scaleFactor),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$score',
+                                style: TextStyle(
+                                  fontSize: scoreSize,
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10 * scaleFactor),
+                        Text(
+                          cat['name'] as String,
+                          style: TextStyle(
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w600,
+                            color: theme.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 4 * scaleFactor),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: TextStyle(
+                              fontSize: descSize,
+                              color: theme.textSecondary,
+                              height: 1.4,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Text(
-                      cat['name'] as String,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: theme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: Text(
-                        _truncateMessage(message, 40),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.textSecondary,
-                          height: 1.4,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );
@@ -763,9 +823,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   }
 
   Color _getScoreColor(int score) {
-    if (score >= 85) return const Color(0xFF10B981);
-    if (score >= 70) return const Color(0xFF3B82F6);
-    if (score >= 60) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
+    // 운세 앱 분위기에 맞는 따뜻한 색상
+    if (score >= 85) return const Color(0xFFD4A574); // 골드
+    if (score >= 70) return const Color(0xFF8B7EC8); // 라벤더
+    if (score >= 60) return const Color(0xFFB8860B); // 다크골드
+    return const Color(0xFF9E7676); // 로즈브라운
   }
 }

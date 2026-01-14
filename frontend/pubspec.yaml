@@ -1,5 +1,5 @@
 name: frontend
-description: "만톡 - 만세력 사주 운세 앱"
+description: "사담 - 만세력 사주 운세 앱"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -105,6 +105,9 @@ dev_dependencies:
   riverpod_generator: ^2.3.11
   freezed: ^3.0.0
   json_serializable: ^6.7.1
+
+  # App Icon Generator
+  flutter_launcher_icons: ^0.14.3
 
   # Note: riverpod_lint temporarily disabled due to analyzer conflicts
   # Note: hive_generator removed due to dependency conflicts

@@ -59,7 +59,7 @@ enum ChatType {
             '본인과 상대방의 생년월일을 알려주시면\n'
             '두 분의 궁합을 분석해 드리겠습니다.';
       case ChatType.general:
-        return '안녕하세요! 만톡 AI입니다. 🔮\n\n'
+        return '안녕하세요! 사담 AI입니다. 🔮\n\n'
             '사주, 운세, 궁합 등 궁금한 것을 물어보세요!';
     }
   }

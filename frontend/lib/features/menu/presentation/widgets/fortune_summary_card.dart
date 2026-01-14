@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
 import '../providers/daily_fortune_provider.dart';
 
@@ -160,17 +161,17 @@ class FortuneSummaryCard extends ConsumerWidget {
     final hour = DateTime.now().hour;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: context.scaledPadding(20)),
       child: Column(
         children: [
           // 메인 운세 카드 (시간대별 오행 테마)
           _buildMainScoreCard(context, theme, score, message, hour),
-          const SizedBox(height: 16),
+          SizedBox(height: context.scaledPadding(16)),
           // 4개 카테고리 통계 그리드
           _buildCategoryStatsGrid(context, theme, fortune),
-          const SizedBox(height: 16),
+          SizedBox(height: context.scaledPadding(16)),
           // 오늘의 행운 아이템
-          _buildLuckyItemsRow(theme, fortune.lucky),
+          _buildLuckyItemsRow(context, theme, fortune.lucky),
         ],
       ),
     );
@@ -261,7 +262,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: context.scaledPadding(16)),
                   // 점수 영역
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -288,7 +289,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: context.scaledPadding(16)),
                   // 메시지 텍스트
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -377,16 +378,16 @@ class FortuneSummaryCard extends ConsumerWidget {
     DailyFortuneData fortune,
   ) {
     final categories = [
-      {'key': 'wealth', 'icon': Icons.account_balance_wallet_outlined, 'label': '재물', 'color': const Color(0xFFF59E0B)},
+      {'key': 'wealth', 'icon': Icons.monetization_on_outlined, 'label': '재물', 'color': const Color(0xFFF59E0B)},
       {'key': 'love', 'icon': Icons.favorite_outline_rounded, 'label': '애정', 'color': const Color(0xFFEC4899)},
       {'key': 'work', 'icon': Icons.work_outline_rounded, 'label': '직장', 'color': const Color(0xFF3B82F6)},
-      {'key': 'health', 'icon': Icons.favorite_outline, 'label': '건강', 'color': const Color(0xFF10B981)},
+      {'key': 'health', 'icon': Icons.directions_run_rounded, 'label': '건강', 'color': const Color(0xFF10B981)},
     ];
 
     return GestureDetector(
       onTap: () => context.push('/fortune/daily'),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(context.scaledPadding(16)),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
@@ -407,7 +408,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                 Text(
                   '운세 분석',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: context.scaledFont(15),
                     fontWeight: FontWeight.w600,
                     color: theme.textPrimary,
                   ),
@@ -415,26 +416,26 @@ class FortuneSummaryCard extends ConsumerWidget {
                 Icon(
                   Icons.chevron_right_rounded,
                   color: theme.textMuted,
-                  size: 20,
+                  size: context.scaledIcon(20),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: context.scaledPadding(16)),
             // 2x2 그리드
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 1.6,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: context.scaledPadding(12),
+                mainAxisSpacing: context.scaledPadding(12),
               ),
               itemCount: 4,
               itemBuilder: (context, index) {
                 final cat = categories[index];
                 final score = fortune.getCategoryScore(cat['key'] as String);
-                return _buildStatCard(
+                return _buildStatCard(context, 
                   theme,
                   cat['icon'] as IconData,
                   cat['label'] as String,
@@ -449,7 +450,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard(
+  Widget _buildStatCard(BuildContext context,
     AppThemeExtension theme,
     IconData icon,
     String label,
@@ -457,12 +458,12 @@ class FortuneSummaryCard extends ConsumerWidget {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(context.scaledPadding(14)),
       decoration: BoxDecoration(
         color: theme.isDark
             ? color.withValues(alpha: 0.1)
             : color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(context.scaledSize(16)),
         border: Border.all(
           color: color.withValues(alpha: 0.2),
           width: 1,
@@ -475,16 +476,16 @@ class FortuneSummaryCard extends ConsumerWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(context.scaledPadding(6)),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: color, size: 16),
+                child: Icon(icon, color: color, size: context.scaledIcon(16)),
               ),
               const Spacer(),
               SizedBox(
-                width: 40,
+                width: context.scaledSize(40),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
@@ -504,7 +505,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: context.scaledFont(13),
                   fontWeight: FontWeight.w500,
                   color: theme.textSecondary,
                 ),
@@ -512,7 +513,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               Text(
                 '$score',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: context.scaledFont(24),
                   fontWeight: FontWeight.w600,
                   color: color,
                 ),
@@ -524,16 +525,17 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildLuckyItemsRow(AppThemeExtension theme, LuckyInfo lucky) {
+
+  Widget _buildLuckyItemsRow(BuildContext context, AppThemeExtension theme, LuckyInfo lucky) {
     final items = [
-      {'icon': Icons.access_time_rounded, 'label': '시간', 'value': lucky.time},
-      {'icon': Icons.palette_outlined, 'label': '색상', 'value': lucky.color},
-      {'icon': Icons.tag_rounded, 'label': '숫자', 'value': '${lucky.number}'},
-      {'icon': Icons.explore_outlined, 'label': '방향', 'value': lucky.direction},
+      {'icon': Icons.access_time_rounded, 'label': '행운의 시간', 'value': lucky.time},
+      {'icon': Icons.palette_outlined, 'label': '행운의 색상', 'value': lucky.color},
+      {'icon': Icons.tag_rounded, 'label': '행운의 숫자', 'value': '${lucky.number}'},
+      {'icon': Icons.explore_outlined, 'label': '행운의 방향', 'value': lucky.direction},
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -548,52 +550,69 @@ class FortuneSummaryCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              '오늘의 행운',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: theme.textPrimary,
-              ),
-            ),
-          ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Icon(Icons.star_rounded, color: theme.accentColor, size: context.scaledIcon(18)),
+              const SizedBox(width: 6),
+              Text(
+                '오늘의 행운',
+                style: TextStyle(
+                  fontSize: context.scaledFont(14),
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.scaledPadding(12)),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            childAspectRatio: 3.0,
+            mainAxisSpacing: context.scaledPadding(8),
+            crossAxisSpacing: context.scaledPadding(8),
             children: items.map((item) {
-              return Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
+              return Container(
+                padding: EdgeInsets.symmetric(horizontal: context.scaledPadding(12), vertical: context.scaledPadding(8)),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
                       item['icon'] as IconData,
                       color: theme.primaryColor,
-                      size: 18,
+                      size: context.scaledIcon(18),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item['value'] as String,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: theme.textPrimary,
+                    SizedBox(width: context.scaledPadding(8)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            item['label'] as String,
+                            style: TextStyle(
+                              fontSize: context.scaledFont(10),
+                              color: theme.textMuted,
+                            ),
+                          ),
+                          Text(
+                            item['value'] as String,
+                            style: TextStyle(
+                              fontSize: context.scaledFont(13),
+                              fontWeight: FontWeight.w600,
+                              color: theme.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['label'] as String,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: theme.textMuted,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               );
             }).toList(),
           ),
@@ -601,6 +620,7 @@ class FortuneSummaryCard extends ConsumerWidget {
       ),
     );
   }
+
 
   String _getGradeText(int score) {
     if (score >= 90) return '대길';

@@ -376,7 +376,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               const Text(
-                '만톡 정통사주 특징',
+                '사담 정통사주 특징',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

@@ -28,6 +28,7 @@ import '../features/daily_fortune/presentation/screens/daily_fortune_detail_scre
 import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
 import '../features/traditional_saju/presentation/screens/traditional_saju_screen.dart';
 import '../features/compatibility/presentation/screens/compatibility_screen.dart';
+import '../features/settings/presentation/screens/icon_generator_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -119,6 +120,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.settingsDisclaimer,
         name: 'settingsDisclaimer',
         builder: (context, state) => const DisclaimerScreen(),
+      ),
+      GoRoute(
+        path: Routes.iconGenerator,
+        name: 'iconGenerator',
+        builder: (context, state) => const IconGeneratorScreen(),
       ),
       // Fortune 페이지
       GoRoute(

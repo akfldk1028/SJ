@@ -1,46 +1,60 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 
-/// Section header widget - 테마 적용
+/// Section header - 반응형 폰트 적용
 class SectionHeader extends StatelessWidget {
   final String title;
-  final String? actionText;
-  final VoidCallback? onActionTap;
+  final String? subtitle;
+  final VoidCallback? onSeeAll;
 
   const SectionHeader({
     super.key,
     required this.title,
-    this.actionText,
-    this.onActionTap,
+    this.subtitle,
+    this.onSeeAll,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final titleSize = context.scaledFont(16);
+    final subtitleSize = context.scaledFont(12);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: context.scaledPadding(20)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: theme.textPrimary,
-              letterSpacing: -0.5,
-            ),
-          ),
-          if (actionText != null)
-            GestureDetector(
-              onTap: onActionTap,
-              child: Text(
-                actionText!,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: theme.textMuted,
+                  fontSize: titleSize,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: subtitleSize,
+                    color: theme.textMuted,
+                  ),
+                ),
+            ],
+          ),
+          if (onSeeAll != null)
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Text(
+                '전체보기',
+                style: TextStyle(
+                  fontSize: subtitleSize,
+                  color: theme.primaryColor,
                 ),
               ),
             ),

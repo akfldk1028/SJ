@@ -115,6 +115,13 @@ class SettingsScreen extends ConsumerWidget {
                       title: '온보딩 다시 보기',
                       onTap: () => context.go(Routes.onboarding),
                     ),
+                    const Divider(height: 1),
+                    _buildSettingsTile(
+                      context,
+                      icon: LucideIcons.palette,
+                      title: '앱 아이콘 생성기',
+                      onTap: () => context.push(Routes.iconGenerator),
+                    ),
                   ],
                 ),
               ),

@@ -100,7 +100,7 @@ class _AppTitle extends StatelessWidget {
         const SizedBox(width: 12),
         // 타이틀
         const Text(
-          '만톡',
+          '사담',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,

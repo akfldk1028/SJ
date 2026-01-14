@@ -5,7 +5,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'router/app_router.dart';
 import 'core/theme/theme_provider.dart';
 
-/// 만톡 앱 루트 위젯
+/// 사담 앱 루트 위젯
 class MantokApp extends ConsumerWidget {
   const MantokApp({super.key});
 
@@ -55,7 +55,7 @@ class MantokApp extends ConsumerWidget {
           );
 
     return ShadApp.router(
-      title: '만톡',
+      title: '사담',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: shadThemeData,

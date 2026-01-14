@@ -468,7 +468,7 @@ class CompatibilityScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               const Text(
-                '만톡 정통궁합 특징',
+                '사담 정통궁합 특징',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
