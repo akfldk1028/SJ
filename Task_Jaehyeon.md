@@ -275,6 +275,7 @@ C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome --web-port=9999
 | **대운(大運) 계산** | ✅ **이미 구현됨** (daeun_service.dart) |
 | **Phase 18 (윤달 유효성 검증)** | ✅ **완료** (2025-12-30) |
 | **Phase 19 (토큰 사용량 추적)** | ✅ **완료** (2025-12-30, quota 체크 + QUOTA_EXCEEDED 처리) |
+| **Phase 48 (토큰 추적 v2)** | ✅ **완료** (2026-01-14, GENERATED 컬럼 도입 + Edge Function v19) |
 | **Phase 20 (AI Edge Function 통합)** | ✅ **완료** (2025-12-30, API 키 보안 강화) |
 | **Phase 21 (Edge Function 모델 최종 확정)** | ✅ **완료** (2024-12-31, gpt-5.2-thinking + gemini-3-flash-preview) |
 | **Phase 22 (만세력 계산 로직 수정)** | ✅ **완료** (2024-12-31) |
@@ -4642,5 +4643,284 @@ final calculationResult = compatibilityCalculator.calculate(
 ### 다음 단계
 - [ ] 앱에서 궁합 채팅 테스트 (송건우 ↔ 박재현)
 - [ ] `compatibility_analyses` 자동 생성 확인
+
+---
+
+## Phase 47-C: DB 저장 데이터 한글(한자) 페어 형식 통일 (2026-01-14) ✅ 완료
+
+### 배경
+
+DB에 저장되는 사주 관련 용어들이 일관성 없이 저장되고 있었음:
+- 일부: `"갑"` (한글만)
+- 일부: `"갑(甲)"` (한글+한자)
+
+**목표**: 모든 사주 용어를 `한글(한자)` 페어 형식으로 통일
+
+### 적용 범위
+
+| 카테고리 | 예시 변환 | 적용 테이블 |
+|----------|----------|------------|
+| **천간(天干)** | `갑` → `갑(甲)` | saju_analyses, compatibility_analyses |
+| **지지(地支)** | `자` → `자(子)` | saju_analyses, compatibility_analyses |
+| **오행(五行)** | `목` → `목(木)` | saju_analyses |
+| **십신(十神)** | `비견` → `비견(比肩)` | saju_analyses |
+| **신살(神殺)** | `도화살` → `도화살(桃花殺)` | saju_analyses |
+| **길성(吉星)** | `천덕귀인` → `천덕귀인(天德貴人)` | saju_analyses |
+| **격국(格局)** | `정관격` → `정관격(正官格)` | saju_analyses |
+| **용신법(用神法)** | `억부법` → `억부법(抑扶法)` | saju_analyses |
+| **합충형해파** | `자축합토` → `자축합토(子丑合土)` | compatibility_analyses |
+| **기둥명** | `년주` → `년주(年柱)` | saju_analyses, compatibility_analyses |
+
+### 수정 파일
+
+#### 1. `frontend/lib/AI/services/compatibility_calculator.dart`
+
+**HapchungAnalysis.toJson()** 메서드 수정:
+
+```dart
+/// JSON 변환 - 한글(한자) 형식으로 DB 저장
+Map<String, dynamic> toJson() => {
+      'hap': _toHanjaFormat(hap, 'hap'),
+      'chung': _toHanjaFormat(chung, 'chung'),
+      'hyung': _toHanjaFormat(hyung, 'hyung'),
+      'hae': _toHanjaFormat(hae, 'hae'),
+      'pa': _toHanjaFormat(pa, 'pa'),
+      'wonjin': _toHanjaFormat(wonjin, 'wonjin'),
+    };
+```
+
+**추가된 헬퍼 메서드들**:
+
+1. `_toHanjaFormat()` - 위치 라벨 변환:
+   - `년간` → `년간(年干)`
+   - `월지` → `월지(月支)`
+   - 등
+
+2. `_addHanjaToTerms()` - 사주 용어 변환:
+   - 천간합: `갑기합토` → `갑기합토(甲己合土)`
+   - 지지육합: `자축합토` → `자축합토(子丑合土)`
+   - 지지충: `자오충` → `자오충(子午沖)`
+   - 지지형: `인사신 삼형살` → `인사신 삼형살(寅巳申 三刑殺)`
+   - 지지해: `술유해` → `술유해(戌酉害)`
+   - 지지파: `유자파` → `유자파(酉子破)`
+   - 원진: `자미 원진` → `자미 원진(子未怨嗔)`
+
+#### 2. `frontend/lib/core/repositories/saju_analysis_repository.dart`
+
+**수정된 메서드들**:
+
+| 메서드 | 변환 내용 |
+|--------|----------|
+| `_ohengToJson()` | 키: `mok` → `목(木)`, 값: `목` → `목(木)` |
+| `_yongsinToJson()` | `목` → `목(木)`, `억부법` → `억부법(抑扶法)` |
+| `_gyeokgukToJson()` | `정관격` → `정관격(正官格)` |
+| `_sipsinInfoToJson()` | `비견` → `비견(比肩)` |
+| `_jijangganInfoToJson()` | 지장간 천간 한자 추가 |
+| `_sinsalListToJson()` | `도화살` → `도화살(桃花殺)` |
+| `_gilseongToJson()` | `천덕귀인` → `천덕귀인(天德貴人)` |
+| `_hapchungToJson()` | 기둥명/간지 모두 한자 추가 |
+| `_daeunToJson()` | `경술` → `경(庚)술(戌)` |
+| `_seunToJson()` | `병오` → `병(丙)오(午)` |
+
+### 발생한 오류 및 해결
+
+| 오류 | 원인 | 해결 |
+|------|------|------|
+| `JiJangGan` type not found | 잘못된 클래스명 사용 | `JiJangGanItem`으로 변경 |
+| Unnecessary null check on `relatedJi` | `String` 타입에 null 체크 | null 체크 제거 |
+| Syntax error in `_daeunToJson()` | `map((d) => { ... })` 문법 오류 | `map((d) { ... })` 함수 본문 형식으로 변경 |
+
+### 검증
+
+```bash
+cd frontend && flutter analyze
+# 결과: 오류 없음 (info-level 경고만 존재)
+```
+
+### DB 저장 형식 예시 (변경 후)
+
+**saju_analyses.oheng_distribution**:
+```json
+{
+  "목(木)": 2,
+  "화(火)": 4,
+  "토(土)": 1,
+  "금(金)": 0,
+  "수(水)": 1,
+  "strongest": "화(火)",
+  "weakest": "금(金)",
+  "missing": ["금(金)"]
+}
+```
+
+**saju_analyses.daeun**:
+```json
+{
+  "list": [
+    {
+      "startAge": 3,
+      "endAge": 12,
+      "order": 1,
+      "pillar": "경(庚)술(戌)",
+      "gan": "경(庚)",
+      "ji": "술(戌)"
+    }
+  ]
+}
+```
+
+**compatibility_analyses.saju_analysis (hapchung 부분)**:
+```json
+{
+  "hapchung": {
+    "hap": ["년지(年支)↔월지(月支): 자축합토(子丑合土)"],
+    "chung": ["일지(日支)↔시지(時支): 자오충(子午沖)"],
+    "hyung": [],
+    "hae": [],
+    "pa": [],
+    "wonjin": []
+  }
+}
+```
+
+### 참고사항
+
+- **새 데이터만 적용**: 이 변경은 앞으로 저장되는 새 데이터에만 적용됨
+- **기존 데이터**: 기존 DB 데이터는 그대로 유지됨 (마이그레이션 필요 시 별도 작업)
+- **역변환 지원**: `_fromSupabaseMap()` 메서드들은 이미 한글(한자) 형식을 파싱하도록 구현되어 있음
+
+---
+
+## Phase 48: 토큰 사용량 추적 시스템 v2 (2026-01-14) ✅ 완료
+
+### 배경
+
+Phase 19에서 구현한 토큰 추적 시스템을 더 세분화하여 API별 토큰 사용량을 정확히 추적하도록 개선.
+
+**기존 문제점:**
+- `total_tokens` 일반 컬럼 → Race Condition 발생 가능
+- API별 토큰 구분 불가 (GPT vs Gemini vs 채팅)
+- Edge Function v18이 GENERATED 컬럼에 직접 UPDATE 시도 → 오류 발생
+
+### 핵심 변경: GENERATED 컬럼 도입
+
+```sql
+-- 기존 (v18): 일반 컬럼 - Race Condition 위험
+total_tokens INT DEFAULT 0
+
+-- 변경 (v19): GENERATED 컬럼 - 자동 계산, 항상 정확
+total_tokens INT GENERATED ALWAYS AS (
+  COALESCE(gpt_saju_analysis_tokens, 0) +
+  COALESCE(gemini_fortune_tokens, 0) +
+  COALESCE(gemini_chat_tokens, 0) +
+  COALESCE(compatibility_tokens, 0)
+) STORED
+
+is_quota_exceeded BOOLEAN GENERATED ALWAYS AS (
+  total_tokens >= COALESCE(daily_quota, 50000)
+) STORED
+```
+
+### GENERATED 컬럼 장점
+
+| 항목 | 일반 컬럼 (v18) | GENERATED 컬럼 (v19) |
+|------|----------------|---------------------|
+| **Race Condition** | ❌ 발생 가능 | ✅ 없음 |
+| **데이터 불일치** | ❌ 개별 합 ≠ total 가능 | ✅ 항상 일치 |
+| **Edge Function 복잡도** | 높음 (합계 계산 필요) | 낮음 (개별 필드만) |
+| **수동 조작** | 가능 (위험) | 불가 (안전) |
+
+### 토큰 저장 흐름 전체 맵
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    토큰 저장 위치 전체 맵                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  [ai_summaries] INSERT                                          │
+│       │                                                         │
+│       ↓ 트리거: update_user_daily_token_usage()                 │
+│       │                                                         │
+│       ├─ saju_base + openai     → gpt_saju_analysis_tokens     │
+│       ├─ daily_fortune + google → gemini_fortune_tokens        │
+│       └─ compatibility          → compatibility_tokens          │
+│                                                                 │
+│  [chat_messages] INSERT (assistant만)                           │
+│       │                                                         │
+│       ↓ 트리거: update_daily_chat_tokens()                      │
+│       │                                                         │
+│       └─ tokens_used            → gemini_chat_tokens           │
+│                                                                 │
+│  [Edge Function ai-gemini v19]                                  │
+│       │                                                         │
+│       ↓ recordTokenUsage()                                      │
+│       │                                                         │
+│       └─ Gemini 채팅 토큰       → gemini_chat_tokens           │
+│                                                                 │
+│                     ↓ 모두 집계                                  │
+│                                                                 │
+│  [user_daily_token_usage]                                       │
+│       │                                                         │
+│       ├─ gpt_saju_analysis_tokens  (직접 저장)                  │
+│       ├─ gemini_fortune_tokens     (직접 저장)                  │
+│       ├─ gemini_chat_tokens        (직접 저장)                  │
+│       ├─ compatibility_tokens      (직접 저장)                  │
+│       │                                                         │
+│       ├─ total_tokens              (GENERATED - 자동 계산)     │
+│       └─ is_quota_exceeded         (GENERATED - 자동 계산)     │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Edge Function 변경사항 (v18 → v19)
+
+**v18 (오류 발생):**
+```typescript
+// GENERATED 컬럼에 직접 UPDATE 시도 → 오류!
+await supabase.update({
+  gemini_chat_tokens: newTokens,
+  total_tokens: existingTotal + newTokens,  // ❌ ERROR
+});
+```
+
+**v19 (수정됨):**
+```typescript
+// 개별 필드만 UPDATE, total_tokens는 DB가 자동 계산
+await supabase.update({
+  gemini_chat_tokens: newTokens,
+  // total_tokens 제거 - GENERATED 컬럼이 자동 계산
+});
+```
+
+### 마이그레이션 목록
+
+| 버전 | 이름 | 내용 |
+|------|------|------|
+| 20260114110642 | add_token_tracking_to_chat_sessions | chat_sessions에 토큰 필드 추가 |
+| 20260114110711 | redesign_user_daily_token_usage_detailed | API별 토큰 필드 분리 + GENERATED 컬럼 |
+| 20260114110737 | migrate_existing_token_data_to_detailed_fields | 기존 데이터 마이그레이션 |
+| 20260114110925 | create_token_usage_auto_update_trigger | ai_summaries 트리거 |
+| 20260114111329 | create_chat_session_token_update_trigger | chat_messages 트리거 |
+| 20260114115721 | fix_update_daily_chat_tokens_trigger | 트리거 수정 |
+| 20260114121459 | disable_legacy_ai_token_trigger | 레거시 트리거 비활성화 |
+| 20260114122054 | disable_gpt_analysis_trigger | GPT 분석 트리거 비활성화 |
+| 20260114123514 | fix_daily_chat_tokens_trigger_security | SECURITY DEFINER 추가 |
+
+### ai_summaries 영향 분석
+
+| summary_type | 저장 위치 | 영향 |
+|--------------|----------|------|
+| saju_base | gpt_saju_analysis_tokens | ✅ 트리거로 자동 집계 |
+| daily_fortune | gemini_fortune_tokens | ✅ 트리거로 자동 집계 |
+| compatibility | compatibility_tokens | ✅ 트리거로 자동 집계 |
+
+**결론:** ai_summaries의 saju_base, daily_fortune은 트리거로 처리되므로 Edge Function 변경과 무관하게 정상 동작.
+
+### 관련 파일
+
+| 파일 | 역할 |
+|------|------|
+| `supabase/functions/ai-gemini/index.ts` | Edge Function v19 (토큰 저장) |
+| `frontend/lib/features/saju_chat/data/services/sse_stream_client.dart` | SSE 스트리밍 클라이언트 |
 
 ---
