@@ -514,7 +514,7 @@ class CompatibilityScreen extends ConsumerWidget {
 
   Widget _buildStartButton(BuildContext context, AppThemeExtension theme) {
     return GestureDetector(
-      onTap: () => context.push('/saju/chat?type=compatibility'),
+      onTap: () => context.go('/saju/chat?type=compatibility'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),

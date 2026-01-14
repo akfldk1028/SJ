@@ -704,7 +704,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
 
   Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
     return GestureDetector(
-      onTap: () => context.push('/saju/chat?type=dailyFortune'),
+      onTap: () => context.go('/saju/chat?type=dailyFortune'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),

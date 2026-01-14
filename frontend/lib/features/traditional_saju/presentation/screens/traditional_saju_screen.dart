@@ -422,7 +422,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
 
   Widget _buildStartButton(BuildContext context, AppThemeExtension theme) {
     return GestureDetector(
-      onTap: () => context.push('/saju/chat?type=sajuAnalysis'),
+      onTap: () => context.go('/saju/chat?type=sajuAnalysis'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),

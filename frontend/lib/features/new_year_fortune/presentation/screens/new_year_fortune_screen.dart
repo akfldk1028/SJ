@@ -634,7 +634,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
 
   Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
     return GestureDetector(
-      onTap: () => context.push('/saju/chat?type=newYearFortune'),
+      onTap: () => context.go('/saju/chat?type=newYearFortune'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),
