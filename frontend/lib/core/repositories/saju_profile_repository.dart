@@ -172,23 +172,39 @@ class SajuProfileRepository {
 
   /// Supabase Map → SajuProfile
   SajuProfile _fromSupabaseMap(Map<String, dynamic> map) {
+    // null-safe 처리: DB 데이터가 불완전할 수 있음
+    final id = map['id'] as String? ?? '';
+    final displayName = map['display_name'] as String? ?? '이름없음';
+    final relationTypeStr = map['relation_type'] as String? ?? 'other';
+    final birthDateStr = map['birth_date'] as String?;
+    final genderStr = map['gender'] as String? ?? 'male';
+    final birthCity = map['birth_city'] as String? ?? '';
+    final createdAtStr = map['created_at'] as String?;
+    final updatedAtStr = map['updated_at'] as String?;
+
     return SajuProfile(
-      id: map['id'] as String,
-      displayName: map['display_name'] as String,
-      relationType: RelationshipType.fromJson(map['relation_type'] as String),
+      id: id,
+      displayName: displayName,
+      relationType: RelationshipType.fromJson(relationTypeStr),
       memo: map['memo'] as String?,
-      birthDate: DateTime.parse(map['birth_date'] as String),
+      birthDate: birthDateStr != null
+          ? DateTime.parse(birthDateStr)
+          : DateTime.now(),
       birthTimeMinutes: map['birth_time_minutes'] as int?,
       birthTimeUnknown: map['birth_time_unknown'] as bool? ?? false,
       isLunar: map['is_lunar'] as bool? ?? false,
       isLeapMonth: map['is_leap_month'] as bool? ?? false,
-      gender: Gender.fromString(map['gender'] as String),
-      birthCity: map['birth_city'] as String,
+      gender: Gender.fromString(genderStr),
+      birthCity: birthCity,
       timeCorrection: map['time_correction'] as int? ?? 0,
       useYaJasi: map['use_ya_jasi'] as bool? ?? true,
       isActive: map['is_primary'] as bool? ?? false, // is_primary → isActive
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      createdAt: createdAtStr != null
+          ? DateTime.parse(createdAtStr)
+          : DateTime.now(),
+      updatedAt: updatedAtStr != null
+          ? DateTime.parse(updatedAtStr)
+          : DateTime.now(),
     );
   }
 }

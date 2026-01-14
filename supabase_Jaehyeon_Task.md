@@ -1934,61 +1934,115 @@ Task 도구:
 
 ---
 
-## Phase 47: 궁합 분석 아키텍처 재설계 (2026-01-13) 🔄 진행중
+## Phase 47: 궁합 분석 아키텍처 재설계 (2026-01-13) ⚠️ 수정됨
 
-### 아키텍처 결정사항
+> **Note**: Phase 47-B에서 재검토되어 아키텍처가 수정됨
 
-**기존 이해 (잘못됨)**:
-- 인연(to)도 GPT-5.2로 사주 분석 후 `saju_analyses` 저장 필요
+### 초기 설계 (잘못된 방향)
 
-**수정된 아키텍처**:
 | 대상 | 사주 계산 | 저장 위치 |
 |------|----------|-----------|
 | 나(userId) | GPT-5.2 | `saju_analyses` 테이블 |
 | 인연(relation) | **Gemini 직접 계산** | `compatibility_analyses.saju_analysis` (JSONB) |
 
-### DB 영향
+### 참조
+- Frontend 상세: `Task_Jaehyeon.md` Phase 47 참조
+- **정확한 아키텍처**: Phase 47-B 참조
 
-**영향 없는 테이블**:
-- `saju_analyses`: 인연 사주 저장 안 함 (나만 저장)
-- `saju_profiles`: 변경 없음
+---
 
-**영향 있는 테이블**:
-- `compatibility_analyses.saju_analysis` (JSONB): Gemini가 계산한 인연 사주 저장
-  - 기존: 궁합 분석 결과만 저장
-  - 변경: 인연의 계산된 사주 데이터도 포함
+## Phase 47-B: 궁합 아키텍처 재검토 및 데이터 수정 (2026-01-14) ✅ 완료
 
-### profile_relations FK 정리
+### 개요
+Phase 47에서 설계한 "Gemini 직접 계산" 방식 재검토 → **기존 saju_analyses 테이블 활용 방식이 정확함**
 
-| 컬럼 | 용도 | Phase 47 후 |
-|------|------|-------------|
-| `from_profile_analysis_id` | 나의 `saju_analyses` FK | ✅ 사용 (기존 유지) |
-| `to_profile_analysis_id` | 인연의 `saju_analyses` FK | ❌ **사용 안 함** (NULL 유지) |
-| `compatibility_analysis_id` | 궁합 분석 FK | ✅ 사용 (인연 사주도 여기에 포함) |
+### 아키텍처 확정 (최종)
 
-### 데이터 흐름 (Phase 47 완료 후)
+| 테이블 | 용도 | 저장 대상 |
+|--------|------|-----------|
+| `saju_profiles` | 기본 프로필 정보 | 나 + 인연 |
+| `saju_analyses` | 사주 분석 결과 (만세력, 십신, 대운 등) | **나 + 인연 모두** |
+| `compatibility_analyses` | 궁합 분석 결과 (합충형해파 점수) | 쌍(pair) 단위 |
+| `profile_relations` | 관계 연결 | from → to 연결 |
+
+### 확정된 데이터 흐름
 
 ```
+[인연 프로필 생성]
+    │
+    ▼
+relationship_add_screen.dart Step 3.5:
+    - Dart 만세력 계산 (sajuCalculationServiceProvider)
+    - saju_analyses 테이블에 저장 (currentSajuAnalysisDbProvider)
+
 [궁합 채팅 시작]
     │
     ▼
-나(from): saju_profiles → saju_analyses(GPT-5.2 결과) 조회
+나(from): saju_profiles → saju_analyses 조회
     │
     ▼
-인연(to): saju_profiles → 생년월일/시간만 추출 (saju_analyses 조회 X)
+인연(to): saju_profiles → saju_analyses 조회 (같은 방식!)
     │
     ▼
-Gemini 궁합 분석 호출:
-    - 나: GPT-5.2가 계산한 사주 데이터 전달
-    - 인연: 생년월일/시간만 전달 → Gemini가 사주 직접 계산
+Dart 궁합 계산:
+    - compatibility_calculator.dart 사용 (Gemini 아님!)
+    - model_provider: 'dart'
+    - tokens_used: 0
     │
     ▼
 compatibility_analyses 저장:
-    - overall_score, category_scores, strengths, challenges
-    - saju_analysis: { 궁합 분석 + 인연의 계산된 사주 }
+    - overall_score, category_scores
+    - saju_analysis: Dart 계산 결과
 ```
 
-### 참조
-- Frontend 상세: `Task_Jaehyeon.md` Phase 47 참조
+### profile_relations FK 정리 (수정됨)
+
+| 컬럼 | 용도 | Phase 47-B 후 |
+|------|------|---------------|
+| `from_profile_analysis_id` | 나의 `saju_analyses` FK | ✅ 사용 |
+| `to_profile_analysis_id` | 인연의 `saju_analyses` FK | ✅ **사용** (기존 인연은 수동 삽입 필요) |
+| `compatibility_analysis_id` | 궁합 분석 FK | ✅ 사용 |
+
+### 문제 발견 및 해결
+
+**문제**: 기존 인연(박재현)에 `saju_analyses` 데이터 없음
+- 원인: Phase 47 이전에 생성된 프로필이라 Step 3.5 코드가 없었음
+- 영향 프로필: `e1dd9412-7483-4727-8c4d-e17e5f41b44d` (박재현, 1997-11-29)
+
+**해결**: 수동 데이터 삽입 완료
+```sql
+INSERT INTO public.saju_analyses (profile_id, year_pillar, month_pillar, day_pillar, hour_pillar, ...)
+VALUES ('e1dd9412-7483-4727-8c4d-e17e5f41b44d', '정축', '신해', '을해', '경진', ...);
+-- 결과 ID: 2294db38-da66-4b23-b301-00241fd8b1de
+```
+
+### DB 상태 확인 (2026-01-14)
+
+| 프로필 | saju_analyses | 사주 |
+|--------|--------------|------|
+| 송건우 (from) | ✅ 있음 | 임오 병오 계유 병진 |
+| 박재현 (to) | ✅ 있음 (수동 삽입) | 정축 신해 을해 경진 |
+
+```sql
+-- 확인 쿼리
+SELECT p.name, sa.year_pillar, sa.month_pillar, sa.day_pillar, sa.hour_pillar
+FROM saju_profiles p
+JOIN saju_analyses sa ON p.id = sa.profile_id
+WHERE p.id IN (
+  '박재현_profile_id',
+  '송건우_profile_id'
+);
+```
+
+### 결론
+
+**새로운 테이블 필요 없음** - 기존 `saju_analyses` 활용이 정확한 설계
+- 인연 프로필 생성 시 `relationship_add_screen.dart` Step 3.5에서 `saju_analyses` 자동 저장됨
+- 궁합 계산은 Dart `compatibility_calculator.dart`로 수행 (Gemini 아님)
+- 기존 인연은 수동으로 `saju_analyses` 데이터 삽입 필요
+
+### 다음 단계
+- [ ] 앱에서 궁합 채팅 테스트 (송건우 ↔ 박재현)
+- [ ] `compatibility_analyses` 자동 생성 확인
 
 ---

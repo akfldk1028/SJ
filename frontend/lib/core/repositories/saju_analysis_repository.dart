@@ -391,27 +391,42 @@ class SajuAnalysisRepository {
 
   SajuAnalysis _fromSupabaseMap(Map<String, dynamic> map) {
     // SajuChart 구성 - 한글(한자) 형식에서 한글만 추출
+    // null 체크 추가: DB 데이터가 불완전할 수 있음
+    final yearGan = map['year_gan'] as String? ?? '갑';
+    final yearJi = map['year_ji'] as String? ?? '자';
+    final monthGan = map['month_gan'] as String? ?? '갑';
+    final monthJi = map['month_ji'] as String? ?? '자';
+    final dayGan = map['day_gan'] as String? ?? '갑';
+    final dayJi = map['day_ji'] as String? ?? '자';
+    final hourGan = map['hour_gan'] as String?;
+    final hourJi = map['hour_ji'] as String?;
+    final correctedDatetime = map['corrected_datetime'] as String?;
+
     final chart = SajuChart(
       yearPillar: Pillar(
-        gan: _extractHangul(map['year_gan'] as String),
-        ji: _extractHangul(map['year_ji'] as String),
+        gan: _extractHangul(yearGan),
+        ji: _extractHangul(yearJi),
       ),
       monthPillar: Pillar(
-        gan: _extractHangul(map['month_gan'] as String),
-        ji: _extractHangul(map['month_ji'] as String),
+        gan: _extractHangul(monthGan),
+        ji: _extractHangul(monthJi),
       ),
       dayPillar: Pillar(
-        gan: _extractHangul(map['day_gan'] as String),
-        ji: _extractHangul(map['day_ji'] as String),
+        gan: _extractHangul(dayGan),
+        ji: _extractHangul(dayJi),
       ),
-      hourPillar: map['hour_gan'] != null
+      hourPillar: hourGan != null && hourJi != null
           ? Pillar(
-              gan: _extractHangul(map['hour_gan'] as String),
-              ji: _extractHangul(map['hour_ji'] as String),
+              gan: _extractHangul(hourGan),
+              ji: _extractHangul(hourJi),
             )
           : null,
-      birthDateTime: DateTime.parse(map['corrected_datetime'] as String),
-      correctedDateTime: DateTime.parse(map['corrected_datetime'] as String),
+      birthDateTime: correctedDatetime != null
+          ? DateTime.parse(correctedDatetime)
+          : DateTime.now(),
+      correctedDateTime: correctedDatetime != null
+          ? DateTime.parse(correctedDatetime)
+          : DateTime.now(),
       birthCity: '', // DB에 저장 안 됨, profile에서 가져와야 함
       isLunarCalendar: false, // DB에 저장 안 됨
     );
@@ -426,17 +441,25 @@ class SajuAnalysisRepository {
       currentSeun: _seunFromJson(map['current_seun'] as Map<String, dynamic>?),
       sipsinInfo: _sipsinInfoFromJson(map['sipsin_info'] as Map<String, dynamic>?),
       jijangganInfo: _jijangganInfoFromJson(map['jijanggan_info'] as Map<String, dynamic>?),
-      ohengDistribution: _ohengFromJson(map['oheng_distribution'] as Map<String, dynamic>),
+      ohengDistribution: _ohengFromJson(map['oheng_distribution'] as Map<String, dynamic>?),
     );
   }
 
-  OhengDistribution _ohengFromJson(Map<String, dynamic> json) {
+  OhengDistribution _ohengFromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const OhengDistribution(mok: 0, hwa: 0, to: 0, geum: 0, su: 0);
+    }
+    // DB에 저장된 키 형식: "금(金)", "목(木)", "수(水)", "토(土)", "화(火)"
+    // Flutter에서 기대하는 형식: "mok", "hwa", "to", "geum", "su"
+    int getOhengValue(String koreanKey, String englishKey) {
+      return json[koreanKey] as int? ?? json[englishKey] as int? ?? 0;
+    }
     return OhengDistribution(
-      mok: json['mok'] as int? ?? 0,
-      hwa: json['hwa'] as int? ?? 0,
-      to: json['to'] as int? ?? 0,
-      geum: json['geum'] as int? ?? 0,
-      su: json['su'] as int? ?? 0,
+      mok: getOhengValue('목(木)', 'mok'),
+      hwa: getOhengValue('화(火)', 'hwa'),
+      to: getOhengValue('토(土)', 'to'),
+      geum: getOhengValue('금(金)', 'geum'),
+      su: getOhengValue('수(水)', 'su'),
     );
   }
 
@@ -464,13 +487,34 @@ class SajuAnalysisRepository {
       );
     }
     // 이전 enum 값 매핑 (하위 호환성)
+    // DB에 저장된 형식: "중화신약(中和身弱)", "태약(太弱)" 등 한글(한자) 형식
+    // Dart enum 이름: "junghwaSinyak", "taeyak" 등 영어 형식
     final levelStr = json['level'] as String? ?? 'junghwaSingang';
     final mappedLevel = switch (levelStr) {
+      // 영어 레거시 형식
       'medium' => 'junghwaSingang',
       'veryStrong' => 'geukwang',
       'strong' => 'singang',
       'weak' => 'sinyak',
       'veryWeak' => 'geukyak',
+      // 한글(한자) 형식 → enum 이름 변환 (GPT-5.2 응답 형식)
+      '극왕(極旺)' => 'geukwang',
+      '태강(太强)' => 'taegang',
+      '신강(身强)' => 'singang',
+      '중화신강(中和身强)' => 'junghwaSingang',
+      '중화신약(中和身弱)' => 'junghwaSinyak',
+      '신약(身弱)' => 'sinyak',
+      '태약(太弱)' => 'taeyak',
+      '극약(極弱)' => 'geukyak',
+      // 한글만 있는 형식 (한자 없음)
+      '극왕' => 'geukwang',
+      '태강' => 'taegang',
+      '신강' => 'singang',
+      '중화신강' => 'junghwaSingang',
+      '중화신약' => 'junghwaSinyak',
+      '신약' => 'sinyak',
+      '태약' => 'taeyak',
+      '극약' => 'geukyak',
       _ => levelStr,
     };
     return DayStrength(
@@ -493,8 +537,46 @@ class SajuAnalysisRepository {
         reason: '',
       );
     }
+    // DB에 저장된 형식: "정관격(正官格)", "중화격(中和格)" 등 한글(한자) 형식
+    // Dart enum 이름: "jeonggwanGyeok", "junghwaGyeok" 등 영어 형식
+    final gyeokgukStr = json['gyeokguk'] as String? ??
+        json['name'] as String? ??
+        'junghwaGyeok';
+    final mappedGyeokguk = switch (gyeokgukStr) {
+      // 한글(한자) 형식 → enum 이름 변환
+      '정관격(正官格)' => 'jeonggwanGyeok',
+      '정재격(正財格)' => 'jeongjaeGyeok',
+      '식신격(食神格)' => 'siksinGyeok',
+      '정인격(正印格)' => 'jeonginGyeok',
+      '상관격(傷官格)' => 'sanggwanGyeok',
+      '편인격(偏印格)' => 'pyeoninGyeok',
+      '편재격(偏財格)' => 'pyeonjaeGyeok',
+      '칠살격(七殺格)' => 'chilsalGyeok',
+      '비견격(比肩格)' => 'bigyeonGyeok',
+      '겁재격(劫財格)' => 'geopjaeGyeok',
+      '종왕격(從旺格)' => 'jongwangGyeok',
+      '종살격(從殺格)' => 'jongsalGyeok',
+      '종재격(從財格)' => 'jongjaeGyeok',
+      '중화격(中和格)' => 'junghwaGyeok',
+      // 한글만 있는 형식
+      '정관격' => 'jeonggwanGyeok',
+      '정재격' => 'jeongjaeGyeok',
+      '식신격' => 'siksinGyeok',
+      '정인격' => 'jeonginGyeok',
+      '상관격' => 'sanggwanGyeok',
+      '편인격' => 'pyeoninGyeok',
+      '편재격' => 'pyeonjaeGyeok',
+      '칠살격' => 'chilsalGyeok',
+      '비견격' => 'bigyeonGyeok',
+      '겁재격' => 'geopjaeGyeok',
+      '종왕격' => 'jongwangGyeok',
+      '종살격' => 'jongsalGyeok',
+      '종재격' => 'jongjaeGyeok',
+      '중화격' => 'junghwaGyeok',
+      _ => gyeokgukStr,
+    };
     return GyeokGukResult(
-      gyeokguk: GyeokGuk.values.byName(json['gyeokguk'] as String? ?? 'junghwaGyeok'),
+      gyeokguk: GyeokGuk.values.byName(mappedGyeokguk),
       strength: json['strength'] as int? ?? 50,
       isSpecial: json['isSpecial'] as bool? ?? false,
       reason: json['reason'] as String? ?? '',
@@ -513,6 +595,22 @@ class SajuAnalysisRepository {
         method: YongSinMethod.eokbu,
       );
     }
+    // DB에 저장된 형식: "억부법(抑扶法)", "조후법(調候法)" 등 한글(한자) 형식
+    // Dart enum 이름: "eokbu", "johu" 등 영어 형식
+    final methodStr = json['method'] as String? ?? 'eokbu';
+    final mappedMethod = switch (methodStr) {
+      // 한글(한자) 형식 → enum 이름 변환
+      '억부법(抑扶法)' => 'eokbu',
+      '조후법(調候法)' => 'johu',
+      '통관법(通關法)' => 'tonggwan',
+      '병약법(病藥法)' => 'byeongYak',
+      // 한글만 있는 형식
+      '억부법' => 'eokbu',
+      '조후법' => 'johu',
+      '통관법' => 'tonggwan',
+      '병약법' => 'byeongYak',
+      _ => methodStr,
+    };
     return YongSinResult(
       yongsin: _ohengFromKorean(json['yongsin'] as String? ?? '목'),
       heesin: _ohengFromKorean(json['heesin'] as String? ?? '수'),
@@ -520,12 +618,14 @@ class SajuAnalysisRepository {
       gusin: _ohengFromKorean(json['gusin'] as String? ?? '토'),
       hansin: _ohengFromKorean(json['hansin'] as String? ?? '화'),
       reason: json['reason'] as String? ?? '',
-      method: YongSinMethod.values.byName(json['method'] as String? ?? 'eokbu'),
+      method: YongSinMethod.values.byName(mappedMethod),
     );
   }
 
   Oheng _ohengFromKorean(String korean) {
+    // DB에 저장된 형식: "목(木)", "화(火)" 등 한글(한자) 형식도 지원
     switch (korean) {
+      // 한글만
       case '목':
         return Oheng.mok;
       case '화':
@@ -535,6 +635,17 @@ class SajuAnalysisRepository {
       case '금':
         return Oheng.geum;
       case '수':
+        return Oheng.su;
+      // 한글(한자) 형식
+      case '목(木)':
+        return Oheng.mok;
+      case '화(火)':
+        return Oheng.hwa;
+      case '토(土)':
+        return Oheng.to;
+      case '금(金)':
+        return Oheng.geum;
+      case '수(水)':
         return Oheng.su;
       default:
         return Oheng.mok;
@@ -553,13 +664,25 @@ class SajuAnalysisRepository {
 
     final list = (json['list'] as List?)?.map((d) {
       final dMap = d as Map<String, dynamic>;
+      // DB에 저장된 형식: "경(庚)술(戌)" 문자열 또는 gan/ji 개별 필드
+      final pillarStr = dMap['pillar'] as String?;
+      String gan = dMap['gan'] as String? ?? '갑';
+      String ji = dMap['ji'] as String? ?? '자';
+
+      // pillar 문자열에서 간지 추출: "경(庚)술(戌)" → 간="경", 지="술"
+      if (pillarStr != null && gan == '갑' && ji == '자') {
+        final parsed = _parsePillarString(pillarStr);
+        gan = parsed.$1;
+        ji = parsed.$2;
+      }
+
       return DaeUn(
-        startAge: dMap['startAge'] as int,
-        endAge: dMap['endAge'] as int,
-        order: dMap['order'] as int,
+        startAge: dMap['startAge'] as int? ?? 0,
+        endAge: dMap['endAge'] as int? ?? 0,
+        order: dMap['order'] as int? ?? 0,
         pillar: Pillar(
-          gan: dMap['gan'] as String,
-          ji: dMap['ji'] as String,
+          gan: gan,
+          ji: ji,
         ),
       );
     }).toList();
@@ -582,14 +705,43 @@ class SajuAnalysisRepository {
 
   SeUn? _seunFromJson(Map<String, dynamic>? json) {
     if (json == null) return null;
+
+    // DB에 저장된 형식: "병(丙)오(午)" 문자열 또는 gan/ji 개별 필드
+    final pillarStr = json['pillar'] as String?;
+    String gan = json['gan'] as String? ?? '갑';
+    String ji = json['ji'] as String? ?? '자';
+
+    // pillar 문자열에서 간지 추출
+    if (pillarStr != null && gan == '갑' && ji == '자') {
+      final parsed = _parsePillarString(pillarStr);
+      gan = parsed.$1;
+      ji = parsed.$2;
+    }
+
     return SeUn(
-      year: json['year'] as int,
-      age: json['age'] as int,
+      year: json['year'] as int? ?? DateTime.now().year,
+      age: json['age'] as int? ?? 0,
       pillar: Pillar(
-        gan: json['gan'] as String,
-        ji: json['ji'] as String,
+        gan: gan,
+        ji: ji,
       ),
     );
+  }
+
+  /// pillar 문자열 파싱: "경(庚)술(戌)" → ("경", "술")
+  (String, String) _parsePillarString(String pillarStr) {
+    // 형식: "X(Y)Z(W)" 에서 X와 Z 추출
+    // 예: "경(庚)술(戌)" → ("경", "술")
+    final regex = RegExp(r'([가-힣])\([^)]+\)([가-힣])\([^)]+\)');
+    final match = regex.firstMatch(pillarStr);
+    if (match != null) {
+      return (match.group(1)!, match.group(2)!);
+    }
+    // 한자 없는 간단한 형식: "경술" → ("경", "술")
+    if (pillarStr.length >= 2) {
+      return (pillarStr[0], pillarStr[1]);
+    }
+    return ('갑', '자');
   }
 
   SajuSipsinInfo _sipsinInfoFromJson(Map<String, dynamic>? json) {

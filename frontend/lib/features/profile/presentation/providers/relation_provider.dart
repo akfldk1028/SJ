@@ -164,11 +164,15 @@ class RelationNotifier extends _$RelationNotifier {
     String? memo,
     bool isFavorite = false,
     int sortOrder = 0,
+    String? fromProfileAnalysisId,
+    String? toProfileAnalysisId,
   }) async {
     debugPrint('🔍 [RelationNotifier.create] 시작');
     debugPrint('   - fromProfileId: $fromProfileId');
     debugPrint('   - toProfileId: $toProfileId');
     debugPrint('   - relationType: $relationType');
+    debugPrint('   - fromProfileAnalysisId: $fromProfileAnalysisId');
+    debugPrint('   - toProfileAnalysisId: $toProfileAnalysisId');
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -191,6 +195,8 @@ class RelationNotifier extends _$RelationNotifier {
         memo: memo,
         isFavorite: isFavorite,
         sortOrder: sortOrder,
+        fromProfileAnalysisId: fromProfileAnalysisId,
+        toProfileAnalysisId: toProfileAnalysisId,
       );
 
       debugPrint('🔍 [RelationNotifier.create] relationMutations 결과: ${result.runtimeType}');

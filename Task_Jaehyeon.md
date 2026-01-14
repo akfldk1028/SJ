@@ -4469,88 +4469,178 @@ static TwelveSinsalAnalysisResult analyzeFromChart(
 
 ---
 
-## Phase 47: 궁합 분석 아키텍처 재설계 (2026-01-13) 🔄 진행중
+## Phase 47: 궁합 분석 아키텍처 재설계 (2026-01-13) ✅ 완료
 
 ### 개요
 인연(to) 프로필의 사주 분석을 GPT-5.2 대신 Gemini가 직접 계산하도록 변경
 
-### 문제점 (현재)
+### 문제점 (해결됨)
 
-**현재 흐름**:
+**기존 흐름** (문제):
 ```
 나(from): saju_profiles → saju_analyses(GPT-5.2) → Gemini 궁합 ✅
 인연(to): saju_profiles → saju_analyses 조회 → NULL → "(사주 정보 없음)" ❌
 ```
 
-**문제 코드** (`compatibility_analysis_service.dart:216-242`):
-```dart
-// 인연 프로필도 saju_analyses 조회 시도 → NULL 반환
-final sajuAnalysis = await _client
-    .from('saju_analyses')
-    .select()
-    .eq('profile_id', profileId)  // 인연 profileId는 saju_analyses에 없음!
-    .maybeSingle();
-```
-
-**문제 코드** (`compatibility_prompt.dart:500-501`):
-```dart
-String _formatSaju(Map<String, dynamic>? saju) {
-  if (saju == null) return '(사주 정보 없음)';  // ← 인연 사주 못 봄
-  // ...
-}
-```
-
-### 해결 방안 (목표)
-
-**새로운 흐름**:
+**새로운 흐름** (구현 완료):
 ```
 나(from): saju_profiles → saju_analyses(GPT-5.2) → Gemini 궁합 ✅ (유지)
 인연(to): saju_profiles(생년월일) → Gemini가 직접 계산 → 궁합 분석 ✅ (신규)
 ```
 
-### 수정 계획
+### 구현 내용
 
-#### 1. `compatibility_prompt.dart` 수정
-- 인연(to) 사주 계산 로직 추가 (Gemini에게 지시)
+#### 1. `compatibility_analysis_service.dart` 수정
+- `_getMyProfileWithSaju()`: 나(from)만 `saju_analyses` 조회
+- `_getTargetProfileOnly()`: 인연(to)은 `saju_profiles`만 조회 (생년월일만 전달)
+- `_runGeminiAnalysis()`: 인연 사주 데이터 없으면 Gemini 직접 계산 지시
+
+#### 2. `compatibility_prompt.dart` 수정
+- `_buildTargetCalculationInstructions()`: Gemini에게 사주 계산 지시
 - 계산 항목: 사주 4주, 오행 분포, 합충형해파, 신살, 12운성
 - 응답 스키마에 `target_calculated_saju` 필드 추가
 
-#### 2. `compatibility_analysis_service.dart` 수정
-- `_getProfileWithSaju()`: 나 vs 인연 분리
-  - 나(from): 기존대로 `saju_analyses` 조회
-  - 인연(to): `saju_profiles`만 조회 (생년월일만 전달)
-- `_runGeminiAnalysis()`: 입력 데이터 구조 변경
+#### 3. `system_prompt_builder.dart` 수정
+- `_addTargetCalculatedSaju()`: Gemini가 계산한 인연 사주를 Claude 프롬프트에 포함
 
-#### 3. 응답 스키마 확장
-```json
-{
-  "target_calculated_saju": {
-    "four_pillars": {...},
-    "oheng_distribution": {...},
-    "hapchung_analysis": {...},
-    "sinsal_list": [...],
-    "twelve_unsung": {...}
-  },
-  "overall_score": 85,
-  "category_scores": {...},
-  ...
-}
+### v3.7.1 버그 수정: 음력/양력 정보 전달 (2026-01-13) ✅
+
+**발견된 버그**:
+- 김동현 프로필: `is_lunar: true` (음력 1994-11-28)
+- Gemini가 양력 1994-11-28로 잘못 계산 → 완전히 틀린 사주
+
+**정확한 사주** (포스텔러 기준 - 음력 1994-11-28 → 양력 1994-12-30):
+- 년주: 갑술 (甲戌)
+- 월주: 병자 (丙子)
+- 일주: 경인 (庚寅)
+- 시주: 경진 (庚辰) - 07:21 기준
+
+**수정 내용**:
+
+1. `compatibility_analysis_service.dart`:
+   - `_getTargetProfileOnly()`: `is_lunar`, `is_leap_month` 추출
+   - `_runGeminiAnalysis()`: 음력/양력 정보 로그 및 inputData에 추가
+
+2. `compatibility_prompt.dart`:
+   - `CompatibilityInputData`: `targetIsLunar`, `targetIsLeapMonth` 필드 추가
+   - `_buildTargetCalculationInstructions()`: 음력인 경우 양력 변환 지시 추가
+
+**수정된 프롬프트 예시**:
+```
+**계산 대상 정보**:
+- 생년월일: 1994-11-28
+- **달력 종류: 음력 (陰曆)**
+
+🚨 **중요: 음력 → 양력 변환 필수** 🚨
+입력된 생년월일 **1994-11-28는 음력 날짜**입니다.
+
+**반드시 다음 순서로 계산하세요:**
+1. 음력 1994-11-28를 양력으로 변환
+2. 변환된 양력 날짜로 만세력 사주팔자 계산
+3. 입춘(立春) 기준으로 년월 구분
+
+**예시**: 음력 1994-11-28 → 양력 1994-12-30
 ```
 
+### 테스트 준비
+- [x] 캐시된 궁합 분석 삭제 (김동현)
+- [ ] 앱 실행 후 김동현과 궁합 채팅 테스트
+- [ ] Gemini 계산 결과 검증 (년주: 갑술, 월주: 병자, 일주: 경인, 시주: 경진)
+
 ### 참조 파일
-| 파일 | 용도 |
-|------|------|
-| `compatibility_analysis_service.dart` | 궁합 분석 서비스 (수정 대상) |
-| `compatibility_prompt.dart` | 궁합 프롬프트 (수정 대상) |
-| `saju_base_prompt.dart` | GPT-5.2 사주 프롬프트 (참조용 - 합충형해파 구조) |
-| `compatibility_context.dart` | 궁합 컨텍스트 모델 |
+| 파일 | 용도 | 상태 |
+|------|------|------|
+| `compatibility_analysis_service.dart` | 궁합 분석 서비스 | ✅ 수정 완료 |
+| `compatibility_prompt.dart` | 궁합 프롬프트 | ✅ 수정 완료 |
+| `system_prompt_builder.dart` | Claude 프롬프트 빌더 | ✅ 수정 완료 |
 
 ### 진행 상태
 - [x] 현재 구조 분석 완료
 - [x] 문제점 파악 완료
 - [x] 해결 방안 설계 완료
-- [ ] `compatibility_prompt.dart` 수정
-- [ ] `compatibility_analysis_service.dart` 수정
-- [ ] 테스트
+- [x] `compatibility_prompt.dart` 수정 ✅
+- [x] `compatibility_analysis_service.dart` 수정 ✅
+- [x] `system_prompt_builder.dart` 수정 ✅
+- [x] v3.7.1 음력/양력 버그 수정 ✅
+- [ ] 테스트 (앱 실행 필요)
+
+---
+
+## Phase 47-B: 궁합 아키텍처 재검토 및 데이터 수정 (2026-01-14) ✅ 완료
+
+### 개요
+Phase 47에서 설계한 "Gemini 직접 계산" 방식 재검토 → **기존 saju_analyses 테이블 활용 방식이 정확함**
+
+### 검토 결과: 기존 아키텍처가 올바름
+
+**확인된 데이터 흐름**:
+```
+나(from): saju_profiles → saju_analyses (GPT-5.2/Dart) → 궁합 계산
+인연(to): saju_profiles → saju_analyses (Dart 만세력) → 궁합 계산
+                          ↑
+          relationship_add_screen.dart Step 3.5에서 저장됨
+```
+
+### 아키텍처 확정
+
+| 테이블 | 용도 | 저장 대상 |
+|--------|------|-----------|
+| `saju_profiles` | 기본 프로필 정보 | 나 + 인연 |
+| `saju_analyses` | 사주 분석 결과 (만세력, 십신, 대운 등) | **나 + 인연 모두** |
+| `compatibility_analyses` | 궁합 분석 결과 (합충형해파 점수) | 쌍(pair) 단위 |
+| `profile_relations` | 관계 연결 | from → to 연결 |
+
+### 문제 발견 및 해결
+
+**문제**: 기존 인연(박재현)에 `saju_analyses` 데이터 없음
+- 원인: Phase 47 이전에 생성된 프로필이라 Step 3.5 코드가 없었음
+- 영향 프로필: `e1dd9412-7483-4727-8c4d-e17e5f41b44d` (박재현, 1997-11-29)
+
+**해결**: 수동 데이터 삽입 완료
+```sql
+INSERT INTO public.saju_analyses (profile_id, ...)
+VALUES ('e1dd9412-7483-4727-8c4d-e17e5f41b44d', ...);
+-- 결과 ID: 2294db38-da66-4b23-b301-00241fd8b1de
+```
+
+### DB 상태 확인 (2026-01-14)
+
+```
+송건우 (from_profile): ✅ saju_analyses 있음
+  - 사주: 임오 병오 계유 병진
+
+박재현 (to_profile): ✅ saju_analyses 있음 (수동 삽입)
+  - 사주: 정축 신해 을해 경진
+
+profile_relations: ✅ 관계 연결됨
+  - compatibility_analysis_id: NULL (채팅 시작 시 생성됨)
+```
+
+### Dart 기반 궁합 계산 확인
+
+**파일**: `compatibility_analysis_service.dart` (160-165라인)
+```dart
+// 3. Dart 궁합 계산 (v4.0: Gemini 제거, Dart 로직 사용)
+final calculationResult = compatibilityCalculator.calculate(
+  mySaju: mySaju,
+  targetSaju: targetSaju,
+  relationType: relationType,
+);
+```
+
+- `model_provider`: 'dart'
+- `model_name`: 'compatibility_calculator_v4'
+- `tokens_used`: 0 (Gemini 토큰 사용 없음)
+
+### 결론
+
+**새로운 테이블 필요 없음** - 기존 `saju_analyses` 활용이 정확한 설계
+- 인연 프로필 생성 시 `relationship_add_screen.dart` Step 3.5에서 `saju_analyses` 자동 저장됨
+- 궁합 계산은 Dart `compatibility_calculator.dart`로 수행 (Gemini 아님)
+- 기존 인연은 수동으로 `saju_analyses` 데이터 삽입 필요
+
+### 다음 단계
+- [ ] 앱에서 궁합 채팅 테스트 (송건우 ↔ 박재현)
+- [ ] `compatibility_analyses` 자동 생성 확인
 
 ---

@@ -1,11 +1,15 @@
 /// # 궁합 분석 서비스
 ///
 /// ## 개요
-/// 두 프로필 간의 궁합을 Gemini AI로 분석합니다.
+/// 두 프로필 간의 궁합을 Dart 로직으로 분석합니다.
 /// `profile_relations`에서 궁합 채팅 시작 시 자동으로 호출됩니다.
 ///
 /// ## 파일 위치
 /// `frontend/lib/AI/services/compatibility_analysis_service.dart`
+///
+/// ## v4.0 아키텍처 변경
+/// - 기존: Gemini가 사주 계산 + 궁합 분석 (느리고 부정확)
+/// - 변경: 두 프로필 모두 saju_analyses에서 조회 → Dart 궁합 계산 (빠르고 정확)
 ///
 /// ## 실행 흐름
 /// ```
@@ -13,7 +17,7 @@
 /// 2. profile_relations 조회
 /// 3. compatibility_analysis_id 확인
 ///    - 있으면 → 캐시된 분석 사용
-///    - 없으면 → Gemini 분석 실행 → compatibility_analyses 저장
+///    - 없으면 → Dart 궁합 계산 → compatibility_analyses 저장
 /// 4. 채팅 시스템 프롬프트에 궁합 분석 결과 주입
 /// ```
 ///
@@ -32,13 +36,9 @@
 /// }
 /// ```
 
-import 'dart:convert';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../core/ai_constants.dart';
-import '../prompts/compatibility_prompt.dart';
-import 'ai_api_service.dart';
+import 'compatibility_calculator.dart';
 
 /// 궁합 분석 결과
 class CompatibilityAnalysisResult {
@@ -92,7 +92,6 @@ class CompatibilityAnalysisResult {
 /// 궁합 분석 서비스
 class CompatibilityAnalysisService {
   final SupabaseClient _client = Supabase.instance.client;
-  final AiApiService _aiService = AiApiService();
 
   /// 궁합 분석 실행 (캐시 확인 → 없으면 새로 분석)
   ///
@@ -130,10 +129,9 @@ class CompatibilityAnalysisService {
       }
 
       // 2. 두 프로필의 사주 데이터 조회
-      // - 나(from): saju_analyses 테이블에서 GPT 분석 결과 조회
-      // - 인연(to): saju_analyses 조회 스킵 → Gemini가 직접 계산
-      final myData = await _getMyProfileWithSaju(fromProfileId);
-      final targetData = await _getTargetProfileOnly(toProfileId);
+      // v4.0: 나와 인연 모두 saju_analyses에서 조회 (둘 다 GPT-5.2 계산)
+      final myData = await _getProfileWithSaju(fromProfileId);
+      final targetData = await _getProfileWithSaju(toProfileId);
 
       if (myData == null) {
         return CompatibilityAnalysisResult.failure('나의 프로필을 찾을 수 없습니다');
@@ -142,27 +140,40 @@ class CompatibilityAnalysisService {
         return CompatibilityAnalysisResult.failure('상대방 프로필을 찾을 수 없습니다');
       }
 
-      // 3. Gemini 궁합 분석 실행
-      final analysisResult = await _runGeminiAnalysis(
-        myData: myData,
-        targetData: targetData,
+      // 사주 분석 데이터 확인
+      final mySaju = myData['saju_analysis'] as Map<String, dynamic>?;
+      final targetSaju = targetData['saju_analysis'] as Map<String, dynamic>?;
+
+      if (mySaju == null) {
+        return CompatibilityAnalysisResult.failure(
+            '나의 사주 분석이 필요합니다. 채팅을 먼저 시작해주세요.');
+      }
+      if (targetSaju == null) {
+        return CompatibilityAnalysisResult.failure(
+            '인연의 사주 분석이 아직 완료되지 않았습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      print('[CompatibilityService] 📊 사주 데이터 확인');
+      print('  - 나: ${mySaju['year_gan']}${mySaju['year_ji']} ${mySaju['month_gan']}${mySaju['month_ji']} ${mySaju['day_gan']}${mySaju['day_ji']} ${mySaju['hour_gan'] ?? '?'}${mySaju['hour_ji'] ?? '?'}');
+      print('  - 인연: ${targetSaju['year_gan']}${targetSaju['year_ji']} ${targetSaju['month_gan']}${targetSaju['month_ji']} ${targetSaju['day_gan']}${targetSaju['day_ji']} ${targetSaju['hour_gan'] ?? '?'}${targetSaju['hour_ji'] ?? '?'}');
+
+      // 3. Dart 궁합 계산 (v4.0: Gemini 제거, Dart 로직 사용)
+      final calculationResult = compatibilityCalculator.calculate(
+        mySaju: mySaju,
+        targetSaju: targetSaju,
         relationType: relationType,
       );
 
-      if (!analysisResult.success) {
-        return CompatibilityAnalysisResult.failure(
-            analysisResult.error ?? 'Gemini 분석 실패');
-      }
-
       // 4. 결과 저장
+      // v4.0: Dart 계산 결과 저장
       final savedId = await _saveAnalysisResult(
         userId: userId,
         fromProfileId: fromProfileId,
         toProfileId: toProfileId,
         relationType: relationType,
-        analysisData: analysisResult.content!,
-        tokensUsed: (analysisResult.promptTokens ?? 0) +
-            (analysisResult.completionTokens ?? 0),
+        calculationResult: calculationResult,
+        mySajuData: mySaju,
+        targetSajuData: targetSaju,
         processingTimeMs: stopwatch.elapsedMilliseconds,
       );
 
@@ -176,12 +187,11 @@ class CompatibilityAnalysisService {
       stopwatch.stop();
       print('[CompatibilityService] ✅ 분석 완료: $savedId');
       print('  - 소요시간: ${stopwatch.elapsedMilliseconds}ms');
+      print('  - 점수: ${calculationResult.overallScore}점');
 
       return CompatibilityAnalysisResult.success(
         analysisId: savedId,
-        data: analysisResult.content!,
-        tokensUsed: (analysisResult.promptTokens ?? 0) +
-            (analysisResult.completionTokens ?? 0),
+        data: calculationResult.toJson(),
         processingTimeMs: stopwatch.elapsedMilliseconds,
       );
     } catch (e, stack) {
@@ -214,10 +224,10 @@ class CompatibilityAnalysisService {
     }
   }
 
-  /// 나(from) 프로필 + GPT 사주 분석 데이터 조회
+  /// 프로필 + 사주 분석 데이터 조회
   ///
-  /// 나의 경우 saju_analyses 테이블에서 GPT-5.2가 분석한 결과를 함께 조회합니다.
-  Future<Map<String, dynamic>?> _getMyProfileWithSaju(String profileId) async {
+  /// v4.0: 나와 인연 모두 동일한 로직으로 saju_analyses 조회
+  Future<Map<String, dynamic>?> _getProfileWithSaju(String profileId) async {
     try {
       // 프로필 조회
       final profile = await _client
@@ -228,7 +238,7 @@ class CompatibilityAnalysisService {
 
       if (profile == null) return null;
 
-      // 사주 분석 조회 (나의 GPT 분석 결과)
+      // 사주 분석 조회
       final sajuAnalysis = await _client
           .from('saju_analyses')
           .select()
@@ -240,210 +250,100 @@ class CompatibilityAnalysisService {
         'saju_analysis': sajuAnalysis,
       };
     } catch (e) {
-      print('[CompatibilityService] 나의 프로필 조회 오류: $e');
+      print('[CompatibilityService] 프로필 조회 오류: $e');
       return null;
     }
-  }
-
-  /// 인연(to) 프로필만 조회 (saju_analyses 조회 안함)
-  ///
-  /// 인연의 경우 saju_analyses를 조회하지 않습니다.
-  /// Gemini가 생년월일/시간 정보로 직접 사주를 계산합니다.
-  ///
-  /// ## 반환 데이터
-  /// - profile: saju_profiles 테이블 데이터
-  /// - saju_analysis: null (Gemini가 직접 계산할 것)
-  /// - birth_time_string: 태어난 시간 (HH:mm 형식 또는 null)
-  Future<Map<String, dynamic>?> _getTargetProfileOnly(String profileId) async {
-    try {
-      // 프로필 조회 (saju_analyses는 조회하지 않음!)
-      final profile = await _client
-          .from('saju_profiles')
-          .select()
-          .eq('id', profileId)
-          .maybeSingle();
-
-      if (profile == null) return null;
-
-      // birth_time_minutes를 HH:mm 형식으로 변환
-      String? birthTimeString;
-      final birthTimeMinutes = profile['birth_time_minutes'] as int?;
-      if (birthTimeMinutes != null) {
-        final hours = birthTimeMinutes ~/ 60;
-        final minutes = birthTimeMinutes % 60;
-        birthTimeString =
-            '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
-      }
-
-      // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추가
-      final isLunar = profile['is_lunar'] as bool? ?? false;
-      final isLeapMonth = profile['is_leap_month'] as bool? ?? false;
-
-      return {
-        'profile': profile,
-        'saju_analysis': null, // Gemini가 직접 계산할 것
-        'birth_time_string': birthTimeString,
-        'is_lunar': isLunar, // 음력 여부
-        'is_leap_month': isLeapMonth, // 윤달 여부
-      };
-    } catch (e) {
-      print('[CompatibilityService] 인연 프로필 조회 오류: $e');
-      return null;
-    }
-  }
-
-  /// Gemini 궁합 분석 실행
-  ///
-  /// ## 데이터 흐름
-  /// - 나(myData): GPT-5.2가 분석한 saju_analyses 데이터 사용
-  /// - 인연(targetData): saju_analysis는 null → Gemini가 직접 계산
-  Future<AiApiResponse> _runGeminiAnalysis({
-    required Map<String, dynamic> myData,
-    required Map<String, dynamic> targetData,
-    required String relationType,
-  }) async {
-    final myProfile = myData['profile'] as Map<String, dynamic>;
-    final mySaju = myData['saju_analysis'] as Map<String, dynamic>?;
-
-    final targetProfile = targetData['profile'] as Map<String, dynamic>;
-    final targetSaju = targetData['saju_analysis'] as Map<String, dynamic>?;
-    final targetBirthTimeString = targetData['birth_time_string'] as String?;
-    // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추출
-    final targetIsLunar = targetData['is_lunar'] as bool? ?? false;
-    final targetIsLeapMonth = targetData['is_leap_month'] as bool? ?? false;
-
-    // 디버그 로그
-    print('[CompatibilityService] 📊 입력 데이터 구성');
-    print('  - 나(from) saju_analysis: ${mySaju != null ? "있음" : "없음"}');
-    print(
-        '  - 인연(to) saju_analysis: ${targetSaju != null ? "있음" : "없음 → Gemini가 계산"}');
-    print('  - 인연 생년월일: ${targetProfile['birth_date']}');
-    print('  - 인연 태어난 시간: ${targetBirthTimeString ?? "미상"}');
-    // v3.7.1: 음력/양력 정보 로그 추가
-    print('  - 인연 음력 여부: ${targetIsLunar ? "음력" : "양력"}');
-    if (targetIsLeapMonth) print('  - 인연 윤달 여부: 윤달');
-
-    // 입력 데이터 구성
-    final inputData = {
-      'my_profile_id': myProfile['id'],
-      'my_name': myProfile['display_name'] ?? '나',
-      'my_birth_date': myProfile['birth_date'] ?? '',
-      'my_gender': myProfile['gender'] ?? 'male',
-      'my_saju': mySaju != null
-          ? {
-              'year_gan': mySaju['year_gan'],
-              'year_ji': mySaju['year_ji'],
-              'month_gan': mySaju['month_gan'],
-              'month_ji': mySaju['month_ji'],
-              'day_gan': mySaju['day_gan'],
-              'day_ji': mySaju['day_ji'],
-              'hour_gan': mySaju['hour_gan'],
-              'hour_ji': mySaju['hour_ji'],
-            }
-          : null,
-      'my_oheng': mySaju?['oheng_distribution'],
-      'my_yongsin': mySaju?['yongsin'],
-      'my_hapchung': mySaju?['hapchung'],
-      'my_sinsal': mySaju?['sinsal_list'],
-      'my_unsung': mySaju?['twelve_unsung'],
-      'target_profile_id': targetProfile['id'],
-      'target_name': targetProfile['display_name'] ?? '상대방',
-      'target_birth_date': targetProfile['birth_date'] ?? '',
-      'target_birth_time': targetBirthTimeString, // 인연의 태어난 시간 추가
-      'target_gender': targetProfile['gender'] ?? 'male',
-      // v3.7.1 (Phase 47 Fix): 음력/양력 정보 추가
-      'target_is_lunar': targetIsLunar,
-      'target_is_leap_month': targetIsLeapMonth,
-      // 인연의 사주 데이터 (있으면 사용, 없으면 Gemini가 계산)
-      'target_saju': targetSaju != null
-          ? {
-              'year_gan': targetSaju['year_gan'],
-              'year_ji': targetSaju['year_ji'],
-              'month_gan': targetSaju['month_gan'],
-              'month_ji': targetSaju['month_ji'],
-              'day_gan': targetSaju['day_gan'],
-              'day_ji': targetSaju['day_ji'],
-              'hour_gan': targetSaju['hour_gan'],
-              'hour_ji': targetSaju['hour_ji'],
-            }
-          : null,
-      'target_oheng': targetSaju?['oheng_distribution'],
-      'target_yongsin': targetSaju?['yongsin'],
-      'target_hapchung': targetSaju?['hapchung'],
-      'target_sinsal': targetSaju?['sinsal_list'],
-      'target_unsung': targetSaju?['twelve_unsung'],
-      'relation_type': relationType,
-    };
-
-    // 프롬프트 생성
-    final prompt = CompatibilityPrompt(relationType: relationType);
-    final messages = prompt.buildMessages(inputData);
-
-    // Gemini API 호출
-    return await _aiService.callGemini(
-      messages: messages,
-      model: prompt.modelName,
-      maxTokens: prompt.maxTokens,
-      temperature: prompt.temperature,
-      logType: 'compatibility_analysis',
-    );
   }
 
   /// 분석 결과 저장
   ///
+  /// ## v4.0 변경사항
+  /// - Dart 궁합 계산 결과 저장
+  /// - 나와 인연 모두 saju_analyses 데이터 사용 (GPT-5.2 계산)
+  /// - Gemini 호출 제거
+  ///
   /// ## 저장 데이터
-  /// - saju_analysis: 궁합 상세 분석 결과
-  /// - target_calculated_saju: Gemini가 계산한 인연의 사주 (있는 경우)
+  /// - saju_analysis: 합충형해파 상세 분석 결과 (JSONB)
+  /// - target_year_gan/ji, target_month_gan/ji 등: 인연 사주 개별 필드
   Future<String> _saveAnalysisResult({
     required String userId,
     required String fromProfileId,
     required String toProfileId,
     required String relationType,
-    required Map<String, dynamic> analysisData,
-    required int tokensUsed,
+    required CompatibilityResult calculationResult,
+    required Map<String, dynamic> mySajuData,
+    required Map<String, dynamic> targetSajuData,
     required int processingTimeMs,
   }) async {
-    // Gemini가 계산한 인연의 사주 데이터 추출
-    final targetCalculatedSaju = analysisData['target_calculated_saju'];
+    print('[CompatibilityService] 💾 Dart 궁합 계산 결과 저장');
 
-    // saju_analysis에 detailed_analysis와 target_calculated_saju 통합
-    final combinedSajuAnalysis = {
-      ...?analysisData['detailed_analysis'] as Map<String, dynamic>?,
-      if (targetCalculatedSaju != null)
-        'target_calculated_saju': targetCalculatedSaju,
-    };
+    // 인연 사주 개별 필드 추출
+    final targetYearGan = targetSajuData['year_gan'] as String?;
+    final targetYearJi = targetSajuData['year_ji'] as String?;
+    final targetMonthGan = targetSajuData['month_gan'] as String?;
+    final targetMonthJi = targetSajuData['month_ji'] as String?;
+    final targetDayGan = targetSajuData['day_gan'] as String?;
+    final targetDayJi = targetSajuData['day_ji'] as String?;
+    final targetHourGan = targetSajuData['hour_gan'] as String?;
+    final targetHourJi = targetSajuData['hour_ji'] as String?;
+    final targetOheng = targetSajuData['oheng_distribution'] as Map<String, dynamic>?;
+    final targetHapchung = targetSajuData['hapchung'] as Map<String, dynamic>?;
+    final targetSinsalList = targetSajuData['sinsal_list'] as List<dynamic>?;
+    final targetTwelveUnsung = targetSajuData['twelve_unsung'] as List<dynamic>?;
+    final targetGilseong = targetSajuData['gilseong'] as Map<String, dynamic>?;
+    final targetDayMaster = _extractDayMaster(targetDayGan);
 
-    // 디버그 로그
-    if (targetCalculatedSaju != null) {
-      print('[CompatibilityService] 💾 Gemini가 계산한 인연 사주 저장');
-      final calculatedSaju = targetCalculatedSaju['saju'];
-      if (calculatedSaju != null) {
-        print('  - 년주: ${calculatedSaju['year']?['gan']}${calculatedSaju['year']?['ji']}');
-        print('  - 월주: ${calculatedSaju['month']?['gan']}${calculatedSaju['month']?['ji']}');
-        print('  - 일주: ${calculatedSaju['day']?['gan']}${calculatedSaju['day']?['ji']}');
-        print('  - 시주: ${calculatedSaju['hour']?['gan'] ?? '?'}${calculatedSaju['hour']?['ji'] ?? '?'}');
-      }
-    }
+    print('  - 인연 사주: $targetYearGan$targetYearJi $targetMonthGan$targetMonthJi $targetDayGan$targetDayJi ${targetHourGan ?? '?'}${targetHourJi ?? '?'}');
 
     final response = await _client.from('compatibility_analyses').insert({
       'profile1_id': fromProfileId,
       'profile2_id': toProfileId,
       'analysis_type': _getAnalysisType(relationType),
       'relation_type': relationType,
-      'overall_score': analysisData['overall_score'],
-      'category_scores': analysisData['category_scores'],
-      'saju_analysis': combinedSajuAnalysis, // 인연의 계산된 사주도 포함
-      'summary': analysisData['summary'],
-      'strengths': analysisData['strengths'],
-      'challenges': analysisData['challenges'],
-      'advice': jsonEncode(analysisData['advice']),
-      'model_provider': 'google',
-      'model_name': GoogleModels.gemini20Flash,
-      'tokens_used': tokensUsed,
+      'overall_score': calculationResult.overallScore,
+      'category_scores': calculationResult.categoryScores,
+      'saju_analysis': calculationResult.hapchungDetails.toJson(),
+      'summary': calculationResult.summary,
+      'strengths': calculationResult.strengths,
+      'challenges': calculationResult.challenges,
+      'advice': null, // v4.0: 조언은 채팅에서 생성
+      'model_provider': 'dart', // v4.0: Dart 계산
+      'model_name': 'compatibility_calculator_v4',
+      'tokens_used': 0, // Dart 계산은 토큰 사용 없음
       'processing_time_ms': processingTimeMs,
+      // 인연 사주 개별 필드
+      'target_year_gan': targetYearGan,
+      'target_year_ji': targetYearJi,
+      'target_month_gan': targetMonthGan,
+      'target_month_ji': targetMonthJi,
+      'target_day_gan': targetDayGan,
+      'target_day_ji': targetDayJi,
+      'target_hour_gan': targetHourGan,
+      'target_hour_ji': targetHourJi,
+      'target_oheng_distribution': targetOheng,
+      'target_hapchung': targetHapchung,
+      'target_sinsal_list': targetSinsalList,
+      'target_twelve_unsung': targetTwelveUnsung,
+      'target_gilseong': targetGilseong,
+      'target_day_master': targetDayMaster,
     }).select('id').single();
 
     return response['id'] as String;
+  }
+
+  /// 천간에서 일간(오행) 추출
+  String? _extractDayMaster(String? dayGan) {
+    if (dayGan == null) return null;
+    // 한글(한자) 형식에서 한글만 추출: "갑(甲)" → "갑"
+    final korean = dayGan.split('(').first;
+    const ganToOheng = {
+      '갑': '木', '을': '木',
+      '병': '火', '정': '火',
+      '무': '土', '기': '土',
+      '경': '金', '신': '金',
+      '임': '水', '계': '水',
+    };
+    return ganToOheng[korean];
   }
 
   /// profile_relations 업데이트

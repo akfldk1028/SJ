@@ -20,16 +20,20 @@ class RelationMutations extends BaseMutations {
     String? memo,
     bool isFavorite = false,
     int sortOrder = 0,
+    String? fromProfileAnalysisId,
+    String? toProfileAnalysisId,
   }) async {
     debugPrint('🔍 [RelationMutations.create] 시작');
     debugPrint('   - userId: $userId');
     debugPrint('   - fromProfileId: $fromProfileId');
     debugPrint('   - toProfileId: $toProfileId');
     debugPrint('   - relationType: $relationType');
+    debugPrint('   - fromProfileAnalysisId: $fromProfileAnalysisId');
+    debugPrint('   - toProfileAnalysisId: $toProfileAnalysisId');
 
     return safeMutation(
       mutation: (client) async {
-        final data = {
+        final data = <String, dynamic>{
           'user_id': userId,
           'from_profile_id': fromProfileId,
           'to_profile_id': toProfileId,
@@ -39,6 +43,13 @@ class RelationMutations extends BaseMutations {
           'is_favorite': isFavorite,
           'sort_order': sortOrder,
         };
+        // v4.0: saju_analyses 연결 추가
+        if (fromProfileAnalysisId != null) {
+          data['from_profile_analysis_id'] = fromProfileAnalysisId;
+        }
+        if (toProfileAnalysisId != null) {
+          data['to_profile_analysis_id'] = toProfileAnalysisId;
+        }
 
         debugPrint('🔍 [RelationMutations.create] Supabase INSERT 호출');
         debugPrint('   - 테이블: $profileRelationsTable');
