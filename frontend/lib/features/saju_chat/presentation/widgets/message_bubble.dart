@@ -48,9 +48,34 @@ class MessageBubble extends StatelessWidget {
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: isUser
-                    ? appTheme.primaryColor
-                    : appTheme.cardColor,
+                // 그라데이션 적용: 다크/라이트 테마별 색상
+                gradient: isUser
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: appTheme.isDark
+                            ? [
+                                const Color(0xFFE8C077), // 밝은 골드
+                                const Color(0xFFD4A54A), // 진한 골드
+                              ]
+                            : [
+                                const Color(0xFFD4846A), // 테라코타
+                                const Color(0xFFC27256), // 진한 테라코타
+                              ],
+                      )
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: appTheme.isDark
+                            ? [
+                                const Color(0xFF2A3540), // 틸 다크
+                                const Color(0xFF1E2830), // 딥 틸 다크
+                              ]
+                            : [
+                                const Color(0xFFF8F9FA), // 밝은 그레이
+                                const Color(0xFFF0F2F5), // 쿨 그레이
+                              ],
+                      ),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -60,9 +85,22 @@ class MessageBubble extends StatelessWidget {
                 border: isUser
                     ? null
                     : Border.all(
-                        color: appTheme.primaryColor.withOpacity(0.1),
+                        color: appTheme.isDark
+                            ? const Color(0xFF4ECDC4).withValues(alpha: 0.15)
+                            : const Color(0xFFE0E0E0),
                         width: 1,
                       ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isUser
+                        ? (appTheme.isDark
+                            ? const Color(0xFFD4A54A).withValues(alpha: 0.3)
+                            : const Color(0xFFC27256).withValues(alpha: 0.25))
+                        : Colors.black.withValues(alpha: appTheme.isDark ? 0.2 : 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: _buildMessageContent(theme, appTheme, isUser),
             ),
@@ -118,7 +156,7 @@ class MessageBubble extends StatelessWidget {
     return CircleAvatar(
       radius: 16,
       backgroundColor: message.isUser
-          ? appTheme.primaryColor.withOpacity(0.2)
+          ? appTheme.primaryColor.withValues(alpha: 0.2)
           : appTheme.cardColor,
       child: Icon(
         message.isUser ? Icons.person : Icons.auto_awesome,

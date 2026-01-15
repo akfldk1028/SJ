@@ -7,10 +7,10 @@ class TermsOfServiceScreen extends StatelessWidget {
   const TermsOfServiceScreen({super.key});
 
   static const String _content = '''
-만톡 서비스 이용약관
+사담 서비스 이용약관
 
 제1조 (목적)
-본 약관은 만톡(이하 "서비스")의 이용 조건 및 절차에 관한 사항을 규정함을 목적으로 합니다.
+본 약관은 사담(이하 "서비스")의 이용 조건 및 절차에 관한 사항을 규정함을 목적으로 합니다.
 
 제2조 (서비스 내용)
 1. 본 서비스는 AI 기반 사주 상담 서비스입니다.

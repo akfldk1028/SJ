@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 
 /// Fortune category grid - 테마 적용 (정통운세 그리드)
-/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
 class FortuneCategoryList extends StatelessWidget {
   const FortuneCategoryList({super.key});
 
-  // ⚡ 캐싱된 색상 상수
   static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
   static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final scale = context.scaleFactor;
 
     final categories = [
       {'name': '정통사주', 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
@@ -23,9 +23,12 @@ class FortuneCategoryList extends StatelessWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: context.scaledPadding(20)),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        padding: EdgeInsets.symmetric(
+          vertical: context.scaledPadding(20),
+          horizontal: context.scaledPadding(16),
+        ),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
@@ -45,6 +48,7 @@ class FortuneCategoryList extends StatelessWidget {
                 category['name'] as String,
                 category['icon'] as IconData,
                 category['route'] as String,
+                scale,
               ),
             );
           }).toList(),
@@ -53,8 +57,11 @@ class FortuneCategoryList extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, String name, IconData icon, String route) {
+  Widget _buildCategoryItem(BuildContext context, String name, IconData icon, String route, double scale) {
     final theme = context.appTheme;
+    final boxSize = (56 * scale).clamp(48.0, 72.0);
+    final iconSize = context.scaledIcon(28);
+    final fontSize = context.scaledFont(12);
 
     return GestureDetector(
       onTap: () => context.push(route),
@@ -62,8 +69,8 @@ class FortuneCategoryList extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: boxSize,
+            height: boxSize,
             decoration: BoxDecoration(
               color: theme.isDark
                   ? theme.primaryColor.withValues(alpha: 0.15)
@@ -72,15 +79,15 @@ class FortuneCategoryList extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              size: 28,
+              size: iconSize,
               color: theme.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.scaledPadding(8)),
           Text(
             name,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: fontSize,
               fontWeight: FontWeight.w500,
               color: theme.textPrimary,
             ),

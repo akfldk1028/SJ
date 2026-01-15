@@ -18,11 +18,13 @@ import '../../../../core/repositories/saju_analysis_repository.dart';
 import '../../data/datasources/gemini_edge_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
+import '../../data/models/conversational_ad_model.dart' show AdTriggerResult;
 import '../../data/services/system_prompt_builder.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/models/ai_persona.dart';
 import '../../domain/models/chat_type.dart';
 import 'chat_session_provider.dart';
+import 'conversational_ad_provider.dart';
 import 'persona_provider.dart';
 
 part 'chat_provider.g.dart';
@@ -858,6 +860,22 @@ class ChatNotifier extends _$ChatNotifier {
         tokenUsage: tokenUsage,
         wasContextTrimmed: windowResult?.wasTrimmed ?? false,
       );
+
+      // [AD] 토큰 기반 광고 트리거 체크
+      final adTrigger = ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
+        tokenUsage: tokenUsage,
+        messageCount: state.messages.length,
+        persona: currentPersona,
+      );
+
+      if (kDebugMode && adTrigger != AdTriggerResult.none) {
+        print('');
+        print('┌──────────────────────────────────────────────────────────────┐');
+        print('│  📢 [AD] TOKEN-BASED AD TRIGGERED                            │');
+        print('└──────────────────────────────────────────────────────────────┘');
+        print('   🎯 Trigger: $adTrigger');
+        print('   📊 Usage: ${(tokenUsage.usageRate * 100).toStringAsFixed(1)}%');
+      }
 
       // AI 메시지 저장 (tokensUsed 포함)
       await sessionRepository.saveMessage(aiMessage);

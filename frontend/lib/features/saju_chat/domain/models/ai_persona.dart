@@ -1,6 +1,60 @@
 import '../../../../AI/jina/personas/persona_registry.dart';
 import '../../../../AI/jina/personas/persona_base.dart';
 
+/// MBTI 4분면 (성향 분류)
+///
+/// ```
+///        N (직관)
+///        │
+///   NF   │   NT
+/// (감성형) │ (분석형)
+///        │
+/// F ─────┼───── T
+///        │
+///   SF   │   ST
+/// (친근형) │ (현실형)
+///        │
+///        S (감각)
+/// ```
+enum MbtiQuadrant {
+  /// NF: 감성형 - 따뜻함, 공감, 직관적 감성
+  NF,
+  /// NT: 분석형 - 논리적, 체계적, 직관적 사고
+  NT,
+  /// SF: 친근형 - 유쾌함, 현실적, 감성적
+  SF,
+  /// ST: 현실형 - 직설적, 실용적, 논리적
+  ST;
+
+  /// 표시명
+  String get displayName {
+    switch (this) {
+      case MbtiQuadrant.NF:
+        return '감성형';
+      case MbtiQuadrant.NT:
+        return '분석형';
+      case MbtiQuadrant.SF:
+        return '친근형';
+      case MbtiQuadrant.ST:
+        return '현실형';
+    }
+  }
+
+  /// 설명
+  String get description {
+    switch (this) {
+      case MbtiQuadrant.NF:
+        return '따뜻하고 공감적인 상담';
+      case MbtiQuadrant.NT:
+        return '논리적이고 체계적인 분석';
+      case MbtiQuadrant.SF:
+        return '친근하고 유쾌한 대화';
+      case MbtiQuadrant.ST:
+        return '직설적이고 현실적인 조언';
+    }
+  }
+}
+
 /// AI 페르소나 (캐릭터) 정의
 ///
 /// UI 레이어에서 간단하게 사용하기 위한 Enum
@@ -126,6 +180,42 @@ enum AiPersona {
       case AiPersona.saOngJiMa:
         return '긍정 재해석 전문가';
     }
+  }
+
+  /// MBTI 4분면 (성향 분류)
+  ///
+  /// - NF: 감성형 (따뜻, 공감) - 할머니, 아기동자, 새옹지마
+  /// - NT: 분석형 (논리, 체계) - 도사, 명리의서, AI상담사
+  /// - SF: 친근형 (유쾌, 친근) - 복돌이, 하꼬무당
+  /// - ST: 현실형 (직설, 스토리) - 송작가
+  MbtiQuadrant get quadrant {
+    switch (this) {
+      // NF: 감성형 - 따뜻함, 공감, 감성적
+      case AiPersona.grandma:      // 따뜻하고 정감있는
+      case AiPersona.babyMonk:     // 귀여운 팩폭
+      case AiPersona.saOngJiMa:    // 긍정 재해석
+        return MbtiQuadrant.NF;
+
+      // NT: 분석형 - 논리적, 체계적
+      case AiPersona.master:       // 위엄있고 철학적
+      case AiPersona.bookOfSaju:   // 사주 고서, 논리적
+      case AiPersona.professional: // AI 상담사, 체계적
+        return MbtiQuadrant.NT;
+
+      // SF: 친근형 - 유쾌함, 친근함
+      case AiPersona.cute:         // 복돌이, 귀엽고 친근
+      case AiPersona.newbieShaman: // 하꼬무당, 유쾌
+        return MbtiQuadrant.SF;
+
+      // ST: 현실형 - 직설적, 스토리텔링
+      case AiPersona.scenarioWriter: // 송작가, 스토리텔러
+        return MbtiQuadrant.ST;
+    }
+  }
+
+  /// 분면별 페르소나 목록 가져오기
+  static List<AiPersona> getByQuadrant(MbtiQuadrant quadrant) {
+    return AiPersona.values.where((p) => p.quadrant == quadrant).toList();
   }
 
   /// 시스템 프롬프트 (PersonaRegistry에서 가져옴)

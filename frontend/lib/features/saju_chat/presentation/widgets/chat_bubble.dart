@@ -38,7 +38,7 @@ class ChatBubble extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '만톡 AI',
+                    '사담 AI',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

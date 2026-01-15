@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/section_header.dart';
@@ -53,34 +54,34 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               _buildAppBar(theme),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.only(bottom: 100),
+                  padding: EdgeInsets.only(bottom: context.scaledPadding(100)),
                   children: [
                     const FortuneSummaryCard(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: context.scaledPadding(24)),
                     // 오늘의 운세 섹션 - 내 사주 위로 이동
                     const SectionHeader(
                       title: '오늘의 운세',
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: context.scaledPadding(12)),
                     const FortuneCategoryList(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: context.scaledPadding(24)),
                     // 내 사주 카드
                     const SajuMiniCard(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: context.scaledPadding(24)),
                     // Native 광고 1 (사주 카드 아래) - 즉시 로드
                     if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                    if (_isMobile) const SizedBox(height: 24),
+                    if (_isMobile) SizedBox(height: context.scaledPadding(24)),
                     // Native 광고 2 - 500ms 지연
                     if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
-                    if (_isMobile) const SizedBox(height: 24),
+                    if (_isMobile) SizedBox(height: context.scaledPadding(24)),
                     const SectionHeader(
                       title: '오늘의 조언',
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: context.scaledPadding(12)),
                     const DailyAdviceSection(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: context.scaledPadding(24)),
                     const TodayMessageCard(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: context.scaledPadding(24)),
                     // Native 광고 3 (맨 하단) - 1000ms 지연
                     if (_isMobile) const CardNativeAdWidget(loadDelayMs: 1000),
                   ],

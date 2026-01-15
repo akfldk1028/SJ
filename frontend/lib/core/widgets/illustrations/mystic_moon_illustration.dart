@@ -83,40 +83,37 @@ class _MysticMoonPainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: center, radius: moonRadius * 1.5));
     canvas.drawCircle(center, moonRadius * 1.5, moonGlowPaint);
 
-    // 달 (초승달 모양)
-    final moonPath = Path();
-    moonPath.addArc(
-      Rect.fromCircle(center: center, radius: moonRadius),
-      -pi / 2,
-      pi * 1.3,
-    );
-    // 초승달 안쪽 커브
-    final innerCenter = Offset(center.dx + moonRadius * 0.3, center.dy - moonRadius * 0.1);
-    moonPath.arcTo(
-      Rect.fromCircle(center: innerCenter, radius: moonRadius * 0.85),
-      pi * 0.8,
-      -pi * 1.3,
-      false,
-    );
-    moonPath.close();
-
+    // 달 (초승달 모양) - 두 원의 차이로 깔끔하게 그리기
     final moonPaint = Paint()
       ..shader = LinearGradient(
         colors: [
           Colors.white.withValues(alpha: 0.95),
-          const Color(0xFFF5F5DC).withValues(alpha: 0.9), // 베이지
+          const Color(0xFFE8E8D0).withValues(alpha: 0.9),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(Rect.fromCircle(center: center, radius: moonRadius));
-    canvas.drawPath(moonPath, moonPaint);
+
+    // 바깥 원 (달 전체)
+    final outerPath = Path()
+      ..addOval(Rect.fromCircle(center: center, radius: moonRadius));
+
+    // 안쪽 원 (잘라낼 부분) - 오른쪽 위로 살짝 이동
+    final innerCenter = Offset(center.dx + moonRadius * 0.5, center.dy);
+    final innerPath = Path()
+      ..addOval(Rect.fromCircle(center: innerCenter, radius: moonRadius * 0.85));
+
+    // 바깥 원에서 안쪽 원을 빼서 초승달 모양 만들기
+    final crescentPath = Path.combine(PathOperation.difference, outerPath, innerPath);
+
+    canvas.drawPath(crescentPath, moonPaint);
 
     // 달 테두리 글로우
     final moonBorderPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = Colors.white.withValues(alpha: 0.5);
-    canvas.drawPath(moonPath, moonBorderPaint);
+      ..strokeWidth = 1.5
+      ..color = Colors.white.withValues(alpha: 0.4);
+    canvas.drawPath(crescentPath, moonBorderPaint);
   }
 
   void _drawStars(Canvas canvas, Size size, Offset center, double moonRadius) {

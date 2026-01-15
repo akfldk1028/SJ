@@ -39,4 +39,5 @@ abstract class Routes {
   static const String settingsTerms = '/settings/terms';
   static const String settingsPrivacy = '/settings/privacy';
   static const String settingsDisclaimer = '/settings/disclaimer';
+  static const String iconGenerator = '/settings/icon-generator';
 }

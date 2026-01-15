@@ -376,7 +376,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               const Text(
-                '만톡 정통사주 특징',
+                '사담 정통사주 특징',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -422,7 +422,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
 
   Widget _buildStartButton(BuildContext context, AppThemeExtension theme) {
     return GestureDetector(
-      onTap: () => context.push('/saju/chat?type=sajuAnalysis'),
+      onTap: () => context.go('/saju/chat?type=sajuAnalysis'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),

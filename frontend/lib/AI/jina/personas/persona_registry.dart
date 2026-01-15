@@ -36,6 +36,11 @@ import 'scenario_writer.dart';
 import 'newbie_shaman.dart';
 import 'detail_book.dart';
 import 'saeongjima.dart';
+// BasePerson MBTI 4분면
+import 'base_nf.dart';
+import 'base_nt.dart';
+import 'base_sf.dart';
+import 'base_st.dart';
 
 /// 페르소나 레지스트리
 ///
@@ -61,6 +66,11 @@ class PersonaRegistry {
     NewbieShamanPersona(),
     BookOfSajuPersona(),
     SaOngJiMaPersona(),
+    // BasePerson MBTI 4분면
+    BaseNfPersona(),
+    BaseNtPersona(),
+    BaseSfPersona(),
+    BaseStPersona(),
   ];
 
   /// 기본 페르소나 ID

@@ -3,17 +3,98 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'send_button.dart';
 
+/// 멘션 패턴 정규식 (@카테고리/이름)
+final _mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
+
+/// 멘션 하이라이트를 지원하는 커스텀 TextEditingController
+/// TextField 내부에서 직접 색상을 적용하여 오버레이 없이 자연스러운 하이라이트
+class MentionTextEditingController extends TextEditingController {
+  /// 멘션 하이라이트 색상 (기본: 하늘색)
+  final Color mentionColor;
+
+  MentionTextEditingController({
+    String? text,
+    this.mentionColor = const Color(0xFF00D4FF),
+  }) : super(text: text);
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final text = this.text;
+    final matches = _mentionPattern.allMatches(text);
+
+    // context에서 직접 테마 색상 가져오기 (타이밍 문제 해결)
+    final theme = context.appTheme;
+    final normalColor = theme.textPrimary;
+
+    if (matches.isEmpty) {
+      // 멘션 없으면 일반 텍스트
+      return TextSpan(
+        text: text,
+        style: style?.copyWith(color: normalColor),
+      );
+    }
+
+    // 멘션 있으면 스타일 분리
+    final children = <TextSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      // 멘션 이전 텍스트
+      if (match.start > lastEnd) {
+        children.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: style?.copyWith(color: normalColor),
+        ));
+      }
+
+      // 멘션 텍스트 (하이라이트)
+      children.add(TextSpan(
+        text: match.group(0),
+        style: style?.copyWith(
+          color: mentionColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ));
+
+      lastEnd = match.end;
+    }
+
+    // 마지막 멘션 이후 텍스트
+    if (lastEnd < text.length) {
+      children.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: style?.copyWith(color: normalColor),
+      ));
+    }
+
+    return TextSpan(children: children, style: style);
+  }
+}
+
 /// 채팅 입력 필드 위젯 - 동양풍 다크 테마
+/// 멘션(@카테고리/이름) 색상 하이라이트 지원
 class ChatInputField extends StatefulWidget {
   final Function(String) onSend;
   final bool enabled;
   final String? hintText;
+
+  /// 외부에서 텍스트 제어를 위한 컨트롤러 (선택적)
+  final TextEditingController? controller;
+
+  /// 멘션 하이라이트 색상 (기본: 하늘색)
+  final Color? mentionColor;
 
   const ChatInputField({
     super.key,
     required this.onSend,
     this.enabled = true,
     this.hintText,
+    this.controller,
+    this.mentionColor,
   });
 
   @override
@@ -21,27 +102,56 @@ class ChatInputField extends StatefulWidget {
 }
 
 class _ChatInputFieldState extends State<ChatInputField> {
-  late final TextEditingController _controller;
+  MentionTextEditingController? _internalController;
   bool _hasText = false;
+
+  /// 실제 사용할 컨트롤러
+  TextEditingController get _controller {
+    if (widget.controller != null) {
+      return widget.controller!;
+    }
+    if (_internalController == null) {
+      _internalController = MentionTextEditingController(
+        mentionColor: widget.mentionColor ?? const Color(0xFF00D4FF),
+      );
+      _internalController!.addListener(_onTextChanged);
+    }
+    return _internalController!;
+  }
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
-    _controller.addListener(_onTextChanged);
+    if (widget.controller != null) {
+      widget.controller!.addListener(_onTextChanged);
+      _hasText = widget.controller!.text.trim().isNotEmpty;
+    }
+  }
+
+  @override
+  void didUpdateWidget(ChatInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller?.removeListener(_onTextChanged);
+      widget.controller?.addListener(_onTextChanged);
+      _hasText = _controller.text.trim().isNotEmpty;
+    }
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onTextChanged);
-    _controller.dispose();
+    widget.controller?.removeListener(_onTextChanged);
+    _internalController?.removeListener(_onTextChanged);
+    _internalController?.dispose();
     super.dispose();
   }
 
   void _onTextChanged() {
     final hasText = _controller.text.trim().isNotEmpty;
     if (hasText != _hasText) {
-      setState(() => _hasText = hasText);
+      setState(() {
+        _hasText = hasText;
+      });
     }
   }
 
@@ -62,7 +172,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
         color: theme.cardColor,
         border: Border(
           top: BorderSide(
-            color: theme.primaryColor.withOpacity(0.1),
+            color: theme.primaryColor.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -86,13 +196,13 @@ class _ChatInputFieldState extends State<ChatInputField> {
                       : null,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: theme.primaryColor.withOpacity(theme.isDark ? 0.15 : 0.12),
+                    color: theme.primaryColor.withValues(alpha: theme.isDark ? 0.15 : 0.12),
                   ),
                   boxShadow: theme.isDark
                       ? null
                       : [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),

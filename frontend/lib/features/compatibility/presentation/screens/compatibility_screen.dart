@@ -468,7 +468,7 @@ class CompatibilityScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               const Text(
-                '만톡 정통궁합 특징',
+                '사담 정통궁합 특징',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -514,7 +514,7 @@ class CompatibilityScreen extends ConsumerWidget {
 
   Widget _buildStartButton(BuildContext context, AppThemeExtension theme) {
     return GestureDetector(
-      onTap: () => context.push('/saju/chat?type=compatibility'),
+      onTap: () => context.go('/saju/chat?type=compatibility'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 18),

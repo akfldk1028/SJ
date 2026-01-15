@@ -1,16 +1,18 @@
 /// 앱 문자열 상수
 abstract class AppStrings {
   // App
-  static const String appName = '만톡';
-  static const String appDescription = 'AI 사주 챗봇';
+  static const String appName = '사담';
+  static const String appSlogan = '사주의 이야기를 담다';
+  static const String appSloganSub = '나만의 사사로운 이야기';
+  static const String appDescription = '당신의 운명을 읽어드립니다';
 
   // Onboarding
-  static const String onboardingTitle1 = '만세력 기반 사주 분석';
-  static const String onboardingDesc1 = '정확한 만세력 계산으로\n당신의 사주를 분석합니다';
-  static const String onboardingTitle2 = 'AI와 대화하며 상담';
-  static const String onboardingDesc2 = '궁금한 점을 자유롭게 물어보세요\nAI가 친절하게 답변해드립니다';
-  static const String onboardingTitle3 = '참고용 정보입니다';
-  static const String onboardingDesc3 = '사주 분석 결과는 재미로 참고해주세요\n중요한 결정은 전문가와 상담하세요';
+  static const String onboardingTitle1 = '별이 들려주는 이야기';
+  static const String onboardingDesc1 = '태어난 순간의 하늘이\n당신만의 이야기를 품고 있어요';
+  static const String onboardingTitle2 = '대화로 풀어가는 운명';
+  static const String onboardingDesc2 = '궁금한 마음을 털어놓으세요\n별이 당신의 이야기에 귀 기울입니다';
+  static const String onboardingTitle3 = '가볍게, 하지만 따뜻하게';
+  static const String onboardingDesc3 = '운세는 길을 비추는 작은 등불이에요\n방향은 언제나 당신이 정합니다';
 
   // Profile
   static const String profileTitle = '프로필 설정';

@@ -31,61 +31,10 @@ class MainBottomNav extends StatelessWidget {
         children: [
           _buildNavItem(context, theme, Icons.auto_awesome_rounded, '운세', 0, '/menu'),
           _buildNavItem(context, theme, Icons.people_outline_rounded, '인맥', 1, '/relationships'),
-          // AI 상담 - 중앙 강조 버튼
-          _buildCenterAiButton(context, theme),
+          _buildNavItem(context, theme, Icons.forum_rounded, 'AI 상담', 2, '/saju/chat'),
           _buildNavItem(context, theme, Icons.calendar_month_rounded, '캘린더', 3, '/calendar'),
           _buildNavItem(context, theme, Icons.settings_outlined, '설정', 4, '/settings'),
         ],
-      ),
-    );
-  }
-
-  /// AI 상담 중앙 강조 버튼
-  Widget _buildCenterAiButton(BuildContext context, AppThemeExtension theme) {
-    final isActive = currentIndex == 2;
-
-    return GestureDetector(
-      onTap: () => context.go('/saju/chat'),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.primaryColor,
-              theme.primaryColor.withOpacity(0.8),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: theme.primaryColor.withOpacity(isActive ? 0.6 : 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.forum_rounded,
-              color: theme.isDark ? Colors.black : Colors.white,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'AI 상담',
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w700,
-                color: theme.isDark ? Colors.black : Colors.white,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

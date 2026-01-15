@@ -1,32 +1,11 @@
-# 만톡 앱 아이콘 설정
-# 사용법: flutter pub run flutter_launcher_icons:main
-#
-# 아이콘 이미지 요구사항:
-# - 크기: 1024x1024 픽셀 이상 권장
-# - 형식: PNG
-# - 배경: 투명 또는 골드 그라데이션 (#C4A962 ~ #E8D5A3)
-# - 디자인: 동양풍 만세력/사주 테마
-#
-# 아이콘 파일을 assets/icons/app_icon.png 에 저장 후 실행:
-# flutter pub add dev:flutter_launcher_icons
-# flutter pub run flutter_launcher_icons:main
-
 flutter_launcher_icons:
-  android: true
+  android: "launcher_icon"
   ios: true
   image_path: "assets/icons/app_icon.png"
-
-  # Android 설정
   min_sdk_android: 21
-  adaptive_icon_background: "#0A0A0F"
-  adaptive_icon_foreground: "assets/icons/app_icon.png"
-
-  # iOS 설정
-  remove_alpha_ios: true
-
-  # Web 설정
-  web:
+  windows:
     generate: true
     image_path: "assets/icons/app_icon.png"
-    background_color: "#0A0A0F"
-    theme_color: "#C4A962"
+    icon_size: 48
+  adaptive_icon_background: "#1A1A2E"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"

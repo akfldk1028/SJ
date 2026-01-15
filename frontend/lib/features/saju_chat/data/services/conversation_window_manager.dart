@@ -192,8 +192,12 @@ class TokenUsageInfo {
     required this.usagePercent,
   });
 
+  /// 사용률 (0.0 ~ 1.0) - ad_trigger_service 호환용
+  double get usageRate => maxTokens > 0 ? totalUsed / maxTokens : 0.0;
+
   bool get isNearLimit => usagePercent >= 80;
   bool get isOverLimit => remaining <= 0;
+  bool get isDepleted => usageRate >= 1.0;
 
   @override
   String toString() {
