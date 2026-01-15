@@ -19,12 +19,23 @@ class PersonaNotifier extends _$PersonaNotifier {
 
   @override
   AiPersona build() {
-    _initBox();
-    return _loadFromHive();
+    // 초기에는 기본값을 반환하고, 비동기로 저장값을 불러와 state를 갱신
+    _loadAndSet();
+    return AiPersona.professional;
   }
 
-  /// Hive Box 초기화
-  Future<void> _initBox() async {
+  Future<void> _loadAndSet() async {
+    await _ensureBox();
+    final loaded = _loadFromHive();
+    if (state != loaded) {
+      state = loaded;
+    }
+  }
+
+  /// Hive Box를 준비하고 참조를 유지
+  Future<void> _ensureBox() async {
+    if (_box != null && _box!.isOpen) return;
+
     if (!Hive.isBoxOpen(_personaBoxName)) {
       _box = await Hive.openBox<String>(_personaBoxName);
     } else {
@@ -35,12 +46,11 @@ class PersonaNotifier extends _$PersonaNotifier {
   /// Hive에서 저장된 페르소나 로드
   AiPersona _loadFromHive() {
     try {
-      if (Hive.isBoxOpen(_personaBoxName)) {
-        final box = Hive.box<String>(_personaBoxName);
-        final value = box.get(_personaKey);
+      if (_box != null && _box!.isOpen) {
+        final value = _box!.get(_personaKey);
         return AiPersona.fromString(value);
       }
-    } catch (e) {
+    } catch (_) {
       // 에러 시 기본값 반환
     }
     return AiPersona.professional;
@@ -50,13 +60,11 @@ class PersonaNotifier extends _$PersonaNotifier {
   Future<void> setPersona(AiPersona persona) async {
     state = persona;
 
-    // Hive에 저장
+    // Hive에 저장 (박스 준비 후)
     try {
-      if (_box == null || !_box!.isOpen) {
-        await _initBox();
-      }
+      await _ensureBox();
       await _box?.put(_personaKey, persona.name);
-    } catch (e) {
+    } catch (_) {
       // 저장 실패해도 state는 변경됨
     }
   }

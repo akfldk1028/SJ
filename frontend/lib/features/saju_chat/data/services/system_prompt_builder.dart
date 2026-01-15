@@ -2,7 +2,7 @@ import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../saju_chart/domain/entities/saju_analysis.dart';
 import '../../../saju_chart/domain/entities/sinsal.dart';
 import '../../../../core/services/ai_summary_service.dart';
-import '../../domain/models/ai_persona.dart';
+// 페르소나 프롬프트는 최종 문자열을 주입받아 사용
 
 /// 궁합 분석 결과 (Gemini)
 typedef CompatibilityAnalysis = Map<String, dynamic>;
@@ -27,7 +27,7 @@ class SystemPromptBuilder {
   /// [aiSummary] - AI Summary (GPT-5.2 분석 결과)
   /// [sajuAnalysis] - 로컬 사주 분석 데이터
   /// [profile] - 프로필 정보
-  /// [persona] - AI 페르소나
+  /// [personaPrompt] - AI 페르소나 프롬프트 (최종 문자열)
   /// [isFirstMessage] - 첫 메시지 여부 (토큰 최적화)
   /// [targetProfile] - 궁합 채팅 상대방 프로필 (선택)
   /// [targetSajuAnalysis] - 궁합 채팅 상대방 사주 (선택)
@@ -37,7 +37,7 @@ class SystemPromptBuilder {
     AiSummary? aiSummary,
     SajuAnalysis? sajuAnalysis,
     SajuProfile? profile,
-    AiPersona? persona,
+    String? personaPrompt,
     bool isFirstMessage = true,
     SajuProfile? targetProfile,
     SajuAnalysis? targetSajuAnalysis,
@@ -52,8 +52,8 @@ class SystemPromptBuilder {
     _addCurrentDate();
 
     // 2. 페르소나 지시문
-    if (persona != null) {
-      _addPersona(persona);
+    if (personaPrompt != null && personaPrompt.isNotEmpty) {
+      _addPersona(personaPrompt);
     }
 
     // 3. 기본 프롬프트
@@ -112,10 +112,10 @@ class SystemPromptBuilder {
   }
 
   /// 페르소나 지시문 추가
-  void _addPersona(AiPersona persona) {
+  void _addPersona(String personaPrompt) {
     _buffer.writeln('## 캐릭터 설정');
     _buffer.writeln();
-    _buffer.writeln(persona.systemPromptInstruction);
+    _buffer.writeln(personaPrompt);
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();

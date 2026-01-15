@@ -36,6 +36,7 @@ import 'scenario_writer.dart';
 import 'newbie_shaman.dart';
 import 'detail_book.dart';
 import 'saeongjima.dart';
+import 'test_negative_persona.dart';
 // BasePerson MBTI 4분면
 import 'base_nf.dart';
 import 'base_nt.dart';
@@ -66,6 +67,7 @@ class PersonaRegistry {
     NewbieShamanPersona(),
     BookOfSajuPersona(),
     SaOngJiMaPersona(),
+    SewerSajuPersona(),
     // BasePerson MBTI 4분면
     BaseNfPersona(),
     BaseNtPersona(),
