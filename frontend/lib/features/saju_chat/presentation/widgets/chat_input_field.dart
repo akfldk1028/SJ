@@ -35,7 +35,6 @@ class ChatInputField extends StatefulWidget {
 class _ChatInputFieldState extends State<ChatInputField> {
   TextEditingController? _internalController;
   bool _hasText = false;
-  bool _hasMention = false;
 
   /// 외부 또는 내부 컨트롤러 반환
   TextEditingController get _controller =>
@@ -47,7 +46,6 @@ class _ChatInputFieldState extends State<ChatInputField> {
     _controller.addListener(_onTextChanged);
     // 초기 텍스트 상태 확인
     _hasText = _controller.text.trim().isNotEmpty;
-    _hasMention = _mentionPattern.hasMatch(_controller.text);
   }
 
   @override
@@ -59,7 +57,6 @@ class _ChatInputFieldState extends State<ChatInputField> {
       _internalController?.removeListener(_onTextChanged);
       _controller.addListener(_onTextChanged);
       _hasText = _controller.text.trim().isNotEmpty;
-      _hasMention = _mentionPattern.hasMatch(_controller.text);
     }
   }
 
@@ -73,14 +70,8 @@ class _ChatInputFieldState extends State<ChatInputField> {
 
   void _onTextChanged() {
     final hasText = _controller.text.trim().isNotEmpty;
-    final hasMention = _mentionPattern.hasMatch(_controller.text);
-
-    // 멘션이 있으면 텍스트 변경시마다 RichText 업데이트를 위해 리빌드 필요
-    if (hasMention || hasText != _hasText || hasMention != _hasMention) {
-      setState(() {
-        _hasText = hasText;
-        _hasMention = hasMention;
-      });
+    if (hasText != _hasText) {
+      setState(() => _hasText = hasText);
     }
   }
 
@@ -92,7 +83,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
   }
 
   /// 멘션 하이라이트를 적용한 TextSpan 리스트 생성
-  List<InlineSpan> _buildStyledTextSpans(String text, AppThemeExtension theme) {
+  List<InlineSpan> _buildStyledTextSpans(String text, AppTheme theme) {
     final spans = <InlineSpan>[];
     final matches = _mentionPattern.allMatches(text);
 
@@ -109,8 +100,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
     }
 
     int lastEnd = 0;
-    // 다크 테마에서 눈에 잘 띄는 밝은 시안색
-    final mentionColor = widget.mentionColor ?? const Color(0xFF00D4FF);
+    final mentionColor = widget.mentionColor ?? const Color(0xFF4A9EFF);
 
     for (final match in matches) {
       // 멘션 이전의 일반 텍스트
@@ -154,6 +144,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final hasMention = _mentionPattern.hasMatch(_controller.text);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -199,32 +190,8 @@ class _ChatInputFieldState extends State<ChatInputField> {
                 ),
                 child: Stack(
                   children: [
-                    // 실제 입력 필드 (멘션 있으면 텍스트 투명)
-                    TextField(
-                      controller: _controller,
-                      enabled: widget.enabled,
-                      style: TextStyle(
-                        color: _hasMention ? Colors.transparent : theme.textPrimary,
-                        fontSize: 15,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: widget.hintText ?? '메시지를 입력하세요...',
-                        hintStyle: TextStyle(
-                          color: theme.textMuted,
-                          fontSize: 15,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                      ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _handleSend(),
-                      maxLines: null,
-                    ),
-                    // 멘션 하이라이트용 오버레이 텍스트 (TextField 위에 표시)
-                    if (_hasMention)
+                    // 멘션 하이라이트용 오버레이 텍스트
+                    if (hasMention)
                       Positioned.fill(
                         child: IgnorePointer(
                           child: Padding(
@@ -243,6 +210,30 @@ class _ChatInputFieldState extends State<ChatInputField> {
                           ),
                         ),
                       ),
+                    // 실제 입력 필드 (멘션 있으면 텍스트 투명)
+                    TextField(
+                      controller: _controller,
+                      enabled: widget.enabled,
+                      style: TextStyle(
+                        color: hasMention ? Colors.transparent : theme.textPrimary,
+                        fontSize: 15,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: widget.hintText ?? '메시지를 입력하세요...',
+                        hintStyle: TextStyle(
+                          color: theme.textMuted,
+                          fontSize: 15,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                      ),
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _handleSend(),
+                      maxLines: null,
+                    ),
                   ],
                 ),
               ),
