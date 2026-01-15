@@ -2293,3 +2293,123 @@ await supabase.update({
 - Edge Function, 트리거 모두 이 규칙 준수 필요
 
 ---
+
+## Phase 49: 토큰 추적 트리거 통합 수정 (2026-01-15) ✅ 완료
+
+### 문제 증상
+
+```
+ERROR: record "new" has no field "metadata"
+ERROR: column user_daily_token_usage.gpt_saju_analysis_tokens does not exist
+ERROR: column user_daily_token_usage.ai_analysis_tokens does not exist
+```
+
+- `daily_fortune` AI 분석 결과 저장 실패
+- `user_daily_token_usage`에 토큰이 기록되지 않음
+
+### 근본 원인
+
+**1. 트리거 함수 `update_user_daily_token_usage()` 버그:**
+```sql
+-- 문제 1: 존재하지 않는 metadata 컬럼 참조
+v_user_id := COALESCE(NEW.user_id, (NEW.metadata->>'user_id')::UUID);
+-- ai_summaries 테이블에는 metadata 컬럼 없음!
+
+-- 문제 2: TG_TABLE_NAME이 실제 테이블명과 불일치
+IF TG_TABLE_NAME = 'saju_analysis_results' THEN  -- 실제: 'ai_summaries'
+  v_saju_tokens := COALESCE(NEW.total_tokens, 0);
+ELSIF TG_TABLE_NAME = 'ai_fortune_summaries' THEN  -- 실제: 'ai_summaries'
+  v_fortune_tokens := COALESCE(NEW.total_tokens, 0);
+-- 결과: 토큰이 항상 0으로 분류됨
+```
+
+**2. 트리거 함수 `update_daily_ai_tokens()` 버그:**
+```sql
+-- 존재하지 않는 컬럼 참조
+INSERT INTO user_daily_token_usage (..., ai_analysis_tokens, ...)
+-- 실제 컬럼명: saju_analysis_tokens
+```
+
+**3. 중복 트리거 존재:**
+- `trg_update_daily_ai_tokens` → `update_daily_ai_tokens()`
+- `trg_update_token_usage_on_ai_summaries` → `update_user_daily_token_usage()`
+
+### 수정 내용
+
+**Migration: `fix_token_usage_triggers` (20260115064038)**
+
+1. 기존 트리거/함수 삭제:
+   - `trg_update_daily_ai_tokens` (트리거)
+   - `trg_update_token_usage_on_ai_summaries` (트리거)
+   - `update_daily_ai_tokens()` (함수)
+   - `update_user_daily_token_usage()` (함수)
+
+2. 새 통합 트리거 함수 생성:
+```sql
+CREATE OR REPLACE FUNCTION update_user_daily_token_usage()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  -- user_id 직접 사용 (metadata 참조 제거!)
+  v_user_id := NEW.user_id;
+
+  -- summary_type 기반 토큰 분류 (TG_TABLE_NAME 대신!)
+  CASE NEW.summary_type
+    WHEN 'saju_base' THEN v_saju_tokens := NEW.total_tokens;
+    WHEN 'daily_fortune' THEN v_fortune_tokens := NEW.total_tokens;
+    WHEN 'compatibility' THEN v_compatibility_tokens := NEW.total_tokens;
+  END CASE;
+
+  -- 올바른 컬럼명으로 UPSERT
+  INSERT INTO user_daily_token_usage (
+    saju_analysis_tokens, daily_fortune_tokens, compatibility_tokens, ...
+  ) ...
+END;
+$$;
+```
+
+3. 새 트리거 생성:
+```sql
+CREATE TRIGGER trg_update_token_usage_on_ai_summaries
+  AFTER INSERT ON ai_summaries
+  FOR EACH ROW
+  WHEN (NEW.status = 'completed')
+  EXECUTE FUNCTION update_user_daily_token_usage();
+```
+
+### 검증 결과
+
+**테스트 데이터 (박재현, 2026-01-15 15:46 KST):**
+
+| 테이블 | 컬럼 | 값 |
+|--------|------|-----|
+| ai_summaries | saju_base | 12,135 tokens |
+| ai_summaries | daily_fortune | 1,420 tokens |
+| user_daily_token_usage | saju_analysis_tokens | **24,020** ✅ |
+| user_daily_token_usage | daily_fortune_tokens | **1,420** ✅ |
+| user_daily_token_usage | chatting_tokens | **1,886** ✅ |
+
+### 토큰 저장 흐름 (수정 후)
+
+```
+[ai_summaries INSERT (status='completed')]
+    │
+    ↓ 트리거: update_user_daily_token_usage()
+    │
+    ├─ summary_type = 'saju_base'     → saju_analysis_tokens
+    ├─ summary_type = 'daily_fortune' → daily_fortune_tokens
+    └─ summary_type = 'compatibility' → compatibility_tokens
+
+[model_provider 기반 비용 분류]
+    │
+    ├─ model_provider = 'openai'  → gpt_cost_usd
+    └─ model_provider = 'google'  → gemini_cost_usd
+```
+
+### 주의사항
+
+⚠️ **user_daily_token_usage 실제 컬럼명:**
+- `saju_analysis_tokens` (O) - NOT `gpt_saju_analysis_tokens`
+- `daily_fortune_tokens` (O) - NOT `gemini_fortune_tokens`
+- `chatting_tokens` (O) - NOT `gemini_chat_tokens`
+
+---

@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-13 (Phase 46 궁합 채팅 UI 완료 ✅)
+> 최종 업데이트: 2026-01-15 (Phase 49 토큰 추적 트리거 수정 완료 ✅)
 
 ---
 
@@ -26,28 +26,27 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 
 현재 상태:
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
-- Phase 44 완료 ✅ (궁합 채팅 targetProfileId 연동)
-- Phase 45 완료 ✅ (인연 추가 DB 저장 버그 수정)
-- **Phase 46 완료 ✅ (궁합 채팅 UI - RelationSelectorSheet)**
+- Phase 44~46 완료 ✅ (궁합 채팅 기능)
+- Phase 47~48 완료 ✅ (토큰 사용량 추적 시스템 v2)
+- **Phase 49 완료 ✅ (토큰 추적 트리거 통합 수정)**
 
-✅ **Phase 45 완료 내역**:
-- **원인**: `_saveToSupabase()`에서 에러를 catch만 하고 rethrow 안함
-- **수정**: `relation_edit_provider.dart`에 `rethrow` 추가
-- **결과**: 인연 추가 시 DB 정상 저장 확인
-
-✅ **Phase 46 완료 내역**:
-- **새 파일**: `relation_selector_sheet.dart` (인연 선택 Bottom Sheet)
-- **수정 파일**: `saju_chat_shell.dart` (PopupMenu + 궁합 채팅 메서드)
-- **기능**: "+" 버튼 → "일반 채팅" / "궁합 채팅" 선택
-  - 궁합 채팅 선택 시 카테고리별 인연 목록 표시
-  - 인연 선택 시 `@카테고리/이름` 형식으로 채팅 시작
-  - `compatibility_analyses` 테이블에 분석 결과 저장 확인 ✅
+✅ **Phase 49 완료 내역** (2026-01-15):
+- **문제**: `ai_summaries` INSERT 시 `record "new" has no field "metadata"` 에러
+- **원인**: 트리거 함수가 존재하지 않는 컬럼 참조 (`metadata`, `ai_analysis_tokens`)
+- **수정**:
+  - 기존 중복 트리거 2개 삭제 후 통합 트리거 생성
+  - `NEW.summary_type` 기반 토큰 분류 (TG_TABLE_NAME 대신)
+  - 올바른 컬럼명 사용 (`saju_analysis_tokens`, `daily_fortune_tokens`)
+- **검증**: 박재현 테스트 데이터 정상 기록 확인
+  - saju_analysis_tokens: 24,020 ✅
+  - daily_fortune_tokens: 1,420 ✅
+  - chatting_tokens: 1,886 ✅
 
 다음 작업 후보:
-1. Phase 44-B (궁합 분석 캐싱) - 기존 분석 조회/재사용
-2. [SUGGESTED_QUESTIONS] 태그 파싱 개선
-3. 절입시간 계산 검증
-4. saju_analyses 연동 - 궁합 분석 시 양쪽 사주 분석 ID 연결
+1. 대화형 광고 시스템 구현 - conversational_ad_provider 연동
+2. Phase 44-B (궁합 분석 캐싱) - 기존 분석 조회/재사용
+3. [SUGGESTED_QUESTIONS] 태그 파싱 개선
+4. 절입시간 계산 검증
 
 [원하는 작업 선택]
 ```
