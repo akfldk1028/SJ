@@ -81,7 +81,8 @@ enum AiPersona {
   scenarioWriter,
   newbieShaman,
   bookOfSaju,
-  saOngJiMa;
+  saOngJiMa,
+  sewerSaju;
 
   /// PersonaRegistry ID 매핑
   ///
@@ -106,6 +107,8 @@ enum AiPersona {
         return 'book_of_saju';
       case AiPersona.saOngJiMa:
         return 'sa_ong_ji_ma';
+      case AiPersona.sewerSaju:
+        return 'sewer_saju';
     }
   }
 
@@ -133,6 +136,8 @@ enum AiPersona {
         return '명리의 서';
       case AiPersona.saOngJiMa:
         return '새옹지마 할배';
+      case AiPersona.sewerSaju:
+        return '시궁창 술사';
     }
   }
 
@@ -157,6 +162,8 @@ enum AiPersona {
         return '📜';
       case AiPersona.saOngJiMa:
         return '👴';
+      case AiPersona.sewerSaju:
+        return '🤮';
     }
   }
 
@@ -181,6 +188,8 @@ enum AiPersona {
         return '살아있는 사주 고서';
       case AiPersona.saOngJiMa:
         return '긍정 재해석 전문가';
+      case AiPersona.sewerSaju:
+        return '네 사주의 구린내를 맡아주는 팩폭 장인';
     }
   }
 
@@ -189,7 +198,7 @@ enum AiPersona {
   /// - NF: 감성형 (따뜻, 공감) - 할머니, 아기동자, 새옹지마
   /// - NT: 분석형 (논리, 체계) - 도사, 명리의서, AI상담사
   /// - SF: 친근형 (유쾌, 친근) - 복돌이, 하꼬무당
-  /// - ST: 현실형 (직설, 스토리) - 송작가
+  /// - ST: 현실형 (직설, 스토리) - 송작가, 시궁창술사
   MbtiQuadrant get quadrant {
     switch (this) {
       // NF: 감성형 - 따뜻함, 공감, 감성적
@@ -209,8 +218,9 @@ enum AiPersona {
       case AiPersona.newbieShaman: // 하꼬무당, 유쾌
         return MbtiQuadrant.SF;
 
-      // ST: 현실형 - 직설적, 스토리텔링
+      // ST: 현실형 - 직설적, 스토리텔링, 팩트폭격
       case AiPersona.scenarioWriter: // 송작가, 스토리텔러
+      case AiPersona.sewerSaju:      // 시궁창 술사, 팩폭
         return MbtiQuadrant.ST;
     }
   }
@@ -247,6 +257,8 @@ enum AiPersona {
         return AiPersona.bookOfSaju;
       case 'saOngJiMa':
         return AiPersona.saOngJiMa;
+      case 'sewerSaju':
+        return AiPersona.sewerSaju;
       default:
         return AiPersona.professional;
     }

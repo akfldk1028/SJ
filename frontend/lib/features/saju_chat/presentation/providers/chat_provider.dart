@@ -23,9 +23,10 @@ import '../../data/services/system_prompt_builder.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/models/ai_persona.dart';
 import '../../domain/models/chat_type.dart';
+import '../../domain/models/chat_persona.dart';
+import '../providers/chat_persona_provider.dart';
 import 'chat_session_provider.dart';
 import 'conversational_ad_provider.dart';
-import 'persona_provider.dart';
 
 part 'chat_provider.g.dart';
 
@@ -307,6 +308,22 @@ class ChatNotifier extends _$ChatNotifier {
     state = const ChatState();
   }
 
+  /// ChatPersona → AiPersona 매핑 (광고 텍스트용)
+  AiPersona _mapToAiPersona(ChatPersona persona) {
+    switch (persona) {
+      case ChatPersona.basePerson:
+        return AiPersona.professional;
+      case ChatPersona.babyMonk:
+        return AiPersona.babyMonk;
+      case ChatPersona.scenarioWriter:
+        return AiPersona.scenarioWriter;
+      case ChatPersona.saOngJiMa:
+        return AiPersona.saOngJiMa;
+      case ChatPersona.newbieShaman:
+        return AiPersona.newbieShaman;
+    }
+  }
+
   /// ChatType → 프롬프트 파일명 매핑
   String _getPromptFileName(ChatType chatType) {
     switch (chatType) {
@@ -470,7 +487,7 @@ class ChatNotifier extends _$ChatNotifier {
     AiSummary? aiSummary,
     SajuAnalysis? sajuAnalysis,
     SajuProfile? profile,
-    AiPersona? persona,
+    String? personaPrompt,
     bool isFirstMessage = true,
     SajuProfile? targetProfile,
     SajuAnalysis? targetSajuAnalysis,
@@ -482,7 +499,7 @@ class ChatNotifier extends _$ChatNotifier {
       aiSummary: aiSummary,
       sajuAnalysis: sajuAnalysis,
       profile: profile,
-      persona: persona,
+      personaPrompt: personaPrompt,
       isFirstMessage: isFirstMessage,
       targetProfile: targetProfile,
       targetSajuAnalysis: targetSajuAnalysis,
@@ -508,13 +525,13 @@ class ChatNotifier extends _$ChatNotifier {
     _isProcessingMessage = true;
 
     // [1] 채팅 시작
-    final selectedPersona = ref.read(personaNotifierProvider);
+    final selectedChatPersona = ref.read(chatPersonaNotifierProvider);
     if (kDebugMode) {
       print('');
       print('╔══════════════════════════════════════════════════════════════╗');
       print('║  🚀 [1] CHAT SEND START                                      ║');
       print('╚══════════════════════════════════════════════════════════════╝');
-      print('   📌 페르소나: ${selectedPersona.displayName} (${selectedPersona.name})');
+      print('   📌 페르소나: ${selectedChatPersona.displayName}');
       print('   📌 세션: $sessionId');
       if (targetProfileId != null) {
         print('   📌 상대방 프로필: $targetProfileId');
@@ -553,26 +570,6 @@ class ChatNotifier extends _$ChatNotifier {
       print('   ✅ 캐시된 AI Summary 사용');
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════════
-    // v3.1 이전 동기 코드 (주석처리) - Edge Function 블로킹으로 첫 메시지 느림
-    AiSummary? aiSummary;
-    if (state.messages.isEmpty) {
-      if (kDebugMode) {
-        print('');
-        print('┌──────────────────────────────────────────────────────────────┐');
-        print('│  📦 [2] AI SUMMARY                                           │');
-        print('└──────────────────────────────────────────────────────────────┘');
-        print('   🔄 첫 메시지 - AI Summary 확인/생성...');
-      }
-      aiSummary = await _ensureAiSummary(profileId);  // ← 동기 호출 (느림!)
-    } else {
-      aiSummary = _cachedAiSummary;
-      if (kDebugMode) {
-        print('   ✅ 캐시된 AI Summary 사용');
-      }
-    }
-    ═══════════════════════════════════════════════════════════════════════════ */
-
     // 사용자 메시지 추가 (sessionId 포함)
     final userMessage = ChatMessage(
       id: _uuid.v4(),
@@ -610,7 +607,7 @@ class ChatNotifier extends _$ChatNotifier {
       final basePrompt = await _loadSystemPrompt(chatType);
 
       // 현재 페르소나 가져오기
-      final currentPersona = ref.read(personaNotifierProvider);
+      final currentPersonaPrompt = ref.read(finalSystemPromptProvider);
 
       // AI Summary (sajuOrigin 포함) + 페르소나를 시스템 프롬프트에 추가
       // v2.0: AIContext 제거, AiSummary.sajuOrigin으로 통합
@@ -738,19 +735,19 @@ class ChatNotifier extends _$ChatNotifier {
         aiSummary: aiSummary,
         sajuAnalysis: sajuAnalysis,  // v3.1: 로컬 사주 데이터
         profile: activeProfile,  // v3.3: 프로필 정보 (생년월일, 성별)
-        persona: currentPersona,
+        personaPrompt: currentPersonaPrompt,
         isFirstMessage: isFirstMessage,
         targetProfile: targetProfile,  // v3.4: 궁합 상대방 프로필
         targetSajuAnalysis: targetSajuAnalysis,  // v3.4: 궁합 상대방 사주
         compatibilityAnalysis: compatibilityAnalysis,  // v3.6: Gemini 궁합 분석 결과
       );
-      /////////////////////////////////////////////////////////////////수정1순우ㅟ
+
       // [4] 시스템 프롬프트 구성
       if (kDebugMode) {
         print('');
         print('[4] SYSTEM PROMPT BUILD (v3.5 Phase 44)');
         print('   현재 날짜: ${DateTime.now().year}년 ${DateTime.now().month}월 ${DateTime.now().day}일');
-        print('   페르소나: ${currentPersona.displayName}');
+        print('   페르소나: ${selectedChatPersona.displayName}');
         print('   isFirstMessage: $isFirstMessage');
         if (activeProfile != null) {
           print('   [나] 프로필: ${activeProfile.displayName} (${activeProfile.gender.displayName})');
@@ -865,7 +862,7 @@ class ChatNotifier extends _$ChatNotifier {
       final adTrigger = ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
         tokenUsage: tokenUsage,
         messageCount: state.messages.length,
-        persona: currentPersona,
+        persona: _mapToAiPersona(selectedChatPersona),
       );
 
       if (kDebugMode && adTrigger != AdTriggerResult.none) {
