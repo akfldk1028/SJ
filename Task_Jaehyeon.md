@@ -4851,11 +4851,13 @@ is_quota_exceeded BOOLEAN GENERATED ALWAYS AS (
 │       │                                                         │
 │       └─ tokens_used            → gemini_chat_tokens           │
 │                                                                 │
-│  [Edge Function ai-gemini v19]                                  │
+│  [Edge Function ai-gemini v17]                                  │
 │       │                                                         │
 │       ↓ recordTokenUsage()                                      │
 │       │                                                         │
-│       └─ Gemini 채팅 토큰       → gemini_chat_tokens           │
+│       ├─ Gemini 채팅 토큰       → gemini_chat_tokens           │
+│       ├─ 메시지 카운트          → gemini_chat_message_count    │
+│       └─ 비용 (USD)             → gemini_cost_usd              │
 │                                                                 │
 │                     ↓ 모두 집계                                  │
 │                                                                 │
@@ -4872,7 +4874,7 @@ is_quota_exceeded BOOLEAN GENERATED ALWAYS AS (
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Edge Function 변경사항 (v18 → v19)
+### Edge Function 변경사항 (v18 → v19 → v17)
 
 **v18 (오류 발생):**
 ```typescript
@@ -4891,6 +4893,24 @@ await supabase.update({
   // total_tokens 제거 - GENERATED 컬럼이 자동 계산
 });
 ```
+
+**v17 (2026-01-14 배포됨):**
+```typescript
+// 필드명 표준화 + 메시지 카운트 추가
+await supabase.update({
+  gemini_chat_tokens: (existing.gemini_chat_tokens || 0) + totalTokens,
+  gemini_chat_message_count: (existing.gemini_chat_message_count || 0) + 1,
+  gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
+  // total_tokens, is_quota_exceeded 제거 - GENERATED 컬럼
+});
+```
+
+| 변경 항목 | v16 | v17 |
+|----------|-----|-----|
+| 채팅 토큰 필드 | `chat_tokens` (legacy) | `gemini_chat_tokens` |
+| 메시지 카운트 | ❌ 없음 | `gemini_chat_message_count` |
+| 비용 추적 | ❌ 없음 | `gemini_cost_usd` |
+| GENERATED 컬럼 UPDATE | ⚠️ 시도 | ✅ 제거됨 |
 
 ### 마이그레이션 목록
 

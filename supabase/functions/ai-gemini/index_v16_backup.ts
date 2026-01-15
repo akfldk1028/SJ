@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v17)
+ * Gemini API 호출 Edge Function
  *
  * 채팅/일운 분석 전용
  * API 키는 서버에만 저장 (보안)
@@ -10,12 +10,6 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * Quota 시스템:
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
- *
- * v17 변경사항 (2026-01-14):
- * - chat_tokens (legacy) → gemini_chat_tokens (신규 필드)
- * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
- * - gemini_chat_message_count 증가 추가
- * - gemini_cost_usd 필드 사용
  *
  * v16 변경사항:
  * - 스트리밍 지원 추가 (stream: true)
@@ -123,11 +117,6 @@ async function checkAndUpdateQuota(
 
 /**
  * 토큰 사용량 기록
- *
- * v17 변경사항 (2026-01-14):
- * - chat_tokens (legacy) → gemini_chat_tokens (신규)
- * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
- * - gemini_chat_message_count 증가 추가
  */
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
@@ -144,37 +133,42 @@ async function recordTokenUsage(
     // UPSERT: 오늘 기록이 있으면 업데이트, 없으면 생성
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, gemini_chat_tokens, gemini_chat_message_count, gemini_cost_usd")
+      .select("id, chat_tokens, total_tokens, total_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
-      // UPDATE: 개별 필드만 업데이트 (total_tokens, is_quota_exceeded는 GENERATED 컬럼)
+      // 업데이트
       await supabase
         .from("user_daily_token_usage")
         .update({
-          gemini_chat_tokens: (existing.gemini_chat_tokens || 0) + totalTokens,
-          gemini_chat_message_count: (existing.gemini_chat_message_count || 0) + 1,
-          gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
+          chat_tokens: (existing.chat_tokens || 0) + totalTokens,
+          total_tokens: (existing.total_tokens || 0) + totalTokens,
+          total_cost_usd: parseFloat(existing.total_cost_usd || "0") + cost,
+          daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+          is_quota_exceeded: !isAdmin && ((existing.total_tokens || 0) + totalTokens) >= DAILY_QUOTA,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id);
     } else {
-      // INSERT: 새 레코드 생성 (total_tokens, is_quota_exceeded는 자동 계산)
+      // 새로 생성
       await supabase
         .from("user_daily_token_usage")
         .insert({
           user_id: userId,
           usage_date: today,
-          gemini_chat_tokens: totalTokens,
-          gemini_chat_message_count: 1,
-          gemini_cost_usd: cost,
+          chat_tokens: totalTokens,
+          ai_analysis_tokens: 0,
+          ai_chat_tokens: 0,
+          total_tokens: totalTokens,
+          total_cost_usd: cost,
+          daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+          is_quota_exceeded: !isAdmin && totalTokens >= DAILY_QUOTA,
         });
     }
-    console.log(`[ai-gemini v17] Recorded ${totalTokens} tokens for user ${userId}`);
   } catch (error) {
-    console.error("[ai-gemini v17] Failed to record token usage:", error);
+    console.error("[ai-gemini] Failed to record token usage:", error);
   }
 }
 
@@ -370,13 +364,13 @@ Deno.serve(async (req) => {
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-gemini v17] User ${user_id} isAdmin: ${isAdmin}`);
+      console.log(`[ai-gemini] User ${user_id} isAdmin: ${isAdmin}`);
 
       // Quota 확인 (Admin은 스킵)
       if (!isAdmin) {
         const quota = await checkAndUpdateQuota(supabase, user_id, 0, isAdmin);
         if (!quota.allowed) {
-          console.log(`[ai-gemini v17] Quota exceeded for user ${user_id}`);
+          console.log(`[ai-gemini] Quota exceeded for user ${user_id}`);
           return new Response(
             JSON.stringify({
               success: false,
@@ -397,7 +391,7 @@ Deno.serve(async (req) => {
 
     // v16: 스트리밍 모드 분기
     if (stream) {
-      console.log(`[ai-gemini v17] Streaming mode enabled: model=${model}`);
+      console.log(`[ai-gemini] Streaming mode enabled: model=${model}`);
       return await handleStreamingRequest(
         supabase,
         messages,
@@ -410,7 +404,7 @@ Deno.serve(async (req) => {
     }
 
     // ===== 기존 비스트리밍 로직 =====
-    console.log(`[ai-gemini v17] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
+    console.log(`[ai-gemini] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
 
     // messages를 Gemini 형식으로 변환
     const systemInstruction = messages
@@ -464,7 +458,7 @@ Deno.serve(async (req) => {
 
     // 오류 처리
     if (data.error) {
-      console.error("[ai-gemini v17] Gemini API Error:", data.error);
+      console.error("[ai-gemini] Gemini API Error:", data.error);
       return new Response(
         JSON.stringify({
           success: false,
@@ -505,7 +499,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[ai-gemini v17] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`
+      `[ai-gemini] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`
     );
 
     return new Response(
@@ -526,7 +520,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("[ai-gemini v17] Error:", error);
+    console.error("[ai-gemini] Error:", error);
 
     return new Response(
       JSON.stringify({

@@ -21,7 +21,8 @@
 | `ai-gemini_v11_2024-12-30.ts` | v11 | 2024-12-30 | 로컬 백업 (gemini-3-flash-preview) |
 | `ai-gemini_v13_2024-12-30.ts` | v13 | 2024-12-30 | 모델명: gemini-3-flash-preview |
 | `ai-gemini_v14_2024-12-30.ts` | v14 | 2024-12-30 | responseMimeType 제거 (JSON 응답 버그 수정) |
-| `ai-gemini_v15_2024-12-30.ts` | v15 | 2024-12-30 | **max_tokens 4096 (짤림 방지) - 배포됨** |
+| `ai-gemini_v15_2024-12-30.ts` | v15 | 2024-12-30 | max_tokens 4096 (짤림 방지) |
+| `ai-gemini_v16_backup.ts` | v16 | 2026-01-14 | 스트리밍 지원 추가 (v17 배포 전 백업) |
 | `ai-openai_v7_2024-12-30.ts` | v7 | 2024-12-30 | Admin Quota 무제한 기능 추가 |
 | `ai-openai_v8_2024-12-30.ts` | v8 | 2024-12-30 | max_tokens → max_completion_tokens 수정 |
 | `ai-openai_v9_2024-12-30.ts` | v9 | 2024-12-30 | gpt-4o-mini → gpt-5.2 모델 변경 |
@@ -39,7 +40,9 @@ Admin 사용자에게 일일 토큰 quota를 무제한(10억 토큰)으로 설�
 #### 1. Edge Function 수정 및 배포
 | Function | Version | 상태 | 변경 내용 |
 |----------|---------|------|-----------|
-| ai-gemini | **v15** | ✅ 배포 완료 | Admin 체크 + Quota 무제한 + **gemini-3-flash-preview** + responseMimeType 제거 + max_tokens 4096 |
+| ai-gemini | **v17** | ✅ 배포 완료 (2026-01-14) | 필드명 표준화 + `gemini_chat_message_count` + `gemini_cost_usd` + GENERATED 컬럼 대응 |
+| ai-gemini | v16 | 백업됨 | 스트리밍 지원 추가 |
+| ai-gemini | v15 | 이전 | Admin 체크 + Quota 무제한 + gemini-3-flash-preview + max_tokens 4096 |
 | ai-openai | **v10** | ✅ 배포 완료 | Admin 체크 + Quota 무제한 + **gpt-5.2-thinking 모델** + max_completion_tokens 10000 |
 
 **로직 흐름**:
@@ -110,7 +113,7 @@ await formNotifier.saveProfile();  // saju_analyses 자동 생성
   - `gemini_edge_datasource.dart`: Supabase Edge Function 호출 확인
   - `openai_edge_datasource.dart`: Supabase Edge Function 호출 확인
 - [x] Edge Function 버전 확인 ✅
-  - ai-gemini: **v15** (Admin Quota + gemini-3-flash-preview + max_tokens 4096)
+  - ai-gemini: **v17** (필드명 표준화 + gemini_chat_message_count + gemini_cost_usd)
   - ai-openai: **v10** (Admin Quota + gpt-5.2-thinking 모델 + max_completion_tokens 10000)
 - [x] Admin 사용자 daily_quota 확인 ✅
   - **user_id**: `63dc54f7-a14f-4675-9797-20a79060892e`
@@ -166,8 +169,14 @@ frontend/lib/features/splash/data/queries.dart
 
 | Edge Function | 버전 | 모델 | max_tokens | 상태 |
 |---------------|------|------|------------|------|
-| ai-gemini | **v15** | `gemini-3-flash-preview` | 4096 | ✅ 배포 완료 |
+| ai-gemini | **v17** | `gemini-3-flash-preview` | 16384 | ✅ 배포 완료 (2026-01-14) |
 | ai-openai | **v10** | `gpt-5.2-thinking` | 10000 | ✅ 배포 완료 |
+
+**v17 변경사항:**
+- `chat_tokens` → `gemini_chat_tokens` (필드명 표준화)
+- `gemini_chat_message_count` 추가 (메시지 수 추적)
+- `gemini_cost_usd` 추가 (비용 추적)
+- `total_tokens`, `is_quota_exceeded` 직접 UPDATE 제거 (GENERATED 컬럼)
 
 ### 생성된 문서
 
@@ -2156,7 +2165,7 @@ is_quota_exceeded BOOLEAN GENERATED ALWAYS AS (
 | 데이터 불일치 | ❌ 개별 합 ≠ total 가능 | ✅ 항상 정확 |
 | 직접 UPDATE | 가능 (위험) | 불가 (DEFAULT만 허용) |
 
-### Edge Function 변경 (v18 → v19)
+### Edge Function 변경 (v18 → v19 → v17)
 
 **v18 오류:**
 ```
@@ -2175,6 +2184,24 @@ await supabase.update({
 });
 ```
 
+**v17 배포 (2026-01-14):**
+```typescript
+// 필드명 표준화 + 메시지 카운트/비용 추적 추가
+await supabase.update({
+  gemini_chat_tokens: (existing.gemini_chat_tokens || 0) + totalTokens,
+  gemini_chat_message_count: (existing.gemini_chat_message_count || 0) + 1,
+  gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
+  updated_at: new Date().toISOString(),
+});
+```
+
+| 항목 | v16 (이전) | v17 (현재) |
+|------|-----------|-----------|
+| 채팅 토큰 필드 | `chat_tokens` | `gemini_chat_tokens` |
+| 메시지 카운트 | ❌ | `gemini_chat_message_count` |
+| 비용 추적 | ❌ | `gemini_cost_usd` |
+| GENERATED 컬럼 | ⚠️ UPDATE 시도 | ✅ 제외 |
+
 ### 토큰 저장 흐름
 
 ```
@@ -2192,11 +2219,13 @@ await supabase.update({
     │
     └─ role = 'assistant'             → gemini_chat_tokens
 
-[Edge Function ai-gemini]
+[Edge Function ai-gemini v17]
     │
     ↓ recordTokenUsage()
     │
-    └─ 스트리밍 완료 시               → gemini_chat_tokens
+    ├─ 스트리밍 완료 시               → gemini_chat_tokens
+    ├─ 메시지 카운트                  → gemini_chat_message_count
+    └─ 비용 (USD)                     → gemini_cost_usd
 
                     ↓ 모두 집계
 
@@ -2222,9 +2251,10 @@ await supabase.update({
 
 ### Edge Function 버전
 
-| Function | Version | 변경 내용 |
-|----------|---------|----------|
-| ai-gemini | **v19** | `recordTokenUsage()`에서 `total_tokens` 제거 |
+| Function | Version | 배포일 | 변경 내용 |
+|----------|---------|--------|----------|
+| ai-gemini | **v17** | 2026-01-14 | 필드명 표준화 (`chat_tokens` → `gemini_chat_tokens`) + `gemini_chat_message_count` + `gemini_cost_usd` |
+| ai-gemini | v19 | 2026-01-14 | `recordTokenUsage()`에서 `total_tokens` 제거 (GENERATED 컬럼 대응) |
 
 ### ai_summaries 영향 분석
 
