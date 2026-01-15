@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-15 (Phase 49 토큰 추적 트리거 수정 완료 ✅)
+> 최종 업데이트: 2026-01-15 (Phase 50 다중 궁합 시스템 설계 완료 📋)
 
 ---
 
@@ -27,8 +27,8 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 현재 상태:
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
 - Phase 44~46 완료 ✅ (궁합 채팅 기능)
-- Phase 47~48 완료 ✅ (토큰 사용량 추적 시스템 v2)
-- **Phase 49 완료 ✅ (토큰 추적 트리거 통합 수정)**
+- Phase 47~49 완료 ✅ (토큰 사용량 추적 시스템 v2)
+- **Phase 50 설계 완료 📋 (다중 궁합 시스템)**
 
 ✅ **Phase 49 완료 내역** (2026-01-15):
 - **문제**: `ai_summaries` INSERT 시 `record "new" has no field "metadata"` 에러
@@ -43,10 +43,10 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
   - chatting_tokens: 1,886 ✅
 
 다음 작업 후보:
-1. 대화형 광고 시스템 구현 - conversational_ad_provider 연동
-2. Phase 44-B (궁합 분석 캐싱) - 기존 분석 조회/재사용
-3. [SUGGESTED_QUESTIONS] 태그 파싱 개선
-4. 절입시간 계산 검증
+1. **Phase 50 구현** - 다중 궁합 테이블 생성 (chat_session_targets, multi_compatibility_analyses)
+2. 대화형 광고 시스템 구현 - conversational_ad_provider 연동
+3. Phase 44-B (궁합 분석 캐싱) - 기존 분석 조회/재사용
+4. [SUGGESTED_QUESTIONS] 태그 파싱 개선
 
 [원하는 작업 선택]
 ```
@@ -194,6 +194,7 @@ C:\Users\SOGANG\flutter\flutter\bin\flutter.bat run -d chrome --web-port=9999
 | `frontend/lib/ad/` | 광고 모듈 (AdMob 연동) |
 | `supabase/functions/` | Edge Functions |
 | `.claude/team/` | 팀원별 역할/TODO 정의 |
+| `docs/02_features/compatibility_system.md` | **궁합 시스템 설계 v2.0** ⭐ NEW |
 
 ### Phase 18 관련 파일 (2025-12-30 추가)
 | 파일 | 용도 |
@@ -4941,5 +4942,109 @@ await supabase.update({
 |------|------|
 | `supabase/functions/ai-gemini/index.ts` | Edge Function v19 (토큰 저장) |
 | `frontend/lib/features/saju_chat/data/services/sse_stream_client.dart` | SSE 스트리밍 클라이언트 |
+
+---
+
+## Phase 50: 다중 궁합 시스템 설계 (2026-01-15) 📋 설계 완료
+
+### 배경
+
+현재 궁합 분석은 1:1 구조만 지원:
+- `compatibility_analyses`: `profile1_id`, `profile2_id` (2명만)
+- `chat_sessions`: `target_profile_id` (1명만)
+
+**지원해야 할 시나리오:**
+| 시나리오 | 예시 | 현재 지원 |
+|----------|------|----------|
+| A: 나↔1명 | "나랑 엄마 궁합" | ✅ |
+| B: 나↔N명 | "@철수 @영희 궁합" | ❌ |
+| C: 타인↔타인 (나 제외) | "엄마랑 아빠 궁합" | ❌ |
+| D: 타인 N명끼리 | "부모님+동생 궁합" | ❌ |
+
+### 설계 결정사항
+
+| 항목 | 결정 |
+|------|------|
+| 반합 해석 | 느슨한 해석(포스텔러 기준) 포함 |
+| 마이그레이션 | 신규 분석부터만 적용 (기존 7건은 읽기 전용) |
+| AI 해석 저장 | 불필요 (Dart 계산 결과만 저장) |
+| 스케일링 | 하이브리드 (정규화 + JSONB) |
+
+### 신규 테이블 설계
+
+#### 1. `chat_session_targets` (다중 멘션)
+```sql
+CREATE TABLE chat_session_targets (
+    id UUID PRIMARY KEY,
+    session_id UUID REFERENCES chat_sessions(id),
+    target_profile_id UUID REFERENCES saju_profiles(id),
+    mention_order INT DEFAULT 0,
+    UNIQUE(session_id, target_profile_id)
+);
+```
+
+#### 2. `multi_compatibility_analyses` (N명 궁합)
+```sql
+CREATE TABLE multi_compatibility_analyses (
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id),
+    session_id UUID REFERENCES chat_sessions(id),
+    participant_ids UUID[] NOT NULL,        -- 참여자 배열
+    includes_owner BOOLEAN DEFAULT true,    -- 나 포함 여부 ⭐
+    owner_profile_id UUID,                  -- 나의 프로필
+    participant_count INT GENERATED,        -- 자동 계산
+    analysis_result JSONB                   -- 쌍별 결과
+);
+```
+
+#### 3. `saju_relation_rules` (합충형해파 마스터 - 선택적)
+```sql
+CREATE TABLE saju_relation_rules (
+    id SERIAL PRIMARY KEY,
+    category TEXT NOT NULL,     -- 'cheongan_hap', 'jiji_chung' 등
+    char1 TEXT, char2 TEXT, char3 TEXT,
+    result_oheng TEXT,
+    name_korean TEXT, name_hanja TEXT,
+    is_positive BOOLEAN,
+    strength INT
+);
+-- 약 60개 규칙 (현재 Dart 하드코딩으로도 동작)
+```
+
+### 시나리오별 데이터 흐름
+
+| 시나리오 | includes_owner | participant_ids |
+|----------|----------------|-----------------|
+| 나↔엄마 | `true` | `[나, 엄마]` |
+| 나↔철수↔영희 | `true` | `[나, 철수, 영희]` |
+| 엄마↔아빠 (나 제외) | `false` | `[엄마, 아빠]` |
+| 부모↔동생 (나 제외) | `false` | `[엄마, 아빠, 동생]` |
+
+### 구현 우선순위
+
+1. **Phase 1**: `chat_session_targets` → 다중 멘션 즉시 지원
+2. **Phase 2**: `multi_compatibility_analyses` → N명 궁합 저장
+3. **Phase 3**: `saju_relation_rules` → 선택적 (Dart 하드코딩 유지 가능)
+
+### 관련 문서
+
+| 문서 | 내용 |
+|------|------|
+| `docs/02_features/compatibility_system.md` | **궁합 시스템 설계 v2.0** ⭐ NEW |
+| `docs/02_features/saju_relationship_db.md` | 인연 관계 DB 설계 |
+| `docs/04_data_models.md` | 전체 데이터 모델 |
+
+### 체크리스트
+
+**DB:**
+- [ ] `chat_session_targets` 테이블 생성
+- [ ] `multi_compatibility_analyses` 테이블 생성
+- [ ] `saju_relation_rules` 마스터 테이블 (선택적)
+- [ ] RLS 정책 설정
+
+**Flutter:**
+- [ ] `createSession(targetProfileIds: List)` 파라미터 변경
+- [ ] 멘션 파싱 다중화
+- [ ] `includes_owner` 플래그 처리
 
 ---
