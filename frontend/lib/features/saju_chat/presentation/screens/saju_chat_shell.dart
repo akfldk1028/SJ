@@ -60,8 +60,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// Desktop 사이드바 표시 여부
   bool _isSidebarVisible = true;
 
-  /// 채팅 입력 필드 컨트롤러 (멘션 삽입용)
-  late final TextEditingController _inputController;
+  /// 채팅 입력 필드 컨트롤러 (멘션 하이라이트 지원)
+  late final MentionTextEditingController _inputController;
 
   /// 선택된 인연의 targetProfileId (멘션 전송 시 사용)
   String? _pendingTargetProfileId;
@@ -71,7 +71,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     super.initState();
     _chatType = ChatType.fromString(widget.chatType);
     _scrollController = ScrollController();
-    _inputController = TextEditingController();
+    _inputController = MentionTextEditingController();
     _initializeSession();
   }
 
@@ -147,11 +147,30 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
       print('   - 멘션: ${selection.mentionText}');
     }
 
-    // 멘션 텍스트를 입력 필드에 추가 (끝에 공백 추가하여 바로 입력 가능)
+    // 멘션 텍스트를 커서 위치에 삽입 (기존 텍스트 유지)
     setState(() {
-      _inputController.text = '${selection.mentionText} ';
+      final currentText = _inputController.text;
+      final cursorPos = _inputController.selection.baseOffset;
+
+      // 커서 위치가 유효하지 않으면 끝에 추가
+      final insertPos = (cursorPos >= 0 && cursorPos <= currentText.length)
+          ? cursorPos
+          : currentText.length;
+
+      // 멘션 앞뒤에 공백 확보
+      final needSpaceBefore = insertPos > 0 && currentText[insertPos - 1] != ' ';
+      final needSpaceAfter = insertPos < currentText.length && currentText[insertPos] != ' ';
+
+      final mentionWithSpaces = '${needSpaceBefore ? ' ' : ''}${selection.mentionText}${needSpaceAfter ? ' ' : ''} ';
+
+      // 기존 텍스트에 멘션 삽입
+      final newText = currentText.substring(0, insertPos) +
+                      mentionWithSpaces +
+                      currentText.substring(insertPos);
+
+      _inputController.text = newText;
       _inputController.selection = TextSelection.collapsed(
-        offset: _inputController.text.length,
+        offset: insertPos + mentionWithSpaces.length,
       );
       // 선택된 인연의 targetProfileId 저장
       _pendingTargetProfileId = selection.relation.toProfileId;
