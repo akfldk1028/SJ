@@ -59,3 +59,13 @@ export 'data/queries.dart';
 export 'data/mutations.dart';
 export 'services/ai_api_service.dart';
 export 'services/saju_analysis_service.dart';
+
+// ═══════════════════════════════════════════════════════════════
+// Compatibility Analysis - 궁합 분석 서비스
+// ═══════════════════════════════════════════════════════════════
+export 'services/compatibility_calculator.dart';
+export 'services/compatibility_analysis_service.dart';
+
+// Phase 50: 다중 궁합 (3~4명)
+export 'services/multi_compatibility_calculator.dart';
+export 'services/multi_compatibility_analysis_service.dart';
