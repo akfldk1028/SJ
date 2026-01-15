@@ -105,28 +105,5 @@ enum AdLoadState {
   failed,
 }
 
-/// 토큰 사용량 정보 (chat_provider.dart에서 사용)
-class TokenUsageInfo {
-  final int usedTokens;
-  final int maxTokens;
-  final int remainingTokens;
-
-  const TokenUsageInfo({
-    required this.usedTokens,
-    required this.maxTokens,
-    required this.remainingTokens,
-  });
-
-  /// 사용률 (0.0 ~ 1.0)
-  double get usageRate => maxTokens > 0 ? usedTokens / maxTokens : 0.0;
-
-  /// 토큰 제한 근접 여부 (80% 이상)
-  bool get isNearLimit => usageRate >= 0.8;
-
-  /// 토큰 소진 여부 (100%)
-  bool get isDepleted => usageRate >= 1.0;
-
-  @override
-  String toString() =>
-      'TokenUsageInfo(used: $usedTokens, max: $maxTokens, rate: ${(usageRate * 100).toStringAsFixed(1)}%)';
-}
+// Note: TokenUsageInfo는 conversation_window_manager.dart에서 정의됨
+// import '../../data/services/conversation_window_manager.dart' show TokenUsageInfo;

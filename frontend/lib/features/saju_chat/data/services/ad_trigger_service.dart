@@ -5,7 +5,8 @@
 library;
 
 import '../../../../ad/ad_strategy.dart';
-import '../models/conversational_ad_model.dart';
+import '../models/conversational_ad_model.dart' show AdTriggerResult, AdMessageType;
+import 'conversation_window_manager.dart' show TokenUsageInfo;
 
 /// 광고 트리거 서비스
 ///

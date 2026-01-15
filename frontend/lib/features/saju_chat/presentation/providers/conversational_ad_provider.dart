@@ -15,6 +15,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../ad/ad_config.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../data/services/ad_trigger_service.dart';
+import '../../data/services/conversation_window_manager.dart' show TokenUsageInfo;
 import '../../domain/models/ad_persona_prompt.dart';
 import '../../domain/models/ai_persona.dart';
 
