@@ -48,6 +48,9 @@ class GeminiEdgeDatasource {
   /// 마지막 트리밍 정보
   WindowedConversation? _lastWindowResult;
 
+  /// 새 세션 플래그 (첫 메시지에만 true)
+  bool _isNewSession = false;
+
   /// Edge Function URL
   String get _edgeFunctionUrl {
     final baseUrl = SupabaseService.supabaseUrl ?? '';
@@ -108,6 +111,7 @@ class GeminiEdgeDatasource {
     _systemPrompt = systemPrompt;
     _windowManager.setSystemPrompt(systemPrompt);
     _lastWindowResult = null;
+    _isNewSession = true; // 새 세션 플래그 설정
 
     if (kDebugMode) {
       final promptTokens = TokenCounter.estimateSystemPromptTokens(systemPrompt);
@@ -141,6 +145,10 @@ class GeminiEdgeDatasource {
         print('   🔑 [GeminiEdge] Auth: ${hasJwt ? 'JWT 토큰' : 'anon key (fallback)'}');
       }
 
+      // 새 세션 여부 캡처 후 플래그 리셋
+      final isNewSessionFlag = _isNewSession;
+      _isNewSession = false;
+
       final response = await _dio.post(
         '',
         data: {
@@ -149,6 +157,7 @@ class GeminiEdgeDatasource {
           'max_tokens': 16384, // 응답 잘림 방지 (2048 → 16384)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
+          'is_new_session': isNewSessionFlag, // 새 세션 플래그
         },
         options: Options(
           headers: {
@@ -255,8 +264,12 @@ class GeminiEdgeDatasource {
       final messages = _buildMessagesForEdge();
       final userId = SupabaseService.currentUserId;
 
+      // 새 세션 여부 캡처 후 플래그 리셋
+      final isNewSessionFlag = _isNewSession;
+      _isNewSession = false;
+
       if (kDebugMode) {
-        print('[GeminiEdge] SSE 스트리밍 요청 시작...');
+        print('[GeminiEdge] SSE 스트리밍 요청 시작... (newSession: $isNewSessionFlag)');
       }
 
       // 모듈화된 SSE 클라이언트로 스트리밍
@@ -270,6 +283,7 @@ class GeminiEdgeDatasource {
           'temperature': 0.8,
           'stream': true,
           if (userId != null) 'user_id': userId,
+          'is_new_session': isNewSessionFlag, // 새 세션 플래그
         },
         headers: {
           'Authorization': 'Bearer $_authToken',

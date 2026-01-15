@@ -23,10 +23,27 @@
 | `ai-gemini_v14_2024-12-30.ts` | v14 | 2024-12-30 | responseMimeType 제거 (JSON 응답 버그 수정) |
 | `ai-gemini_v15_2024-12-30.ts` | v15 | 2024-12-30 | max_tokens 4096 (짤림 방지) |
 | `ai-gemini_v16_backup.ts` | v16 | 2026-01-14 | 스트리밍 지원 추가 (v17 배포 전 백업) |
+| `ai-gemini_v21_2026-01-15.ts` | v21 | 2026-01-15 | **v22 배포 전 백업** (chatting_session_count 버그 있음) |
 | `ai-openai_v7_2024-12-30.ts` | v7 | 2024-12-30 | Admin Quota 무제한 기능 추가 |
 | `ai-openai_v8_2024-12-30.ts` | v8 | 2024-12-30 | max_tokens → max_completion_tokens 수정 |
 | `ai-openai_v9_2024-12-30.ts` | v9 | 2024-12-30 | gpt-4o-mini → gpt-5.2 모델 변경 |
 | `ai-openai_v10_2024-12-31.ts` | v10 | 2024-12-31 | **gpt-5.2-thinking 모델, max_tokens 10000 - 배포됨** |
+
+### ⚠️ Edge Function 버전 관리 규칙
+
+**새 버전 배포 시 필수 사항:**
+1. **백업 생성**: 배포 전 현재 버전을 `supabase/backups/` 폴더에 저장
+2. **파일명**: `{function_name}_v{version}_{YYYY-MM-DD}.ts`
+3. **문서 업데이트**: 이 파일의 백업 목록에 추가
+4. **변경 사항 기록**: 버전별 주요 변경 내용 명시
+
+**현재 배포된 버전 (2026-01-15):**
+| Function | Version | 상태 |
+|----------|---------|------|
+| ai-gemini | **v22** | ✅ 배포됨 - is_new_session 파라미터 추가, chatting_session_count 버그 수정 |
+| ai-openai | **v26** | ✅ 배포됨 |
+| generate-ai-summary | **v10** | ✅ 배포됨 |
+| ai-openai-result | **v5** | ✅ 배포됨 |
 
 ---
 
@@ -40,10 +57,12 @@ Admin 사용자에게 일일 토큰 quota를 무제한(10억 토큰)으로 설�
 #### 1. Edge Function 수정 및 배포
 | Function | Version | 상태 | 변경 내용 |
 |----------|---------|------|-----------|
-| ai-gemini | **v17** | ✅ 배포 완료 (2026-01-14) | 필드명 표준화 + `gemini_chat_message_count` + `gemini_cost_usd` + GENERATED 컬럼 대응 |
+| ai-gemini | **v22** | ✅ 배포 완료 (2026-01-15) | `is_new_session` 파라미터 추가, `chatting_session_count` 버그 수정 |
+| ai-gemini | v21 | 백업됨 | 토큰 필드명 표준화 + gemini_cost_usd (session_count 버그 있음) |
+| ai-gemini | v17 | 이전 | 필드명 표준화 + `gemini_chat_message_count` + `gemini_cost_usd` + GENERATED 컬럼 대응 |
 | ai-gemini | v16 | 백업됨 | 스트리밍 지원 추가 |
-| ai-gemini | v15 | 이전 | Admin 체크 + Quota 무제한 + gemini-3-flash-preview + max_tokens 4096 |
-| ai-openai | **v10** | ✅ 배포 완료 | Admin 체크 + Quota 무제한 + **gpt-5.2-thinking 모델** + max_completion_tokens 10000 |
+| ai-openai | **v26** | ✅ 배포 완료 (2026-01-14) | 토큰 필드명 표준화 |
+| ai-openai | v10 | 이전 | Admin 체크 + Quota 무제한 + **gpt-5.2-thinking 모델** + max_completion_tokens 10000 |
 
 **로직 흐름**:
 ```
