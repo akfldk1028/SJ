@@ -75,6 +75,12 @@ class ChatMessageList extends StatelessWidget {
         }
 
         final message = messages[messageIndex];
+
+        // 빈 메시지는 렌더링하지 않음
+        if (message.content.trim().isEmpty) {
+          return const SizedBox.shrink();
+        }
+
         return MessageBubble(
           key: ValueKey(message.id),
           message: message,
