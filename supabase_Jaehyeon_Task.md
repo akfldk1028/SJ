@@ -24,6 +24,7 @@
 | `ai-gemini_v15_2024-12-30.ts` | v15 | 2024-12-30 | max_tokens 4096 (짤림 방지) |
 | `ai-gemini_v16_backup.ts` | v16 | 2026-01-14 | 스트리밍 지원 추가 (v17 배포 전 백업) |
 | `ai-gemini_v21_2026-01-15.ts` | v21 | 2026-01-15 | **v22 배포 전 백업** (chatting_session_count 버그 있음) |
+| `ai-gemini_v22_2026-01-15.ts` | v22 | 2026-01-15 | **v23 배포 전 백업** (반복 문자 감지 로직 없음) |
 | `ai-openai_v7_2024-12-30.ts` | v7 | 2024-12-30 | Admin Quota 무제한 기능 추가 |
 | `ai-openai_v8_2024-12-30.ts` | v8 | 2024-12-30 | max_tokens → max_completion_tokens 수정 |
 | `ai-openai_v9_2024-12-30.ts` | v9 | 2024-12-30 | gpt-4o-mini → gpt-5.2 모델 변경 |
@@ -40,7 +41,7 @@
 **현재 배포된 버전 (2026-01-15):**
 | Function | Version | 상태 |
 |----------|---------|------|
-| ai-gemini | **v22** | ✅ 배포됨 - is_new_session 파라미터 추가, chatting_session_count 버그 수정 |
+| ai-gemini | **v23** | ✅ 배포됨 - 반복 문자 감지 로직 추가 (Gemini 무한 반복 버그 대응) |
 | ai-openai | **v26** | ✅ 배포됨 |
 | generate-ai-summary | **v10** | ✅ 배포됨 |
 | ai-openai-result | **v5** | ✅ 배포됨 |
@@ -57,7 +58,8 @@ Admin 사용자에게 일일 토큰 quota를 무제한(10억 토큰)으로 설�
 #### 1. Edge Function 수정 및 배포
 | Function | Version | 상태 | 변경 내용 |
 |----------|---------|------|-----------|
-| ai-gemini | **v22** | ✅ 배포 완료 (2026-01-15) | `is_new_session` 파라미터 추가, `chatting_session_count` 버그 수정 |
+| ai-gemini | **v23** | ✅ 배포 완료 (2026-01-15) | 반복 문자 감지 로직 추가 (Gemini 무한 반복 버그 대응) |
+| ai-gemini | v22 | 백업됨 | `is_new_session` 파라미터 추가, `chatting_session_count` 버그 수정 |
 | ai-gemini | v21 | 백업됨 | 토큰 필드명 표준화 + gemini_cost_usd (session_count 버그 있음) |
 | ai-gemini | v17 | 이전 | 필드명 표준화 + `gemini_chat_message_count` + `gemini_cost_usd` + GENERATED 컬럼 대응 |
 | ai-gemini | v16 | 백업됨 | 스트리밍 지원 추가 |
@@ -97,6 +99,7 @@ Admin 사용자에게 일일 토큰 quota를 무제한(10억 토큰)으로 설�
 | **채팅 400 에러 (일반/Admin 모두)** | Gemini 모델명 만료 (`gemini-2.5-flash-preview-05-20`) | 모델명 `gemini-3-flash-preview`로 변경 (ai-gemini v11) |
 | **채팅 JSON 노출 버그** | `responseMimeType: "application/json"` 설정으로 Gemini가 JSON 형식 응답 | `responseMimeType` 제거하여 일반 텍스트 응답 (ai-gemini v14) |
 | **채팅 짤림 버그** | `max_tokens = 1000` 너무 작음 | `max_tokens = 4096`으로 변경 (ai-gemini v15) |
+| **Gemini 무한 반복 버그** | Gemini 고질적 버그 - 같은 문자(ㄴㄴㄴ...)가 무한 반복됨 | `detectRepetitivePattern()` 함수로 실시간 감지 + 스트림 조기 종료 (ai-gemini v23) |
 | **gpt-4o-mini 사용 문제** | Edge Function 기본값이 `gpt-4o-mini`로 설정됨 | `gpt-5.2`로 모델 변경 (ai-openai v9) |
 
 **수정 파일**: `onboarding_screen.dart:161-216`
