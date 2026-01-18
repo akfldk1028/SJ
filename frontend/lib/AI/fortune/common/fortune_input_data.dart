@@ -261,4 +261,190 @@ class FortuneInputData {
   String toString() {
     return 'FortuneInputData(name: $profileName, birth: $birthDate, target: $targetPeriodString)';
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 일간-세운/월운 십성 관계 계산 (GPT 분석 정확도 향상용)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 천간 → 오행 변환 맵
+  static const _ganToElement = {
+    '甲': '목', '乙': '목',
+    '丙': '화', '丁': '화',
+    '戊': '토', '己': '토',
+    '庚': '금', '辛': '금',
+    '壬': '수', '癸': '수',
+  };
+
+  /// 오행 한글 → 한자 변환 맵
+  static const _elementToHanja = {
+    '목': '木', '화': '火', '토': '土', '금': '金', '수': '水',
+  };
+
+  /// 일간의 오행 (예: "목", "화", "토", "금", "수")
+  String? get dayGanElement => _ganToElement[dayGan];
+
+  /// 일간의 오행 + 한자 (예: "목(木)")
+  String? get dayGanElementFull {
+    final element = dayGanElement;
+    if (element == null) return null;
+    return '$element(${_elementToHanja[element]})';
+  }
+
+  /// 일간의 음양 (양/음)
+  String? get dayGanYinYang {
+    if (dayGan == null) return null;
+    const yangGan = {'甲', '丙', '戊', '庚', '壬'};
+    return yangGan.contains(dayGan) ? '양' : '음';
+  }
+
+  /// 일간 쉬운 설명 (예: "갑목(甲木) - 큰 나무")
+  String? get dayGanDescription {
+    if (dayGan == null) return null;
+    const descriptions = {
+      '甲': '갑목(甲木) - 큰 나무, 리더십',
+      '乙': '을목(乙木) - 작은 풀, 유연함',
+      '丙': '병화(丙火) - 태양, 밝고 활발',
+      '丁': '정화(丁火) - 촛불, 따뜻하고 섬세',
+      '戊': '무토(戊土) - 큰 산, 든든함',
+      '己': '기토(己土) - 논밭, 포용력',
+      '庚': '경금(庚金) - 칼/쇠, 결단력',
+      '辛': '신금(辛金) - 보석, 예민함',
+      '壬': '임수(壬水) - 큰 바다, 지혜',
+      '癸': '계수(癸水) - 시냇물, 적응력',
+    };
+    return descriptions[dayGan];
+  }
+
+  /// 특정 오행이 일간에게 어떤 십성인지 계산
+  /// [targetElement]: "목", "화", "토", "금", "수" 중 하나
+  /// 반환: "비겁", "식상", "재성", "관성", "인성" 중 하나
+  String? getSipseongFor(String targetElement) {
+    final myElement = dayGanElement;
+    if (myElement == null) return null;
+
+    // 오행 순서: 목 → 화 → 토 → 금 → 수 → 목 (상생)
+    const elementOrder = ['목', '화', '토', '금', '수'];
+    final myIdx = elementOrder.indexOf(myElement);
+    final targetIdx = elementOrder.indexOf(targetElement);
+
+    if (myIdx == -1 || targetIdx == -1) return null;
+
+    // 상대적 위치 계산 (상생 순서 기준)
+    final diff = (targetIdx - myIdx + 5) % 5;
+
+    // 십성 매핑
+    // 0: 같은 오행 = 비겁 (나와 같은 기운)
+    // 1: 내가 생하는 오행 = 식상 (내가 표현/발산)
+    // 2: 내가 극하는 오행 = 재성 (내가 다스림/재물)
+    // 3: 나를 극하는 오행 = 관성 (나를 다스림/직장)
+    // 4: 나를 생하는 오행 = 인성 (나를 낳음/배움)
+    const sipseongMap = {
+      0: '비겁',
+      1: '식상',
+      2: '재성',
+      3: '관성',
+      4: '인성',
+    };
+
+    return sipseongMap[diff];
+  }
+
+  /// 특정 오행이 일간에게 미치는 영향을 쉽게 설명
+  String getSipseongExplain(String targetElement) {
+    final sipseong = getSipseongFor(targetElement);
+    if (sipseong == null) return '(분석 불가)';
+
+    const explanations = {
+      '비겁': '나와 같은 기운이에요. 경쟁이 치열해지고 에너지가 넘치지만, 다툼이나 번아웃에 주의하세요.',
+      '식상': '내가 표현하고 발산하는 기운이에요. 재능을 펼치고 아이디어가 빛나는 시기입니다.',
+      '재성': '내가 다스리는 재물의 기운이에요. 돈 벌 기회가 많지만, 쓸 곳도 많아요.',
+      '관성': '나를 다스리는 직장/압박의 기운이에요. 힘들지만 성장하는 시기입니다.',
+      '인성': '나를 낳아주는 배움/보호의 기운이에요. 공부운이 좋고 귀인을 만날 수 있어요.',
+    };
+
+    return explanations[sipseong] ?? '(설명 없음)';
+  }
+
+  /// 세운/월운과 용신/기신의 관계 분석
+  /// [seunElement]: 세운/월운의 주요 오행 (예: 2026년 병오 = "화")
+  String getYongsinRelation(String seunElement) {
+    final buffer = StringBuffer();
+
+    // 용신과의 관계
+    final yongsinEl = _extractElement(yongsinElement);
+    if (yongsinEl != null) {
+      if (yongsinEl == seunElement) {
+        buffer.writeln('✅ 용신($yongsinElement)과 세운($seunElement)이 일치합니다!');
+        buffer.writeln('   → 올해는 필요한 기운이 들어오는 좋은 해예요.');
+      } else {
+        final relation = _getElementRelation(seunElement, yongsinEl);
+        buffer.writeln('용신($yongsinElement)과 세운($seunElement)의 관계: $relation');
+      }
+    }
+
+    // 기신과의 관계
+    final gisinEl = _extractElement(gisinElement);
+    if (gisinEl != null) {
+      if (gisinEl == seunElement) {
+        buffer.writeln('⚠️ 기신($gisinElement)과 세운($seunElement)이 일치합니다.');
+        buffer.writeln('   → 해로운 기운이 들어오는 해이므로 주의가 필요해요.');
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  /// 오행 문자열에서 순수 오행만 추출 (예: "화(火)" → "화")
+  String? _extractElement(String? elementStr) {
+    if (elementStr == null) return null;
+    for (final e in ['목', '화', '토', '금', '수']) {
+      if (elementStr.contains(e)) return e;
+    }
+    return null;
+  }
+
+  /// 두 오행의 상생/상극 관계
+  String _getElementRelation(String a, String b) {
+    const elementOrder = ['목', '화', '토', '금', '수'];
+    final aIdx = elementOrder.indexOf(a);
+    final bIdx = elementOrder.indexOf(b);
+    if (aIdx == -1 || bIdx == -1) return '관계 없음';
+
+    final diff = (bIdx - aIdx + 5) % 5;
+    if (diff == 1) return '$a → $b 상생 (도움)';
+    if (diff == 4) return '$b → $a 상생 (도움받음)';
+    if (diff == 2) return '$a → $b 상극 (제어)';
+    if (diff == 3) return '$b → $a 상극 (제어받음)';
+    return '같은 오행';
+  }
+
+  /// 일간 + 세운 오행 결합 분석 전체 (GPT에 전달용)
+  /// [seunElement]: 세운의 주요 오행 (예: 2026년 = "화")
+  /// [seunGanji]: 세운 간지 (예: "병오(丙午)")
+  String getSeunCombinationAnalysis(String seunElement, String seunGanji) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('### 일간과 세운의 결합 분석 (핵심!)');
+    buffer.writeln();
+
+    // 1. 일간 정보
+    buffer.writeln('**1. 일간 정보**');
+    buffer.writeln('- 일간: ${dayGan ?? "-"} (${dayGanDescription ?? "-"})');
+    buffer.writeln('- 일간 오행: ${dayGanElementFull ?? "-"}');
+    buffer.writeln('- 음양: ${dayGanYinYang ?? "-"}');
+    buffer.writeln();
+
+    // 2. 세운 오행이 일간에게 미치는 영향
+    final sipseong = getSipseongFor(seunElement);
+    buffer.writeln('**2. $seunGanji의 $seunElement(${_elementToHanja[seunElement] ?? seunElement}) 기운이 일간에게 미치는 영향**');
+    buffer.writeln('- 십성: $sipseong');
+    buffer.writeln('- 의미: ${getSipseongExplain(seunElement)}');
+    buffer.writeln();
+
+    // 3. 용신/기신과의 관계
+    buffer.writeln('**3. 세운과 용신/기신의 관계**');
+    buffer.writeln(getYongsinRelation(seunElement));
+
+    return buffer.toString();
+  }
 }

@@ -1,9 +1,9 @@
 # Fortune 모듈 (운세 분석)
 
-> **버전**: v1.0
+> **버전**: v5.0
 > **작성일**: 2026-01-18
 > **담당**: JH_AI
-> **상태**: ✅ 구현 완료
+> **상태**: ✅ 구현 완료 (일간+세운 십성 결합 분석 추가)
 
 ---
 
@@ -641,11 +641,140 @@ current_seun JSONB -- 현재 세운
 
 ---
 
-## 13. 변경 이력
+## 13. 일간+세운 십성 결합 분석 (v5.0)
+
+> **핵심 개선**: GPT가 정확한 운세 분석을 하려면 **세운 오행이 일간에게 어떤 십성인지** 직접 계산해서 전달해야 합니다.
+
+### 13.1 문제점
+
+기존 프롬프트의 문제:
+```
+❌ "2026년 병오(丙午)년은 화(火) 에너지가 강한 해입니다. 분석해주세요."
+→ GPT가 사용자 일간과의 관계를 정확히 파악하기 어려움
+```
+
+개선된 프롬프트:
+```
+✅ "2026년 병오(丙午)년의 화(火)가 일간 을(乙)목에게 '식상'입니다."
+→ GPT가 식상의 의미(표현, 창작, 발산)를 바탕으로 정확한 분석 가능
+```
+
+### 13.2 FortuneInputData 헬퍼 메서드
+
+**파일**: `common/fortune_input_data.dart`
+
+```dart
+/// 천간 → 오행 변환
+static const _ganToElement = {
+  '甲': '목', '乙': '목', '丙': '화', '丁': '화', '戊': '토',
+  '己': '토', '庚': '금', '辛': '금', '壬': '수', '癸': '수',
+};
+
+/// 일간의 오행 반환
+String? get dayGanElement => _ganToElement[dayGan];
+
+/// 특정 오행이 일간에게 어떤 십성인지 계산
+/// 예: 일간이 乙(목)이고 targetElement가 '화'면 → '식상' 반환
+String? getSipseongFor(String targetElement) {
+  final myElement = dayGanElement;
+  if (myElement == null) return null;
+
+  const elementOrder = ['목', '화', '토', '금', '수'];
+  final myIdx = elementOrder.indexOf(myElement);
+  final targetIdx = elementOrder.indexOf(targetElement);
+
+  if (myIdx == -1 || targetIdx == -1) return null;
+
+  // 상생 순서 기반 십성 계산
+  final diff = (targetIdx - myIdx + 5) % 5;
+  const sipseongMap = {
+    0: '비겁',   // 같은 오행 → 비견/겁재
+    1: '식상',   // 내가 생하는 오행 → 식신/상관
+    2: '재성',   // 내가 극하는 오행 → 편재/정재
+    3: '관성',   // 나를 극하는 오행 → 편관/정관
+    4: '인성',   // 나를 생하는 오행 → 편인/정인
+  };
+  return sipseongMap[diff];
+}
+
+/// 십성 설명 반환
+String? getSipseongExplain(String targetElement) {
+  final sipseong = getSipseongFor(targetElement);
+  const explains = {
+    '비겁': '나와 같은 기운 - 경쟁, 협력, 형제자매운',
+    '식상': '내가 표현하는 기운 - 창작, 발산, 자녀운, 재물 생산',
+    '재성': '내가 다스리는 기운 - 재물, 아버지, 여자의 남편',
+    '관성': '나를 다스리는 기운 - 직장, 명예, 규율, 남자의 자녀',
+    '인성': '나를 생하는 기운 - 학업, 어머니, 문서, 자격증',
+  };
+  return explains[sipseong];
+}
+
+/// 용신/기신과의 관계 분석
+String getYongsinRelation(String seunElement) {
+  // yongsin 필드의 yongsin/gisin과 seunElement 비교
+  // 용신이면 "세운이 용신을 돕습니다" 등 반환
+}
+
+/// 전체 결합 분석 (GPT에 전달용)
+String getSeunCombinationAnalysis(String seunElement, String seunGanji) {
+  final buffer = StringBuffer();
+  buffer.writeln('### 일간과 세운의 결합 분석 (핵심!)');
+  buffer.writeln('');
+  buffer.writeln('**1. 일간 정보**');
+  buffer.writeln('- 일간: ${dayGan ?? "?"} (${dayGanElement ?? "?"}일간)');
+  buffer.writeln('');
+  buffer.writeln('**2. 세운($seunGanji)의 $seunElement 오행이 일간에게 미치는 영향**');
+  buffer.writeln('- 십성: ${getSipseongFor(seunElement) ?? "?"}');
+  buffer.writeln('- 의미: ${getSipseongExplain(seunElement) ?? "?"}');
+  buffer.writeln('');
+  buffer.writeln('**3. 용신/기신과의 관계**');
+  buffer.writeln(getYongsinRelation(seunElement));
+  return buffer.toString();
+}
+```
+
+### 13.3 프롬프트 적용 예시
+
+**yearly_2026_prompt.dart** (userPrompt 부분):
+```dart
+---
+## ⭐ 2026년 병오(丙午)와 나의 오행 결합 분석 ⭐
+${inputData.getSeunCombinationAnalysis('화', '병오(丙午)')}
+---
+
+**⭐ 핵심: 일간(${inputData.dayGan}) + 세운(화) = ${inputData.getSipseongFor('화')} 관계를 중심으로 분석!**
+
+**분석 시 반드시 포함할 요소:**
+1. **십성 중심 분석**: ${inputData.dayGanElement}일간에게 화(火)가 **${inputData.getSipseongFor('화')}**이므로...
+```
+
+### 13.4 십성별 운세 해석 가이드
+
+| 십성 | 영역별 영향 |
+|------|----------|
+| **비겁** | 직장: 경쟁/협력 증가, 재물: 분산/공유, 연애: 경쟁자 등장 |
+| **식상** | 직장: 아이디어/창작, 재물: 생산/수익, 연애: 매력 발산, 건강: 에너지 소모 |
+| **재성** | 직장: 실적/성과, 재물: 수입 증가, 연애: 만남/인연, 건강: 과로 주의 |
+| **관성** | 직장: 승진/책임, 재물: 규제/세금, 연애: 책임감, 건강: 압박/스트레스 |
+| **인성** | 직장: 학습/자격증, 재물: 안정/보호, 연애: 보호 본능, 건강: 회복력 |
+
+### 13.5 적용된 프롬프트 파일
+
+| 파일 | 세운 | 변경 내용 |
+|------|------|---------|
+| `yearly_2026_prompt.dart` | 병오(화) | `getSeunCombinationAnalysis('화', '병오(丙午)')` 추가 |
+| `yearly_2025_prompt.dart` | 을사(화) | `getSeunCombinationAnalysis('화', '을사(乙巳)')` 추가 |
+| `monthly_prompt.dart` | 월별 동적 | `_formatMonthlyCombination()` 메서드 추가 |
+
+---
+
+## 14. 변경 이력
 
 | 날짜 | 버전 | 변경 내용 |
 |------|------|---------|
 | 2026-01-18 | v1.0 | 초안 작성 및 구현 완료 |
 | 2026-01-18 | v1.1 | 프롬프트 상세 문서화 추가 |
 | 2026-01-18 | v1.2 | 캐시 만료 정책 수정 (신년운세: 연말까지, 월운: 월말까지) |
-| 2026-01-18 | v2.0 | 프롬프트 개선 설계 추가 (yongsin/hapchung 활용, 상세 응답)
+| 2026-01-18 | v2.0 | 프롬프트 개선 설계 추가 (yongsin/hapchung 활용, 상세 응답) |
+| 2026-01-18 | v5.0 | **일간+세운 십성 결합 분석** - FortuneInputData에 헬퍼 메서드 추가, 모든 프롬프트에 적용 |
