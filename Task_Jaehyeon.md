@@ -3,7 +3,7 @@
 > Main Claude 컨텍스트 유지용 작업 노트
 > 작업 브랜치: Jaehyeon(Test)
 > 백엔드(Supabase): 사용자가 직접 처리
-> 최종 업데이트: 2026-01-15 (Phase 50 다중 궁합 시스템 설계 완료 📋)
+> 최종 업데이트: 2026-01-18 (Phase 56 연속 궁합 채팅 멘션 파싱 버그 수정 ✅ 완료)
 
 ---
 
@@ -28,25 +28,24 @@ Supabase MCP로 DB 현황 체크하고, context7로 필요한 문서 참조해�
 - MVP v0.1 완료 ✅ (만세력 + AI 채팅 기본)
 - Phase 44~46 완료 ✅ (궁합 채팅 기능)
 - Phase 47~49 완료 ✅ (토큰 사용량 추적 시스템 v2)
-- **Phase 50 설계 완료 📋 (다중 궁합 시스템)**
+- Phase 50 설계 완료 📋 (다중 궁합 시스템)
+- **Phase 56 ✅ 완료 (연속 궁합 채팅 멘션 파싱 버그 수정)**
 
-✅ **Phase 49 완료 내역** (2026-01-15):
-- **문제**: `ai_summaries` INSERT 시 `record "new" has no field "metadata"` 에러
-- **원인**: 트리거 함수가 존재하지 않는 컬럼 참조 (`metadata`, `ai_analysis_tokens`)
-- **수정**:
-  - 기존 중복 트리거 2개 삭제 후 통합 트리거 생성
-  - `NEW.summary_type` 기반 토큰 분류 (TG_TABLE_NAME 대신)
-  - 올바른 컬럼명 사용 (`saju_analysis_tokens`, `daily_fortune_tokens`)
-- **검증**: 박재현 테스트 데이터 정상 기록 확인
-  - saju_analysis_tokens: 24,020 ✅
-  - daily_fortune_tokens: 1,420 ✅
-  - chatting_tokens: 1,886 ✅
+✅ **Phase 56 수정 내용** (2026-01-18):
+- **문제**: 같은 세션에서 연속 궁합 채팅 시 두 번째 대상을 찾지 못함
+- **근본 원인**: MentionParser가 "로그인한 사용자"의 인연 목록만 조회
+- **해결**:
+  1. `mention_parser.dart`: `extractFirstMention()`, `findProfileIdByName()` 메서드 추가
+  2. `saju_chat_shell.dart`: 2단계 파싱 로직 구현
+     - 1단계: 첫 번째 멘션(`@나/박재현`)에서 기준 인물 파악
+     - 2단계: 기준 인물의 관계 목록 재조회 후 두 번째 멘션 파싱
+- **수정 파일**:
+  - `frontend/lib/features/saju_chat/domain/services/mention_parser.dart`
+  - `frontend/lib/features/saju_chat/presentation/screens/saju_chat_shell.dart`
 
-다음 작업 후보:
-1. **Phase 50 구현** - 다중 궁합 테이블 생성 (chat_session_targets, multi_compatibility_analyses)
-2. 대화형 광고 시스템 구현 - conversational_ad_provider 연동
-3. Phase 44-B (궁합 분석 캐싱) - 기존 분석 조회/재사용
-4. [SUGGESTED_QUESTIONS] 태그 파싱 개선
+다음 작업:
+1. 테스트: 연속 궁합 채팅 정상 동작 확인
+2. Phase 50 다중 궁합 시스템 계속 진행
 
 [원하는 작업 선택]
 ```
@@ -5046,5 +5045,147 @@ CREATE TABLE saju_relation_rules (
 - [ ] `createSession(targetProfileIds: List)` 파라미터 변경
 - [ ] 멘션 파싱 다중화
 - [ ] `includes_owner` 플래그 처리
+
+---
+
+## Phase 56: 연속 궁합 채팅 멘션 파싱 버그 분석 (2026-01-18) ✅ 완료
+
+### 문제 현상
+
+**시나리오:**
+1. 첫 번째 궁합 메시지: `@나/박재현 @친구/송건우 2026 일 궁합봐줘` → ✅ 정상 작동
+2. 두 번째 궁합 메시지 (같은 세션): `@나/박재현 @친구/김동현 이 둘도 일궁합봐봐` → ❌ **실패**
+   - AI 응답: "동현님의 사주 정보를 가지고 있지 않아요"
+
+**실제 데이터 확인:**
+- 김동현은 박재현의 친구로 `profile_relations` 테이블에 등록됨 ✅
+- 김동현의 사주 분석 데이터 `saju_analyses`에 존재 ✅
+- 문제: **멘션 파싱이 실패하여 이전 세션의 targetProfileId(송건우)로 폴백됨**
+
+### 근본 원인 분석
+
+**버그 위치:** `saju_chat_shell.dart:720-751`
+
+```dart
+// 2. UI 선택 없이 직접 타이핑한 멘션이 있으면 파싱
+else if (hasMention) {
+  final activeProfile = await ref.read(activeProfileProvider.future);
+  if (activeProfile != null) {
+    // ⚠️ BUG: 로그인한 사용자의 관계 목록만 조회
+    final relationsAsync = await ref.read(relationListProvider(activeProfile.id).future);
+
+    final parser = MentionParser(
+      ownerProfileId: activeProfile.id,      // 로그인 사용자 ID
+      ownerName: activeProfile.displayName,  // 로그인 사용자 이름
+      relations: relationsAsync,             // 로그인 사용자의 인연만!
+    );
+    final parseResult = parser.parse(text);
+
+    targetId = parseResult.targetProfileId;
+    // ...
+
+    // ⚠️ BUG: 파싱 실패 시 이전 세션의 target으로 폴백
+    if (targetId == null) {
+      targetId = widget.pendingTargetProfileId ?? effectiveTargetProfileId;
+    }
+  }
+}
+```
+
+### 데이터 흐름 (버그 발생 과정)
+
+```
+[입력] @나/박재현 @친구/김동현
+
+1. MentionParser 생성
+   - ownerProfileId = 로그인 사용자 ID (예: admin UUID)
+   - relations = 로그인 사용자의 인연 목록
+
+2. @나/박재현 파싱
+   - "나" 카테고리 → ownerName과 비교
+   - 로그인 사용자가 "박재현"이 아니면 매칭 실패!
+
+3. @친구/김동현 파싱
+   - 로그인 사용자의 친구 목록에서 검색
+   - 김동현은 "박재현"의 친구, 로그인 사용자의 친구 아님
+   - 매칭 실패!
+
+4. 결과: targetProfileId = null
+   → 폴백: 이전 세션의 targetProfileId (송건우) 사용
+   → AI는 송건우 데이터 로드, 김동현 없음
+   → "동현님의 사주 정보가 없어요" 에러
+```
+
+### 해결 방안
+
+**Option A: 첫 번째 멘션 기준으로 관계 재조회**
+```dart
+// 1단계: 첫 번째 멘션에서 "기준 인물" 파악
+// 2단계: 기준 인물의 관계 목록 조회
+// 3단계: 두 번째 멘션을 기준 인물의 관계에서 검색
+```
+
+**Option B: 멘션 파싱 시 모든 프로필에서 검색**
+```dart
+// profileId로 직접 saju_profiles 테이블 검색
+// 카테고리는 힌트로만 사용, 이름으로 최종 매칭
+```
+
+**Option C: 세션 재생성 시 새 컨텍스트 초기화**
+```dart
+// 새 궁합 요청 감지 시 항상 새 세션 생성
+// 이전 세션 컨텍스트 무시
+```
+
+### 관련 파일
+
+| 파일 | 역할 |
+|------|------|
+| `saju_chat_shell.dart` | 메인 채팅 로직, 멘션 파싱 호출 |
+| `mention_parser.dart` | 멘션 문자열 → 프로필 ID 변환 |
+| `chat_session_provider.dart` | 세션 상태 관리 |
+| `relation_selector_sheet.dart` | 궁합 인연 선택 UI |
+
+### 체크리스트
+
+**분석:**
+- [x] 문제 재현 및 확인
+- [x] DB 데이터 검증 (chat_mentions, saju_analyses)
+- [x] MentionParser 로직 분석
+- [x] saju_chat_shell.dart 버그 위치 특정
+
+**구현 (완료):**
+- [x] MentionParser 개선: `extractFirstMention()`, `findProfileIdByName()` 메서드 추가
+- [x] saju_chat_shell.dart: 2단계 파싱 로직 구현 (기준 인물 관계 재조회)
+- [ ] 테스트: 연속 궁합 채팅 정상 동작 확인
+
+### 수정 내용 (2026-01-18)
+
+**1. mention_parser.dart**
+```dart
+// 첫 번째 멘션 추출 (기준 인물 파악용)
+static FirstMentionResult extractFirstMention(String text)
+
+// 이름으로 관계 목록에서 프로필 ID 찾기
+String? findProfileIdByName(String name)
+```
+
+**2. saju_chat_shell.dart (720-784줄)**
+```dart
+// Phase 56: 2단계 파싱 로직
+// 1단계: 첫 번째 멘션 추출하여 "기준 인물" 파악
+final firstMention = MentionParser.extractFirstMention(text);
+
+// 2단계: @나/XXX 형태이고 XXX가 로그인 사용자와 다르면
+// → XXX의 관계 목록으로 재조회
+if (firstMention.isOwnerCategory &&
+    firstMention.name != activeProfile.displayName) {
+  // 기준 인물(예: 박재현)의 프로필 ID 찾기
+  final baseProfileId = tempParser.findProfileIdByName(firstMention.name!);
+  // 기준 인물의 관계 목록 재조회
+  final baseRelations = await ref.read(relationListProvider(baseProfileId).future);
+  // 재조회된 관계로 멘션 파싱
+}
+```
 
 ---

@@ -21,9 +21,9 @@ class RelationSelection {
   });
 }
 
-/// 다중 인연 선택 결과 (Phase 50 신규)
-class MultiRelationSelection {
-  /// 선택된 관계 모델 목록 (2~4명)
+/// 궁합 선택 결과 (v5.0: 항상 2명만 - 합충형해파는 1:1 관계)
+class CompatibilitySelection {
+  /// 선택된 관계 모델 (1명만 - 나 포함 시 상대방 1명)
   final List<ProfileRelationModel> relations;
 
   /// 표시할 멘션 문자열 목록
@@ -35,14 +35,16 @@ class MultiRelationSelection {
   /// "나"의 프로필 ID (includesOwner=true인 경우)
   final String? ownerProfileId;
 
-  const MultiRelationSelection({
+  const CompatibilitySelection({
     required this.relations,
     required this.mentionTexts,
     required this.includesOwner,
     this.ownerProfileId,
   });
 
-  /// 참가자 프로필 ID 목록
+  /// 참가자 프로필 ID 목록 (항상 2명)
+  /// - 나 포함: [나ID, 상대방ID]
+  /// - 나 제외: [상대방1ID, 상대방2ID]
   List<String> get participantIds {
     final ids = relations.map((r) => r.toProfileId).toList();
     if (includesOwner && ownerProfileId != null && !ids.contains(ownerProfileId)) {
@@ -51,23 +53,53 @@ class MultiRelationSelection {
     return ids;
   }
 
+  /// 첫 번째 프로필 ID (profile_id용 - 채팅 기준 인물)
+  /// - 나 포함: 나의 프로필 ID (ownerProfileId)
+  /// - 나 제외: 첫 번째 선택된 인연 ID
+  String? get primaryProfileId {
+    if (includesOwner) {
+      return ownerProfileId;
+    }
+    if (relations.isEmpty) return null;
+    return relations.first.toProfileId;
+  }
+
+  /// 궁합 상대방 프로필 ID (target_profile_id용)
+  /// - 나 포함: 나가 아닌 상대방 ID (relations의 첫 번째)
+  /// - 나 제외: 두 번째 선택된 인연 ID (relations의 두 번째)
+  String? get targetProfileId {
+    if (relations.isEmpty) return null;
+    if (includesOwner) {
+      // 나 + 1명: 상대방은 relations의 첫 번째
+      return relations.first.toProfileId;
+    }
+    // 인연 2명: 상대방은 relations의 두 번째
+    if (relations.length < 2) return null;
+    return relations[1].toProfileId;
+  }
+
   /// 결합된 멘션 문자열
   String get combinedMentionText => mentionTexts.join(' ');
 }
 
+/// @deprecated 다중 인연 선택 결과 - v5.0에서 제거됨
+/// 궁합은 항상 2명만 가능 (합충형해파는 1:1 관계)
+/// CompatibilitySelection을 사용하세요
+typedef MultiRelationSelection = CompatibilitySelection;
+
 /// 인연 선택 Bottom Sheet
 ///
-/// ## Phase 50 다중 선택 지원
-/// - 단일 선택 모드: 기존 동작 (1명 선택 → 즉시 반환)
-/// - 다중 선택 모드: 2~4명 선택 + "나 포함/제외" 토글
+/// ## v5.0 궁합 선택 (항상 2명만)
+/// - 단일 선택 모드: 1명 선택 → 즉시 반환
+/// - 궁합 선택 모드: 2명만 선택 (나 포함: 나+1명, 나 제외: 2명)
 ///
 /// ## 사용 예시
 /// ```dart
 /// // 단일 선택 (기존)
 /// final selection = await RelationSelectorSheet.show(context);
 ///
-/// // 다중 선택 (신규)
-/// final multiSelection = await RelationSelectorSheet.showMulti(context);
+/// // 궁합 선택 (2명만 - v5.0)
+/// final compatSelection = await RelationSelectorSheet.showForCompatibility(context);
 /// ```
 class RelationSelectorSheet extends ConsumerWidget {
   /// 단일 선택 콜백
@@ -92,14 +124,22 @@ class RelationSelectorSheet extends ConsumerWidget {
     );
   }
 
-  /// 다중 선택 Bottom Sheet 표시 (Phase 50 신규)
-  static Future<MultiRelationSelection?> showMulti(BuildContext context) async {
-    return showModalBottomSheet<MultiRelationSelection>(
+  /// 궁합 선택 Bottom Sheet 표시 (v5.0: 2명만 선택)
+  ///
+  /// - 나 포함: 나 + 1명 선택 → 딱 2명
+  /// - 나 제외: 2명 선택 → 딱 2명
+  static Future<CompatibilitySelection?> showForCompatibility(BuildContext context) async {
+    return showModalBottomSheet<CompatibilitySelection>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const _MultiRelationSelectorSheet(),
+      builder: (context) => const _CompatibilitySelectorSheet(),
     );
+  }
+
+  /// @deprecated 다중 선택 - v5.0에서 showForCompatibility로 대체
+  static Future<CompatibilitySelection?> showMulti(BuildContext context) async {
+    return showForCompatibility(context);
   }
 
   @override
@@ -220,25 +260,31 @@ class RelationSelectorSheet extends ConsumerWidget {
   }
 }
 
-/// 다중 인연 선택 Bottom Sheet (Phase 50 신규)
-class _MultiRelationSelectorSheet extends ConsumerStatefulWidget {
-  const _MultiRelationSelectorSheet();
+/// 궁합 인연 선택 Bottom Sheet (v5.1: 나를 목록에 포함, 최대 2명 선택)
+class _CompatibilitySelectorSheet extends ConsumerStatefulWidget {
+  const _CompatibilitySelectorSheet();
 
   @override
-  ConsumerState<_MultiRelationSelectorSheet> createState() =>
-      _MultiRelationSelectorSheetState();
+  ConsumerState<_CompatibilitySelectorSheet> createState() =>
+      _CompatibilitySelectorSheetState();
 }
 
-class _MultiRelationSelectorSheetState
-    extends ConsumerState<_MultiRelationSelectorSheet> {
-  /// 선택된 인연 목록
-  final List<ProfileRelationModel> _selectedRelations = [];
+class _CompatibilitySelectorSheetState
+    extends ConsumerState<_CompatibilitySelectorSheet> {
+  /// 선택된 프로필 ID 목록 (나 포함 가능, 최대 2명)
+  final Set<String> _selectedProfileIds = {};
 
-  /// "나" 포함 여부
-  bool _includesOwner = true;
+  /// 선택된 인연 모델 (프로필 ID → 모델 매핑용)
+  final Map<String, ProfileRelationModel> _selectedRelationModels = {};
 
   /// "나"의 프로필 ID
   String? _ownerProfileId;
+
+  /// "나"의 이름
+  String? _ownerName;
+
+  /// "나" 선택 여부
+  bool get _isOwnerSelected => _ownerProfileId != null && _selectedProfileIds.contains(_ownerProfileId);
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +328,7 @@ class _MultiRelationSelectorSheetState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '다중 궁합 인연 선택',
+                        '궁합 인연 선택',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -291,7 +337,7 @@ class _MultiRelationSelectorSheetState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '2~4명을 선택하세요 (선택: ${_selectedRelations.length}명${_includesOwner ? ' + 나' : ''})',
+                        '궁합을 볼 2명을 선택하세요 (선택: ${_selectedProfileIds.length}/2명)',
                         style: TextStyle(
                           fontSize: 13,
                           color: appTheme.textSecondary,
@@ -304,53 +350,9 @@ class _MultiRelationSelectorSheetState
             ),
           ),
 
-          // "나 포함/제외" 토글
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: appTheme.primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _includesOwner ? Icons.person : Icons.person_off_outlined,
-                    size: 20,
-                    color: appTheme.primaryColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _includesOwner ? '나를 포함한 궁합' : '나를 제외한 궁합 (선택한 사람들끼리)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: appTheme.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Switch(
-                    value: _includesOwner,
-                    onChanged: (value) {
-                      setState(() {
-                        _includesOwner = value;
-                      });
-                    },
-                    activeColor: appTheme.primaryColor,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
           Divider(color: appTheme.primaryColor.withOpacity(0.1), height: 1),
 
-          // 선택된 인연 표시
-          if (_selectedRelations.isNotEmpty)
-            _buildSelectedChips(appTheme),
-
-          // 인연 목록
+          // 인연 목록 ("나" 포함)
           Flexible(
             child: activeProfileAsync.when(
               data: (activeProfile) {
@@ -358,10 +360,13 @@ class _MultiRelationSelectorSheetState
                   return _buildEmptyState(appTheme, '프로필을 먼저 등록해주세요');
                 }
                 _ownerProfileId = activeProfile.id;
-                return _MultiRelationList(
+                _ownerName = activeProfile.displayName;
+                return _CompatibilityRelationList(
                   fromProfileId: activeProfile.id,
-                  selectedRelations: _selectedRelations,
-                  onToggle: _toggleRelation,
+                  ownerName: activeProfile.displayName,
+                  selectedProfileIds: _selectedProfileIds,
+                  onToggleOwner: _toggleOwner,
+                  onToggleRelation: _toggleRelation,
                 );
               },
               loading: () => const Center(
@@ -381,56 +386,35 @@ class _MultiRelationSelectorSheetState
     );
   }
 
-  /// 선택된 인연 칩 표시
-  Widget _buildSelectedChips(AppThemeExtension appTheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        children: _selectedRelations.map((relation) {
-          return Chip(
-            label: Text(
-              relation.displayName ?? '이름 없음',
-              style: TextStyle(fontSize: 12, color: appTheme.textPrimary),
-            ),
-            deleteIcon: Icon(Icons.close, size: 16, color: appTheme.textMuted),
-            onDeleted: () => _toggleRelation(relation),
-            backgroundColor: appTheme.primaryColor.withOpacity(0.1),
-            side: BorderSide.none,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-          );
-        }).toList(),
-      ),
-    );
+  /// "나" 선택/해제
+  void _toggleOwner() {
+    if (_ownerProfileId == null) return;
+    setState(() {
+      if (_selectedProfileIds.contains(_ownerProfileId)) {
+        _selectedProfileIds.remove(_ownerProfileId);
+      } else if (_selectedProfileIds.length < 2) {
+        _selectedProfileIds.add(_ownerProfileId!);
+      }
+    });
   }
 
   /// 인연 선택/해제 토글
   void _toggleRelation(ProfileRelationModel relation) {
     setState(() {
-      final exists = _selectedRelations.any((r) => r.id == relation.id);
-      if (exists) {
-        _selectedRelations.removeWhere((r) => r.id == relation.id);
-      } else {
-        // 최대 4명 (나 포함 시 3명, 나 제외 시 4명)
-        final maxCount = _includesOwner ? 3 : 4;
-        if (_selectedRelations.length < maxCount) {
-          _selectedRelations.add(relation);
-        }
+      final profileId = relation.toProfileId;
+      if (_selectedProfileIds.contains(profileId)) {
+        _selectedProfileIds.remove(profileId);
+        _selectedRelationModels.remove(profileId);
+      } else if (_selectedProfileIds.length < 2) {
+        _selectedProfileIds.add(profileId);
+        _selectedRelationModels[profileId] = relation;
       }
     });
   }
 
   /// 확인 버튼
   Widget _buildConfirmButton(AppThemeExtension appTheme) {
-    // 최소 인원 체크 (나 포함: 1명 이상, 나 제외: 2명 이상)
-    final minRequired = _includesOwner ? 1 : 2;
-    final isValid = _selectedRelations.length >= minRequired;
-
-    // 총 참가자 수 계산
-    final totalCount = _includesOwner
-        ? _selectedRelations.length + 1
-        : _selectedRelations.length;
+    final isValid = _selectedProfileIds.length == 2;
 
     return SafeArea(
       child: Padding(
@@ -448,9 +432,7 @@ class _MultiRelationSelectorSheetState
               ),
             ),
             child: Text(
-              isValid
-                  ? '${totalCount}명 궁합 분석 시작'
-                  : '최소 ${minRequired}명을 선택해주세요',
+              isValid ? '2명 궁합 분석 시작' : '2명을 선택해주세요',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -464,18 +446,40 @@ class _MultiRelationSelectorSheetState
 
   /// 확인 및 반환
   void _confirm() {
-    final mentionTexts = _selectedRelations.map((relation) {
-      final relationType = ProfileRelationType.fromValue(relation.relationType);
-      final displayName = relation.displayName ?? '이름 없음';
-      return '@${relationType.categoryLabel}/$displayName';
-    }).toList();
+    final selectedRelations = <ProfileRelationModel>[];
+    final mentionTexts = <String>[];
+    bool includesOwner = false;
 
-    final result = MultiRelationSelection(
-      relations: _selectedRelations,
+    for (final profileId in _selectedProfileIds) {
+      if (profileId == _ownerProfileId) {
+        // "나" 선택됨
+        includesOwner = true;
+        mentionTexts.add('@나/${_ownerName ?? "나"}');
+      } else {
+        // 인연에서 찾기
+        final relation = _selectedRelationModels[profileId];
+        if (relation != null) {
+          selectedRelations.add(relation);
+          final relationType = ProfileRelationType.fromValue(relation.relationType);
+          mentionTexts.add('@${relationType.categoryLabel}/${relation.displayName ?? "이름 없음"}');
+        }
+      }
+    }
+
+    final result = CompatibilitySelection(
+      relations: selectedRelations,
       mentionTexts: mentionTexts,
-      includesOwner: _includesOwner,
+      includesOwner: includesOwner,
       ownerProfileId: _ownerProfileId,
     );
+
+    // Debug: 선택 결과 로그
+    print('[RelationSelector] 선택 완료:');
+    print('  - includesOwner: $includesOwner');
+    print('  - ownerProfileId: $_ownerProfileId');
+    print('  - selectedRelations: ${selectedRelations.map((r) => "${r.displayName}(${r.toProfileId})").toList()}');
+    print('  - participantIds: ${result.participantIds}');
+    print('  - targetProfileId: ${result.targetProfileId}');
 
     Navigator.of(context).pop(result);
   }
@@ -505,6 +509,201 @@ class _MultiRelationSelectorSheetState
         ),
       ),
     );
+  }
+}
+
+/// 궁합 선택용 인연 목록 (나 포함)
+class _CompatibilityRelationList extends ConsumerWidget {
+  final String fromProfileId;
+  final String? ownerName;
+  final Set<String> selectedProfileIds;
+  final VoidCallback onToggleOwner;
+  final void Function(ProfileRelationModel relation) onToggleRelation;
+
+  const _CompatibilityRelationList({
+    required this.fromProfileId,
+    required this.ownerName,
+    required this.selectedProfileIds,
+    required this.onToggleOwner,
+    required this.onToggleRelation,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTheme = context.appTheme;
+    final relationsAsync = ref.watch(relationsByCategoryProvider(fromProfileId));
+
+    return relationsAsync.when(
+      data: (categoryMap) {
+        return ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            // "나" 섹션 (맨 위)
+            _buildOwnerSection(context, appTheme),
+
+            // 카테고리별 인연 목록
+            ..._buildCategorySections(categoryMap, appTheme),
+          ],
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text('오류: $e', style: TextStyle(color: appTheme.textMuted)),
+        ),
+      ),
+    );
+  }
+
+  /// "나" 섹션 빌드
+  Widget _buildOwnerSection(BuildContext context, AppThemeExtension appTheme) {
+    final isSelected = selectedProfileIds.contains(fromProfileId);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // "나" 카테고리 헤더
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Icon(Icons.person, size: 18, color: appTheme.primaryColor),
+              const SizedBox(width: 8),
+              Text(
+                '나',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // "나" 타일
+        InkWell(
+          onTap: onToggleOwner,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: isSelected ? appTheme.primaryColor.withOpacity(0.1) : null,
+            child: Row(
+              children: [
+                // 체크박스
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? appTheme.primaryColor : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected ? appTheme.primaryColor : appTheme.textMuted,
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                // 아바타
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: appTheme.primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Center(
+                    child: Text(
+                      ownerName?.isNotEmpty == true ? ownerName![0] : '나',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: appTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 이름
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ownerName ?? '나',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: appTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '본인',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: appTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 별표 (나는 항상 표시)
+                const Icon(Icons.star, size: 20, color: Colors.amber),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 카테고리별 섹션 빌드
+  List<Widget> _buildCategorySections(
+    Map<String, List<ProfileRelationModel>> categoryMap,
+    AppThemeExtension appTheme,
+  ) {
+    if (categoryMap.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Text(
+              '등록된 인연이 없습니다\n인연 목록에서 새 인연을 추가해주세요',
+              style: TextStyle(fontSize: 14, color: appTheme.textMuted),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    // 카테고리 순서 정의
+    final categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+    final sortedCategories = categoryMap.keys.toList()
+      ..sort((a, b) {
+        final aIndex = categoryOrder.indexOf(a);
+        final bIndex = categoryOrder.indexOf(b);
+        return (aIndex == -1 ? 999 : aIndex) - (bIndex == -1 ? 999 : bIndex);
+      });
+
+    return sortedCategories.map((category) {
+      final relations = categoryMap[category] ?? [];
+      return _MultiCategorySection(
+        category: category,
+        relations: relations,
+        selectedRelations: relations.where((r) => selectedProfileIds.contains(r.toProfileId)).toList(),
+        onToggle: onToggleRelation,
+      );
+    }).toList();
   }
 }
 

@@ -7,6 +7,7 @@ import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../domain/models/chat_type.dart';
+import '../../domain/services/mention_parser.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
 import '../widgets/chat_history_sidebar/chat_history_sidebar.dart';
@@ -22,6 +23,8 @@ import '../providers/chat_persona_provider.dart';
 import '../../domain/models/chat_persona.dart';
 import '../../domain/models/ai_persona.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../profile/presentation/providers/relation_provider.dart';
+import '../../../profile/data/models/profile_relation_model.dart';
 
 /// 사주 채팅 Shell - 반응형 레이아웃 래퍼
 ///
@@ -131,17 +134,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     await sessionNotifier.createSession(_chatType, activeProfile?.id);
   }
 
-  /// 궁합 채팅 시작 (인연 선택)
+  /// 단일 인연 멘션 (채팅 중 @멘션용)
   ///
   /// 1. RelationSelectorSheet 표시
   /// 2. 인연 선택 시 @카테고리/이름 형태를 입력 필드에 추가
-  /// 3. 사용자가 메시지를 덧붙여 전송하면 궁합 모드로 처리
-  Future<void> _handleCompatibilityChat() async {
+  /// 3. 사용자가 메시지를 덧붙여 전송하면 해당 인연과의 궁합 모드로 처리
+  Future<void> _handleSingleMention() async {
     final selection = await RelationSelectorSheet.show(context);
     if (selection == null || !mounted) return;
 
     if (kDebugMode) {
-      print('[SajuChatShell] 🎯 인연 선택됨');
+      print('[SajuChatShell] 🎯 인연 선택됨 (단일 멘션)');
       print('   - 선택된 인연: ${selection.relation.displayName}');
       print('   - toProfileId: ${selection.relation.toProfileId}');
       print('   - 멘션: ${selection.mentionText}');
@@ -177,39 +180,39 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     });
   }
 
-  /// 다중 궁합 채팅 시작 (Phase 50: 2~4명 선택)
+  /// 궁합 채팅 시작 (v5.0: 항상 2명만 - 합충형해파는 1:1 관계)
   ///
-  /// 1. RelationSelectorSheet.showMulti() 표시
-  /// 2. 여러 명 선택 + "나 포함/제외" 토글
-  /// 3. 선택 완료 시 MultiCompatibilityAnalysisService로 분석 시작
-  Future<void> _handleMultiCompatibilityChat() async {
-    final multiSelection = await RelationSelectorSheet.showMulti(context);
-    if (multiSelection == null || !mounted) return;
+  /// 1. RelationSelectorSheet.showForCompatibility() 표시
+  /// 2. 딱 2명만 선택 (나 포함: 나+1명, 나 제외: 2명)
+  /// 3. 선택 완료 시 CompatibilityAnalysisService로 분석 시작
+  Future<void> _handleCompatibilityChat() async {
+    final selection = await RelationSelectorSheet.showForCompatibility(context);
+    if (selection == null || !mounted) return;
 
     if (kDebugMode) {
-      print('[SajuChatShell] 🎯 다중 인연 선택됨');
-      print('   - 선택된 인연 수: ${multiSelection.relations.length}명');
-      print('   - 나 포함: ${multiSelection.includesOwner}');
-      print('   - 참가자 IDs: ${multiSelection.participantIds}');
-      print('   - 멘션: ${multiSelection.combinedMentionText}');
+      print('[SajuChatShell] 🎯 궁합 인연 선택됨 (2명)');
+      print('   - 선택된 인연: ${selection.relations.length}명');
+      print('   - 나 포함: ${selection.includesOwner}');
+      print('   - 참가자 IDs: ${selection.participantIds}');
+      print('   - 멘션: ${selection.combinedMentionText}');
     }
 
-    // 다중 멘션 텍스트를 입력 필드에 삽입
+    // 멘션 텍스트를 입력 필드에 삽입
     setState(() {
-      final mentionText = multiSelection.combinedMentionText;
-      final prefix = multiSelection.includesOwner ? '[나 포함] ' : '[나 제외] ';
+      final mentionText = selection.combinedMentionText;
+      final prefix = selection.includesOwner ? '[나 포함] ' : '[나 제외] ';
       _inputController.text = '$prefix$mentionText ';
       _inputController.selection = TextSelection.collapsed(
         offset: _inputController.text.length,
       );
 
-      // 다중 궁합용 데이터 저장 (추후 sendMessage에서 사용)
-      _pendingMultiSelection = multiSelection;
+      // 궁합용 데이터 저장 (추후 sendMessage에서 사용)
+      _pendingCompatibilitySelection = selection;
     });
   }
 
-  /// 다중 인연 선택 데이터 (sendMessage 전달용)
-  MultiRelationSelection? _pendingMultiSelection;
+  /// 궁합 인연 선택 데이터 (sendMessage 전달용) - 항상 2명
+  CompatibilitySelection? _pendingCompatibilitySelection;
 
   /// 세션 선택
   void _handleSessionSelected(String sessionId) {
@@ -278,17 +281,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             tooltip: '채팅 기록',
           ),
-          // 인연 선택 버튼 (1명 - 기존)
-          IconButton(
-            icon: const Icon(Icons.person_add_outlined),
-            onPressed: _handleCompatibilityChat,
-            tooltip: '1:1 궁합',
-          ),
-          // 다중 궁합 버튼 (2~4명 - Phase 50)
+          // 궁합 버튼 (2명 선택)
           IconButton(
             icon: const Icon(Icons.group_add_outlined),
-            onPressed: _handleMultiCompatibilityChat,
-            tooltip: '다중 궁합 (2~4명)',
+            onPressed: _handleCompatibilityChat,
+            tooltip: '궁합 보기',
           ),
         ],
       ),
@@ -309,10 +306,10 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         targetProfileId: widget.targetProfileId,
         inputController: _inputController,
         pendingTargetProfileId: _pendingTargetProfileId,
-        pendingMultiSelection: _pendingMultiSelection,
+        pendingCompatibilitySelection: _pendingCompatibilitySelection,
         onMentionSent: () => setState(() {
           _pendingTargetProfileId = null;
-          _pendingMultiSelection = null;
+          _pendingCompatibilitySelection = null;
         }),
       ),
     );
@@ -392,17 +389,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // 인연 선택 버튼 (1명 - 기존)
-                      IconButton(
-                        icon: Icon(Icons.person_add_outlined, color: appTheme.textPrimary),
-                        onPressed: _handleCompatibilityChat,
-                        tooltip: '1:1 궁합',
-                      ),
-                      // 다중 궁합 버튼 (2~4명 - Phase 50)
+                      // 궁합 버튼 (2명 선택)
                       IconButton(
                         icon: Icon(Icons.group_add_outlined, color: appTheme.textPrimary),
-                        onPressed: _handleMultiCompatibilityChat,
-                        tooltip: '다중 궁합 (2~4명)',
+                        onPressed: _handleCompatibilityChat,
+                        tooltip: '궁합 보기',
                       ),
                     ],
                   ),
@@ -417,10 +408,10 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                     targetProfileId: widget.targetProfileId,
                     inputController: _inputController,
                     pendingTargetProfileId: _pendingTargetProfileId,
-                    pendingMultiSelection: _pendingMultiSelection,
+                    pendingCompatibilitySelection: _pendingCompatibilitySelection,
                     onMentionSent: () => setState(() {
                       _pendingTargetProfileId = null;
-                      _pendingMultiSelection = null;
+                      _pendingCompatibilitySelection = null;
                     }),
                   ),
                 ),
@@ -451,8 +442,8 @@ class _ChatContent extends ConsumerStatefulWidget {
   /// 멘션으로 선택된 인연의 targetProfileId (단일 궁합)
   final String? pendingTargetProfileId;
 
-  /// 다중 인연 선택 데이터 (Phase 50: 다중 궁합)
-  final MultiRelationSelection? pendingMultiSelection;
+  /// 궁합 인연 선택 데이터 (v5.0: 항상 2명만)
+  final CompatibilitySelection? pendingCompatibilitySelection;
 
   /// 멘션 전송 완료 후 콜백 (targetProfileId 초기화용)
   final VoidCallback? onMentionSent;
@@ -465,7 +456,7 @@ class _ChatContent extends ConsumerStatefulWidget {
     this.targetProfileId,
     this.inputController,
     this.pendingTargetProfileId,
-    this.pendingMultiSelection,
+    this.pendingCompatibilitySelection,
     this.onMentionSent,
   });
 
@@ -522,9 +513,58 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
               // 멘션 패턴 감지: @카테고리/이름
               final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
               final hasMention = mentionPattern.hasMatch(text);
-              final targetId = hasMention ? widget.pendingTargetProfileId : widget.targetProfileId;
 
-              print('[_ChatContent] 세션 생성 요청: text=$text, hasMention=$hasMention, targetProfileId=$targetId');
+              // targetProfileId 및 participantIds 결정
+              String? targetId;
+              List<String>? participantIds;
+              bool includesOwner = true; // 기본값: "나 포함"
+
+              // 1. UI 선택으로 pendingCompatibilitySelection이 있으면 우선 사용
+              if (widget.pendingCompatibilitySelection != null) {
+                final selection = widget.pendingCompatibilitySelection!;
+                // targetProfileId: 항상 상대방 ID
+                // - 나 포함: relations의 첫 번째 = 상대방
+                // - 나 제외: relations의 두 번째 = 상대방 (첫 번째는 기준 인물)
+                targetId = selection.targetProfileId;
+                participantIds = selection.participantIds;
+                includesOwner = selection.includesOwner;
+                print('[_ChatContent] UI 선택 궁합 모드: participantIds=$participantIds, targetId=$targetId, includesOwner=$includesOwner');
+              }
+              // 2. UI 선택 없이 직접 타이핑한 멘션이 있으면 파싱
+              else if (hasMention) {
+                final activeProfile = await ref.read(activeProfileProvider.future);
+                if (activeProfile != null) {
+                  // 인연 목록 가져오기
+                  final relationsAsync = await ref.read(relationListProvider(activeProfile.id).future);
+
+                  // 멘션 파싱
+                  final parser = MentionParser(
+                    ownerProfileId: activeProfile.id,
+                    ownerName: activeProfile.displayName,
+                    relations: relationsAsync,
+                  );
+                  final parseResult = parser.parse(text);
+
+                  print('[_ChatContent] 멘션 파싱 결과: mentions=${parseResult.mentions.length}, includesOwner=${parseResult.includesOwner}, targetId=${parseResult.targetProfileId}');
+
+                  // 파싱된 targetProfileId 사용
+                  targetId = parseResult.targetProfileId;
+                  participantIds = parseResult.participantIds;
+                  includesOwner = parseResult.includesOwner;
+
+                  // 파싱 실패 시 UI 선택된 값 사용
+                  if (targetId == null && widget.pendingTargetProfileId != null) {
+                    targetId = widget.pendingTargetProfileId;
+                    print('[_ChatContent] 파싱 실패, UI 선택 값 사용: $targetId');
+                  }
+                }
+              }
+              // 3. 기본값
+              else {
+                targetId = widget.targetProfileId;
+              }
+
+              print('[_ChatContent] 세션 생성 요청: text=$text, hasMention=$hasMention, targetProfileId=$targetId, participantIds=$participantIds, includesOwner=$includesOwner');
 
               final activeProfile = await ref.read(activeProfileProvider.future);
               ref.read(chatSessionNotifierProvider.notifier)
@@ -533,6 +573,8 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                     activeProfile?.id,
                     initialMessage: text,
                     targetProfileId: targetId,
+                    participantIds: participantIds,
+                    includesOwner: includesOwner,
                   );
 
               // 멘션 전송 완료 시 콜백 호출
@@ -562,20 +604,24 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
 
     // pendingMessage가 있으면 즉시 전송 (세션 생성 직후)
     // 플래그로 중복 전송 방지
+    final pendingParticipantIds = sessionState.pendingParticipantIds;
+    final pendingIncludesOwner = sessionState.pendingIncludesOwner;
     if (pendingMessage != null && pendingMessage.isNotEmpty && !_isProcessingPendingMessage) {
-      print('[_ChatContent] pendingMessage 발견: $pendingMessage, sessionId=$currentSessionId');
+      print('[_ChatContent] pendingMessage 발견: $pendingMessage, sessionId=$currentSessionId, pendingParticipantIds=$pendingParticipantIds, pendingIncludesOwner=$pendingIncludesOwner');
       _isProcessingPendingMessage = true;
 
       // 다음 프레임에서 실행 (build 중 state 변경 방지)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        print('[_ChatContent] postFrameCallback에서 sendMessage 호출, targetProfileId=$effectiveTargetProfileId');
+        print('[_ChatContent] postFrameCallback에서 sendMessage 호출, targetProfileId=$effectiveTargetProfileId, participantIds=$pendingParticipantIds, includesOwner=$pendingIncludesOwner');
 
         final msg = pendingMessage; // 캡처
         final targetId = effectiveTargetProfileId; // 캡처
+        final participantIds = pendingParticipantIds; // 캡처
+        final includesOwner = pendingIncludesOwner; // 캡처
         ref.read(chatSessionNotifierProvider.notifier).clearPendingMessage();
         ref.read(chatNotifierProvider(currentSessionId).notifier)
-            .sendMessage(msg, widget.chatType, targetProfileId: targetId);
+            .sendMessage(msg, widget.chatType, targetProfileId: targetId, multiParticipantIds: participantIds, includesOwner: includesOwner);
 
         _isProcessingPendingMessage = false;
       });
@@ -641,48 +687,174 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           ),
         ChatInputField(
           controller: widget.inputController,
-          onSend: (text) {
-            // 다중 궁합 감지: [나 포함] 또는 [나 제외] prefix
-            final isMultiCompatibility = text.startsWith('[나 포함]') || text.startsWith('[나 제외]');
-
+          onSend: (text) async {
             // 멘션 패턴 감지: @카테고리/이름
             final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
             final hasMention = mentionPattern.hasMatch(text);
 
-            if (isMultiCompatibility && widget.pendingMultiSelection != null) {
-              // 다중 궁합 모드
-              final multiSelection = widget.pendingMultiSelection!;
-              print('[_ChatContent] 다중 궁합 메시지 전송: sessionId=$currentSessionId, text=$text');
-              print('  - participantIds: ${multiSelection.participantIds}');
-              print('  - includesOwner: ${multiSelection.includesOwner}');
+            // targetProfileId 및 participantIds 결정
+            String? targetId;
+            List<String>? participantIds;
+            bool includesOwner = true; // 기본값: "나 포함"
 
-              ref
-                  .read(chatNotifierProvider(currentSessionId).notifier)
-                  .sendMessage(
-                    text,
-                    widget.chatType,
-                    multiParticipantIds: multiSelection.participantIds,
-                    includesOwner: multiSelection.includesOwner,
+            // 1. UI 선택으로 pendingCompatibilitySelection이 있으면 우선 사용
+            if (widget.pendingCompatibilitySelection != null) {
+              final selection = widget.pendingCompatibilitySelection!;
+              // targetProfileId: 항상 상대방 ID (나 제외)
+              targetId = selection.targetProfileId;
+              participantIds = selection.participantIds;
+              includesOwner = selection.includesOwner;
+              print('[_ChatContent] UI 선택 궁합 메시지 전송: targetId=$targetId, participantIds=$participantIds, includesOwner=$includesOwner');
+            }
+            // 2. UI 선택 없이 직접 타이핑한 멘션이 있으면 파싱
+            else if (hasMention) {
+              final activeProfile = await ref.read(activeProfileProvider.future);
+              if (activeProfile != null) {
+                // Phase 56-57: 향상된 멘션 파싱 로직
+                // "[나 제외]" 패턴 또는 두 멘션 모두 "나"가 아닌 경우 감지
+                final isExcludeOwnerMode = text.contains('[나 제외]') || text.contains('나 제외');
+
+                // 모든 멘션 추출
+                final allMentions = RegExp(r'@([^\s/]+)/([^\s@]+)').allMatches(text).toList();
+                final hasOwnerMention = allMentions.any((m) => m.group(1) == '나');
+
+                // "나 제외" 모드: 두 멘션 모두 "나"가 아니거나, 명시적으로 [나 제외] 포함
+                final isThirdPartyMode = isExcludeOwnerMode ||
+                    (allMentions.length >= 2 && !hasOwnerMention);
+
+                print('[_ChatContent] Phase 57: isThirdPartyMode=$isThirdPartyMode, isExcludeOwnerMode=$isExcludeOwnerMode, hasOwnerMention=$hasOwnerMention, mentionCount=${allMentions.length}');
+
+                if (isThirdPartyMode && allMentions.length >= 2) {
+                  // "나 제외" 모드: 두 사람 모두 관계 목록에서 ID 찾기
+                  final relations = await ref.read(relationListProvider(activeProfile.id).future);
+
+                  final List<String> foundIds = [];
+                  for (final match in allMentions) {
+                    final category = match.group(1) ?? '';
+                    final name = match.group(2) ?? '';
+
+                    // 이름으로 관계에서 프로필 ID 찾기
+                    String? profileId;
+                    for (final relation in relations) {
+                      final displayName = relation.displayName ?? relation.toProfile?.displayName ?? '';
+                      if (displayName == name || displayName.contains(name) || name.contains(displayName)) {
+                        profileId = relation.toProfileId;
+                        break;
+                      }
+                    }
+
+                    if (profileId != null) {
+                      foundIds.add(profileId);
+                      print('[_ChatContent] Phase 57: @$category/$name → profileId=$profileId');
+                    } else {
+                      print('[_ChatContent] Phase 57: @$category/$name → 찾기 실패');
+                    }
+                  }
+
+                  if (foundIds.length >= 2) {
+                    participantIds = foundIds.take(2).toList();
+                    targetId = participantIds.first;
+                    includesOwner = false;
+                    print('[_ChatContent] Phase 57: 나 제외 궁합 - participantIds=$participantIds');
+                  } else {
+                    print('[_ChatContent] Phase 57: 나 제외 모드이지만 2명 찾기 실패 (found=${foundIds.length})');
+                  }
+                } else {
+                  // 기존 로직: "나 포함" 모드 또는 단일 멘션
+                  // Phase 56: 2단계 파싱 로직
+                  // 1단계: 첫 번째 멘션 추출하여 "기준 인물" 파악
+                  final firstMention = MentionParser.extractFirstMention(text);
+
+                  String ownerProfileId = activeProfile.id;
+                  String ownerName = activeProfile.displayName;
+                  List<ProfileRelationModel> relations = await ref.read(relationListProvider(activeProfile.id).future);
+
+                  // 2단계: @나/XXX 형태이고 XXX가 로그인 사용자와 다르면
+                  // → XXX의 관계 목록으로 재조회
+                  if (firstMention.isOwnerCategory &&
+                      firstMention.name != null &&
+                      firstMention.name != activeProfile.displayName) {
+
+                    print('[_ChatContent] Phase 56: 기준 인물 변경 감지 - ${firstMention.name}');
+
+                    // 로그인 사용자의 관계 목록에서 기준 인물(예: 박재현) 프로필 ID 찾기
+                    final tempParser = MentionParser(
+                      ownerProfileId: activeProfile.id,
+                      ownerName: activeProfile.displayName,
+                      relations: relations,
+                    );
+                    final baseProfileId = tempParser.findProfileIdByName(firstMention.name!);
+
+                    if (baseProfileId != null) {
+                      // 기준 인물의 관계 목록 재조회
+                      final baseRelations = await ref.read(relationListProvider(baseProfileId).future);
+
+                      print('[_ChatContent] Phase 56: 기준 인물 관계 재조회 - ${firstMention.name} (${baseRelations.length}명)');
+
+                      // 기준 인물 정보로 교체
+                      ownerProfileId = baseProfileId;
+                      ownerName = firstMention.name!;
+                      relations = baseRelations;
+                    } else {
+                      print('[_ChatContent] Phase 56: 기준 인물 프로필 ID 찾기 실패 - ${firstMention.name}');
+                    }
+                  }
+
+                  // 멘션 파싱 (기준 인물 기준)
+                  final parser = MentionParser(
+                    ownerProfileId: ownerProfileId,
+                    ownerName: ownerName,
+                    relations: relations,
                   );
+                  final parseResult = parser.parse(text);
 
-              // 멘션 전송 완료 시 콜백 호출
-              if (widget.onMentionSent != null) {
-                widget.onMentionSent!();
+                  print('[_ChatContent] 멘션 파싱 결과: mentions=${parseResult.mentions.length}, targetId=${parseResult.targetProfileId}, includesOwner=${parseResult.includesOwner}');
+
+                  // 파싱된 targetProfileId 및 participantIds 사용
+                  targetId = parseResult.targetProfileId;
+                  participantIds = parseResult.participantIds;
+                  includesOwner = parseResult.includesOwner;
+                }
+
+                // 파싱 실패 시 UI 선택된 값 또는 세션 값 사용
+                if (targetId == null) {
+                  targetId = widget.pendingTargetProfileId ?? effectiveTargetProfileId;
+                  print('[_ChatContent] 파싱 실패, fallback 값 사용: $targetId');
+                }
               }
-            } else {
-              // 단일 궁합 또는 일반 채팅 모드
-              // 멘션이 있으면 pendingTargetProfileId 사용, 없으면 기존 effectiveTargetProfileId 사용
-              final targetId = hasMention ? widget.pendingTargetProfileId : effectiveTargetProfileId;
+            }
+            // 3. 기본값 (세션에 저장된 targetProfileId)
+            else {
+              targetId = effectiveTargetProfileId;
+            }
 
-              print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text, hasMention=$hasMention, targetProfileId=$targetId');
-              ref
-                  .read(chatNotifierProvider(currentSessionId).notifier)
-                  .sendMessage(text, widget.chatType, targetProfileId: targetId);
+            // v6.0 (Phase 57): 단순화된 파라미터 전달
+            // - 궁합 모드: compatibilityParticipantIds로 2명의 ID 전달
+            // - 일반 모드: 파라미터 없이 전달 (owner 사주 사용)
+            print('');
+            print('╔══════════════════════════════════════════════════════════════╗');
+            print('║  [_ChatContent] 메시지 전송 준비                              ║');
+            print('╚══════════════════════════════════════════════════════════════╝');
+            print('  sessionId: $currentSessionId');
+            print('  text: $text');
+            print('  hasMention: $hasMention');
+            print('  pendingCompatibilitySelection: ${widget.pendingCompatibilitySelection != null}');
+            print('  participantIds: $participantIds');
+            print('  targetId: $targetId');
+            print('  includesOwner: $includesOwner');
+            ref
+                .read(chatNotifierProvider(currentSessionId).notifier)
+                .sendMessage(
+                  text,
+                  widget.chatType,
+                  compatibilityParticipantIds: participantIds,
+                  // 하위 호환: participantIds가 없을 때만 targetId 사용
+                  targetProfileId: participantIds == null ? targetId : null,
+                );
 
-              // 멘션 전송 완료 시 콜백 호출
-              if (hasMention && widget.onMentionSent != null) {
-                widget.onMentionSent!();
-              }
+            // 멘션 전송 완료 시 콜백 호출
+            if (hasMention && widget.onMentionSent != null) {
+              widget.onMentionSent!();
             }
           },
           enabled: !chatState.isLoading,
