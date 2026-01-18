@@ -40,6 +40,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'compatibility_calculator.dart' show HapchungAnalysis;
 import 'multi_compatibility_calculator.dart';
 
 /// 다중 궁합 분석 결과 래퍼
