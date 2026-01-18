@@ -39,11 +39,9 @@ class Yearly2026Mutations {
     required int completionTokens,
     required double totalCost,
   }) async {
-    // 만료 시간 계산 (한국 시간 기준)
-    final expiresAt = CacheExpiry.yearlyFortune2026 != null
-        ? KoreaDateUtils.calculateExpiry(CacheExpiry.yearlyFortune2026)
-            .toIso8601String()
-        : null;
+    // 만료 시간: 2026년 12월 31일 23:59:59 KST
+    // 신년운세는 해당 연도 끝까지 유효
+    final expiresAt = KoreaDateUtils.expiryEndOfYear(targetYear);
 
     final data = {
       'user_id': userId,

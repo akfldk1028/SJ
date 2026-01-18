@@ -40,11 +40,9 @@ class MonthlyMutations {
     required int completionTokens,
     required double totalCost,
   }) async {
-    // 만료 시간 계산 (7일, 한국 시간 기준)
-    final expiresAt = CacheExpiry.monthlyFortune != null
-        ? KoreaDateUtils.calculateExpiry(CacheExpiry.monthlyFortune)
-            .toIso8601String()
-        : null;
+    // 만료 시간: 해당 월 말일 23:59:59 KST
+    // 월운은 해당 월 끝까지 유효
+    final expiresAt = KoreaDateUtils.expiryEndOfMonth(targetYear, targetMonth);
 
     final data = {
       'user_id': userId,

@@ -481,7 +481,7 @@ ${_buildHapchungSection(data.hapchung)}
     buffer.writeln('| 88-100 | 극왕 | true |');
     buffer.writeln('| 75-87 | 태강 | true |');
     buffer.writeln('| 63-74 | 신강 | true |');
-    buffer.writeln('| 50-62 | **중화신강** | **true** |');
+    buffer.writeln('| 50-62 | 중화신강 | true |');
     buffer.writeln('| 38-49 | 중화신약 | false |');
     buffer.writeln('| 26-37 | 신약 | false |');
     buffer.writeln('| 13-25 | 태약 | false |');

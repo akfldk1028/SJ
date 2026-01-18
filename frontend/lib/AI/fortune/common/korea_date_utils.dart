@@ -103,6 +103,56 @@ class KoreaDateUtils {
     return nextMonth.difference(now);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 운세 캐시 만료 시간 계산
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 특정 월 말일 23:59:59 (한국 시간)
+  ///
+  /// [year] 연도
+  /// [month] 월
+  /// 반환: 해당 월의 마지막 순간
+  ///
+  /// 예: 2026년 1월 → 2026-01-31 23:59:59 KST
+  static DateTime endOfMonth(int year, int month) {
+    // month+1의 0일 = month의 마지막 날
+    final lastDay = DateTime(year, month + 1, 0);
+    return DateTime(lastDay.year, lastDay.month, lastDay.day, 23, 59, 59);
+  }
+
+  /// 특정 연도 말일 23:59:59 (한국 시간)
+  ///
+  /// [year] 연도
+  /// 반환: 해당 연도의 마지막 순간 (12월 31일 23:59:59)
+  ///
+  /// 예: 2026 → 2026-12-31 23:59:59 KST
+  static DateTime endOfYear(int year) {
+    return DateTime(year, 12, 31, 23, 59, 59);
+  }
+
+  /// 이번달 말일 23:59:59 만료 시간 (Supabase용 ISO8601)
+  ///
+  /// 월운 캐시에 사용
+  static String expiryEndOfCurrentMonth() {
+    return toIso8601(endOfMonth(currentYear, currentMonth));
+  }
+
+  /// 특정 월 말일 만료 시간 (Supabase용 ISO8601)
+  ///
+  /// [year] 연도
+  /// [month] 월
+  static String expiryEndOfMonth(int year, int month) {
+    return toIso8601(endOfMonth(year, month));
+  }
+
+  /// 특정 연도 말일 만료 시간 (Supabase용 ISO8601)
+  ///
+  /// [year] 연도
+  /// 신년운세 캐시에 사용
+  static String expiryEndOfYear(int year) {
+    return toIso8601(endOfYear(year));
+  }
+
   /// 연도-월 문자열 (캐시 키용)
   ///
   /// 반환: 'YYYY-MM' 형식

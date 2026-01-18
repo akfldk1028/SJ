@@ -407,17 +407,24 @@ abstract class CacheExpiry {
   /// - 매일 자정 기준으로 갱신
   static const Duration dailyFortune = Duration(hours: 24);
 
-  /// 월운: 7일
-  /// - 월 초에 생성, 일주일간 유효
-  static const Duration monthlyFortune = Duration(days: 7);
+  /// 월운: 해당 월 말일까지
+  /// - 해당 월 말일 23:59:59 KST까지 유효
+  /// - 실제 만료 계산: KoreaDateUtils.expiryEndOfMonth(year, month)
+  /// @deprecated Duration 대신 KoreaDateUtils.expiryEndOfMonth() 사용
+  static const Duration monthlyFortune = Duration(days: 31); // legacy, 사용하지 않음
 
-  /// 년운: 30일
-  /// - 년 초에 생성, 한 달간 유효
-  static const Duration yearlyFortune = Duration(days: 30);
+  /// 년운: 해당 연도 말일까지
+  /// - 해당 연도 12월 31일 23:59:59 KST까지 유효
+  /// - 실제 만료 계산: KoreaDateUtils.expiryEndOfYear(year)
+  /// @deprecated Duration 대신 KoreaDateUtils.expiryEndOfYear() 사용
+  static const Duration yearlyFortune = Duration(days: 365); // legacy, 사용하지 않음
 
-  /// 2026년 신년운세: 30일
+  /// 2026년 신년운세: 2026년 12월 31일까지
   /// - saju_base 기반 파생 분석
-  static const Duration yearlyFortune2026 = Duration(days: 30);
+  /// - 2026-12-31 23:59:59 KST까지 유효
+  /// - 실제 만료 계산: KoreaDateUtils.expiryEndOfYear(2026)
+  /// @deprecated Duration 대신 KoreaDateUtils.expiryEndOfYear(2026) 사용
+  static const Duration yearlyFortune2026 = Duration(days: 365); // legacy, 사용하지 않음
 
   /// 2025년 회고 운세: 무기한
   /// - 과거 분석이므로 변하지 않음
