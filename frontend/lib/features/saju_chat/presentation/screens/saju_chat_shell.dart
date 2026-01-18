@@ -833,17 +833,29 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
           if (canAdjustMbti) const SizedBox(width: 12),
           // 5개 페르소나 원형 리스트
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: ChatPersona.values.map((persona) {
-                return _buildPersonaCircle(
-                  context,
-                  ref,
-                  persona,
-                  isSelected: persona == currentPersona,
-                  accentColor: quadrantColor,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 가용 너비에 따라 원 크기 동적 계산 (최소 36, 최대 52)
+                final personaCount = ChatPersona.values.length;
+                final availableWidth = constraints.maxWidth;
+                final spacing = 8.0;
+                final maxCircleSize = (availableWidth - (personaCount - 1) * spacing) / personaCount;
+                final circleSize = maxCircleSize.clamp(36.0, 52.0);
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: ChatPersona.values.map((persona) {
+                    return _buildPersonaCircle(
+                      context,
+                      ref,
+                      persona,
+                      isSelected: persona == currentPersona,
+                      accentColor: quadrantColor,
+                      size: circleSize,
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ),
         ],
@@ -857,9 +869,11 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     ChatPersona persona, {
     required bool isSelected,
     required Color accentColor,
+    double size = 52,
   }) {
     final appTheme = context.appTheme;
     final isBase = persona == ChatPersona.basePerson;
+    final emojiSize = (size * 0.5).clamp(18.0, 26.0);
 
     return Tooltip(
       message: '${persona.displayName}\n${persona.description}',
@@ -869,8 +883,8 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 52,
-          height: 52,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isSelected
@@ -897,7 +911,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
           child: Center(
             child: Text(
               persona.emoji,
-              style: const TextStyle(fontSize: 26),
+              style: TextStyle(fontSize: emojiSize),
             ),
           ),
         ),
