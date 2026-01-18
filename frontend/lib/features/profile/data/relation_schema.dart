@@ -46,6 +46,7 @@ const String relationSelectColumns = '''
 ''';
 
 /// JOIN하여 프로필 정보까지 가져오는 SELECT
+/// 사주 계산에 필요한 모든 필드 포함
 const String relationWithProfileSelectColumns = '''
   id,
   user_id,
@@ -67,7 +68,13 @@ const String relationWithProfileSelectColumns = '''
     display_name,
     birth_date,
     gender,
-    relation_type
+    relation_type,
+    birth_time_minutes,
+    birth_time_unknown,
+    is_lunar,
+    is_leap_month,
+    birth_city,
+    use_ya_jasi
   )
 ''';
 

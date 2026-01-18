@@ -5,6 +5,7 @@ import 'package:graphview/GraphView.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../domain/entities/saju_profile.dart';
 import '../../../domain/entities/relationship_type.dart';
+import '../../../domain/entities/gender.dart';
 import '../../../data/mock/mock_profiles.dart';
 import '../../../data/models/profile_relation_model.dart';
 import '../../providers/profile_provider.dart';
@@ -367,13 +368,44 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   }
 
   /// 관계 노드 탭 핸들러
+  ///
+  /// 관계 노드 클릭 시 QuickView(만세력) 표시 후 사주 상담/상세보기 선택 가능
   void _onRelationTap(ProfileRelationModel relation) {
     final toProfile = relation.toProfile;
-    if (toProfile != null) {
-      // toProfile 정보를 SajuProfile처럼 사용하여 QuickView 표시
-      // 궁합 채팅으로 이동 가능
-      context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}');
-    }
+    if (toProfile == null) return;
+
+    // ProfileRelationTarget을 SajuProfile로 변환
+    final sajuProfile = SajuProfile(
+      id: toProfile.id,
+      displayName: toProfile.displayName,
+      gender: toProfile.gender == 'male' ? Gender.male : Gender.female,
+      birthDate: toProfile.birthDate,
+      isLunar: toProfile.isLunar,
+      isLeapMonth: toProfile.isLeapMonth,
+      birthTimeMinutes: toProfile.birthTimeMinutes,
+      birthTimeUnknown: toProfile.birthTimeUnknown,
+      useYaJasi: toProfile.useYaJasi,
+      birthCity: toProfile.birthCity ?? '서울',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      relationType: _categoryToRelationType(relation.categoryLabel),
+      profileType: 'other',
+    );
+
+    // QuickView 표시 (만세력 포함)
+    showSajuQuickView(
+      context,
+      profile: sajuProfile,
+      onChatPressed: () {
+        Navigator.pop(context);
+        // 궁합 채팅으로 이동
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}');
+      },
+      onDetailPressed: () {
+        Navigator.pop(context);
+        // TODO: 상세보기 화면으로 이동 (나중에 구현)
+      },
+    );
   }
 
   /// Supabase 관계 데이터로 그래프 구성

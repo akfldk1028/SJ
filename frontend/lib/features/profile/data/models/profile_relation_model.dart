@@ -226,6 +226,8 @@ abstract class ProfileRelationModel with _$ProfileRelationModel {
 }
 
 /// JOIN된 프로필 정보 (to_profile)
+///
+/// 사주 계산에 필요한 모든 필드 포함
 @freezed
 abstract class ProfileRelationTarget with _$ProfileRelationTarget {
   const factory ProfileRelationTarget({
@@ -234,6 +236,13 @@ abstract class ProfileRelationTarget with _$ProfileRelationTarget {
     required DateTime birthDate,
     required String gender,
     String? relationType,
+    // 사주 계산에 필요한 추가 필드
+    int? birthTimeMinutes,
+    @Default(false) bool birthTimeUnknown,
+    @Default(false) bool isLunar,
+    @Default(false) bool isLeapMonth,
+    String? birthCity,
+    @Default(false) bool useYaJasi,
   }) = _ProfileRelationTarget;
 
   const ProfileRelationTarget._();
@@ -248,6 +257,29 @@ abstract class ProfileRelationTarget with _$ProfileRelationTarget {
       birthDate: DateTime.parse(map['birth_date'] as String),
       gender: map['gender'] as String,
       relationType: map['relation_type'] as String?,
+      // 사주 계산에 필요한 추가 필드
+      birthTimeMinutes: map['birth_time_minutes'] as int?,
+      birthTimeUnknown: map['birth_time_unknown'] as bool? ?? false,
+      isLunar: map['is_lunar'] as bool? ?? false,
+      isLeapMonth: map['is_leap_month'] as bool? ?? false,
+      birthCity: map['birth_city'] as String?,
+      useYaJasi: map['use_ya_jasi'] as bool? ?? false,
     );
   }
+
+  /// 생년월일 포맷팅 (yyyy.MM.dd)
+  String get birthDateFormatted {
+    return '${birthDate.year}.${birthDate.month.toString().padLeft(2, '0')}.${birthDate.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 생시 포맷팅 (HH:mm)
+  String? get birthTimeFormatted {
+    if (birthTimeUnknown || birthTimeMinutes == null) return null;
+    final hours = birthTimeMinutes! ~/ 60;
+    final minutes = birthTimeMinutes! % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  }
+
+  /// 달력 유형 라벨
+  String get calendarTypeLabel => isLunar ? (isLeapMonth ? '음력 윤달' : '음력') : '양력';
 }
