@@ -193,6 +193,11 @@ ${inputData.dayStrengthInfo}
 ## 용신/기신 (가장 중요!)
 ${inputData.yongsinInfo}
 
+---
+## ⭐ ${targetYear}년 ${targetMonth}월 $_monthGanji와 나의 오행 결합 분석 ⭐
+${_formatMonthlyCombination()}
+---
+
 ## 이번달과의 합충 관계
 ${_formatMonthlyHapchung()}
 
@@ -201,11 +206,13 @@ ${_formatSajuBase()}
 
 ## 분석 요청
 
-위 원국 정보와 평생운세를 바탕으로 ${targetYear}년 ${targetMonth}월 운세를 분석해주세요.
+위 원국 정보와 **"이번달과 나의 오행 결합 분석"**을 바탕으로 ${targetYear}년 ${targetMonth}월 운세를 분석해주세요.
+
+**⭐ 핵심: 일간(${inputData.dayGan ?? '?'}) + 월운(${_monthElement['branchElement'] ?? '?'}) = ${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement'])) ?? '?'} 관계를 중심으로!**
 
 **스토리텔링으로 작성해주세요:**
-- 각 섹션이 자연스럽게 이어지는 문단으로
-- 월천간/월지와 ${inputData.yongsinElement != null ? '용신 ${inputData.yongsinElement}' : '용신'}의 관계를 자연스럽게 녹여서
+- **십성(${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement'])) ?? '?'})이 이번달 어떤 영향을 미치는지** 자연스럽게 녹여서
+- 월천간/월지와 ${inputData.yongsinElement != null ? '용신 ${inputData.yongsinElement}' : '용신'}의 관계
 - 월지 ${_monthElement['branch']}와 ${inputData.dayJi != null ? '일지 ${inputData.dayJi}' : '일지'}의 관계를 이야기하듯이
 
 ## 응답 JSON 스키마 (읽는 순서대로!)
@@ -227,33 +234,25 @@ ${_formatSajuBase()}
   "career": {
     "title": "직업운",
     "score": 70,
-    "reading": "이번달 직장에서는 {상황 분석}한 흐름입니다. ${_monthElement['stemElement']} 기운이 {영향}하면서 {구체적 상황}이 예상되는데요. 특히 {좋은 시기}에는 {기회}가 있을 수 있고, {주의 시기}에는 {주의사항}에 신경 쓰시면 좋겠습니다. {마무리 조언}하시면 좋은 결과가 있을 거예요. (4-5문장이 자연스럽게 이어지는 문단)",
-    "bestWeeks": [1, 4],
-    "cautionWeeks": [2]
+    "reading": "이번달 직장에서는 {월지 십신}의 영향으로 {상황 분석}한 흐름입니다. 월천간 {월천간}({십성})이 들어오면서 {구체적 영향}이 예상되는데요. {합충 관계가 있다면} {합/충}이 작용하여 {합충 효과}하는 기운이 흐릅니다. 이로 인해 {구체적 직장 상황}이 생길 수 있어요. 특히 첫째 주에는 {1주차 특성}하고, 셋째 주 즈음에는 {3주차 특성}한 흐름이니 {시기별 대응}하시면 좋겠습니다. {마무리 조언}하시면 좋은 결과가 있을 거예요. (반드시 6-8문장! 월천간/월지의 십신, 합충 관계를 명리학적 근거로 설명)"
   },
 
   "wealth": {
     "title": "재물운",
     "score": 68,
-    "reading": "재물 측면에서 이번달은 {상황 분석}합니다. {이름}님의 재물 패턴을 보면 {특성}하신 편인데, 이번달 기운과 만나면서 {영향}이 생길 수 있어요. {좋은 시기}에 {기회}가 있을 수 있고, {주의 시기}에는 {주의사항}이 필요합니다. {마무리 조언}하시면 안정적으로 한 달을 보내실 수 있을 거예요. (4-5문장이 자연스럽게 이어지는 문단)",
-    "bestWeeks": [3, 4],
-    "cautionWeeks": [2]
+    "reading": "재물 측면에서 이번달은 {월운 오행}이 {재성과의 관계}하면서 {상황 분석}합니다. {이름}님의 원국에서 재성이 {원국 재성 특성}하신 편인데, 이번달 {월지 십신}의 기운이 들어오면서 {재물 영향}이 생길 수 있어요. {비겁/겁재 관계가 있다면} 비겁이 재를 극하는 구조라 {비겁 영향}에 유의하시고, {인성 관계가 있다면} 인성이 식상을 극해 재생 흐름이 막힐 수 있으니 주의하세요. 둘째 주에는 {2주차 재물 특성}하고, 넷째 주에는 {4주차 재물 특성}한 흐름이니 {투자/지출 조언}하시면 안정적으로 한 달을 보내실 수 있을 거예요. (반드시 6-8문장! 재성/비겁/인성 관계를 명리학적으로 설명)"
   },
 
   "love": {
     "title": "애정운",
     "score": 72,
-    "reading": "애정 운에서 이번달은 {상황 분석}한 기운이 흐릅니다. ${_monthElement['branchElement']} 에너지가 {영향}하면서 {변화}가 생길 수 있어요. 솔로이신 분들은 {솔로 조언}하시면 좋겠고, 연인이 있으신 분들은 {커플 조언}에 신경 쓰시면 관계가 더 좋아질 수 있습니다. {마무리 조언}해보세요. (4-5문장이 자연스럽게 이어지는 문단)",
-    "bestWeeks": [1, 3],
-    "cautionWeeks": [2]
+    "reading": "애정운에서 이번달은 {월지}와 {일지}의 관계가 {합충 관계}하면서 {상황 분석}한 기운이 흐릅니다. {합이 있다면} {합}이 인연의 문을 열어 새로운 만남이나 관계 진전의 에너지가 풍부해요. {충이 있다면} {충}이 있어 관계에 변화나 갈등이 생길 수 있지만, 이는 정체된 관계를 새롭게 하는 기회이기도 합니다. 솔로이신 분들은 {솔로 조언 + 시기}하시면 좋겠고, 연인이 있으신 분들은 {커플 조언}에 신경 쓰시면 관계가 더 좋아질 수 있습니다. 특히 첫째 주와 셋째 주에 {1,3주 특성}한 기운이 있으니 {마무리 조언}해보세요. (반드시 6-8문장! 합충 관계, 도화/홍염 신살이 있다면 포함)"
   },
 
   "health": {
     "title": "건강운",
     "score": 65,
-    "reading": "건강 측면에서 이번달은 ${_monthElement['branchElement']} 기운이 강하니 {관련 장기/부위}에 신경 쓰시면 좋겠습니다. {구체적 증상}이 나타날 수 있으니 {예방법}을 실천해보세요. 특히 {주의 시기}에는 무리하지 마시고, {라이프스타일 조언}하시는 것을 추천드립니다. {마무리 조언}하시면 건강하게 한 달을 보내실 수 있을 거예요. (4-5문장이 자연스럽게 이어지는 문단)",
-    "focusAreas": ["관련 부위1", "관련 부위2"],
-    "cautionWeeks": [2, 3]
+    "reading": "건강 측면에서 이번달은 {월지 오행}({오행-장부 연결})의 기운이 강하니 {관련 장기/부위}에 신경 쓰시면 좋겠습니다. {십이운성}이 {십이운성 이름}인 시기라 에너지가 {십이운성 영향}하기 쉬우니 무리한 일정은 피하세요. {이름}님의 원국에서 {건강 약점 오행}이 약한 편이라 이번달 {월운 오행}의 영향으로 {구체적 증상}이 나타날 수 있어요. 둘째 주와 셋째 주에는 {2,3주 건강 특성}하니 {예방법}을 실천해보시고, {라이프스타일 조언}하시는 것을 추천드립니다. {마무리 조언}하시면 건강하게 한 달을 보내실 수 있을 거예요. (반드시 6-8문장! 십이운성, 오행-장부 관계를 명리학적으로 설명)"
   },
 
   "weekly": {
@@ -289,9 +288,6 @@ ${_formatSajuBase()}
     "foods": ["추천 음식1", "추천 음식2"],
     "tip": "행운 요소 활용법을 자연스럽게 설명 (2문장)"
   },
-
-  "bestDays": [좋은날짜들],
-  "cautionDays": [주의날짜들],
 
   "closing": {
     "message": "${targetMonth}월을 보내는 {이름}님께. {핵심 메시지}를 기억하시면서 {격려/응원}. 좋은 한 달 보내세요! (2문장의 따뜻한 마무리)"
@@ -418,5 +414,56 @@ ${_formatSajuBase()}
     }
 
     return buffer.toString();
+  }
+
+  /// 월운 + 일간 결합 분석 포맷팅
+  String _formatMonthlyCombination() {
+    final buffer = StringBuffer();
+    final branchElement = _extractPureElement(_monthElement['branchElement']);
+    final stemElement = _extractPureElement(_monthElement['stemElement']);
+
+    buffer.writeln('### 일간과 월운의 결합 분석 (핵심!)');
+    buffer.writeln();
+
+    // 1. 일간 정보
+    buffer.writeln('**1. 일간 정보**');
+    buffer.writeln('- 일간: ${inputData.dayGan ?? "-"} (${inputData.dayGanDescription ?? "-"})');
+    buffer.writeln('- 일간 오행: ${inputData.dayGanElementFull ?? "-"}');
+    buffer.writeln();
+
+    // 2. 월지지 오행의 영향 (주요 기운)
+    if (branchElement != null) {
+      final branchSipseong = inputData.getSipseongFor(branchElement);
+      buffer.writeln('**2. 월지 ${_monthElement['branch']}(${_monthElement['branchElement']})의 영향 (주요 기운)**');
+      buffer.writeln('- 십성: $branchSipseong');
+      buffer.writeln('- 의미: ${inputData.getSipseongExplain(branchElement)}');
+      buffer.writeln();
+    }
+
+    // 3. 월천간 오행의 영향 (보조 기운)
+    if (stemElement != null) {
+      final stemSipseong = inputData.getSipseongFor(stemElement);
+      buffer.writeln('**3. 월천간 ${_monthElement['stem']}(${_monthElement['stemElement']})의 영향 (보조 기운)**');
+      buffer.writeln('- 십성: $stemSipseong');
+      buffer.writeln('- 의미: ${inputData.getSipseongExplain(stemElement)}');
+      buffer.writeln();
+    }
+
+    // 4. 용신/기신과의 관계
+    if (branchElement != null) {
+      buffer.writeln('**4. 월운과 용신/기신의 관계**');
+      buffer.writeln(inputData.getYongsinRelation(branchElement));
+    }
+
+    return buffer.toString();
+  }
+
+  /// 오행 문자열에서 순수 오행만 추출 (예: "금(金)" → "금")
+  String? _extractPureElement(String? elementStr) {
+    if (elementStr == null) return null;
+    for (final e in ['목', '화', '토', '금', '수']) {
+      if (elementStr.contains(e)) return e;
+    }
+    return null;
   }
 }
