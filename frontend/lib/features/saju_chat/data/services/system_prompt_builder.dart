@@ -45,8 +45,11 @@ class SystemPromptBuilder {
   }) {
     _buffer.clear();
 
-    // 궁합 모드 여부
-    final isCompatibilityMode = targetProfile != null;
+    // 다중 궁합 여부 확인 (Phase 50)
+    final isMultiCompatibility = compatibilityAnalysis?['analysis_type'] == 'multi_compatibility';
+
+    // 궁합 모드 여부 (단일 궁합 또는 다중 궁합)
+    final isCompatibilityMode = targetProfile != null || isMultiCompatibility;
 
     // 1. 현재 날짜
     _addCurrentDate();
@@ -77,22 +80,31 @@ class SystemPromptBuilder {
       _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
-    // 6. 상대방 정보 추가 (궁합 모드) - Phase 44 핵심
-    if (isFirstMessage && isCompatibilityMode) {
+    // 6. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
+    if (isFirstMessage && targetProfile != null) {
       _addTargetProfileInfo(targetProfile);
       if (targetSajuAnalysis != null) {
         _addSajuAnalysis(targetSajuAnalysis, '상대방의 사주');
       }
+    }
 
-      // 7. Gemini 궁합 분석 결과 추가 (있는 경우)
-      if (compatibilityAnalysis != null) {
+    // 7. 궁합 분석 결과 추가 (있는 경우) - Phase 44/50
+    if (isFirstMessage && compatibilityAnalysis != null) {
+      if (isMultiCompatibility) {
+        // 다중 궁합 (Phase 50)
+        _addMultiCompatibilityAnalysisResult(compatibilityAnalysis);
+      } else {
+        // 단일 궁합 (Phase 44)
         _addCompatibilityAnalysisResult(compatibilityAnalysis);
       }
+    }
 
+    // 8. 궁합 지시문 추가 (궁합 모드인 경우)
+    if (isFirstMessage && isCompatibilityMode) {
       _addCompatibilityInstructions();
     }
 
-    // 7. 마무리 지시문
+    // 9. 마무리 지시문
     _addClosingInstructions(isCompatibilityMode: isCompatibilityMode);
 
     return _buffer.toString();
@@ -768,5 +780,257 @@ class SystemPromptBuilder {
     if (items != null && items.isNotEmpty) {
       _buffer.writeln('**$label**: ${items.join(', ')}');
     }
+  }
+
+  /// 다중 궁합 분석 결과 추가 (Phase 50)
+  ///
+  /// 2~4명의 다중 궁합 분석 결과를 시스템 프롬프트에 포함합니다.
+  /// 합충형해파 상호작용을 페어별로 상세히 표시합니다.
+  void _addMultiCompatibilityAnalysisResult(CompatibilityAnalysis analysis) {
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('## 🎯 다중 궁합 분석 결과 (${analysis['participant_count']}명)');
+    _buffer.writeln();
+
+    // 나 포함 여부
+    final includesOwner = analysis['includes_owner'] as bool? ?? true;
+    _buffer.writeln('> **분석 모드**: ${includesOwner ? '나 포함' : '나 제외'} 다중 궁합');
+    _buffer.writeln();
+
+    // 종합 점수
+    final overallScore = analysis['overall_score'];
+    if (overallScore != null) {
+      _buffer.writeln('### 📊 종합 궁합 점수');
+      _buffer.writeln('- **전체 점수**: $overallScore점 / 100점');
+      _buffer.writeln('- **그룹 평가**: ${_getScoreGrade(overallScore)}');
+      _buffer.writeln();
+    }
+
+    // 요약
+    final summary = analysis['summary'] as String?;
+    if (summary != null && summary.isNotEmpty) {
+      _buffer.writeln('### 📝 요약');
+      _buffer.writeln('> $summary');
+      _buffer.writeln();
+    }
+
+    // 카테고리별 점수
+    final categoryScores = analysis['category_scores'] as Map<String, dynamic>?;
+    if (categoryScores != null && categoryScores.isNotEmpty) {
+      _buffer.writeln('### 📈 세부 카테고리 점수');
+      _addMultiCategoryScore(categoryScores, 'harmony', '조화도');
+      _addMultiCategoryScore(categoryScores, 'emotional', '감정적 유대');
+      _addMultiCategoryScore(categoryScores, 'stability', '관계 안정성');
+      _addMultiCategoryScore(categoryScores, 'synergy', '시너지');
+      _buffer.writeln();
+    }
+
+    // 페어별 궁합 분석 (합충형해파 상세)
+    final pairCompatibilities = analysis['pair_compatibilities'] as List?;
+    if (pairCompatibilities != null && pairCompatibilities.isNotEmpty) {
+      _buffer.writeln('### 👥 페어별 궁합 분석');
+      _buffer.writeln();
+
+      for (int i = 0; i < pairCompatibilities.length; i++) {
+        final pair = pairCompatibilities[i] as Map<String, dynamic>;
+        _addPairCompatibilityDetail(pair, i + 1);
+      }
+    }
+
+    // 그룹 특수 합 (삼합/방합 완성)
+    final groupHarmonies = analysis['group_harmonies'] as List?;
+    if (groupHarmonies != null && groupHarmonies.isNotEmpty) {
+      _buffer.writeln('### ⭐ 그룹 특수 합 (삼합/방합 완성)');
+      _buffer.writeln();
+      for (final harmony in groupHarmonies) {
+        final h = harmony as Map<String, dynamic>;
+        final type = h['type'] as String? ?? '';
+        final name = h['name'] as String? ?? '';
+        final hanja = h['hanja'] as String? ?? '';
+        final resultOheng = h['result_oheng'] as String? ?? '';
+        final participants = (h['participant_names'] as List?)?.join(', ') ?? '';
+
+        String typeLabel;
+        if (type.contains('samhap')) {
+          typeLabel = '삼합';
+        } else if (type == 'banghap') {
+          typeLabel = '방합';
+        } else {
+          typeLabel = type;
+        }
+
+        _buffer.writeln('- **$name** ($hanja) - $typeLabel → $resultOheng 기운 강화');
+        _buffer.writeln('  - 참가자: $participants');
+      }
+      _buffer.writeln();
+    }
+
+    // 그룹 오행 분포
+    final groupOheng = analysis['group_oheng_distribution'] as Map<String, dynamic>?;
+    if (groupOheng != null) {
+      _buffer.writeln('### 🌟 그룹 오행 분포');
+      _buffer.writeln('| 오행 | 목(木) | 화(火) | 토(土) | 금(金) | 수(水) |');
+      _buffer.writeln('|------|--------|--------|--------|--------|--------|');
+      _buffer.writeln('| 개수 | ${groupOheng['mok']} | ${groupOheng['hwa']} | ${groupOheng['to']} | ${groupOheng['geum']} | ${groupOheng['su']} |');
+      _buffer.writeln();
+
+      final balanceScore = groupOheng['balance_score'] as int?;
+      if (balanceScore != null) {
+        _buffer.writeln('- **균형도**: $balanceScore점 / 100점');
+      }
+
+      final weakElements = groupOheng['weak_elements'] as List?;
+      if (weakElements != null && weakElements.isNotEmpty) {
+        _buffer.writeln('- **부족한 오행**: ${weakElements.join(', ')}');
+      }
+
+      final strongElements = groupOheng['strong_elements'] as List?;
+      if (strongElements != null && strongElements.isNotEmpty) {
+        _buffer.writeln('- **과다한 오행**: ${strongElements.join(', ')}');
+      }
+      _buffer.writeln();
+    }
+
+    // 그룹 강점
+    final groupStrengths = analysis['group_strengths'] as List?;
+    if (groupStrengths != null && groupStrengths.isNotEmpty) {
+      _buffer.writeln('### 💚 그룹 강점');
+      for (final strength in groupStrengths) {
+        _buffer.writeln('- $strength');
+      }
+      _buffer.writeln();
+    }
+
+    // 그룹 도전과제
+    final groupChallenges = analysis['group_challenges'] as List?;
+    if (groupChallenges != null && groupChallenges.isNotEmpty) {
+      _buffer.writeln('### ⚠️ 주의사항');
+      for (final challenge in groupChallenges) {
+        _buffer.writeln('- $challenge');
+      }
+      _buffer.writeln();
+    }
+
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('**위 다중 궁합 분석 결과를 참고하여 대화를 진행하세요.**');
+    _buffer.writeln('각 페어별 합충형해파 관계를 활용하여 깊이 있는 분석을 제공하고,');
+    _buffer.writeln('그룹 전체의 조화와 시너지에 대해 설명하세요.');
+  }
+
+  /// 다중 궁합 카테고리 점수 추가 헬퍼
+  void _addMultiCategoryScore(Map<String, dynamic> scores, String key, String label) {
+    final score = scores[key];
+    if (score != null) {
+      _buffer.writeln('- **$label**: $score점');
+    }
+  }
+
+  /// 페어별 궁합 상세 추가
+  void _addPairCompatibilityDetail(Map<String, dynamic> pair, int index) {
+    final name1 = pair['participant1_name'] as String? ?? '참가자1';
+    final name2 = pair['participant2_name'] as String? ?? '참가자2';
+    final score = pair['score'] as int? ?? 50;
+
+    _buffer.writeln('#### $index. $name1 ↔ $name2 (${score}점)');
+    _buffer.writeln();
+
+    // 합충형해파 상세
+    final hapchung = pair['hapchung_details'] as Map<String, dynamic>?;
+    if (hapchung != null) {
+      _buffer.writeln('**합충형해파 분석**');
+      _buffer.writeln();
+
+      // 합 (긍정적 요소)
+      final haps = hapchung['hap'] as List?;
+      if (haps != null && haps.isNotEmpty) {
+        _buffer.writeln('- ✅ **합(合)**: ${haps.join(', ')}');
+      }
+
+      // 충 (갈등 요소)
+      final chungs = hapchung['chung'] as List?;
+      if (chungs != null && chungs.isNotEmpty) {
+        _buffer.writeln('- ⚡ **충(沖)**: ${chungs.join(', ')}');
+      }
+
+      // 형
+      final hyungs = hapchung['hyung'] as List?;
+      if (hyungs != null && hyungs.isNotEmpty) {
+        _buffer.writeln('- 🔶 **형(刑)**: ${hyungs.join(', ')}');
+      }
+
+      // 해
+      final haes = hapchung['hae'] as List?;
+      if (haes != null && haes.isNotEmpty) {
+        _buffer.writeln('- 💔 **해(害)**: ${haes.join(', ')}');
+      }
+
+      // 파
+      final pas = hapchung['pa'] as List?;
+      if (pas != null && pas.isNotEmpty) {
+        _buffer.writeln('- 💥 **파(破)**: ${pas.join(', ')}');
+      }
+
+      // 원진
+      final wonjins = hapchung['wonjin'] as List?;
+      if (wonjins != null && wonjins.isNotEmpty) {
+        _buffer.writeln('- 🔄 **원진**: ${wonjins.join(', ')}');
+      }
+
+      // 모두 비어있으면
+      if ((haps == null || haps.isEmpty) &&
+          (chungs == null || chungs.isEmpty) &&
+          (hyungs == null || hyungs.isEmpty) &&
+          (haes == null || haes.isEmpty) &&
+          (pas == null || pas.isEmpty) &&
+          (wonjins == null || wonjins.isEmpty)) {
+        _buffer.writeln('- 특별한 합충형해파 관계 없음');
+      }
+
+      _buffer.writeln();
+    }
+
+    // 일간합/일지합/일지충
+    final hasDayGanHap = pair['has_day_gan_hap'] as bool? ?? false;
+    final hasDayJiHap = pair['has_day_ji_hap'] as bool? ?? false;
+    final hasDayJiChung = pair['has_day_ji_chung'] as bool? ?? false;
+
+    if (hasDayGanHap || hasDayJiHap || hasDayJiChung) {
+      _buffer.writeln('**특수 관계**');
+      if (hasDayGanHap) {
+        _buffer.writeln('- 💕 일간합: 천생연분의 인연');
+      }
+      if (hasDayJiHap) {
+        _buffer.writeln('- 🤝 일지합: 깊은 정서적 유대');
+      }
+      if (hasDayJiChung) {
+        _buffer.writeln('- ⚔️ 일지충: 성격 충돌 주의');
+      }
+      _buffer.writeln();
+    }
+
+    // 강점과 도전과제
+    final strengths = pair['strengths'] as List?;
+    if (strengths != null && strengths.isNotEmpty) {
+      _buffer.writeln('- 💚 강점: ${strengths.take(2).join(', ')}');
+    }
+
+    final challenges = pair['challenges'] as List?;
+    if (challenges != null && challenges.isNotEmpty) {
+      _buffer.writeln('- ⚠️ 주의: ${challenges.take(2).join(', ')}');
+    }
+
+    _buffer.writeln();
+  }
+
+  /// 점수 등급 반환
+  String _getScoreGrade(int score) {
+    if (score >= 90) return '🏆 최고의 조합';
+    if (score >= 80) return '🌟 매우 좋음';
+    if (score >= 70) return '😊 좋음';
+    if (score >= 60) return '🙂 보통';
+    if (score >= 50) return '🤔 노력 필요';
+    return '😅 주의 필요';
   }
 }

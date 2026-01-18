@@ -177,6 +177,40 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     });
   }
 
+  /// 다중 궁합 채팅 시작 (Phase 50: 2~4명 선택)
+  ///
+  /// 1. RelationSelectorSheet.showMulti() 표시
+  /// 2. 여러 명 선택 + "나 포함/제외" 토글
+  /// 3. 선택 완료 시 MultiCompatibilityAnalysisService로 분석 시작
+  Future<void> _handleMultiCompatibilityChat() async {
+    final multiSelection = await RelationSelectorSheet.showMulti(context);
+    if (multiSelection == null || !mounted) return;
+
+    if (kDebugMode) {
+      print('[SajuChatShell] 🎯 다중 인연 선택됨');
+      print('   - 선택된 인연 수: ${multiSelection.relations.length}명');
+      print('   - 나 포함: ${multiSelection.includesOwner}');
+      print('   - 참가자 IDs: ${multiSelection.participantIds}');
+      print('   - 멘션: ${multiSelection.combinedMentionText}');
+    }
+
+    // 다중 멘션 텍스트를 입력 필드에 삽입
+    setState(() {
+      final mentionText = multiSelection.combinedMentionText;
+      final prefix = multiSelection.includesOwner ? '[나 포함] ' : '[나 제외] ';
+      _inputController.text = '$prefix$mentionText ';
+      _inputController.selection = TextSelection.collapsed(
+        offset: _inputController.text.length,
+      );
+
+      // 다중 궁합용 데이터 저장 (추후 sendMessage에서 사용)
+      _pendingMultiSelection = multiSelection;
+    });
+  }
+
+  /// 다중 인연 선택 데이터 (sendMessage 전달용)
+  MultiRelationSelection? _pendingMultiSelection;
+
   /// 세션 선택
   void _handleSessionSelected(String sessionId) {
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
@@ -244,11 +278,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             tooltip: '채팅 기록',
           ),
-          // 인연 선택 버튼 (바로 시트 표시)
+          // 인연 선택 버튼 (1명 - 기존)
           IconButton(
             icon: const Icon(Icons.person_add_outlined),
             onPressed: _handleCompatibilityChat,
-            tooltip: '인연 선택',
+            tooltip: '1:1 궁합',
+          ),
+          // 다중 궁합 버튼 (2~4명 - Phase 50)
+          IconButton(
+            icon: const Icon(Icons.group_add_outlined),
+            onPressed: _handleMultiCompatibilityChat,
+            tooltip: '다중 궁합 (2~4명)',
           ),
         ],
       ),
@@ -269,7 +309,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         targetProfileId: widget.targetProfileId,
         inputController: _inputController,
         pendingTargetProfileId: _pendingTargetProfileId,
-        onMentionSent: () => setState(() => _pendingTargetProfileId = null),
+        pendingMultiSelection: _pendingMultiSelection,
+        onMentionSent: () => setState(() {
+          _pendingTargetProfileId = null;
+          _pendingMultiSelection = null;
+        }),
       ),
     );
   }
@@ -348,11 +392,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // 인연 선택 버튼 (바로 시트 표시)
+                      // 인연 선택 버튼 (1명 - 기존)
                       IconButton(
                         icon: Icon(Icons.person_add_outlined, color: appTheme.textPrimary),
                         onPressed: _handleCompatibilityChat,
-                        tooltip: '인연 선택',
+                        tooltip: '1:1 궁합',
+                      ),
+                      // 다중 궁합 버튼 (2~4명 - Phase 50)
+                      IconButton(
+                        icon: Icon(Icons.group_add_outlined, color: appTheme.textPrimary),
+                        onPressed: _handleMultiCompatibilityChat,
+                        tooltip: '다중 궁합 (2~4명)',
                       ),
                     ],
                   ),
@@ -367,7 +417,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                     targetProfileId: widget.targetProfileId,
                     inputController: _inputController,
                     pendingTargetProfileId: _pendingTargetProfileId,
-                    onMentionSent: () => setState(() => _pendingTargetProfileId = null),
+                    pendingMultiSelection: _pendingMultiSelection,
+                    onMentionSent: () => setState(() {
+                      _pendingTargetProfileId = null;
+                      _pendingMultiSelection = null;
+                    }),
                   ),
                 ),
               ],
@@ -394,8 +448,11 @@ class _ChatContent extends ConsumerStatefulWidget {
   /// 외부 입력 필드 컨트롤러 (멘션 삽입용)
   final TextEditingController? inputController;
 
-  /// 멘션으로 선택된 인연의 targetProfileId
+  /// 멘션으로 선택된 인연의 targetProfileId (단일 궁합)
   final String? pendingTargetProfileId;
+
+  /// 다중 인연 선택 데이터 (Phase 50: 다중 궁합)
+  final MultiRelationSelection? pendingMultiSelection;
 
   /// 멘션 전송 완료 후 콜백 (targetProfileId 초기화용)
   final VoidCallback? onMentionSent;
@@ -408,6 +465,7 @@ class _ChatContent extends ConsumerStatefulWidget {
     this.targetProfileId,
     this.inputController,
     this.pendingTargetProfileId,
+    this.pendingMultiSelection,
     this.onMentionSent,
   });
 
@@ -584,20 +642,47 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         ChatInputField(
           controller: widget.inputController,
           onSend: (text) {
+            // 다중 궁합 감지: [나 포함] 또는 [나 제외] prefix
+            final isMultiCompatibility = text.startsWith('[나 포함]') || text.startsWith('[나 제외]');
+
             // 멘션 패턴 감지: @카테고리/이름
             final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
             final hasMention = mentionPattern.hasMatch(text);
-            // 멘션이 있으면 pendingTargetProfileId 사용, 없으면 기존 effectiveTargetProfileId 사용
-            final targetId = hasMention ? widget.pendingTargetProfileId : effectiveTargetProfileId;
 
-            print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text, hasMention=$hasMention, targetProfileId=$targetId');
-            ref
-                .read(chatNotifierProvider(currentSessionId).notifier)
-                .sendMessage(text, widget.chatType, targetProfileId: targetId);
+            if (isMultiCompatibility && widget.pendingMultiSelection != null) {
+              // 다중 궁합 모드
+              final multiSelection = widget.pendingMultiSelection!;
+              print('[_ChatContent] 다중 궁합 메시지 전송: sessionId=$currentSessionId, text=$text');
+              print('  - participantIds: ${multiSelection.participantIds}');
+              print('  - includesOwner: ${multiSelection.includesOwner}');
 
-            // 멘션 전송 완료 시 콜백 호출
-            if (hasMention && widget.onMentionSent != null) {
-              widget.onMentionSent!();
+              ref
+                  .read(chatNotifierProvider(currentSessionId).notifier)
+                  .sendMessage(
+                    text,
+                    widget.chatType,
+                    multiParticipantIds: multiSelection.participantIds,
+                    includesOwner: multiSelection.includesOwner,
+                  );
+
+              // 멘션 전송 완료 시 콜백 호출
+              if (widget.onMentionSent != null) {
+                widget.onMentionSent!();
+              }
+            } else {
+              // 단일 궁합 또는 일반 채팅 모드
+              // 멘션이 있으면 pendingTargetProfileId 사용, 없으면 기존 effectiveTargetProfileId 사용
+              final targetId = hasMention ? widget.pendingTargetProfileId : effectiveTargetProfileId;
+
+              print('[_ChatContent] 메시지 전송: sessionId=$currentSessionId, text=$text, hasMention=$hasMention, targetProfileId=$targetId');
+              ref
+                  .read(chatNotifierProvider(currentSessionId).notifier)
+                  .sendMessage(text, widget.chatType, targetProfileId: targetId);
+
+              // 멘션 전송 완료 시 콜백 호출
+              if (hasMention && widget.onMentionSent != null) {
+                widget.onMentionSent!();
+              }
             }
           },
           enabled: !chatState.isLoading,

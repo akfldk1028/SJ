@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../AI/services/saju_analysis_service.dart' as ai_saju;
 import '../../../../AI/services/compatibility_analysis_service.dart';
+import '../../../../AI/services/multi_compatibility_analysis_service.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
@@ -510,8 +511,16 @@ class ChatNotifier extends _$ChatNotifier {
   }
 
   /// 메시지 전송
-  /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID (선택)
-  Future<void> sendMessage(String content, ChatType chatType, {String? targetProfileId}) async {
+  /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID (선택, 단일 궁합)
+  /// [multiParticipantIds]: 다중 궁합 시 참가자 프로필 ID 목록 (2~4명)
+  /// [includesOwner]: 다중 궁합 시 "나" 포함 여부
+  Future<void> sendMessage(
+    String content,
+    ChatType chatType, {
+    String? targetProfileId,
+    List<String>? multiParticipantIds,
+    bool includesOwner = true,
+  }) async {
     if (content.trim().isEmpty) return;
 
     // 더블클릭/중복 호출 방지
@@ -528,6 +537,7 @@ class ChatNotifier extends _$ChatNotifier {
 
     // [1] 채팅 시작
     final selectedChatPersona = ref.read(chatPersonaNotifierProvider);
+    final isMultiCompatibility = multiParticipantIds != null && multiParticipantIds.length >= 2;
     if (kDebugMode) {
       print('');
       print('╔══════════════════════════════════════════════════════════════╗');
@@ -535,8 +545,12 @@ class ChatNotifier extends _$ChatNotifier {
       print('╚══════════════════════════════════════════════════════════════╝');
       print('   📌 페르소나: ${selectedChatPersona.displayName}');
       print('   📌 세션: $sessionId');
-      if (targetProfileId != null) {
-        print('   📌 상대방 프로필: $targetProfileId');
+      if (isMultiCompatibility) {
+        print('   📌 다중 궁합 모드: ${multiParticipantIds.length}명');
+        print('   📌 참가자: $multiParticipantIds');
+        print('   📌 나 포함: $includesOwner');
+      } else if (targetProfileId != null) {
+        print('   📌 단일 궁합: 상대방 프로필: $targetProfileId');
       }
     }
 
@@ -687,8 +701,76 @@ class ChatNotifier extends _$ChatNotifier {
       }
 
       // v3.6: Gemini 궁합 분석 실행 (첫 메시지 + 궁합 모드)
+      // v4.0 (Phase 50): 다중 궁합 분석 지원
       Map<String, dynamic>? compatibilityAnalysis;
-      if (isFirstMessage && targetProfileId != null && targetProfile != null && profileId != null) {
+
+      // 다중 궁합 분석 (2~4명)
+      if (isFirstMessage && isMultiCompatibility && profileId != null) {
+        if (kDebugMode) {
+          print('');
+          print('   🎯 다중 궁합 분석 시작 (${multiParticipantIds!.length}명)...');
+        }
+        try {
+          final userId = Supabase.instance.client.auth.currentUser?.id;
+          if (userId != null) {
+            // 첫 번째 관계의 관계 유형 조회 (대표 관계 유형으로 사용)
+            final firstTargetId = multiParticipantIds.firstWhere(
+              (id) => id != profileId,
+              orElse: () => multiParticipantIds.first,
+            );
+            final relationResult = await Supabase.instance.client
+                .from('profile_relations')
+                .select('relation_type')
+                .eq('from_profile_id', profileId)
+                .eq('to_profile_id', firstTargetId)
+                .maybeSingle();
+
+            final relationType = relationResult?['relation_type'] as String? ?? 'other';
+
+            final multiCompatibilityService = MultiCompatibilityAnalysisService();
+            final result = await multiCompatibilityService.analyzeMultiCompatibility(
+              userId: userId,
+              participantIds: multiParticipantIds,
+              includesOwner: includesOwner,
+              ownerProfileId: includesOwner ? profileId : null,
+              relationType: relationType,
+            );
+
+            if (result.success && result.data != null) {
+              // MultiCompatibilityResult를 Map으로 변환
+              compatibilityAnalysis = {
+                'overall_score': result.data!.overallScore,
+                'analysis_type': 'multi_compatibility',
+                'participant_count': multiParticipantIds.length,
+                'includes_owner': includesOwner,
+                'pair_compatibilities': result.data!.pairCompatibilities.map((p) => p.toJson()).toList(),
+                'group_harmonies': result.data!.groupHarmonies.map((h) => h.toJson()).toList(),
+                'group_oheng_distribution': result.data!.groupOhengDistribution.toJson(),
+                'group_strengths': result.data!.groupStrengths,
+                'group_challenges': result.data!.groupChallenges,
+                'summary': result.data!.summary,
+                'category_scores': result.data!.categoryScores,
+              };
+              if (kDebugMode) {
+                print('   ✅ 다중 궁합 분석 완료: ${result.data!.overallScore}점');
+              }
+
+              // chat_mentions 테이블에 참가자 저장
+              await _saveChatMentions(currentSessionId, multiParticipantIds);
+            } else {
+              if (kDebugMode) {
+                print('   ⚠️ 다중 궁합 분석 실패: ${result.error}');
+              }
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('   ❌ 다중 궁합 분석 중 오류: $e');
+          }
+        }
+      }
+      // 단일 궁합 분석 (기존)
+      else if (isFirstMessage && targetProfileId != null && targetProfile != null && profileId != null) {
         if (kDebugMode) {
           print('');
           print('   🎯 Gemini 궁합 분석 시작...');
@@ -913,6 +995,44 @@ class ChatNotifier extends _$ChatNotifier {
         streamingContent: null,
         error: '메시지 전송 중 오류가 발생했습니다.',
       );
+    }
+  }
+
+  /// chat_mentions 테이블에 다중 궁합 참가자 저장 (Phase 50)
+  ///
+  /// 다중 궁합 분석 시 참가자 프로필 ID를 저장하여
+  /// 추후 세션에서 참가자 정보를 조회할 수 있도록 합니다.
+  Future<void> _saveChatMentions(String sessionId, List<String> participantIds) async {
+    try {
+      if (kDebugMode) {
+        print('   📝 chat_mentions 저장 시작 (${participantIds.length}명)...');
+      }
+
+      // 기존 멘션 삭제 (세션 재분석 시 중복 방지)
+      await Supabase.instance.client
+          .from('chat_mentions')
+          .delete()
+          .eq('session_id', sessionId);
+
+      // 새 멘션 저장
+      final mentionRows = participantIds.asMap().entries.map((entry) => {
+        'session_id': sessionId,
+        'target_profile_id': entry.value,
+        'mention_order': entry.key,
+      }).toList();
+
+      await Supabase.instance.client
+          .from('chat_mentions')
+          .insert(mentionRows);
+
+      if (kDebugMode) {
+        print('   ✅ chat_mentions 저장 완료');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('   ⚠️ chat_mentions 저장 실패: $e');
+      }
+      // 실패해도 분석은 계속 진행
     }
   }
 
