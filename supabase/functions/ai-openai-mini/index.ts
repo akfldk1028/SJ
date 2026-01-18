@@ -2,15 +2,18 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * GPT-4o-mini 테스트용 Edge Function
+ * GPT-5-mini 테스트용 Edge Function
  *
  * 2026년 신년운세 스토리텔링 프롬프트 테스트
- * - 모델: gpt-4o-mini (가장 비용 효율적인 실제 존재 모델)
- * - 가격: 입력 $0.15/1M, 출력 $0.60/1M tokens
+ * - 모델: gpt-5-mini (비용 효율적)
+ * - 가격: 입력 $0.25/1M, 출력 $2.00/1M tokens
  * - 목표: 5-7문장 상세 응답 생성 테스트
+ * - 주의: max_tokens 대신 max_completion_tokens 사용!
  *
  * v1: 초기 버전 (2026-01-18)
- * v2: gpt-5-mini → gpt-4o-mini 변경 (실제 존재 모델)
+ * v2: gpt-4o-mini 테스트
+ * v3: gpt-5-mini로 복원, max_completion_tokens 사용
+ * v4: gpt-5-mini는 temperature 미지원 (기본값 1만 허용)
  */
 
 const corsHeaders = {
@@ -98,7 +101,7 @@ Deno.serve(async (req) => {
     const requestData: OpenAIRequest = await req.json();
     const {
       messages,
-      model = "gpt-4o-mini",  // 기본 모델: gpt-4o-mini (실제 존재하는 모델)
+      model = "gpt-5-mini",   // 기본 모델: gpt-5-mini
       max_tokens = 16000,     // 스토리텔링 상세 응답용 (5-7문장 × 여러 섹션)
       temperature = 0.7,
       response_format,
@@ -111,15 +114,20 @@ Deno.serve(async (req) => {
       throw new Error("messages is required");
     }
 
-    // GPT-4o-mini 표준 파라미터 (reasoning_effort 없음!)
+    // GPT-5-mini 파라미터 (max_completion_tokens 사용, temperature 미지원!)
     const requestBody: Record<string, unknown> = {
       model,
       messages,
-      max_tokens,  // gpt-4o-mini는 max_tokens 사용
-      temperature,
+      max_completion_tokens: max_tokens,  // gpt-5-mini는 max_completion_tokens 사용
       stream: true,
       stream_options: { include_usage: true },
     };
+
+    // gpt-5-mini는 temperature를 지원하지 않음 (기본값 1만 허용)
+    // gpt-4o-mini 등 다른 모델은 temperature 지원
+    if (!model.startsWith("gpt-5")) {
+      requestBody.temperature = temperature;
+    }
 
     if (response_format) {
       requestBody.response_format = response_format;
@@ -168,8 +176,8 @@ Deno.serve(async (req) => {
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
 
-    // 비용 계산 (gpt-4o-mini 가격: 입력 $0.15/1M, 출력 $0.60/1M)
-    const cost = (promptTokens * 0.15 / 1000000) + (completionTokens * 0.60 / 1000000);
+    // 비용 계산 (gpt-5-mini 가격: 입력 $0.25/1M, 출력 $2.00/1M)
+    const cost = (promptTokens * 0.25 / 1000000) + (completionTokens * 2.00 / 1000000);
 
     console.log(`[ai-openai-mini] Usage: prompt=${promptTokens}, completion=${completionTokens}, cost=$${cost.toFixed(6)}`);
     console.log(`[ai-openai-mini] Content preview: ${content.substring(0, 300)}...`);
