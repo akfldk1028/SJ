@@ -88,6 +88,18 @@ abstract class OpenAIModels {
   /// - GPT-5.2 Thinking: 추론 능력 강화로 사주 분석에 최적
   /// - 프로필당 1회만 실행되므로 비용 부담 적음
   static const String sajuAnalysis = gpt52;
+
+  /// GPT-5-mini (2026년 출시)
+  /// - API ID: gpt-5-mini
+  /// - 가장 저렴한 GPT-5 계열
+  /// - saju_base 기반 파생 운세 분석에 최적
+  /// - 입력: $0.25/1M, 출력: $2.00/1M
+  static const String gpt5Mini = 'gpt-5-mini';
+
+  /// 운세 분석용 모델 (GPT-5-mini)
+  /// - saju_base를 기반으로 파생 운세 생성
+  /// - 2026 신년운세, 이번달 운세, 2025 회고 등
+  static const String fortuneAnalysis = gpt5Mini;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -168,16 +180,28 @@ abstract class OpenAIPricing {
   static const double gpt4oMiniOutput = 0.60;
   static const double gpt4oMiniCached = 0.075;
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GPT-5-mini 가격 (per 1M tokens) - 2026년 출시
+  // 운세 분석 전용 (saju_base 기반 파생 분석)
+  // ─────────────────────────────────────────────────────────────────────────
+  static const double gpt5MiniInput = 0.25;
+  static const double gpt5MiniOutput = 2.00;
+  static const double gpt5MiniCached = 0.025; // 90% 할인
+
   /// 모델별 가격 조회
   ///
   /// [model] OpenAI 모델 ID (예: 'gpt-5.2-thinking')
   /// 반환: {input, output, cached} 가격 맵 또는 null
   static Map<String, double>? getModelPricing(String model) {
     switch (model) {
+      case 'gpt-5.2':
       case 'gpt-5.2-thinking':
       case 'gpt-5.2-instant':
+      case 'gpt-5.2-chat-latest':
       case 'gpt-5.2-pro':
         return {'input': gpt52Input, 'output': gpt52Output, 'cached': gpt52Cached};
+      case 'gpt-5-mini':
+        return {'input': gpt5MiniInput, 'output': gpt5MiniOutput, 'cached': gpt5MiniCached};
       case 'gpt-4o':
         return {'input': gpt4oInput, 'output': gpt4oOutput, 'cached': gpt4oCached};
       case 'gpt-4o-mini':
@@ -334,9 +358,21 @@ abstract class SummaryType {
   /// - 매월 갱신
   static const String monthlyFortune = 'monthly_fortune';
 
-  /// 년운
+  /// 년운 (일반)
   /// - 매년 갱신
   static const String yearlyFortune = 'yearly_fortune';
+
+  /// 2026년 신년운세
+  /// - saju_base 기반 파생 분석
+  /// - 연 1회 생성 (1월)
+  /// - GPT-5-mini 사용
+  static const String yearlyFortune2026 = 'yearly_fortune_2026';
+
+  /// 2025년 회고 운세
+  /// - saju_base 기반 파생 분석
+  /// - 1회성 (과거 분석)
+  /// - GPT-5-mini 사용
+  static const String yearlyFortune2025 = 'yearly_fortune_2025';
 
   /// 질문 응답
   /// - 사용자 자유 질문에 대한 답변
@@ -378,6 +414,14 @@ abstract class CacheExpiry {
   /// 년운: 30일
   /// - 년 초에 생성, 한 달간 유효
   static const Duration yearlyFortune = Duration(days: 30);
+
+  /// 2026년 신년운세: 30일
+  /// - saju_base 기반 파생 분석
+  static const Duration yearlyFortune2026 = Duration(days: 30);
+
+  /// 2025년 회고 운세: 무기한
+  /// - 과거 분석이므로 변하지 않음
+  static Duration? get yearlyFortune2025 => null;
 
   /// 질문 응답: 캐시 안함
   /// - 매번 새로운 답변 생성
