@@ -137,8 +137,10 @@ class ChatRepositoryImpl implements ChatRepository {
       chartData!.isNotEmpty;
 
   /// 초기화 확인
+  /// v6.0 (Phase 57): 시스템 프롬프트는 매번 업데이트 (궁합 모드 지원)
   void _ensureInitialized(String systemPrompt) {
     if (!_isSessionStarted) {
+      // 첫 번째 메시지: 전체 초기화
       _datasource.initialize();
       _datasource.startNewSession(systemPrompt);
 
@@ -148,6 +150,11 @@ class ChatRepositoryImpl implements ChatRepository {
       }
 
       _isSessionStarted = true;
+    } else {
+      // v6.0: 두 번째 이후 메시지에서도 시스템 프롬프트 업데이트
+      // 연속 궁합 채팅에서 참가자가 변경될 때 필수
+      _datasource.updateSystemPrompt(systemPrompt);
+      _pipeline?.updateSystemPrompt(systemPrompt);
     }
   }
 

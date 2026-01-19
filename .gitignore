@@ -47,3 +47,11 @@ SJ-Flow
 
 # Claude Code temp files
 tmpclaude-*
+test_prompt_v2.json
+poll_result.ps1
+poll_result_utf8.ps1
+run_test.ps1
+test_api.ps1
+test_full.ps1
+test_prompt.json
+test_prompt_full.json

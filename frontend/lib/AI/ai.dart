@@ -66,6 +66,7 @@ export 'services/saju_analysis_service.dart';
 export 'services/compatibility_calculator.dart';
 export 'services/compatibility_analysis_service.dart';
 
-// Phase 50: 다중 궁합 (3~4명)
-export 'services/multi_compatibility_calculator.dart';
-export 'services/multi_compatibility_analysis_service.dart';
+// Phase 50: 다중 궁합 - 제거됨 (궁합은 항상 2명만)
+// 사주 궁합은 1:1만 가능 (합충형해파는 두 사람 간의 관계)
+// export 'services/multi_compatibility_calculator.dart';      // DEPRECATED
+// export 'services/multi_compatibility_analysis_service.dart'; // DEPRECATED
