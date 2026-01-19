@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../../data/schema.dart';
 import '../providers/splash_provider.dart';
@@ -156,19 +158,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     // Provider 상태 watch (자동 rebuild)
     final asyncState = ref.watch(splashProvider);
+    final theme = context.appTheme;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.surface,
-            ],
-          ),
-        ),
+      backgroundColor: theme.backgroundColor,
+      body: MysticBackground(
         child: SafeArea(
           child: Center(
             child: AnimatedBuilder(
@@ -186,30 +180,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // 로고 아이콘
-                  _buildLogo(context),
+                  _buildLogo(context, theme),
                   const SizedBox(height: 24),
 
                   // 앱 이름
                   Text(
                     AppStrings.appName,
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      color: theme.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
 
                   // 앱 설명
                   Text(
                     AppStrings.appDescription,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: theme.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 48),
 
                   // 로딩 상태 표시
-                  _buildLoadingIndicator(context, asyncState),
+                  _buildLoadingIndicator(context, asyncState, theme),
                 ],
               ),
             ),
@@ -219,7 +216,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
-  Widget _buildLogo(BuildContext context) {
+  Widget _buildLogo(BuildContext context, AppThemeExtension theme) {
     return Container(
       width: 100,
       height: 100,
@@ -229,13 +226,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.secondary,
+            theme.primaryColor,
+            theme.accentColor ?? theme.primaryColor,
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            color: theme.primaryColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -244,7 +241,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       child: Icon(
         Icons.auto_awesome,
         size: 50,
-        color: Theme.of(context).colorScheme.onPrimary,
+        color: theme.textPrimary,
       ),
     );
   }
@@ -252,6 +249,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget _buildLoadingIndicator(
     BuildContext context,
     AsyncValue<SplashState> asyncState,
+    AppThemeExtension theme,
   ) {
     return asyncState.when(
       data: (state) {
@@ -264,21 +262,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.primaryColor,
                 ),
               )
             else
               Icon(
                 _getStatusIcon(state.status),
-                color: Theme.of(context).colorScheme.primary,
+                color: theme.primaryColor,
                 size: 24,
               ),
             const SizedBox(height: 12),
             Text(
               statusText,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.textMuted,
+              ),
             ),
           ],
         );
@@ -290,31 +289,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             height: 24,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Theme.of(context).colorScheme.primary,
+              color: theme.primaryColor,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             '데이터 로딩 중...',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.textMuted,
+            ),
           ),
         ],
       ),
       error: (error, stack) => Column(
         children: [
-          Icon(
+          const Icon(
             Icons.error_outline,
-            color: Theme.of(context).colorScheme.error,
+            color: Colors.red,
             size: 24,
           ),
           const SizedBox(height: 12),
           Text(
             '연결 오류',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.textMuted,
+            ),
           ),
         ],
       ),

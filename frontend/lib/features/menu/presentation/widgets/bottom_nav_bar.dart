@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
+
 /// 커스텀 Bottom Navigation Bar - Curved 디자인
 ///
 /// 위젯 트리 최적화:
 /// - const 생성자 사용
 /// - 작은 위젯으로 분리
-/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
+/// - 테마 시스템 사용
 class BottomNavBar extends StatelessWidget {
-  // ⚡ 캐싱된 색상 상수
-  static const _shadowColor = Color.fromRGBO(0, 0, 0, 0.3);
-  static const _selectedBg = Color.fromRGBO(92, 107, 192, 0.2);
-  static const _selectedBorder = Color.fromRGBO(92, 107, 192, 0.5);
-  static const _unselectedIcon = Color.fromRGBO(255, 255, 255, 0.5);
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
@@ -23,14 +20,16 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
         boxShadow: [
           BoxShadow(
-            color: _shadowColor,
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
-            offset: Offset(0, -5),
+            offset: const Offset(0, -5),
           ),
         ],
       ),
@@ -45,24 +44,28 @@ class BottomNavBar extends StatelessWidget {
                 label: '홈',
                 isSelected: selectedIndex == 0,
                 onTap: () => onTap(0),
+                theme: theme,
               ),
               _BottomNavItem(
                 icon: Icons.person_rounded,
                 label: '프로필',
                 isSelected: selectedIndex == 1,
                 onTap: () => onTap(1),
+                theme: theme,
               ),
               _BottomNavItem(
                 icon: Icons.history_rounded,
                 label: '히스토리',
                 isSelected: selectedIndex == 2,
                 onTap: () => onTap(2),
+                theme: theme,
               ),
               _BottomNavItem(
                 icon: Icons.settings_rounded,
                 label: '설정',
                 isSelected: selectedIndex == 3,
                 onTap: () => onTap(3),
+                theme: theme,
               ),
             ],
           ),
@@ -78,12 +81,14 @@ class _BottomNavItem extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final AppThemeExtension theme;
 
   const _BottomNavItem({
     required this.icon,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    required this.theme,
   });
 
   @override
@@ -99,12 +104,12 @@ class _BottomNavItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? BottomNavBar._selectedBg
+              ? theme.primaryColor.withValues(alpha: 0.2)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: isSelected
               ? Border.all(
-                  color: BottomNavBar._selectedBorder,
+                  color: theme.primaryColor.withValues(alpha: 0.5),
                   width: 1.5,
                 )
               : null,
@@ -115,16 +120,16 @@ class _BottomNavItem extends StatelessWidget {
             Icon(
               icon,
               color: isSelected
-                  ? const Color(0xFF7E57C2)
-                  : BottomNavBar._unselectedIcon,
+                  ? theme.primaryColor
+                  : theme.textMuted,
               size: 24,
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFF7E57C2),
+                style: TextStyle(
+                  color: theme.primaryColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
