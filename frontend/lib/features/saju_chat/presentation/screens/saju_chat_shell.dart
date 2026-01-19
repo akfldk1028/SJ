@@ -1129,27 +1129,47 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                 ),
               ),
             ),
-          // 6개 페르소나 원형 리스트 - 화면 중앙 정렬
+          // 6개 페르소나 원형 리스트
+          // MBTI 버튼 활성화: 왼쪽 정렬 (버튼 옆에 붙임)
+          // MBTI 버튼 비활성화: 중앙 정렬
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: ChatPersona.values.map((persona) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: _buildPersonaCircle(
-                    context,
-                    ref,
-                    persona,
-                    isSelected: persona == currentPersona,
-                    accentColor: quadrantColor,
-                    size: circleSize,
+            child: canAdjustMbti
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: ChatPersona.values.map((persona) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: _buildPersonaCircle(
+                            context,
+                            ref,
+                            persona,
+                            isSelected: persona == currentPersona,
+                            accentColor: quadrantColor,
+                            size: circleSize,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: ChatPersona.values.map((persona) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: _buildPersonaCircle(
+                          context,
+                          ref,
+                          persona,
+                          isSelected: persona == currentPersona,
+                          accentColor: quadrantColor,
+                          size: circleSize,
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
-            ),
           ),
-          // MBTI 버튼이 있을 때 오른쪽도 같은 너비 확보 (좌우 대칭)
-          if (canAdjustMbti) const SizedBox(width: mbtiButtonWidth),
         ],
       ),
     );

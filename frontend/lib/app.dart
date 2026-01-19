@@ -7,14 +7,65 @@ import 'router/app_router.dart';
 import 'core/theme/theme_provider.dart';
 
 /// 사담 앱 루트 위젯
-class MantokApp extends ConsumerWidget {
+class MantokApp extends ConsumerStatefulWidget {
   const MantokApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MantokApp> createState() => _MantokAppState();
+}
+
+class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserver {
+  bool _routerListenerAdded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // 초기 상태바 스타일 적용
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applySystemUiStyle();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _applySystemUiStyle();
+    }
+  }
+
+  void _applySystemUiStyle() {
+    final themeExt = ref.read(currentThemeExtensionProvider);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: themeExt.backgroundColor,
+      statusBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: themeExt.backgroundColor,
+      systemNavigationBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final currentTheme = ref.watch(currentThemeDataProvider);
     final themeExt = ref.watch(currentThemeExtensionProvider);
+
+    // 라우터 리스너 추가 (한 번만)
+    if (!_routerListenerAdded) {
+      _routerListenerAdded = true;
+      router.routerDelegate.addListener(() {
+        // 라우트 변경 시 상태바 스타일 재적용
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _applySystemUiStyle();
+        });
+      });
+    }
 
     // shadcn_ui 테마 데이터 생성
     final shadThemeData = themeExt.isDark
@@ -55,25 +106,14 @@ class MantokApp extends ConsumerWidget {
             ),
           );
 
-    // 시스템 UI 스타일 설정
-    final systemUiStyle = SystemUiOverlayStyle(
-      statusBarColor: themeExt.backgroundColor,
-      statusBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: themeExt.backgroundColor,
-      systemNavigationBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
-    );
-
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: systemUiStyle,
-      child: ShadApp.router(
-        title: '사담',
-        debugShowCheckedModeBanner: false,
-        routerConfig: router,
-        theme: shadThemeData,
-        materialThemeBuilder: (context, theme) {
-          return currentTheme;
-        },
-      ),
+    return ShadApp.router(
+      title: '사담',
+      debugShowCheckedModeBanner: false,
+      routerConfig: router,
+      theme: shadThemeData,
+      materialThemeBuilder: (context, theme) {
+        return currentTheme;
+      },
     );
   }
 }
