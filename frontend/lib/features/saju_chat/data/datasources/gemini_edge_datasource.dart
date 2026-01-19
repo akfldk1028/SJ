@@ -119,6 +119,22 @@ class GeminiEdgeDatasource {
     }
   }
 
+  /// v6.0 (Phase 57): 시스템 프롬프트만 업데이트 (대화 기록 유지)
+  ///
+  /// 궁합 모드에서 참가자가 변경될 때 사용
+  /// - 대화 기록은 유지
+  /// - 시스템 프롬프트만 새 것으로 교체
+  void updateSystemPrompt(String systemPrompt) {
+    final oldPromptLength = _systemPrompt?.length ?? 0;
+    _systemPrompt = systemPrompt;
+    _windowManager.setSystemPrompt(systemPrompt);
+
+    if (kDebugMode) {
+      final newPromptTokens = TokenCounter.estimateSystemPromptTokens(systemPrompt);
+      print('[GeminiEdge] 시스템 프롬프트 업데이트: $oldPromptLength → ${systemPrompt.length} chars ($newPromptTokens 토큰)');
+    }
+  }
+
   /// 메시지 전송 및 응답 받기 (토큰 사용량 포함)
   Future<GeminiResponse> sendMessageWithMetadata(String message) async {
     if (!_isInitialized) {

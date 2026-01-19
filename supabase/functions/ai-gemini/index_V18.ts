@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v17)
+ * Gemini API 호출 Edge Function (v18)
  *
  * 채팅/일운 분석 전용
  * API 키는 서버에만 저장 (보안)
@@ -10,6 +10,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * Quota 시스템:
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
+ *
+ * v18 변경사항 (2026-01-15):
+ * - 스트리밍 finishReason 체크 추가 (SAFETY 차단 감지)
+ * - SAFETY 차단 시 클라이언트에 알림 메시지 전송
+ * - safetySettings 완화: HARASSMENT, HATE_SPEECH → BLOCK_NONE
+ *   ("시궁창 술사" 페르소나 차단 방지)
  *
  * v17 변경사항 (2026-01-14):
  * - chat_tokens (legacy) → gemini_chat_tokens (신규 필드)
@@ -172,15 +178,19 @@ async function recordTokenUsage(
           gemini_cost_usd: cost,
         });
     }
-    console.log(`[ai-gemini v17] Recorded ${totalTokens} tokens for user ${userId}`);
+    console.log(`[ai-gemini v18] Recorded ${totalTokens} tokens for user ${userId}`);
   } catch (error) {
-    console.error("[ai-gemini v17] Failed to record token usage:", error);
+    console.error("[ai-gemini v18] Failed to record token usage:", error);
   }
 }
 
 /**
- * 스트리밍 응답 처리 (v16)
+ * 스트리밍 응답 처리 (v18)
  * Gemini SSE 응답을 클라이언트에 릴레이
+ * 
+ * v18 변경사항:
+ * - finishReason 체크 추가 (SAFETY 차단 감지)
+ * - safetySettings 완화 (HARASSMENT, HATE_SPEECH → BLOCK_NONE)
  */
 async function handleStreamingRequest(
   supabase: ReturnType<typeof createClient>,
@@ -207,7 +217,7 @@ async function handleStreamingRequest(
   // Gemini 스트리밍 API 호출
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
 
-  console.log(`[ai-gemini-stream] Calling Gemini streaming API: model=${model}`);
+  console.log(`[ai-gemini-stream v18] Calling Gemini streaming API: model=${model}`);
 
   const geminiResponse = await fetch(geminiUrl, {
     method: "POST",
@@ -240,7 +250,7 @@ async function handleStreamingRequest(
 
   if (!geminiResponse.ok) {
     const errorText = await geminiResponse.text();
-    console.error("[ai-gemini-stream] Gemini API error:", errorText);
+    console.error("[ai-gemini-stream v18] Gemini API error:", errorText);
     throw new Error(`Gemini API error: ${geminiResponse.status}`);
   }
 
@@ -279,9 +289,9 @@ async function handleStreamingRequest(
                 // v18: finishReason 체크 - SAFETY 차단 감지
                 const finishReason = candidate?.finishReason;
                 if (finishReason && finishReason !== "STOP") {
-                  console.warn(`[ai-gemini-stream] finishReason: ${finishReason}`);
+                  console.warn(`[ai-gemini-stream v18] finishReason: ${finishReason}`);
                   if (finishReason === "SAFETY") {
-                    console.error("[ai-gemini-stream] Response blocked by SAFETY filter");
+                    console.error("[ai-gemini-stream v18] Response blocked by SAFETY filter");
                     const safetyData = JSON.stringify({
                       text: "\n\n[안전 필터에 의해 응답이 차단되었습니다. 다른 질문을 해주세요.]",
                       done: false,
@@ -306,7 +316,7 @@ async function handleStreamingRequest(
                   controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
                 }
               } catch (parseError) {
-                console.error("[ai-gemini-stream] Parse error:", parseError);
+                console.error("[ai-gemini-stream v18] Parse error:", parseError);
               }
             }
           }
@@ -328,11 +338,11 @@ async function handleStreamingRequest(
         if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
           const cost = (totalPromptTokens * 0.075 / 1000000) + (totalCompletionTokens * 0.30 / 1000000);
           await recordTokenUsage(supabase, userId, totalPromptTokens, totalCompletionTokens, cost, isAdmin);
-          console.log(`[ai-gemini-stream] Token usage recorded: prompt=${totalPromptTokens}, completion=${totalCompletionTokens}`);
+          console.log(`[ai-gemini-stream v18] Token usage recorded: prompt=${totalPromptTokens}, completion=${totalCompletionTokens}`);
         }
 
       } catch (error) {
-        console.error("[ai-gemini-stream] Stream error:", error);
+        console.error("[ai-gemini-stream v18] Stream error:", error);
         const errorData = JSON.stringify({ error: "Stream error", done: true });
         controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
       } finally {
@@ -388,13 +398,13 @@ Deno.serve(async (req) => {
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-gemini v17] User ${user_id} isAdmin: ${isAdmin}`);
+      console.log(`[ai-gemini v18] User ${user_id} isAdmin: ${isAdmin}`);
 
       // Quota 확인 (Admin은 스킵)
       if (!isAdmin) {
         const quota = await checkAndUpdateQuota(supabase, user_id, 0, isAdmin);
         if (!quota.allowed) {
-          console.log(`[ai-gemini v17] Quota exceeded for user ${user_id}`);
+          console.log(`[ai-gemini v18] Quota exceeded for user ${user_id}`);
           return new Response(
             JSON.stringify({
               success: false,
@@ -415,7 +425,7 @@ Deno.serve(async (req) => {
 
     // v16: 스트리밍 모드 분기
     if (stream) {
-      console.log(`[ai-gemini v17] Streaming mode enabled: model=${model}`);
+      console.log(`[ai-gemini v18] Streaming mode enabled: model=${model}`);
       return await handleStreamingRequest(
         supabase,
         messages,
@@ -428,7 +438,7 @@ Deno.serve(async (req) => {
     }
 
     // ===== 기존 비스트리밍 로직 =====
-    console.log(`[ai-gemini v17] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
+    console.log(`[ai-gemini v18] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
 
     // messages를 Gemini 형식으로 변환
     const systemInstruction = messages
@@ -483,7 +493,7 @@ Deno.serve(async (req) => {
 
     // 오류 처리
     if (data.error) {
-      console.error("[ai-gemini v17] Gemini API Error:", data.error);
+      console.error("[ai-gemini v18] Gemini API Error:", data.error);
       return new Response(
         JSON.stringify({
           success: false,
@@ -524,7 +534,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[ai-gemini v17] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`
+      `[ai-gemini v18] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`
     );
 
     return new Response(
@@ -545,7 +555,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("[ai-gemini v17] Error:", error);
+    console.error("[ai-gemini v18] Error:", error);
 
     return new Response(
       JSON.stringify({

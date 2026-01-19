@@ -2416,3 +2416,18 @@ CREATE TRIGGER trg_update_token_usage_on_ai_summaries
 - `chatting_tokens` (O) - NOT `gemini_chat_tokens`
 
 ---
+
+## 관련 Flutter 버그 참조 (2026-01-18)
+
+### Phase 56: 연속 궁합 채팅 멘션 파싱 버그
+
+**상세 내용:** `Task_Jaehyeon.md` Phase 56 참조
+
+**요약:**
+- 같은 세션에서 연속 궁합 채팅 시 두 번째 대상 못 찾는 문제
+- **원인**: MentionParser가 로그인 사용자의 인연만 검색
+- **버그 위치**: `saju_chat_shell.dart:720-751`
+- **DB는 정상** - profile_relations, saju_analyses 데이터 모두 존재
+- **Flutter 코드 문제**로 DB 변경 불필요
+
+---

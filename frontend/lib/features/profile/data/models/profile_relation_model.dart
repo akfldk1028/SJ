@@ -38,6 +38,18 @@ abstract class ProfileRelationModel with _$ProfileRelationModel {
 
     /// 분석 요청 시간
     DateTime? analysisRequestedAt,
+
+    // === Phase 51: 궁합 분석 연결 ===
+    /// 궁합 분석 결과 ID (compatibility_analyses FK)
+    String? compatibilityAnalysisId,
+
+    /// 궁합 분석 완료 시간
+    DateTime? analysisCompletedAt,
+
+    /// 두 사람 간 합충형해파 분석 결과 (JSONB)
+    /// 구조: {hap: [], chung: [], hyung: [], hae: [], pa: [], wonjin: [],
+    ///        overall_score: int, positive_count: int, negative_count: int}
+    Map<String, dynamic>? pairHapchung,
   }) = _ProfileRelationModel;
 
   const ProfileRelationModel._();
@@ -75,6 +87,12 @@ abstract class ProfileRelationModel with _$ProfileRelationModel {
       analysisRequestedAt: map['analysis_requested_at'] != null
           ? DateTime.parse(map['analysis_requested_at'] as String)
           : null,
+      // Phase 51: 궁합 분석 연결
+      compatibilityAnalysisId: map['compatibility_analysis_id'] as String?,
+      analysisCompletedAt: map['analysis_completed_at'] != null
+          ? DateTime.parse(map['analysis_completed_at'] as String)
+          : null,
+      pairHapchung: map['pair_hapchung'] as Map<String, dynamic>?,
     );
   }
 
@@ -97,6 +115,10 @@ abstract class ProfileRelationModel with _$ProfileRelationModel {
       'to_profile_analysis_id': toProfileAnalysisId,
       'analysis_status': analysisStatus,
       'analysis_requested_at': analysisRequestedAt?.toUtc().toIso8601String(),
+      // Phase 51: 궁합 분석 연결
+      'compatibility_analysis_id': compatibilityAnalysisId,
+      'analysis_completed_at': analysisCompletedAt?.toUtc().toIso8601String(),
+      'pair_hapchung': pairHapchung,
     };
   }
 
@@ -160,9 +182,52 @@ abstract class ProfileRelationModel with _$ProfileRelationModel {
   /// 둘 다 분석이 있는지 (궁합 분석 가능)
   bool get canDoCompatibilityAnalysis =>
       hasFromProfileAnalysis && hasToProfileAnalysis;
+
+  // === Phase 51: 궁합 분석 헬퍼 ===
+
+  /// 궁합 분석 결과가 있는지
+  bool get hasCompatibilityAnalysis => compatibilityAnalysisId != null;
+
+  /// 두 사람 간 합충형해파가 있는지
+  bool get hasPairHapchung => pairHapchung != null;
+
+  /// 궁합 종합 점수 (없으면 null)
+  int? get compatibilityScore => pairHapchung?['overall_score'] as int?;
+
+  /// 긍정적 요소 개수 (합)
+  int get positiveCount => pairHapchung?['positive_count'] as int? ?? 0;
+
+  /// 부정적 요소 개수 (충/형/해/파/원진)
+  int get negativeCount => pairHapchung?['negative_count'] as int? ?? 0;
+
+  /// 합 목록
+  List<String> get hapList =>
+      (pairHapchung?['hap'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  /// 충 목록
+  List<String> get chungList =>
+      (pairHapchung?['chung'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  /// 형 목록
+  List<String> get hyungList =>
+      (pairHapchung?['hyung'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  /// 해 목록
+  List<String> get haeList =>
+      (pairHapchung?['hae'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  /// 파 목록
+  List<String> get paList =>
+      (pairHapchung?['pa'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  /// 원진 목록
+  List<String> get wonjinList =>
+      (pairHapchung?['wonjin'] as List<dynamic>?)?.cast<String>() ?? [];
 }
 
 /// JOIN된 프로필 정보 (to_profile)
+///
+/// 사주 계산에 필요한 모든 필드 포함
 @freezed
 abstract class ProfileRelationTarget with _$ProfileRelationTarget {
   const factory ProfileRelationTarget({
@@ -171,6 +236,13 @@ abstract class ProfileRelationTarget with _$ProfileRelationTarget {
     required DateTime birthDate,
     required String gender,
     String? relationType,
+    // 사주 계산에 필요한 추가 필드
+    int? birthTimeMinutes,
+    @Default(false) bool birthTimeUnknown,
+    @Default(false) bool isLunar,
+    @Default(false) bool isLeapMonth,
+    String? birthCity,
+    @Default(false) bool useYaJasi,
   }) = _ProfileRelationTarget;
 
   const ProfileRelationTarget._();
@@ -185,6 +257,29 @@ abstract class ProfileRelationTarget with _$ProfileRelationTarget {
       birthDate: DateTime.parse(map['birth_date'] as String),
       gender: map['gender'] as String,
       relationType: map['relation_type'] as String?,
+      // 사주 계산에 필요한 추가 필드
+      birthTimeMinutes: map['birth_time_minutes'] as int?,
+      birthTimeUnknown: map['birth_time_unknown'] as bool? ?? false,
+      isLunar: map['is_lunar'] as bool? ?? false,
+      isLeapMonth: map['is_leap_month'] as bool? ?? false,
+      birthCity: map['birth_city'] as String?,
+      useYaJasi: map['use_ya_jasi'] as bool? ?? false,
     );
   }
+
+  /// 생년월일 포맷팅 (yyyy.MM.dd)
+  String get birthDateFormatted {
+    return '${birthDate.year}.${birthDate.month.toString().padLeft(2, '0')}.${birthDate.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 생시 포맷팅 (HH:mm)
+  String? get birthTimeFormatted {
+    if (birthTimeUnknown || birthTimeMinutes == null) return null;
+    final hours = birthTimeMinutes! ~/ 60;
+    final minutes = birthTimeMinutes! % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  }
+
+  /// 달력 유형 라벨
+  String get calendarTypeLabel => isLunar ? (isLeapMonth ? '음력 윤달' : '음력') : '양력';
 }

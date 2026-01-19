@@ -32,6 +32,9 @@ class SystemPromptBuilder {
   /// [targetProfile] - 궁합 채팅 상대방 프로필 (선택)
   /// [targetSajuAnalysis] - 궁합 채팅 상대방 사주 (선택)
   /// [compatibilityAnalysis] - Gemini 궁합 분석 결과 (선택)
+  /// [isThirdPartyCompatibility] - v6.0 (Phase 57): "나 제외" 궁합 모드 여부
+  ///   - true: 두 사람 모두 제3자 (예: 신선우 ↔ 박재현)
+  ///   - false: 상담 요청자 본인 + 상대방 (예: 나 ↔ 엄마)
   String build({
     required String basePrompt,
     AiSummary? aiSummary,
@@ -42,10 +45,12 @@ class SystemPromptBuilder {
     SajuProfile? targetProfile,
     SajuAnalysis? targetSajuAnalysis,
     CompatibilityAnalysis? compatibilityAnalysis,
+    bool isThirdPartyCompatibility = false,
   }) {
     _buffer.clear();
 
-    // 궁합 모드 여부
+    // v5.0: 다중 궁합 제거됨 - 궁합은 항상 2명만 (합충형해파는 1:1 관계)
+    // 궁합 모드 여부 (상대방이 있는 경우)
     final isCompatibilityMode = targetProfile != null;
 
     // 1. 현재 날짜
@@ -59,14 +64,30 @@ class SystemPromptBuilder {
     // 3. 기본 프롬프트
     _buffer.writeln(basePrompt);
 
+    // v6.0 (Phase 57): 라벨 결정
+    // - 나 제외 모드: "첫 번째 사람" / "두 번째 사람"
+    // - 나 포함 모드: "나 (상담 요청자)" / "상대방 (궁합 대상자)"
+    final person1Label = isThirdPartyCompatibility
+        ? '첫 번째 사람 (${profile?.displayName ?? ''})'
+        : (isCompatibilityMode ? '나 (상담 요청자)' : null);
+    final person1SajuLabel = isThirdPartyCompatibility
+        ? '${profile?.displayName ?? '첫 번째 사람'}의 사주'
+        : (isCompatibilityMode ? '나의 사주' : null);
+    final person2Label = isThirdPartyCompatibility
+        ? '두 번째 사람 (${targetProfile?.displayName ?? ''})'
+        : null;  // 기존 _addTargetProfileInfo 사용
+    final person2SajuLabel = isThirdPartyCompatibility
+        ? '${targetProfile?.displayName ?? '두 번째 사람'}의 사주'
+        : '상대방의 사주';
+
     // 4. 프로필 정보 (첫 메시지만)
     if (isFirstMessage && profile != null) {
-      _addProfileInfo(profile, isCompatibilityMode ? '나 (상담 요청자)' : null);
+      _addProfileInfo(profile, person1Label);
     }
 
     // 5. 사주 데이터 (첫 메시지만)
     if (isFirstMessage && sajuAnalysis != null) {
-      _addSajuAnalysis(sajuAnalysis, isCompatibilityMode ? '나의 사주' : null);
+      _addSajuAnalysis(sajuAnalysis, person1SajuLabel);
     } else if (isFirstMessage && aiSummary?.sajuOrigin != null) {
       _addSajuOrigin(aiSummary!.sajuOrigin!);
     } else if (!isFirstMessage) {
@@ -77,22 +98,32 @@ class SystemPromptBuilder {
       _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
-    // 6. 상대방 정보 추가 (궁합 모드) - Phase 44 핵심
-    if (isFirstMessage && isCompatibilityMode) {
-      _addTargetProfileInfo(targetProfile);
+    // 6. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
+    if (isFirstMessage && targetProfile != null) {
+      if (isThirdPartyCompatibility) {
+        // v6.0: 나 제외 모드 - 커스텀 라벨 사용
+        _addProfileInfo(targetProfile, person2Label);
+      } else {
+        // 기존: 나 포함 모드 - 기존 메서드 사용
+        _addTargetProfileInfo(targetProfile);
+      }
       if (targetSajuAnalysis != null) {
-        _addSajuAnalysis(targetSajuAnalysis, '상대방의 사주');
+        _addSajuAnalysis(targetSajuAnalysis, person2SajuLabel);
       }
-
-      // 7. Gemini 궁합 분석 결과 추가 (있는 경우)
-      if (compatibilityAnalysis != null) {
-        _addCompatibilityAnalysisResult(compatibilityAnalysis);
-      }
-
-      _addCompatibilityInstructions();
     }
 
-    // 7. 마무리 지시문
+    // 7. 궁합 분석 결과 추가 (있는 경우) - Phase 44
+    // v5.0: 다중 궁합 제거 - 항상 단일 궁합 (2명)만 처리
+    if (isFirstMessage && compatibilityAnalysis != null) {
+      _addCompatibilityAnalysisResult(compatibilityAnalysis, isThirdPartyCompatibility, profile, targetProfile);
+    }
+
+    // 8. 궁합 지시문 추가 (궁합 모드인 경우)
+    if (isFirstMessage && isCompatibilityMode) {
+      _addCompatibilityInstructions(isThirdPartyCompatibility, profile, targetProfile);
+    }
+
+    // 9. 마무리 지시문
     _addClosingInstructions(isCompatibilityMode: isCompatibilityMode);
 
     return _buffer.toString();
@@ -440,13 +471,22 @@ class SystemPromptBuilder {
   }
 
   /// 궁합 모드 지시문 추가
-  void _addCompatibilityInstructions() {
+  /// v6.0 (Phase 57): isThirdPartyCompatibility 지원
+  void _addCompatibilityInstructions(bool isThirdPartyCompatibility, SajuProfile? person1, SajuProfile? person2) {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
     _buffer.writeln('## 궁합 분석 가이드');
     _buffer.writeln();
-    _buffer.writeln('이 상담은 **궁합 분석** 모드입니다. 두 사람의 사주를 비교 분석해주세요.');
+
+    if (isThirdPartyCompatibility && person1 != null && person2 != null) {
+      // 나 제외 모드: 두 사람 모두 제3자
+      _buffer.writeln('이 상담은 **제3자 궁합 분석** 모드입니다.');
+      _buffer.writeln('**${person1.displayName}**님과 **${person2.displayName}**님, 두 사람의 사주를 비교 분석해주세요.');
+      _buffer.writeln('상담 요청자는 이 두 사람의 궁합이 궁금한 것이며, 요청자 본인의 궁합이 아닙니다.');
+    } else {
+      _buffer.writeln('이 상담은 **궁합 분석** 모드입니다. 두 사람의 사주를 비교 분석해주세요.');
+    }
     _buffer.writeln();
     _buffer.writeln('### 분석 포인트');
     _buffer.writeln('1. **일간 궁합**: 두 사람의 일간(日干) 오행 관계 분석');
@@ -478,11 +518,21 @@ class SystemPromptBuilder {
   }
 
   /// Gemini 궁합 분석 결과 추가
-  void _addCompatibilityAnalysisResult(CompatibilityAnalysis analysis) {
+  /// v6.0 (Phase 57): isThirdPartyCompatibility 지원
+  void _addCompatibilityAnalysisResult(
+    CompatibilityAnalysis analysis,
+    bool isThirdPartyCompatibility,
+    SajuProfile? person1,
+    SajuProfile? person2,
+  ) {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
-    _buffer.writeln('## 🎯 AI 궁합 분석 결과 (Gemini)');
+    if (isThirdPartyCompatibility && person1 != null && person2 != null) {
+      _buffer.writeln('## 🎯 ${person1.displayName} ↔ ${person2.displayName} 궁합 분석 결과');
+    } else {
+      _buffer.writeln('## 🎯 AI 궁합 분석 결과 (Gemini)');
+    }
     _buffer.writeln();
 
     // v3.7 (Phase 47): Gemini가 계산한 상대방 사주 추가
@@ -522,6 +572,16 @@ class SystemPromptBuilder {
       _addCategoryScore(categoryScores, 'sinsal_synergy', '신살 시너지');
       _addCategoryScore(categoryScores, 'energy_balance', '에너지 균형');
       _buffer.writeln();
+    }
+
+    // Phase 51: 두 사람 간 합충형해파 (pair_hapchung) - 궁합의 핵심!
+    // 두 가지 키 지원:
+    // - 'pair_hapchung': DB 캐시에서 가져온 경우
+    // - 'hapchung_details': 새로 계산한 경우 (CompatibilityResult.toJson())
+    final pairHapchung = analysis['pair_hapchung'] as Map<String, dynamic>? ??
+        analysis['hapchung_details'] as Map<String, dynamic>?;
+    if (pairHapchung != null) {
+      _addPairHapchungSection(pairHapchung);
     }
 
     // 상세 분석
@@ -767,6 +827,125 @@ class SystemPromptBuilder {
     final items = hapchung[key] as List?;
     if (items != null && items.isNotEmpty) {
       _buffer.writeln('**$label**: ${items.join(', ')}');
+    }
+  }
+
+  // v5.0: 다중 궁합 관련 메서드 제거됨
+  // _addMultiCompatibilityAnalysisResult, _addMultiCategoryScore, _addPairCompatibilityDetail
+  // 사주 궁합은 항상 2명만 가능 (합충형해파는 1:1 관계)
+
+  /// 점수 등급 반환
+  String _getScoreGrade(int score) {
+    if (score >= 90) return '🏆 최고의 조합';
+    if (score >= 80) return '🌟 매우 좋음';
+    if (score >= 70) return '😊 좋음';
+    if (score >= 60) return '🙂 보통';
+    if (score >= 50) return '🤔 노력 필요';
+    return '😅 주의 필요';
+  }
+
+  /// Phase 51: 두 사람 간 합충형해파 섹션 추가
+  ///
+  /// pair_hapchung 구조:
+  /// ```json
+  /// {
+  ///   "hap": ["년지(年支)↔월지(月支): 자축합토(子丑合土)", ...],
+  ///   "chung": [...],
+  ///   "hyung": [...],
+  ///   "hae": [...],
+  ///   "pa": [...],
+  ///   "wonjin": [...],
+  ///   "overall_score": 75,
+  ///   "positive_count": 3,
+  ///   "negative_count": 2
+  /// }
+  /// ```
+  void _addPairHapchungSection(Map<String, dynamic> pairHapchung) {
+    _buffer.writeln('### 🔗 두 사람 간 합충형해파 (핵심 궁합 요소)');
+    _buffer.writeln();
+
+    // 종합 점수
+    final overallScore = pairHapchung['overall_score'] as int?;
+    final positiveCount = pairHapchung['positive_count'] as int? ?? 0;
+    final negativeCount = pairHapchung['negative_count'] as int? ?? 0;
+
+    if (overallScore != null) {
+      _buffer.writeln('**종합**: $overallScore점 (긍정 ${positiveCount}개, 부정 ${negativeCount}개)');
+      _buffer.writeln();
+    }
+
+    // 합 (긍정적 요소)
+    final hap = pairHapchung['hap'] as List?;
+    if (hap != null && hap.isNotEmpty) {
+      _buffer.writeln('**💚 합(合)** - 긍정적 결합:');
+      for (final item in hap) {
+        _buffer.writeln('- $item');
+      }
+      _buffer.writeln();
+    }
+
+    // 충 (가장 강한 부정적 요소)
+    final chung = pairHapchung['chung'] as List?;
+    if (chung != null && chung.isNotEmpty) {
+      _buffer.writeln('**❌ 충(沖)** - 강한 충돌:');
+      for (final item in chung) {
+        _buffer.writeln('- $item');
+      }
+      _buffer.writeln();
+    }
+
+    // 형
+    final hyung = pairHapchung['hyung'] as List?;
+    if (hyung != null && hyung.isNotEmpty) {
+      _buffer.writeln('**⚠️ 형(刑)** - 마찰:');
+      for (final item in hyung) {
+        _buffer.writeln('- $item');
+      }
+      _buffer.writeln();
+    }
+
+    // 해
+    final hae = pairHapchung['hae'] as List?;
+    if (hae != null && hae.isNotEmpty) {
+      _buffer.writeln('**⚠️ 해(害)** - 해로운 관계:');
+      for (final item in hae) {
+        _buffer.writeln('- $item');
+      }
+      _buffer.writeln();
+    }
+
+    // 파
+    final pa = pairHapchung['pa'] as List?;
+    if (pa != null && pa.isNotEmpty) {
+      _buffer.writeln('**⚠️ 파(破)** - 파괴:');
+      for (final item in pa) {
+        _buffer.writeln('- $item');
+      }
+      _buffer.writeln();
+    }
+
+    // 원진
+    final wonjin = pairHapchung['wonjin'] as List?;
+    if (wonjin != null && wonjin.isNotEmpty) {
+      _buffer.writeln('**⚠️ 원진(怨嗔)** - 원망:');
+      for (final item in wonjin) {
+        _buffer.writeln('- $item');
+      }
+      _buffer.writeln();
+    }
+
+    // 아무 것도 없는 경우
+    final hasAnyHapchung = (hap?.isNotEmpty ?? false) ||
+        (chung?.isNotEmpty ?? false) ||
+        (hyung?.isNotEmpty ?? false) ||
+        (hae?.isNotEmpty ?? false) ||
+        (pa?.isNotEmpty ?? false) ||
+        (wonjin?.isNotEmpty ?? false);
+
+    if (!hasAnyHapchung) {
+      _buffer.writeln('두 사람 간 특별한 합충형해파 관계가 발견되지 않았습니다.');
+      _buffer.writeln('이는 중립적인 관계를 의미하며, 개인의 노력으로 관계를 발전시킬 수 있습니다.');
+      _buffer.writeln();
     }
   }
 }

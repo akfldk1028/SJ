@@ -18,12 +18,20 @@ class ChatSessionState {
   /// 새 세션 생성 시 대기 중인 메시지 (세션 생성 후 자동 전송)
   final String? pendingMessage;
 
+  /// 궁합 참가자 프로필 ID 목록 (chat_mentions 저장용)
+  final List<String>? pendingParticipantIds;
+
+  /// "나 포함" 여부 (궁합 채팅용)
+  final bool pendingIncludesOwner;
+
   const ChatSessionState({
     this.sessions = const [],
     this.currentSessionId,
     this.isLoading = false,
     this.error,
     this.pendingMessage,
+    this.pendingParticipantIds,
+    this.pendingIncludesOwner = true,
   });
 
   ChatSessionState copyWith({
@@ -32,8 +40,11 @@ class ChatSessionState {
     bool? isLoading,
     String? error,
     String? pendingMessage,
+    List<String>? pendingParticipantIds,
+    bool? pendingIncludesOwner,
     bool clearCurrentSessionId = false,
     bool clearPendingMessage = false,
+    bool clearPendingParticipantIds = false,
   }) {
     return ChatSessionState(
       sessions: sessions ?? this.sessions,
@@ -41,6 +52,8 @@ class ChatSessionState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       pendingMessage: clearPendingMessage ? null : (pendingMessage ?? this.pendingMessage),
+      pendingParticipantIds: clearPendingParticipantIds ? null : (pendingParticipantIds ?? this.pendingParticipantIds),
+      pendingIncludesOwner: clearPendingMessage ? true : (pendingIncludesOwner ?? this.pendingIncludesOwner),
     );
   }
 }
@@ -88,25 +101,31 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
   /// 새 세션 생성 및 현재 세션으로 설정
   /// [initialMessage]: 세션 생성 후 바로 전송할 메시지 (선택)
   /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID (선택)
+  /// [participantIds]: 궁합 참가자 프로필 ID 목록 (chat_mentions 저장용)
+  /// [includesOwner]: "나 포함" 여부 (궁합 채팅용, 기본값: true)
   Future<ChatSession?> createSession(
     ChatType type,
     String? profileId, {
     String? initialMessage,
     String? targetProfileId,
+    List<String>? participantIds,
+    bool includesOwner = true,
   }) async {
-    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, targetProfileId=$targetProfileId, initialMessage=$initialMessage');
+    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, targetProfileId=$targetProfileId, participantIds=$participantIds, includesOwner=$includesOwner, initialMessage=$initialMessage');
     try {
       final repository = ref.read(chatSessionRepositoryProvider);
       final newSession = await repository.createSession(type, profileId, targetProfileId: targetProfileId);
       print('[ChatSessionNotifier] 세션 생성 완료: id=${newSession.id}, targetProfileId=${newSession.targetProfileId}');
 
-      // 세션 목록에 추가 (맨 앞에) + 대기 메시지 설정
+      // 세션 목록에 추가 (맨 앞에) + 대기 메시지 및 참가자 ID 저장
       state = state.copyWith(
         sessions: [newSession, ...state.sessions],
         currentSessionId: newSession.id,
         pendingMessage: initialMessage,
+        pendingParticipantIds: participantIds,
+        pendingIncludesOwner: includesOwner,
       );
-      print('[ChatSessionNotifier] state 업데이트 완료: currentSessionId=${state.currentSessionId}, pendingMessage=${state.pendingMessage}');
+      print('[ChatSessionNotifier] state 업데이트 완료: currentSessionId=${state.currentSessionId}, pendingMessage=${state.pendingMessage}, pendingParticipantIds=${state.pendingParticipantIds}, pendingIncludesOwner=${state.pendingIncludesOwner}');
 
       return newSession;
     } catch (e) {
@@ -118,9 +137,9 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
     }
   }
 
-  /// 대기 메시지 클리어
+  /// 대기 메시지 및 참가자 ID 클리어
   void clearPendingMessage() {
-    state = state.copyWith(clearPendingMessage: true);
+    state = state.copyWith(clearPendingMessage: true, clearPendingParticipantIds: true);
   }
 
   /// 세션 선택

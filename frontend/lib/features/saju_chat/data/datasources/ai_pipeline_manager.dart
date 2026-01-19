@@ -213,6 +213,11 @@ $userMessage
     _geminiDatasource.startNewSession(systemPrompt);
   }
 
+  /// v6.0 (Phase 57): 시스템 프롬프트만 업데이트
+  void updateSystemPrompt(String systemPrompt) {
+    _geminiDatasource.updateSystemPrompt(systemPrompt);
+  }
+
   /// 리소스 정리
   void dispose() {
     _gptDatasource.dispose();

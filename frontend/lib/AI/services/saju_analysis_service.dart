@@ -689,6 +689,74 @@ class SajuAnalysisService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 인연(상대방) 사주 분석 (인연 등록 시 호출)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 인연(상대방) 프로필의 사주 분석
+  ///
+  /// ## 용도
+  /// - 인연 등록 시 상대방 프로필의 만세력 분석
+  /// - profile_relations.to_profile_analysis_id에 연결
+  ///
+  /// ## 특징
+  /// - saju_base 분석만 실행 (daily_fortune은 생략)
+  /// - 캐시 존재 시 스킵
+  /// - Fire-and-forget 지원
+  ///
+  /// ## 예시
+  /// ```dart
+  /// // 인연 등록 후 호출
+  /// final result = await sajuAnalysisService.analyzeRelationProfile(
+  ///   userId: user.id,
+  ///   profileId: targetProfileId,  // 상대방 프로필 ID
+  ///   runInBackground: true,       // 즉시 반환
+  /// );
+  /// ```
+  Future<AnalysisResult> analyzeRelationProfile({
+    required String userId,
+    required String profileId,
+    bool runInBackground = true,
+    void Function(AnalysisResult)? onComplete,
+  }) async {
+    print('[SajuAnalysisService] 👫 인연 프로필 분석 시작: $profileId');
+
+    // 1. 캐시 확인 (이미 분석된 경우 스킵)
+    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    if (cached.isSuccess && cached.data != null) {
+      print('[SajuAnalysisService] ✅ 인연 saju_base 캐시 존재 - 스킵');
+      final result = AnalysisResult.success(
+        summaryId: cached.data!.id,
+        processingTimeMs: 0,
+      );
+      onComplete?.call(result);
+      return result;
+    }
+
+    // 2. 사주 데이터 준비
+    final inputData = await _prepareInputData(profileId);
+    if (inputData == null) {
+      print('[SajuAnalysisService] ❌ 인연 사주 데이터 조회 실패');
+      final result = AnalysisResult.failure('인연 사주 데이터 조회 실패');
+      onComplete?.call(result);
+      return result;
+    }
+
+    // 3. 분석 실행
+    if (runInBackground) {
+      // Fire-and-forget
+      print('[SajuAnalysisService] 🔥 인연 백그라운드 GPT-5.2 분석 시작');
+      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
+    } else {
+      // 완료 대기
+      print('[SajuAnalysisService] ⏳ 인연 GPT-5.2 분석 대기 중...');
+      final result = await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      onComplete?.call(result);
+      return result;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 중복 방지: 기존 task 대기
   // ─────────────────────────────────────────────────────────────────────────
 

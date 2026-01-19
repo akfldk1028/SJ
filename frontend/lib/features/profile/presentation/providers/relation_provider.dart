@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../core/data/query_result.dart';
 import '../../data/data.dart';
 
@@ -156,6 +157,11 @@ class RelationNotifier extends _$RelationNotifier {
   }
 
   /// 관계 생성
+  ///
+  /// ## Phase 52: 인연 등록 시 상대방 사주 자동 분석
+  /// 1. profile_relations INSERT
+  /// 2. 상대방(toProfile) 사주 분석 (백그라운드)
+  /// 3. 분석 완료 시 to_profile_analysis_id 업데이트
   Future<ProfileRelationModel?> create({
     required String fromProfileId,
     required String toProfileId,
@@ -222,8 +228,57 @@ class RelationNotifier extends _$RelationNotifier {
       throw state.error!;
     }
 
+    // Phase 52: 상대방 사주 자동 분석 (백그라운드)
+    // toProfileAnalysisId가 없으면 새로 분석
+    if (createdModel != null && toProfileAnalysisId == null) {
+      debugPrint('👫 [RelationNotifier.create] 상대방 사주 분석 시작 (백그라운드)');
+      _triggerRelationAnalysis(
+        userId: user.id,
+        relationId: createdModel!.id,
+        toProfileId: toProfileId,
+        fromProfileId: fromProfileId,
+      );
+    }
+
     debugPrint('✅ [RelationNotifier.create] 완료');
     return createdModel;
+  }
+
+  /// Phase 52: 인연 사주 분석 트리거 (백그라운드)
+  ///
+  /// 분석 완료 시 profile_relations.to_profile_analysis_id 업데이트
+  void _triggerRelationAnalysis({
+    required String userId,
+    required String relationId,
+    required String toProfileId,
+    required String fromProfileId,
+  }) {
+    sajuAnalysisService.analyzeRelationProfile(
+      userId: userId,
+      profileId: toProfileId,
+      runInBackground: true,
+      onComplete: (result) async {
+        if (result.success && result.summaryId != null && result.summaryId != 'pending') {
+          debugPrint('✅ [RelationNotifier] 인연 사주 분석 완료: ${result.summaryId}');
+
+          // profile_relations.to_profile_analysis_id 업데이트
+          final updateResult = await relationMutations.linkToProfileAnalysis(
+            relationId,
+            result.summaryId!,
+          );
+
+          if (updateResult is QuerySuccess) {
+            debugPrint('✅ [RelationNotifier] to_profile_analysis_id 연결 완료');
+            // Provider 무효화하여 UI 갱신
+            _invalidateRelatedProviders(fromProfileId);
+          } else {
+            debugPrint('⚠️ [RelationNotifier] to_profile_analysis_id 연결 실패');
+          }
+        } else {
+          debugPrint('⚠️ [RelationNotifier] 인연 사주 분석 실패: ${result.error}');
+        }
+      },
+    );
   }
 
   /// 관계 업데이트

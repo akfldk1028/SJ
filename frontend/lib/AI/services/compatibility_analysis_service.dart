@@ -120,11 +120,19 @@ class CompatibilityAnalysisService {
       if (!forceRefresh) {
         final cached = await _getCachedAnalysis(fromProfileId, toProfileId);
         if (cached != null) {
-          print('[CompatibilityService] ✅ 캐시된 분석 사용: ${cached['id']}');
-          return CompatibilityAnalysisResult.cached(
-            analysisId: cached['id'],
-            data: cached,
-          );
+          // Phase 53: 순서가 바뀐 경우 캐시 무효화하고 새로 분석
+          // target_* 필드들이 현재 "나"의 사주를 가리키게 되어 잘못된 분석이 됨
+          final isSwapped = cached['_isSwapped'] as bool? ?? false;
+          if (isSwapped) {
+            print('[CompatibilityService] ⚠️ 순서가 바뀐 캐시 - 새로 분석 진행');
+            // 캐시 무시하고 아래에서 새로 분석
+          } else {
+            print('[CompatibilityService] ✅ 캐시된 분석 사용: ${cached['id']}');
+            return CompatibilityAnalysisResult.cached(
+              analysisId: cached['id'],
+              data: cached,
+            );
+          }
         }
       }
 
@@ -177,11 +185,19 @@ class CompatibilityAnalysisService {
         processingTimeMs: stopwatch.elapsedMilliseconds,
       );
 
-      // 5. profile_relations 업데이트
+      // 5. profile_relations 업데이트 (Phase 51: pair_hapchung 추가)
+      final pairHapchungData = {
+        ...calculationResult.hapchungDetails.toJson(),
+        'overall_score': calculationResult.overallScore,
+        'positive_count': calculationResult.hapchungDetails.positiveCount,
+        'negative_count': calculationResult.hapchungDetails.negativeCount,
+      };
+
       await _updateProfileRelation(
         fromProfileId: fromProfileId,
         toProfileId: toProfileId,
         analysisId: savedId,
+        pairHapchung: pairHapchungData,
       );
 
       stopwatch.stop();
@@ -202,6 +218,11 @@ class CompatibilityAnalysisService {
   }
 
   /// 캐시된 분석 조회
+  ///
+  /// ## 순서 처리 (v5.1 Phase 53)
+  /// - profile1_id, profile2_id 조합으로 조회 (순서 무관)
+  /// - 단, 조회 후 순서가 바뀐 경우 `_isSwapped` 플래그 추가
+  /// - 호출자가 이 플래그를 보고 적절히 처리해야 함
   Future<Map<String, dynamic>?> _getCachedAnalysis(
     String fromProfileId,
     String toProfileId,
@@ -216,6 +237,19 @@ class CompatibilityAnalysisService {
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
+
+      if (response == null) return null;
+
+      // Phase 53: 순서 확인 - profile1_id가 fromProfileId와 일치하는지
+      final isSwapped = response['profile1_id'] != fromProfileId;
+
+      if (isSwapped) {
+        print('[CompatibilityService] ⚠️ 캐시된 분석의 순서가 바뀜 - 데이터 스왑 필요');
+        // _isSwapped 플래그 추가 (호출자가 사용)
+        response['_isSwapped'] = true;
+      } else {
+        response['_isSwapped'] = false;
+      }
 
       return response;
     } catch (e) {
@@ -295,6 +329,20 @@ class CompatibilityAnalysisService {
 
     print('  - 인연 사주: $targetYearGan$targetYearJi $targetMonthGan$targetMonthJi $targetDayGan$targetDayJi ${targetHourGan ?? '?'}${targetHourJi ?? '?'}');
 
+    // Phase 51: 나의 개인 합충형해파 추출
+    final ownerHapchung = mySajuData['hapchung'] as Map<String, dynamic>?;
+
+    // Phase 51: 두 사람 간 합충형해파 (pair_hapchung) - 궁합의 핵심!
+    final pairHapchungData = {
+      ...calculationResult.hapchungDetails.toJson(),
+      'overall_score': calculationResult.overallScore,
+      'positive_count': calculationResult.hapchungDetails.positiveCount,
+      'negative_count': calculationResult.hapchungDetails.negativeCount,
+    };
+
+    print('  - 나의 합충형해파: ${ownerHapchung != null ? "있음" : "없음"}');
+    print('  - 두 사람 간 합충형해파: 합 ${calculationResult.hapchungDetails.positiveCount}개, 충/형/해/파/원진 ${calculationResult.hapchungDetails.negativeCount}개');
+
     final response = await _client.from('compatibility_analyses').insert({
       'profile1_id': fromProfileId,
       'profile2_id': toProfileId,
@@ -308,7 +356,7 @@ class CompatibilityAnalysisService {
       'challenges': calculationResult.challenges,
       'advice': null, // v4.0: 조언은 채팅에서 생성
       'model_provider': 'dart', // v4.0: Dart 계산
-      'model_name': 'compatibility_calculator_v4',
+      'model_name': 'compatibility_calculator_v5',
       'tokens_used': 0, // Dart 계산은 토큰 사용 없음
       'processing_time_ms': processingTimeMs,
       // 인연 사주 개별 필드
@@ -326,6 +374,9 @@ class CompatibilityAnalysisService {
       'target_twelve_unsung': targetTwelveUnsung,
       'target_gilseong': targetGilseong,
       'target_day_master': targetDayMaster,
+      // Phase 51: 나의 합충형해파 + 두 사람 간 합충형해파
+      'owner_hapchung': ownerHapchung,
+      'pair_hapchung': pairHapchungData,
     }).select('id').single();
 
     return response['id'] as String;
@@ -347,10 +398,13 @@ class CompatibilityAnalysisService {
   }
 
   /// profile_relations 업데이트
+  ///
+  /// Phase 51: pair_hapchung도 함께 저장
   Future<void> _updateProfileRelation({
     required String fromProfileId,
     required String toProfileId,
     required String analysisId,
+    Map<String, dynamic>? pairHapchung,
   }) async {
     try {
       await _client
@@ -359,6 +413,8 @@ class CompatibilityAnalysisService {
             'compatibility_analysis_id': analysisId,
             'analysis_status': 'completed',
             'analysis_completed_at': DateTime.now().toIso8601String(),
+            // Phase 51: 두 사람 간 합충형해파 저장
+            if (pairHapchung != null) 'pair_hapchung': pairHapchung,
           })
           .eq('from_profile_id', fromProfileId)
           .eq('to_profile_id', toProfileId);
