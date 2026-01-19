@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -116,7 +115,7 @@ class MessageBubble extends StatelessWidget {
 
   /// 메시지 내용 빌드
   ///
-  /// AI 메시지: Markdown 렌더링 + Gowun Dodum 폰트
+  /// AI 메시지: 커스텀 볼드 파싱 + Gowun Dodum 폰트
   /// 사용자 메시지: Noto Sans KR (깔끔한 산세리프)
   Widget _buildMessageContent(ThemeData theme, AppThemeExtension appTheme, bool isUser) {
     // 사용자 메시지: Noto Sans KR (plain text)
@@ -127,29 +126,52 @@ class MessageBubble extends StatelessWidget {
       return Text(message.content, style: userStyle);
     }
 
-    // AI 메시지: Markdown 렌더링
+    // AI 메시지: 커스텀 볼드 파싱
     final aiStyle = AppFonts.aiMessage(
       color: appTheme.textPrimary,
     );
 
-    return MarkdownBody(
-      data: message.content,
-      selectable: true,
-      styleSheet: MarkdownStyleSheet(
-        p: aiStyle,
-        strong: aiStyle.copyWith(fontWeight: FontWeight.bold),
-        em: aiStyle.copyWith(fontStyle: FontStyle.italic),
-        code: aiStyle.copyWith(
-          fontFamily: 'monospace',
-          backgroundColor: appTheme.backgroundColor,
-        ),
-        listBullet: aiStyle,
-        a: aiStyle.copyWith(
-          color: appTheme.primaryColor,
-          decoration: TextDecoration.underline,
-        ),
-      ),
+    return SelectableText.rich(
+      _parseMarkdownBold(message.content, aiStyle),
     );
+  }
+
+  /// **text** 패턴을 파싱해서 볼드체로 변환
+  TextSpan _parseMarkdownBold(String text, TextStyle baseStyle) {
+    final List<InlineSpan> spans = [];
+    final regex = RegExp(r'\*\*(.+?)\*\*');
+    int lastEnd = 0;
+
+    for (final match in regex.allMatches(text)) {
+      // 매치 이전 텍스트 (일반)
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: baseStyle,
+        ));
+      }
+      // 매치된 텍스트 (볼드)
+      spans.add(TextSpan(
+        text: match.group(1), // ** 안의 텍스트
+        style: baseStyle.copyWith(fontWeight: FontWeight.bold),
+      ));
+      lastEnd = match.end;
+    }
+
+    // 마지막 남은 텍스트
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: baseStyle,
+      ));
+    }
+
+    // spans가 비어있으면 전체 텍스트 반환
+    if (spans.isEmpty) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+
+    return TextSpan(children: spans);
   }
 
   Widget _buildAvatar(ThemeData theme, AppThemeExtension appTheme) {
