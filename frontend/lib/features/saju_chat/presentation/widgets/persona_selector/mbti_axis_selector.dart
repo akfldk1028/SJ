@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_theme.dart';
 import '../../../domain/models/ai_persona.dart';
 
 /// MBTI 4축 좌표계 선택기
@@ -92,6 +93,8 @@ class _MbtiAxisSelectorState extends State<MbtiAxisSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return GestureDetector(
       onTapDown: (details) {
         _handleTapOrDrag(details.localPosition, Size(widget.size, widget.size));
@@ -106,6 +109,7 @@ class _MbtiAxisSelectorState extends State<MbtiAxisSelector> {
           painter: _MbtiAxisPainter(
             position: _position,
             selectedQuadrant: widget.selectedQuadrant,
+            theme: theme,
           ),
         ),
       ),
@@ -117,10 +121,12 @@ class _MbtiAxisSelectorState extends State<MbtiAxisSelector> {
 class _MbtiAxisPainter extends CustomPainter {
   final Offset position;
   final MbtiQuadrant? selectedQuadrant;
+  final AppThemeExtension theme;
 
   _MbtiAxisPainter({
     required this.position,
     this.selectedQuadrant,
+    required this.theme,
   });
 
   @override
@@ -130,7 +136,7 @@ class _MbtiAxisPainter extends CustomPainter {
 
     // 배경
     final bgPaint = Paint()
-      ..color = const Color(0xFF1A1A2E)
+      ..color = theme.cardColor
       ..style = PaintingStyle.fill;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -143,7 +149,7 @@ class _MbtiAxisPainter extends CustomPainter {
     // 분면 하이라이트
     if (selectedQuadrant != null) {
       final highlightPaint = Paint()
-        ..color = const Color(0xFF3D5A80).withValues(alpha: 0.3)
+        ..color = theme.primaryColor.withValues(alpha: 0.3)
         ..style = PaintingStyle.fill;
 
       Rect quadrantRect;
@@ -166,7 +172,7 @@ class _MbtiAxisPainter extends CustomPainter {
 
     // 축 선
     final axisPaint = Paint()
-      ..color = const Color(0xFF98C1D9)
+      ..color = theme.primaryColor
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -191,22 +197,23 @@ class _MbtiAxisPainter extends CustomPainter {
     _drawArrow(canvas, Offset(size.width - 20, center.dy), false, axisPaint, horizontal: true); // T
 
     // 축 레이블
-    _drawLabel(canvas, 'N', Offset(center.dx, 8), const Color(0xFFE63946));
-    _drawLabel(canvas, 'S', Offset(center.dx, size.height - 8), const Color(0xFFE63946));
-    _drawLabel(canvas, 'F', Offset(8, center.dy), const Color(0xFFE63946));
-    _drawLabel(canvas, 'T', Offset(size.width - 8, center.dy), const Color(0xFFE63946));
+    final labelColor = theme.accentColor ?? theme.primaryColor;
+    _drawLabel(canvas, 'N', Offset(center.dx, 8), labelColor);
+    _drawLabel(canvas, 'S', Offset(center.dx, size.height - 8), labelColor);
+    _drawLabel(canvas, 'F', Offset(8, center.dy), labelColor);
+    _drawLabel(canvas, 'T', Offset(size.width - 8, center.dy), labelColor);
 
     // 선택 포인트
     final pointX = center.dx + position.dx * radius * 0.7;
     final pointY = center.dy + position.dy * radius * 0.7;
 
     final pointPaint = Paint()
-      ..color = const Color(0xFF98C1D9)
+      ..color = theme.primaryColor
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(pointX, pointY), 12, pointPaint);
 
     final pointBorderPaint = Paint()
-      ..color = Colors.white
+      ..color = theme.textPrimary
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(Offset(pointX, pointY), 12, pointBorderPaint);
@@ -274,6 +281,7 @@ class _MbtiAxisPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _MbtiAxisPainter oldDelegate) {
     return position != oldDelegate.position ||
-        selectedQuadrant != oldDelegate.selectedQuadrant;
+        selectedQuadrant != oldDelegate.selectedQuadrant ||
+        theme != oldDelegate.theme;
   }
 }

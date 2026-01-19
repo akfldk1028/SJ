@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../providers/profile_provider.dart';
 
@@ -13,41 +16,30 @@ import '../providers/profile_provider.dart';
 class ProfileSelectScreen extends ConsumerWidget {
   const ProfileSelectScreen({super.key});
 
-  // 캐싱된 색상 상수
-  static const _bgGradientStart = Color(0xFF1A1A2E);
-  static const _bgGradientEnd = Color(0xFF16213E);
-  static const _emptyTextColor = Color.fromRGBO(255, 255, 255, 0.6);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
     final profileListAsync = ref.watch(profileListProvider);
 
     return Scaffold(
-      backgroundColor: _bgGradientStart,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_bgGradientStart, _bgGradientEnd],
-          ),
-        ),
+      backgroundColor: theme.backgroundColor,
+      body: MysticBackground(
         child: SafeArea(
           child: Column(
             children: [
-              const _AppBar(),
+              _AppBar(theme: theme),
               Expanded(
                 child: profileListAsync.when(
                   data: (profiles) => profiles.isEmpty
-                      ? const _EmptyState()
-                      : _ProfileList(profiles: profiles),
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: Colors.white70),
+                      ? _EmptyState(theme: theme)
+                      : _ProfileList(profiles: profiles, theme: theme),
+                  loading: () => Center(
+                    child: CircularProgressIndicator(color: theme.primaryColor),
                   ),
                   error: (e, _) => Center(
                     child: Text(
                       '프로필 로딩 실패: $e',
-                      style: const TextStyle(color: _emptyTextColor),
+                      style: TextStyle(color: theme.textMuted),
                     ),
                   ),
                 ),
@@ -58,8 +50,8 @@ class ProfileSelectScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/profile/edit'),
-        backgroundColor: const Color(0xFF7E57C2),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: theme.primaryColor,
+        child: Icon(Icons.add, color: theme.textPrimary),
       ),
     );
   }
@@ -67,7 +59,9 @@ class ProfileSelectScreen extends ConsumerWidget {
 
 /// 앱바 위젯
 class _AppBar extends StatelessWidget {
-  const _AppBar();
+  final AppThemeExtension theme;
+
+  const _AppBar({required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -77,13 +71,13 @@ class _AppBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white70),
+            icon: Icon(Icons.arrow_back_ios, color: theme.textMuted),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
               '프로필 선택',
               style: TextStyle(
-                color: Colors.white,
+                color: theme.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -97,32 +91,34 @@ class _AppBar extends StatelessWidget {
 
 /// 빈 상태 위젯
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final AppThemeExtension theme;
+
+  const _EmptyState({required this.theme});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.person_add_outlined,
             size: 64,
-            color: ProfileSelectScreen._emptyTextColor,
+            color: theme.textMuted,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
             '등록된 프로필이 없습니다',
             style: TextStyle(
-              color: ProfileSelectScreen._emptyTextColor,
+              color: theme.textMuted,
               fontSize: 16,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             '+ 버튼을 눌러 프로필을 추가하세요',
             style: TextStyle(
-              color: ProfileSelectScreen._emptyTextColor,
+              color: theme.textMuted,
               fontSize: 14,
             ),
           ),
@@ -135,8 +131,9 @@ class _EmptyState extends StatelessWidget {
 /// 프로필 목록 위젯
 class _ProfileList extends StatelessWidget {
   final List<SajuProfile> profiles;
+  final AppThemeExtension theme;
 
-  const _ProfileList({required this.profiles});
+  const _ProfileList({required this.profiles, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +143,7 @@ class _ProfileList extends StatelessWidget {
       itemBuilder: (context, index) => _ProfileCard(
         profile: profiles[index],
         isLast: index == profiles.length - 1,
+        theme: theme,
       ),
     );
   }
@@ -153,16 +151,14 @@ class _ProfileList extends StatelessWidget {
 
 /// 프로필 카드 위젯
 class _ProfileCard extends ConsumerWidget {
-  static const _cardBg = Color.fromRGBO(255, 255, 255, 0.08);
-  static const _borderColor = Color.fromRGBO(255, 255, 255, 0.15);
-  static const _activeBorderColor = Color(0xFF7E57C2);
-
   final SajuProfile profile;
   final bool isLast;
+  final AppThemeExtension theme;
 
   const _ProfileCard({
     required this.profile,
     required this.isLast,
+    required this.theme,
   });
 
   @override
@@ -177,22 +173,24 @@ class _ProfileCard extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _cardBg,
+              color: theme.cardColor.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: profile.isActive ? _activeBorderColor : _borderColor,
+                color: profile.isActive
+                    ? theme.primaryColor
+                    : theme.primaryColor.withValues(alpha: 0.15),
                 width: profile.isActive ? 2 : 1,
               ),
             ),
             child: Row(
               children: [
-                _ProfileAvatar(profile: profile),
+                _ProfileAvatar(profile: profile, theme: theme),
                 const SizedBox(width: 16),
-                Expanded(child: _ProfileInfo(profile: profile)),
+                Expanded(child: _ProfileInfo(profile: profile, theme: theme)),
                 if (profile.isActive)
-                  const Icon(
+                  Icon(
                     Icons.check_circle,
-                    color: _activeBorderColor,
+                    color: theme.primaryColor,
                     size: 24,
                   ),
               ],
@@ -220,11 +218,10 @@ class _ProfileCard extends ConsumerWidget {
 
 /// 프로필 아바타 위젯
 class _ProfileAvatar extends StatelessWidget {
-  static const _avatarBg = Color.fromRGBO(126, 87, 194, 0.3);
-
   final SajuProfile profile;
+  final AppThemeExtension theme;
 
-  const _ProfileAvatar({required this.profile});
+  const _ProfileAvatar({required this.profile, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -232,16 +229,16 @@ class _ProfileAvatar extends StatelessWidget {
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        color: _avatarBg,
+        color: theme.primaryColor.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Center(
         child: Text(
           profile.displayName.isNotEmpty ? profile.displayName[0] : '?',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: theme.textPrimary,
           ),
         ),
       ),
@@ -251,11 +248,10 @@ class _ProfileAvatar extends StatelessWidget {
 
 /// 프로필 정보 위젯
 class _ProfileInfo extends StatelessWidget {
-  static const _subtitleColor = Color.fromRGBO(255, 255, 255, 0.7);
-
   final SajuProfile profile;
+  final AppThemeExtension theme;
 
-  const _ProfileInfo({required this.profile});
+  const _ProfileInfo({required this.profile, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -266,8 +262,8 @@ class _ProfileInfo extends StatelessWidget {
           children: [
             Text(
               profile.displayName,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: theme.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -276,13 +272,13 @@ class _ProfileInfo extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: _ProfileCard._borderColor,
+                color: theme.primaryColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 profile.relationType.label,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: theme.textMuted,
                   fontSize: 11,
                 ),
               ),
@@ -292,16 +288,16 @@ class _ProfileInfo extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${profile.birthDateFormatted} (${profile.calendarTypeLabel})',
-          style: const TextStyle(
-            color: _subtitleColor,
+          style: TextStyle(
+            color: theme.textSecondary,
             fontSize: 13,
           ),
         ),
         if (profile.birthTimeFormatted != null)
           Text(
             '${profile.birthTimeFormatted} 출생',
-            style: const TextStyle(
-              color: _subtitleColor,
+            style: TextStyle(
+              color: theme.textSecondary,
               fontSize: 12,
             ),
           ),

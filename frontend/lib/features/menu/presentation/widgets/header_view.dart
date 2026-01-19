@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
+
 /// 헤더 뷰 - 환영 메시지 및 날짜 표시
 ///
 /// 위젯 트리 최적화:
 /// - const 생성자 사용
 /// - 100줄 이하 유지
 /// - 애니메이션 별도 처리
+/// - 테마 시스템 사용
 class HeaderView extends StatelessWidget {
   final AnimationController animationController;
 
@@ -16,6 +19,7 @@ class HeaderView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final headerAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: animationController,
@@ -34,14 +38,14 @@ class HeaderView extends StatelessWidget {
           ),
         );
       },
-      child: const Padding(
-        padding: EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _GreetingText(),
-            SizedBox(height: 8),
-            _DateDisplay(),
+            _GreetingText(theme: theme),
+            const SizedBox(height: 8),
+            _DateDisplay(theme: theme),
           ],
         ),
       ),
@@ -51,7 +55,9 @@ class HeaderView extends StatelessWidget {
 
 /// 환영 메시지 위젯
 class _GreetingText extends StatelessWidget {
-  const _GreetingText();
+  final AppThemeExtension theme;
+
+  const _GreetingText({required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -64,10 +70,10 @@ class _GreetingText extends StatelessWidget {
 
     return Text(
       greeting,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.bold,
-        color: Colors.white,
+        color: theme.textPrimary,
         height: 1.2,
       ),
     );
@@ -75,13 +81,11 @@ class _GreetingText extends StatelessWidget {
 }
 
 /// 날짜 표시 위젯
-/// ⚡ 성능 최적화: withOpacity → const Color 캐싱
+/// - 테마 시스템 사용
 class _DateDisplay extends StatelessWidget {
-  // ⚡ 캐싱된 색상 상수
-  static const _bgColor = Color.fromRGBO(255, 255, 255, 0.15);
-  static const _borderColor = Color.fromRGBO(255, 255, 255, 0.2);
+  final AppThemeExtension theme;
 
-  const _DateDisplay();
+  const _DateDisplay({required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -93,27 +97,27 @@ class _DateDisplay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _bgColor,
+        color: theme.textPrimary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _borderColor,
+          color: theme.textPrimary.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.calendar_today,
             size: 14,
-            color: Color(0xFFFFB74D), // 골드
+            color: theme.accentColor ?? theme.primaryColor,
           ),
           const SizedBox(width: 6),
           Text(
             formattedDate,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Colors.white70,
+              color: theme.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
