@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -54,14 +55,25 @@ class MantokApp extends ConsumerWidget {
             ),
           );
 
-    return ShadApp.router(
-      title: '사담',
-      debugShowCheckedModeBanner: false,
-      routerConfig: router,
-      theme: shadThemeData,
-      materialThemeBuilder: (context, theme) {
-        return currentTheme;
-      },
+    // 시스템 UI 스타일 설정
+    final systemUiStyle = SystemUiOverlayStyle(
+      statusBarColor: themeExt.backgroundColor,
+      statusBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: themeExt.backgroundColor,
+      systemNavigationBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: systemUiStyle,
+      child: ShadApp.router(
+        title: '사담',
+        debugShowCheckedModeBanner: false,
+        routerConfig: router,
+        theme: shadThemeData,
+        materialThemeBuilder: (context, theme) {
+          return currentTheme;
+        },
+      ),
     );
   }
 }

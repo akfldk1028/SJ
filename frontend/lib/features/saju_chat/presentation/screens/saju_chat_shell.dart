@@ -941,9 +941,128 @@ class _DeepAnalysisLoadingBanner extends StatelessWidget {
 /// ```
 /// 대화창: 🎭 👶 🗣️ 👴 😱 (5개 선택지)
 /// 사이드바: MBTI 4축 선택기 (Base 선택 시만 활성화)
+/// 모바일: MBTI 버튼 탭 시 BottomSheet로 4축 선택기 표시
 /// ```
 class _PersonaHorizontalSelector extends ConsumerWidget {
   const _PersonaHorizontalSelector();
+
+  /// MBTI 4축 선택기 BottomSheet 표시
+  void _showMbtiSelectorSheet(BuildContext context, WidgetRef ref) {
+    final appTheme = context.appTheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: appTheme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (sheetContext) => Consumer(
+        builder: (consumerContext, consumerRef, _) {
+          final currentQuadrant = consumerRef.watch(mbtiQuadrantNotifierProvider);
+          final quadrantColor = _getQuadrantColor(currentQuadrant);
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 핸들바
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: appTheme.textMuted.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // 제목
+                  Text(
+                    'AI 성향 선택 (MBTI)',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '터치하거나 드래그해서 성향을 선택하세요',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: appTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // MBTI 4축 선택기
+                  MbtiAxisSelector(
+                    selectedQuadrant: currentQuadrant,
+                    onQuadrantSelected: (quadrant) {
+                      consumerRef.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(quadrant);
+                    },
+                    size: 300,
+                  ),
+                  const SizedBox(height: 24),
+                  // 선택된 분면 표시 (실시간 업데이트)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: quadrantColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: quadrantColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: quadrantColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              currentQuadrant.displayName,
+                              style: TextStyle(
+                                color: quadrantColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              currentQuadrant.description,
+                              style: TextStyle(
+                                color: quadrantColor.withValues(alpha: 0.8),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -955,81 +1074,82 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     // MBTI 분면별 색상 (BasePerson 선택 시)
     final quadrantColor = canAdjustMbti ? _getQuadrantColor(currentQuadrant) : appTheme.primaryColor;
 
+    // 페르소나 아이템 크기 계산용 상수
+    const double circleSize = 44; // 40 → 44
+    const double itemPadding = 8; // 좌우 패딩
+    const double itemWidth = 56; // 아이템 최소 너비 (4글자 기준)
+    const double containerPadding = 16; // 컨테이너 좌우 패딩
+    const int personaCount = 6;
+
+    // MBTI 버튼 고정 너비
+    const double mbtiButtonWidth = 52;
+
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: 90, // 82 → 90
+      padding: const EdgeInsets.symmetric(horizontal: containerPadding, vertical: 6),
       decoration: BoxDecoration(
-        color: appTheme.cardColor,
-        border: Border(
-          bottom: BorderSide(
-            color: appTheme.primaryColor.withValues(alpha: 0.1),
-            width: 0.5,
-          ),
-        ),
+        color: appTheme.cardColor.withValues(alpha: 0.8),
       ),
       child: Row(
         children: [
-          // 현재 MBTI 표시 (BasePerson 선택 시만)
+          // MBTI 버튼이 있을 때만 왼쪽 공간 확보
           if (canAdjustMbti)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: quadrantColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: quadrantColor.withValues(alpha: 0.3),
-                  width: 1,
+            SizedBox(
+              width: mbtiButtonWidth,
+              child: GestureDetector(
+                onTap: () => _showMbtiSelectorSheet(context, ref),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: quadrantColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: quadrantColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        currentQuadrant.name,
+                        style: TextStyle(
+                          color: quadrantColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    currentQuadrant.name,
-                    style: TextStyle(
-                      color: quadrantColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    currentQuadrant.displayName,
-                    style: TextStyle(
-                      color: quadrantColor.withValues(alpha: 0.8),
-                      fontSize: 9,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          if (canAdjustMbti) const SizedBox(width: 12),
-          // 5개 페르소나 원형 리스트
+          // 6개 페르소나 원형 리스트 - 화면 중앙 정렬
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // 가용 너비에 따라 원 크기 동적 계산 (최소 36, 최대 52)
-                final personaCount = ChatPersona.values.length;
-                final availableWidth = constraints.maxWidth;
-                final spacing = 8.0;
-                final maxCircleSize = (availableWidth - (personaCount - 1) * spacing) / personaCount;
-                final circleSize = maxCircleSize.clamp(36.0, 52.0);
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: ChatPersona.values.map((persona) {
-                    return _buildPersonaCircle(
-                      context,
-                      ref,
-                      persona,
-                      isSelected: persona == currentPersona,
-                      accentColor: quadrantColor,
-                      size: circleSize,
-                    );
-                  }).toList(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: ChatPersona.values.map((persona) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: _buildPersonaCircle(
+                    context,
+                    ref,
+                    persona,
+                    isSelected: persona == currentPersona,
+                    accentColor: quadrantColor,
+                    size: circleSize,
+                  ),
                 );
-              },
+              }).toList(),
             ),
           ),
+          // MBTI 버튼이 있을 때 오른쪽도 같은 너비 확보 (좌우 대칭)
+          if (canAdjustMbti) const SizedBox(width: mbtiButtonWidth),
         ],
       ),
     );
@@ -1041,11 +1161,12 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     ChatPersona persona, {
     required bool isSelected,
     required Color accentColor,
-    double size = 52,
+    double size = 44,
   }) {
     final appTheme = context.appTheme;
-    final isBase = persona == ChatPersona.basePerson;
-    final emojiSize = (size * 0.5).clamp(18.0, 26.0);
+    final iconSize = (size * 0.5).clamp(18.0, 22.0); // 16-20 → 18-22
+
+    final displayName = persona.shortName;
 
     return Tooltip(
       message: '${persona.displayName}\n${persona.description}',
@@ -1053,39 +1174,48 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
         onTap: () {
           ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isSelected
-                ? accentColor.withValues(alpha: 0.2)
-                : appTheme.cardColor,
-            border: Border.all(
-              color: isSelected
-                  ? accentColor
-                  : isBase
-                      ? appTheme.primaryColor.withValues(alpha: 0.4)
-                      : appTheme.primaryColor.withValues(alpha: 0.2),
-              width: isSelected ? 2.5 : isBase ? 2 : 1,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? accentColor.withValues(alpha: 0.15)
+                    : appTheme.backgroundColor.withValues(alpha: 0.3),
+                border: Border.all(
+                  color: isSelected
+                      ? accentColor.withValues(alpha: 0.5)
+                      : appTheme.textMuted.withValues(alpha: 0.15),
+                  width: isSelected ? 1.5 : 1,
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  persona.icon,
+                  size: iconSize,
+                  color: isSelected
+                      ? accentColor
+                      : appTheme.textMuted.withValues(alpha: 0.6),
+                ),
+              ),
             ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: accentColor.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              persona.emoji,
-              style: TextStyle(fontSize: emojiSize),
+            const SizedBox(height: 6),
+            Text(
+              displayName,
+              style: TextStyle(
+                fontSize: 12, // 11 → 12
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected
+                    ? accentColor
+                    : appTheme.textMuted.withValues(alpha: 0.8),
+                letterSpacing: -0.3,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
