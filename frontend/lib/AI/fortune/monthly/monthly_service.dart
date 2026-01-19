@@ -93,6 +93,8 @@ class MonthlyService {
     final targetYear = year ?? KoreaDateUtils.currentYear;
     final targetMonth = month ?? KoreaDateUtils.currentMonth;
 
+    print('[MonthlyService] 🚀 분석 시작: profileId=$profileId, year=$targetYear, month=$targetMonth');
+
     try {
       // 1. 캐시 확인
       if (!forceRefresh) {
@@ -102,11 +104,13 @@ class MonthlyService {
           month: targetMonth,
         );
         if (cachedContent != null) {
+          print('[MonthlyService] 📦 캐시에서 반환');
           return MonthlyResult.fromCache(cachedContent);
         }
       }
 
       // 2. 프롬프트 생성
+      print('[MonthlyService] 📝 프롬프트 생성');
       final prompt = MonthlyPrompt(
         inputData: inputData,
         targetYear: targetYear,
@@ -114,25 +118,32 @@ class MonthlyService {
       );
 
       // 3. GPT-5-mini API 호출
+      print('[MonthlyService] 🤖 API 호출 시작...');
       final apiResponse = await _aiApiService.chat(
         model: prompt.modelName,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(),
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
+        userId: userId,
       );
+      print('[MonthlyService] 📡 API 응답: success=${apiResponse.success}');
 
       if (!apiResponse.success) {
+        print('[MonthlyService] ❌ API 실패: ${apiResponse.errorMessage}');
         return MonthlyResult.error(
           apiResponse.errorMessage ?? 'API 호출 실패',
         );
       }
 
       // 4. 응답 파싱
+      print('[MonthlyService] 🔍 응답 파싱 시작');
       final content = _parseResponse(apiResponse.content ?? '');
       if (content == null) {
+        print('[MonthlyService] ❌ 파싱 실패');
         return MonthlyResult.error('응답 파싱 실패');
       }
+      print('[MonthlyService] ✅ 파싱 성공');
 
       // 5. 비용 계산
       final totalCost = OpenAIPricing.calculateCost(
@@ -140,8 +151,10 @@ class MonthlyService {
         promptTokens: apiResponse.promptTokens ?? 0,
         completionTokens: apiResponse.completionTokens ?? 0,
       );
+      print('[MonthlyService] 💰 비용: \$$totalCost');
 
-      // 6. 결과 저장 (target_year, target_month 포함)
+      // 6. 결과 저장 (전체 프롬프트 포함)
+      print('[MonthlyService] 💾 DB 저장 시작...');
       await _mutations.save(
         userId: userId,
         profileId: profileId,
@@ -152,7 +165,11 @@ class MonthlyService {
         promptTokens: apiResponse.promptTokens ?? 0,
         completionTokens: apiResponse.completionTokens ?? 0,
         totalCost: totalCost,
+        inputData: inputData,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.buildUserPrompt(),
       );
+      print('[MonthlyService] ✅ DB 저장 완료!');
 
       // 7. 결과 반환
       return MonthlyResult(
@@ -164,6 +181,7 @@ class MonthlyService {
         totalCost: totalCost,
       );
     } catch (e) {
+      print('[MonthlyService] ❌ 에러: $e');
       return MonthlyResult.error(e.toString());
     }
   }

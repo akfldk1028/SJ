@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * AI Task 결과 조회 Edge Function (v25)
+ * AI Task 결과 조회 Edge Function (v26)
  *
  * OpenAI Responses API의 background task 결과 조회
  * task_id로 조회 → openai_response_id로 OpenAI polling
@@ -16,6 +16,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규 필드)
  * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
  * - gpt_saju_analysis_count 증가 추가
+ *
+ * v26 변경사항 (2026-01-19):
+ * - 'incomplete' 상태 처리 추가 (max_tokens 도달로 응답이 잘린 경우)
+ * - 부분 콘텐츠 추출 후 completed로 반환 (finish_reason: incomplete)
  *
  * 사용법:
  * POST /ai-openai-result
@@ -267,6 +271,112 @@ Deno.serve(async (req) => {
             model: responseData.model || task.model,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
+      case "incomplete":
+        // v26: incomplete 상태 처리 (max_tokens 도달로 응답이 잘림)
+        // 부분 콘텐츠가 있을 수 있으므로 추출 시도
+        console.log(`[ai-openai-result v26] OpenAI task incomplete - extracting partial content`);
+        console.log(`[ai-openai-result v26] Full response keys:`, Object.keys(responseData));
+
+        // completed와 동일한 방식으로 부분 콘텐츠 추출
+        let partialText = "";
+
+        if (responseData.output && Array.isArray(responseData.output)) {
+          console.log(`[ai-openai-result v26] output is array with ${responseData.output.length} items`);
+          for (const outputItem of responseData.output) {
+            console.log(`[ai-openai-result v26] output item type: ${outputItem.type}`);
+
+            if (outputItem.type === "message" && outputItem.content) {
+              for (const contentItem of outputItem.content) {
+                if (contentItem.type === "output_text" && contentItem.text) {
+                  partialText += contentItem.text;
+                } else if (contentItem.type === "text" && contentItem.text) {
+                  partialText += contentItem.text;
+                }
+              }
+            } else if (outputItem.type === "text" && outputItem.text) {
+              partialText += outputItem.text;
+            }
+          }
+        } else if (responseData.output_text) {
+          partialText = responseData.output_text;
+        }
+
+        console.log(`[ai-openai-result v26] Extracted partialText length: ${partialText.length}`);
+
+        // 부분 콘텐츠가 있으면 성공으로 처리
+        if (partialText.length > 0) {
+          const partialUsage = responseData.usage || {};
+
+          // ai_tasks 결과 저장 (부분 완료로 캐싱)
+          await supabase
+            .from("ai_tasks")
+            .update({
+              status: "completed", // incomplete → completed로 변환 (부분 완료)
+              result_data: {
+                success: true,
+                content: partialText,
+                usage: {
+                  prompt_tokens: partialUsage.input_tokens || 0,
+                  completion_tokens: partialUsage.output_tokens || 0,
+                  total_tokens: (partialUsage.input_tokens || 0) + (partialUsage.output_tokens || 0),
+                },
+                model: responseData.model || task.model,
+                finish_reason: "incomplete", // 원래 상태 기록
+              },
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", task_id);
+
+          // 토큰 사용량 기록
+          if (task.user_id && partialUsage.input_tokens) {
+            await recordTokenUsage(
+              supabase,
+              task.user_id,
+              partialUsage.input_tokens || 0,
+              partialUsage.output_tokens || 0,
+              task.model
+            );
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              status: "completed", // 클라이언트에서 처리 가능하도록 completed 반환
+              content: partialText,
+              usage: {
+                prompt_tokens: partialUsage.input_tokens || 0,
+                completion_tokens: partialUsage.output_tokens || 0,
+                total_tokens: (partialUsage.input_tokens || 0) + (partialUsage.output_tokens || 0),
+              },
+              model: responseData.model || task.model,
+              finish_reason: "incomplete", // 원래 상태도 함께 전달
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // 부분 콘텐츠도 없으면 실패 처리
+        console.log(`[ai-openai-result v26] No partial content available, treating as failed`);
+        const incompleteError = "Task incomplete: no content available";
+
+        await supabase
+          .from("ai_tasks")
+          .update({
+            status: "failed",
+            error_message: incompleteError,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", task_id);
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            status: "failed",
+            error: incompleteError,
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 
       case "failed":

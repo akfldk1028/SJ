@@ -10,6 +10,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/ai_constants.dart';
+import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
 
 /// 이번달 운세 뮤테이션 클래스
@@ -29,6 +30,9 @@ class MonthlyMutations {
   /// [promptTokens] 입력 토큰 수
   /// [completionTokens] 출력 토큰 수
   /// [totalCost] 총 비용 (USD)
+  /// [inputData] 분석에 사용된 입력 데이터 (선택)
+  /// [systemPrompt] AI에게 전달된 시스템 프롬프트 (선택)
+  /// [userPrompt] AI에게 전달된 사용자 프롬프트 (선택)
   Future<Map<String, dynamic>> save({
     required String userId,
     required String profileId,
@@ -39,10 +43,27 @@ class MonthlyMutations {
     required int promptTokens,
     required int completionTokens,
     required double totalCost,
+    FortuneInputData? inputData,
+    String? systemPrompt,
+    String? userPrompt,
   }) async {
+    print('[MonthlyMutations] 저장 시작: profileId=$profileId, year=$targetYear, month=$targetMonth');
+
     // 만료 시간: 해당 월 말일 23:59:59 KST
     // 월운은 해당 월 끝까지 유효
     final expiresAt = KoreaDateUtils.expiryEndOfMonth(targetYear, targetMonth);
+
+    // input_data에 전체 프롬프트 포함
+    final inputDataJson = <String, dynamic>{};
+    if (systemPrompt != null) {
+      inputDataJson['system_prompt'] = systemPrompt;
+    }
+    if (userPrompt != null) {
+      inputDataJson['user_prompt'] = userPrompt;
+    }
+    if (inputData != null) {
+      inputDataJson['input_params'] = inputData.toPromptJson();
+    }
 
     final data = {
       'user_id': userId,
@@ -51,6 +72,7 @@ class MonthlyMutations {
       'target_year': targetYear,
       'target_month': targetMonth,
       'content': content,
+      'input_data': inputDataJson.isNotEmpty ? inputDataJson : null,
       'model_name': modelName,
       'model_provider': ModelProvider.openai,
       'prompt_tokens': promptTokens,
@@ -60,18 +82,24 @@ class MonthlyMutations {
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
     };
 
-    // Upsert: profile_id + summary_type + target_year + target_month 기준
-    // 주의: DB에 해당 UNIQUE 제약 조건 필요
-    final response = await _supabase
-        .from('ai_summaries')
-        .upsert(
-          data,
-          onConflict: 'profile_id,summary_type,target_year,target_month',
-        )
-        .select()
-        .single();
+    try {
+      // Upsert: profile_id + summary_type + target_year + target_month 기준
+      // 주의: DB에 해당 UNIQUE 제약 조건 필요
+      final response = await _supabase
+          .from('ai_summaries')
+          .upsert(
+            data,
+            onConflict: 'profile_id,summary_type,target_year,target_month',
+          )
+          .select()
+          .single();
 
-    return response;
+      print('[MonthlyMutations] ✅ DB 저장 성공: ${response['id']}');
+      return response;
+    } catch (e) {
+      print('[MonthlyMutations] ❌ DB 저장 실패: $e');
+      rethrow;
+    }
   }
 
   /// 특정 월 운세 삭제

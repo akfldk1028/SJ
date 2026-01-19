@@ -461,9 +461,9 @@ abstract class TokenLimits {
   /// - 오늘의 운세 (2048 → 4096)
   static const int dailyFortuneMaxTokens = 4096;
 
-  /// 월운: 4096 토큰
-  /// - (2048 → 4096)
-  static const int monthlyFortuneMaxTokens = 4096;
+  /// 월운: 8192 토큰
+  /// - (4096 → 8192, 스토리텔링 프롬프트 응답 잘림 방지)
+  static const int monthlyFortuneMaxTokens = 8192;
 
   /// 년운: 8192 토큰
   /// - 상세한 연간 전망 (3072 → 8192)

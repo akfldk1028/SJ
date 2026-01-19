@@ -10,6 +10,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/ai_constants.dart';
+import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
 
 /// 2025 회고 운세 뮤테이션 클래스
@@ -30,6 +31,9 @@ class Yearly2025Mutations {
   /// [promptTokens] 입력 토큰 수
   /// [completionTokens] 출력 토큰 수
   /// [totalCost] 총 비용 (USD)
+  /// [inputData] 분석에 사용된 입력 데이터 (선택)
+  /// [systemPrompt] AI에게 전달된 시스템 프롬프트 (선택)
+  /// [userPrompt] AI에게 전달된 사용자 프롬프트 (선택)
   ///
   /// 참고: expires_at은 null (무기한 - 과거는 변하지 않음)
   Future<Map<String, dynamic>> save({
@@ -40,7 +44,24 @@ class Yearly2025Mutations {
     required int promptTokens,
     required int completionTokens,
     required double totalCost,
+    FortuneInputData? inputData,
+    String? systemPrompt,
+    String? userPrompt,
   }) async {
+    print('[Yearly2025Mutations] 저장 시작: profileId=$profileId');
+
+    // input_data에 전체 프롬프트 포함
+    final inputDataJson = <String, dynamic>{};
+    if (systemPrompt != null) {
+      inputDataJson['system_prompt'] = systemPrompt;
+    }
+    if (userPrompt != null) {
+      inputDataJson['user_prompt'] = userPrompt;
+    }
+    if (inputData != null) {
+      inputDataJson['input_params'] = inputData.toPromptJson();
+    }
+
     final data = {
       'user_id': userId,
       'profile_id': profileId,
@@ -48,6 +69,7 @@ class Yearly2025Mutations {
       'target_year': targetYear,
       'target_month': null, // 년운은 월 없음
       'content': content,
+      'input_data': inputDataJson.isNotEmpty ? inputDataJson : null,
       'model_name': modelName,
       'model_provider': ModelProvider.openai,
       'prompt_tokens': promptTokens,
@@ -57,16 +79,22 @@ class Yearly2025Mutations {
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
     };
 
-    final response = await _supabase
-        .from('ai_summaries')
-        .upsert(
-          data,
-          onConflict: 'profile_id,summary_type,target_year,target_month',
-        )
-        .select()
-        .single();
+    try {
+      final response = await _supabase
+          .from('ai_summaries')
+          .upsert(
+            data,
+            onConflict: 'profile_id,summary_type,target_year,target_month',
+          )
+          .select()
+          .single();
 
-    return response;
+      print('[Yearly2025Mutations] ✅ DB 저장 성공: ${response['id']}');
+      return response;
+    } catch (e) {
+      print('[Yearly2025Mutations] ❌ DB 저장 실패: $e');
+      rethrow;
+    }
   }
 
   /// 2025 회고 운세 삭제

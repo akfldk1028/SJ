@@ -90,38 +90,49 @@ class Yearly2026Service {
     required FortuneInputData inputData,
     bool forceRefresh = false,
   }) async {
+    print('[Yearly2026Service] 🚀 분석 시작: profileId=$profileId');
+
     try {
       // 1. 캐시 확인 (forceRefresh가 아닐 때)
       if (!forceRefresh) {
         final cachedContent = await _queries.getContent(profileId);
         if (cachedContent != null) {
+          print('[Yearly2026Service] 📦 캐시에서 반환');
           return Yearly2026Result.fromCache(cachedContent);
         }
       }
 
       // 2. 프롬프트 생성
+      print('[Yearly2026Service] 📝 프롬프트 생성');
       final prompt = Yearly2026Prompt(inputData: inputData);
 
       // 3. GPT-5-mini API 호출
+      print('[Yearly2026Service] 🤖 API 호출 시작...');
       final apiResponse = await _aiApiService.chat(
         model: prompt.modelName,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(),
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
+        userId: userId,
       );
+      print('[Yearly2026Service] 📡 API 응답: success=${apiResponse.success}');
 
       if (!apiResponse.success) {
+        print('[Yearly2026Service] ❌ API 실패: ${apiResponse.errorMessage}');
         return Yearly2026Result.error(
           apiResponse.errorMessage ?? 'API 호출 실패',
         );
       }
 
       // 4. 응답 파싱
+      print('[Yearly2026Service] 🔍 응답 파싱 시작');
       final content = _parseResponse(apiResponse.content ?? '');
       if (content == null) {
+        print('[Yearly2026Service] ❌ 파싱 실패');
         return Yearly2026Result.error('응답 파싱 실패');
       }
+      print('[Yearly2026Service] ✅ 파싱 성공');
 
       // 5. 비용 계산
       final totalCost = OpenAIPricing.calculateCost(
@@ -129,8 +140,10 @@ class Yearly2026Service {
         promptTokens: apiResponse.promptTokens ?? 0,
         completionTokens: apiResponse.completionTokens ?? 0,
       );
+      print('[Yearly2026Service] 💰 비용: \$$totalCost');
 
-      // 6. 결과 저장
+      // 6. 결과 저장 (전체 프롬프트 포함)
+      print('[Yearly2026Service] 💾 DB 저장 시작...');
       await _mutations.save(
         userId: userId,
         profileId: profileId,
@@ -139,7 +152,11 @@ class Yearly2026Service {
         promptTokens: apiResponse.promptTokens ?? 0,
         completionTokens: apiResponse.completionTokens ?? 0,
         totalCost: totalCost,
+        inputData: inputData,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.buildUserPrompt(),
       );
+      print('[Yearly2026Service] ✅ DB 저장 완료!');
 
       // 7. 결과 반환
       return Yearly2026Result(
@@ -151,6 +168,7 @@ class Yearly2026Service {
         totalCost: totalCost,
       );
     } catch (e) {
+      print('[Yearly2026Service] ❌ 에러: $e');
       return Yearly2026Result.error(e.toString());
     }
   }
