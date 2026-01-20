@@ -1,0 +1,63 @@
+/// # 평생운세 쿼리
+///
+/// ## 개요
+/// ai_summaries 테이블에서 saju_base 캐시 조회
+/// 프로필 저장 시 1회 생성되는 평생 운세 데이터
+///
+/// ## 파일 위치
+/// `frontend/lib/AI/fortune/lifetime/lifetime_queries.dart`
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/ai_constants.dart';
+
+/// 평생운세 쿼리 클래스
+class LifetimeQueries {
+  final SupabaseClient _supabase;
+
+  LifetimeQueries(this._supabase);
+
+  /// 캐시된 평생운세 조회
+  ///
+  /// [profileId] 프로필 UUID
+  /// 반환: 캐시된 데이터 또는 null
+  ///
+  /// 참고: saju_base는 무기한 캐시 (프로필 변경 시에만 재생성)
+  Future<Map<String, dynamic>?> getCached(String profileId) async {
+    try {
+      final response = await _supabase
+          .from('ai_summaries')
+          .select('*')
+          .eq('profile_id', profileId)
+          .eq('summary_type', SummaryType.sajuBase)
+          .eq('status', 'completed')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      // saju_base는 만료 체크 안 함 (무기한)
+      return response;
+    } catch (e) {
+      print('[LifetimeQueries] 캐시 조회 오류: $e');
+      return null;
+    }
+  }
+
+  /// 평생운세 존재 여부 확인
+  Future<bool> exists(String profileId) async {
+    final cached = await getCached(profileId);
+    return cached != null;
+  }
+
+  /// 평생운세 content만 조회
+  Future<Map<String, dynamic>?> getContent(String profileId) async {
+    final cached = await getCached(profileId);
+    if (cached == null) return null;
+
+    final content = cached['content'];
+    if (content is Map<String, dynamic>) {
+      return content;
+    }
+    return null;
+  }
+}

@@ -26,9 +26,11 @@ import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_graph_screen.dart';
 import '../features/daily_fortune/presentation/screens/daily_fortune_detail_screen.dart';
 import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
-import '../features/traditional_saju/presentation/screens/traditional_saju_screen.dart';
+import '../features/traditional_saju/presentation/screens/lifetime_fortune_screen.dart';
 import '../features/compatibility/presentation/screens/compatibility_screen.dart';
 import '../features/settings/presentation/screens/icon_generator_screen.dart';
+import '../features/monthly_fortune/presentation/screens/monthly_fortune_screen.dart';
+import '../features/yearly_2025_fortune/presentation/screens/yearly_2025_fortune_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -140,12 +142,22 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: Routes.traditionalSaju,
         name: 'traditionalSaju',
-        builder: (context, state) => const TraditionalSajuScreen(),
+        builder: (context, state) => const LifetimeFortuneScreen(),
       ),
       GoRoute(
         path: Routes.compatibility,
         name: 'compatibility',
         builder: (context, state) => const CompatibilityScreen(),
+      ),
+      GoRoute(
+        path: Routes.monthlyFortune,
+        name: 'monthlyFortune',
+        builder: (context, state) => const MonthlyFortuneScreen(),
+      ),
+      GoRoute(
+        path: Routes.yearly2025Fortune,
+        name: 'yearly2025Fortune',
+        builder: (context, state) => const Yearly2025FortuneScreen(),
       ),
 
       // ShellRoute - 네비게이션 바 공유

@@ -1,20 +1,27 @@
 # Fortune 모듈 (운세 분석)
 
-> **버전**: v5.0
-> **작성일**: 2026-01-18
+> **버전**: v6.0
+> **작성일**: 2026-01-20
 > **담당**: JH_AI
-> **상태**: ✅ 구현 완료 (일간+세운 십성 결합 분석 추가)
+> **상태**: ✅ 구현 완료 (v6.0 성능 개선 - saju_base 대기 제거!)
 
 ---
 
 ## 1. 개요
 
-saju_base(평생운세)를 **기반 데이터**로 활용하는 파생 운세 분석 모듈.
+saju_analyses(만세력 계산 데이터)를 **핵심 데이터**로 활용하는 운세 분석 모듈.
 
-### 핵심 원칙
+### v6.0 핵심 변경 ⭐
 ```
-saju_base 없음 → 로딩/대기 상태 → saju_base 완료 대기
-saju_base 있음 → 운세 분석 실행
+Before (v5.x): saju_base(GPT-5.2) 대기 (140초!) → 운세 분석 시작
+After  (v6.0): saju_analyses(즉시) → 바로 운세 분석 시작! ⚡
+```
+
+### 아키텍처 원칙
+```
+프로필 저장 시 saju_analyses 자동 계산 (즉시)
+  → 운세 분석 요청 시 saju_analyses만 조회
+  → 140초 대기 없이 즉시 운세 분석 실행!
 ```
 
 ---
@@ -26,15 +33,16 @@ frontend/lib/AI/fortune/
 │
 ├── README.md                    # 이 파일
 │
-├── fortune_coordinator.dart     # 통합 조율 서비스
-│   ├── checkSajuBaseReady()     # saju_base 존재 확인
-│   ├── waitForSajuBase()        # saju_base 완료 대기
-│   └── analyzeAllFortunes()     # 전체 운세 일괄 분석
+├── fortune_coordinator.dart     # 통합 조율 서비스 (v6.0)
+│   ├── analyzeAllFortunes()     # 전체 운세 일괄 분석 (즉시 시작!)
+│   ├── checkSajuBaseReady()     # @deprecated (v6.0)
+│   └── waitForSajuBase()        # @deprecated (v6.0)
 │
 ├── common/
-│   ├── fortune_state.dart       # 상태 정의 (loading, ready, error)
-│   ├── fortune_input_data.dart  # 공통 입력 데이터
-│   └── korea_date_utils.dart    # 한국 시간(KST) 유틸리티
+│   ├── fortune_state.dart         # 상태 정의 (loading, ready, error)
+│   ├── fortune_input_data.dart    # 공통 입력 데이터 + getter
+│   ├── saju_analyses_queries.dart # ⭐ saju_analyses 조회 + 파싱 (NEW!)
+│   └── korea_date_utils.dart      # 한국 시간(KST) 유틸리티
 │
 ├── yearly_2026/                 # 2026 신년운세
 │   ├── yearly_2026_prompt.dart
@@ -57,7 +65,7 @@ frontend/lib/AI/fortune/
 
 ---
 
-## 3. 의존성 흐름
+## 3. 의존성 흐름 (v6.0)
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -67,18 +75,21 @@ frontend/lib/AI/fortune/
                         │
                         ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                fortune_coordinator.dart                       │
+│                fortune_coordinator.dart (v6.0)                │
 │                                                              │
-│  1. checkSajuBaseReady(profileId)                            │
-│     └── saju_base 캐시 조회                                   │
-│         ├── 없음 → FortuneState.waitingForSajuBase           │
-│         └── 있음 → FortuneState.ready                        │
-│                                                              │
-│  2. analyzeAllFortunes(profileId)                            │
-│     └── saju_base 있을 때만 실행                              │
-│         ├── yearly_2026_service.analyze()                    │
-│         ├── monthly_service.analyze()                        │
-│         └── yearly_2025_service.analyze()                    │
+│  analyzeAllFortunes(profileId) - 즉시 시작! ⚡                │
+│     │                                                        │
+│     ├── 1. SajuAnalysesQueries.getForFortuneInput()         │
+│     │      └── saju_analyses 조회 (즉시 사용 가능!)          │
+│     │      └── 합충/신살/용신/팔자 파싱                      │
+│     │                                                        │
+│     ├── 2. FortuneInputData.fromSajuAnalyses() 구성         │
+│     │      └── saju_base 대기 없음! (140초 절약)             │
+│     │                                                        │
+│     └── 3. 병렬 운세 분석 시작                               │
+│            ├── yearly_2026_service.analyze()                 │
+│            ├── monthly_service.analyze()                     │
+│            └── yearly_2025_service.analyze()                 │
 └───────────────────────┬──────────────────────────────────────┘
                         │
           ┌─────────────┼─────────────┐
@@ -778,3 +789,266 @@ ${inputData.getSeunCombinationAnalysis('화', '병오(丙午)')}
 | 2026-01-18 | v1.2 | 캐시 만료 정책 수정 (신년운세: 연말까지, 월운: 월말까지) |
 | 2026-01-18 | v2.0 | 프롬프트 개선 설계 추가 (yongsin/hapchung 활용, 상세 응답) |
 | 2026-01-18 | v5.0 | **일간+세운 십성 결합 분석** - FortuneInputData에 헬퍼 메서드 추가, 모든 프롬프트에 적용 |
+| 2026-01-20 | v5.1 | **AI 프롬프트-Provider 타입 매칭 규칙** 문서화 추가 |
+| 2026-01-20 | v5.2 | **saju_analyses 통합** - SajuAnalysesQueries 추가, 합충/신살 파싱, 프롬프트에 신살 정보 포함 |
+| 2026-01-20 | v6.0 | **⭐ 성능 대폭 개선!** saju_base 140초 대기 제거, saju_analyses만으로 즉시 운세 분석 |
+
+---
+
+## 15. ⚠️ AI 프롬프트-Provider 타입 매칭 규칙 (필수!)
+
+> **핵심 원칙**: AI 프롬프트의 JSON 출력 스키마와 Provider의 `fromJson()` 파싱은 **100% 동일**해야 합니다.
+
+### 15.1 왜 중요한가?
+
+```
+AI 프롬프트 (JSON 스키마)  →  Supabase 저장  →  Provider (fromJson)  →  UI 화면
+
+⚠️ 중간에 타입이 달라지면:
+   - 런타임 에러 발생
+   - 데이터 누락
+   - UI에서 빈 화면 표시
+```
+
+### 15.2 체크 방법
+
+**프롬프트 파일 (예: yearly_2026_prompt.dart)**:
+```dart
+// buildUserPrompt() 내의 JSON 스키마 확인
+'''
+{
+  "yearInfo": {
+    "alias": "string",
+    "napeum": "string",
+    "napeumExplain": "string",
+    ...
+  },
+  "overview": {
+    "keyword": "string",
+    "score": "number",
+    "summary": "string",
+    "keyPoint": "string"
+  },
+  ...
+}
+'''
+```
+
+**Provider 파일 (예: new_year_fortune_provider.dart)**:
+```dart
+// fromJson() 파싱 확인
+factory NewYearFortuneData.fromJson(Map<String, dynamic> json) {
+  final yearInfoJson = json['yearInfo'] as Map<String, dynamic>? ?? {};
+  final yearInfo = YearInfoSection(
+    alias: yearInfoJson['alias'] as String? ?? '',
+    napeum: yearInfoJson['napeum'] as String? ?? '',
+    napeumExplain: yearInfoJson['napeumExplain'] as String? ?? '',
+    ...
+  );
+  // ✅ 프롬프트 JSON 스키마와 1:1 매칭!
+}
+```
+
+### 15.3 타입 매칭 규칙
+
+| 프롬프트 JSON 타입 | Provider Dart 타입 |
+|------------------|-------------------|
+| `"string"` | `String` |
+| `"number"` (정수) | `int` |
+| `"number"` (소수) | `double` |
+| `["string"]` | `List<String>` |
+| `["number"]` | `List<int>` |
+| `{}` (객체) | `Map<String, dynamic>` 또는 커스텀 클래스 |
+
+### 15.4 프롬프트 수정 시 체크리스트
+
+프롬프트 JSON 스키마를 변경할 때 **반드시** 아래 파일도 수정:
+
+| 프롬프트 파일 | Provider 파일 | Screen 파일 |
+|--------------|--------------|------------|
+| `yearly_2026_prompt.dart` | `new_year_fortune_provider.dart` | `new_year_fortune_screen.dart` |
+| `monthly_prompt.dart` | `monthly_fortune_provider.dart` | `monthly_fortune_screen.dart` |
+| `yearly_2025_prompt.dart` | `yearly_2025_fortune_provider.dart` | `yearly_2025_fortune_screen.dart` |
+
+### 15.5 실제 매칭 예시
+
+**2026 신년운세 타입 매칭**:
+
+| 섹션 | 프롬프트 필드 | Provider 클래스 |
+|------|-------------|----------------|
+| `yearInfo` | `alias`, `napeum`, `napeumExplain`, `twelveUnsung`, `unsungExplain`, `mainSinsal`, `sinsalExplain` | `YearInfoSection` |
+| `personalAnalysis` | `ilgan`, `ilganExplain`, `fireEffect`, `yongshinMatch`, `hapchungEffect`, `sinsalEffect` | `PersonalAnalysisSection` |
+| `overview` | `keyword`, `score`, `summary`, `keyPoint` | `OverviewSection` |
+| `categories` | `title`, `icon`, `score`, `summary`, `reading`, `bestMonths`, `cautionMonths`, `actionTip`, `focusAreas` | `CategorySection` |
+| `timeline` | `q1`, `q2`, `q3`, `q4` (각각 `period`, `theme`, `score`, `reading`) | `TimelineSection`, `QuarterSection` |
+| `lucky` | `colors`, `numbers`, `direction`, `items` | `LuckySection` |
+| `closing` | `yearMessage`, `finalAdvice` | `ClosingSection` |
+
+### 15.6 흔한 실수와 해결
+
+```
+❌ 실수 1: 프롬프트에 새 필드 추가했는데 Provider 미수정
+   → 해결: Provider의 fromJson()에 해당 필드 파싱 추가
+
+❌ 실수 2: 프롬프트에서 배열 → 객체로 변경했는데 Provider는 그대로
+   → 해결: List<String> → 커스텀 클래스로 변경
+
+❌ 실수 3: 프롬프트 필드명 오타 (overview vs overView)
+   → 해결: 프롬프트와 Provider에서 동일한 camelCase 사용
+
+❌ 실수 4: Screen에서 존재하지 않는 필드 참조
+   → 해결: Provider 클래스의 실제 필드명 확인 후 사용
+```
+
+### 15.7 검증 명령어
+
+```bash
+# 1. 프롬프트 JSON 스키마 확인
+grep -A 50 "JSON 스키마" yearly_2026_prompt.dart
+
+# 2. Provider fromJson 확인
+grep -A 100 "fromJson" new_year_fortune_provider.dart
+
+# 3. 두 파일 비교하여 필드명 일치 확인
+```
+
+---
+
+**⚠️ 기억하세요**: AI 프롬프트를 수정하면 반드시 Provider와 Screen도 함께 수정!
+
+---
+
+## 16. saju_analyses 통합 (v5.2)
+
+> **핵심**: saju_analyses 테이블의 합충/신살/용신 데이터를 파싱하여 프롬프트에 전달
+
+### 16.1 데이터 흐름
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    saju_analyses 테이블                          │
+│  day_gan, day_ji, yongsin, hapchung, sinsal_list, twelve_sinsal │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│            SajuAnalysesQueries.getForFortuneInput()             │
+│                                                                 │
+│  _parseHapchung() → 합충 요약 (summary)                          │
+│  _parseSinsal()   → 길신/흉신/중립 분류                          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               FortuneCoordinator.analyzeAllFortunes()            │
+│                                                                 │
+│  final sajuAnalyses = await _sajuAnalysesQueries.getForFortuneInput();
+│  final inputData = FortuneInputData.fromSajuBase(               │
+│    sajuAnalyses: sajuAnalyses,  // ← 파싱된 데이터 전달          │
+│  );                                                             │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FortuneInputData getter                       │
+│                                                                 │
+│  hapchung    → sajuAnalyses?['hapchung']   (파싱된 Map)         │
+│  sinsal      → sajuAnalyses?['sinsal']     (파싱된 Map)         │
+│  sinsalInfo  → sinsal?['summary']          (프롬프트용 문자열)  │
+│  hapchungInfo→ hapchung?['summary']        (프롬프트용 문자열)  │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     각 프롬프트 사용                              │
+│                                                                 │
+│  ## 신살(神煞)                                                   │
+│  ${inputData.sinsalInfo}                                        │
+│                                                                 │
+│  ## 합충형파해                                                   │
+│  ${_formatHapchung()}  // hapchung['summary'] 사용              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 16.2 SajuAnalysesQueries 핵심 메서드
+
+**파일**: `common/saju_analyses_queries.dart`
+
+```dart
+/// DB에서 조회 + 파싱
+Future<Map<String, dynamic>?> getForFortuneInput(String profileId) async {
+  final response = await _supabase.from('saju_analyses').select('''
+    year_gan, year_ji, month_gan, month_ji,
+    day_gan, day_ji, hour_gan, hour_ji,
+    yongsin, hapchung, day_strength,
+    sinsal_list, twelve_sinsal, sipsin_info
+  ''').eq('profile_id', profileId).maybeSingle();
+
+  return _parseForPrompt(response);
+}
+
+/// 합충형파해 파싱
+Map<String, dynamic>? _parseHapchung(Map<String, dynamic>? hapchung) {
+  // 천간합충, 지지합, 지지충형파해 분류
+  // summary 문자열 생성:
+  // - 천간 합충: 을경합화금(乙庚合化金)
+  // - 지지 합: 인오술 삼합(火局)
+  // - 지지 충형파해: 자오충(子午衝)
+}
+
+/// 신살 파싱
+Map<String, dynamic>? _parseSinsal(List? sinsalList, List? twelveSinsal) {
+  // 길신/흉신/중립 분류
+  // summary 문자열 생성:
+  // - 길신(吉神): 천을귀인(년주), 천덕귀인(월주)
+  // - 흉신(凶神): 도화살(일주), 역마살(시주)
+}
+```
+
+### 16.3 FortuneInputData 추가된 getter
+
+| getter | 반환 | 용도 |
+|--------|------|------|
+| `sinsal` | `Map<String, dynamic>?` | 신살 전체 데이터 |
+| `sipsinInfo` | `Map<String, dynamic>?` | 십신 정보 |
+| `sinsalInfo` | `String` | 프롬프트용 신살 요약 |
+| `hapchungInfo` | `String` | 프롬프트용 합충 요약 |
+
+### 16.4 프롬프트 변경 사항
+
+3개 프롬프트 모두에 신살 정보 섹션 추가:
+
+```dart
+// yearly_2026_prompt.dart
+## 합충형파해
+${_formatHapchung()}
+
+## 신살(神煞)           // ← NEW!
+${inputData.sinsalInfo}
+
+## 현재 대운/세운
+```
+
+### 16.5 파싱된 데이터 예시
+
+**합충 (hapchung)**:
+```json
+{
+  "cheongan_hapchung": "을경합화금(乙庚合化金)",
+  "jiji_haps": "인오술 삼합(火局)",
+  "jiji_chunghyungpaehae": "자오충(子午衝), 축술형(丑戌刑)",
+  "total_haps": 2,
+  "total_chungs": 1,
+  "summary": "- 천간 합충: 을경합화금(乙庚合化金)\n- 지지 합: 인오술 삼합(火局)\n- 지지 충형파해: 자오충(子午衝)"
+}
+```
+
+**신살 (sinsal)**:
+```json
+{
+  "gilsin": "천을귀인(년주), 천덕귀인(월주), 장성(월주)",
+  "hyungsin": "도화살(일주), 역마살(시주)",
+  "neutral": "화개살(년주)",
+  "summary": "- 길신(吉神): 천을귀인(년주), 천덕귀인(월주)\n- 흉신(凶神): 도화살(일주), 역마살(시주)\n- 중립: 화개살(년주)"
+}
+```

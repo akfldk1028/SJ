@@ -2,28 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/mystic_background.dart';
+import '../../../../shared/widgets/fortune_shimmer_loading.dart';
+import '../../../../shared/widgets/fortune_category_chip_section.dart';
+import '../providers/new_year_fortune_provider.dart';
 
-/// 2026 신년운세 화면
+/// 2026 신년운세 화면 - 책처럼 읽기 쉬운 레이아웃
 class NewYearFortuneScreen extends ConsumerWidget {
   const NewYearFortuneScreen({super.key});
-
-  static const _primaryColor = Color(0xFFFF6B6B);
-  static const _secondaryColor = Color(0xFFFFE66D);
-  static const _accentColor = Color(0xFFFFA94D);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.appTheme;
+    final fortuneAsync = ref.watch(newYearFortuneProvider);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: theme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: theme.textPrimary, size: 20),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -35,641 +33,433 @@ class NewYearFortuneScreen extends ConsumerWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: theme.textSecondary, size: 22),
+            onPressed: () => ref.read(newYearFortuneProvider.notifier).refresh(),
+          ),
+        ],
       ),
-      body: MysticBackground(
-        child: SafeArea(
-          child: _buildContent(context, theme),
-        ),
+      body: fortuneAsync.when(
+        loading: () => const FortuneShimmerLoading(),
+        error: (error, stack) => _buildError(context, theme, ref),
+        data: (fortune) {
+          if (fortune == null) {
+            return _buildAnalyzing(theme);
+          }
+          return _buildContent(context, theme, fortune);
+        },
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, AppThemeExtension theme) {
+  Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '신년운세를 불러오지 못했습니다',
+            style: TextStyle(color: theme.textSecondary, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => ref.read(newYearFortuneProvider.notifier).refresh(),
+            child: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyzing(AppThemeExtension theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            '2026년 신년운세를 분석하고 있습니다...',
+            style: TextStyle(color: theme.textSecondary, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, AppThemeExtension theme, NewYearFortuneData fortune) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       children: [
-        // 신년 배너
-        _buildYearBanner(theme),
-        const SizedBox(height: 20),
-        // 2026년 총운
-        _buildOverallFortune(theme),
-        const SizedBox(height: 20),
-        // 월별 운세
-        _buildMonthlyFortune(theme),
-        const SizedBox(height: 20),
-        // 2026년 행운의 키워드
-        _buildLuckyKeywords(theme),
-        const SizedBox(height: 20),
-        // 주의사항
-        _buildCautionSection(theme),
-        const SizedBox(height: 28),
+        // 제목
+        _buildTitle(theme, fortune),
+        const SizedBox(height: 32),
+
+        // v7.0: 나의 사주 소개
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+          _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
+          const SizedBox(height: 32),
+        ],
+
+        // 연도 정보
+        if (_hasYearInfo(fortune.yearInfo)) ...[
+          _buildSection(
+            theme,
+            title: '${fortune.year}년 ${fortune.yearInfo.alias}',
+            children: [
+              if (fortune.yearInfo.napeum.isNotEmpty)
+                _buildSubSection(theme, '납음', '${fortune.yearInfo.napeum}\n${fortune.yearInfo.napeumExplain}'),
+              if (fortune.yearInfo.twelveUnsung.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '12운성', '${fortune.yearInfo.twelveUnsung}\n${fortune.yearInfo.unsungExplain}'),
+              ],
+              if (fortune.yearInfo.mainSinsal.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '주요 신살', '${fortune.yearInfo.mainSinsal}\n${fortune.yearInfo.sinsalExplain}'),
+              ],
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+
+        // 개인 분석
+        if (_hasPersonalAnalysis(fortune.personalAnalysis)) ...[
+          _buildSection(
+            theme,
+            title: '나와 2026년의 관계',
+            children: [
+              if (fortune.personalAnalysis.ilgan.isNotEmpty)
+                _buildSubSection(theme, '일간 분석', '${fortune.personalAnalysis.ilgan}\n${fortune.personalAnalysis.ilganExplain}'),
+              if (fortune.personalAnalysis.fireEffect.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '화(火) 기운의 영향', fortune.personalAnalysis.fireEffect),
+              ],
+              if (fortune.personalAnalysis.yongshinMatch.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '용신 조화', fortune.personalAnalysis.yongshinMatch),
+              ],
+              if (fortune.personalAnalysis.hapchungEffect.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '합충 영향', fortune.personalAnalysis.hapchungEffect),
+              ],
+              if (fortune.personalAnalysis.sinsalEffect.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '신살 영향', fortune.personalAnalysis.sinsalEffect),
+              ],
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+
+        // 총운
+        _buildSection(
+          theme,
+          title: '2026년 총운',
+          children: [
+            if (fortune.overview.keyword.isNotEmpty)
+              _buildKeyword(theme, fortune.overview.keyword, fortune.overview.score),
+            if (fortune.overview.summary.isNotEmpty)
+              _buildParagraph(theme, fortune.overview.summary),
+            if (fortune.overview.keyPoint.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildSubSection(theme, '핵심 포인트', fortune.overview.keyPoint),
+            ],
+          ],
+        ),
+        const SizedBox(height: 32),
+
+        // 카테고리별 운세 (광고 잠금)
+        FortuneCategoryChipSection(
+          fortuneType: 'yearly_2026',
+          title: '2026년 분야별 운세',
+          categories: fortune.categories.isNotEmpty
+              ? fortune.categories.map((key, cat) => MapEntry(
+                  key,
+                  CategoryData(
+                    title: cat.title,
+                    score: cat.score,
+                    reading: cat.reading,
+                    summary: cat.summary,
+                    bestMonths: cat.bestMonths,
+                    cautionMonths: cat.cautionMonths,
+                    actionTip: cat.actionTip,
+                    focusAreas: cat.focusAreas,
+                  ),
+                ))
+              : _getDefaultCategories(),
+        ),
+        const SizedBox(height: 32),
+
+        // 행운 정보
+        if (_hasLucky(fortune.lucky)) ...[
+          _buildSection(
+            theme,
+            title: '2026년 행운 정보',
+            children: [
+              if (fortune.lucky.colors.isNotEmpty)
+                _buildLuckyItem(theme, '행운의 색상', fortune.lucky.colors.join(', ')),
+              if (fortune.lucky.numbers.isNotEmpty)
+                _buildLuckyItem(theme, '행운의 숫자', fortune.lucky.numbers.join(', ')),
+              if (fortune.lucky.direction.isNotEmpty)
+                _buildLuckyItem(theme, '좋은 방향', fortune.lucky.direction),
+              if (fortune.lucky.items.isNotEmpty)
+                _buildLuckyItem(theme, '행운 아이템', fortune.lucky.items.join(', ')),
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+
+        // 마무리 메시지
+        if (fortune.closing.yearMessage.isNotEmpty || fortune.closing.finalAdvice.isNotEmpty) ...[
+          _buildSection(
+            theme,
+            title: '2026년을 맞이하며',
+            children: [
+              if (fortune.closing.yearMessage.isNotEmpty)
+                _buildParagraph(theme, fortune.closing.yearMessage),
+              if (fortune.closing.finalAdvice.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSubSection(theme, '마지막 조언', fortune.closing.finalAdvice),
+              ],
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+
         // AI 상담 버튼
         _buildConsultButton(context, theme),
-        const SizedBox(height: 32),
+        const SizedBox(height: 40),
       ],
     );
   }
 
-  Widget _buildYearBanner(AppThemeExtension theme) {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_primaryColor, _accentColor, _secondaryColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildTitle(AppThemeExtension theme, NewYearFortuneData fortune) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          '${fortune.year}년 신년운세',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: theme.textPrimary,
+          ),
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: _primaryColor.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // 배경 패턴
-          Positioned(
-            right: -40,
-            top: -40,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.2),
-                    Colors.white.withOpacity(0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 별 아이콘들
-          Positioned(
-            right: 20,
-            top: 20,
-            child: Icon(Icons.auto_awesome, size: 24, color: Colors.white.withOpacity(0.4)),
-          ),
-          Positioned(
-            right: 60,
-            top: 45,
-            child: Icon(Icons.auto_awesome, size: 16, color: Colors.white.withOpacity(0.3)),
-          ),
-          Positioned(
-            right: 30,
-            bottom: 50,
-            child: Icon(Icons.auto_awesome, size: 20, color: Colors.white.withOpacity(0.35)),
-          ),
-          // 콘텐츠
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.celebration_rounded, color: Colors.white, size: 14),
-                      SizedBox(width: 6),
-                      Text(
-                        '병오년 (丙午年)',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '2026',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 56,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                        letterSpacing: -2,
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        '신년운세',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '새해 복 많이 받으세요!',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverallFortune(AppThemeExtension theme) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _primaryColor.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.star_rounded, color: _primaryColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '2026년 총운',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: theme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
+        if (fortune.yearGanji.isNotEmpty) ...[
+          const SizedBox(height: 4),
           Text(
-            '2026년은 새로운 시작과 변화의 해입니다. '
-            '상반기에는 준비와 계획의 시간을 가지고, '
-            '하반기에는 그 결실을 맺을 수 있는 기회가 찾아옵니다.',
+            fortune.yearGanji,
             style: TextStyle(
-              fontSize: 15,
-              height: 1.7,
-              color: theme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: _accentColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.lightbulb_rounded, color: _accentColor, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '특히 대인관계에서 좋은 인연을 만날 수 있으며, 새로운 프로젝트를 시작하기에 좋습니다.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+              fontSize: 16,
+              color: theme.textSecondary,
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildMonthlyFortune(AppThemeExtension theme) {
-    final months = [
-      {'month': '1월', 'fortune': '새로운 시작의 기운', 'score': 75},
-      {'month': '2월', 'fortune': '인내가 필요한 시기', 'score': 65},
-      {'month': '3월', 'fortune': '봄의 기운과 함께 상승', 'score': 85},
-      {'month': '4월', 'fortune': '대인관계 운 상승', 'score': 88},
-      {'month': '5월', 'fortune': '재물운이 좋은 시기', 'score': 90},
-      {'month': '6월', 'fortune': '건강 주의', 'score': 70},
-      {'month': '7월', 'fortune': '도약의 기회', 'score': 82},
-      {'month': '8월', 'fortune': '안정적인 흐름', 'score': 78},
-      {'month': '9월', 'fortune': '수확의 계절', 'score': 92},
-      {'month': '10월', 'fortune': '변화에 대응', 'score': 75},
-      {'month': '11월', 'fortune': '준비의 시간', 'score': 72},
-      {'month': '12월', 'fortune': '마무리와 정리', 'score': 80},
-    ];
-
+  Widget _buildSection(AppThemeExtension theme, {required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 14),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.calendar_month_rounded, color: _primaryColor, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '월별 운세',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: theme.textPrimary,
-                ),
-              ),
-            ],
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: theme.textPrimary,
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(20),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildSubSection(AppThemeExtension theme, String title, String content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: theme.textPrimary,
           ),
-          child: Column(
-            children: months.asMap().entries.map((entry) {
-              final index = entry.key;
-              final month = entry.value;
-              final isLast = index == months.length - 1;
-              return _buildMonthItem(
-                theme,
-                month['month'] as String,
-                month['fortune'] as String,
-                month['score'] as int,
-                isLast,
-                index,
-              );
-            }).toList(),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          content,
+          style: TextStyle(
+            fontSize: 15,
+            color: theme.textSecondary,
+            height: 1.8,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMonthItem(
-    AppThemeExtension theme,
-    String month,
-    String fortune,
-    int score,
-    bool isLast,
-    int index,
-  ) {
-    final scoreColor = _getScoreColor(score);
-    final isHighScore = score >= 85;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: isHighScore ? scoreColor.withOpacity(0.03) : null,
-        border: isLast
-            ? null
-            : Border(
-                bottom: BorderSide(
-                  color: theme.textMuted.withOpacity(0.08),
-                ),
-              ),
-        borderRadius: isLast
-            ? const BorderRadius.vertical(bottom: Radius.circular(20))
-            : index == 0
-                ? const BorderRadius.vertical(top: Radius.circular(20))
-                : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  scoreColor.withOpacity(0.15),
-                  scoreColor.withOpacity(0.08),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(
-                month,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: scoreColor,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fortune,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: theme.textPrimary,
-                  ),
-                ),
-                if (isHighScore)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Row(
-                      children: [
-                        Icon(Icons.arrow_upward_rounded, size: 12, color: scoreColor),
-                        const SizedBox(width: 2),
-                        Text(
-                          '좋은 시기',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: scoreColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: scoreColor,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: scoreColor.withOpacity(0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              '$score',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getScoreColor(int score) {
-    if (score >= 85) return const Color(0xFF10B981);
-    if (score >= 70) return const Color(0xFF3B82F6);
-    if (score >= 60) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
-  }
-
-  Widget _buildLuckyKeywords(AppThemeExtension theme) {
-    final keywords = [
-      {'word': '도전', 'icon': Icons.rocket_launch_rounded, 'color': const Color(0xFFEC4899)},
-      {'word': '협력', 'icon': Icons.handshake_rounded, 'color': const Color(0xFF3B82F6)},
-      {'word': '성장', 'icon': Icons.trending_up_rounded, 'color': const Color(0xFF10B981)},
-      {'word': '인내', 'icon': Icons.hourglass_top_rounded, 'color': const Color(0xFFF59E0B)},
-      {'word': '희망', 'icon': Icons.wb_sunny_rounded, 'color': const Color(0xFFFF6B6B)},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            _primaryColor.withOpacity(0.1),
-            _secondaryColor.withOpacity(0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildKeyword(AppThemeExtension theme, String keyword, int score) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Text(
+        '키워드: $keyword  |  총점: $score점',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: theme.textPrimary,
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _primaryColor.withOpacity(0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.key_rounded, color: _primaryColor, size: 18),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                '2026년 행운의 키워드',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: _primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: keywords.map((keyword) {
-              final color = keyword['color'] as Color;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withOpacity(0.2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(keyword['icon'] as IconData, color: color, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      '#${keyword['word']}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildCautionSection(AppThemeExtension theme) {
-    final bgColor = theme.isDark
-        ? const Color(0xFF3D2E1E)
-        : const Color(0xFFFFF3E0);
-    final iconColor = theme.isDark
-        ? const Color(0xFFFFB74D)
-        : const Color(0xFFF57C00);
-    final titleColor = theme.isDark
-        ? const Color(0xFFFFCC80)
-        : const Color(0xFFEF6C00);
-
-    final cautions = [
-      '급한 결정은 피하고 충분히 생각한 후 행동하세요',
-      '건강 관리에 특별히 신경 쓰는 것이 좋습니다',
-      '재정적인 결정은 신중하게 내려주세요',
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: iconColor.withOpacity(0.2)),
+  Widget _buildParagraph(AppThemeExtension theme, String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 15,
+        color: theme.textSecondary,
+        height: 1.8,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.warning_amber_rounded, color: iconColor, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '2026년 주의사항',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...cautions.map((caution) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 6),
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: iconColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    caution,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: theme.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )),
-        ],
+    );
+  }
+
+  Widget _buildLuckyItem(AppThemeExtension theme, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          fontSize: 15,
+          color: theme.textSecondary,
+          height: 1.6,
+        ),
       ),
     );
   }
 
   Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
-    return GestureDetector(
-      onTap: () => context.go('/saju/chat?type=newYearFortune'),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_primaryColor, _accentColor],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => context.go('/saju/chat?type=newYearFortune'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.textPrimary,
+          foregroundColor: theme.backgroundColor,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: _primaryColor.withOpacity(0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 22),
-            SizedBox(width: 10),
-            Text(
-              '신년운세 AI 상담받기',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+        child: const Text(
+          '신년운세 AI 상담받기',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _hasYearInfo(YearInfoSection info) {
+    return info.napeum.isNotEmpty ||
+        info.twelveUnsung.isNotEmpty ||
+        info.mainSinsal.isNotEmpty;
+  }
+
+  bool _hasPersonalAnalysis(PersonalAnalysisSection analysis) {
+    return analysis.ilgan.isNotEmpty ||
+        analysis.fireEffect.isNotEmpty ||
+        analysis.yongshinMatch.isNotEmpty ||
+        analysis.hapchungEffect.isNotEmpty ||
+        analysis.sinsalEffect.isNotEmpty;
+  }
+
+  bool _hasLucky(LuckySection lucky) {
+    return lucky.colors.isNotEmpty ||
+        lucky.numbers.isNotEmpty ||
+        lucky.direction.isNotEmpty ||
+        lucky.items.isNotEmpty;
+  }
+
+  /// AI 응답에 카테고리가 없을 때 기본 카테고리 제공
+  /// 6개 카테고리 칩이 항상 표시되도록 함
+  Map<String, CategoryData> _getDefaultCategories() {
+    return {
+      'career': const CategoryData(
+        title: '직업운',
+        score: 0,
+        reading: '광고를 시청하면 2026년 직업운을 확인할 수 있습니다.',
+      ),
+      'wealth': const CategoryData(
+        title: '재물운',
+        score: 0,
+        reading: '광고를 시청하면 2026년 재물운을 확인할 수 있습니다.',
+      ),
+      'love': const CategoryData(
+        title: '애정운',
+        score: 0,
+        reading: '광고를 시청하면 2026년 애정운을 확인할 수 있습니다.',
+      ),
+      'health': const CategoryData(
+        title: '건강운',
+        score: 0,
+        reading: '광고를 시청하면 2026년 건강운을 확인할 수 있습니다.',
+      ),
+      'study': const CategoryData(
+        title: '학업운',
+        score: 0,
+        reading: '광고를 시청하면 2026년 학업운을 확인할 수 있습니다.',
+      ),
+      'business': const CategoryData(
+        title: '사업운',
+        score: 0,
+        reading: '광고를 시청하면 2026년 사업운을 확인할 수 있습니다.',
+      ),
+    };
+  }
+
+  /// v7.0: 나의 사주 소개 섹션 (카드 스타일)
+  Widget _buildMySajuIntroSection(AppThemeExtension theme, MySajuIntroSection intro) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.person_outline, color: theme.textPrimary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            intro.reading,
+            style: TextStyle(
+              fontSize: 15,
+              color: theme.textSecondary,
+              height: 1.8,
             ),
-            SizedBox(width: 6),
-            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -79,9 +79,10 @@ class DailyAdviceSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: () => context.push(route),
           child: Padding(
-            padding: EdgeInsets.all(context.scaledPadding(16)),
+            padding: EdgeInsets.all(context.scaledPadding(12)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   title,
@@ -89,10 +90,11 @@ class DailyAdviceSection extends StatelessWidget {
                     fontSize: fontSize,
                     fontWeight: FontWeight.w600,
                     color: appTheme.isDark ? Colors.white : const Color(0xFF1A1A1A),
-                    height: 1.4,
+                    height: 1.3,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
-                const Spacer(),
                 Container(
                   width: iconBoxSize,
                   height: iconBoxSize,

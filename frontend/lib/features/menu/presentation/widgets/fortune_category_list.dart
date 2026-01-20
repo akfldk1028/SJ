@@ -16,10 +16,10 @@ class FortuneCategoryList extends StatelessWidget {
     final scale = context.scaleFactor;
 
     final categories = [
-      {'name': '정통사주', 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
-      {'name': '정통궁합', 'icon': Icons.favorite_rounded, 'route': '/fortune/compatibility'},
-      {'name': '신년운세', 'icon': Icons.auto_awesome_rounded, 'route': '/fortune/new-year'},
-      {'name': '오늘운세', 'icon': Icons.wb_sunny_rounded, 'route': '/fortune/daily'},
+      {'name': '평생운세', 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
+      {'name': '2025운세', 'icon': Icons.calendar_today_rounded, 'route': '/fortune/yearly-2025'},
+      {'name': '2026운세', 'icon': Icons.auto_awesome_rounded, 'route': '/fortune/new-year'},
+      {'name': '한달운세', 'icon': Icons.wb_sunny_rounded, 'route': '/fortune/monthly'},
     ];
 
     return Padding(

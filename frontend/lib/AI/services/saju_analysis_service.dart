@@ -319,15 +319,17 @@ class SajuAnalysisService {
     });
   }
 
-  /// 두 분석 순차 실행 (GPT 먼저 → Gemini)
+  /// 분석 실행 (v6.0 병렬 처리)
   ///
-  /// ## 순차 실행 이유
-  /// GPT-5.2 평생사주 분석 결과를 Gemini 일운 프롬프트에 포함시켜
-  /// 정확도를 높임. GPT가 기본 분석 제공, Gemini가 참조.
+  /// ## v6.0 변경 (2026-01-20) ⭐
+  /// - Fortune 분석이 **saju_base와 독립적으로** 실행됨
+  /// - Fortune은 saju_analyses(즉시 사용 가능)만 사용
+  /// - saju_base는 백그라운드에서 별도 실행
   ///
-  /// ## 실행 순서
-  /// 1. GPT-5.2 평생사주 분석 (saju_base)
-  /// 2. Gemini 일운 분석 (GPT 결과 참조)
+  /// ## 실행 순서 (병렬)
+  /// 1. Fortune 분석 (saju_analyses 사용) - 즉시 시작! ⚡
+  /// 2. GPT-5.2 평생사주 분석 (saju_base) - 백그라운드
+  /// 3. Gemini 일운 분석 (daily_fortune)
   Future<ProfileAnalysisResult> _runBothAnalyses(
     String userId,
     String profileId,
@@ -335,13 +337,45 @@ class SajuAnalysisService {
   ) async {
     final inputJson = inputData.toJson();
 
-    // 1. GPT 평생사주 분석 먼저 (기본)
+    // ═══════════════════════════════════════════════════════════════════════
+    // v6.0: Fortune 분석 먼저! (saju_base 대기 없이 즉시 시작)
+    // ═══════════════════════════════════════════════════════════════════════
+    print('[SajuAnalysisService] 🚀 v6.0 Fortune 분석 즉시 시작! (saju_base 대기 없음)');
+    print('  - userId: $userId');
+    print('  - profileId: $profileId');
+    print('  - name: ${inputJson['name']}');
+    print('  - birth_date: ${inputJson['birth_date']}');
+    print('  - gender: ${inputJson['gender']}');
+
+    // Fortune 분석 (yearly_2025, yearly_2026, monthly) - saju_analyses만 사용
+    try {
+      final fortuneResults = await _fortuneCoordinator.analyzeAllFortunes(
+        userId: userId,
+        profileId: profileId,
+        profileName: inputJson['name'] as String? ?? '',
+        birthDate: inputJson['birth_date'] as String? ?? '',
+        birthTime: inputJson['birth_time'] as String?,
+        gender: inputJson['gender'] as String? ?? 'M',
+      );
+      print('[SajuAnalysisService] ✅ Fortune 분석 완료:');
+      print('  - completedCount: ${fortuneResults.completedCount}');
+      print('  - yearly2026: ${fortuneResults.yearly2026 != null ? "성공" : "실패"}');
+      print('  - monthly: ${fortuneResults.monthly != null ? "성공" : "실패"}');
+      print('  - yearly2025: ${fortuneResults.yearly2025 != null ? "성공" : "실패"}');
+    } catch (e, stackTrace) {
+      print('[SajuAnalysisService] ❌ Fortune 분석 오류: $e');
+      print('[SajuAnalysisService] StackTrace: $stackTrace');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GPT-5.2 평생사주 분석 (백그라운드 - 채팅용)
+    // ═══════════════════════════════════════════════════════════════════════
+    print('[SajuAnalysisService] 📊 saju_base 분석 시작 (백그라운드)...');
     final sajuBaseResult = await _runSajuBaseAnalysis(userId, profileId, inputJson);
-
-    // 2. GPT 결과를 Gemini 프롬프트에 포함
-    Map<String, dynamic> enrichedInputJson = Map.from(inputJson);
-
     print('[SajuAnalysisService] 📊 saju_base 결과: success=${sajuBaseResult.success}');
+
+    // GPT 결과를 Gemini 프롬프트에 포함
+    Map<String, dynamic> enrichedInputJson = Map.from(inputJson);
 
     if (sajuBaseResult.success) {
       // GPT 분석 결과 조회하여 Gemini 입력에 추가
@@ -353,38 +387,11 @@ class SajuAnalysisService {
       } else {
         print('[SajuAnalysisService] ⚠️ saju_base 조회 실패: ${sajuBaseData.errorMessage}');
       }
-
-      // Fortune 분석 (yearly_2025, yearly_2026, monthly) - 동기 실행
-      print('[SajuAnalysisService] 🎯 Fortune 분석 시작 (연간/월간)...');
-      print('  - userId: $userId');
-      print('  - profileId: $profileId');
-      print('  - name: ${inputJson['name']}');
-      print('  - birth_date: ${inputJson['birth_date']}');
-      print('  - gender: ${inputJson['gender']}');
-      try {
-        final fortuneResults = await _fortuneCoordinator.analyzeAllFortunes(
-          userId: userId,
-          profileId: profileId,
-          profileName: inputJson['name'] as String? ?? '',
-          birthDate: inputJson['birth_date'] as String? ?? '',
-          birthTime: inputJson['birth_time'] as String?,
-          gender: inputJson['gender'] as String? ?? 'M',
-        );
-        print('[SajuAnalysisService] ✅ Fortune 분석 완료:');
-        print('  - completedCount: ${fortuneResults.completedCount}');
-        print('  - yearly2026: ${fortuneResults.yearly2026 != null ? "성공" : "실패"}');
-        print('  - monthly: ${fortuneResults.monthly != null ? "성공" : "실패"}');
-        print('  - yearly2025: ${fortuneResults.yearly2025 != null ? "성공" : "실패"}');
-      } catch (e, stackTrace) {
-        print('[SajuAnalysisService] ❌ Fortune 분석 오류: $e');
-        print('[SajuAnalysisService] StackTrace: $stackTrace');
-      }
-    } else {
-      print('[SajuAnalysisService] ⚠️ saju_base 실패로 Fortune 분석 스킵');
-      print('  - error: ${sajuBaseResult.error}');
     }
 
-    // 3. Gemini 일운 분석 (GPT 결과 참조)
+    // ═══════════════════════════════════════════════════════════════════════
+    // Gemini 일운 분석 (GPT 결과 참조)
+    // ═══════════════════════════════════════════════════════════════════════
     final dailyFortuneResult = await _runDailyFortuneAnalysis(
       userId, profileId, enrichedInputJson,
     );

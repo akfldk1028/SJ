@@ -2,10 +2,16 @@
 ///
 /// ## 개요
 /// 운세 분석에 필요한 공통 입력 데이터 클래스
-/// saju_base + saju_analyses 기반 파생 운세 분석에 사용
+/// saju_analyses(만세력 계산 데이터) 기반 운세 분석에 사용
 ///
 /// ## 파일 위치
 /// `frontend/lib/AI/fortune/common/fortune_input_data.dart`
+///
+/// ## v3.0 핵심 변경 (2026-01-20) ⭐
+/// - **saju_base 대기 제거!** 140초 → 즉시 시작
+/// - sajuBaseContent: required → **optional** (참고용)
+/// - sajuAnalyses: optional → **required** (핵심 데이터)
+/// - 새 factory: `fromSajuAnalyses()` 추가 (권장)
 ///
 /// ## v2.0 개선사항
 /// - saju_analyses 테이블 데이터 추가 (yongsin, hapchung, day_strength)
@@ -19,9 +25,9 @@
 /// - birthDate: 생년월일 (양력)
 /// - birthTime: 태어난 시간 (시주)
 /// - gender: 성별
-/// - sajuBaseContent: saju_base 분석 결과 (AI 해석)
+/// - sajuBaseContent: saju_base 분석 결과 (AI 해석) - **선택적** (v3.0)
 ///
-/// ## 중요 데이터 (정확도 향상)
+/// ## 핵심 데이터 (필수!)
 /// - sajuAnalyses: saju_analyses 테이블 데이터 (만세력 계산 결과)
 ///   - yongsin: 용신/희신/기신/구신
 ///   - hapchung: 합충형파해
@@ -44,16 +50,18 @@ class FortuneInputData {
   /// 성별 ('M' 또는 'F')
   final String gender;
 
-  /// saju_base 분석 결과 (AI 해석)
+  /// saju_base 분석 결과 (AI 해석) - **선택적 (v3.0)**
   /// - 성격, 적성, 재물운, 건강운 등 종합 분석
-  /// - 모든 파생 운세의 기반 데이터
-  final Map<String, dynamic> sajuBaseContent;
+  /// - 참고용 데이터 (없어도 운세 분석 가능)
+  /// - 핵심 데이터는 sajuAnalyses에서 제공
+  final Map<String, dynamic>? sajuBaseContent;
 
-  /// saju_analyses 테이블 데이터 (만세력 계산 결과)
+  /// saju_analyses 테이블 데이터 (만세력 계산 결과) - **필수 (v3.0)**
   /// - 용신/기신: 운세 정확도의 핵심!
   /// - 합충형파해: 년/월 상호작용 분석
   /// - 일간 강약: 신강/신약 판단
-  final Map<String, dynamic>? sajuAnalyses;
+  /// - 사주팔자: 천간/지지 (년주, 월주, 일주, 시주)
+  final Map<String, dynamic> sajuAnalyses;
 
   /// 만세력 원본 데이터 (saju_base.content 내)
   /// - 천간/지지/십성/신살 등
@@ -70,33 +78,68 @@ class FortuneInputData {
     required this.birthDate,
     this.birthTime,
     required this.gender,
-    required this.sajuBaseContent,
-    this.sajuAnalyses,
+    this.sajuBaseContent, // v3.0: Optional (saju_analyses만으로 운세 분석 가능)
+    required this.sajuAnalyses, // v3.0: Required (핵심 만세력 데이터)
     this.sajuOrigin,
     this.targetYear,
     this.targetMonth,
   });
 
-  /// saju_base + saju_analyses에서 FortuneInputData 생성
+  /// saju_analyses만으로 FortuneInputData 생성 (v3.0 권장)
+  ///
+  /// saju_base 없이 즉시 운세 분석 가능!
+  /// - 140초 대기 없이 바로 분석 시작
+  /// - 만세력 계산 결과(saju_analyses)만으로 충분한 정확도
   ///
   /// [profileName] 프로필 이름
   /// [birthDate] 생년월일
   /// [birthTime] 태어난 시간
   /// [gender] 성별
-  /// [sajuBaseContent] saju_base의 content JSON (AI 해석)
+  /// [sajuAnalyses] saju_analyses 테이블 데이터 (만세력 계산 결과)
+  factory FortuneInputData.fromSajuAnalyses({
+    required String profileName,
+    required String birthDate,
+    String? birthTime,
+    required String gender,
+    required Map<String, dynamic> sajuAnalyses,
+    int? targetYear,
+    int? targetMonth,
+  }) {
+    return FortuneInputData(
+      profileName: profileName,
+      birthDate: birthDate,
+      birthTime: birthTime,
+      gender: gender,
+      sajuBaseContent: null, // v3.0: 생략 가능
+      sajuAnalyses: sajuAnalyses,
+      sajuOrigin: null,
+      targetYear: targetYear,
+      targetMonth: targetMonth,
+    );
+  }
+
+  /// saju_base + saju_analyses에서 FortuneInputData 생성 (기존 방식)
+  ///
+  /// saju_base가 있는 경우 추가 참고 정보로 활용
+  ///
+  /// [profileName] 프로필 이름
+  /// [birthDate] 생년월일
+  /// [birthTime] 태어난 시간
+  /// [gender] 성별
+  /// [sajuBaseContent] saju_base의 content JSON (AI 해석) - Optional
   /// [sajuAnalyses] saju_analyses 테이블 데이터 (만세력 계산 결과)
   factory FortuneInputData.fromSajuBase({
     required String profileName,
     required String birthDate,
     String? birthTime,
     required String gender,
-    required Map<String, dynamic> sajuBaseContent,
-    Map<String, dynamic>? sajuAnalyses,
+    Map<String, dynamic>? sajuBaseContent,
+    required Map<String, dynamic> sajuAnalyses,
     int? targetYear,
     int? targetMonth,
   }) {
     // saju_origin이 content 내에 있으면 추출
-    final sajuOrigin = sajuBaseContent['saju_origin'] as Map<String, dynamic>?;
+    final sajuOrigin = sajuBaseContent?['saju_origin'] as Map<String, dynamic>?;
 
     return FortuneInputData(
       profileName: profileName,
@@ -138,9 +181,9 @@ class FortuneInputData {
       'birth_date': birthDate,
       if (birthTime != null) 'birth_time': birthTime,
       'gender': genderKorean,
-      'saju_base_analysis': sajuBaseContent,
+      if (sajuBaseContent != null) 'saju_base_analysis': sajuBaseContent, // v3.0: Optional
       if (sajuOrigin != null) 'saju_origin': sajuOrigin,
-      if (sajuAnalyses != null) 'saju_analyses': sajuAnalyses,
+      'saju_analyses': sajuAnalyses, // v3.0: Required (핵심 데이터)
       if (targetYear != null) 'target_year': targetYear,
       if (targetMonth != null) 'target_month': targetMonth,
     };
@@ -156,7 +199,7 @@ class FortuneInputData {
   /// - gisin: 기신 (해로운 오행)
   /// - gusin: 구신 (매우 해로운 오행)
   Map<String, dynamic>? get yongsin =>
-      sajuAnalyses?['yongsin'] as Map<String, dynamic>?;
+      sajuAnalyses['yongsin'] as Map<String, dynamic>?;
 
   /// 용신 오행 (예: "금(金)")
   String? get yongsinElement => yongsin?['yongsin'] as String?;
@@ -172,14 +215,26 @@ class FortuneInputData {
 
   /// 합충형파해 정보
   Map<String, dynamic>? get hapchung =>
-      sajuAnalyses?['hapchung'] as Map<String, dynamic>?;
+      sajuAnalyses['hapchung'] as Map<String, dynamic>?;
+
+  /// 신살(神煞) 정보
+  /// - gilsin: 길신(吉神) 목록
+  /// - hyungsin: 흉신(凶神) 목록
+  /// - neutral: 중립 신살 목록
+  /// - summary: 프롬프트용 요약
+  Map<String, dynamic>? get sinsal =>
+      sajuAnalyses['sinsal'] as Map<String, dynamic>?;
+
+  /// 십신(十神) 정보
+  Map<String, dynamic>? get sipsinInfo =>
+      sajuAnalyses['sipsin_info'] as Map<String, dynamic>?;
 
   /// 일간 강약 정보
   /// - score: 점수 (0-100)
   /// - type: 신강/신약/중화
   /// - reason: 판단 근거
   Map<String, dynamic>? get dayStrength =>
-      sajuAnalyses?['day_strength'] as Map<String, dynamic>?;
+      sajuAnalyses['day_strength'] as Map<String, dynamic>?;
 
   /// 신강/신약 여부
   bool? get isSingang => dayStrength?['type'] == '신강';
@@ -189,44 +244,43 @@ class FortuneInputData {
 
   /// 대운 정보
   Map<String, dynamic>? get daeun =>
-      sajuAnalyses?['daeun'] as Map<String, dynamic>?;
+      sajuAnalyses['daeun'] as Map<String, dynamic>?;
 
   /// 현재 세운 정보
   Map<String, dynamic>? get currentSeun =>
-      sajuAnalyses?['current_seun'] as Map<String, dynamic>?;
+      sajuAnalyses['current_seun'] as Map<String, dynamic>?;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 사주 팔자 (천간/지지)
   // ═══════════════════════════════════════════════════════════════════════════
 
   /// 년간 (예: "甲")
-  String? get yearGan => sajuAnalyses?['year_gan'] as String?;
+  String? get yearGan => sajuAnalyses['year_gan'] as String?;
 
   /// 년지 (예: "子")
-  String? get yearJi => sajuAnalyses?['year_ji'] as String?;
+  String? get yearJi => sajuAnalyses['year_ji'] as String?;
 
   /// 월간 (예: "丙")
-  String? get monthGan => sajuAnalyses?['month_gan'] as String?;
+  String? get monthGan => sajuAnalyses['month_gan'] as String?;
 
   /// 월지 (예: "寅")
-  String? get monthJi => sajuAnalyses?['month_ji'] as String?;
+  String? get monthJi => sajuAnalyses['month_ji'] as String?;
 
   /// 일간 (예: "戊") - 본인을 나타냄
-  String? get dayGan => sajuAnalyses?['day_gan'] as String?;
+  String? get dayGan => sajuAnalyses['day_gan'] as String?;
 
   /// 일지 (예: "午") - 합충 분석의 핵심
-  String? get dayJi => sajuAnalyses?['day_ji'] as String?;
+  String? get dayJi => sajuAnalyses['day_ji'] as String?;
 
   /// 시간 (예: "癸")
-  String? get hourGan => sajuAnalyses?['hour_gan'] as String?;
+  String? get hourGan => sajuAnalyses['hour_gan'] as String?;
 
   /// 시지 (예: "亥")
-  String? get hourJi => sajuAnalyses?['hour_ji'] as String?;
+  String? get hourJi => sajuAnalyses['hour_ji'] as String?;
 
   /// 사주 팔자 테이블 문자열
   String get sajuPaljaTable {
-    if (sajuAnalyses == null) return '(원국 정보 없음)';
-
+    // v3.0: sajuAnalyses는 이제 required이므로 null 체크 불필요
     return '''
 | 구분 | 천간 | 지지 |
 |------|------|------|
@@ -255,6 +309,48 @@ class FortuneInputData {
 - 점수: ${dayStrengthScore ?? '-'}점
 - 유형: ${dayStrength?['type'] ?? '-'}
 - 해석: ${dayStrength?['reason'] ?? '-'}''';
+  }
+
+  /// 신살(神煞) 정보 문자열
+  String get sinsalInfo {
+    if (sinsal == null) return '(신살 정보 없음)';
+
+    // 파싱된 summary가 있으면 사용
+    final summary = sinsal?['summary'] as String?;
+    if (summary != null && summary.isNotEmpty) {
+      return summary;
+    }
+
+    // summary 없으면 직접 구성
+    final buffer = StringBuffer();
+    final gilsin = sinsal?['gilsin'] as String?;
+    final hyungsin = sinsal?['hyungsin'] as String?;
+    final neutral = sinsal?['neutral'] as String?;
+
+    if (gilsin != null && gilsin.isNotEmpty) {
+      buffer.writeln('- 길신(吉神): $gilsin');
+    }
+    if (hyungsin != null && hyungsin.isNotEmpty) {
+      buffer.writeln('- 흉신(凶神): $hyungsin');
+    }
+    if (neutral != null && neutral.isNotEmpty) {
+      buffer.writeln('- 중립: $neutral');
+    }
+
+    return buffer.toString().trim();
+  }
+
+  /// 합충형파해 정보 문자열
+  String get hapchungInfo {
+    if (hapchung == null) return '(합충형파해 정보 없음)';
+
+    // 파싱된 summary가 있으면 사용
+    final summary = hapchung?['summary'] as String?;
+    if (summary != null && summary.isNotEmpty) {
+      return summary;
+    }
+
+    return '(합충 요약 없음)';
   }
 
   @override

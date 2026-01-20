@@ -53,17 +53,14 @@ class MonthlyMutations {
     // 월운은 해당 월 끝까지 유효
     final expiresAt = KoreaDateUtils.expiryEndOfMonth(targetYear, targetMonth);
 
-    // input_data에 전체 프롬프트 포함
-    final inputDataJson = <String, dynamic>{};
-    if (systemPrompt != null) {
-      inputDataJson['system_prompt'] = systemPrompt;
-    }
-    if (userPrompt != null) {
-      inputDataJson['user_prompt'] = userPrompt;
-    }
-    if (inputData != null) {
-      inputDataJson['input_params'] = inputData.toPromptJson();
-    }
+    // input_data를 구조화된 JSON으로 저장
+    final inputDataJson = _buildStructuredInputData(
+      inputData: inputData,
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt,
+      targetYear: targetYear,
+      targetMonth: targetMonth,
+    );
 
     final data = {
       'user_id': userId,
@@ -143,5 +140,87 @@ class MonthlyMutations {
         .eq('summary_type', SummaryType.monthlyFortune)
         .eq('target_year', year)
         .eq('target_month', month);
+  }
+
+  /// 구조화된 input_data JSON 생성
+  Map<String, dynamic> _buildStructuredInputData({
+    FortuneInputData? inputData,
+    String? systemPrompt,
+    String? userPrompt,
+    required int targetYear,
+    required int targetMonth,
+  }) {
+    final result = <String, dynamic>{};
+
+    // 1. 프롬프트 텍스트 (원본 보존)
+    if (systemPrompt != null || userPrompt != null) {
+      result['prompt_text'] = {
+        if (systemPrompt != null) 'system': systemPrompt,
+        if (userPrompt != null) 'user': userPrompt,
+      };
+    }
+
+    // 2. 구조화된 입력 데이터
+    if (inputData != null) {
+      result['structured_input'] = {
+        // 기본 정보
+        'basic_info': {
+          'name': inputData.profileName,
+          'birth_date': inputData.birthDate,
+          if (inputData.birthTime != null) 'birth_time': inputData.birthTime,
+          'gender': inputData.genderKorean,
+        },
+
+        // 대상 기간
+        'target_period': {
+          'year': targetYear,
+          'month': targetMonth,
+        },
+
+        // 사주 팔자
+        'saju_palja': {
+          'year': {
+            'gan': inputData.yearGan,
+            'ji': inputData.yearJi,
+          },
+          'month': {
+            'gan': inputData.monthGan,
+            'ji': inputData.monthJi,
+          },
+          'day': {
+            'gan': inputData.dayGan,
+            'ji': inputData.dayJi,
+          },
+          'hour': {
+            'gan': inputData.hourGan,
+            'ji': inputData.hourJi,
+          },
+        },
+
+        // 용신/기신
+        if (inputData.yongsin != null)
+          'yongsin': {
+            'yongsin': inputData.yongsinElement,
+            'huisin': inputData.huisinElement,
+            'gisin': inputData.gisinElement,
+            'gusin': inputData.gusinElement,
+          },
+
+        // 일간 강약
+        if (inputData.dayStrength != null)
+          'day_strength': inputData.dayStrength,
+
+        // 합충형파해
+        if (inputData.hapchung != null) 'hapchung': inputData.hapchung,
+
+        // 신살
+        if (inputData.sinsal != null) 'sinsal': inputData.sinsal,
+
+        // 십신 정보
+        if (inputData.sipsinInfo != null) 'sipsin_info': inputData.sipsinInfo,
+      };
+    }
+
+    return result;
   }
 }
