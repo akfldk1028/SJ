@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
@@ -5,6 +6,42 @@ import 'quota_service.dart';
 import '../../features/saju_chart/domain/entities/saju_analysis.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 import '../supabase/generated/ai_summaries.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Intent Routing - 토큰 최적화
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// AI Summary 카테고리 (Semantic Intent Routing용)
+enum SummaryCategory {
+  personality('PERSONALITY', '성격'),
+  love('LOVE', '연애'),
+  marriage('MARRIAGE', '결혼'),
+  career('CAREER', '진로/직장'),
+  business('BUSINESS', '사업'),
+  wealth('WEALTH', '재물'),
+  health('HEALTH', '건강'),
+  general('GENERAL', '종합');
+
+  final String code;
+  final String korean;
+  const SummaryCategory(this.code, this.korean);
+}
+
+/// Intent 분류 결과
+class IntentClassificationResult {
+  final List<SummaryCategory> categories;
+  final String reason;
+
+  const IntentClassificationResult({
+    required this.categories,
+    this.reason = '',
+  });
+
+  bool shouldInclude(SummaryCategory category) {
+    return categories.contains(category) ||
+        categories.contains(SummaryCategory.general);
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AiSummaryService - AI 요약 생성 & 캐싱 서비스
@@ -1091,5 +1128,110 @@ class AiLuckyElements {
       if (seasons != null) 'seasons': seasons,
       'partner_elements': partnerElements,
     };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FilteredAiSummary - Intent Routing용 필터링
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 필터링된 AI Summary (토큰 최적화)
+///
+/// 사용자 질문 의도에 따라 필요한 섹션만 포함
+/// 예: "연애운" 질문 → love 섹션만 포함 (~85% 토큰 절약)
+class FilteredAiSummary {
+  final AiSummary original;
+  final IntentClassificationResult classification;
+
+  FilteredAiSummary({
+    required this.original,
+    required this.classification,
+  });
+
+  /// 필터링된 섹션만 JSON으로 변환
+  Map<String, dynamic> toFilteredJson() {
+    final result = <String, dynamic>{
+      'version': original.version,
+      'model': original.model,
+    };
+
+    // 사주 원본은 항상 포함 (합충형파해 등 기본 정보)
+    if (original.sajuOrigin != null) {
+      result['saju_origin'] = original.sajuOrigin;
+    }
+
+    // 원국 분석도 항상 포함 (기본 사주 구조)
+    if (original.wonGukAnalysis != null) {
+      result['wonGuk_analysis'] = original.wonGukAnalysis;
+    }
+
+    final intent = classification;
+
+    // PERSONALITY 또는 GENERAL
+    if (intent.shouldInclude(SummaryCategory.personality) ||
+        intent.shouldInclude(SummaryCategory.general)) {
+      result['personality'] = original.personality.toJson();
+      result['strengths'] = original.strengths;
+      result['weaknesses'] = original.weaknesses;
+    }
+
+    // LOVE
+    if (intent.shouldInclude(SummaryCategory.love) && original.love != null) {
+      result['love'] = original.love!.toJson();
+    }
+
+    // MARRIAGE
+    if (intent.shouldInclude(SummaryCategory.marriage) &&
+        original.marriage != null) {
+      result['marriage'] = original.marriage!.toJson();
+    }
+
+    // CAREER
+    if (intent.shouldInclude(SummaryCategory.career)) {
+      result['career'] = original.career.toJson();
+    }
+
+    // BUSINESS
+    if (intent.shouldInclude(SummaryCategory.business) &&
+        original.business != null) {
+      result['business'] = original.business!.toJson();
+    }
+
+    // WEALTH
+    if (intent.shouldInclude(SummaryCategory.wealth) &&
+        original.wealth != null) {
+      result['wealth'] = original.wealth!.toJson();
+    }
+
+    // HEALTH
+    if (intent.shouldInclude(SummaryCategory.health) &&
+        original.health != null) {
+      result['health'] = original.health!.toJson();
+    }
+
+    // GENERAL이면 종합 조언도 포함
+    if (intent.shouldInclude(SummaryCategory.general)) {
+      if (original.overallAdvice != null) {
+        result['overall_advice'] = original.overallAdvice;
+      }
+      if (original.luckyElements != null) {
+        result['lucky_elements'] = original.luckyElements!.toJson();
+      }
+    }
+
+    return result;
+  }
+
+  /// 토큰 절약 예상치 (%)
+  int get estimatedTokenSavings {
+    const totalCategories = 7; // personality, love, marriage, career, business, wealth, health
+    final includedCategories = classification.categories.length;
+
+    if (classification.categories.contains(SummaryCategory.general)) {
+      return 0; // 전체 포함
+    }
+
+    return ((totalCategories - includedCategories) / totalCategories * 100)
+        .round();
   }
 }

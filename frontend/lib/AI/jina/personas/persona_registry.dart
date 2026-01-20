@@ -33,7 +33,6 @@ import 'persona_base.dart';
 import 'wise_scholar.dart';
 import 'baby_monk.dart';
 import 'scenario_writer.dart';
-import 'newbie_shaman.dart';
 import 'detail_book.dart';
 import 'saeongjima.dart';
 import 'test_negative_persona.dart';
@@ -64,7 +63,6 @@ class PersonaRegistry {
     GrandmaPersona(),
     BabyMonkPersona(),
     SajuScenarioBuilderPersona(),
-    NewbieShamanPersona(),
     BookOfSajuPersona(),
     SaOngJiMaPersona(),
     SewerSajuPersona(),

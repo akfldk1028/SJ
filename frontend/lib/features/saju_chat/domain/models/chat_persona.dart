@@ -42,9 +42,6 @@ enum ChatPersona {
   /// 새옹지마 - 긍정 재해석 전문가 (MBTI 조절 불가)
   saOngJiMa,
 
-  /// 하꼬무당 - 장비장군이 오셨다 (MBTI 조절 불가)
-  newbieShaman,
-
   /// 시궁창 술사 - 팩폭 장인 (MBTI 조절 불가)
   sewerSaju;
 
@@ -70,8 +67,6 @@ enum ChatPersona {
         return 'saju_scenario_builder';
       case ChatPersona.saOngJiMa:
         return 'sa_ong_ji_ma';
-      case ChatPersona.newbieShaman:
-        return 'newbie_shaman';
       case ChatPersona.sewerSaju:
         return 'sewer_saju';
     }
@@ -94,8 +89,6 @@ enum ChatPersona {
         return '송작가';
       case ChatPersona.saOngJiMa:
         return '새옹지마';
-      case ChatPersona.newbieShaman:
-        return '하꼬무당';
       case ChatPersona.sewerSaju:
         return '시궁창 술사';
     }
@@ -112,8 +105,6 @@ enum ChatPersona {
         return '🗣️';
       case ChatPersona.saOngJiMa:
         return '👴';
-      case ChatPersona.newbieShaman:
-        return '😱';
       case ChatPersona.sewerSaju:
         return '🤮';
     }
@@ -130,8 +121,6 @@ enum ChatPersona {
         return Icons.edit_note_rounded; // 작가/글쓰기
       case ChatPersona.saOngJiMa:
         return Icons.spa_rounded; // 평화/긍정
-      case ChatPersona.newbieShaman:
-        return Icons.flare_rounded; // 빛/영적 (무당)
       case ChatPersona.sewerSaju:
         return Icons.bolt_rounded; // 번개/팩폭
     }
@@ -148,8 +137,6 @@ enum ChatPersona {
         return '송작가';
       case ChatPersona.saOngJiMa:
         return '새옹지마';
-      case ChatPersona.newbieShaman:
-        return '하꼬무당';
       case ChatPersona.sewerSaju:
         return '시궁창';
     }
@@ -166,8 +153,6 @@ enum ChatPersona {
         return '사주 스토리텔러';
       case ChatPersona.saOngJiMa:
         return '긍정 재해석 전문가';
-      case ChatPersona.newbieShaman:
-        return '장비장군이 오셨다';
       case ChatPersona.sewerSaju:
         return '팩폭 장인';
     }
@@ -190,8 +175,6 @@ enum ChatPersona {
         return ChatPersona.scenarioWriter;
       case 'saOngJiMa':
         return ChatPersona.saOngJiMa;
-      case 'newbieShaman':
-        return ChatPersona.newbieShaman;
       case 'sewerSaju':
         return ChatPersona.sewerSaju;
       default:

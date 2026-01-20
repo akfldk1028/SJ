@@ -24,10 +24,7 @@ enum SpecialCharacter {
   scenarioWriter,
 
   /// 새옹지마 - 긍정 재해석 전문가
-  saOngJiMa,
-
-  /// 하꼬무당 - 장비장군이 오셨다
-  newbieShaman;
+  saOngJiMa;
 
   /// PersonaRegistry ID 매핑
   String get personaId {
@@ -38,8 +35,6 @@ enum SpecialCharacter {
         return 'saju_scenario_builder';
       case SpecialCharacter.saOngJiMa:
         return 'sa_ong_ji_ma';
-      case SpecialCharacter.newbieShaman:
-        return 'newbie_shaman';
     }
   }
 
@@ -55,8 +50,6 @@ enum SpecialCharacter {
         return '송작가';
       case SpecialCharacter.saOngJiMa:
         return '새옹지마';
-      case SpecialCharacter.newbieShaman:
-        return '하꼬무당';
     }
   }
 
@@ -69,8 +62,6 @@ enum SpecialCharacter {
         return '🗣️';
       case SpecialCharacter.saOngJiMa:
         return '👴';
-      case SpecialCharacter.newbieShaman:
-        return '😱';
     }
   }
 
@@ -83,8 +74,6 @@ enum SpecialCharacter {
         return '사주 스토리텔러';
       case SpecialCharacter.saOngJiMa:
         return '긍정 재해석 전문가';
-      case SpecialCharacter.newbieShaman:
-        return '장비장군이 오셨다';
     }
   }
 
@@ -100,8 +89,6 @@ enum SpecialCharacter {
         return SpecialCharacter.scenarioWriter;
       case 'saOngJiMa':
         return SpecialCharacter.saOngJiMa;
-      case 'newbieShaman':
-        return SpecialCharacter.newbieShaman;
       default:
         return SpecialCharacter.babyMonk;
     }
