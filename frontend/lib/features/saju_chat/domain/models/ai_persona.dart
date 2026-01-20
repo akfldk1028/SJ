@@ -79,7 +79,6 @@ enum AiPersona {
   professional,
   babyMonk,
   scenarioWriter,
-  newbieShaman,
   bookOfSaju,
   saOngJiMa,
   sewerSaju;
@@ -101,8 +100,6 @@ enum AiPersona {
         return 'baby_monk';
       case AiPersona.scenarioWriter:
         return 'saju_scenario_builder';
-      case AiPersona.newbieShaman:
-        return 'newbie_shaman';
       case AiPersona.bookOfSaju:
         return 'book_of_saju';
       case AiPersona.saOngJiMa:
@@ -130,8 +127,6 @@ enum AiPersona {
         return '아기동자';
       case AiPersona.scenarioWriter:
         return '송작가';
-      case AiPersona.newbieShaman:
-        return '하꼬무당(장비장군)';
       case AiPersona.bookOfSaju:
         return '명리의 서';
       case AiPersona.saOngJiMa:
@@ -156,8 +151,6 @@ enum AiPersona {
         return '👶';
       case AiPersona.scenarioWriter:
         return '🗣️';
-      case AiPersona.newbieShaman:
-        return '😱';
       case AiPersona.bookOfSaju:
         return '📜';
       case AiPersona.saOngJiMa:
@@ -182,8 +175,6 @@ enum AiPersona {
         return '반말과 팩폭, 꼬마도사';
       case AiPersona.scenarioWriter:
         return '사주 스토리텔러';
-      case AiPersona.newbieShaman:
-        return '장비장군이 오셨다';
       case AiPersona.bookOfSaju:
         return '살아있는 사주 고서';
       case AiPersona.saOngJiMa:
@@ -197,7 +188,7 @@ enum AiPersona {
   ///
   /// - NF: 감성형 (따뜻, 공감) - 할머니, 아기동자, 새옹지마
   /// - NT: 분석형 (논리, 체계) - 도사, 명리의서, AI상담사
-  /// - SF: 친근형 (유쾌, 친근) - 복돌이, 하꼬무당
+  /// - SF: 친근형 (유쾌, 친근) - 복돌이
   /// - ST: 현실형 (직설, 스토리) - 송작가, 시궁창술사
   MbtiQuadrant get quadrant {
     switch (this) {
@@ -215,7 +206,6 @@ enum AiPersona {
 
       // SF: 친근형 - 유쾌함, 친근함
       case AiPersona.cute:         // 복돌이, 귀엽고 친근
-      case AiPersona.newbieShaman: // 하꼬무당, 유쾌
         return MbtiQuadrant.SF;
 
       // ST: 현실형 - 직설적, 스토리텔링, 팩트폭격
@@ -251,8 +241,6 @@ enum AiPersona {
         return AiPersona.babyMonk;
       case 'scenarioWriter':
         return AiPersona.scenarioWriter;
-      case 'newbieShaman':
-        return AiPersona.newbieShaman;
       case 'bookOfSaju':
         return AiPersona.bookOfSaju;
       case 'saOngJiMa':

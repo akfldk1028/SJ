@@ -322,8 +322,6 @@ class ChatNotifier extends _$ChatNotifier {
         return AiPersona.scenarioWriter;
       case ChatPersona.saOngJiMa:
         return AiPersona.saOngJiMa;
-      case ChatPersona.newbieShaman:
-        return AiPersona.newbieShaman;
       case ChatPersona.sewerSaju:
         return AiPersona.sewerSaju;
     }
