@@ -10,6 +10,7 @@ import '../../../../AI/services/compatibility_analysis_service.dart';
 // import '../../../../AI/services/multi_compatibility_analysis_service.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
+import '../../../../core/services/intent_classifier_service.dart';
 import '../../../../core/utils/suggested_questions_parser.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
@@ -485,10 +486,12 @@ class ChatNotifier extends _$ChatNotifier {
   ///
   /// v3.4: SystemPromptBuilder 클래스로 분리 (모듈화)
   /// v3.5 (Phase 44): 궁합 채팅을 위한 상대방 프로필/사주 지원
+  /// v7.0: Intent Classification 추가 (토큰 최적화)
   /// - system_prompt_builder.dart 참조
   String _buildFullSystemPrompt({
     required String basePrompt,
     AiSummary? aiSummary,
+    IntentClassificationResult? intentClassification,  // v7.0
     SajuAnalysis? sajuAnalysis,
     SajuProfile? profile,
     String? personaPrompt,
@@ -502,6 +505,7 @@ class ChatNotifier extends _$ChatNotifier {
     return builder.build(
       basePrompt: basePrompt,
       aiSummary: aiSummary,
+      intentClassification: intentClassification,  // v7.0
       sajuAnalysis: sajuAnalysis,
       profile: profile,
       personaPrompt: personaPrompt,
@@ -674,11 +678,62 @@ class ChatNotifier extends _$ChatNotifier {
       final currentPersonaPrompt = ref.read(finalSystemPromptProvider);
 
       // ═══════════════════════════════════════════════════════════════════════════
+      // v7.0: Intent Classification (토큰 최적화)
+      // - 첫 메시지 포함, 항상 분류 실행 (aiSummary 없어도 분류는 수행)
+      // - aiSummary가 없으면 분류 결과는 사용하되 필터링은 적용 안 함
+      // ═══════════════════════════════════════════════════════════════════════════
+      final isFirstMessageInSession = state.messages.where((m) => m.role == MessageRole.assistant).isEmpty;
+
+      if (kDebugMode) {
+        print('');
+        print('┌──────────────────────────────────────────────────────────────┐');
+        print('│  🎯 INTENT CLASSIFICATION (v7.0)                             │');
+        print('└──────────────────────────────────────────────────────────────┘');
+        if (isFirstMessageInSession) {
+          print('   📌 첫 메시지 - Intent Classification 실행');
+        }
+        if (aiSummary == null) {
+          print('   ⚠️ aiSummary 없음 (분류는 실행하되 필터링은 적용 안 함)');
+        }
+      }
+
+      // 최근 대화 3턴 추출 (컨텍스트)
+      final recentMessages = state.messages
+          .skip(state.messages.length > 6 ? state.messages.length - 6 : 0)
+          .map((m) => '${m.role.name}: ${m.content}')
+          .toList();
+
+      // userId 가져오기 (Intent Classification에서 Quota 관리용)
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+
+      // 항상 Intent Classification 실행 (aiSummary 유무와 관계없이)
+      final intentClassification = await IntentClassifierService.classifyIntent(
+        userMessage: content,
+        chatHistory: recentMessages,
+        userId: userId,
+      );
+
+      if (kDebugMode) {
+        print('   📌 분류 결과: ${intentClassification.categories.map((c) => c.korean).join(", ")}');
+        print('   💡 이유: ${intentClassification.reason}');
+        if (intentClassification.categories.contains(SummaryCategory.general)) {
+          print('   ⚠️ 전체 정보 포함 (GENERAL)');
+        } else if (aiSummary != null) {
+          final filtered = FilteredAiSummary(
+            original: aiSummary,
+            classification: intentClassification,
+          );
+          print('   💰 토큰 절약 예상: ~${filtered.estimatedTokenSavings}%');
+        } else {
+          print('   💡 aiSummary 없음 - 필터링은 적용 안 됨 (전체 포함)');
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════════
       // v6.0 (Phase 57): 프로필/사주 로드 로직 단순화
       // - 궁합 모드: person1, person2 둘 다 동일하게 처리
       // - 일반 채팅: owner의 프로필/사주 사용
       // ═══════════════════════════════════════════════════════════════════════════
-      final isFirstMessageInSession = state.messages.where((m) => m.role == MessageRole.assistant).isEmpty;
 
       // 사주 로드 조건: 첫 메시지이거나, 궁합 모드일 때
       final shouldLoadSaju = isFirstMessageInSession || isCompatibilityMode || person2Id != null;
@@ -690,7 +745,6 @@ class ChatNotifier extends _$ChatNotifier {
 
       final profileRepo = SajuProfileRepository();
       final analysisRepo = SajuAnalysisRepository();
-      final userId = Supabase.instance.client.auth.currentUser?.id;
 
       if (shouldLoadSaju) {
         if (kDebugMode) {
@@ -920,6 +974,7 @@ class ChatNotifier extends _$ChatNotifier {
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiSummary: aiSummary,
+        intentClassification: intentClassification,  // v7.0: Intent 분류 결과
         sajuAnalysis: sajuAnalysis,  // v3.1: 로컬 사주 데이터
         profile: activeProfile,  // v3.3: 프로필 정보 (생년월일, 성별)
         personaPrompt: currentPersonaPrompt,
@@ -933,13 +988,68 @@ class ChatNotifier extends _$ChatNotifier {
       // [4] 시스템 프롬프트 구성
       if (kDebugMode) {
         print('');
-        print('[4] SYSTEM PROMPT BUILD (v6.0 Phase 57)');
+        print('[4] SYSTEM PROMPT BUILD (v7.0 Intent Routing)');
         print('   현재 날짜: ${DateTime.now().year}년 ${DateTime.now().month}월 ${DateTime.now().day}일');
         print('   페르소나: ${selectedChatPersona.displayName}');
         print('   isFirstMessageInSession: $isFirstMessageInSession');
         print('   isCompatibilityMode: $isCompatibilityMode');
         print('   isThirdPartyCompatibility: $isThirdPartyCompatibility');  // v6.0
         print('   shouldLoadSaju: $shouldLoadSaju');
+        
+        // v7.0: Intent Classification 결과 표시
+        if (intentClassification != null) {
+          print('');
+          print('   ╔══════════════════════════════════════════════════════╗');
+          print('   ║  📋 AI SUMMARY 참조 정보 (Intent Routing)           ║');
+          print('   ╚══════════════════════════════════════════════════════╝');
+          final categories = intentClassification.categories;
+          final isGeneral = categories.contains(SummaryCategory.general);
+          
+          if (aiSummary == null) {
+            print('   ⚠️ aiSummary 없음 - 필터링 적용 안 됨 (전체 포함)');
+            print('   💡 분류 결과: ${categories.map((c) => c.korean).join(", ")}');
+            print('   💡 분류 이유: ${intentClassification.reason}');
+          } else if (isGeneral) {
+            print('   🔵 참조 범위: 전체 (GENERAL)');
+            print('   📦 포함 섹션: 모든 카테고리');
+            print('   💡 분류 이유: ${intentClassification.reason}');
+          } else {
+            print('   🎯 참조 범위: 선택적 필터링');
+            print('   📦 포함 섹션:');
+            print('      - saju_origin (기본 정보) ✅');
+            print('      - wonGuk_analysis (원국 분석) ✅');
+            for (final category in categories) {
+              final icon = switch (category) {
+                SummaryCategory.personality => '🧑',
+                SummaryCategory.love => '💕',
+                SummaryCategory.marriage => '💍',
+                SummaryCategory.career => '💼',
+                SummaryCategory.business => '🏢',
+                SummaryCategory.wealth => '💰',
+                SummaryCategory.health => '🏥',
+                _ => '📌',
+              };
+              print('      - $icon ${category.korean} (${category.code}) ✅');
+            }
+            
+            final filtered = FilteredAiSummary(
+              original: aiSummary,
+              classification: intentClassification,
+            );
+            print('   💾 토큰 절약: 약 ${filtered.estimatedTokenSavings}%');
+            print('   💡 분류 이유: ${intentClassification.reason}');
+          }
+        } else if (aiSummary != null && isFirstMessageInSession) {
+          print('');
+          print('   ╔══════════════════════════════════════════════════════╗');
+          print('   ║  📋 AI SUMMARY 참조 정보 (첫 메시지)                ║');
+          print('   ╚══════════════════════════════════════════════════════╝');
+          print('   🔵 참조 범위: 전체 (첫 메시지는 항상 전체 포함)');
+          print('   📦 포함 섹션: 모든 카테고리');
+          print('   💡 이유: 사용자 경험 최적화 (첫 인사/종합 소개)');
+        }
+        
+        print('');
         if (activeProfile != null) {
           print('   [Person1] 프로필: ${activeProfile.displayName} (${activeProfile.gender.displayName})');
           print('   [Person1] 생년월일: ${activeProfile.birthDateFormatted}');
@@ -955,9 +1065,7 @@ class ChatNotifier extends _$ChatNotifier {
         } else if (person2Id != null) {
           print('   [Person2] 프로필 조회 실패 (person2Id: $person2Id)');
         }
-        if (aiSummary != null) {
-          print('   AI Summary 포함');
-        }
+        print('');
         print('   프롬프트 길이: ${systemPrompt.length} chars');
 
         // v6.0 Debug: 프롬프트에 Person2 정보 포함 여부 확인

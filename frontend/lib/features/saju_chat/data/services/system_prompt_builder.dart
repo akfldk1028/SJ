@@ -1,6 +1,8 @@
+import 'dart:convert';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../saju_chart/domain/entities/saju_analysis.dart';
 import '../../../saju_chart/domain/entities/sinsal.dart';
+import '../../../saju_chart/data/constants/cheongan_jiji.dart';
 import '../../../../core/services/ai_summary_service.dart';
 // 페르소나 프롬프트는 최종 문자열을 주입받아 사용
 
@@ -25,6 +27,7 @@ class SystemPromptBuilder {
   ///
   /// [basePrompt] - 기본 프롬프트 (MD 파일에서 로드)
   /// [aiSummary] - AI Summary (GPT-5.2 분석 결과)
+  /// [intentClassification] - Intent 분류 결과 (토큰 최적화용)
   /// [sajuAnalysis] - 로컬 사주 분석 데이터
   /// [profile] - 프로필 정보
   /// [personaPrompt] - AI 페르소나 프롬프트 (최종 문자열)
@@ -38,6 +41,7 @@ class SystemPromptBuilder {
   String build({
     required String basePrompt,
     AiSummary? aiSummary,
+    IntentClassificationResult? intentClassification,
     SajuAnalysis? sajuAnalysis,
     SajuProfile? profile,
     String? personaPrompt,
@@ -98,6 +102,11 @@ class SystemPromptBuilder {
       _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
+    // 5-1. GPT-5.2 AI Summary 추가 (Intent Routing 적용)
+    if (isFirstMessage && aiSummary != null) {
+      _addAiSummary(aiSummary, intentClassification);
+    }
+
     // 6. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
     if (isFirstMessage && targetProfile != null) {
       if (isThirdPartyCompatibility) {
@@ -135,8 +144,18 @@ class SystemPromptBuilder {
     final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
     final weekday = weekdays[now.weekday - 1];
 
+    // 현재 년도의 간지 계산 (입춘 고려 안 함 - 단순화)
+    final year = now.year;
+    final ganIndex = (year - 4) % 10;
+    final jiIndex = (year - 4) % 12;
+    final gan = cheongan[ganIndex < 0 ? ganIndex + 10 : ganIndex];
+    final ji = jiji[jiIndex < 0 ? jiIndex + 12 : jiIndex];
+    final ganHanja = cheonganHanja[gan] ?? '';
+    final jiHanja = jijiHanja[ji] ?? '';
+
     _buffer.writeln('## 현재 날짜');
     _buffer.writeln('오늘은 ${now.year}년 ${now.month}월 ${now.day}일 (${weekday}요일)입니다.');
+    _buffer.writeln('올해는 ${gan}${ji}년(${ganHanja}${jiHanja}年)입니다.');
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
@@ -946,6 +965,53 @@ class SystemPromptBuilder {
       _buffer.writeln('두 사람 간 특별한 합충형해파 관계가 발견되지 않았습니다.');
       _buffer.writeln('이는 중립적인 관계를 의미하며, 개인의 노력으로 관계를 발전시킬 수 있습니다.');
       _buffer.writeln();
+    }
+  }
+
+  /// GPT-5.2 AI Summary 추가 (Intent Routing 적용)
+  ///
+  /// [aiSummary] - 전체 AI Summary
+  /// [intentClassification] - Intent 분류 결과 (null이면 전체 포함)
+  void _addAiSummary(
+    AiSummary aiSummary,
+    IntentClassificationResult? intentClassification,
+  ) {
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+
+    // Intent Routing: 필요한 섹션만 필터링
+    if (intentClassification != null &&
+        !intentClassification.categories.contains(SummaryCategory.general)) {
+      // 필터링된 데이터만 포함
+      final filtered = FilteredAiSummary(
+        original: aiSummary,
+        classification: intentClassification,
+      );
+
+      _buffer.writeln('## 📊 GPT-5.2 사주 분석 (관련 섹션만)');
+      _buffer.writeln(
+          '다음은 GPT-5.2가 분석한 사주 정보입니다 (사용자 질문과 관련된 섹션만 포함):');
+      _buffer.writeln();
+      _buffer.writeln('```json');
+      _buffer.writeln(
+          const JsonEncoder.withIndent('  ').convert(filtered.toFilteredJson()));
+      _buffer.writeln('```');
+      _buffer.writeln();
+      _buffer.writeln(
+          '💡 **포함된 섹션**: ${intentClassification.categories.map((c) => c.korean).join(", ")}');
+      _buffer.writeln('💰 **예상 토큰 절약**: ~${filtered.estimatedTokenSavings}%');
+      _buffer.writeln();
+      _buffer.writeln('다른 주제에 대한 질문이 들어오면 관련 정보를 참조할 수 있습니다.');
+    } else {
+      // 전체 데이터 포함 (첫 메시지 or GENERAL)
+      _buffer.writeln('## 📊 GPT-5.2 사주 분석 (전체)');
+      _buffer.writeln('다음은 GPT-5.2가 분석한 평생 사주 정보입니다:');
+      _buffer.writeln();
+      _buffer.writeln('```json');
+      _buffer.writeln(
+          const JsonEncoder.withIndent('  ').convert(aiSummary.toJson()));
+      _buffer.writeln('```');
     }
   }
 }
