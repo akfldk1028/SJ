@@ -373,7 +373,7 @@ class CompatibilityScreen extends ConsumerWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 1.8,
+            childAspectRatio: 1.4, // 1.8 → 1.4로 조정
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -393,26 +393,27 @@ class CompatibilityScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       item['icon'] as IconData,
                       color: color,
-                      size: 20,
+                      size: 18,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Text(
                     item['title'] as String,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: theme.textPrimary,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -421,6 +422,7 @@ class CompatibilityScreen extends ConsumerWidget {
                       fontSize: 11,
                       color: theme.textMuted,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

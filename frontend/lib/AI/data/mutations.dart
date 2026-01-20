@@ -178,6 +178,10 @@ class AiMutations extends BaseMutations {
   /// ## 호출 시점
   /// - 프로필 최초 저장 시
   /// - 프로필 정보 수정 시 (재분석)
+  ///
+  /// ## 파라미터
+  /// - [systemPrompt] AI에게 전달된 시스템 프롬프트 (선택)
+  /// - [userPrompt] AI에게 전달된 사용자 프롬프트 (선택)
   Future<QueryResult<AiSummaries>> saveSajuBaseSummary({
     required String userId,
     required String profileId,
@@ -189,6 +193,8 @@ class AiMutations extends BaseMutations {
     int? cachedTokens,
     double? totalCostUsd,
     int? processingTimeMs,
+    String? systemPrompt,
+    String? userPrompt,
   }) async {
     return safeMutation(
       mutation: (client) async {
@@ -200,13 +206,25 @@ class AiMutations extends BaseMutations {
             .eq(AiSummaries.c_profileId, profileId)
             .eq(AiSummaries.c_summaryType, SummaryType.sajuBase);
 
+        // input_data에 전체 프롬프트 포함
+        final inputDataJson = <String, dynamic>{};
+        if (systemPrompt != null) {
+          inputDataJson['system_prompt'] = systemPrompt;
+        }
+        if (userPrompt != null) {
+          inputDataJson['user_prompt'] = userPrompt;
+        }
+        if (inputData != null) {
+          inputDataJson['input_params'] = inputData;
+        }
+
         // 2. 새 레코드 삽입
         final data = AiSummaries.insert(
           userId: userId,
           profileId: profileId,
           summaryType: SummaryType.sajuBase,
           content: content,
-          inputData: inputData,
+          inputData: inputDataJson.isNotEmpty ? inputDataJson : null,
           // saju_base는 target_date 없음 (NULL)
           modelProvider: ModelProvider.openai,
           modelName: modelName ?? OpenAIModels.sajuAnalysis, // GPT-5.2
@@ -242,6 +260,10 @@ class AiMutations extends BaseMutations {
   /// - 프로필 저장 시 (평생 사주와 함께)
   /// - 매일 자정 스케줄러
   /// - 사용자가 오늘의 운세 조회 시 (캐시 없으면)
+  ///
+  /// ## 파라미터
+  /// - [systemPrompt] AI에게 전달된 시스템 프롬프트 (선택)
+  /// - [userPrompt] AI에게 전달된 사용자 프롬프트 (선택)
   Future<QueryResult<AiSummaries>> saveDailyFortune({
     required String userId,
     required String profileId,
@@ -253,13 +275,27 @@ class AiMutations extends BaseMutations {
     int? completionTokens,
     double? totalCostUsd,
     int? processingTimeMs,
+    String? systemPrompt,
+    String? userPrompt,
   }) async {
+    // input_data에 전체 프롬프트 포함
+    final inputDataJson = <String, dynamic>{};
+    if (systemPrompt != null) {
+      inputDataJson['system_prompt'] = systemPrompt;
+    }
+    if (userPrompt != null) {
+      inputDataJson['user_prompt'] = userPrompt;
+    }
+    if (inputData != null) {
+      inputDataJson['input_params'] = inputData;
+    }
+
     return saveSummary(
       userId: userId,
       profileId: profileId,
       summaryType: SummaryType.dailyFortune,
       content: content,
-      inputData: inputData,
+      inputData: inputDataJson.isNotEmpty ? inputDataJson : null,
       targetDate: targetDate,
       modelProvider: ModelProvider.google,
       modelName: modelName ?? GoogleModels.dailyFortune,  // Gemini 3.0 Flash

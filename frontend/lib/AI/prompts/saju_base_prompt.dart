@@ -183,8 +183,8 @@ class SajuBasePrompt extends PromptTemplate {
 ''';
 
   @override
-  String buildUserPrompt(Map<String, dynamic> input) {
-    final data = SajuInputData.fromJson(input);
+  String buildUserPrompt([Map<String, dynamic>? input]) {
+    final data = SajuInputData.fromJson(input!);
 
     return '''
 ## 분석 대상

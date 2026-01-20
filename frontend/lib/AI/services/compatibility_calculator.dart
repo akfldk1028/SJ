@@ -219,19 +219,24 @@ enum Oheng {
 /// 천간합 (5가지)
 /// 갑기합토, 을경합금, 병신합수, 정임합목, 무계합화
 class CheonganHap {
-  /// 천간합 조합과 결과 오행
-  static const Map<Set<Cheongan>, (String, Oheng)> hapPairs = {
-    {Cheongan.gap, Cheongan.gi}: ('갑기합토', Oheng.earth),
-    {Cheongan.eul, Cheongan.gyeong}: ('을경합금', Oheng.metal),
-    {Cheongan.byeong, Cheongan.sin}: ('병신합수', Oheng.water),
-    {Cheongan.jeong, Cheongan.im}: ('정임합목', Oheng.wood),
-    {Cheongan.mu, Cheongan.gye}: ('무계합화', Oheng.fire),
+  /// 천간합 조합과 결과 오행 (String key 방식 - Set equality 문제 해결)
+  static const Map<String, (String, Oheng)> _hapPairs = {
+    'gap-gi': ('갑기합토', Oheng.earth),
+    'eul-gyeong': ('을경합금', Oheng.metal),
+    'byeong-sin': ('병신합수', Oheng.water),
+    'im-jeong': ('정임합목', Oheng.wood),
+    'gye-mu': ('무계합화', Oheng.fire),
   };
+
+  /// 두 천간을 정렬된 String key로 변환
+  static String _makeKey(Cheongan a, Cheongan b) {
+    final list = [a.name, b.name]..sort();
+    return list.join('-');
+  }
 
   /// 두 천간이 합인지 확인
   static (String, Oheng)? checkHap(Cheongan a, Cheongan b) {
-    final pair = {a, b};
-    return hapPairs[pair];
+    return _hapPairs[_makeKey(a, b)];
   }
 
   /// 두 천간이 합인지만 확인 (이름 반환)
@@ -244,18 +249,24 @@ class CheonganHap {
 /// 지지 육합 (6가지)
 /// 자축합토, 인해합목, 묘술합화, 진유합금, 사신합수, 오미합화
 class JijiYukhap {
-  static const Map<Set<Jiji>, (String, Oheng)> hapPairs = {
-    {Jiji.ja, Jiji.chuk}: ('자축합토', Oheng.earth),
-    {Jiji.in_, Jiji.hae}: ('인해합목', Oheng.wood),
-    {Jiji.myo, Jiji.sul}: ('묘술합화', Oheng.fire),
-    {Jiji.jin, Jiji.yu}: ('진유합금', Oheng.metal),
-    {Jiji.sa, Jiji.sin_}: ('사신합수', Oheng.water),
-    {Jiji.o, Jiji.mi}: ('오미합화', Oheng.fire), // 또는 토
+  /// String key 방식 - Set equality 문제 해결
+  static const Map<String, (String, Oheng)> _hapPairs = {
+    'chuk-ja': ('자축합토', Oheng.earth),
+    'hae-in_': ('인해합목', Oheng.wood),
+    'myo-sul': ('묘술합화', Oheng.fire),
+    'jin-yu': ('진유합금', Oheng.metal),
+    'sa-sin_': ('사신합수', Oheng.water),
+    'mi-o': ('오미합화', Oheng.fire), // 또는 토
   };
 
+  /// 두 지지를 정렬된 String key로 변환
+  static String _makeKey(Jiji a, Jiji b) {
+    final list = [a.name, b.name]..sort();
+    return list.join('-');
+  }
+
   static (String, Oheng)? checkHap(Jiji a, Jiji b) {
-    final pair = {a, b};
-    return hapPairs[pair];
+    return _hapPairs[_makeKey(a, b)];
   }
 
   static String? checkHapName(Jiji a, Jiji b) {
@@ -266,12 +277,13 @@ class JijiYukhap {
 /// 지지 삼합 (4가지)
 /// 인오술합화, 해묘미합목, 사유축합금, 신자진합수
 class JijiSamhap {
-  static const Map<Set<Jiji>, (String, Oheng)> hapTriples = {
-    {Jiji.in_, Jiji.o, Jiji.sul}: ('인오술합화', Oheng.fire),
-    {Jiji.hae, Jiji.myo, Jiji.mi}: ('해묘미합목', Oheng.wood),
-    {Jiji.sa, Jiji.yu, Jiji.chuk}: ('사유축합금', Oheng.metal),
-    {Jiji.sin_, Jiji.ja, Jiji.jin}: ('신자진합수', Oheng.water),
-  };
+  /// List 방식으로 변경 - for-loop 검색용
+  static const List<(Set<Jiji>, String, Oheng)> _hapTriplesList = [
+    ({Jiji.in_, Jiji.o, Jiji.sul}, '인오술합화', Oheng.fire),
+    ({Jiji.hae, Jiji.myo, Jiji.mi}, '해묘미합목', Oheng.wood),
+    ({Jiji.sa, Jiji.yu, Jiji.chuk}, '사유축합금', Oheng.metal),
+    ({Jiji.sin_, Jiji.ja, Jiji.jin}, '신자진합수', Oheng.water),
+  ];
 
   /// 삼합의 중심(왕지) - 가장 강한 오행
   static const Map<Jiji, (String, Oheng)> centerJiji = {
@@ -283,39 +295,58 @@ class JijiSamhap {
 
   /// 두 지지가 반합인지 확인 (삼합의 2개)
   static String? checkBanhap(Jiji a, Jiji b) {
-    final pair = {a, b};
-    for (final entry in hapTriples.entries) {
-      if (entry.key.containsAll(pair)) {
-        final missingJiji = entry.key.difference(pair).first;
-        return '${entry.value.$1.substring(0, 3)} 반합 (${missingJiji.korean} 부재)';
+    if (a == b) return null; // 같은 지지는 반합 아님
+    for (final entry in _hapTriplesList) {
+      if (entry.$1.contains(a) && entry.$1.contains(b)) {
+        final missingJiji = entry.$1.where((j) => j != a && j != b).first;
+        return '${entry.$2.substring(0, 3)} 반합 (${missingJiji.korean} 부재)';
       }
     }
     return null;
   }
 
-  /// 세 지지가 삼합인지 확인
+  /// 세 지지가 삼합인지 확인 (3개가 모두 달라야 함)
   static (String, Oheng)? checkSamhap(Jiji a, Jiji b, Jiji c) {
-    final triple = {a, b, c};
-    return hapTriples[triple];
+    // 3개가 모두 다른 지지여야 삼합 성립 (중복 방지)
+    if (a == b || b == c || a == c) return null;
+    for (final entry in _hapTriplesList) {
+      if (entry.$1.contains(a) && entry.$1.contains(b) && entry.$1.contains(c)) {
+        return (entry.$2, entry.$3);
+      }
+    }
+    return null;
   }
 }
 
 /// 지지 방합 (4가지)
 /// 인묘진합목, 사오미합화, 신유술합금, 해자축합수
 class JijiBanghap {
-  static const Map<Set<Jiji>, (String, Oheng)> hapTriples = {
-    {Jiji.in_, Jiji.myo, Jiji.jin}: ('인묘진합목', Oheng.wood),
-    {Jiji.sa, Jiji.o, Jiji.mi}: ('사오미합화', Oheng.fire),
-    {Jiji.sin_, Jiji.yu, Jiji.sul}: ('신유술합금', Oheng.metal),
-    {Jiji.hae, Jiji.ja, Jiji.chuk}: ('해자축합수', Oheng.water),
-  };
+  /// List 방식으로 변경 - for-loop 검색용
+  static const List<(Set<Jiji>, String, Oheng)> _hapTriplesList = [
+    ({Jiji.in_, Jiji.myo, Jiji.jin}, '인묘진합목', Oheng.wood),
+    ({Jiji.sa, Jiji.o, Jiji.mi}, '사오미합화', Oheng.fire),
+    ({Jiji.sin_, Jiji.yu, Jiji.sul}, '신유술합금', Oheng.metal),
+    ({Jiji.hae, Jiji.ja, Jiji.chuk}, '해자축합수', Oheng.water),
+  ];
 
   /// 두 지지가 방합의 일부인지 확인
   static String? checkPartialBanghap(Jiji a, Jiji b) {
-    final pair = {a, b};
-    for (final entry in hapTriples.entries) {
-      if (entry.key.containsAll(pair)) {
-        return '${entry.value.$1.substring(0, 3)} 방합의 일부';
+    if (a == b) return null; // 같은 지지는 방합 아님
+    for (final entry in _hapTriplesList) {
+      if (entry.$1.contains(a) && entry.$1.contains(b)) {
+        return '${entry.$2.substring(0, 3)} 방합의 일부';
+      }
+    }
+    return null;
+  }
+
+  /// 세 지지가 방합인지 확인 (완전한 방합, 3개가 모두 달라야 함)
+  static (String, Oheng)? checkBanghap(Jiji a, Jiji b, Jiji c) {
+    // 3개가 모두 다른 지지여야 방합 성립 (중복 방지)
+    if (a == b || b == c || a == c) return null;
+    for (final entry in _hapTriplesList) {
+      if (entry.$1.contains(a) && entry.$1.contains(b) && entry.$1.contains(c)) {
+        return (entry.$2, entry.$3);
       }
     }
     return null;
@@ -325,46 +356,51 @@ class JijiBanghap {
 /// 지지 육충 (6가지)
 /// 자오충, 축미충, 인신충, 묘유충, 진술충, 사해충
 class JijiChung {
-  static const Map<Set<Jiji>, String> chungPairs = {
-    {Jiji.ja, Jiji.o}: '자오충',
-    {Jiji.chuk, Jiji.mi}: '축미충',
-    {Jiji.in_, Jiji.sin_}: '인신충',
-    {Jiji.myo, Jiji.yu}: '묘유충',
-    {Jiji.jin, Jiji.sul}: '진술충',
-    {Jiji.sa, Jiji.hae}: '사해충',
+  /// String key 방식 - Set equality 문제 해결
+  static const Map<String, String> _chungPairs = {
+    'ja-o': '자오충',
+    'chuk-mi': '축미충',
+    'in_-sin_': '인신충',
+    'myo-yu': '묘유충',
+    'jin-sul': '진술충',
+    'hae-sa': '사해충',
   };
 
   /// 충의 심각도 (1-10)
-  static const Map<Set<Jiji>, int> chungSeverity = {
-    {Jiji.ja, Jiji.o}: 9, // 수화 충돌 - 매우 강함
-    {Jiji.in_, Jiji.sin_}: 8, // 목금 충돌 - 강함
-    {Jiji.myo, Jiji.yu}: 8, // 목금 충돌 - 강함
-    {Jiji.sa, Jiji.hae}: 7, // 화수 충돌 - 강함
-    {Jiji.chuk, Jiji.mi}: 5, // 토토 충돌 - 중간
-    {Jiji.jin, Jiji.sul}: 5, // 토토 충돌 - 중간
+  static const Map<String, int> _chungSeverity = {
+    'ja-o': 9, // 수화 충돌 - 매우 강함
+    'in_-sin_': 8, // 목금 충돌 - 강함
+    'myo-yu': 8, // 목금 충돌 - 강함
+    'hae-sa': 7, // 화수 충돌 - 강함
+    'chuk-mi': 5, // 토토 충돌 - 중간
+    'jin-sul': 5, // 토토 충돌 - 중간
   };
 
+  /// 두 지지를 정렬된 String key로 변환
+  static String _makeKey(Jiji a, Jiji b) {
+    final list = [a.name, b.name]..sort();
+    return list.join('-');
+  }
+
   static String? checkChung(Jiji a, Jiji b) {
-    final pair = {a, b};
-    return chungPairs[pair];
+    return _chungPairs[_makeKey(a, b)];
   }
 
   static int? getChungSeverity(Jiji a, Jiji b) {
-    final pair = {a, b};
-    return chungSeverity[pair];
+    return _chungSeverity[_makeKey(a, b)];
   }
 }
 
 /// 지지 형 (삼형살, 자묘형, 자형)
 class JijiHyung {
-  // 삼형살
-  static const Map<Set<Jiji>, String> samhyung = {
-    {Jiji.in_, Jiji.sa, Jiji.sin_}: '인사신 삼형살 (무은지형)',
-    {Jiji.chuk, Jiji.sul, Jiji.mi}: '축술미 삼형살 (지세지형)',
-  };
+  // 삼형살 - 3개 지지 조합 (for-loop으로 검사)
+  static const List<(Set<Jiji>, String)> _samhyungList = [
+    ({Jiji.in_, Jiji.sa, Jiji.sin_}, '인사신 삼형살 (무은지형)'),
+    ({Jiji.chuk, Jiji.sul, Jiji.mi}, '축술미 삼형살 (지세지형)'),
+  ];
 
-  // 자묘형 (무례지형)
-  static const Set<Jiji> jaMyoHyung = {Jiji.ja, Jiji.myo};
+  // 자묘형 (무례지형) - String key 방식
+  static const String _jaMyoKey = 'ja-myo';
 
   // 자형 (자기 형벌)
   static const Set<Jiji> jaHyungJiji = {
@@ -374,16 +410,22 @@ class JijiHyung {
     Jiji.hae, // 해해자형
   };
 
+  /// 두 지지를 정렬된 String key로 변환
+  static String _makeKey(Jiji a, Jiji b) {
+    final list = [a.name, b.name]..sort();
+    return list.join('-');
+  }
+
   /// 두 지지가 형인지 확인
   static String? checkHyung(Jiji a, Jiji b) {
-    // 자묘형
-    if ({a, b} == jaMyoHyung) return '자묘형 (무례지형)';
+    // 자묘형 - String key 비교
+    if (_makeKey(a, b) == _jaMyoKey) return '자묘형 (무례지형)';
     // 자형
     if (a == b && jaHyungJiji.contains(a)) return '${a.korean}${a.korean}자형';
-    // 삼형살의 2개
-    for (final entry in samhyung.entries) {
-      if (entry.key.contains(a) && entry.key.contains(b)) {
-        return '${entry.value.split(' ').first} 형 (삼형살 일부)';
+    // 삼형살의 2개 - contains 사용 (개별 요소 비교라 정상 작동)
+    for (final entry in _samhyungList) {
+      if (entry.$1.contains(a) && entry.$1.contains(b) && a != b) {
+        return '${entry.$2.split(' ').first} 형 (삼형살 일부)';
       }
     }
     return null;
@@ -393,36 +435,48 @@ class JijiHyung {
 /// 지지 해 (6가지)
 /// 술유해, 신해해, 미자해, 축오해, 인사해, 묘진해
 class JijiHae {
-  static const Map<Set<Jiji>, String> haePairs = {
-    {Jiji.sul, Jiji.yu}: '술유해',
-    {Jiji.sin_, Jiji.hae}: '신해해',
-    {Jiji.mi, Jiji.ja}: '미자해',
-    {Jiji.chuk, Jiji.o}: '축오해',
-    {Jiji.in_, Jiji.sa}: '인사해',
-    {Jiji.myo, Jiji.jin}: '묘진해',
+  /// String key 방식 - Set equality 문제 해결
+  static const Map<String, String> _haePairs = {
+    'sul-yu': '술유해',
+    'hae-sin_': '신해해',
+    'ja-mi': '미자해',
+    'chuk-o': '축오해',
+    'in_-sa': '인사해',
+    'jin-myo': '묘진해',
   };
 
+  /// 두 지지를 정렬된 String key로 변환
+  static String _makeKey(Jiji a, Jiji b) {
+    final list = [a.name, b.name]..sort();
+    return list.join('-');
+  }
+
   static String? checkHae(Jiji a, Jiji b) {
-    final pair = {a, b};
-    return haePairs[pair];
+    return _haePairs[_makeKey(a, b)];
   }
 }
 
 /// 지지 파 (6가지)
 /// 유자파, 축진파, 인해파, 묘오파, 신사파, 술미파
 class JijiPa {
-  static const Map<Set<Jiji>, String> paPairs = {
-    {Jiji.yu, Jiji.ja}: '유자파',
-    {Jiji.chuk, Jiji.jin}: '축진파',
-    {Jiji.in_, Jiji.hae}: '인해파',
-    {Jiji.myo, Jiji.o}: '묘오파',
-    {Jiji.sin_, Jiji.sa}: '신사파',
-    {Jiji.sul, Jiji.mi}: '술미파',
+  /// String key 방식 - Set equality 문제 해결
+  static const Map<String, String> _paPairs = {
+    'ja-yu': '유자파',
+    'chuk-jin': '축진파',
+    'hae-in_': '인해파',
+    'myo-o': '묘오파',
+    'sa-sin_': '신사파',
+    'mi-sul': '술미파',
   };
 
+  /// 두 지지를 정렬된 String key로 변환
+  static String _makeKey(Jiji a, Jiji b) {
+    final list = [a.name, b.name]..sort();
+    return list.join('-');
+  }
+
   static String? checkPa(Jiji a, Jiji b) {
-    final pair = {a, b};
-    return paPairs[pair];
+    return _paPairs[_makeKey(a, b)];
   }
 }
 
@@ -462,8 +516,37 @@ class Wonjin {
 
 /// 합충형해파 분석 결과
 class HapchungAnalysis {
-  /// 합 (긍정적)
-  final List<String> hap;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 합 (긍정적) - 세분화
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 천간합 (오합) - 갑기합토, 을경합금, 병신합수, 정임합목, 무계합화
+  final List<String> cheonganHap;
+
+  /// 지지 육합 - 자축합토, 인해합목, 묘술합화, 진유합금, 사신합수, 오미합화
+  final List<String> yukhap;
+
+  /// 지지 삼합 - 인오술합화, 해묘미합목, 사유축합금, 신자진합수 (3개 완전)
+  final List<String> samhap;
+
+  /// 지지 반합 - 삼합의 2개만 있는 경우
+  final List<String> banhap;
+
+  /// 지지 방합 - 인묘진합목, 사오미합화, 신유술합금, 해자축합수
+  final List<String> banghap;
+
+  /// [하위호환] 모든 합을 통합한 리스트
+  List<String> get hap => [
+    ...cheonganHap.map((e) => '[천간합] $e'),
+    ...yukhap.map((e) => '[육합] $e'),
+    ...samhap.map((e) => '[삼합] $e'),
+    ...banhap.map((e) => '[반합] $e'),
+    ...banghap.map((e) => '[방합] $e'),
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 충/형/해/파/원진 (부정적)
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /// 충 (부정적 - 가장 강함)
   final List<String> chung;
@@ -481,7 +564,11 @@ class HapchungAnalysis {
   final List<String> wonjin;
 
   const HapchungAnalysis({
-    required this.hap,
+    required this.cheonganHap,
+    required this.yukhap,
+    required this.samhap,
+    required this.banhap,
+    required this.banghap,
     required this.chung,
     required this.hyung,
     required this.hae,
@@ -489,8 +576,9 @@ class HapchungAnalysis {
     required this.wonjin,
   });
 
-  /// 긍정적 요소 개수
-  int get positiveCount => hap.length;
+  /// 긍정적 요소 개수 (모든 합 합산)
+  int get positiveCount =>
+      cheonganHap.length + yukhap.length + samhap.length + banhap.length + banghap.length;
 
   /// 부정적 요소 개수
   int get negativeCount =>
@@ -498,7 +586,15 @@ class HapchungAnalysis {
 
   /// JSON 변환 - 한글(한자) 형식으로 DB 저장
   Map<String, dynamic> toJson() => {
+        // 합 세분화 (각각 별도 필드)
+        'cheongan_hap': _toHanjaFormat(cheonganHap, 'cheongan_hap'),
+        'yukhap': _toHanjaFormat(yukhap, 'yukhap'),
+        'samhap': _toHanjaFormat(samhap, 'samhap'),
+        'banhap': _toHanjaFormat(banhap, 'banhap'),
+        'banghap': _toHanjaFormat(banghap, 'banghap'),
+        // 하위호환: 모든 합을 통합한 hap 필드
         'hap': _toHanjaFormat(hap, 'hap'),
+        // 충/형/해/파/원진
         'chung': _toHanjaFormat(chung, 'chung'),
         'hyung': _toHanjaFormat(hyung, 'hyung'),
         'hae': _toHanjaFormat(hae, 'hae'),
@@ -608,9 +704,51 @@ class HapchungAnalysis {
     // 반합 (삼합 일부)
     text = text
         .replaceAll('인오술 반합', '인오술 반합(寅午戌 半合)')
+        .replaceAll('인오 반합', '인오 반합(寅午 半合)')
+        .replaceAll('오술 반합', '오술 반합(午戌 半合)')
+        .replaceAll('인술 반합', '인술 반합(寅戌 半合)')
         .replaceAll('해묘미 반합', '해묘미 반합(亥卯未 半合)')
+        .replaceAll('해묘 반합', '해묘 반합(亥卯 半合)')
+        .replaceAll('묘미 반합', '묘미 반합(卯未 半合)')
+        .replaceAll('해미 반합', '해미 반합(亥未 半合)')
         .replaceAll('사유축 반합', '사유축 반합(巳酉丑 半合)')
-        .replaceAll('신자진 반합', '신자진 반합(申子辰 半合)');
+        .replaceAll('사유 반합', '사유 반합(巳酉 半合)')
+        .replaceAll('유축 반합', '유축 반합(酉丑 半合)')
+        .replaceAll('사축 반합', '사축 반합(巳丑 半合)')
+        .replaceAll('신자진 반합', '신자진 반합(申子辰 半合)')
+        .replaceAll('신자 반합', '신자 반합(申子 半合)')
+        .replaceAll('자진 반합', '자진 반합(子辰 半合)')
+        .replaceAll('신진 반합', '신진 반합(申辰 半合)');
+
+    // 삼합 (3개 완전)
+    text = text
+        .replaceAll('인오술합화', '인오술합화(寅午戌合火)')
+        .replaceAll('해묘미합목', '해묘미합목(亥卯未合木)')
+        .replaceAll('사유축합금', '사유축합금(巳酉丑合金)')
+        .replaceAll('신자진합수', '신자진합수(申子辰合水)');
+
+    // 방합 (계절/방위)
+    text = text
+        .replaceAll('인묘진합목', '인묘진합목(寅卯辰合木)')
+        .replaceAll('인묘진 방합', '인묘진 방합(寅卯辰 方合)')
+        .replaceAll('인묘 방합', '인묘 방합(寅卯 方合)')
+        .replaceAll('묘진 방합', '묘진 방합(卯辰 方合)')
+        .replaceAll('인진 방합', '인진 방합(寅辰 方合)')
+        .replaceAll('사오미합화', '사오미합화(巳午未合火)')
+        .replaceAll('사오미 방합', '사오미 방합(巳午未 方合)')
+        .replaceAll('사오 방합', '사오 방합(巳午 方合)')
+        .replaceAll('오미 방합', '오미 방합(午未 方合)')
+        .replaceAll('사미 방합', '사미 방합(巳未 方合)')
+        .replaceAll('신유술합금', '신유술합금(申酉戌合金)')
+        .replaceAll('신유술 방합', '신유술 방합(申酉戌 方合)')
+        .replaceAll('신유 방합', '신유 방합(申酉 方合)')
+        .replaceAll('유술 방합', '유술 방합(酉戌 方合)')
+        .replaceAll('신술 방합', '신술 방합(申戌 方合)')
+        .replaceAll('해자축합수', '해자축합수(亥子丑合水)')
+        .replaceAll('해자축 방합', '해자축 방합(亥子丑 方合)')
+        .replaceAll('해자 방합', '해자 방합(亥子 方合)')
+        .replaceAll('자축 방합', '자축 방합(子丑 方合)')
+        .replaceAll('해축 방합', '해축 방합(亥丑 方合)');
 
     return text;
   }
@@ -759,14 +897,23 @@ class CompatibilityCalculator {
 
   /// 합충형해파 분석
   HapchungAnalysis _analyzeHapchung(_ParsedSaju my, _ParsedSaju target) {
-    final hap = <String>[];
+    // 합 세분화 리스트
+    final cheonganHap = <String>[]; // 천간합 (오합)
+    final yukhap = <String>[]; // 지지 육합
+    final samhap = <String>[]; // 지지 삼합 (3개 완전)
+    final banhap = <String>[]; // 지지 반합 (삼합 2개)
+    final banghap = <String>[]; // 지지 방합
+
+    // 부정적 요소 리스트
     final chung = <String>[];
     final hyung = <String>[];
     final hae = <String>[];
     final pa = <String>[];
     final wonjin = <String>[];
 
-    // 모든 천간 조합 분석
+    // ═══════════════════════════════════════════════════════════════════════
+    // 천간 조합 분석 (천간합)
+    // ═══════════════════════════════════════════════════════════════════════
     final myGans = [my.yearGan, my.monthGan, my.dayGan, my.hourGan];
     final targetGans = [target.yearGan, target.monthGan, target.dayGan, target.hourGan];
     final ganLabels = ['년간', '월간', '일간', '시간'];
@@ -780,12 +927,14 @@ class CompatibilityCalculator {
         // 천간합 체크
         final hapResult = CheonganHap.checkHapName(myGan, targetGan);
         if (hapResult != null) {
-          hap.add('${ganLabels[i]}↔${ganLabels[j]}: $hapResult');
+          cheonganHap.add('${ganLabels[i]}↔${ganLabels[j]}: $hapResult');
         }
       }
     }
 
-    // 모든 지지 조합 분석
+    // ═══════════════════════════════════════════════════════════════════════
+    // 지지 조합 분석 (육합, 반합, 방합, 충, 형, 해, 파, 원진)
+    // ═══════════════════════════════════════════════════════════════════════
     final myJis = [my.yearJi, my.monthJi, my.dayJi, my.hourJi];
     final targetJis = [target.yearJi, target.monthJi, target.dayJi, target.hourJi];
     final jiLabels = ['년지', '월지', '일지', '시지'];
@@ -799,13 +948,19 @@ class CompatibilityCalculator {
         // 지지 육합 체크
         final yukhapResult = JijiYukhap.checkHapName(myJi, targetJi);
         if (yukhapResult != null) {
-          hap.add('${jiLabels[i]}↔${jiLabels[j]}: $yukhapResult');
+          yukhap.add('${jiLabels[i]}↔${jiLabels[j]}: $yukhapResult');
         }
 
-        // 반합 체크
+        // 반합 체크 (삼합의 2개)
         final banhapResult = JijiSamhap.checkBanhap(myJi, targetJi);
         if (banhapResult != null) {
-          hap.add('${jiLabels[i]}↔${jiLabels[j]}: $banhapResult');
+          banhap.add('${jiLabels[i]}↔${jiLabels[j]}: $banhapResult');
+        }
+
+        // 방합 체크 (같은 계절/방위)
+        final banghapResult = JijiBanghap.checkPartialBanghap(myJi, targetJi);
+        if (banghapResult != null) {
+          banghap.add('${jiLabels[i]}↔${jiLabels[j]}: $banghapResult');
         }
 
         // 충 체크
@@ -839,8 +994,54 @@ class CompatibilityCalculator {
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // 삼합 체크 (3개 완전 조합) - 두 사람 지지 합쳐서 확인
+    // ═══════════════════════════════════════════════════════════════════════
+    final allJis = <Jiji>[];
+    for (final ji in myJis) {
+      if (ji != null) allJis.add(ji);
+    }
+    for (final ji in targetJis) {
+      if (ji != null) allJis.add(ji);
+    }
+
+    // 삼합 체크 (중복 제거를 위해 Set 사용)
+    final foundSamhap = <String>{};
+    for (int i = 0; i < allJis.length; i++) {
+      for (int j = i + 1; j < allJis.length; j++) {
+        for (int k = j + 1; k < allJis.length; k++) {
+          final result = JijiSamhap.checkSamhap(allJis[i], allJis[j], allJis[k]);
+          if (result != null && !foundSamhap.contains(result.$1)) {
+            foundSamhap.add(result.$1);
+            samhap.add('${result.$1} (${result.$2.korean}국)');
+          }
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 방합 체크 (3개 완전 조합) - 두 사람 지지 합쳐서 확인
+    // ═══════════════════════════════════════════════════════════════════════
+    final foundBanghap = <String>{};
+    for (int i = 0; i < allJis.length; i++) {
+      for (int j = i + 1; j < allJis.length; j++) {
+        for (int k = j + 1; k < allJis.length; k++) {
+          final result = JijiBanghap.checkBanghap(allJis[i], allJis[j], allJis[k]);
+          if (result != null && !foundBanghap.contains(result.$1)) {
+            foundBanghap.add(result.$1);
+            // 완전한 방합은 앞에 추가 (일부보다 우선)
+            banghap.insert(0, '${result.$1} (${result.$2.korean}방)');
+          }
+        }
+      }
+    }
+
     return HapchungAnalysis(
-      hap: hap,
+      cheonganHap: cheonganHap,
+      yukhap: yukhap,
+      samhap: samhap,
+      banhap: banhap,
+      banghap: banghap,
       chung: chung,
       hyung: hyung,
       hae: hae,

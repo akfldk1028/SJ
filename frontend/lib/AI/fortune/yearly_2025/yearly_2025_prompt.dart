@@ -29,7 +29,7 @@ class Yearly2025Prompt extends PromptTemplate {
   /// 입력 데이터 (saju_base + saju_analyses 포함)
   final FortuneInputData inputData;
 
-  const Yearly2025Prompt({
+  Yearly2025Prompt({
     required this.inputData,
   });
 
@@ -152,7 +152,7 @@ class Yearly2025Prompt extends PromptTemplate {
 ''';
 
   @override
-  String buildUserPrompt() {
+  String buildUserPrompt([Map<String, dynamic>? input]) {
     return '''
 ## 사용자 기본 정보
 - 이름: ${inputData.profileName}

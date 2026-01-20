@@ -75,12 +75,15 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../core/supabase/generated/saju_analyses.dart';
 import '../../core/supabase/generated/saju_profiles.dart';
 import '../core/ai_constants.dart';
 import '../core/ai_logger.dart';
 import '../data/mutations.dart';
 import '../data/queries.dart';
+import '../fortune/fortune_coordinator.dart';
 import '../prompts/daily_fortune_prompt.dart';
 import '../prompts/prompt_template.dart';
 import '../prompts/saju_base_prompt.dart';
@@ -165,11 +168,22 @@ class SajuAnalysisService {
   /// AI API 서비스 (Edge Function 호출)
   final AiApiService _apiService;
 
+  /// Fortune 분석 코디네이터 (연간/월간 운세)
+  late final FortuneCoordinator _fortuneCoordinator;
+
+  /// 현재 분석 중인 프로필 ID 추적 (중복 분석 방지)
+  static final Set<String> _analyzingProfiles = {};
+
   /// 생성자
   ///
   /// [apiService] 테스트 시 Mock 주입 가능
   SajuAnalysisService({AiApiService? apiService})
-      : _apiService = apiService ?? AiApiService();
+      : _apiService = apiService ?? AiApiService() {
+    _fortuneCoordinator = FortuneCoordinator(
+      supabase: Supabase.instance.client,
+      aiApiService: _apiService,
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // 메인 진입점
@@ -192,11 +206,21 @@ class SajuAnalysisService {
     bool runInBackground = true,
     void Function(ProfileAnalysisResult)? onComplete,
   }) async {
-    print('[SajuAnalysisService] 프로필 분석 시작: $profileId');
+    // 중복 분석 방지: 이미 분석 중인 프로필이면 스킵
+    if (_analyzingProfiles.contains(profileId)) {
+      print('[SajuAnalysisService] 이미 분석 중: $profileId (스킵)');
+      return const ProfileAnalysisResult(); // 빈 결과 반환
+    }
+
+    // 분석 시작 등록
+    _analyzingProfiles.add(profileId);
+    print('[SajuAnalysisService] 프로필 분석 시작: $profileId (현재 분석 중: ${_analyzingProfiles.length}개)');
 
     // 1. 사주 데이터 조회
     final inputData = await _prepareInputData(profileId);
     if (inputData == null) {
+      // 실패 시에도 Set에서 제거
+      _analyzingProfiles.remove(profileId);
       print('[SajuAnalysisService] 사주 데이터 조회 실패');
       return ProfileAnalysisResult(
         sajuBase: AnalysisResult.failure('사주 데이터 조회 실패'),
@@ -211,7 +235,12 @@ class SajuAnalysisService {
       return const ProfileAnalysisResult(); // 즉시 반환
     } else {
       // 완료 대기
-      return await _runBothAnalyses(userId, profileId, inputData);
+      try {
+        return await _runBothAnalyses(userId, profileId, inputData);
+      } finally {
+        // 분석 완료 → Set에서 제거
+        _analyzingProfiles.remove(profileId);
+      }
     }
   }
 
@@ -273,6 +302,8 @@ class SajuAnalysisService {
   ) {
     // 비동기로 실행, 결과는 DB에 저장됨
     _runBothAnalyses(userId, profileId, inputData).then((result) {
+      // 분석 완료 → Set에서 제거
+      _analyzingProfiles.remove(profileId);
       print('[SajuAnalysisService] 백그라운드 분석 완료');
       print('  - 평생운세: ${result.sajuBase?.success ?? false}');
       print('  - 오늘운세: ${result.dailyFortune?.success ?? false}');
@@ -282,6 +313,8 @@ class SajuAnalysisService {
         onComplete(result);
       }
     }).catchError((e) {
+      // 에러 시에도 Set에서 제거
+      _analyzingProfiles.remove(profileId);
       print('[SajuAnalysisService] 백그라운드 분석 오류: $e');
     });
   }
@@ -308,13 +341,47 @@ class SajuAnalysisService {
     // 2. GPT 결과를 Gemini 프롬프트에 포함
     Map<String, dynamic> enrichedInputJson = Map.from(inputJson);
 
+    print('[SajuAnalysisService] 📊 saju_base 결과: success=${sajuBaseResult.success}');
+
     if (sajuBaseResult.success) {
       // GPT 분석 결과 조회하여 Gemini 입력에 추가
+      print('[SajuAnalysisService] 🔍 saju_base 결과 조회 중...');
       final sajuBaseData = await aiQueries.getSajuBaseSummary(profileId);
       if (sajuBaseData.isSuccess && sajuBaseData.data != null) {
         enrichedInputJson['saju_base_analysis'] = sajuBaseData.data!.content;
-        print('[SajuAnalysisService] GPT 분석 결과를 Gemini 입력에 추가');
+        print('[SajuAnalysisService] ✅ GPT 분석 결과를 Gemini 입력에 추가');
+      } else {
+        print('[SajuAnalysisService] ⚠️ saju_base 조회 실패: ${sajuBaseData.errorMessage}');
       }
+
+      // Fortune 분석 (yearly_2025, yearly_2026, monthly) - 동기 실행
+      print('[SajuAnalysisService] 🎯 Fortune 분석 시작 (연간/월간)...');
+      print('  - userId: $userId');
+      print('  - profileId: $profileId');
+      print('  - name: ${inputJson['name']}');
+      print('  - birth_date: ${inputJson['birth_date']}');
+      print('  - gender: ${inputJson['gender']}');
+      try {
+        final fortuneResults = await _fortuneCoordinator.analyzeAllFortunes(
+          userId: userId,
+          profileId: profileId,
+          profileName: inputJson['name'] as String? ?? '',
+          birthDate: inputJson['birth_date'] as String? ?? '',
+          birthTime: inputJson['birth_time'] as String?,
+          gender: inputJson['gender'] as String? ?? 'M',
+        );
+        print('[SajuAnalysisService] ✅ Fortune 분석 완료:');
+        print('  - completedCount: ${fortuneResults.completedCount}');
+        print('  - yearly2026: ${fortuneResults.yearly2026 != null ? "성공" : "실패"}');
+        print('  - monthly: ${fortuneResults.monthly != null ? "성공" : "실패"}');
+        print('  - yearly2025: ${fortuneResults.yearly2025 != null ? "성공" : "실패"}');
+      } catch (e, stackTrace) {
+        print('[SajuAnalysisService] ❌ Fortune 분석 오류: $e');
+        print('[SajuAnalysisService] StackTrace: $stackTrace');
+      }
+    } else {
+      print('[SajuAnalysisService] ⚠️ saju_base 실패로 Fortune 분석 스킵');
+      print('  - error: ${sajuBaseResult.error}');
     }
 
     // 3. Gemini 일운 분석 (GPT 결과 참조)
@@ -396,7 +463,7 @@ class SajuAnalysisService {
         print('[SajuAnalysisService] saju_origin 추가됨 (from inputJson)');
       }
 
-      // 5. 결과 저장
+      // 5. 결과 저장 (전체 프롬프트 포함)
       final saveResult = await aiMutations.saveSajuBaseSummary(
         userId: userId,
         profileId: profileId,
@@ -408,6 +475,8 @@ class SajuAnalysisService {
         cachedTokens: response.cachedTokens,
         totalCostUsd: response.totalCostUsd,
         processingTimeMs: stopwatch.elapsedMilliseconds,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.buildUserPrompt(inputJson),
       );
 
       stopwatch.stop();
@@ -507,7 +576,7 @@ class SajuAnalysisService {
         throw Exception(response.error ?? 'Gemini API 호출 실패');
       }
 
-      // 4. 결과 저장
+      // 4. 결과 저장 (전체 프롬프트 포함)
       final saveResult = await aiMutations.saveDailyFortune(
         userId: userId,
         profileId: profileId,
@@ -519,6 +588,8 @@ class SajuAnalysisService {
         completionTokens: response.completionTokens,
         totalCostUsd: response.totalCostUsd,
         processingTimeMs: stopwatch.elapsedMilliseconds,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.buildUserPrompt(inputJson),
       );
 
       stopwatch.stop();

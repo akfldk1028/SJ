@@ -10,6 +10,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/ai_constants.dart';
+import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
 
 /// 2026 신년운세 뮤테이션 클래스
@@ -30,6 +31,9 @@ class Yearly2026Mutations {
   /// [promptTokens] 입력 토큰 수
   /// [completionTokens] 출력 토큰 수
   /// [totalCost] 총 비용 (USD)
+  /// [inputData] 분석에 사용된 입력 데이터 (선택)
+  /// [systemPrompt] AI에게 전달된 시스템 프롬프트 (선택)
+  /// [userPrompt] AI에게 전달된 사용자 프롬프트 (선택)
   Future<Map<String, dynamic>> save({
     required String userId,
     required String profileId,
@@ -38,10 +42,27 @@ class Yearly2026Mutations {
     required int promptTokens,
     required int completionTokens,
     required double totalCost,
+    FortuneInputData? inputData,
+    String? systemPrompt,
+    String? userPrompt,
   }) async {
+    print('[Yearly2026Mutations] 저장 시작: profileId=$profileId');
+
     // 만료 시간: 2026년 12월 31일 23:59:59 KST
     // 신년운세는 해당 연도 끝까지 유효
     final expiresAt = KoreaDateUtils.expiryEndOfYear(targetYear);
+
+    // input_data에 전체 프롬프트 포함
+    final inputDataJson = <String, dynamic>{};
+    if (systemPrompt != null) {
+      inputDataJson['system_prompt'] = systemPrompt;
+    }
+    if (userPrompt != null) {
+      inputDataJson['user_prompt'] = userPrompt;
+    }
+    if (inputData != null) {
+      inputDataJson['input_params'] = inputData.toPromptJson();
+    }
 
     final data = {
       'user_id': userId,
@@ -50,6 +71,7 @@ class Yearly2026Mutations {
       'target_year': targetYear,
       'target_month': null, // 년운은 월 없음
       'content': content,
+      'input_data': inputDataJson.isNotEmpty ? inputDataJson : null,
       'model_name': modelName,
       'model_provider': ModelProvider.openai,
       'prompt_tokens': promptTokens,
@@ -59,17 +81,23 @@ class Yearly2026Mutations {
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
     };
 
-    // Upsert: profile_id + summary_type + target_year 기준
-    final response = await _supabase
-        .from('ai_summaries')
-        .upsert(
-          data,
-          onConflict: 'profile_id,summary_type,target_year,target_month',
-        )
-        .select()
-        .single();
+    try {
+      // Upsert: profile_id + summary_type + target_year 기준
+      final response = await _supabase
+          .from('ai_summaries')
+          .upsert(
+            data,
+            onConflict: 'profile_id,summary_type,target_year,target_month',
+          )
+          .select()
+          .single();
 
-    return response;
+      print('[Yearly2026Mutations] ✅ DB 저장 성공: ${response['id']}');
+      return response;
+    } catch (e) {
+      print('[Yearly2026Mutations] ❌ DB 저장 실패: $e');
+      rethrow;
+    }
   }
 
   /// 2026 신년운세 삭제

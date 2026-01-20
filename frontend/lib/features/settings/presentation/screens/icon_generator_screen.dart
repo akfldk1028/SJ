@@ -3,7 +3,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:io';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
+
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/mystic_background.dart';
 
 /// 앱 아이콘 생성기 화면
 class IconGeneratorScreen extends StatefulWidget {
@@ -18,79 +22,98 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: theme.backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('앱 아이콘 선택'),
+        title: Text('앱 아이콘 선택', style: TextStyle(color: theme.textPrimary)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.textPrimary),
+          onPressed: () => context.pop(),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Text(
-              '앱 아이콘 디자인 선택',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '원하는 디자인을 탭하여 저장하세요',
-              style: TextStyle(fontSize: 14, color: Colors.white70),
-            ),
-            const SizedBox(height: 32),
-
-            // 2x2 그리드
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 24,
-              crossAxisSpacing: 24,
-              childAspectRatio: 0.8,
+      body: MysticBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
               children: [
-                _buildIconOption(
-                  key: _iconKeys[0],
-                  title: '태극 문양',
-                  subtitle: '현대적 음양 디자인',
-                  child: const TaegeukIcon(),
+                Text(
+                  '앱 아이콘 디자인 선택',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textPrimary,
+                  ),
                 ),
-                _buildIconOption(
-                  key: _iconKeys[1],
-                  title: '달과 별',
-                  subtitle: '신비로운 운세 느낌',
-                  child: const MoonStarsIcon(),
+                const SizedBox(height: 8),
+                Text(
+                  '원하는 디자인을 탭하여 저장하세요',
+                  style: TextStyle(fontSize: 14, color: theme.textMuted),
                 ),
-                _buildIconOption(
-                  key: _iconKeys[2],
-                  title: '한자 운(運)',
-                  subtitle: '동양풍 문자 디자인',
-                  child: const HanjaIcon(),
-                ),
-                _buildIconOption(
-                  key: _iconKeys[3],
-                  title: '연꽃',
-                  subtitle: '평화로운 느낌',
-                  child: const LotusIcon(),
+                const SizedBox(height: 32),
+
+                // 2x2 그리드
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 24,
+                  crossAxisSpacing: 24,
+                  childAspectRatio: 0.8,
+                  children: [
+                    _buildIconOption(
+                      context,
+                      key: _iconKeys[0],
+                      title: '태극 문양',
+                      subtitle: '현대적 음양 디자인',
+                      child: const TaegeukIcon(),
+                    ),
+                    _buildIconOption(
+                      context,
+                      key: _iconKeys[1],
+                      title: '달과 별',
+                      subtitle: '신비로운 운세 느낌',
+                      child: const MoonStarsIcon(),
+                    ),
+                    _buildIconOption(
+                      context,
+                      key: _iconKeys[2],
+                      title: '한자 운(運)',
+                      subtitle: '동양풍 문자 디자인',
+                      child: const HanjaIcon(),
+                    ),
+                    _buildIconOption(
+                      context,
+                      key: _iconKeys[3],
+                      title: '연꽃',
+                      subtitle: '평화로운 느낌',
+                      child: const LotusIcon(),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildIconOption({
+  Widget _buildIconOption(
+    BuildContext context, {
     required GlobalKey key,
     required String title,
     required String subtitle,
     required Widget child,
   }) {
+    final theme = context.appTheme;
+
     return GestureDetector(
       onTap: () => _saveIcon(key, title),
       child: Column(
@@ -98,9 +121,12 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: theme.primaryColor.withValues(alpha: 0.2),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
                 ),
@@ -121,17 +147,17 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: theme.textPrimary,
             ),
           ),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Colors.white60,
+              color: theme.textMuted,
             ),
           ),
         ],
@@ -140,6 +166,8 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
   }
 
   Future<void> _saveIcon(GlobalKey key, String name) async {
+    final theme = context.appTheme;
+
     try {
       final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
@@ -157,14 +185,17 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('아이콘 저장됨: $filePath'),
-            backgroundColor: const Color(0xFFC4A962),
+            backgroundColor: theme.primaryColor,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('저장 실패: $e')),
+          SnackBar(
+            content: Text('저장 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

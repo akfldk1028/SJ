@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../../../../AI/jina/personas/persona_registry.dart';
 import '../../../../AI/jina/personas/persona_base.dart';
 
@@ -93,7 +94,7 @@ enum ChatPersona {
     }
   }
 
-  /// 이모지 아이콘
+  /// 이모지 아이콘 (레거시, 호환성 유지)
   String get emoji {
     switch (this) {
       case ChatPersona.basePerson:
@@ -106,6 +107,42 @@ enum ChatPersona {
         return '👴';
       case ChatPersona.sewerSaju:
         return '🤮';
+    }
+  }
+
+  /// Material 아이콘
+  IconData get icon {
+    switch (this) {
+      case ChatPersona.basePerson:
+        return Icons.person_outline_rounded; // 기본 사람
+      case ChatPersona.babyMonk:
+        return Icons.face_rounded; // 얼굴 (동자)
+      case ChatPersona.scenarioWriter:
+        return Icons.edit_note_rounded; // 작가/글쓰기
+      case ChatPersona.saOngJiMa:
+        return Icons.spa_rounded; // 평화/긍정
+      case ChatPersona.newbieShaman:
+        return Icons.flare_rounded; // 빛/영적 (무당)
+      case ChatPersona.sewerSaju:
+        return Icons.bolt_rounded; // 번개/팩폭
+    }
+  }
+
+  /// 짧은 이름 (UI 표시용, 2-3글자)
+  String get shortName {
+    switch (this) {
+      case ChatPersona.basePerson:
+        return 'MBTI';
+      case ChatPersona.babyMonk:
+        return '아기동자';
+      case ChatPersona.scenarioWriter:
+        return '송작가';
+      case ChatPersona.saOngJiMa:
+        return '새옹지마';
+      case ChatPersona.newbieShaman:
+        return '하꼬무당';
+      case ChatPersona.sewerSaju:
+        return '시궁창';
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_theme.dart';
 import '../../../domain/models/ai_persona.dart';
 import 'mbti_axis_selector.dart';
 import 'persona_horizontal_list.dart';
@@ -41,10 +42,11 @@ class PersonaSelectorSheet extends StatefulWidget {
     BuildContext context,
     AiPersona currentPersona,
   ) {
+    final theme = context.appTheme;
     return showModalBottomSheet<AiPersona>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: theme.backgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -81,10 +83,12 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -95,17 +99,17 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: theme.textMuted.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           const SizedBox(height: 16),
           // 제목
-          const Text(
+          Text(
             'AI PERSONA Setting',
             style: TextStyle(
-              color: Colors.white,
+              color: theme.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -114,7 +118,7 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
           Text(
             '성향을 선택하면 맞춤 AI를 추천해드려요',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: theme.textMuted,
               fontSize: 14,
             ),
           ),
@@ -153,12 +157,12 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
 
                   // 전체 보기
                   if (_showAllPersonas) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
                         '전체 페르소나',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: theme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -176,8 +180,8 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
                       });
                     },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF98C1D9),
-                      side: const BorderSide(color: Color(0xFF98C1D9)),
+                      foregroundColor: theme.primaryColor,
+                      side: BorderSide(color: theme.primaryColor),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
@@ -252,6 +256,8 @@ class _AllPersonaGridItem extends StatelessWidget {
         break;
     }
 
+    final theme = context.appTheme;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -259,7 +265,7 @@ class _AllPersonaGridItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? quadrantColor.withValues(alpha: 0.3)
-              : const Color(0xFF2D2D44),
+              : theme.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? quadrantColor : Colors.transparent,
@@ -277,7 +283,7 @@ class _AllPersonaGridItem extends StatelessWidget {
             Text(
               persona.displayName,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: theme.textPrimary.withValues(alpha: 0.9),
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),

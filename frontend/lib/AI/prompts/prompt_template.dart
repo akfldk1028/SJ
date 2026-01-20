@@ -85,9 +85,10 @@ abstract class PromptTemplate {
 
   /// 사용자 프롬프트 생성
   ///
-  /// [input] SajuInputData.toJson()의 결과
+  /// [input] SajuInputData.toJson()의 결과 (선택적)
+  /// Fortune 계열 프롬프트는 생성자에서 inputData를 받으므로 파라미터 불필요
   /// 반환: 완성된 사용자 프롬프트 문자열
-  String buildUserPrompt(Map<String, dynamic> input);
+  String buildUserPrompt([Map<String, dynamic>? input]);
 
   /// 최대 응답 토큰 수
   ///
@@ -114,9 +115,9 @@ abstract class PromptTemplate {
   ///
   /// OpenAI/Gemini API에 전달할 메시지 형식으로 변환합니다.
   ///
-  /// [input] SajuInputData.toJson() 결과
+  /// [input] SajuInputData.toJson() 결과 (선택적)
   /// 반환: [{'role': 'system', 'content': ...}, {'role': 'user', 'content': ...}]
-  List<Map<String, String>> buildMessages(Map<String, dynamic> input) {
+  List<Map<String, String>> buildMessages([Map<String, dynamic>? input]) {
     return [
       {'role': 'system', 'content': systemPrompt},
       {'role': 'user', 'content': buildUserPrompt(input)},

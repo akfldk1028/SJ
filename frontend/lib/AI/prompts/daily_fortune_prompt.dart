@@ -135,13 +135,13 @@ JSON 형식으로 구조화된 일운을 반환하세요.
 ''';
 
   @override
-  String buildUserPrompt(Map<String, dynamic> input) {
-    final data = SajuInputData.fromJson(input);
+  String buildUserPrompt([Map<String, dynamic>? input]) {
+    final data = SajuInputData.fromJson(input!);
     final dateStr = '${targetDate.year}년 ${targetDate.month}월 ${targetDate.day}일';
     final weekday = _getWeekday(targetDate.weekday);
 
     // GPT 평생사주 분석 결과가 있으면 참조
-    final sajuBaseAnalysis = input['saju_base_analysis'] as Map<String, dynamic>?;
+    final sajuBaseAnalysis = input!['saju_base_analysis'] as Map<String, dynamic>?;
 
     return '''
 ## 대상 정보

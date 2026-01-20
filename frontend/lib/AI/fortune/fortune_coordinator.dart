@@ -174,7 +174,7 @@ class FortuneCoordinator {
   /// ## 플로우
   /// 1. saju_base 확인 (없으면 에러)
   /// 2. FortuneInputData 구성
-  /// 3. 각 운세 병렬 분석
+  /// 3. 각 운세 독립적 병렬 분석 (하나 완료되면 바로 저장)
   /// 4. 결과 반환
   ///
   /// [userId] 사용자 UUID
@@ -209,39 +209,85 @@ class FortuneCoordinator {
         sajuBaseContent: sajuBaseContent,
       );
 
-      // 3. 병렬 분석
-      final results = await Future.wait([
-        _yearly2026Service.analyze(
-          userId: userId,
-          profileId: profileId,
-          inputData: inputData,
-        ),
-        _monthlyService.analyze(
-          userId: userId,
-          profileId: profileId,
-          inputData: inputData,
-        ),
-        _yearly2025Service.analyze(
-          userId: userId,
-          profileId: profileId,
-          inputData: inputData,
-        ),
+      // 3. 독립적 병렬 분석 - 각각 완료되면 바로 저장됨 (실패해도 다른 것에 영향 없음)
+      print('[FortuneCoordinator] 🚀 운세 분석 시작 (3개 독립 실행)');
+
+      Yearly2026Result? yearly2026Result;
+      MonthlyResult? monthlyResult;
+      Yearly2025Result? yearly2025Result;
+
+      // 각 Future를 독립적으로 실행 (하나 실패해도 나머지는 계속 진행)
+      final yearly2026Future = _yearly2026Service
+          .analyze(
+            userId: userId,
+            profileId: profileId,
+            inputData: inputData,
+          )
+          .then((result) {
+        yearly2026Result = result;
+        print(
+            '[FortuneCoordinator] ✅ 2026 신년운세 완료: ${result.success ? "성공" : "실패"}');
+        return result;
+      }).catchError((e) {
+        print('[FortuneCoordinator] ❌ 2026 신년운세 에러: $e');
+        return Yearly2026Result.error(e.toString());
+      });
+
+      final monthlyFuture = _monthlyService
+          .analyze(
+            userId: userId,
+            profileId: profileId,
+            inputData: inputData,
+          )
+          .then((result) {
+        monthlyResult = result;
+        print(
+            '[FortuneCoordinator] ✅ 이번달 운세 완료: ${result.success ? "성공" : "실패"}');
+        return result;
+      }).catchError((e) {
+        print('[FortuneCoordinator] ❌ 이번달 운세 에러: $e');
+        return MonthlyResult.error(e.toString());
+      });
+
+      final yearly2025Future = _yearly2025Service
+          .analyze(
+            userId: userId,
+            profileId: profileId,
+            inputData: inputData,
+          )
+          .then((result) {
+        yearly2025Result = result;
+        print(
+            '[FortuneCoordinator] ✅ 2025 회고운세 완료: ${result.success ? "성공" : "실패"}');
+        return result;
+      }).catchError((e) {
+        print('[FortuneCoordinator] ❌ 2025 회고운세 에러: $e');
+        return Yearly2025Result.error(e.toString());
+      });
+
+      // 모든 Future 완료 대기 (개별 저장은 이미 완료됨)
+      await Future.wait([
+        yearly2026Future,
+        monthlyFuture,
+        yearly2025Future,
       ]);
 
-      final yearly2026Result = results[0] as Yearly2026Result;
-      final monthlyResult = results[1] as MonthlyResult;
-      final yearly2025Result = results[2] as Yearly2025Result;
+      print('[FortuneCoordinator] 🏁 모든 운세 분석 완료');
 
       // 4. 결과 반환
       return FortuneAnalysisResults(
         success: true,
-        yearly2026:
-            yearly2026Result.success ? yearly2026Result.content : null,
-        monthly: monthlyResult.success ? monthlyResult.content : null,
-        yearly2025:
-            yearly2025Result.success ? yearly2025Result.content : null,
+        yearly2026: yearly2026Result?.success == true
+            ? yearly2026Result?.content
+            : null,
+        monthly:
+            monthlyResult?.success == true ? monthlyResult?.content : null,
+        yearly2025: yearly2025Result?.success == true
+            ? yearly2025Result?.content
+            : null,
       );
     } catch (e) {
+      print('[FortuneCoordinator] ❌ 전체 에러: $e');
       return FortuneAnalysisResults.error(e.toString());
     }
   }

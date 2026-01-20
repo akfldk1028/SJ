@@ -407,9 +407,72 @@ class AiApiService {
               totalCostUsd: totalCostUsd,
             );
 
+          case 'incomplete':
+            // v25: incomplete 상태에서 content가 있으면 성공으로 처리
+            // max_tokens 도달로 응답이 잘렸지만 부분 콘텐츠 사용 가능
+            final incompleteContent = data['content'] as String?;
+            if (incompleteContent != null && incompleteContent.isNotEmpty) {
+              print('[AiApiService v25] incomplete but has content (${incompleteContent.length} chars)');
+
+              final parsedContent = _parseJsonContent(incompleteContent);
+              final incUsage = data['usage'] as Map<String, dynamic>?;
+              final incPromptTokens = incUsage?['prompt_tokens'] as int?;
+              final incCompletionTokens = incUsage?['completion_tokens'] as int?;
+              final incCachedTokens = incUsage?['cached_tokens'] as int? ?? 0;
+
+              final incTotalCost = _calculateOpenAICost(
+                model: model,
+                promptTokens: incPromptTokens ?? 0,
+                completionTokens: incCompletionTokens ?? 0,
+                cachedTokens: incCachedTokens,
+              );
+
+              print('[AiApiService v25] incomplete 부분 완료: prompt=$incPromptTokens, completion=$incCompletionTokens');
+
+              await AiLogger.log(
+                provider: 'openai',
+                model: model,
+                type: logType,
+                request: {'task_id': taskId, 'finish_reason': 'incomplete'},
+                response: parsedContent,
+                tokens: {
+                  'prompt': incPromptTokens,
+                  'completion': incCompletionTokens,
+                  'cached': incCachedTokens,
+                },
+                costUsd: incTotalCost,
+                success: true,
+              );
+
+              return AiApiResponse.success(
+                content: parsedContent,
+                promptTokens: incPromptTokens,
+                completionTokens: incCompletionTokens,
+                cachedTokens: incCachedTokens,
+                totalCostUsd: incTotalCost,
+              );
+            }
+            // content 없으면 아래 failed/cancelled와 같이 실패 처리
+            final incError = data['error'] ?? 'Task incomplete: no content';
+            print('[AiApiService v25] Task incomplete without content');
+
+            await AiLogger.log(
+              provider: 'openai',
+              model: model,
+              type: logType,
+              request: {'task_id': taskId},
+              success: false,
+              error: incError.toString(),
+            );
+
+            return AiApiResponse.failure(incError.toString());
+
           case 'failed':
-            final error = data['error'] ?? 'Task failed';
-            print('[AiApiService v24] Task failed: $error');
+          case 'cancelled':
+            // failed: API 오류
+            // cancelled: 사용자 또는 시스템에 의해 취소됨
+            final error = data['error'] ?? 'Task $status';
+            print('[AiApiService v25] Task $status: $error');
 
             await AiLogger.log(
               provider: 'openai',
@@ -657,4 +720,67 @@ class AiApiService {
 
     return inputCost + outputCost;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Chat 편의 메서드 (Fortune 서비스용)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Chat 편의 메서드 - Fortune 서비스에서 사용
+  ///
+  /// [systemPrompt]와 [userPrompt]를 받아 messages 배열로 변환 후 OpenAI 호출
+  /// 내부적으로 [callOpenAI]를 사용
+  Future<ChatResponse> chat({
+    required String model,
+    required String systemPrompt,
+    required String userPrompt,
+    int maxTokens = 2000,
+    double temperature = 0.7,
+    String logType = 'fortune',
+    String? userId,
+  }) async {
+    final messages = [
+      {'role': 'system', 'content': systemPrompt},
+      {'role': 'user', 'content': userPrompt},
+    ];
+
+    final response = await callOpenAI(
+      messages: messages,
+      model: model,
+      maxTokens: maxTokens,
+      temperature: temperature,
+      logType: logType,
+      userId: userId,
+    );
+
+    return ChatResponse(
+      success: response.success,
+      content: response.content != null
+          ? jsonEncode(response.content)
+          : null,
+      errorMessage: response.error,
+      promptTokens: response.promptTokens,
+      completionTokens: response.completionTokens,
+    );
+  }
 }
+
+/// Chat 응답 클래스 (Fortune 서비스 호환용)
+class ChatResponse {
+  final bool success;
+  final String? content;
+  final String? errorMessage;
+  final int? promptTokens;
+  final int? completionTokens;
+
+  const ChatResponse({
+    required this.success,
+    this.content,
+    this.errorMessage,
+    this.promptTokens,
+    this.completionTokens,
+  });
+}
+
+/// Fortune 서비스와의 호환성을 위한 타입 별칭
+/// (AIApiService 네이밍 사용 중인 코드와 호환)
+typedef AIApiService = AiApiService;

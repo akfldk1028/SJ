@@ -604,7 +604,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 1.6,
+            childAspectRatio: 1.35, // 1.6 → 1.35로 조정 (더 세로로 길게)
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -614,7 +614,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             final color = item['color'] as Color;
 
             return Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: theme.cardColor,
                 borderRadius: BorderRadius.circular(18),
@@ -622,38 +622,39 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(item['icon'] as IconData, color: color, size: 18),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
+                      Text(
+                        item['label'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.textMuted,
                         ),
-                        child: Icon(item['icon'] as IconData, color: color, size: 18),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 2),
+                      Text(
+                        item['value'] as String,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    item['label'] as String,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['value'] as String,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                    ),
                   ),
                 ],
               ),
