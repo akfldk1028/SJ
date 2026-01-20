@@ -137,64 +137,67 @@ frontend/lib/AI/prompts/compatibility_chat_prompt.md    ← 이 문서
 
 ```json
 {
-  "user_profile": {
-    "name": "이지나",
-    "birth_date": "1999-07-27",
-    "gender": "female",
-    "day_master": "경(庚)",
-    "oheng": {"wood": 1, "fire": 0, "earth": 4, "metal": 2, "water": 1},
-    "yongsin": {
-      "yongsin": "수(水)",
-      "heesin": "금(金)",
-      "gisin": "토(土)"
-    },
-    "saju": {
-      "year": {"gan": "기", "ji": "묘"},
-      "month": {"gan": "신", "ji": "미"},
-      "day": {"gan": "경", "ji": "진"},
-      "hour": {"gan": "계", "ji": "미"}
-    },
+  "my_analysis": {
+    "day_gan": "경",
+    "day_ji": "진",
+    "year_gan": "기", "year_ji": "묘",
+    "month_gan": "신", "month_ji": "미",
+    "hour_gan": "계", "hour_ji": "미",
+    "oheng_distribution": {"wood": 1, "fire": 0, "earth": 4, "metal": 2, "water": 1},
+    "yongsin": {"yongsin": "수", "heesin": "금", "gisin": "토"},
     "hapchung": {
       "cheongan_haps": [],
       "jiji_yukhaps": ["진유합"],
       "jiji_chungs": []
     },
-    "sinsal": [
+    "sinsal_list": [
       {"name": "천을귀인", "type": "길신"},
       {"name": "역마살", "type": "중성"}
     ]
   },
-  "target_profile": {
-    "name": "ooo",
-    "birth_date": "1998-03-15",
-    "gender": "male",
-    "day_master": "갑(甲)",
-    "oheng": {"wood": 3, "fire": 2, "earth": 2, "metal": 0, "water": 1},
-    "yongsin": {
-      "yongsin": "금(金)",
-      "heesin": "토(土)",
-      "gisin": "수(水)"
-    },
-    "saju": {
-      "year": {"gan": "무", "ji": "인"},
-      "month": {"gan": "을", "ji": "묘"},
-      "day": {"gan": "갑", "ji": "오"},
-      "hour": {"gan": "병", "ji": "진"}
-    },
+  "target_analysis": {
+    "day_gan": "갑",
+    "day_ji": "오",
+    "year_gan": "무", "year_ji": "인",
+    "month_gan": "을", "month_ji": "묘",
+    "hour_gan": "병", "hour_ji": "진",
+    "oheng_distribution": {"wood": 3, "fire": 2, "earth": 2, "metal": 0, "water": 1},
+    "yongsin": {"yongsin": "금", "heesin": "토", "gisin": "수"},
     "hapchung": {
       "cheongan_haps": [],
       "jiji_yukhaps": [],
       "jiji_chungs": ["인신충"]
     },
-    "sinsal": [
+    "sinsal_list": [
       {"name": "도화살", "type": "중성"},
       {"name": "문창귀인", "type": "길신"}
     ]
   },
-  "relation_category": "friend_close",
+  "pair_hapchung": {
+    "yukhap": [],
+    "samhap": [],
+    "banhap": ["인오반합"],
+    "cheongan_hap": ["갑기합"],
+    "chung": [],
+    "hyung": [],
+    "wonjin": [],
+    "overall_score": 70,
+    "positive_count": 2,
+    "negative_count": 0
+  },
+  "my_name": "이지나",
+  "my_birth_date": "1999-07-27",
+  "my_gender": "female",
+  "target_name": "ooo",
+  "target_birth_date": "1998-03-15",
+  "target_gender": "male",
+  "relation_type": "friend_close",
   "user_message": "이 사람이랑 잘 맞을까요?"
 }
 ```
+
+> **Note**: `my_analysis`와 `target_analysis`는 Supabase `saju_analyses` 테이블의 row입니다.
+> `pair_hapchung`은 Supabase `compatibility_analyses` 테이블에서 가져옵니다.
 
 ---
 
