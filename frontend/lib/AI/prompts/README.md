@@ -103,10 +103,24 @@
 
 ```
 frontend/lib/AI/prompts/
-├── README.md                    # 이 문서
-├── prompt_template.dart         # 프롬프트 템플릿 기본 클래스 + SajuInputData
-├── saju_base_prompt.dart        # 평생 사주 분석 (GPT-5.2)
-└── daily_fortune_prompt.dart    # 일운 분석 (Gemini 3.0 Flash)
+├── README.md                       # 이 문서
+├── FORTUNE_PROMPTS_DESIGN.md       # 운세 프롬프트 통합 설계
+├── prompt_template.dart            # 프롬프트 템플릿 기본 클래스 + SajuInputData
+├── saju_base_prompt.dart           # 평생 사주 분석 (GPT-5.2)
+├── saju_base_prompt.md             # 평생 사주 프롬프트 설계 문서
+├── daily_fortune_prompt.dart       # 일운 분석 (Gemini 3.0 Flash)
+├── daily_fortune_prompt.md         # 일운 프롬프트 설계 문서
+├── compatibility_prompt.dart       # 궁합 분석 - JSON (Gemini) v4.1
+├── compatibility_chat_prompt.dart  # 궁합 채팅 - 대화형 (Gemini) v4.1
+└── compatibility_chat_prompt.md    # 궁합 채팅 프롬프트 설계 문서
+```
+
+### 운세 프롬프트 (별도 폴더)
+```
+frontend/lib/AI/fortune/
+├── monthly/PROMPT_DESIGN.md        # 이번달 운세 프롬프트 설계
+├── yearly_2025/PROMPT_DESIGN.md    # 2025 회고운세 v3.1
+└── yearly_2026/PROMPT_DESIGN.md    # 2026 신년운세 v5.1
 ```
 
 ---
@@ -171,15 +185,21 @@ frontend/lib/AI/prompts/
 
 ## 프롬프트 비교
 
-| 구분 | SajuBasePrompt | DailyFortunePrompt |
-|------|----------------|-------------------|
-| **목적** | 평생 사주 심층 분석 | 오늘의 운세 |
-| **모델** | GPT-5.2 (OpenAI) | Gemini 3.0 Flash (Google) |
-| **토큰** | 4096 | 2048 |
-| **Temperature** | 0.7 | 0.8 |
-| **캐시** | 무기한 | 24시간 |
-| **비용** | ~$0.03/회 | ~$0.001/회 |
-| **속도** | 5-10초 | 1-2초 |
+| 구분 | SajuBasePrompt | DailyFortunePrompt | CompatibilityPrompt |
+|------|----------------|-------------------|---------------------|
+| **목적** | 평생 사주 심층 분석 | 오늘의 운세 | 궁합 분석 |
+| **모델** | GPT-5.2 (OpenAI) | Gemini 3.0 Flash | Gemini 2.0 Flash |
+| **토큰** | 4096 | 2048 | 4096 |
+| **Temperature** | 0.7 | 0.8 | 0.7 |
+| **캐시** | 무기한 | 24시간 | 30일 |
+| **비용** | ~$0.03/회 | ~$0.001/회 | ~$0.002/회 |
+| **속도** | 5-10초 | 1-2초 | 2-3초 |
+| **데이터** | saju_analyses | saju_analyses | saju_analyses + **pair_hapchung** |
+
+### v4.1 궁합 분석 특징
+- **100% Supabase 데이터**: AI가 사주 계산하지 않음
+- **pair_hapchung 지원**: compatibility_analyses 테이블의 두 사람 간 합충 분석 데이터 활용
+- **_buildTargetCalculationInstructions 제거**: 불필요한 AI 계산 로직 삭제
 
 ---
 

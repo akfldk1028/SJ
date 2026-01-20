@@ -225,6 +225,15 @@ frontend/lib/AI/prompts/compatibility_chat_prompt.md    ← 이 문서
 
 ---
 
+## 🔗 두 사람 간 합충형해파원진 분석 (pair_hapchung)
+**분석 요약**: 기본 점수 70점 (긍정 2개 / 부정 0개)
+
+**[긍정적 관계 - 합(合)]**
+◐ **반합**: 인오반합
+☯️ **천간합**: 갑기합
+
+---
+
 ## 궁합 상대 (절친한 친구)
 - 이름: ooo
 - 생년월일: 1998-03-15 (남성)
@@ -294,68 +303,80 @@ ooo님은 갑목(甲木) 일간으로 성장하고 뻗어나가려는 기운이 
 
 ---
 
-## Dart 구현 참고
+## Dart 구현 참고 (v4.1)
 
 ```dart
-class CompatibilityChatPrompt extends BaseChatPrompt {
-  final String? relationType;
+/// 궁합 분석용 입력 데이터 (v4.0)
+/// - saju_analyses 테이블의 row를 직접 사용 (myAnalysis, targetAnalysis)
+/// - pair_hapchung은 compatibility_analyses 테이블에서 가져옴
+class CompatibilityInputData {
+  final String myProfileId;
+  final String myName;
+  final String myBirthDate;
+  final String myGender;
 
-  @override
-  String get modelName => GoogleModels.gemini20Flash;
+  /// saju_analyses 테이블의 전체 row (JSONB 컬럼 포함)
+  final Map<String, dynamic>? myAnalysis;
 
-  @override
-  int get maxTokens => 2048;
+  final String targetProfileId;
+  final String targetName;
+  final String targetBirthDate;
+  final String targetGender;
 
-  @override
-  double get temperature => 0.8;
+  /// saju_analyses 테이블의 전체 row (상대방)
+  final Map<String, dynamic>? targetAnalysis;
 
-  @override
-  String buildUserPrompt(Map<String, dynamic> input) {
-    final data = CompatibilityChatInputData.fromJson(input);
+  final String relationType;
 
-    return '''
+  /// 두 사람 사주 간 직접적인 합충 관계 (Supabase compatibility_analyses.pair_hapchung)
+  final Map<String, dynamic>? pairHapchung;
+
+  // 프롬프트용 문자열 변환
+  String get mySajuString => _formatSaju(myAnalysis);
+  String get myOhengString => _formatOheng(myAnalysis?['oheng_distribution']);
+  String get myYongsinString => _formatYongsin(myAnalysis?['yongsin']);
+  String get myHapchungString => _formatHapchung(myAnalysis?['hapchung']);
+  String get mySinsalString => _formatSinsal(myAnalysis?['sinsal_list']);
+
+  // 두 사람 간 합충형해파원진 문자열
+  String get pairHapchungString => _formatPairHapchung(pairHapchung);
+}
+```
+
+### buildUserPrompt 구조
+
+```dart
+@override
+String buildUserPrompt(Map<String, dynamic> input) {
+  final data = CompatibilityInputData.fromJson(input);
+
+  return '''
 ## 상담 요청자 (나)
-- 이름: ${data.userName}
-- 생년월일: ${data.userBirthDate} (${data.userGenderLabel})
-- 일간: ${data.userDayMaster}
-- 용신: ${data.userYongsinString}
-- 오행: ${data.userOhengString}
-
-#### 사주 팔자
-${data.userSajuTable}
-
-#### 합충
-${data.userHapchungString}
-
-#### 신살
-${data.userSinsalString}
+- 이름: ${data.myName}
+- 생년월일: ${data.myBirthDate}
+${data.mySajuString}
+${data.myOhengString}
+${data.myYongsinString}
+${data.myHapchungString}
+${data.mySinsalString}
 
 ---
 
-## 궁합 상대 (${data.relationLabel})
+## 🔗 두 사람 간 합충형해파원진 분석 (pair_hapchung)
+${data.pairHapchungString}   // ← Supabase에서 미리 계산된 데이터
+
+---
+
+## 궁합 상대 (${_getRelationLabel(data.relationType)})
 - 이름: ${data.targetName}
-- 생년월일: ${data.targetBirthDate} (${data.targetGenderLabel})
-- 일간: ${data.targetDayMaster}
-- 용신: ${data.targetYongsinString}
-- 오행: ${data.targetOhengString}
-
-#### 사주 팔자
-${data.targetSajuTable}
-
-#### 합충
+${data.targetSajuString}
+${data.targetOhengString}
+${data.targetYongsinString}
 ${data.targetHapchungString}
-
-#### 신살
 ${data.targetSinsalString}
-
----
-
-## 사용자 질문
-${data.userMessage}
 
 ---
 위 두 사람의 궁합에 대해 친근하게 답변해주세요.
 ''';
-  }
 }
 ```
