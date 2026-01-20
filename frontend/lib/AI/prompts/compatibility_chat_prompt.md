@@ -1,4 +1,4 @@
-# 궁합 채팅 프롬프트 (대화형)
+# 궁합 채팅 프롬프트 (대화형) v4.1
 
 ## 파일 경로
 
@@ -6,6 +6,16 @@
 frontend/lib/AI/prompts/compatibility_chat_prompt.dart  ← Dart 클래스
 frontend/lib/AI/prompts/compatibility_chat_prompt.md    ← 이 문서
 ```
+
+---
+
+## v4.1 변경사항
+
+| 항목 | v4.0 | v4.1 |
+|------|------|------|
+| 상대방 사주 계산 | AI가 직접 계산 가능 | **Supabase 데이터만 사용** |
+| pair_hapchung | 미지원 | **✅ 지원** (두 사람 간 합충 분석) |
+| 데이터 소스 | 혼합 | **100% Supabase** |
 
 ---
 
@@ -17,6 +27,34 @@ frontend/lib/AI/prompts/compatibility_chat_prompt.md    ← 이 문서
 | `features/saju_chat/presentation/widgets/chat_input_field.dart` | 멘션 입력 UI |
 | `AI/prompts/compatibility_prompt.dart` | 궁합 분석 (JSON 응답) - 참고용 |
 | `AI/common/providers/google/gemini_provider.dart` | Gemini API 호출 |
+
+---
+
+## Supabase 테이블 참조
+
+| 테이블 | 용도 | 주요 컬럼 |
+|--------|------|----------|
+| `saju_analyses` | 개인별 사주 분석 | `day_gan`, `oheng_distribution`, `yongsin`, `hapchung`, `sinsal_list` |
+| `compatibility_analyses` | 두 사람 간 궁합 | `pair_hapchung` (JSONB) |
+
+### pair_hapchung 구조 (compatibility_analyses)
+```json
+{
+  "yukhap": ["자축합"],
+  "samhap": ["인오술"],
+  "banhap": ["해묘"],
+  "banghap": [],
+  "cheongan_hap": ["갑기합"],
+  "chung": ["자오충"],
+  "hyung": [],
+  "pa": [],
+  "hae": [],
+  "wonjin": ["자미원진"],
+  "overall_score": 65,
+  "positive_count": 3,
+  "negative_count": 2
+}
+```
 
 ---
 
