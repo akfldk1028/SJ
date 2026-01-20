@@ -121,8 +121,6 @@ enum ChatPersona {
         return Icons.edit_note_rounded; // 작가/글쓰기
       case ChatPersona.saOngJiMa:
         return Icons.spa_rounded; // 평화/긍정
-      case ChatPersona.newbieShaman:
-        return Icons.flare_rounded; // 빛/영적 (무당)
       case ChatPersona.sewerSaju:
         return Icons.bolt_rounded; // 번개/팩폭
     }
@@ -139,8 +137,6 @@ enum ChatPersona {
         return '송작가';
       case ChatPersona.saOngJiMa:
         return '새옹지마';
-      case ChatPersona.newbieShaman:
-        return '하꼬무당';
       case ChatPersona.sewerSaju:
         return '시궁창';
     }
