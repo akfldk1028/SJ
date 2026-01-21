@@ -125,7 +125,7 @@ class AiQueries extends BaseQueries {
     );
   }
 
-  /// 기본 사주 분석 캐시 조회
+  /// 기본 사주 분석 캐시 조회 (L1 캐시)
   ///
   /// ## UNIQUE INDEX
   /// `idx_ai_summaries_unique_base`: (profile_id) WHERE summary_type = 'saju_base'
@@ -135,6 +135,65 @@ class AiQueries extends BaseQueries {
       profileId: profileId,
       summaryType: SummaryType.sajuBase,
       // saju_base는 target_date 없음 (NULL) - 날짜 필터 적용 안 함
+    );
+  }
+
+  /// 동일 사주팔자 기반 캐시 조회 (L2 캐시)
+  ///
+  /// ## 용도
+  /// 같은 사주팔자 + 성별을 가진 다른 프로필의 분석 결과 재사용.
+  /// 평생 사주 분석은 사주팔자에 의해서만 결정되므로 동일 결과.
+  ///
+  /// ## 파라미터
+  /// - `saju`: 사주 데이터 (year_gan, year_ji, month_gan, month_ji, day_gan, day_ji, hour_gan, hour_ji)
+  /// - `gender`: 성별 (male/female)
+  /// - `excludeProfileId`: 제외할 프로필 ID (현재 프로필 - L1 캐시에서 이미 체크)
+  ///
+  /// ## 반환
+  /// 동일 사주팔자를 가진 다른 프로필의 완료된 분석 결과
+  Future<QueryResult<AiSummaries?>> getSajuBaseBySajuKey({
+    required Map<String, dynamic> saju,
+    required String gender,
+    String? excludeProfileId,
+  }) async {
+    return safeSingleQuery(
+      query: (client) async {
+        // JSONB 필터 조건 구성
+        // input_data->saju->>field = value AND input_data->>gender = value
+        final sajuFilter = {
+          'saju': {
+            'year_gan': saju['year_gan'],
+            'year_ji': saju['year_ji'],
+            'month_gan': saju['month_gan'],
+            'month_ji': saju['month_ji'],
+            'day_gan': saju['day_gan'],
+            'day_ji': saju['day_ji'],
+            'hour_gan': saju['hour_gan'],
+            'hour_ji': saju['hour_ji'],
+          },
+          'gender': gender,
+        };
+
+        var query = client
+            .from(AiSummaries.table_name)
+            .select()
+            .eq(AiSummaries.c_summaryType, SummaryType.sajuBase)
+            .eq(AiSummaries.c_status, 'completed')
+            .contains(AiSummaries.c_inputData, sajuFilter);
+
+        // 현재 프로필 제외 (L1 캐시에서 이미 체크)
+        if (excludeProfileId != null) {
+          query = query.neq(AiSummaries.c_profileId, excludeProfileId);
+        }
+
+        // 가장 최근 것 반환 (order → limit → maybeSingle 체이닝)
+        return await query
+            .order(AiSummaries.c_createdAt, ascending: false)
+            .limit(1)
+            .maybeSingle();
+      },
+      fromJson: AiSummaries.fromJson,
+      errorPrefix: 'L2 캐시 조회 실패',
     );
   }
 
@@ -511,15 +570,49 @@ class AiQueries extends BaseQueries {
   ///
   /// ## 용도
   /// task_id로 현재 상태 확인 (폴링용)
+  ///
+  /// ## v7.2: Phase 정보 추가
+  /// - phase: 현재 진행 중인 Phase (1-4)
+  /// - total_phases: 전체 Phase 수
+  /// - partial_result: 완료된 Phase 결과
   Future<QueryResult<Map<String, dynamic>?>> getTaskStatus(String taskId) async {
     return safeSingleQuery(
       query: (client) => client
           .from('ai_tasks')
-          .select('id, status, result_data, error_message, created_at, completed_at')
+          .select('id, status, result_data, error_message, created_at, completed_at, phase, total_phases, partial_result')
           .eq('id', taskId)
           .maybeSingle(),
       fromJson: (json) => json,
       errorPrefix: 'task 상태 조회 실패',
+    );
+  }
+
+  /// 사용자의 진행 중인 saju_base task 조회 (Phase 진행상황 포함)
+  ///
+  /// ## 용도
+  /// 프로필 ID로 현재 분석 진행 상황 확인
+  /// Phase 분할 분석의 Progressive Disclosure용
+  ///
+  /// ## 반환값
+  /// - phase: 현재 Phase (1-4)
+  /// - total_phases: 전체 Phase 수 (기본 4)
+  /// - partial_result: 완료된 Phase 결과 (JSONB)
+  Future<QueryResult<Map<String, dynamic>?>> getSajuBaseTaskProgress({
+    required String userId,
+  }) async {
+    return safeSingleQuery(
+      query: (client) => client
+          .from('ai_tasks')
+          .select('id, status, phase, total_phases, partial_result, created_at')
+          .eq('user_id', userId)
+          .eq('task_type', 'saju_analysis')
+          .eq('model', 'gpt-5.2-thinking')
+          .inFilter('status', ['pending', 'processing'])
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle(),
+      fromJson: (json) => json,
+      errorPrefix: 'Phase 진행상황 조회 실패',
     );
   }
 }
