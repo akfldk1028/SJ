@@ -13,7 +13,7 @@ class CalendarTypeDropdown extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.appTheme;
-    ref.watch(profileFormProvider);
+    final formState = ref.watch(profileFormProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,6 +26,7 @@ class CalendarTypeDropdown extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         ShadSelect<bool>(
+          initialValue: formState.isLunar,
           placeholder: const Text('양력'),
           options: const [
             ShadOption(value: false, child: Text('양력')),

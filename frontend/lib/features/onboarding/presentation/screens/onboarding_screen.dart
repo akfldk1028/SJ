@@ -35,12 +35,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // 위젯 rebuild를 위한 key (reset 시 갱신)
   Key _formKey = UniqueKey();
 
+  /// 수정 모드 여부 (기존 프로필 있으면 수정 모드)
+  bool _isEditMode = false;
+  String? _editingProfileId;
+
   @override
   void initState() {
     super.initState();
     // 폼 상태 초기화 및 위젯 rebuild
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(profileFormProvider.notifier).reset();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 기존 활성 프로필이 있으면 수정 모드로 폼 초기화
+      final activeProfile = await ref.read(activeProfileProvider.future);
+      if (activeProfile != null) {
+        ref.read(profileFormProvider.notifier).loadProfile(activeProfile);
+        _isEditMode = true;
+        _editingProfileId = activeProfile.id;
+      } else {
+        ref.read(profileFormProvider.notifier).reset();
+        _isEditMode = false;
+        _editingProfileId = null;
+      }
       // 위젯들의 controller도 초기화하기 위해 key 변경
       if (mounted) {
         setState(() {
@@ -68,7 +82,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     print('[Onboarding] ===========================');
 
     try {
-        await formNotifier.saveProfile();
+        // 수정 모드면 기존 프로필 ID 전달하여 업데이트
+        await formNotifier.saveProfile(editingId: _editingProfileId);
         if (mounted) {
             context.go(Routes.menu);
         }
