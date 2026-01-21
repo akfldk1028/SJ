@@ -89,11 +89,9 @@ class SystemPromptBuilder {
       _addProfileInfo(profile, person1Label);
     }
 
-    // 5. 사주 데이터 (첫 메시지만)
+    // 5. 사주 원국 데이터 (saju_analyses 테이블 - 만세력 계산 결과)
     if (isFirstMessage && sajuAnalysis != null) {
       _addSajuAnalysis(sajuAnalysis, person1SajuLabel);
-    } else if (isFirstMessage && aiSummary?.sajuOrigin != null) {
-      _addSajuOrigin(aiSummary!.sajuOrigin!);
     } else if (!isFirstMessage) {
       _buffer.writeln();
       _buffer.writeln('---');
@@ -102,12 +100,12 @@ class SystemPromptBuilder {
       _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
-    // 5-1. GPT-5.2 AI Summary 추가 (Intent Routing 적용)
+    // 6. GPT-5.2 AI Summary 추가 (평생 운세 분석 - Intent Routing 적용)
     if (isFirstMessage && aiSummary != null) {
       _addAiSummary(aiSummary, intentClassification);
     }
 
-    // 6. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
+    // 7. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
     if (isFirstMessage && targetProfile != null) {
       if (isThirdPartyCompatibility) {
         // v6.0: 나 제외 모드 - 커스텀 라벨 사용
@@ -121,18 +119,18 @@ class SystemPromptBuilder {
       }
     }
 
-    // 7. 궁합 분석 결과 추가 (있는 경우) - Phase 44
+    // 8. 궁합 분석 결과 추가 (있는 경우) - Phase 44
     // v5.0: 다중 궁합 제거 - 항상 단일 궁합 (2명)만 처리
     if (isFirstMessage && compatibilityAnalysis != null) {
       _addCompatibilityAnalysisResult(compatibilityAnalysis, isThirdPartyCompatibility, profile, targetProfile);
     }
 
-    // 8. 궁합 지시문 추가 (궁합 모드인 경우)
+    // 9. 궁합 지시문 추가 (궁합 모드인 경우)
     if (isFirstMessage && isCompatibilityMode) {
       _addCompatibilityInstructions(isThirdPartyCompatibility, profile, targetProfile);
     }
 
-    // 9. 마무리 지시문
+    // 10. 마무리 지시문
     _addClosingInstructions(isCompatibilityMode: isCompatibilityMode);
 
     return _buffer.toString();
@@ -224,6 +222,19 @@ class SystemPromptBuilder {
   /// [label] - 궁합 모드에서 '나의 사주', '상대방의 사주' 등 커스텀 라벨
   void _addSajuAnalysis(SajuAnalysis sajuAnalysis, [String? label]) {
     final chart = sajuAnalysis.chart;
+
+    // 디버깅 로그: saju_analyses 데이터 확인
+    print('');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('📊 [5] SAJU_ANALYSES 데이터 (만세력 계산 원본)');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('🔹 사주팔자: ${chart.yearPillar.gan}${chart.yearPillar.ji} ${chart.monthPillar.gan}${chart.monthPillar.ji} ${chart.dayPillar.gan}${chart.dayPillar.ji} ${chart.hourPillar?.gan ?? '?'}${chart.hourPillar?.ji ?? '?'}');
+    print('🔹 일간: ${chart.dayPillar.gan}');
+    print('🔹 오행: 목${sajuAnalysis.ohengDistribution.mok} 화${sajuAnalysis.ohengDistribution.hwa} 토${sajuAnalysis.ohengDistribution.to} 금${sajuAnalysis.ohengDistribution.geum} 수${sajuAnalysis.ohengDistribution.su}');
+    print('🔹 용신: ${sajuAnalysis.yongsin.yongsin.korean}');
+    print('🔹 신강/신약: ${sajuAnalysis.singang.isSingang ? '신강' : '신약'} (${sajuAnalysis.singang.score})');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('');
 
     _buffer.writeln();
     _buffer.writeln('---');
@@ -329,154 +340,6 @@ class SystemPromptBuilder {
     }
   }
 
-  /// sajuOrigin 데이터 추가 (Edge Function fallback)
-  void _addSajuOrigin(Map<String, dynamic> sajuOrigin) {
-    _buffer.writeln();
-    _buffer.writeln('---');
-    _buffer.writeln();
-    _buffer.writeln('## 사주 원본 데이터 (GPT-5.2 분석용)');
-    _buffer.writeln();
-
-    // 기본 사주 정보
-    final saju = sajuOrigin['saju'] as Map<String, dynamic>?;
-    if (saju != null) {
-      _buffer.writeln('### 사주팔자');
-      _buffer.writeln('| 구분 | 년주 | 월주 | 일주 | 시주 |');
-      _buffer.writeln('|------|------|------|------|------|');
-      final yearGan = saju['year']?['gan'] ?? '?';
-      final yearJi = saju['year']?['ji'] ?? '?';
-      final monthGan = saju['month']?['gan'] ?? '?';
-      final monthJi = saju['month']?['ji'] ?? '?';
-      final dayGan = saju['day']?['gan'] ?? '?';
-      final dayJi = saju['day']?['ji'] ?? '?';
-      final hourGan = saju['hour']?['gan'] ?? '?';
-      final hourJi = saju['hour']?['ji'] ?? '?';
-      _buffer.writeln('| 천간 | $yearGan | $monthGan | $dayGan | $hourGan |');
-      _buffer.writeln('| 지지 | $yearJi | $monthJi | $dayJi | $hourJi |');
-      _buffer.writeln();
-    }
-
-    // 오행 분포
-    final oheng = sajuOrigin['oheng'] as Map<String, dynamic>?;
-    if (oheng != null) {
-      _buffer.writeln('### 오행 분포');
-      _buffer.writeln('- 목(木): ${oheng['wood'] ?? 0}');
-      _buffer.writeln('- 화(火): ${oheng['fire'] ?? 0}');
-      _buffer.writeln('- 토(土): ${oheng['earth'] ?? 0}');
-      _buffer.writeln('- 금(金): ${oheng['metal'] ?? 0}');
-      _buffer.writeln('- 수(水): ${oheng['water'] ?? 0}');
-      _buffer.writeln();
-    }
-
-    // 용신
-    final yongsin = sajuOrigin['yongsin'] as Map<String, dynamic>?;
-    if (yongsin != null) {
-      _buffer.writeln('### 용신');
-      _buffer.writeln('- 용신: ${yongsin['yongsin'] ?? '미정'}');
-      _buffer.writeln('- 희신: ${yongsin['huisin'] ?? '미정'}');
-      _buffer.writeln('- 기신: ${yongsin['gisin'] ?? '미정'}');
-      _buffer.writeln('- 구신: ${yongsin['gusin'] ?? '미정'}');
-      _buffer.writeln();
-    }
-
-    // 신강/신약
-    final singang = sajuOrigin['singang'] as Map<String, dynamic>?;
-    if (singang != null) {
-      final isSingang = singang['is_singang'] == true;
-      _buffer.writeln('### 신강/신약');
-      _buffer.writeln('- ${isSingang ? '신강' : '신약'} (점수: ${singang['score'] ?? 50})');
-      _buffer.writeln();
-    }
-
-    // 격국
-    final gyeokguk = sajuOrigin['gyeokguk'] as Map<String, dynamic>?;
-    if (gyeokguk != null) {
-      _buffer.writeln('### 격국');
-      _buffer.writeln('- ${gyeokguk['name'] ?? '미정'}');
-      if (gyeokguk['reason'] != null) {
-        _buffer.writeln('- 사유: ${gyeokguk['reason']}');
-      }
-      _buffer.writeln();
-    }
-
-    // 십성
-    final sipsin = sajuOrigin['sipsin'] as Map<String, dynamic>?;
-    if (sipsin != null) {
-      _buffer.writeln('### 십성 배치');
-      _buffer.writeln('- 년간: ${sipsin['yearGan'] ?? '?'}');
-      _buffer.writeln('- 월간: ${sipsin['monthGan'] ?? '?'}');
-      _buffer.writeln('- 시간: ${sipsin['hourGan'] ?? '?'}');
-      _buffer.writeln('- 년지: ${sipsin['yearJi'] ?? '?'}');
-      _buffer.writeln('- 월지: ${sipsin['monthJi'] ?? '?'}');
-      _buffer.writeln('- 일지: ${sipsin['dayJi'] ?? '?'}');
-      _buffer.writeln('- 시지: ${sipsin['hourJi'] ?? '?'}');
-      _buffer.writeln();
-    }
-
-    // 합충형파해
-    final hapchung = sajuOrigin['hapchung'] as Map<String, dynamic>?;
-    if (hapchung != null) {
-      _buffer.writeln('### 합충형파해');
-      _addHapchungSection(hapchung, 'chungan_haps', '천간합');
-      _addHapchungSection(hapchung, 'jiji_yukhaps', '지지육합');
-      _addHapchungSection(hapchung, 'jiji_samhaps', '지지삼합');
-      _addHapchungSection(hapchung, 'chungs', '충');
-      _addHapchungSection(hapchung, 'hyungs', '형');
-      _addHapchungSection(hapchung, 'pas', '파');
-      _addHapchungSection(hapchung, 'haes', '해');
-      _buffer.writeln();
-    }
-
-    // 신살
-    final sinsal = sajuOrigin['sinsal'] as List?;
-    if (sinsal != null && sinsal.isNotEmpty) {
-      _buffer.writeln('### 신살');
-      for (final s in sinsal) {
-        final name = s['name'] ?? s['sinsal'] ?? '?';
-        final type = s['type'] ?? s['fortuneType'] ?? '';
-        final pillar = s['pillar'] ?? '';
-        _buffer.writeln('- $pillar: $name ($type)');
-      }
-      _buffer.writeln();
-    }
-
-    // 길성
-    final gilseong = sajuOrigin['gilseong'] as List?;
-    if (gilseong != null && gilseong.isNotEmpty) {
-      _buffer.writeln('### 길성');
-      for (final g in gilseong) {
-        final name = g['name'] ?? g;
-        _buffer.writeln('- $name');
-      }
-      _buffer.writeln();
-    }
-
-    // 12운성
-    final twelveUnsung = sajuOrigin['twelve_unsung'] as List?;
-    if (twelveUnsung != null && twelveUnsung.isNotEmpty) {
-      _buffer.writeln('### 12운성');
-      for (final u in twelveUnsung) {
-        final pillar = u['pillar'] ?? '?';
-        final unsung = u['unsung'] ?? '?';
-        _buffer.writeln('- $pillar: $unsung');
-      }
-      _buffer.writeln();
-    }
-
-    // 대운
-    final daeun = sajuOrigin['daeun'] as Map<String, dynamic>?;
-    if (daeun != null) {
-      _buffer.writeln('### 대운');
-      final current = daeun['current'] as Map<String, dynamic>?;
-      if (current != null) {
-        final pillar = current['pillar'] ?? '${current['gan'] ?? ''}${current['ji'] ?? ''}';
-        final startAge = current['start_age'] ?? current['startAge'] ?? '?';
-        final endAge = current['end_age'] ?? current['endAge'] ?? '?';
-        _buffer.writeln('- 현재: $pillar (${startAge}세 ~ ${endAge}세)');
-      }
-      _buffer.writeln();
-    }
-  }
 
   /// 합충형파해 섹션 헬퍼
   void _addHapchungSection(Map<String, dynamic> hapchung, String key, String label) {
@@ -989,13 +852,27 @@ class SystemPromptBuilder {
         classification: intentClassification,
       );
 
+      final filteredJson = filtered.toFilteredJson();
+
+      // 디버깅 로그: 필터링된 AI Summary 확인
+      print('');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 [6] AI_SUMMARIES 데이터 (필터링됨)');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔹 Intent 분류: ${intentClassification.categories.map((c) => c.korean).join(", ")}');
+      print('🔹 포함된 Key: ${filteredJson.keys.join(", ")}');
+      print('🔹 예상 토큰 절약: ~${filtered.estimatedTokenSavings}%');
+      print('🔹 JSON 크기: ${const JsonEncoder().convert(filteredJson).length} bytes');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('');
+
       _buffer.writeln('## 📊 GPT-5.2 사주 분석 (관련 섹션만)');
       _buffer.writeln(
           '다음은 GPT-5.2가 분석한 사주 정보입니다 (사용자 질문과 관련된 섹션만 포함):');
       _buffer.writeln();
       _buffer.writeln('```json');
       _buffer.writeln(
-          const JsonEncoder.withIndent('  ').convert(filtered.toFilteredJson()));
+          const JsonEncoder.withIndent('  ').convert(filteredJson));
       _buffer.writeln('```');
       _buffer.writeln();
       _buffer.writeln(
@@ -1005,12 +882,25 @@ class SystemPromptBuilder {
       _buffer.writeln('다른 주제에 대한 질문이 들어오면 관련 정보를 참조할 수 있습니다.');
     } else {
       // 전체 데이터 포함 (첫 메시지 or GENERAL)
+      final fullJson = aiSummary.toJson();
+
+      // 디버깅 로그: 전체 AI Summary 확인
+      print('');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('📊 [6] AI_SUMMARIES 데이터 (전체)');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('🔹 Intent 분류: ${intentClassification == null ? 'null (첫 메시지)' : 'GENERAL'}');
+      print('🔹 포함된 Key: ${fullJson.keys.join(", ")}');
+      print('🔹 JSON 크기: ${const JsonEncoder().convert(fullJson).length} bytes');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('');
+
       _buffer.writeln('## 📊 GPT-5.2 사주 분석 (전체)');
       _buffer.writeln('다음은 GPT-5.2가 분석한 평생 사주 정보입니다:');
       _buffer.writeln();
       _buffer.writeln('```json');
       _buffer.writeln(
-          const JsonEncoder.withIndent('  ').convert(aiSummary.toJson()));
+          const JsonEncoder.withIndent('  ').convert(fullJson));
       _buffer.writeln('```');
     }
   }

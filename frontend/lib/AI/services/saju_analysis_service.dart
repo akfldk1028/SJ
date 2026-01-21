@@ -437,7 +437,11 @@ class SajuAnalysisService {
       }
 
       // 2. 진행 중인 task 확인 (중복 생성 방지)
-      final pendingTask = await aiQueries.getPendingTaskId(userId: userId);
+      // ⚠️ model 필터 필수! Fortune(gpt-5-mini)과 saju_base(gpt-5.2) 구분
+      final pendingTask = await aiQueries.getPendingTaskId(
+        userId: userId,
+        model: OpenAIModels.sajuAnalysis,  // gpt-5.2
+      );
       if (pendingTask.isSuccess && pendingTask.data != null) {
         print('[SajuAnalysisService] ⏳ 이미 분석 진행 중: ${pendingTask.data}');
         // 기존 task 결과 대기
