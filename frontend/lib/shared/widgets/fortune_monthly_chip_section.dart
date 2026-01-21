@@ -23,6 +23,7 @@ class MonthData {
 ///
 /// - 12개월이 칩으로 표시되고 탭하면 펼쳐짐
 /// - 잠긴 월은 광고를 봐야 해제
+/// - 현재 달(currentMonth)은 처음부터 잠금 해제 상태
 class FortuneMonthlyChipSection extends StatefulWidget {
   /// 운세 타입 (monthly_fortune)
   final String fortuneType;
@@ -33,11 +34,15 @@ class FortuneMonthlyChipSection extends StatefulWidget {
   /// 섹션 제목
   final String? title;
 
+  /// 현재 달 (1-12). 이 달은 처음부터 잠금 해제됨
+  final int? currentMonth;
+
   const FortuneMonthlyChipSection({
     super.key,
     required this.fortuneType,
     required this.months,
     this.title,
+    this.currentMonth,
   });
 
   @override
@@ -59,6 +64,10 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
   @override
   void initState() {
     super.initState();
+    // 현재 달은 초기 상태에서도 바로 잠금 해제
+    if (widget.currentMonth != null) {
+      _unlockedMonths = {'month${widget.currentMonth}'};
+    }
     _loadUnlockedMonths();
   }
 
@@ -66,6 +75,12 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
     _box = await Hive.openBox<bool>('unlocked_fortune_months');
 
     final unlocked = <String>{};
+
+    // 현재 달은 처음부터 잠금 해제
+    if (widget.currentMonth != null) {
+      unlocked.add('month${widget.currentMonth}');
+    }
+
     for (final key in _box!.keys) {
       final keyStr = key.toString();
       if (keyStr.startsWith('${widget.fortuneType}_') && _box!.get(key) == true) {

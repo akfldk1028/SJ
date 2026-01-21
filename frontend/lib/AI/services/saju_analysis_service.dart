@@ -436,19 +436,25 @@ class SajuAnalysisService {
         );
       }
 
-      // 2. 진행 중인 task 확인 (중복 생성 방지)
-      final pendingTask = await aiQueries.getPendingTaskId(userId: userId);
+      // 2. 프롬프트 생성 (model 이름이 getPendingTaskId에 필요하므로 먼저 생성)
+      final prompt = SajuBasePrompt();
+
+      // 3. 진행 중인 task 확인 (중복 생성 방지)
+      // v6.4: model 파라미터 추가 - saju_base(gpt-5.2)와 Fortune(gpt-5-mini) 구분
+      final pendingTask = await aiQueries.getPendingTaskId(
+        userId: userId,
+        model: prompt.modelName,
+      );
       if (pendingTask.isSuccess && pendingTask.data != null) {
         print('[SajuAnalysisService] ⏳ 이미 분석 진행 중: ${pendingTask.data}');
         // 기존 task 결과 대기
         return await _waitForExistingTask(pendingTask.data!, profileId);
       }
 
-      // 3. 프롬프트 생성
-      final prompt = SajuBasePrompt();
+      // 4. 프롬프트 메시지 빌드
       final messages = prompt.buildMessages(inputJson);
 
-      // 3. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
+      // 5. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
       final response = await _apiService.callOpenAI(
         messages: messages,
         model: prompt.modelName,

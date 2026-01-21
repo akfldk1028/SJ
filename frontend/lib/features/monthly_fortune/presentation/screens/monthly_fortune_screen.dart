@@ -138,10 +138,12 @@ class MonthlyFortuneScreen extends ConsumerWidget {
         ],
 
         // 월별 운세 (광고 잠금) - 12개월 모두 표시
+        // 현재 달은 위에 이미 내용이 보이므로 잠금 해제
         FortuneMonthlyChipSection(
           fortuneType: 'monthly_fortune',
           title: '${fortune.year}년 월별 운세',
           months: _generate12MonthsData(fortune),
+          currentMonth: fortune.month,
         ),
         const SizedBox(height: 32),
 
