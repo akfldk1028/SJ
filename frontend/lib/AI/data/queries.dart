@@ -468,6 +468,7 @@ class AiQueries extends BaseQueries {
   /// ## 파라미터
   /// - `userId`: 사용자 UUID
   /// - `taskType`: task 유형 (saju_analysis 등)
+  /// - `model`: AI 모델명 (gpt-5.2, gpt-5-mini 등) - **필수** ⚠️
   ///
   /// ## 반환값
   /// - pending/processing task가 있으면: task_id
@@ -476,19 +477,24 @@ class AiQueries extends BaseQueries {
   /// ## 참고
   /// - Edge Function에서 user_id로 task 생성
   /// - 같은 user의 동시 분석 요청 방지
+  /// - **v6.4 (2026-01-21)**: model 필터 추가
+  ///   - saju_base(gpt-5.2)와 Fortune(gpt-5-mini)이 같은 task_type 사용
+  ///   - model로 구분하지 않으면 Fortune task가 saju_base를 블로킹함!
   Future<QueryResult<String?>> getPendingTaskId({
     required String userId,
+    required String model,
     String taskType = 'saju_analysis',
   }) async {
     return safeSingleQuery(
       query: (client) async {
         // ai_tasks 테이블에서 pending/processing 상태 조회
-        // user_id로 필터링 (동일 사용자의 중복 task 방지)
+        // user_id + model로 필터링 (동일 사용자 + 동일 모델의 중복 task 방지)
         final result = await client
             .from('ai_tasks')
             .select('id')
             .eq('task_type', taskType)
             .eq('user_id', userId)
+            .eq('model', model)
             .inFilter('status', ['pending', 'processing'])
             .order('created_at', ascending: false)
             .limit(1)

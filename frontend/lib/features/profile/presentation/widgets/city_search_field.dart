@@ -5,10 +5,12 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../providers/profile_provider.dart';
 
-/// 도시 검색 입력 위젯
+/// 도시 검색 드롭다운 위젯
 ///
-/// ShadInput + Autocomplete
-/// 25개 도시 목록에서 검색 및 선택
+/// ShadSelect.withSearch 사용
+/// - 드롭다운 클릭 → 검색 가능한 도시 목록 표시
+/// - "서" 입력 → "서울", "서산" 등 필터링
+/// - 선택 시 드롭다운 자동 닫힘
 class CitySearchField extends ConsumerStatefulWidget {
   const CitySearchField({super.key});
 
@@ -17,26 +19,32 @@ class CitySearchField extends ConsumerStatefulWidget {
 }
 
 class _CitySearchFieldState extends ConsumerState<CitySearchField> {
-  late final TextEditingController _controller;
-
   // 도시 목록 (TrueSolarTimeService에서 가져오기)
   static final List<String> _cities =
       TrueSolarTimeService.cityLongitude.keys.where((k) => k != 'default').toList();
 
+  // 검색어 상태
+  String _searchValue = '';
+
+  // 선택된 도시
+  String? _selectedCity;
+
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
-
-    // 초기값 설정
+    // 초기값 설정 (수정 모드 시 기존 도시 표시)
     final formState = ref.read(profileFormProvider);
-    _controller.text = formState.birthCity;
+    if (formState.birthCity.isNotEmpty && _cities.contains(formState.birthCity)) {
+      _selectedCity = formState.birthCity;
+    }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  /// 검색어로 필터링된 도시 목록
+  List<String> get _filteredCities {
+    if (_searchValue.isEmpty) {
+      return _cities;
+    }
+    return _cities.where((city) => city.contains(_searchValue)).toList();
   }
 
   @override
@@ -53,63 +61,57 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
           ),
         ),
         const SizedBox(height: 8),
-        Autocomplete<String>(
-          optionsBuilder: (textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
-              return _cities;
-            }
-            return _cities.where((city) {
-              return city.contains(textEditingValue.text);
+        ShadSelect<String>.withSearch(
+          // 선택된 값
+          initialValue: _selectedCity,
+          // 플레이스홀더
+          placeholder: Text(
+            '도시를 선택하세요',
+            style: TextStyle(color: theme.textMuted),
+          ),
+          // 검색 입력 플레이스홀더
+          searchPlaceholder: Text(
+            '도시명 검색...',
+            style: TextStyle(color: theme.textMuted),
+          ),
+          // 검색어 변경 시
+          onSearchChanged: (value) {
+            setState(() {
+              _searchValue = value;
             });
           },
-          onSelected: (city) {
-            _controller.text = city;
-            ref.read(profileFormProvider.notifier).updateBirthCity(city);
+          // 선택 시
+          onChanged: (city) {
+            if (city != null) {
+              setState(() {
+                _selectedCity = city;
+              });
+              ref.read(profileFormProvider.notifier).updateBirthCity(city);
+            }
           },
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            // Autocomplete의 controller 무시하고 우리 controller 사용
-            return ShadInput(
-              controller: _controller,
-              focusNode: focusNode,
-              placeholder: Text(
-                '도시명을 입력하세요',
-                style: TextStyle(color: theme.textMuted),
-              ),
+          // 선택된 값 표시
+          selectedOptionBuilder: (context, value) {
+            return Text(
+              value,
               style: TextStyle(color: theme.textPrimary),
-              trailing: Icon(Icons.search, size: 20, color: theme.textSecondary),
-              onChanged: (value) {
-                ref.read(profileFormProvider.notifier).updateBirthCity(value);
-              },
             );
           },
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                color: theme.cardColor,
-                elevation: 4,
-                borderRadius: BorderRadius.circular(8),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxHeight: 200,
-                    maxWidth: 300,
-                  ),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    shrinkWrap: true,
-                    itemCount: options.length,
-                    itemBuilder: (context, index) {
-                      final city = options.elementAt(index);
-                      return ListTile(
-                        title: Text(city, style: TextStyle(color: theme.textPrimary)),
-                        onTap: () => onSelected(city),
-                      );
-                    },
-                  ),
-                ),
+          // 옵션 목록
+          options: [
+            // 검색 결과가 없을 때
+            if (_filteredCities.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text('검색 결과가 없습니다'),
               ),
-            );
-          },
+            // 필터링된 도시 목록
+            ..._filteredCities.map(
+              (city) => ShadOption(
+                value: city,
+                child: Text(city),
+              ),
+            ),
+          ],
         ),
       ],
     );

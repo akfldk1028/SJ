@@ -239,6 +239,9 @@ class ProfileFormState {
     if (birthDate == null) return false;
     if (birthCity.isEmpty) return false;
 
+    // 도시가 유효한 목록에 있는지 확인
+    if (!TrueSolarTimeService.cityLongitude.containsKey(birthCity)) return false;
+
     // 생년월일 범위 체크
     final now = DateTime.now();
     if (birthDate!.year < 1900 || birthDate!.isAfter(now)) return false;

@@ -503,27 +503,43 @@ class MySajuIntroSection {
 @riverpod
 class LifetimeFortune extends _$LifetimeFortune {
   /// 분석 진행 중 플래그 (중복 호출 방지)
-  static bool _isAnalyzing = false;
+  /// v7.1: 인스턴스 변수로 변경 (hot reload 시 초기화 문제 해결)
+  bool _isAnalyzing = false;
 
   /// 폴링 활성화 플래그
   bool _isPolling = false;
 
+  /// 폴링 최대 시도 횟수 (타임아웃 방지)
+  static const int _maxPollingAttempts = 60; // 3초 x 60 = 3분
+  int _pollingAttempts = 0;
+
   @override
   Future<LifetimeFortuneData?> build() async {
+    // Provider 재빌드 시 상태 초기화
+    _isPolling = false;
+    _pollingAttempts = 0;
+
     final activeProfile = await ref.watch(activeProfileProvider.future);
-    if (activeProfile == null) return null;
+    if (activeProfile == null) {
+      print('[LifetimeFortune] 활성 프로필 없음');
+      return null;
+    }
 
     final queries = LifetimeQueries(Supabase.instance.client);
-    final result = await queries.getCached(activeProfile.id);
 
-    // 캐시가 있으면 바로 반환
-    if (result != null) {
-      final content = result['content'];
-      if (content is Map<String, dynamic>) {
-        print('[LifetimeFortune] 캐시 히트 - 평생운세 로드');
-        _isPolling = false;
-        return LifetimeFortuneData.fromJson(content);
+    try {
+      final result = await queries.getCached(activeProfile.id);
+
+      // 캐시가 있으면 바로 반환
+      if (result != null) {
+        final content = result['content'];
+        if (content is Map<String, dynamic>) {
+          print('[LifetimeFortune] ✅ 캐시 히트 - 평생운세 로드');
+          return LifetimeFortuneData.fromJson(content);
+        }
       }
+    } catch (e) {
+      print('[LifetimeFortune] ⚠️ 캐시 조회 오류: $e');
     }
 
     // 캐시가 없으면 AI 분석 트리거
@@ -541,29 +557,44 @@ class LifetimeFortune extends _$LifetimeFortune {
   void _startPolling(String profileId) {
     if (_isPolling) return;
     _isPolling = true;
+    _pollingAttempts = 0;
 
-    print('[LifetimeFortune] 폴링 시작 - 3초마다 DB 확인');
+    print('[LifetimeFortune] 폴링 시작 - 3초마다 DB 확인 (최대 ${_maxPollingAttempts}회)');
     _pollForData(profileId);
   }
 
-  /// 주기적으로 DB 확인
+  /// 주기적으로 DB 확인 (타임아웃 및 에러 핸들링 강화)
   Future<void> _pollForData(String profileId) async {
     if (!_isPolling) return;
+
+    // 타임아웃 체크
+    _pollingAttempts++;
+    if (_pollingAttempts > _maxPollingAttempts) {
+      print('[LifetimeFortune] ⏰ 폴링 타임아웃 (${_maxPollingAttempts}회 시도)');
+      _isPolling = false;
+      _isAnalyzing = false;
+      return;
+    }
 
     await Future.delayed(const Duration(seconds: 3));
     if (!_isPolling) return;
 
-    final queries = LifetimeQueries(Supabase.instance.client);
-    final result = await queries.getCached(profileId);
+    try {
+      final queries = LifetimeQueries(Supabase.instance.client);
+      final result = await queries.getCached(profileId);
 
-    if (result != null && result['content'] != null) {
-      print('[LifetimeFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신');
-      _isPolling = false;
-      _isAnalyzing = false;
-      ref.invalidateSelf();
-    } else {
-      // 데이터 없으면 계속 폴링
-      print('[LifetimeFortune] 폴링 중 - 데이터 아직 없음');
+      if (result != null && result['content'] != null) {
+        print('[LifetimeFortune] ✅ 폴링 성공 - 데이터 발견! UI 자동 갱신');
+        _isPolling = false;
+        _isAnalyzing = false;
+        ref.invalidateSelf();
+      } else {
+        // 데이터 없으면 계속 폴링
+        print('[LifetimeFortune] 폴링 중 ($_pollingAttempts/$_maxPollingAttempts) - 데이터 아직 없음');
+        _pollForData(profileId);
+      }
+    } catch (e) {
+      print('[LifetimeFortune] ⚠️ 폴링 오류: $e');
       _pollForData(profileId);
     }
   }
@@ -582,7 +613,7 @@ class LifetimeFortune extends _$LifetimeFortune {
     }
 
     _isAnalyzing = true;
-    print('[LifetimeFortune] AI 분석 백그라운드 시작...');
+    print('[LifetimeFortune] 🚀 AI 분석 백그라운드 시작...');
 
     // 백그라운드로 분석 실행
     sajuAnalysisService.analyzeOnProfileSave(
@@ -591,7 +622,7 @@ class LifetimeFortune extends _$LifetimeFortune {
       runInBackground: true,
       onComplete: (result) {
         _isAnalyzing = false;
-        print('[LifetimeFortune] AI 분석 완료');
+        print('[LifetimeFortune] ✅ AI 분석 완료');
         print('  - saju_base: ${result.sajuBase?.success ?? false}');
         // 폴링이 데이터를 감지하고 UI를 갱신할 것임
       },

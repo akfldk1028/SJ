@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
 
@@ -66,36 +65,19 @@ class _FortuneCategoryChipSectionState
   /// 광고 로딩 중 플래그
   bool _isLoadingAd = false;
 
-  /// Hive box for local storage
-  Box<bool>? _box;
+  /// 세션 기반 잠금해제 상태 (앱 재시작 시 초기화됨!)
+  /// Hive 영구 저장 제거 - 사용자 기대대로 앱 나갔다 들어오면 다시 잠김
   Set<String> _unlockedCategories = {};
 
   @override
   void initState() {
     super.initState();
-    _loadUnlockedCategories();
+    // 세션 기반이므로 초기 상태는 모두 잠금 (빈 Set)
+    // Hive 로딩 제거됨
   }
 
-  Future<void> _loadUnlockedCategories() async {
-    _box = await Hive.openBox<bool>('unlocked_fortune_categories');
-
-    final unlocked = <String>{};
-    for (final key in _box!.keys) {
-      final keyStr = key.toString();
-      if (keyStr.startsWith('${widget.fortuneType}_') && _box!.get(key) == true) {
-        unlocked.add(keyStr.substring(widget.fortuneType.length + 1));
-      }
-    }
-
-    if (mounted) {
-      setState(() => _unlockedCategories = unlocked);
-    }
-  }
-
-  Future<void> _unlockCategory(String category) async {
-    final box = _box ?? await Hive.openBox<bool>('unlocked_fortune_categories');
-    await box.put('${widget.fortuneType}_$category', true);
-
+  /// 카테고리 잠금 해제 (세션 메모리만 - 앱 재시작 시 초기화!)
+  void _unlockCategory(String category) {
     if (mounted) {
       setState(() {
         _unlockedCategories = {..._unlockedCategories, category};
@@ -458,7 +440,7 @@ class _FortuneCategoryChipSectionState
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {
-      await _unlockCategory(categoryKey);
+      _unlockCategory(categoryKey);
       if (mounted) {
         setState(() {
           _expandedCategory = categoryKey;
@@ -486,7 +468,7 @@ class _FortuneCategoryChipSectionState
           final shown = await AdService.instance.showRewardedAd(
             onRewarded: (amount, type) async {
               // 보상 지급 - 카테고리 잠금 해제
-              await _unlockCategory(categoryKey);
+              _unlockCategory(categoryKey);
 
               if (mounted) {
                 setState(() {
@@ -520,7 +502,7 @@ class _FortuneCategoryChipSectionState
       // 광고가 이미 로드됨 - 바로 표시
       final shown = await AdService.instance.showRewardedAd(
         onRewarded: (amount, type) async {
-          await _unlockCategory(categoryKey);
+          _unlockCategory(categoryKey);
 
           if (mounted) {
             setState(() {
