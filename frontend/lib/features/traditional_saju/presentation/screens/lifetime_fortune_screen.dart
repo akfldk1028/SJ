@@ -1,17 +1,28 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
+import '../../../../ad/ad_service.dart';
 import '../providers/lifetime_fortune_provider.dart';
 
 /// 평생운세 상세 화면 - 책처럼 읽기 쉬운 레이아웃
-class LifetimeFortuneScreen extends ConsumerWidget {
+class LifetimeFortuneScreen extends ConsumerStatefulWidget {
   const LifetimeFortuneScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LifetimeFortuneScreen> createState() => _LifetimeFortuneScreenState();
+}
+
+class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
+  /// 세션 기반 잠금해제 상태 (앱 재시작 시 초기화)
+  final Set<String> _unlockedCycles = {};
+  bool _isLoadingAd = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = context.appTheme;
     final fortuneAsync = ref.watch(lifetimeFortuneProvider);
 
@@ -42,7 +53,7 @@ class LifetimeFortuneScreen extends ConsumerWidget {
       ),
       body: fortuneAsync.when(
         loading: () => const FortuneShimmerLoading(),
-        error: (error, stack) => _buildError(context, theme, ref),
+        error: (error, stack) => _buildError(context, theme),
         data: (fortune) {
           if (fortune == null) {
             return _buildAnalyzing(theme);
@@ -53,7 +64,7 @@ class LifetimeFortuneScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref) {
+  Widget _buildError(BuildContext context, AppThemeExtension theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -194,16 +205,31 @@ class LifetimeFortuneScreen extends ConsumerWidget {
             theme,
             title: '인생 주기별 전망',
             children: [
+              // 청년기 (항상 열림)
               if (fortune.lifeCycles.youth.isNotEmpty) ...[
                 _buildSubSection(theme, '청년기 (20-35세)', fortune.lifeCycles.youth),
                 const SizedBox(height: 12),
               ],
+              // 중년기 (광고 필요)
               if (fortune.lifeCycles.middleAge.isNotEmpty) ...[
-                _buildSubSection(theme, '중년기 (35-55세)', fortune.lifeCycles.middleAge),
+                _buildLifeCycleCard(
+                  theme,
+                  cycleKey: 'middleAge',
+                  title: '중년기',
+                  ageRange: '35-55세',
+                  content: fortune.lifeCycles.middleAge,
+                ),
                 const SizedBox(height: 12),
               ],
+              // 후년기 (광고 필요)
               if (fortune.lifeCycles.laterYears.isNotEmpty)
-                _buildSubSection(theme, '후년기 (55세 이후)', fortune.lifeCycles.laterYears),
+                _buildLifeCycleCard(
+                  theme,
+                  cycleKey: 'laterYears',
+                  title: '후년기',
+                  ageRange: '55세 이후',
+                  content: fortune.lifeCycles.laterYears,
+                ),
               if (fortune.lifeCycles.keyYears.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -464,5 +490,218 @@ class LifetimeFortuneScreen extends ConsumerWidget {
         lucky.numbers.isNotEmpty ||
         lucky.directions.isNotEmpty ||
         lucky.seasons.isNotEmpty;
+  }
+
+  /// 인생 주기 카드 (잠금/해제 상태에 따른 UI)
+  Widget _buildLifeCycleCard(
+    AppThemeExtension theme, {
+    required String cycleKey,
+    required String title,
+    required String ageRange,
+    required String content,
+  }) {
+    final isUnlocked = _unlockedCycles.contains(cycleKey);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isUnlocked
+              ? theme.textMuted.withValues(alpha: 0.3)
+              : theme.textMuted.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Text(
+                '$title ($ageRange)',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              if (!isUnlocked)
+                Icon(
+                  Icons.lock_outline,
+                  size: 18,
+                  color: theme.textSecondary,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // 내용 또는 잠금 UI
+          if (isUnlocked)
+            Text(
+              content,
+              style: TextStyle(
+                fontSize: 15,
+                color: theme.textSecondary,
+                height: 1.8,
+              ),
+            )
+          else
+            _buildLockedContent(theme, cycleKey, title),
+        ],
+      ),
+    );
+  }
+
+  /// 잠금 상태 UI
+  Widget _buildLockedContent(AppThemeExtension theme, String cycleKey, String title) {
+    return Column(
+      children: [
+        Text(
+          '광고를 시청하면 $title 운세를\n확인할 수 있습니다.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: theme.textMuted,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _isLoadingAd ? null : () => _showRewardedAdAndUnlock(cycleKey, title),
+            icon: _isLoadingAd
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.textSecondary,
+                    ),
+                  )
+                : Icon(Icons.play_circle_outline, size: 20, color: theme.textPrimary),
+            label: Text(
+              _isLoadingAd ? '광고 로딩 중...' : '광고 보고 $title 확인하기',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.textPrimary,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              side: BorderSide(color: theme.textMuted.withValues(alpha: 0.4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 광고 보고 잠금 해제 (기존 FortuneCategoryChipSection 패턴 참고)
+  Future<void> _showRewardedAdAndUnlock(String cycleKey, String title) async {
+    if (_isLoadingAd) return;
+
+    setState(() => _isLoadingAd = true);
+
+    // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
+    if (kIsWeb) {
+      if (mounted) {
+        setState(() {
+          _unlockedCycles.add(cycleKey);
+          _isLoadingAd = false;
+        });
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$title 운세가 해제되었습니다! (웹 테스트)'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
+
+    // 광고가 로드되어 있는지 확인
+    if (!AdService.instance.isRewardedLoaded) {
+      await AdService.instance.loadRewardedAd(
+        onLoaded: () async {
+          final shown = await AdService.instance.showRewardedAd(
+            onRewarded: (amount, type) async {
+              if (mounted) {
+                setState(() {
+                  _unlockedCycles.add(cycleKey);
+                  _isLoadingAd = false;
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$title 운세가 해제되었습니다!'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          );
+
+          if (!shown && mounted) {
+            setState(() => _isLoadingAd = false);
+            _showAdNotReadyDialog(title);
+          }
+        },
+        onFailed: (error) {
+          if (mounted) {
+            setState(() => _isLoadingAd = false);
+            _showAdNotReadyDialog(title);
+          }
+        },
+      );
+    } else {
+      final shown = await AdService.instance.showRewardedAd(
+        onRewarded: (amount, type) async {
+          if (mounted) {
+            setState(() {
+              _unlockedCycles.add(cycleKey);
+              _isLoadingAd = false;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$title 운세가 해제되었습니다!'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        },
+      );
+
+      if (!shown && mounted) {
+        setState(() => _isLoadingAd = false);
+        _showAdNotReadyDialog(title);
+      }
+    }
+  }
+
+  void _showAdNotReadyDialog(String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('광고 준비 중'),
+        content: Text('$title 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
   }
 }

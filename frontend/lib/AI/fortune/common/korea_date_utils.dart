@@ -130,6 +130,46 @@ class KoreaDateUtils {
     return DateTime(year, 12, 31, 23, 59, 59);
   }
 
+  /// 특정 날짜의 23:59:59 (한국 시간)
+  ///
+  /// [year] 연도
+  /// [month] 월
+  /// [day] 일
+  /// 반환: 해당 날짜의 마지막 순간
+  ///
+  /// 예: 2026년 1월 21일 → 2026-01-21 23:59:59 KST
+  static DateTime endOfDay(int year, int month, int day) {
+    return DateTime(year, month, day, 23, 59, 59);
+  }
+
+  /// 특정 날짜 만료 시간 (Supabase용 ISO8601)
+  ///
+  /// [year] 연도
+  /// [month] 월
+  /// [day] 일
+  /// 일운 캐시에 사용
+  static String expiryEndOfDay(int year, int month, int day) {
+    return toIso8601(endOfDay(year, month, day));
+  }
+
+  /// 오늘 날짜-키 문자열 (캐시 키용)
+  ///
+  /// 반환: 'YYYY-MM-DD' 형식
+  static String get currentDateKey {
+    final year = currentYear.toString();
+    final month = currentMonth.toString().padLeft(2, '0');
+    final day = currentDay.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  /// 특정 날짜의 키 생성
+  static String dateKey(int year, int month, int day) {
+    final y = year.toString();
+    final m = month.toString().padLeft(2, '0');
+    final d = day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
   /// 이번달 말일 23:59:59 만료 시간 (Supabase용 ISO8601)
   ///
   /// 월운 캐시에 사용

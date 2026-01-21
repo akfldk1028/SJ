@@ -727,8 +727,10 @@ class AiApiService {
 
   /// Chat 편의 메서드 - Fortune 서비스에서 사용
   ///
-  /// [systemPrompt]와 [userPrompt]를 받아 messages 배열로 변환 후 OpenAI 호출
-  /// 내부적으로 [callOpenAI]를 사용
+  /// [systemPrompt]와 [userPrompt]를 받아 messages 배열로 변환 후 API 호출
+  /// v7.0: Gemini 모델 자동 감지 및 라우팅
+  /// - gemini-* 모델 → callGemini() 사용
+  /// - 그 외 → callOpenAI() 사용
   Future<ChatResponse> chat({
     required String model,
     required String systemPrompt,
@@ -743,6 +745,31 @@ class AiApiService {
       {'role': 'user', 'content': userPrompt},
     ];
 
+    // v7.0: Gemini 모델 자동 라우팅
+    final isGemini = model.toLowerCase().contains('gemini');
+
+    if (isGemini) {
+      print('[AiApiService] 🔀 Gemini 모델 감지 → callGemini() 라우팅: $model');
+      final response = await callGemini(
+        messages: messages,
+        model: model,
+        maxTokens: maxTokens,
+        temperature: temperature,
+        logType: logType,
+      );
+
+      return ChatResponse(
+        success: response.success,
+        content: response.content != null
+            ? jsonEncode(response.content)
+            : null,
+        errorMessage: response.error,
+        promptTokens: response.promptTokens,
+        completionTokens: response.completionTokens,
+      );
+    }
+
+    // OpenAI 모델
     final response = await callOpenAI(
       messages: messages,
       model: model,

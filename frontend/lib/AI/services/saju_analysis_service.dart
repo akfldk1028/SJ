@@ -70,7 +70,8 @@
 /// - `queries.dart`: 데이터 조회 및 변환
 /// - `mutations.dart`: 결과 저장
 /// - `saju_base_prompt.dart`: GPT 프롬프트
-/// - `daily_fortune_prompt.dart`: Gemini 프롬프트
+/// - `fortune/daily/daily_service.dart`: 일운 서비스 (v7.0)
+/// - `fortune/daily/daily_prompt.dart`: 일운 프롬프트 (v7.0)
 
 import 'dart:async';
 import 'dart:convert';
@@ -83,8 +84,9 @@ import '../core/ai_constants.dart';
 import '../core/ai_logger.dart';
 import '../data/mutations.dart';
 import '../data/queries.dart';
+import '../fortune/common/fortune_input_data.dart';
+import '../fortune/daily/daily_service.dart';
 import '../fortune/fortune_coordinator.dart';
-import '../prompts/daily_fortune_prompt.dart';
 import '../prompts/prompt_template.dart';
 import '../prompts/saju_base_prompt.dart';
 import 'ai_api_service.dart';
@@ -466,19 +468,12 @@ class SajuAnalysisService {
         throw Exception(response.error ?? 'GPT API 호출 실패');
       }
 
-      // 4. saju_origin 추가 (만세력 원본 데이터 - 채팅 시 참조용)
-      // GPT-5.2 응답에 saju_origin이 없을 수 있으므로 inputJson에서 직접 추출
-      final contentWithOrigin = Map<String, dynamic>.from(response.content!);
-      if (!contentWithOrigin.containsKey('saju_origin')) {
-        contentWithOrigin['saju_origin'] = _buildSajuOrigin(inputJson);
-        print('[SajuAnalysisService] saju_origin 추가됨 (from inputJson)');
-      }
-
-      // 5. 결과 저장 (전체 프롬프트 포함)
+      // 4. 결과 저장 (전체 프롬프트 포함)
+      // NOTE: saju_origin은 제거됨 - 필요시 saju_analyses 테이블에서 직접 조회
       final saveResult = await aiMutations.saveSajuBaseSummary(
         userId: userId,
         profileId: profileId,
-        content: contentWithOrigin,
+        content: response.content!,
         inputData: inputJson,
         modelName: prompt.modelName,
         promptTokens: response.promptTokens,
@@ -539,97 +534,63 @@ class SajuAnalysisService {
     }
   }
 
-  /// 오늘의 운세 분석 (Gemini)
+  /// 오늘의 운세 분석 (Gemini 3.0 Flash)
+  ///
+  /// ## v7.0 변경사항
+  /// - DailyFortunePrompt → FortuneCoordinator.analyzeDailyOnly() 사용
+  /// - fortune/daily/ 폴더 패턴 통일
   ///
   /// ## 처리 과정
-  /// 1. 오늘 날짜 캐시 확인
-  /// 2. DailyFortunePrompt로 메시지 생성
-  /// 3. AiApiService.callGemini() 호출
-  /// 4. AiMutations.saveDailyFortune() 저장
+  /// 1. FortuneCoordinator.analyzeDailyOnly() 호출
+  ///    - 내부적으로 캐시 확인
+  ///    - saju_analyses 조회 → FortuneInputData 생성
+  ///    - DailyService.analyze() → Gemini API 호출 → 저장
   ///
   /// ## 예상 소요 시간
-  /// - Gemini 2.0 Flash: 1-3초 (매우 빠름)
+  /// - Gemini 3.0 Flash: 1-3초 (매우 빠름)
   Future<AnalysisResult> _runDailyFortuneAnalysis(
     String userId,
     String profileId,
     Map<String, dynamic> inputJson,
   ) async {
     final stopwatch = Stopwatch()..start();
-    final today = DateTime.now();
 
     try {
-      print('[SajuAnalysisService] 오늘의 운세 분석 시작...');
+      print('[SajuAnalysisService] 오늘의 운세 분석 시작 (v7.0 DailyService)...');
 
-      // 1. 캐시 확인 (오늘 이미 분석된 경우 스킵)
-      final cached = await aiQueries.getDailyFortune(profileId, today);
-      if (cached.isSuccess && cached.data != null) {
-        print('[SajuAnalysisService] 오늘의 운세 캐시 존재 - 스킵');
-        return AnalysisResult.success(
-          summaryId: cached.data!.id,
-          processingTimeMs: stopwatch.elapsedMilliseconds,
-        );
-      }
-
-      // 2. 프롬프트 생성
-      final prompt = DailyFortunePrompt(targetDate: today);
-      final messages = prompt.buildMessages(inputJson);
-
-      // 3. Gemini API 호출
-      final response = await _apiService.callGemini(
-        messages: messages,
-        model: prompt.modelName,
-        maxTokens: prompt.maxTokens,
-        temperature: prompt.temperature,
-        logType: 'daily_fortune',
-      );
-
-      if (!response.success) {
-        throw Exception(response.error ?? 'Gemini API 호출 실패');
-      }
-
-      // 4. 결과 저장 (전체 프롬프트 포함)
-      final saveResult = await aiMutations.saveDailyFortune(
+      // FortuneCoordinator를 통해 일운 분석 (캐시 확인 포함)
+      final result = await _fortuneCoordinator.analyzeDailyOnly(
         userId: userId,
         profileId: profileId,
-        targetDate: today,
-        content: response.content!,
-        inputData: inputJson,
-        modelName: prompt.modelName,
-        promptTokens: response.promptTokens,
-        completionTokens: response.completionTokens,
-        totalCostUsd: response.totalCostUsd,
-        processingTimeMs: stopwatch.elapsedMilliseconds,
-        systemPrompt: prompt.systemPrompt,
-        userPrompt: prompt.buildUserPrompt(inputJson),
       );
 
       stopwatch.stop();
 
-      if (saveResult.isSuccess) {
-        // 상세 로그 출력 (프로필 분석 전용)
+      if (result.success) {
+        // 상세 로그 출력
         final profileName = inputJson['name'] as String? ?? '알 수 없음';
         await AiLogger.logProfileAnalysis(
           profileId: profileId,
           profileName: profileName,
           analysisType: 'daily_fortune',
           provider: 'google',
-          model: prompt.modelName,
+          model: 'gemini-3.0-flash',
           success: true,
-          content: response.content != null ? jsonEncode(response.content) : null,
+          content: result.content != null ? jsonEncode(result.content) : null,
           tokens: {
-            'prompt': response.promptTokens,
-            'completion': response.completionTokens,
+            'prompt': result.promptTokens ?? 0,
+            'completion': result.completionTokens ?? 0,
           },
-          costUsd: response.totalCostUsd,
+          costUsd: result.totalCost,
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
 
         return AnalysisResult.success(
-          summaryId: saveResult.data!.id,
+          summaryId: result.summaryId ?? '',
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       } else {
-        throw Exception(saveResult.errorMessage ?? '저장 실패');
+        throw Exception(result.errorMessage ?? '일운 분석 실패');
       }
     } catch (e) {
       stopwatch.stop();
@@ -641,7 +602,7 @@ class SajuAnalysisService {
         profileName: profileName,
         analysisType: 'daily_fortune',
         provider: 'google',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.0-flash',
         success: false,
         error: e.toString(),
         processingTimeMs: stopwatch.elapsedMilliseconds,
@@ -692,7 +653,7 @@ class SajuAnalysisService {
   ///
   /// ## 호출 시점
   /// - Splash에서 프로필이 있지만 saju_base 분석이 없을 때 (기존 사용자)
-  /// - 채팅 시작 전 saju_origin 필요할 때
+  /// - 채팅 시작 전 saju_base 분석 필요할 때
   ///
   /// ## 특징
   /// - saju_base만 분석 (daily_fortune은 별도)
@@ -926,79 +887,3 @@ class SajuAnalysisService {
 /// ```
 final sajuAnalysisService = SajuAnalysisService();
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 헬퍼 함수
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// inputJson에서 saju_origin 구조 생성
-///
-/// GPT-5.2가 saju_origin을 응답에 포함하지 않을 경우,
-/// 이 함수로 inputJson(만세력 계산 결과)에서 직접 추출하여 DB에 저장
-///
-/// ## 포함 데이터
-/// - saju: 사주팔자 (년월일시 간지)
-/// - oheng: 오행 분포
-/// - yongsin: 용신
-/// - hapchung: 합충형파해 관계
-/// - sinsal: 신살 목록
-/// - gilseong: 길성 목록
-/// - sipsin_info: 십성 정보
-/// - twelve_unsung: 십이운성
-/// - gyeokguk: 격국
-Map<String, dynamic> _buildSajuOrigin(Map<String, dynamic> inputJson) {
-  return {
-    // 기본 사주 정보
-    'saju': {
-      'year': {
-        'gan': inputJson['saju']?['year_gan'],
-        'ji': inputJson['saju']?['year_ji'],
-      },
-      'month': {
-        'gan': inputJson['saju']?['month_gan'],
-        'ji': inputJson['saju']?['month_ji'],
-      },
-      'day': {
-        'gan': inputJson['saju']?['day_gan'],
-        'ji': inputJson['saju']?['day_ji'],
-      },
-      'hour': {
-        'gan': inputJson['saju']?['hour_gan'],
-        'ji': inputJson['saju']?['hour_ji'],
-      },
-    },
-
-    // 오행 분포 (영문 → 한글 변환)
-    'oheng': {
-      '목': inputJson['oheng']?['wood'] ?? 0,
-      '화': inputJson['oheng']?['fire'] ?? 0,
-      '토': inputJson['oheng']?['earth'] ?? 0,
-      '금': inputJson['oheng']?['metal'] ?? 0,
-      '수': inputJson['oheng']?['water'] ?? 0,
-    },
-
-    // 용신 정보
-    'yongsin': inputJson['yongsin'],
-    'day_strength': inputJson['day_strength'],
-
-    // 합충형파해 (가장 중요한 관계 분석)
-    'hapchung': inputJson['hapchung'],
-
-    // 신살 및 길성
-    'sinsal': inputJson['sinsal'],
-    'gilseong': inputJson['gilseong'],
-
-    // 십성, 십이운성, 격국
-    'sipsin_info': inputJson['sipsin_info'],
-    'twelve_unsung': inputJson['twelve_unsung'],
-    'gyeokguk': inputJson['gyeokguk'],
-
-    // 지장간 정보
-    'jijanggan_info': inputJson['jijanggan_info'],
-
-    // 대운 정보
-    'daeun': inputJson['daeun'],
-
-    // 특수 신살 (12신살 등)
-    'twelve_sinsal': inputJson['twelve_sinsal'],
-  };
-}
