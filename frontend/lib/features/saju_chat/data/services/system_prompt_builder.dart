@@ -232,7 +232,7 @@ class SystemPromptBuilder {
     print('🔹 일간: ${chart.dayPillar.gan}');
     print('🔹 오행: 목${sajuAnalysis.ohengDistribution.mok} 화${sajuAnalysis.ohengDistribution.hwa} 토${sajuAnalysis.ohengDistribution.to} 금${sajuAnalysis.ohengDistribution.geum} 수${sajuAnalysis.ohengDistribution.su}');
     print('🔹 용신: ${sajuAnalysis.yongsin.yongsin.korean}');
-    print('🔹 신강/신약: ${sajuAnalysis.singang.isSingang ? '신강' : '신약'} (${sajuAnalysis.singang.score})');
+    print('🔹 일간 강약: ${sajuAnalysis.dayStrength.level.korean} (${sajuAnalysis.dayStrength.score}점)');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('');
 
