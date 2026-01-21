@@ -3,6 +3,8 @@ import 'package:uuid/uuid.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_session.dart';
 import '../../domain/models/chat_type.dart';
+import '../../domain/models/chat_persona.dart';
+import '../../domain/models/ai_persona.dart';
 import '../../domain/repositories/chat_session_repository.dart';
 import '../datasources/chat_session_local_datasource.dart';
 import '../models/chat_message_model.dart';
@@ -38,9 +40,15 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
   }
 
   @override
-  Future<ChatSession> createSession(ChatType chatType, String? profileId, {String? targetProfileId}) async {
+  Future<ChatSession> createSession(
+    ChatType chatType,
+    String? profileId, {
+    String? targetProfileId,
+    ChatPersona? chatPersona,
+    MbtiQuadrant? mbtiQuadrant,
+  }) async {
     if (kDebugMode) {
-      print('[ChatRepo] createSession 호출: chatType=$chatType, profileId=$profileId, targetProfileId=$targetProfileId');
+      print('[ChatRepo] createSession 호출: chatType=$chatType, profileId=$profileId, targetProfileId=$targetProfileId, chatPersona=$chatPersona, mbtiQuadrant=$mbtiQuadrant');
     }
     final now = DateTime.now();
     final newSession = ChatSessionModel(
@@ -49,6 +57,8 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
       chatType: chatType.name,
       profileId: profileId,
       targetProfileId: targetProfileId,
+      chatPersona: chatPersona?.name,
+      mbtiQuadrant: mbtiQuadrant?.name,
       createdAt: now,
       updatedAt: now,
       messageCount: 0,
@@ -265,13 +275,15 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
           : content;
     }
 
-    // 세션 업데이트
+    // 세션 업데이트 (페르소나 필드 보존)
     final updatedSession = ChatSessionModel(
       id: session.id,
       title: title,
       chatType: session.chatType,
       profileId: session.profileId,
       targetProfileId: session.targetProfileId,
+      chatPersona: session.chatPersona,
+      mbtiQuadrant: session.mbtiQuadrant,
       createdAt: session.createdAt,
       updatedAt: DateTime.now(),
       messageCount: messageCount,

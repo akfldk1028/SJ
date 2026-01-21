@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/menu_item.dart';
 import 'menu_card.dart';
 
+
 /// 메뉴 그리드 위젯
 ///
 /// 위젯 트리 최적화:

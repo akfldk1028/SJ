@@ -1,10 +1,13 @@
 import '../models/chat_type.dart';
+import '../models/chat_persona.dart';
+import '../models/ai_persona.dart';
 
 /// 채팅 세션 엔티티 (순수 도메인 객체)
 ///
 /// ChatGPT/Claude 스타일의 채팅 히스토리를 위한 세션 관리
 /// - 각 대화는 하나의 세션으로 관리
 /// - 메시지는 별도 저장, 세션은 메타데이터만 보관
+/// - 페르소나는 세션 생성 시 고정되며, 대화 중 변경 불가
 class ChatSession {
   final String id;
   final String title;
@@ -15,6 +18,15 @@ class ChatSession {
   /// - null이면 일반 채팅 (내 사주만)
   /// - 값이 있으면 궁합/타인 상담 (상대방 사주 포함)
   final String? targetProfileId;
+
+  /// 세션에 고정된 페르소나 (대화 시작 후 변경 불가)
+  /// - null이면 basePerson (기본값)
+  final ChatPersona? chatPersona;
+
+  /// BasePerson 선택 시 MBTI 4분면 (NF/NT/SF/ST)
+  /// - chatPersona가 basePerson일 때만 유효
+  /// - null이면 NF (기본값)
+  final MbtiQuadrant? mbtiQuadrant;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -27,6 +39,8 @@ class ChatSession {
     required this.chatType,
     this.profileId,
     this.targetProfileId,
+    this.chatPersona,
+    this.mbtiQuadrant,
     required this.createdAt,
     required this.updatedAt,
     this.messageCount = 0,
@@ -39,6 +53,8 @@ class ChatSession {
     ChatType? chatType,
     String? profileId,
     String? targetProfileId,
+    ChatPersona? chatPersona,
+    MbtiQuadrant? mbtiQuadrant,
     DateTime? createdAt,
     DateTime? updatedAt,
     int? messageCount,
@@ -50,6 +66,8 @@ class ChatSession {
       chatType: chatType ?? this.chatType,
       profileId: profileId ?? this.profileId,
       targetProfileId: targetProfileId ?? this.targetProfileId,
+      chatPersona: chatPersona ?? this.chatPersona,
+      mbtiQuadrant: mbtiQuadrant ?? this.mbtiQuadrant,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       messageCount: messageCount ?? this.messageCount,

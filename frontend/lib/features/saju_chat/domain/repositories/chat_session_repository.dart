@@ -1,6 +1,8 @@
 import '../entities/chat_message.dart';
 import '../entities/chat_session.dart';
 import '../models/chat_type.dart';
+import '../models/chat_persona.dart';
+import '../models/ai_persona.dart';
 
 /// 채팅 세션 Repository 인터페이스
 ///
@@ -14,7 +16,15 @@ abstract class ChatSessionRepository {
 
   /// 새 세션 생성
   /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID
-  Future<ChatSession> createSession(ChatType chatType, String? profileId, {String? targetProfileId});
+  /// [chatPersona]: 세션에 고정될 페르소나 (대화 중 변경 불가)
+  /// [mbtiQuadrant]: BasePerson 선택 시 MBTI 4분면
+  Future<ChatSession> createSession(
+    ChatType chatType,
+    String? profileId, {
+    String? targetProfileId,
+    ChatPersona? chatPersona,
+    MbtiQuadrant? mbtiQuadrant,
+  });
 
   /// 세션 업데이트
   Future<void> updateSession(ChatSession session);

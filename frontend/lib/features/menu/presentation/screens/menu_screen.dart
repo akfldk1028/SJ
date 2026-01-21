@@ -74,12 +74,13 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     // Native 광고 2 - 500ms 지연
                     if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
                     if (_isMobile) SizedBox(height: context.scaledPadding(24)),
-                    const SectionHeader(
-                      title: '오늘의 조언',
-                    ),
-                    SizedBox(height: context.scaledPadding(12)),
-                    const DailyAdviceSection(),
-                    SizedBox(height: context.scaledPadding(24)),
+                    // TODO: 2025 신년운세/토정비결 - 임시 비활성화
+                    // const SectionHeader(
+                    //   title: '오늘의 조언',
+                    // ),
+                    // SizedBox(height: context.scaledPadding(12)),
+                    // const DailyAdviceSection(),
+                    // SizedBox(height: context.scaledPadding(24)),
                     const TodayMessageCard(),
                     SizedBox(height: context.scaledPadding(24)),
                     // Native 광고 3 (맨 하단) - 1000ms 지연

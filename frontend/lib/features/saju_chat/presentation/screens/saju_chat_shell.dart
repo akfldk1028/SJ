@@ -99,9 +99,16 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     final activeProfile = await ref.read(activeProfileProvider.future);
     final profileId = activeProfile?.id;
 
-    // 세션이 없으면 기본 세션 생성
+    // 세션이 없으면 기본 세션 생성 (현재 페르소나 저장)
     if (sessionState.sessions.isEmpty) {
-      await sessionNotifier.createSession(_chatType, profileId);
+      final currentPersona = ref.read(chatPersonaNotifierProvider);
+      final currentMbti = ref.read(mbtiQuadrantNotifierProvider);
+      await sessionNotifier.createSession(
+        _chatType,
+        profileId,
+        chatPersona: currentPersona,
+        mbtiQuadrant: currentMbti,
+      );
     } else if (sessionState.currentSessionId == null) {
       // 세션이 있지만 선택되지 않았으면 첫 번째 세션 선택
       sessionNotifier.selectSession(sessionState.sessions.first.id);
@@ -131,7 +138,15 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final activeProfile = await ref.read(activeProfileProvider.future);
-    await sessionNotifier.createSession(_chatType, activeProfile?.id);
+    // 현재 선택된 페르소나를 새 세션에 저장
+    final currentPersona = ref.read(chatPersonaNotifierProvider);
+    final currentMbti = ref.read(mbtiQuadrantNotifierProvider);
+    await sessionNotifier.createSession(
+      _chatType,
+      activeProfile?.id,
+      chatPersona: currentPersona,
+      mbtiQuadrant: currentMbti,
+    );
   }
 
   /// 단일 인연 멘션 (채팅 중 @멘션용)
@@ -567,6 +582,9 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
               print('[_ChatContent] 세션 생성 요청: text=$text, hasMention=$hasMention, targetProfileId=$targetId, participantIds=$participantIds, includesOwner=$includesOwner');
 
               final activeProfile = await ref.read(activeProfileProvider.future);
+              // 현재 선택된 페르소나를 세션에 저장
+              final currentPersona = ref.read(chatPersonaNotifierProvider);
+              final currentMbti = ref.read(mbtiQuadrantNotifierProvider);
               ref.read(chatSessionNotifierProvider.notifier)
                   .createSession(
                     widget.chatType,
@@ -575,6 +593,8 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                     targetProfileId: targetId,
                     participantIds: participantIds,
                     includesOwner: includesOwner,
+                    chatPersona: currentPersona,
+                    mbtiQuadrant: currentMbti,
                   );
 
               // 멘션 전송 완료 시 콜백 호출
@@ -1001,6 +1021,9 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                     selectedQuadrant: currentQuadrant,
                     onQuadrantSelected: (quadrant) {
                       consumerRef.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(quadrant);
+                      // 메시지 없는 세션이면 세션의 MBTI도 업데이트
+                      consumerRef.read(chatSessionNotifierProvider.notifier)
+                          .updateCurrentSessionPersona(mbtiQuadrant: quadrant);
                     },
                     size: 300,
                   ),
@@ -1071,6 +1094,16 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     final canAdjustMbti = ref.watch(canAdjustMbtiProvider);
     final appTheme = context.appTheme;
 
+    // 현재 세션의 메시지 수 확인 (대화 시작 후 페르소나 잠금)
+    final sessionState = ref.watch(chatSessionNotifierProvider);
+    final currentSessionId = sessionState.currentSessionId;
+    final hasMessages = currentSessionId != null
+        ? ref.watch(chatNotifierProvider(currentSessionId)).messages.isNotEmpty
+        : false;
+
+    // 페르소나 잠금 상태: 메시지가 있으면 변경 불가
+    final isPersonaLocked = hasMessages;
+
     // MBTI 분면별 색상 (BasePerson 선택 시)
     final quadrantColor = canAdjustMbti ? _getQuadrantColor(currentQuadrant) : appTheme.primaryColor;
 
@@ -1092,39 +1125,45 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // MBTI 버튼이 있을 때만 왼쪽 공간 확보
+          // MBTI 버튼이 있을 때만 왼쪽 공간 확보 (잠금 상태면 비활성화 스타일)
           if (canAdjustMbti)
             SizedBox(
               width: mbtiButtonWidth,
               child: GestureDetector(
-                onTap: () => _showMbtiSelectorSheet(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: quadrantColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: quadrantColor,
-                          shape: BoxShape.circle,
-                        ),
+                onTap: isPersonaLocked ? null : () => _showMbtiSelectorSheet(context, ref),
+                child: Tooltip(
+                  message: isPersonaLocked ? '새 채팅에서 변경 가능' : 'MBTI 성향 선택',
+                  child: Opacity(
+                    opacity: isPersonaLocked ? 0.5 : 1.0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: quadrantColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        currentQuadrant.name,
-                        style: TextStyle(
-                          color: quadrantColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: quadrantColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            currentQuadrant.name,
+                            style: TextStyle(
+                              color: quadrantColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1148,6 +1187,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                             isSelected: persona == currentPersona,
                             accentColor: quadrantColor,
                             size: circleSize,
+                            isLocked: isPersonaLocked,
                           ),
                         );
                       }).toList(),
@@ -1165,6 +1205,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                           isSelected: persona == currentPersona,
                           accentColor: quadrantColor,
                           size: circleSize,
+                          isLocked: isPersonaLocked,
                         ),
                       );
                     }).toList(),
@@ -1182,60 +1223,75 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     required bool isSelected,
     required Color accentColor,
     double size = 44,
+    bool isLocked = false,
   }) {
     final appTheme = context.appTheme;
     final iconSize = (size * 0.5).clamp(18.0, 22.0); // 16-20 → 18-22
 
     final displayName = persona.shortName;
 
+    // 잠금 상태: 선택된 페르소나만 활성화 표시, 나머지는 흐리게
+    final isDisabled = isLocked && !isSelected;
+    final tooltipMessage = isLocked && !isSelected
+        ? '새 채팅에서 변경 가능'
+        : '${persona.displayName}\n${persona.description}';
+
     return Tooltip(
-      message: '${persona.displayName}\n${persona.description}',
+      message: tooltipMessage,
       child: GestureDetector(
-        onTap: () {
-          ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected
-                    ? accentColor.withValues(alpha: 0.15)
-                    : appTheme.backgroundColor.withValues(alpha: 0.3),
-                border: Border.all(
+        onTap: isLocked
+            ? null // 잠금 상태면 탭 무시
+            : () {
+                ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+                // 메시지 없는 세션이면 세션의 페르소나도 업데이트
+                ref.read(chatSessionNotifierProvider.notifier)
+                    .updateCurrentSessionPersona(chatPersona: persona);
+              },
+        child: Opacity(
+          opacity: isDisabled ? 0.4 : 1.0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: isSelected
-                      ? accentColor.withValues(alpha: 0.5)
-                      : appTheme.textMuted.withValues(alpha: 0.15),
-                  width: isSelected ? 1.5 : 1,
+                      ? accentColor.withValues(alpha: 0.15)
+                      : appTheme.backgroundColor.withValues(alpha: 0.3),
+                  border: Border.all(
+                    color: isSelected
+                        ? accentColor.withValues(alpha: 0.5)
+                        : appTheme.textMuted.withValues(alpha: 0.15),
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    persona.icon,
+                    size: iconSize,
+                    color: isSelected
+                        ? accentColor
+                        : appTheme.textMuted.withValues(alpha: 0.6),
+                  ),
                 ),
               ),
-              child: Center(
-                child: Icon(
-                  persona.icon,
-                  size: iconSize,
+              const SizedBox(height: 6),
+              Text(
+                displayName,
+                style: TextStyle(
+                  fontSize: 12, // 11 → 12
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
                       ? accentColor
-                      : appTheme.textMuted.withValues(alpha: 0.6),
+                      : appTheme.textMuted.withValues(alpha: 0.8),
+                  letterSpacing: -0.3,
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              displayName,
-              style: TextStyle(
-                fontSize: 12, // 11 → 12
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected
-                    ? accentColor
-                    : appTheme.textMuted.withValues(alpha: 0.8),
-                letterSpacing: -0.3,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

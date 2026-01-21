@@ -4,7 +4,10 @@ import '../../data/datasources/chat_session_local_datasource.dart';
 import '../../data/repositories/chat_session_repository_impl.dart';
 import '../../domain/entities/chat_session.dart';
 import '../../domain/models/chat_type.dart';
+import '../../domain/models/chat_persona.dart';
+import '../../domain/models/ai_persona.dart';
 import '../../domain/repositories/chat_session_repository.dart';
+import 'chat_persona_provider.dart';
 
 part 'chat_session_provider.g.dart';
 
@@ -103,6 +106,8 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
   /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID (선택)
   /// [participantIds]: 궁합 참가자 프로필 ID 목록 (chat_mentions 저장용)
   /// [includesOwner]: "나 포함" 여부 (궁합 채팅용, 기본값: true)
+  /// [chatPersona]: 세션에 고정될 페르소나 (대화 중 변경 불가)
+  /// [mbtiQuadrant]: BasePerson 선택 시 MBTI 4분면
   Future<ChatSession?> createSession(
     ChatType type,
     String? profileId, {
@@ -110,12 +115,20 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
     String? targetProfileId,
     List<String>? participantIds,
     bool includesOwner = true,
+    ChatPersona? chatPersona,
+    MbtiQuadrant? mbtiQuadrant,
   }) async {
-    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, targetProfileId=$targetProfileId, participantIds=$participantIds, includesOwner=$includesOwner, initialMessage=$initialMessage');
+    print('[ChatSessionNotifier] createSession 시작: type=$type, profileId=$profileId, targetProfileId=$targetProfileId, participantIds=$participantIds, includesOwner=$includesOwner, chatPersona=$chatPersona, mbtiQuadrant=$mbtiQuadrant, initialMessage=$initialMessage');
     try {
       final repository = ref.read(chatSessionRepositoryProvider);
-      final newSession = await repository.createSession(type, profileId, targetProfileId: targetProfileId);
-      print('[ChatSessionNotifier] 세션 생성 완료: id=${newSession.id}, targetProfileId=${newSession.targetProfileId}');
+      final newSession = await repository.createSession(
+        type,
+        profileId,
+        targetProfileId: targetProfileId,
+        chatPersona: chatPersona,
+        mbtiQuadrant: mbtiQuadrant,
+      );
+      print('[ChatSessionNotifier] 세션 생성 완료: id=${newSession.id}, targetProfileId=${newSession.targetProfileId}, chatPersona=${newSession.chatPersona}, mbtiQuadrant=${newSession.mbtiQuadrant}');
 
       // 세션 목록에 추가 (맨 앞에) + 대기 메시지 및 참가자 ID 저장
       state = state.copyWith(
@@ -142,9 +155,68 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
     state = state.copyWith(clearPendingMessage: true, clearPendingParticipantIds: true);
   }
 
-  /// 세션 선택
+  /// 세션 선택 및 페르소나 복원
+  ///
+  /// 세션을 선택하면 해당 세션에 저장된 페르소나와 MBTI를 복원합니다.
+  /// 이를 통해 대화 맥락이 유지됩니다.
   void selectSession(String sessionId) {
     state = state.copyWith(currentSessionId: sessionId);
+
+    // 선택된 세션의 페르소나 복원
+    final session = state.sessions.where((s) => s.id == sessionId).firstOrNull;
+    if (session != null) {
+      _restorePersonaFromSession(session);
+    }
+  }
+
+  /// 세션에서 페르소나 복원
+  void _restorePersonaFromSession(ChatSession session) {
+    // 세션에 저장된 페르소나가 있으면 복원
+    if (session.chatPersona != null) {
+      ref.read(chatPersonaNotifierProvider.notifier).setPersona(session.chatPersona!);
+    }
+
+    // BasePerson이고 MBTI가 저장되어 있으면 복원
+    if (session.chatPersona == ChatPersona.basePerson && session.mbtiQuadrant != null) {
+      ref.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(session.mbtiQuadrant!);
+    }
+  }
+
+  /// 현재 세션의 페르소나 업데이트 (메시지 없을 때만 호출)
+  ///
+  /// 세션 생성 후, 첫 메시지 전송 전에 페르소나를 변경하면
+  /// 세션에 저장된 값도 업데이트해야 함
+  Future<void> updateCurrentSessionPersona({
+    ChatPersona? chatPersona,
+    MbtiQuadrant? mbtiQuadrant,
+  }) async {
+    if (state.currentSessionId == null) return;
+
+    try {
+      final currentSession = state.sessions
+          .where((s) => s.id == state.currentSessionId)
+          .firstOrNull;
+      if (currentSession == null) return;
+
+      // 페르소나 업데이트
+      final updatedSession = currentSession.copyWith(
+        chatPersona: chatPersona ?? currentSession.chatPersona,
+        mbtiQuadrant: mbtiQuadrant ?? currentSession.mbtiQuadrant,
+        updatedAt: DateTime.now(),
+      );
+
+      final repository = ref.read(chatSessionRepositoryProvider);
+      await repository.updateSession(updatedSession);
+
+      // 세션 목록 업데이트
+      final updatedSessions = state.sessions.map((s) {
+        return s.id == state.currentSessionId ? updatedSession : s;
+      }).toList();
+
+      state = state.copyWith(sessions: updatedSessions);
+    } catch (e) {
+      // 업데이트 실패해도 전역 페르소나는 이미 변경됨
+    }
   }
 
   /// 세션 삭제 (세션 + 메시지)
