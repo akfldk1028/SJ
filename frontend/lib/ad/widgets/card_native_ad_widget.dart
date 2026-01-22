@@ -9,6 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ad_config.dart';
+import '../ad_tracking_service.dart';
 
 /// 모바일 플랫폼 체크
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -71,9 +72,11 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
         },
         onAdImpression: (ad) {
           debugPrint('[CardNativeAd] Impression');
+          AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
           debugPrint('[CardNativeAd] Clicked');
+          AdTrackingService.instance.trackNativeClick();
         },
       ),
       // Medium 템플릿 - 카드에 적합

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_config.dart';
+import 'ad_tracking_service.dart';
 
 /// 광고 서비스 싱글톤
 class AdService {
@@ -99,9 +100,11 @@ class AdService {
         },
         onAdImpression: (ad) {
           debugPrint('[AdService] Banner ad impression');
+          AdTrackingService.instance.trackBannerImpression();
         },
         onAdClicked: (ad) {
           debugPrint('[AdService] Banner ad clicked');
+          AdTrackingService.instance.trackBannerClick();
         },
       ),
     );
@@ -137,9 +140,11 @@ class AdService {
               FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               debugPrint('[AdService] Interstitial showed');
+              AdTrackingService.instance.trackInterstitialShow();
             },
             onAdDismissedFullScreenContent: (ad) {
               debugPrint('[AdService] Interstitial dismissed');
+              AdTrackingService.instance.trackInterstitialComplete();
               ad.dispose();
               _interstitialAd = null;
               _isInterstitialLoaded = false;
@@ -157,6 +162,7 @@ class AdService {
             },
             onAdClicked: (ad) {
               debugPrint('[AdService] Interstitial clicked');
+              AdTrackingService.instance.trackInterstitialClick();
             },
           );
 
@@ -212,9 +218,11 @@ class AdService {
           _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               debugPrint('[AdService] Rewarded showed');
+              AdTrackingService.instance.trackRewardedShow();
             },
             onAdDismissedFullScreenContent: (ad) {
               debugPrint('[AdService] Rewarded dismissed');
+              AdTrackingService.instance.trackRewardedComplete();
               ad.dispose();
               _rewardedAd = null;
               _isRewardedLoaded = false;
@@ -235,6 +243,7 @@ class AdService {
             },
             onAdClicked: (ad) {
               debugPrint('[AdService] Rewarded clicked');
+              AdTrackingService.instance.trackRewardedClick();
             },
           );
 
@@ -263,6 +272,11 @@ class AdService {
       onUserEarnedReward: (ad, reward) {
         debugPrint(
             '[AdService] User earned reward: ${reward.amount} ${reward.type}');
+        // 보상 지급 추적
+        AdTrackingService.instance.trackRewarded(
+          rewardAmount: reward.amount.toInt(),
+          rewardType: reward.type,
+        );
         onRewarded(reward.amount.toInt(), reward.type);
       },
     );

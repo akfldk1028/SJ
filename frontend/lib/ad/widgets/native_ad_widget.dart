@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ad_config.dart';
+import '../ad_tracking_service.dart';
 
 /// 모바일 플랫폼 체크
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -69,9 +70,11 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
         },
         onAdImpression: (ad) {
           debugPrint('[NativeAdWidget] Ad impression');
+          AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
           debugPrint('[NativeAdWidget] Ad clicked');
+          AdTrackingService.instance.trackNativeClick();
         },
       ),
       // Medium 템플릿 스타일 (채팅에 적합)
