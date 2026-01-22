@@ -42,7 +42,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
       ),
       body: fortuneAsync.when(
         loading: () => const FortuneShimmerLoading(),
-        error: (error, stack) => _buildError(context, theme, ref),
+        error: (error, stack) => _buildError(context, theme, ref, error),
         data: (fortune) {
           if (fortune == null) {
             return _buildAnalyzing(theme);
@@ -53,7 +53,8 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref) {
+  Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref, Object error) {
+    debugPrint('[Yearly2025FortuneScreen] ❌ 에러: $error');
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -61,6 +62,15 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           Text(
             '2025년 운세를 불러오지 못했습니다',
             style: TextStyle(color: theme.textSecondary, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              '$error',
+              style: TextStyle(color: theme.textMuted, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
           ),
           const SizedBox(height: 16),
           TextButton(
