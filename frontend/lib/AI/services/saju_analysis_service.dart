@@ -437,15 +437,15 @@ class SajuAnalysisService {
       }
 
       // 2. 진행 중인 task 확인 (중복 생성 방지)
-      final pendingTask = await aiQueries.getPendingTaskId(userId: userId);
+      final prompt = SajuBasePrompt();
+      final pendingTask = await aiQueries.getPendingTaskId(userId: userId, model: prompt.modelName);
       if (pendingTask.isSuccess && pendingTask.data != null) {
         print('[SajuAnalysisService] ⏳ 이미 분석 진행 중: ${pendingTask.data}');
         // 기존 task 결과 대기
         return await _waitForExistingTask(pendingTask.data!, profileId);
       }
 
-      // 3. 프롬프트 생성
-      final prompt = SajuBasePrompt();
+      // 3. 프롬프트 생성 및 API 호출
       final messages = prompt.buildMessages(inputJson);
 
       // 3. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
