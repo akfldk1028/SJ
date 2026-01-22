@@ -340,29 +340,30 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
     return Scaffold(
       backgroundColor: appTheme.backgroundColor,
-      body: Row(
-        children: [
-          // 사이드바 (토글 가능)
-          if (_isSidebarVisible) ...[
-            ChatHistorySidebar(
-              onNewChat: _handleNewChat,
-              onSessionSelected: _handleSessionSelected,
-              onSessionDeleted: _handleSessionDeleted,
-              onSessionRenamed: _handleSessionRenamed,
-            ),
-            VerticalDivider(
-              width: 1,
-              color: appTheme.primaryColor.withOpacity(0.1),
-            ),
-          ],
-          // 채팅 영역
-          Expanded(
-            child: Column(
-              children: [
-                // Desktop AppBar (사이드바 토글 + 제목)
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+      body: SafeArea(
+        child: Row(
+          children: [
+            // 사이드바 (토글 가능)
+            if (_isSidebarVisible) ...[
+              ChatHistorySidebar(
+                onNewChat: _handleNewChat,
+                onSessionSelected: _handleSessionSelected,
+                onSessionDeleted: _handleSessionDeleted,
+                onSessionRenamed: _handleSessionRenamed,
+              ),
+              VerticalDivider(
+                width: 1,
+                color: appTheme.primaryColor.withOpacity(0.1),
+              ),
+            ],
+            // 채팅 영역
+            Expanded(
+              child: Column(
+                children: [
+                  // Desktop AppBar (사이드바 토글 + 제목)
+                  Container(
+                    height: 56,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     color: appTheme.backgroundColor,
                     border: Border(
@@ -434,6 +435,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -674,14 +676,34 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         .lastOrNull;
     final suggestedQuestions = lastAiMessage?.suggestedQuestions;
 
+    // 가로 모드 체크 (화면 높이가 400 미만이면 가로 모드로 간주)
+    final isLandscape = MediaQuery.of(context).size.height < 400;
+
+    // 상단 요소들 (가로 모드에서는 컴팩트하게)
+    final topWidgets = <Widget>[
+      const DisclaimerBanner(),
+      // 페르소나 가로 선택기 (원형 이모지 리스트)
+      const _PersonaHorizontalSelector(),
+      // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
+      if (chatState.isDeepAnalysisRunning)
+        const _DeepAnalysisLoadingBanner(),
+    ];
+
     return Column(
       children: [
-        const DisclaimerBanner(),
-        // 페르소나 가로 선택기 (원형 이모지 리스트)
-        const _PersonaHorizontalSelector(),
-        // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
-        if (chatState.isDeepAnalysisRunning)
-          const _DeepAnalysisLoadingBanner(),
+        // 가로 모드: 상단 요소들을 축소 가능한 영역으로 감싸기
+        if (isLandscape)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 60),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: topWidgets,
+              ),
+            ),
+          )
+        else
+          ...topWidgets,
         Expanded(
           child: ChatMessageList(
             messages: chatState.messages,
