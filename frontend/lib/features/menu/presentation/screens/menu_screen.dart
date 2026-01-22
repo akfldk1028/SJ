@@ -44,53 +44,59 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-      body: MysticBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildAppBar(theme),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.only(bottom: context.scaledPadding(100)),
-                  children: [
-                    const FortuneSummaryCard(),
-                    SizedBox(height: context.scaledPadding(24)),
-                    // 오늘의 운세 섹션 - 내 사주 위로 이동
-                    const SectionHeader(
-                      title: '오늘의 운세',
-                    ),
-                    SizedBox(height: context.scaledPadding(12)),
-                    const FortuneCategoryList(),
-                    SizedBox(height: context.scaledPadding(24)),
-                    // 내 사주 카드
-                    const SajuMiniCard(),
-                    SizedBox(height: context.scaledPadding(24)),
-                    // Native 광고 1 (사주 카드 아래) - 즉시 로드
-                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                    if (_isMobile) SizedBox(height: context.scaledPadding(24)),
-                    // Native 광고 2 - 500ms 지연
-                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
-                    if (_isMobile) SizedBox(height: context.scaledPadding(24)),
-                    // TODO: 2025 신년운세/토정비결 - 임시 비활성화
-                    // const SectionHeader(
-                    //   title: '오늘의 조언',
-                    // ),
-                    // SizedBox(height: context.scaledPadding(12)),
-                    // const DailyAdviceSection(),
-                    // SizedBox(height: context.scaledPadding(24)),
-                    const TodayMessageCard(),
-                    SizedBox(height: context.scaledPadding(24)),
-                    // Native 광고 3 (맨 하단) - 1000ms 지연
-                    if (_isMobile) const CardNativeAdWidget(loadDelayMs: 1000),
-                  ],
-                ),
-              ),
-            ],
+      body: Column(
+        children: [
+          // 상태바 영역을 배경색으로 채움
+          Container(
+            height: statusBarHeight,
+            color: theme.backgroundColor,
           ),
-        ),
+          // 앱바
+          _buildAppBar(theme),
+          // 나머지 콘텐츠
+          Expanded(
+            child: MysticBackground(
+              child: ListView(
+                padding: EdgeInsets.only(bottom: context.scaledPadding(100)),
+                children: [
+                  const FortuneSummaryCard(),
+                  SizedBox(height: context.scaledPadding(24)),
+                  // 오늘의 운세 섹션 - 내 사주 위로 이동
+                  const SectionHeader(
+                    title: '오늘의 운세',
+                  ),
+                  SizedBox(height: context.scaledPadding(12)),
+                  const FortuneCategoryList(),
+                  SizedBox(height: context.scaledPadding(24)),
+                  // 내 사주 카드
+                  const SajuMiniCard(),
+                  SizedBox(height: context.scaledPadding(24)),
+                  // Native 광고 1 (사주 카드 아래) - 즉시 로드
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
+                  // Native 광고 2 - 500ms 지연
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
+                  // TODO: 2025 신년운세/토정비결 - 임시 비활성화
+                  // const SectionHeader(
+                  //   title: '오늘의 조언',
+                  // ),
+                  // SizedBox(height: context.scaledPadding(12)),
+                  // const DailyAdviceSection(),
+                  // SizedBox(height: context.scaledPadding(24)),
+                  const TodayMessageCard(),
+                  SizedBox(height: context.scaledPadding(24)),
+                  // Native 광고 3 (맨 하단) - 1000ms 지연
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 1000),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       // bottomNavigationBar는 MainShell에서 제공 (ShellRoute)
     );

@@ -42,11 +42,14 @@ class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserv
 
   void _applySystemUiStyle() {
     final themeExt = ref.read(currentThemeExtensionProvider);
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: themeExt.backgroundColor,
-      statusBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarColor: themeExt.backgroundColor,
-      systemNavigationBarIconBrightness: themeExt.isDark ? Brightness.light : Brightness.dark,
+    // 상태바 색상을 앱바 배경색과 동일하게 설정
+    // 테마의 backgroundColor: #0A0A0F
+    const statusBarColor = Color(0xFF0A0A0F);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: statusBarColor,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: statusBarColor,
+      systemNavigationBarIconBrightness: Brightness.light,
     ));
   }
 

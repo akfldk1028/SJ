@@ -45,30 +45,30 @@ class SettingsScreen extends ConsumerWidget {
               _buildThemeSelector(context, ref, currentThemeType),
               const SizedBox(height: 24),
 
-              // 계정 설정 섹션
-              _buildSectionHeader(context, '계정 설정'),
-              const SizedBox(height: 8),
-              ShadCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    _buildSettingsTile(
-                      context,
-                      icon: LucideIcons.user,
-                      title: AppStrings.settingsProfile,
-                      onTap: () => context.push(Routes.settingsProfile),
-                    ),
-                    const Divider(height: 1),
-                    _buildSettingsTile(
-                      context,
-                      icon: LucideIcons.bell,
-                      title: AppStrings.settingsNotification,
-                      onTap: () => context.push(Routes.settingsNotification),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              // TODO: 배포 시 계정 설정 섹션 제거 (프로필관리, 알림설정)
+              // // 계정 설정 섹션
+              // _buildSectionHeader(context, '계정 설정'),
+              // const SizedBox(height: 8),
+              // ShadCard(
+              //   padding: EdgeInsets.zero,
+              //   child: Column(
+              //     children: [
+              //       _buildSettingsTile(
+              //         context,
+              //         icon: LucideIcons.user,
+              //         title: AppStrings.settingsProfile,
+              //         onTap: () => context.push(Routes.settingsProfile),
+              //       ),
+              //       const Divider(height: 1),
+              //       _buildSettingsTile(
+              //         context,
+              //         icon: LucideIcons.bell,
+              //         title: AppStrings.settingsNotification,
+              //         onTap: () => context.push(Routes.settingsNotification),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
               // 정보 섹션
               _buildSectionHeader(context, '정보'),
@@ -100,32 +100,32 @@ class SettingsScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // 개발자 도구 섹션
-              _buildSectionHeader(context, '개발자 도구'),
-              const SizedBox(height: 8),
-              ShadCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    _buildSettingsTile(
-                      context,
-                      icon: LucideIcons.play,
-                      title: '온보딩 다시 보기',
-                      onTap: () => context.go(Routes.onboarding),
-                    ),
-                    const Divider(height: 1),
-                    _buildSettingsTile(
-                      context,
-                      icon: LucideIcons.palette,
-                      title: '앱 아이콘 생성기',
-                      onTap: () => context.push(Routes.iconGenerator),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 32),
+
+              // TODO: 배포 시 개발자 도구 섹션 제거
+              // // 개발자 도구 섹션
+              // _buildSectionHeader(context, '개발자 도구'),
+              // const SizedBox(height: 8),
+              // ShadCard(
+              //   padding: EdgeInsets.zero,
+              //   child: Column(
+              //     children: [
+              //       _buildSettingsTile(
+              //         context,
+              //         icon: LucideIcons.play,
+              //         title: '온보딩 다시 보기',
+              //         onTap: () => context.go(Routes.onboarding),
+              //       ),
+              //       const Divider(height: 1),
+              //       _buildSettingsTile(
+              //         context,
+              //         icon: LucideIcons.palette,
+              //         title: '앱 아이콘 생성기',
+              //         onTap: () => context.push(Routes.iconGenerator),
+              //       ),
+              //     ],
+              //   ),
+              // ),
               ],
             ),
           ),

@@ -234,26 +234,51 @@ class ProfileFormState {
   /// 폼 유효성 검사
   bool get isValid {
     // 필수 필드 체크
-    if (displayName.isEmpty || displayName.length > 12) return false;
-    if (gender == null) return false;
-    if (birthDate == null) return false;
-    if (birthCity.isEmpty) return false;
+    if (displayName.isEmpty || displayName.length > 12) {
+      print('[isValid] FAIL: displayName invalid - "$displayName" (empty: ${displayName.isEmpty}, len: ${displayName.length})');
+      return false;
+    }
+    if (gender == null) {
+      print('[isValid] FAIL: gender is null');
+      return false;
+    }
+    if (birthDate == null) {
+      print('[isValid] FAIL: birthDate is null');
+      return false;
+    }
+    if (birthCity.isEmpty) {
+      print('[isValid] FAIL: birthCity is empty');
+      return false;
+    }
 
     // 도시가 유효한 목록에 있는지 확인
-    if (!TrueSolarTimeService.cityLongitude.containsKey(birthCity)) return false;
+    if (!TrueSolarTimeService.cityLongitude.containsKey(birthCity)) {
+      print('[isValid] FAIL: birthCity "$birthCity" not in cityLongitude');
+      return false;
+    }
 
     // 생년월일 범위 체크
     final now = DateTime.now();
-    if (birthDate!.year < 1900 || birthDate!.isAfter(now)) return false;
+    if (birthDate!.year < 1900 || birthDate!.isAfter(now)) {
+      print('[isValid] FAIL: birthDate out of range - $birthDate');
+      return false;
+    }
 
     // 출생시간 범위 체크 (시간 모름이 아닐 때)
     if (!birthTimeUnknown && birthTimeMinutes != null) {
-      if (birthTimeMinutes! < 0 || birthTimeMinutes! > 1439) return false;
+      if (birthTimeMinutes! < 0 || birthTimeMinutes! > 1439) {
+        print('[isValid] FAIL: birthTimeMinutes out of range - $birthTimeMinutes');
+        return false;
+      }
     }
 
     // Phase 18: 윤달 유효성 검사 (음력일 때만)
-    if (isLunar && leapMonthError != null) return false;
+    if (isLunar && leapMonthError != null) {
+      print('[isValid] FAIL: leapMonthError - $leapMonthError');
+      return false;
+    }
 
+    print('[isValid] PASS: all checks passed');
     return true;
   }
 
