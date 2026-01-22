@@ -72,6 +72,7 @@ class Yearly2025Mutations {
       'total_cost_usd': totalCost,
       'expires_at': null, // 무기한 캐시
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
+      'prompt_version': 'V3.1', // 2025 회고 프롬프트 버전
     };
 
     try {
