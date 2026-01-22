@@ -18,8 +18,9 @@ class LifetimeFortuneScreen extends ConsumerStatefulWidget {
 }
 
 class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
-  /// 세션 기반 잠금해제 상태 (앱 재시작 시 초기화)
-  final Set<String> _unlockedCycles = {};
+  /// [Static] 세션 기반 잠금해제 상태 - 앱 종료 전까지 유지!
+  /// 페이지 이동해도 유지됨
+  static final Set<String> _unlockedCycles = {};
   bool _isLoadingAd = false;
 
   @override

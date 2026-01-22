@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_monthly_chip_section.dart';
+import '../../../../AI/fortune/fortune_coordinator.dart';
+import '../../../../AI/fortune/common/fortune_input_data.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/monthly_fortune_provider.dart';
 
 /// 월별 운세 상세 화면 - 책처럼 읽기 쉬운 레이아웃
-class MonthlyFortuneScreen extends ConsumerWidget {
+/// v5.0: 광고 해금 시 해당 월 상세 운세 API 호출 지원
+class MonthlyFortuneScreen extends ConsumerStatefulWidget {
   const MonthlyFortuneScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MonthlyFortuneScreen> createState() => _MonthlyFortuneScreenState();
+}
+
+class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
+  @override
+  Widget build(BuildContext context) {
     final theme = context.appTheme;
     final fortuneAsync = ref.watch(monthlyFortuneProvider);
 
@@ -42,7 +52,7 @@ class MonthlyFortuneScreen extends ConsumerWidget {
       ),
       body: fortuneAsync.when(
         loading: () => const FortuneShimmerLoading(),
-        error: (error, stack) => _buildError(context, theme, ref),
+        error: (error, stack) => _buildError(context, theme),
         data: (fortune) {
           if (fortune == null) {
             return _buildAnalyzing(theme);
@@ -53,7 +63,7 @@ class MonthlyFortuneScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref) {
+  Widget _buildError(BuildContext context, AppThemeExtension theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -139,11 +149,13 @@ class MonthlyFortuneScreen extends ConsumerWidget {
 
         // 월별 운세 (광고 잠금) - 12개월 모두 표시
         // 현재 달은 위에 이미 내용이 보이므로 잠금 해제
+        // v5.0: 광고 해금 시 해당 월 상세 운세 API 호출
         FortuneMonthlyChipSection(
           fortuneType: 'monthly_fortune',
           title: '${fortune.year}년 월별 운세',
           months: _generate12MonthsData(fortune),
           currentMonth: fortune.month,
+          onMonthUnlocked: (monthNumber) => _fetchDetailedMonthFortune(fortune.year, monthNumber),
         ),
         const SizedBox(height: 32),
 
@@ -402,6 +414,13 @@ class MonthlyFortuneScreen extends ConsumerWidget {
     final currentMonth = fortune.month;
     final months = <String, MonthData>{};
 
+    // 디버그: AI 응답의 months 데이터 확인
+    debugPrint('[MonthlyFortune] fortune.months 개수: ${fortune.months.length}');
+    debugPrint('[MonthlyFortune] fortune.months keys: ${fortune.months.keys.toList()}');
+    for (final entry in fortune.months.entries) {
+      debugPrint('[MonthlyFortune] ${entry.key}: keyword=${entry.value.keyword}, score=${entry.value.score}, reading=${entry.value.reading.length}자');
+    }
+
     for (int i = 1; i <= 12; i++) {
       final monthKey = 'month$i';
 
@@ -428,9 +447,9 @@ class MonthlyFortuneScreen extends ConsumerWidget {
         } else {
           // 데이터가 없으면 기본 메시지 (하위 호환)
           months[monthKey] = MonthData(
-            keyword: '',
+            keyword: '운세 준비중',
             score: 0,
-            reading: '광고를 시청하면 $i월 운세를 확인할 수 있습니다.',
+            reading: '$i월 운세 분석이 아직 준비되지 않았습니다. 새로고침 버튼을 눌러 운세를 다시 불러와주세요.',
             tip: '',
           );
         }
@@ -438,5 +457,125 @@ class MonthlyFortuneScreen extends ConsumerWidget {
     }
 
     return months;
+  }
+
+  /// v5.0: 특정 월의 상세 운세 API 호출
+  ///
+  /// 광고 해금 후 호출되어 7개 카테고리 상세 데이터를 가져옴
+  /// - year: 대상 연도
+  /// - monthNumber: 대상 월 (1-12)
+  /// 반환: MonthData (categories 포함)
+  Future<MonthData?> _fetchDetailedMonthFortune(int year, int monthNumber) async {
+    debugPrint('[MonthlyFortune] 🚀 상세 운세 API 호출: $year년 $monthNumber월');
+
+    try {
+      // 1. 현재 사용자 확인
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        debugPrint('[MonthlyFortune] ❌ 사용자 인증 필요');
+        return null;
+      }
+
+      // 2. 활성 프로필 가져오기
+      final activeProfile = await ref.read(activeProfileProvider.future);
+      if (activeProfile == null) {
+        debugPrint('[MonthlyFortune] ❌ 활성 프로필 없음');
+        return null;
+      }
+
+      // 3. FortuneCoordinator로 특정 월 운세 분석 호출
+      debugPrint('[MonthlyFortune] 📡 API 호출 시작: userId=${user.id}, profileId=${activeProfile.id}');
+      final result = await fortuneCoordinator.analyzeMonthly(
+        userId: user.id,
+        profileId: activeProfile.id,
+        inputData: await _getFortuneInputData(activeProfile.id),
+        year: year,
+        month: monthNumber,
+        forceRefresh: true, // 항상 새로 분석
+      );
+
+      if (!result.success || result.content == null) {
+        debugPrint('[MonthlyFortune] ❌ API 호출 실패: ${result.errorMessage}');
+        return null;
+      }
+
+      // 4. API 응답을 MonthData로 변환
+      debugPrint('[MonthlyFortune] ✅ API 응답 수신, 파싱 시작');
+      final content = result.content!;
+      final fortuneData = MonthlyFortuneData.fromJson(content);
+
+      // 5. 카테고리 데이터 구성
+      final categories = <String, CategoryData>{};
+      for (final entry in fortuneData.categories.entries) {
+        categories[entry.key] = CategoryData(
+          title: _getCategoryName(entry.key),
+          score: entry.value.score,
+          reading: entry.value.reading,
+        );
+      }
+
+      debugPrint('[MonthlyFortune] ✅ 상세 운세 로드 완료: ${categories.length}개 카테고리');
+
+      return MonthData(
+        keyword: fortuneData.overview.keyword,
+        score: fortuneData.overview.score,
+        reading: fortuneData.overview.opening.isNotEmpty
+            ? fortuneData.overview.opening
+            : fortuneData.overview.conclusion,
+        tip: fortuneData.lucky.tip,
+        categories: categories,
+      );
+    } catch (e) {
+      debugPrint('[MonthlyFortune] ❌ 상세 운세 로드 실패: $e');
+      return null;
+    }
+  }
+
+  /// FortuneInputData 가져오기 (saju_analyses 기반)
+  Future<FortuneInputData> _getFortuneInputData(String profileId) async {
+    final supabase = Supabase.instance.client;
+
+    // saju_analyses 조회
+    final sajuAnalysesResponse = await supabase
+        .from('saju_analyses')
+        .select()
+        .eq('profile_id', profileId)
+        .maybeSingle();
+
+    if (sajuAnalysesResponse == null) {
+      throw Exception('saju_analyses가 없습니다.');
+    }
+
+    // 프로필 정보 조회
+    final profileResponse = await supabase
+        .from('saju_profiles')
+        .select('display_name, birth_date, birth_time_minutes, gender')
+        .eq('id', profileId)
+        .maybeSingle();
+
+    if (profileResponse == null) {
+      throw Exception('프로필을 찾을 수 없습니다.');
+    }
+
+    final profileName = profileResponse['display_name'] as String? ?? '';
+    final birthDate = profileResponse['birth_date'] as String? ?? '';
+    final birthTimeMinutes = profileResponse['birth_time_minutes'] as int?;
+    final gender = profileResponse['gender'] as String? ?? 'M';
+
+    // birth_time_minutes → HH:mm 변환
+    String? birthTime;
+    if (birthTimeMinutes != null) {
+      final hours = birthTimeMinutes ~/ 60;
+      final minutes = birthTimeMinutes % 60;
+      birthTime = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    }
+
+    return FortuneInputData.fromSajuAnalyses(
+      profileName: profileName,
+      birthDate: birthDate,
+      birthTime: birthTime,
+      gender: gender,
+      sajuAnalyses: sajuAnalysesResponse,
+    );
   }
 }
