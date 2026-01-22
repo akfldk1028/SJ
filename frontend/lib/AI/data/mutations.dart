@@ -406,6 +406,93 @@ class AiMutations extends BaseMutations {
       errorPrefix: '만료 캐시 삭제 실패',
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 분할 분석 (ai_tasks)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Phase 진행상황 업데이트
+  ///
+  /// ## v7.2: Phase 분할 분석 지원
+  /// - phase: 현재 진행 중인 Phase (1-4)
+  /// - partial_result: 완료된 Phase 결과 병합
+  ///
+  /// ## 용도
+  /// Progressive Disclosure - Phase 완료 시마다 UI 업데이트
+  Future<QueryResult<void>> updateTaskPhaseProgress({
+    required String taskId,
+    required int phase,
+    required Map<String, dynamic> partialResult,
+  }) async {
+    return safeMutation(
+      mutation: (client) async {
+        await client
+            .from('ai_tasks')
+            .update({
+              'phase': phase,
+              'partial_result': partialResult,
+            })
+            .eq('id', taskId);
+      },
+      errorPrefix: 'Phase 진행상황 업데이트 실패',
+    );
+  }
+
+  /// Phase 분할 분석 Task 생성
+  ///
+  /// ## v7.2: Phase 분할 분석용 Task 생성
+  /// - total_phases: 4
+  /// - phase: 1 (시작)
+  Future<QueryResult<String>> createPhasedTask({
+    required String userId,
+    required Map<String, dynamic> requestData,
+    String model = 'gpt-5.2-thinking',
+    int totalPhases = 4,
+  }) async {
+    return safeMutation(
+      mutation: (client) async {
+        final response = await client
+            .from('ai_tasks')
+            .insert({
+              'user_id': userId,
+              'task_type': 'saju_analysis',
+              'status': 'processing',
+              'request_data': requestData,
+              'model': model,
+              'phase': 1,
+              'total_phases': totalPhases,
+              'partial_result': {},
+            })
+            .select('id')
+            .single();
+
+        return response['id'] as String;
+      },
+      errorPrefix: 'Phase 분할 Task 생성 실패',
+    );
+  }
+
+  /// Task 완료 처리
+  ///
+  /// ## v7.2: Phase 분할 분석 완료 시 호출
+  Future<QueryResult<void>> completeTask({
+    required String taskId,
+    Map<String, dynamic>? resultData,
+  }) async {
+    return safeMutation(
+      mutation: (client) async {
+        await client
+            .from('ai_tasks')
+            .update({
+              'status': 'completed',
+              'result_data': resultData,
+              'completed_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .eq('id', taskId);
+      },
+      errorPrefix: 'Task 완료 처리 실패',
+    );
+  }
 }
 
 /// 전역 인스턴스

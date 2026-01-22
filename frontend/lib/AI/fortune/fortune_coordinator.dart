@@ -21,6 +21,7 @@ import '../services/ai_api_service.dart';
 import 'common/fortune_input_data.dart';
 import 'common/fortune_state.dart';
 import 'common/saju_analyses_queries.dart';
+import 'daily/daily_service.dart';
 import 'monthly/monthly_service.dart';
 import 'yearly_2025/yearly_2025_service.dart';
 import 'yearly_2026/yearly_2026_service.dart';
@@ -31,6 +32,7 @@ class FortuneAnalysisResults {
   final Map<String, dynamic>? yearly2026;
   final Map<String, dynamic>? monthly;
   final Map<String, dynamic>? yearly2025;
+  final Map<String, dynamic>? daily; // v7.0 추가
   final String? errorMessage;
 
   const FortuneAnalysisResults({
@@ -38,6 +40,7 @@ class FortuneAnalysisResults {
     this.yearly2026,
     this.monthly,
     this.yearly2025,
+    this.daily,
     this.errorMessage,
   });
 
@@ -50,7 +53,7 @@ class FortuneAnalysisResults {
 
   /// 모든 분석이 완료되었는지
   bool get allCompleted =>
-      yearly2026 != null && monthly != null && yearly2025 != null;
+      yearly2026 != null && monthly != null && yearly2025 != null && daily != null;
 
   /// 완료된 분석 개수
   int get completedCount {
@@ -58,6 +61,7 @@ class FortuneAnalysisResults {
     if (yearly2026 != null) count++;
     if (monthly != null) count++;
     if (yearly2025 != null) count++;
+    if (daily != null) count++;
     return count;
   }
 }
@@ -70,6 +74,7 @@ class FortuneCoordinator {
   late final Yearly2026Service _yearly2026Service;
   late final MonthlyService _monthlyService;
   late final Yearly2025Service _yearly2025Service;
+  late final DailyService _dailyService;
   late final SajuAnalysesQueries _sajuAnalysesQueries;
 
   /// v6.1 중복 분석 방지용 - 현재 분석 중인 프로필 ID 목록
@@ -89,6 +94,10 @@ class FortuneCoordinator {
       aiApiService: _aiApiService,
     );
     _yearly2025Service = Yearly2025Service(
+      supabase: _supabase,
+      aiApiService: _aiApiService,
+    );
+    _dailyService = DailyService(
       supabase: _supabase,
       aiApiService: _aiApiService,
     );
@@ -240,11 +249,13 @@ class FortuneCoordinator {
       );
 
       // 3. 독립적 병렬 분석 - 각각 완료되면 바로 저장됨 (실패해도 다른 것에 영향 없음)
-      print('[FortuneCoordinator] 🚀 v3.0 운세 분석 즉시 시작! (saju_base 대기 없음)');
+      // v7.0: Daily Fortune 추가!
+      print('[FortuneCoordinator] 🚀 v7.0 운세 분석 즉시 시작! (Daily 포함)');
 
       Yearly2026Result? yearly2026Result;
       MonthlyResult? monthlyResult;
       Yearly2025Result? yearly2025Result;
+      DailyResult? dailyResult;
 
       // 각 Future를 독립적으로 실행 (하나 실패해도 나머지는 계속 진행)
       final yearly2026Future = _yearly2026Service
@@ -295,14 +306,32 @@ class FortuneCoordinator {
         return Yearly2025Result.error(e.toString());
       });
 
+      // v7.0: Daily Fortune 병렬 추가 (Gemini 3.0 Flash)
+      final dailyFuture = _dailyService
+          .analyze(
+            userId: userId,
+            profileId: profileId,
+            inputData: inputData,
+          )
+          .then((result) {
+        dailyResult = result;
+        print(
+            '[FortuneCoordinator] ✅ 오늘의 일운 완료: ${result.success ? "성공" : "실패"}');
+        return result;
+      }).catchError((e) {
+        print('[FortuneCoordinator] ❌ 오늘의 일운 에러: $e');
+        return DailyResult.error(e.toString());
+      });
+
       // 모든 Future 완료 대기 (개별 저장은 이미 완료됨)
       await Future.wait([
         yearly2026Future,
         monthlyFuture,
         yearly2025Future,
+        dailyFuture,
       ]);
 
-      print('[FortuneCoordinator] 🏁 모든 운세 분석 완료');
+      print('[FortuneCoordinator] 🏁 v7.0 모든 운세 분석 완료 (Daily 포함)');
 
       // 4. 결과 반환
       return FortuneAnalysisResults(
@@ -315,6 +344,7 @@ class FortuneCoordinator {
         yearly2025: yearly2025Result?.success == true
             ? yearly2025Result?.content
             : null,
+        daily: dailyResult?.success == true ? dailyResult?.content : null,
       );
     } catch (e) {
       print('[FortuneCoordinator] ❌ 전체 에러: $e');
@@ -377,6 +407,95 @@ class FortuneCoordinator {
       inputData: inputData,
       forceRefresh: forceRefresh,
     );
+  }
+
+  /// 오늘의 일운만 분석 (Gemini 3.0 Flash)
+  ///
+  /// ## v7.0 추가 (2026-01)
+  /// - 일운은 프로필 저장 시가 아닌 온디맨드로 분석
+  /// - Gemini 3.0 Flash 사용 (빠르고 저렴)
+  /// - 캐시: 해당 날짜 23:59:59까지 유효
+  Future<DailyResult> analyzeDaily({
+    required String userId,
+    required String profileId,
+    required FortuneInputData inputData,
+    DateTime? targetDate,
+    bool forceRefresh = false,
+  }) {
+    return _dailyService.analyze(
+      userId: userId,
+      profileId: profileId,
+      inputData: inputData,
+      targetDate: targetDate,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  /// 오늘의 일운 분석 (간편 버전 - Provider용)
+  ///
+  /// saju_analyses를 자동으로 조회하여 분석
+  /// [profileId]만 있으면 분석 가능
+  Future<DailyResult> analyzeDailyOnly({
+    required String userId,
+    required String profileId,
+    DateTime? targetDate,
+    bool forceRefresh = false,
+  }) async {
+    try {
+      // 1. saju_analyses 조회
+      final sajuAnalyses =
+          await _sajuAnalysesQueries.getForFortuneInput(profileId);
+
+      if (sajuAnalyses == null) {
+        return DailyResult.error(
+          'saju_analyses가 없습니다. 프로필 저장이 완료되어야 합니다.',
+        );
+      }
+
+      // 2. 프로필 정보 조회
+      final profileResponse = await _supabase
+          .from('saju_profiles')
+          .select('display_name, birth_date, birth_time_minutes, gender')
+          .eq('id', profileId)
+          .maybeSingle();
+
+      if (profileResponse == null) {
+        return DailyResult.error('프로필을 찾을 수 없습니다.');
+      }
+
+      final profileName = profileResponse['display_name'] as String? ?? '';
+      final birthDate = profileResponse['birth_date'] as String? ?? '';
+      final birthTimeMinutes = profileResponse['birth_time_minutes'] as int?;
+      final gender = profileResponse['gender'] as String? ?? 'M';
+
+      // birth_time_minutes → HH:mm 변환
+      String? birthTime;
+      if (birthTimeMinutes != null) {
+        final hours = birthTimeMinutes ~/ 60;
+        final minutes = birthTimeMinutes % 60;
+        birthTime = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+      }
+
+      // 3. FortuneInputData 구성
+      final inputData = FortuneInputData.fromSajuAnalyses(
+        profileName: profileName,
+        birthDate: birthDate,
+        birthTime: birthTime,
+        gender: gender,
+        sajuAnalyses: sajuAnalyses,
+      );
+
+      // 4. 일운 분석
+      return _dailyService.analyze(
+        userId: userId,
+        profileId: profileId,
+        inputData: inputData,
+        targetDate: targetDate,
+        forceRefresh: forceRefresh,
+      );
+    } catch (e) {
+      return DailyResult.error(e.toString());
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -462,12 +581,13 @@ class FortuneCoordinator {
         sajuAnalyses: sajuAnalyses,
       );
 
-      // 4. 병렬 분석 실행
-      print('[FortuneCoordinator] 🎯 Fortune 병렬 분석 시작...');
+      // 4. 병렬 분석 실행 (v7.0: Daily 추가!)
+      print('[FortuneCoordinator] 🎯 Fortune 병렬 분석 시작 (Daily 포함)...');
 
       Yearly2026Result? yearly2026Result;
       MonthlyResult? monthlyResult;
       Yearly2025Result? yearly2025Result;
+      DailyResult? dailyResult;
 
       final yearly2026Future = _yearly2026Service
           .analyze(userId: userId, profileId: profileId, inputData: inputData)
@@ -502,15 +622,28 @@ class FortuneCoordinator {
         return Yearly2025Result.error(e.toString());
       });
 
-      await Future.wait([yearly2026Future, monthlyFuture, yearly2025Future]);
+      // v7.0: Daily Fortune 병렬 추가 (Gemini 3.0 Flash)
+      final dailyFuture = _dailyService
+          .analyze(userId: userId, profileId: profileId, inputData: inputData)
+          .then((result) {
+        dailyResult = result;
+        print('[FortuneCoordinator] ✅ 오늘의 일운 완료');
+        return result;
+      }).catchError((e) {
+        print('[FortuneCoordinator] ❌ 일운 에러: $e');
+        return DailyResult.error(e.toString());
+      });
 
-      print('[FortuneCoordinator] 🏁 v6.0 Fortune 분석 완료!');
+      await Future.wait([yearly2026Future, monthlyFuture, yearly2025Future, dailyFuture]);
+
+      print('[FortuneCoordinator] 🏁 v7.0 Fortune 분석 완료! (Daily 포함)');
 
       return FortuneAnalysisResults(
         success: true,
         yearly2026: yearly2026Result?.success == true ? yearly2026Result?.content : null,
         monthly: monthlyResult?.success == true ? monthlyResult?.content : null,
         yearly2025: yearly2025Result?.success == true ? yearly2025Result?.content : null,
+        daily: dailyResult?.success == true ? dailyResult?.content : null,
       );
     } catch (e) {
       print('[FortuneCoordinator] ❌ 에러: $e');
@@ -537,12 +670,14 @@ class FortuneCoordinator {
       _yearly2026Service.hasCached(profileId),
       _monthlyService.hasCached(profileId),
       _yearly2025Service.hasCached(profileId),
+      _dailyService.hasTodayCached(profileId),
     ]);
 
     return {
       'yearly_2026': results[0],
       'monthly': results[1],
       'yearly_2025': results[2],
+      'daily': results[3],
     };
   }
 
@@ -554,13 +689,25 @@ class FortuneCoordinator {
       _yearly2026Service.getCached(profileId),
       _monthlyService.getCached(profileId),
       _yearly2025Service.getCached(profileId),
+      _dailyService.getTodayCached(profileId),
     ]);
 
     return {
       'yearly_2026': results[0],
       'monthly': results[1],
       'yearly_2025': results[2],
+      'daily': results[3],
     };
+  }
+
+  /// 오늘 일운 캐시 확인
+  Future<bool> hasDailyCached(String profileId) {
+    return _dailyService.hasTodayCached(profileId);
+  }
+
+  /// 오늘 일운 캐시 조회
+  Future<Map<String, dynamic>?> getDailyCached(String profileId) {
+    return _dailyService.getTodayCached(profileId);
   }
 }
 
