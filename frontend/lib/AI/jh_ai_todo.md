@@ -344,3 +344,34 @@ npm run watch
 
 - 프로필당 **1회만 실행** (캐시)
 - 재분석은 프로필 수정 시에만
+
+---
+
+## ✅ 월별 운세 광고 해금 시 상세 API 호출 (2026-01-22)
+
+### 문제
+- 월별 운세에서 광고로 다른 달 해금 시 요약 데이터만 표시
+- 7개 카테고리(직업운, 사업운, 재물운, 애정운, 결혼운, 학업운, 건강운) 미표시
+
+### 해결
+**Option 2**: 월 해금 시 해당 월 상세 분석 별도 API 호출
+
+### 변경 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `shared/widgets/fortune_monthly_chip_section.dart` | `CategoryData` 클래스, `onMonthUnlocked` 콜백, 세션 캐시 |
+| `features/monthly_fortune/.../monthly_fortune_screen.dart` | `_fetchDetailedMonthFortune()` API 호출 로직 |
+| `shared/widgets/fortune_category_chip_section.dart` | ScaffoldMessenger 에러 수정 |
+
+### 동작 흐름
+```
+광고 시청 완료 → onMonthUnlocked(month) 
+→ FortuneCoordinator.analyzeMonthly() 
+→ 7개 카테고리 데이터 반환 → UI 표시
+```
+
+### 상태
+- [x] 구현 완료
+- [x] 빌드 성공
+- [ ] 실기기 테스트
