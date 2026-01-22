@@ -51,26 +51,35 @@ class ProfileRepositoryImpl implements ProfileRepository {
     await _saveToSupabase(model);
   }
 
-  /// Supabase에 프로필 저장 (비동기, 실패 시 throw)
+  /// Supabase에 프로필 저장 (비동기)
   ///
   /// Phase 45: 인연 추가 시 FK 제약 문제 해결을 위해
   /// Supabase 저장 실패 시 에러를 throw하도록 변경
+  ///
+  /// Phase 46: 오프라인 모드 지원
+  /// Supabase 미연결 시 로컬 저장만 수행 (에러 throw 안함)
   Future<void> _saveToSupabase(SajuProfileModel model) async {
     _log('🔍 _saveToSupabase 시작: ${model.id}');
+
+    // 오프라인 모드 체크: Supabase 미연결 시 스킵
+    if (!SupabaseService.isConnected) {
+      _log('⏭️ Supabase 미연결 - 로컬 저장만 수행');
+      return;
+    }
 
     try {
       // 익명 인증 확인
       final user = await SupabaseService.ensureAuthenticated();
       if (user == null) {
-        _log('❌ Supabase 인증 실패: user is null');
-        throw Exception('Supabase 인증이 필요합니다');
+        _log('⚠️ Supabase 인증 실패 - 로컬 저장만 수행');
+        return; // 오프라인 모드에서는 로컬 저장만
       }
       _log('   - user.id: ${user.id}');
 
       final table = SupabaseService.sajuProfilesTable;
       if (table == null) {
-        _log('❌ sajuProfilesTable is null');
-        throw Exception('Supabase 테이블을 사용할 수 없습니다');
+        _log('⚠️ sajuProfilesTable is null - 로컬 저장만 수행');
+        return;
       }
 
       final data = model.toSupabaseMap(user.id);
@@ -79,9 +88,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
       await table.upsert(data);
       _log('✅ Profile saved to Supabase: ${model.id}');
     } catch (e) {
-      _log('❌ Failed to save profile to Supabase: $e');
-      // Phase 45: FK 제약 문제로 인해 에러를 throw
-      rethrow;
+      _log('⚠️ Supabase 저장 실패 (로컬 저장은 완료): $e');
+      // 오프라인 모드에서는 에러를 throw하지 않음
     }
   }
 

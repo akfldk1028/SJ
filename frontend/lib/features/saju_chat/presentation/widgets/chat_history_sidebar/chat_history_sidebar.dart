@@ -30,6 +30,9 @@ class ChatHistorySidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // 가로 모드 체크 - orientation 직접 사용
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
 
     return Container(
       width: 280,
@@ -45,8 +48,8 @@ class ChatHistorySidebar extends StatelessWidget {
       child: Column(
         children: [
           SidebarHeader(onNewChat: onNewChat),
-          // 페르소나 선택 그리드
-          const PersonaSelectorGrid(),
+          // 페르소나 선택 그리드 - 가로 모드에서는 숨김
+          if (!isLandscape) const PersonaSelectorGrid(),
           // 대화 히스토리 목록
           Expanded(
             child: SessionList(

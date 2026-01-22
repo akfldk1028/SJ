@@ -65,23 +65,27 @@ class _FortuneCategoryChipSectionState
   /// 광고 로딩 중 플래그
   bool _isLoadingAd = false;
 
-  /// 세션 기반 잠금해제 상태 (앱 재시작 시 초기화됨!)
-  /// Hive 영구 저장 제거 - 사용자 기대대로 앱 나갔다 들어오면 다시 잠김
-  Set<String> _unlockedCategories = {};
+  /// [Static] 세션 기반 잠금해제 상태 - 앱 종료 전까지 유지!
+  /// fortuneType별로 구분 (lifetime, yearly_2025, yearly_2026, monthly)
+  static final Map<String, Set<String>> _sessionUnlockedCategories = {};
+
+  /// 현재 fortuneType의 해금된 카테고리 Set
+  Set<String> get _unlockedCategories =>
+      _sessionUnlockedCategories[widget.fortuneType] ?? {};
 
   @override
   void initState() {
     super.initState();
-    // 세션 기반이므로 초기 상태는 모두 잠금 (빈 Set)
-    // Hive 로딩 제거됨
+    // static 변수 초기화 (fortuneType별로)
+    _sessionUnlockedCategories[widget.fortuneType] ??= {};
   }
 
-  /// 카테고리 잠금 해제 (세션 메모리만 - 앱 재시작 시 초기화!)
+  /// 카테고리 잠금 해제 (세션 메모리 - 앱 종료 시 초기화!)
   void _unlockCategory(String category) {
+    _sessionUnlockedCategories[widget.fortuneType] ??= {};
+    _sessionUnlockedCategories[widget.fortuneType]!.add(category);
     if (mounted) {
-      setState(() {
-        _unlockedCategories = {..._unlockedCategories, category};
-      });
+      setState(() {}); // UI 갱신
     }
   }
 
@@ -476,12 +480,16 @@ class _FortuneCategoryChipSectionState
                   _isLoadingAd = false;
                 });
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$categoryName 운세가 해제되었습니다!'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('$categoryName 운세가 해제되었습니다!'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } catch (_) {
+                  // ScaffoldMessenger not available (ad activity context)
+                }
               }
             },
           );
@@ -510,12 +518,16 @@ class _FortuneCategoryChipSectionState
               _isLoadingAd = false;
             });
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$categoryName 운세가 해제되었습니다!'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            try {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$categoryName 운세가 해제되었습니다!'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } catch (_) {
+              // ScaffoldMessenger not available (ad activity context)
+            }
           }
         },
       );

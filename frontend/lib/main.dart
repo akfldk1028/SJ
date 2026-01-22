@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -15,6 +16,16 @@ import 'features/profile/data/repositories/profile_repository_impl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 상태바/네비게이션바 색상을 기본 테마 배경색으로 설정
+  // 앱 실행 후 테마에 맞게 다시 설정됨 (app.dart의 _applySystemUiStyle)
+  const defaultBackgroundColor = Color(0xFF0A0A0F); // 기본 다크 테마 배경색
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: defaultBackgroundColor,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: defaultBackgroundColor,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
 
   // 환경변수 로드
   await dotenv.load(fileName: '.env');

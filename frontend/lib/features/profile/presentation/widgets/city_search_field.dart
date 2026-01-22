@@ -19,9 +19,8 @@ class CitySearchField extends ConsumerStatefulWidget {
 }
 
 class _CitySearchFieldState extends ConsumerState<CitySearchField> {
-  // 도시 목록 (TrueSolarTimeService에서 가져오기)
-  static final List<String> _cities =
-      TrueSolarTimeService.cityLongitude.keys.where((k) => k != 'default').toList();
+  // 도시 목록 (중복 제거된 searchableCities 사용)
+  static final List<String> _cities = TrueSolarTimeService.searchableCities;
 
   // 검색어 상태
   String _searchValue = '';
