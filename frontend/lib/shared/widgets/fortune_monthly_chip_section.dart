@@ -1,8 +1,20 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+
+/// 카테고리별 운세 데이터
+class CategoryData {
+  final String title;
+  final int score;
+  final String reading;
+
+  const CategoryData({
+    required this.title,
+    required this.score,
+    required this.reading,
+  });
+}
 
 /// 월별 데이터 인터페이스
 class MonthData {
@@ -10,13 +22,46 @@ class MonthData {
   final int score;
   final String reading;
   final String tip;
+  /// v5.0: 7개 카테고리 상세 데이터 (광고 해금 후 로드)
+  final Map<String, CategoryData>? categories;
+  /// 상세 데이터 로딩 중 플래그
+  final bool isLoading;
 
   const MonthData({
     this.keyword = '',
     this.score = 0,
     this.reading = '',
     this.tip = '',
+    this.categories,
+    this.isLoading = false,
   });
+
+  /// 카테고리 데이터가 있는지 확인
+  bool get hasCategories => categories != null && categories!.isNotEmpty;
+
+  /// 로딩 중 상태로 복사
+  MonthData copyWithLoading(bool loading) {
+    return MonthData(
+      keyword: keyword,
+      score: score,
+      reading: reading,
+      tip: tip,
+      categories: categories,
+      isLoading: loading,
+    );
+  }
+
+  /// 카테고리 데이터 추가
+  MonthData copyWithCategories(Map<String, CategoryData> newCategories) {
+    return MonthData(
+      keyword: keyword,
+      score: score,
+      reading: reading,
+      tip: tip,
+      categories: newCategories,
+      isLoading: false,
+    );
+  }
 }
 
 /// 월별 운세 칩 섹션 (월별 운세용)
@@ -24,6 +69,7 @@ class MonthData {
 /// - 12개월이 칩으로 표시되고 탭하면 펼쳐짐
 /// - 잠긴 월은 광고를 봐야 해제
 /// - 현재 달(currentMonth)은 처음부터 잠금 해제 상태
+/// - v5.0: 광고 해금 시 상세 운세 API 호출 콜백 지원
 class FortuneMonthlyChipSection extends StatefulWidget {
   /// 운세 타입 (monthly_fortune)
   final String fortuneType;
@@ -37,12 +83,18 @@ class FortuneMonthlyChipSection extends StatefulWidget {
   /// 현재 달 (1-12). 이 달은 처음부터 잠금 해제됨
   final int? currentMonth;
 
+  /// v5.0: 월 해금 시 호출되는 콜백 (상세 운세 API 호출용)
+  /// monthNumber: 해금된 월 (1-12)
+  /// 반환값: 상세 운세 데이터 (categories 포함)
+  final Future<MonthData?> Function(int monthNumber)? onMonthUnlocked;
+
   const FortuneMonthlyChipSection({
     super.key,
     required this.fortuneType,
     required this.months,
     this.title,
     this.currentMonth,
+    this.onMonthUnlocked,
   });
 
   @override
@@ -57,50 +109,83 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
   /// 광고 로딩 중 플래그
   bool _isLoadingAd = false;
 
-  /// Hive box for local storage
-  Box<bool>? _box;
-  Set<String> _unlockedMonths = {};
+  /// [Static] 세션 기반 잠금해제 상태 - 앱 종료 전까지 유지!
+  /// fortuneType별로 구분
+  static final Map<String, Set<String>> _sessionUnlockedMonths = {};
+
+  /// [Static] 세션 기반 상세 데이터 캐시 - 앱 종료 전까지 유지!
+  /// fortuneType -> monthKey -> MonthData (with categories)
+  static final Map<String, Map<String, MonthData>> _sessionDetailedMonths = {};
+
+  /// 현재 fortuneType의 해금된 월 Set (현재 달 포함)
+  Set<String> get _unlockedMonths {
+    final unlocked = _sessionUnlockedMonths[widget.fortuneType] ?? {};
+    // 현재 달은 항상 해금
+    if (widget.currentMonth != null) {
+      return {...unlocked, 'month${widget.currentMonth}'};
+    }
+    return unlocked;
+  }
+
+  /// 현재 월의 데이터 가져오기 (캐시된 상세 데이터 우선)
+  MonthData? _getMonthData(String monthKey) {
+    // 1. 캐시된 상세 데이터가 있으면 사용
+    final cached = _sessionDetailedMonths[widget.fortuneType]?[monthKey];
+    if (cached != null && cached.hasCategories) {
+      return cached;
+    }
+    // 2. 없으면 기본 데이터 사용
+    return widget.months[monthKey];
+  }
 
   @override
   void initState() {
     super.initState();
-    // 현재 달은 초기 상태에서도 바로 잠금 해제
-    if (widget.currentMonth != null) {
-      _unlockedMonths = {'month${widget.currentMonth}'};
-    }
-    _loadUnlockedMonths();
+    // static 변수 초기화 (fortuneType별로)
+    _sessionUnlockedMonths[widget.fortuneType] ??= {};
+    _sessionDetailedMonths[widget.fortuneType] ??= {};
   }
 
-  Future<void> _loadUnlockedMonths() async {
-    _box = await Hive.openBox<bool>('unlocked_fortune_months');
+  /// 월 잠금 해제 및 상세 데이터 로드
+  Future<void> _unlockMonthAndFetchDetails(String monthKey) async {
+    final monthNum = int.tryParse(monthKey.replaceAll('month', '')) ?? 0;
 
-    final unlocked = <String>{};
+    // 1. 잠금 해제
+    _sessionUnlockedMonths[widget.fortuneType] ??= {};
+    _sessionUnlockedMonths[widget.fortuneType]!.add(monthKey);
 
-    // 현재 달은 처음부터 잠금 해제
-    if (widget.currentMonth != null) {
-      unlocked.add('month${widget.currentMonth}');
-    }
+    // 2. 상세 데이터 로드 (콜백이 있으면)
+    if (widget.onMonthUnlocked != null && monthNum > 0) {
+      debugPrint('[MonthlyChip] 🚀 상세 운세 API 호출 시작: $monthNum월');
 
-    for (final key in _box!.keys) {
-      final keyStr = key.toString();
-      if (keyStr.startsWith('${widget.fortuneType}_') && _box!.get(key) == true) {
-        unlocked.add(keyStr.substring(widget.fortuneType.length + 1));
+      // 로딩 상태 저장
+      _sessionDetailedMonths[widget.fortuneType] ??= {};
+      _sessionDetailedMonths[widget.fortuneType]![monthKey] =
+          (widget.months[monthKey] ?? const MonthData()).copyWithLoading(true);
+
+      if (mounted) setState(() {});
+
+      try {
+        final detailedData = await widget.onMonthUnlocked!(monthNum);
+        if (detailedData != null) {
+          debugPrint('[MonthlyChip] ✅ 상세 운세 로드 완료: ${detailedData.categories?.length ?? 0}개 카테고리');
+          _sessionDetailedMonths[widget.fortuneType]![monthKey] = detailedData;
+        } else {
+          debugPrint('[MonthlyChip] ⚠️ 상세 운세 데이터 없음');
+          // 로딩 해제
+          _sessionDetailedMonths[widget.fortuneType]![monthKey] =
+              (widget.months[monthKey] ?? const MonthData()).copyWithLoading(false);
+        }
+      } catch (e) {
+        debugPrint('[MonthlyChip] ❌ 상세 운세 로드 실패: $e');
+        // 로딩 해제
+        _sessionDetailedMonths[widget.fortuneType]![monthKey] =
+            (widget.months[monthKey] ?? const MonthData()).copyWithLoading(false);
       }
     }
 
     if (mounted) {
-      setState(() => _unlockedMonths = unlocked);
-    }
-  }
-
-  Future<void> _unlockMonth(String month) async {
-    final box = _box ?? await Hive.openBox<bool>('unlocked_fortune_months');
-    await box.put('${widget.fortuneType}_$month', true);
-
-    if (mounted) {
-      setState(() {
-        _unlockedMonths = {..._unlockedMonths, month};
-      });
+      setState(() {}); // UI 갱신
     }
   }
 
@@ -228,10 +313,17 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
   }
 
   Widget _buildExpandedContent(AppThemeExtension theme, String monthKey) {
-    final month = widget.months[monthKey];
+    final month = _getMonthData(monthKey);
+    debugPrint('[MonthlyChip] _buildExpandedContent: monthKey=$monthKey');
+    debugPrint('[MonthlyChip] month data: keyword=${month?.keyword}, score=${month?.score}, hasCategories=${month?.hasCategories}, isLoading=${month?.isLoading}');
     if (month == null) return const SizedBox.shrink();
 
     final monthNum = monthKey.replaceAll('month', '');
+
+    // 로딩 중이면 로딩 표시
+    if (month.isLoading) {
+      return _buildLoadingContent(theme, monthNum);
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -301,8 +393,8 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
             const SizedBox(height: 12),
           ],
 
-          // 풀이
-          if (month.reading.isNotEmpty)
+          // 풀이 (총운)
+          if (month.reading.isNotEmpty) ...[
             Text(
               month.reading,
               style: TextStyle(
@@ -311,6 +403,26 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
                 height: 1.7,
               ),
             ),
+            const SizedBox(height: 16),
+          ],
+
+          // v5.0: 카테고리별 운세 (상세 데이터가 있을 때)
+          if (month.hasCategories) ...[
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              '분야별 운세',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: theme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...month.categories!.entries.map((entry) {
+              return _buildCategoryCard(theme, entry.key, entry.value);
+            }),
+          ],
 
           // 팁
           if (month.tip.isNotEmpty) ...[
@@ -327,6 +439,128 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
         ],
       ),
     );
+  }
+
+  /// 로딩 중 UI
+  Widget _buildLoadingContent(AppThemeExtension theme, String monthNum) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                '$monthNum월 운세',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => setState(() => _expandedMonth = null),
+                child: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: theme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            '$monthNum월 운세를 분석하고 있습니다...',
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  /// 카테고리 카드 빌드
+  Widget _buildCategoryCard(AppThemeExtension theme, String categoryKey, CategoryData category) {
+    final categoryName = _getCategoryName(categoryKey);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                categoryName,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (category.score > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getScoreColor(category.score).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${category.score}점',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _getScoreColor(category.score),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (category.reading.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              category.reading,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.textSecondary,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getCategoryName(String key) {
+    const names = {
+      'career': '직업운',
+      'business': '사업운',
+      'wealth': '재물운',
+      'love': '애정운',
+      'marriage': '결혼운',
+      'study': '학업운',
+      'health': '건강운',
+    };
+    return names[key] ?? key;
   }
 
   Color _getScoreColor(int score) {
@@ -362,7 +596,7 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {
-      await _unlockMonth(monthKey);
+      await _unlockMonthAndFetchDetails(monthKey);
       if (mounted) {
         setState(() {
           _expandedMonth = monthKey;
@@ -386,7 +620,7 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
         onLoaded: () async {
           final shown = await AdService.instance.showRewardedAd(
             onRewarded: (amount, type) async {
-              await _unlockMonth(monthKey);
+              await _unlockMonthAndFetchDetails(monthKey);
 
               if (mounted) {
                 setState(() {
@@ -394,12 +628,16 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
                   _isLoadingAd = false;
                 });
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$monthName 운세가 해제되었습니다!'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('$monthName 운세를 분석합니다...'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } catch (_) {
+                  // ScaffoldMessenger not available (ad activity context)
+                }
               }
             },
           );
@@ -417,25 +655,33 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
         },
       );
     } else {
+      debugPrint('[MonthlyChip] Rewarded ad already loaded, showing...');
       final shown = await AdService.instance.showRewardedAd(
         onRewarded: (amount, type) async {
-          await _unlockMonth(monthKey);
+          debugPrint('[MonthlyChip] onRewarded called! amount=$amount, type=$type, monthKey=$monthKey');
+          await _unlockMonthAndFetchDetails(monthKey);
 
           if (mounted) {
+            debugPrint('[MonthlyChip] Setting expandedMonth=$monthKey');
             setState(() {
               _expandedMonth = monthKey;
               _isLoadingAd = false;
             });
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$monthName 운세가 해제되었습니다!'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            try {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$monthName 운세를 분석합니다...'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } catch (_) {
+              // ScaffoldMessenger not available (ad activity context)
+            }
           }
         },
       );
+      debugPrint('[MonthlyChip] showRewardedAd returned: shown=$shown');
 
       if (!shown && mounted) {
         setState(() => _isLoadingAd = false);
