@@ -30,8 +30,9 @@ class ChatHistorySidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // 가로 모드 체크 (화면 높이가 400 미만이면 가로 모드로 간주)
-    final isLandscape = MediaQuery.of(context).size.height < 400;
+    // 가로 모드 체크 - orientation 직접 사용
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
 
     return Container(
       width: 280,
