@@ -195,7 +195,7 @@ class AdTrackingService {
       return;
     }
 
-    final today = KoreaDateUtils.todayKoreaDateString;
+    final today = KoreaDateUtils.currentDateKey;
 
     try {
       // upsert로 오늘 레코드가 없으면 생성, 있으면 업데이트
