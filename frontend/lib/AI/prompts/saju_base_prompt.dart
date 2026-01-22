@@ -223,14 +223,14 @@ ${_buildHapchungSection(data.hapchung)}
 ```json
 {
 
-  "summary": "이 사주의 평생운세를 30문장으로 요약",
+  "summary": "이 사주의 핵심 특성을 10문장으로 간결하게 요약",
 
   "wonGuk_analysis": {
     "day_master": "일간 분석 (예: 甲木일간으로 성장과 진취성을 상징)",
     "oheng_balance": "오행 균형 분석 (과다/부족 오행과 그 영향)",
     "singang_singak": "신강/신약 판정 근거와 의미",
     "gyeokguk": "격국 분석 (해당되는 경우)",
-    "reading": "원국 종합 해석 최소 15문장! 일간의 본성, 오행 균형 상태, 신강/신약 여부가 이 사람의 삶에 어떤 영향을 미치는지 스토리텔링으로 설명"
+    "reading": "원국 종합 해석 8문장. 일간 본성, 오행 균형, 신강/신약이 삶에 미치는 핵심 영향"
   },
 
   "sipsung_analysis": {
@@ -238,7 +238,7 @@ ${_buildHapchungSection(data.hapchung)}
     "weak_sipsung": ["사주에서 약한 십성 1-2개"],
     "key_interactions": "십성 간 주요 상호작용 분석",
     "life_implications": "십성 구조가 인생에 미치는 영향",
-    "reading": "십성 종합 해석 최소 15문장! 비겁/식상/재성/관성/인성의 분포와 상호작용이 성격, 재물, 직업, 인간관계에 어떤 영향을 미치는지 스토리텔링으로 설명"
+    "reading": "십성 종합 해석 8문장. 비겁/식상/재성/관성/인성 분포가 성격, 재물, 직업에 미치는 핵심 영향"
   },
 
   "hapchung_analysis": {
@@ -246,7 +246,7 @@ ${_buildHapchungSection(data.hapchung)}
     "major_chungs": ["주요 충의 의미와 영향"],
     "other_interactions": "형/파/해/원진 영향 (있는 경우)",
     "overall_impact": "합충 구조가 인생에 미치는 종합 영향",
-    "reading": "합충 종합 해석 최소 15문장! 천간합, 지지합, 충, 형, 파, 해가 이 사람의 변화, 갈등, 기회에 어떤 영향을 미치는지 스토리텔링으로 설명"
+    "reading": "합충 종합 해석 8문장. 천간합, 지지합, 충, 형, 파, 해가 변화와 기회에 미치는 핵심 영향"
   },
 
   "personality": {
@@ -254,7 +254,7 @@ ${_buildHapchungSection(data.hapchung)}
     "strengths": ["장점 4-6개"],
     "weaknesses": ["약점/주의점 3-4개"],
     "social_style": "대인관계 스타일",
-    "reading": "성격 종합 해석 최소 20문장! 일간과 십성 구조를 바탕으로, 이 사람이 어떤 사람인지, 어떻게 행동하고 생각하는지, 대인관계는 어떤지 스토리텔링으로 설명"
+    "reading": "성격 종합 해석 10문장. 일간과 십성 구조 기반으로 성격, 행동 패턴, 대인관계 핵심"
   },
 
   "wealth": {
@@ -265,7 +265,7 @@ ${_buildHapchungSection(data.hapchung)}
     "wealth_timing": "재물운이 좋은 시기/나이대",
     "cautions": ["재물 관련 주의사항 2-3개"],
     "advice": "재물운 향상을 위한 조언",
-    "reading": "재물운 종합 해석 최소 20문장! 재성의 상태와 식상생재 구조를 바탕으로, 어떻게 돈을 벌고 모으는 스타일인지, 언제 재물운이 들어오는지 스토리텔링으로 설명"
+    "reading": "재물운 종합 해석 8문장. 재성 상태와 식상생재 구조 기반 돈 버는 스타일과 시기"
   },
 
   "love": {
@@ -276,7 +276,7 @@ ${_buildHapchungSection(data.hapchung)}
     "ideal_partner_traits": ["이상적인 파트너 특성 3-4개"],
     "love_timing": "연애운이 좋은 시기",
     "advice": "연애 관련 조언",
-    "reading": "연애운 종합 해석 최소 20문장! 일지와 재관 상태를 바탕으로, 어떤 연애 스타일인지, 어떤 이성에게 끌리는지, 연애 시 주의점은 무엇인지 스토리텔링으로 설명"
+    "reading": "연애운 종합 해석 8문장. 일지와 재관 상태 기반 연애 스타일과 주의점"
   },
 
   "marriage": {
@@ -286,7 +286,7 @@ ${_buildHapchungSection(data.hapchung)}
     "married_life_tendency": "결혼 생활 경향",
     "cautions": ["결혼 관련 주의사항 2-3개"],
     "advice": "결혼운 향상을 위한 조언",
-    "reading": "결혼운 종합 해석 최소 20문장! 일지(배우자궁) 상태와 충합 여부를 바탕으로, 언제 어떤 배우자를 만날지, 결혼 생활은 어떨지 스토리텔링으로 설명"
+    "reading": "결혼운 종합 해석 8문장. 배우자궁 상태와 충합 기반 결혼 시기와 생활"
   },
 
   "career": {
@@ -296,7 +296,7 @@ ${_buildHapchungSection(data.hapchung)}
     "leadership_potential": "리더십/관리자 적성",
     "career_timing": "직장운이 좋은 시기",
     "advice": "진로 관련 조언",
-    "reading": "직업운 종합 해석 최소 20문장! 관성 상태와 인성 지원 여부를 바탕으로, 이 사람에게 맞는 일, 승진/이직 타이밍, 직장생활 스타일을 스토리텔링으로 설명"
+    "reading": "직업운 종합 해석 8문장. 관성과 인성 기반 적합한 일, 승진/이직 타이밍"
   },
 
   "business": {
@@ -306,7 +306,7 @@ ${_buildHapchungSection(data.hapchung)}
     "cautions": ["사업 시 주의사항 2-3개"],
     "success_factors": ["사업 성공 요인 2-3개"],
     "advice": "사업 관련 조언",
-    "reading": "사업운 종합 해석 최소 20문장! 식상생재 구조와 편재 활용도를 바탕으로, 사업 적합성, 시작 타이밍, 파트너 선택을 스토리텔링으로 설명."
+    "reading": "사업운 종합 해석 8문장. 식상생재 구조와 편재 기반 사업 적합성과 타이밍"
   },
 
   "health": {
@@ -315,21 +315,21 @@ ${_buildHapchungSection(data.hapchung)}
     "mental_health": "정신/심리 건강 경향",
     "lifestyle_advice": ["건강 관리 생활 습관 조언 3-4개"],
     "caution_periods": "건강 주의 시기 (있는 경우)",
-    "reading": "건강운 종합 해석 최소 15문장! 오행 과다/부족과 충극 관계를 바탕으로, 어떤 장기가 약한지, 언제 건강을 조심해야 하는지, 어떻게 관리해야 하는지 스토리텔링으로 설명"
+    "reading": "건강운 종합 해석 6문장. 오행 과다/부족 기반 취약 장기와 관리법"
   },
 
   "sinsal_gilseong": {
     "major_gilseong": ["주요 길성과 그 의미"],
     "major_sinsal": ["주요 신살과 그 의미"],
     "practical_implications": "신살/길성이 실생활에 미치는 영향",
-    "reading": "신살/길성 종합 해석 최소 15문장! 천을귀인, 역마, 도화 등 주요 신살이 이 사람의 인생에 어떤 복과 시련을 가져오는지 스토리텔링으로 설명"
+    "reading": "신살/길성 종합 해석 6문장. 주요 신살이 인생에 가져오는 복과 시련"
   },
 
   "life_cycles": {
-    "youth": "청년기(20-35세) 전망 최소 10문장. 이 시기에 어떤 기회와 시련이 있는지, 무엇에 집중해야 하는지 구체적으로",
-    "middle_age": "중년기(35-55세) 전망 최소 10문장. 가정/직장/재물 관점에서 어떤 흐름이 있는지 구체적으로",
-    "later_years": "후년기(55세 이후) 전망 최소 10문장. 건강/가족/여유 관점에서 어떤 삶이 펼쳐지는지",
-    "key_years": ["인생 중요 전환점 예상 나이 4-5개 (예: 28세, 33세, 42세, 51세 등)"]
+    "youth": "청년기(20-35세) 전망 5문장. 이 시기 핵심 기회와 집중 포인트",
+    "middle_age": "중년기(35-55세) 전망 5문장. 가정/직장/재물 핵심 흐름",
+    "later_years": "후년기(55세 이후) 전망 5문장. 건강/가족/여유 핵심 흐름",
+    "key_years": ["인생 중요 전환점 3-4개 (예: 28세, 42세, 51세)"]
   },
 
   "lucky_elements": {
@@ -344,33 +344,53 @@ ${_buildHapchungSection(data.hapchung)}
   "peak_years": {
     "period": "최전성기 구간 (예: 38-48세)",
     "age_range": [38, 48],
-    "why": "왜 이 시기가 최전성기인지 대운/세운/원국 관계를 바탕으로 최소 15문장으로 상세 설명. 이 시기에 용신운이 들어오는지, 어떤 기회가 열리는지 구체적으로",
-    "what_to_prepare": "최전성기를 맞이하기 위해 지금부터 준비해야 할 것들 (5-7문장)",
-    "what_to_do": "최전성기에 반드시 해야 할 것들 (5-7문장)",
-    "cautions": "최전성기에도 주의해야 할 점 (3-5문장)"
+    "why": "왜 이 시기가 최전성기인지 8문장. 용신운과 기회 설명",
+    "what_to_prepare": "최전성기 준비사항 3문장",
+    "what_to_do": "최전성기에 해야 할 것 3문장",
+    "cautions": "최전성기 주의점 2문장"
   },
 
   "daeun_detail": {
-    "intro": "대운 흐름 전체 소개 (10년 주기로 인생이 어떻게 변화하는지 개요, 5-7문장)",
+    "intro": "대운 흐름 전체 개요 3문장",
     "cycles": [
       {
         "order": 1,
-        "pillar": "대운 간지 (예: 甲子)",
-        "age_range": "해당 나이 구간 (예: 8-17세)",
-        "main_theme": "이 대운의 핵심 주제/테마",
-        "fortune_level": "상/중상/중/중하/하 중 택1",
-        "reading": "이 10년간의 운세 흐름을 최소 10문장으로 상세 설명. 용신과의 관계, 이 시기에 무엇을 해야 하는지, 주의사항 등",
-        "opportunities": ["이 시기의 기회 2-3개"],
-        "challenges": ["이 시기의 시련 2-3개"]
+        "pillar": "현재 대운 간지",
+        "age_range": "현재 대운 나이 구간",
+        "main_theme": "현재 대운 핵심 주제",
+        "fortune_level": "상/중상/중/중하/하",
+        "reading": "현재 대운 5문장. 용신 관계, 해야 할 것, 주의사항",
+        "opportunities": ["기회 2개"],
+        "challenges": ["시련 2개"]
+      },
+      {
+        "order": 2,
+        "pillar": "다음 대운 간지",
+        "age_range": "다음 대운 나이 구간",
+        "main_theme": "다음 대운 핵심 주제",
+        "fortune_level": "상/중상/중/중하/하",
+        "reading": "다음 대운 5문장. 준비할 것, 기대 포인트",
+        "opportunities": ["기회 2개"],
+        "challenges": ["시련 2개"]
+      },
+      {
+        "order": 3,
+        "pillar": "최고 대운 간지 (best_daeun 시기)",
+        "age_range": "최고 대운 나이 구간",
+        "main_theme": "최고 대운 핵심 주제",
+        "fortune_level": "상",
+        "reading": "최고 대운 5문장. 왜 최고인지, 활용법",
+        "opportunities": ["기회 2개"],
+        "challenges": ["주의점 1개"]
       }
     ],
     "best_daeun": {
       "period": "가장 좋은 대운 시기",
-      "why": "왜 이 대운이 가장 좋은지 (7-10문장)"
+      "why": "왜 이 대운이 가장 좋은지 3문장"
     },
     "worst_daeun": {
       "period": "가장 주의해야 할 대운 시기",
-      "why": "왜 이 대운을 조심해야 하는지 (7-10문장)"
+      "why": "왜 이 대운을 조심해야 하는지 3문장"
     }
   },
   "modern_interpretation": {
