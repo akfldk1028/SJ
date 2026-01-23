@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
+import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/widgets/saju_mini_card.dart';
 
@@ -16,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.appTheme;
     final myProfileAsync = ref.watch(activeProfileProvider);
+    final dailyFortuneAsync = ref.watch(dailyFortuneProvider);
     final today = DateFormat('yyyy.MM.dd (E)', 'ko_KR').format(DateTime.now());
 
     return Scaffold(
@@ -86,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
 
                 // Fortune Card (오늘의 총운)
-                _buildFortuneCard(theme),
+                _buildFortuneCard(theme, dailyFortuneAsync),
 
                 const SizedBox(height: 24),
 
@@ -118,7 +120,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // Category Fortune List (재물운, 애정운, 직장운, 건강운)
-                _buildCategoryList(theme),
+                _buildCategoryList(theme, dailyFortuneAsync),
 
                 const SizedBox(height: 24),
 
@@ -155,7 +157,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // Advice Card
-                _buildAdviceCard(theme),
+                _buildAdviceCard(theme, dailyFortuneAsync),
 
                 const SizedBox(height: 100), // Bottom nav spacing
               ],
@@ -236,7 +238,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFortuneCard(AppThemeExtension theme) {
+  Widget _buildFortuneCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -274,100 +276,159 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            fortuneAsync.when(
+              data: (fortune) {
+                // fortune이 null이면 분석 중
+                final score = fortune?.overallScore ?? 0;
+                final message = fortune?.overallMessage ?? '';
+                final isLoading = fortune == null;
+
+                // 점수 기반 운세 등급
+                String gradeText;
+                String gradeEmoji;
+                if (score >= 90) {
+                  gradeText = '대길(大吉)';
+                  gradeEmoji = '🌕';
+                } else if (score >= 75) {
+                  gradeText = '길(吉)';
+                  gradeEmoji = '🌔';
+                } else if (score >= 60) {
+                  gradeText = '소길(小吉)';
+                  gradeEmoji = '🌓';
+                } else if (score >= 45) {
+                  gradeText = '보통(普通)';
+                  gradeEmoji = '🌗';
+                } else {
+                  gradeText = '주의(注意)';
+                  gradeEmoji = '🌑';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
                     children: [
-                      Column(
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '오늘의 총운',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.textMuted,
-                              letterSpacing: 1,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '오늘의 총운',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: theme.textMuted,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              isLoading
+                                  ? _buildShimmerBox(theme, 80, 22)
+                                  : Text(
+                                      gradeText,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                        color: theme.textPrimary,
+                                      ),
+                                    ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
                           Text(
-                            '대길(大吉)',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: theme.textPrimary,
-                            ),
+                            isLoading ? '✨' : gradeEmoji,
+                            style: const TextStyle(fontSize: 40),
                           ),
                         ],
                       ),
-                      Text(
-                        '🌕',
-                        style: TextStyle(fontSize: 40),
+
+                      const SizedBox(height: 24),
+
+                      // Score
+                      isLoading
+                          ? Column(
+                              children: [
+                                SizedBox(
+                                  width: 60,
+                                  height: 60,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: theme.primaryColor.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  '운세 분석 중...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: theme.textMuted,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                Text(
+                                  '$score',
+                                  style: TextStyle(
+                                    fontSize: 72,
+                                    fontWeight: FontWeight.w700,
+                                    foreground: Paint()
+                                      ..shader = LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          theme.primaryColor,
+                                          theme.accentColor ?? theme.primaryColor,
+                                          theme.primaryColor,
+                                        ],
+                                      ).createShader(const Rect.fromLTWH(0, 0, 100, 80)),
+                                  ),
+                                ),
+                                Text(
+                                  '종합 운세 점수',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: theme.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                      const SizedBox(height: 16),
+
+                      // Progress bars
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final filledCount = isLoading ? 0 : (score / 20).ceil().clamp(0, 5);
+                          final isFilled = index < filledCount;
+                          return Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(2),
+                              gradient: isFilled
+                                  ? LinearGradient(
+                                      colors: [
+                                        theme.primaryColor,
+                                        theme.accentColor ?? theme.primaryColor,
+                                      ],
+                                    )
+                                  : null,
+                              color: isFilled ? null : theme.textMuted.withValues(alpha:0.2),
+                            ),
+                          );
+                        }),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Score
-                  Text(
-                    '85',
-                    style: TextStyle(
-                      fontSize: 72,
-                      fontWeight: FontWeight.w700,
-                      foreground: Paint()
-                        ..shader = LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            theme.primaryColor,
-                            theme.accentColor ?? theme.primaryColor,
-                            theme.primaryColor,
-                          ],
-                        ).createShader(const Rect.fromLTWH(0, 0, 100, 80)),
-                    ),
-                  ),
-                  Text(
-                    '종합 운세 점수',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: theme.textMuted,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Progress bars
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      final isFilled = index < 4;
-                      return Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          gradient: isFilled
-                              ? LinearGradient(
-                                  colors: [
-                                    theme.primaryColor,
-                                    theme.accentColor ?? theme.primaryColor,
-                                  ],
-                                )
-                              : null,
-                          color: isFilled ? null : theme.textMuted.withValues(alpha:0.2),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
+                );
+              },
+              loading: () => _buildFortuneCardLoading(theme),
+              error: (e, _) => _buildFortuneCardError(theme),
             ),
           ],
         ),
@@ -375,72 +436,226 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryList(AppThemeExtension theme) {
-    final categories = [
-      {'icon': '💰', 'name': '재물운', 'score': 92},
-      {'icon': '💕', 'name': '애정운', 'score': 78},
-      {'icon': '💼', 'name': '직장운', 'score': 85},
-      {'icon': '🏥', 'name': '건강운', 'score': 70},
-    ];
-
-    return SizedBox(
-      height: 120,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final cat = categories[index];
-          return Container(
-            width: 90,
-            margin: EdgeInsets.only(right: index < categories.length - 1 ? 12 : 0),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.cardColor,
-                  theme.cardColor.withValues(alpha:0.9),
+  Widget _buildFortuneCardLoading(AppThemeExtension theme) {
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '오늘의 총운',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.textMuted,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _buildShimmerBox(theme, 80, 22),
                 ],
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.primaryColor.withValues(alpha:0.1),
-              ),
+              const Text('✨', style: TextStyle(fontSize: 40)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: theme.primaryColor.withValues(alpha: 0.6),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  cat['icon'] as String,
-                  style: const TextStyle(fontSize: 28),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '운세 분석 중...',
+            style: TextStyle(fontSize: 14, color: theme.textMuted),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              return Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(2),
+                  color: theme.textMuted.withValues(alpha: 0.2),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  cat['name'] as String,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${cat['score']}점',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: theme.primaryColor,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildAdviceCard(AppThemeExtension theme) {
+  Widget _buildFortuneCardError(AppThemeExtension theme) {
+    return Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 48, color: theme.textMuted),
+          const SizedBox(height: 16),
+          Text(
+            '운세를 불러올 수 없습니다',
+            style: TextStyle(fontSize: 14, color: theme.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerBox(AppThemeExtension theme, double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        color: theme.textMuted.withValues(alpha: 0.2),
+      ),
+    );
+  }
+
+  Widget _buildCategoryList(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+    // 카테고리 키 매핑 (DB key -> 표시명)
+    const categoryMap = [
+      {'key': 'money', 'icon': '💰', 'name': '재물운'},
+      {'key': 'love', 'icon': '💕', 'name': '애정운'},
+      {'key': 'career', 'icon': '💼', 'name': '직장운'},
+      {'key': 'health', 'icon': '🏥', 'name': '건강운'},
+    ];
+
+    return SizedBox(
+      height: 120,
+      child: fortuneAsync.when(
+        data: (fortune) {
+          final isLoading = fortune == null;
+
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: categoryMap.length,
+            itemBuilder: (context, index) {
+              final cat = categoryMap[index];
+              final score = isLoading ? 0 : fortune.getCategoryScore(cat['key']!);
+
+              return Container(
+                width: 90,
+                margin: EdgeInsets.only(right: index < categoryMap.length - 1 ? 12 : 0),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.cardColor,
+                      theme.cardColor.withValues(alpha: 0.9),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.primaryColor.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      cat['icon']!,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      cat['name']!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    isLoading
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.primaryColor.withValues(alpha: 0.5),
+                            ),
+                          )
+                        : Text(
+                            '$score점',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+        loading: () => _buildCategoryListLoading(theme, categoryMap.length),
+        error: (e, _) => _buildCategoryListLoading(theme, categoryMap.length),
+      ),
+    );
+  }
+
+  Widget _buildCategoryListLoading(AppThemeExtension theme, int count) {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: count,
+      itemBuilder: (context, index) {
+        return Container(
+          width: 90,
+          margin: EdgeInsets.only(right: index < count - 1 ? 12 : 0),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.cardColor,
+                theme.cardColor.withValues(alpha: 0.9),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.primaryColor.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildShimmerBox(theme, 28, 28),
+              const SizedBox(height: 10),
+              _buildShimmerBox(theme, 40, 14),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: theme.primaryColor.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAdviceCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -450,12 +665,12 @@ class HomeScreen extends ConsumerWidget {
             end: Alignment.bottomRight,
             colors: [
               theme.cardColor,
-              theme.cardColor.withValues(alpha:0.9),
+              theme.cardColor.withValues(alpha: 0.9),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: theme.primaryColor.withValues(alpha:0.15),
+            color: theme.primaryColor.withValues(alpha: 0.15),
           ),
         ),
         child: Stack(
@@ -465,18 +680,60 @@ class HomeScreen extends ConsumerWidget {
               right: 20,
               child: Text(
                 '🪷',
-                style: TextStyle(fontSize: 24, color: Colors.white.withValues(alpha:0.6)),
+                style: TextStyle(fontSize: 24, color: Colors.white.withValues(alpha: 0.6)),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                '"오늘은 새로운 시작에 좋은 날입니다.\n중요한 결정을 내리기에 적합하며,\n대인관계에서 좋은 소식이 있을 수 있습니다."',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
-                  color: theme.textSecondary,
-                  height: 1.8,
+            fortuneAsync.when(
+              data: (fortune) {
+                final isLoading = fortune == null;
+                final advice = fortune?.affirmation ?? '';
+
+                return Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: isLoading
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildShimmerBox(theme, double.infinity, 16),
+                            const SizedBox(height: 12),
+                            _buildShimmerBox(theme, 200, 16),
+                            const SizedBox(height: 12),
+                            _buildShimmerBox(theme, 150, 16),
+                          ],
+                        )
+                      : Text(
+                          '"$advice"',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontStyle: FontStyle.italic,
+                            color: theme.textSecondary,
+                            height: 1.8,
+                          ),
+                        ),
+                );
+              },
+              loading: () => Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildShimmerBox(theme, double.infinity, 16),
+                    const SizedBox(height: 12),
+                    _buildShimmerBox(theme, 200, 16),
+                    const SizedBox(height: 12),
+                    _buildShimmerBox(theme, 150, 16),
+                  ],
+                ),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  '조언을 불러올 수 없습니다.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: theme.textMuted,
+                  ),
                 ),
               ),
             ),
