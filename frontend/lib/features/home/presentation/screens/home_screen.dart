@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
@@ -25,12 +26,18 @@ class HomeScreen extends ConsumerWidget {
       body: MysticBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            child: Column(
+            child: Builder(
+              builder: (context) {
+                // 반응형 패딩
+                final horizontalPadding = context.horizontalPadding;
+                final isSmall = context.isSmallMobile;
+
+                return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // App Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
                   child: Row(
                     children: [
                       // Menu Button
@@ -88,13 +95,13 @@ class HomeScreen extends ConsumerWidget {
                 ),
 
                 // Fortune Card (오늘의 총운 + 사자성어 통합)
-                _buildFortuneCard(theme, dailyFortuneAsync),
+                _buildFortuneCard(context, theme, dailyFortuneAsync, horizontalPadding),
 
-                const SizedBox(height: 24),
+                SizedBox(height: isSmall ? 20 : 24),
 
                 // Section Header - 오늘의 운세
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -117,12 +124,12 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: isSmall ? 12 : 16),
 
                 // Category Fortune List (재물운, 애정운, 직장운, 건강운)
-                _buildCategoryList(theme, dailyFortuneAsync),
+                _buildCategoryList(context, theme, dailyFortuneAsync, horizontalPadding),
 
-                const SizedBox(height: 24),
+                SizedBox(height: isSmall ? 20 : 24),
 
                 // Saju Mini Card (나의 사주팔자)
                 myProfileAsync.when(
@@ -133,17 +140,17 @@ class HomeScreen extends ConsumerWidget {
                         child: const SajuMiniCard(),
                       );
                     }
-                    return _buildNoProfileCard(theme, context);
+                    return _buildNoProfileCard(theme, context, horizontalPadding);
                   },
-                  loading: () => _buildLoadingCard(theme),
-                  error: (_, __) => _buildNoProfileCard(theme, context),
+                  loading: () => _buildLoadingCard(theme, horizontalPadding),
+                  error: (_, __) => _buildNoProfileCard(theme, context, horizontalPadding),
                 ),
 
-                const SizedBox(height: 28),
+                SizedBox(height: isSmall ? 24 : 28),
 
                 // Section Header - 오늘의 조언
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Text(
                     '오늘의 조언',
                     style: TextStyle(
@@ -154,13 +161,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: isSmall ? 12 : 16),
 
                 // Advice Card
-                _buildAdviceCard(theme, dailyFortuneAsync),
+                _buildAdviceCard(theme, dailyFortuneAsync, horizontalPadding),
 
                 const SizedBox(height: 100), // Bottom nav spacing
               ],
+            );
+              },
             ),
           ),
         ),
@@ -238,9 +247,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFortuneCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  Widget _buildFortuneCard(BuildContext context, AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -552,7 +561,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryList(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  Widget _buildCategoryList(BuildContext context, AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     // 카테고리 키 매핑 (DB key -> 표시명)
     const categoryMap = [
       {'key': 'money', 'icon': '💰', 'name': '재물운'},
@@ -561,23 +570,28 @@ class HomeScreen extends ConsumerWidget {
       {'key': 'health', 'icon': '🏥', 'name': '건강운'},
     ];
 
+    // 반응형 카드 높이
+    final isSmall = context.isSmallMobile;
+    final cardHeight = isSmall ? 105.0 : 120.0;
+    final cardWidth = isSmall ? 80.0 : 90.0;
+
     return SizedBox(
-      height: 120,
+      height: cardHeight,
       child: fortuneAsync.when(
         data: (fortune) {
           final isLoading = fortune == null;
 
           return ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             itemCount: categoryMap.length,
             itemBuilder: (context, index) {
               final cat = categoryMap[index];
               final score = isLoading ? 0 : fortune.getCategoryScore(cat['key']!);
 
               return Container(
-                width: 90,
-                margin: EdgeInsets.only(right: index < categoryMap.length - 1 ? 12 : 0),
+                width: cardWidth,
+                margin: EdgeInsets.only(right: index < categoryMap.length - 1 ? (isSmall ? 10 : 12) : 0),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -637,10 +651,10 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryListLoading(AppThemeExtension theme, int count) {
+  Widget _buildCategoryListLoading(AppThemeExtension theme, int count, {double horizontalPadding = 20}) {
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       itemCount: count,
       itemBuilder: (context, index) {
         return Container(
@@ -683,9 +697,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// 오늘의 사자성어 카드 - 모던 타이포그래피 스타일
-  Widget _buildIdiomCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  Widget _buildIdiomCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -815,9 +829,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAdviceCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  Widget _buildAdviceCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -903,9 +917,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNoProfileCard(AppThemeExtension theme, BuildContext context) {
+  Widget _buildNoProfileCard(AppThemeExtension theme, BuildContext context, [double horizontalPadding = 20]) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: GestureDetector(
         onTap: () => context.push(Routes.profileEdit),
         child: Container(
@@ -955,9 +969,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoadingCard(AppThemeExtension theme) {
+  Widget _buildLoadingCard(AppThemeExtension theme, [double horizontalPadding = 20]) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         height: 150,
         decoration: BoxDecoration(
