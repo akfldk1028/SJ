@@ -67,14 +67,14 @@ class HomeScreen extends ConsumerWidget {
                                     color: theme.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '◀ ▶',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: theme.textMuted,
-                                  ),
-                                ),
+                                // const SizedBox(width: 8),
+                                // Text(
+                                //   '◀ ▶',
+                                //   style: TextStyle(
+                                //     fontSize: 10,
+                                //     color: theme.textMuted,
+                                //   ),
+                                // ),
                               ],
                             ),
                           ],
@@ -94,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // Fortune Card (오늘의 총운)
+                // Fortune Card (오늘의 총운 + 사자성어 통합)
                 _buildFortuneCard(context, theme, dailyFortuneAsync, horizontalPadding),
 
                 SizedBox(height: isSmall ? 20 : 24),
@@ -292,6 +292,12 @@ class HomeScreen extends ConsumerWidget {
                 final message = fortune?.overallMessage ?? '';
                 final isLoading = fortune == null;
 
+                // 디버그: idiom 상태 확인
+                print('[HomeScreen] fortune: ${fortune != null}, isLoading: $isLoading');
+                if (fortune != null) {
+                  print('[HomeScreen] idiom.korean: "${fortune.idiom.korean}", isValid: ${fortune.idiom.isValid}');
+                }
+
                 // 점수 기반 운세 등급
                 String gradeText;
                 String gradeEmoji;
@@ -431,6 +437,27 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           );
                         }),
+                      ),
+
+                      // 사자성어 섹션 (점수 아래 - 텍스트만)
+                      // 무조건 표시 (디버그용)
+                      const SizedBox(height: 20),
+                      Text(
+                        fortune?.idiom.korean ?? '사자성어없음',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textPrimary,
+                          letterSpacing: 4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${fortune?.idiom.chinese ?? ''} · ${fortune?.idiom.meaning ?? ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -666,6 +693,139 @@ class HomeScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  /// 오늘의 사자성어 카드 - 모던 타이포그래피 스타일
+  Widget _buildIdiomCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.cardColor,
+              theme.cardColor.withValues(alpha: 0.9),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.primaryColor.withValues(alpha: 0.15),
+          ),
+        ),
+        child: fortuneAsync.when(
+          data: (fortune) {
+            final isLoading = fortune == null;
+            final idiom = fortune?.idiom;
+
+            if (isLoading || idiom == null || !idiom.isValid) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    _buildShimmerBox(theme, 120, 32),
+                    const SizedBox(height: 12),
+                    _buildShimmerBox(theme, 80, 18),
+                    const SizedBox(height: 16),
+                    _buildShimmerBox(theme, double.infinity, 14),
+                    const SizedBox(height: 8),
+                    _buildShimmerBox(theme, 200, 14),
+                  ],
+                ),
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+              child: Column(
+                children: [
+                  // 한글 (크게 강조)
+                  Text(
+                    idiom.korean,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: theme.textPrimary,
+                      letterSpacing: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 한자
+                  Text(
+                    idiom.chinese,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textSecondary.withValues(alpha: 0.7),
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 구분선
+                  Container(
+                    width: 40,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 뜻풀이
+                  Text(
+                    idiom.meaning,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  // 오늘의 메시지
+                  Text(
+                    idiom.message,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.textMuted,
+                      height: 1.7,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          },
+          loading: () => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildShimmerBox(theme, 120, 32),
+                const SizedBox(height: 12),
+                _buildShimmerBox(theme, 80, 18),
+                const SizedBox(height: 16),
+                _buildShimmerBox(theme, double.infinity, 14),
+                const SizedBox(height: 8),
+                _buildShimmerBox(theme, 200, 14),
+              ],
+            ),
+          ),
+          error: (e, _) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              '사자성어를 불러올 수 없습니다.',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.textMuted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../../../core/widgets/illustrations/illustrations.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
 import '../../../../shared/widgets/fortune_title_header.dart';
@@ -101,22 +102,26 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 60,
-            height: 60,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+          const SizedBox(
+            width: 100,
+            height: 100,
+            child: AnimatedYinYangIllustration(
+              size: 100,
+              showGlow: true,
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            '2025년 운세를 분석하고 있습니다...',
-            style: TextStyle(color: theme.textSecondary, fontSize: 16),
+            '🔮 AI가 2025년 운세를 분석하고 있어요',
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            '잠시만 기다려주세요',
+            '잠시만 기다려주세요...',
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
