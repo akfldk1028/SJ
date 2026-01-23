@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+import '../../ad/feature_unlock_service.dart';
+import '../../AI/fortune/common/korea_date_utils.dart';
 
 /// 공통 카테고리 데이터 인터페이스
 class CategoryData {
@@ -44,12 +46,16 @@ class FortuneCategoryChipSection extends StatefulWidget {
   /// 상세 내용 표시 여부
   final bool showDetailedContent;
 
+  /// 현재 활성 프로필 ID (해금 추적용)
+  final String? profileId;
+
   const FortuneCategoryChipSection({
     super.key,
     required this.fortuneType,
     required this.categories,
     this.title,
     this.showDetailedContent = true,
+    this.profileId,
   });
 
   @override
@@ -78,6 +84,69 @@ class _FortuneCategoryChipSectionState
     super.initState();
     // static 변수 초기화 (fortuneType별로)
     _sessionUnlockedCategories[widget.fortuneType] ??= {};
+    // DB에서 이미 해금된 카테고리 로드
+    _loadUnlockedCategoriesFromDb();
+  }
+
+  /// DB에서 이미 해금된 카테고리 로드
+  Future<void> _loadUnlockedCategoriesFromDb() async {
+    final unlockInfo = _parseFortuneType();
+    if (unlockInfo == null) return;
+
+    // 모든 카테고리에 대해 해금 상태 확인
+    for (final categoryKey in widget.categories.keys) {
+      final isUnlocked = await FeatureUnlockService.instance.isUnlocked(
+        featureType: unlockInfo.featureType,
+        featureKey: categoryKey,
+        targetYear: unlockInfo.targetYear,
+        targetMonth: unlockInfo.targetMonth,
+      );
+      if (isUnlocked && mounted) {
+        _sessionUnlockedCategories[widget.fortuneType] ??= {};
+        _sessionUnlockedCategories[widget.fortuneType]!.add(categoryKey);
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// fortuneType에서 해금 정보 파싱
+  /// - yearly_2026 → FeatureType.categoryYearly, year=2026, month=0
+  /// - monthly → FeatureType.categoryMonthly, year=현재연도, month=현재월
+  /// - lifetime → FeatureType.lifetime, year=현재연도, month=0
+  ({FeatureType featureType, int targetYear, int targetMonth})? _parseFortuneType() {
+    final fortuneType = widget.fortuneType;
+
+    if (fortuneType.startsWith('yearly_')) {
+      // yearly_2026 형태
+      final yearStr = fortuneType.replaceFirst('yearly_', '');
+      final year = int.tryParse(yearStr);
+      if (year != null) {
+        return (
+          featureType: FeatureType.categoryYearly,
+          targetYear: year,
+          targetMonth: 0,
+        );
+      }
+    } else if (fortuneType == 'monthly') {
+      return (
+        featureType: FeatureType.categoryMonthly,
+        targetYear: KoreaDateUtils.currentYear,
+        targetMonth: KoreaDateUtils.currentMonth,
+      );
+    } else if (fortuneType == 'lifetime') {
+      return (
+        featureType: FeatureType.lifetime,
+        targetYear: KoreaDateUtils.currentYear,
+        targetMonth: 0,
+      );
+    }
+
+    // 기본값: 연간 운세
+    return (
+      featureType: FeatureType.categoryYearly,
+      targetYear: KoreaDateUtils.currentYear,
+      targetMonth: 0,
+    );
   }
 
   /// 카테고리 잠금 해제 (세션 메모리 - 앱 종료 시 초기화!)
@@ -322,7 +391,7 @@ class _FortuneCategoryChipSectionState
           if (cat.bestMonths != null && cat.bestMonths!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '좋은 달: ${cat.bestMonths!.map((m) => '${m}월').join(', ')}',
+              '좋은 달: ${cat.bestMonths!.map((m) => '$m월').join(', ')}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.green.shade700,
@@ -332,7 +401,7 @@ class _FortuneCategoryChipSectionState
           ],
           if (cat.cautionMonths != null && cat.cautionMonths!.isNotEmpty)
             Text(
-              '주의할 달: ${cat.cautionMonths!.map((m) => '${m}월').join(', ')}',
+              '주의할 달: ${cat.cautionMonths!.map((m) => '$m월').join(', ')}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.orange.shade700,
@@ -441,6 +510,7 @@ class _FortuneCategoryChipSectionState
     setState(() => _isLoadingAd = true);
 
     final categoryName = _getCategoryName(categoryKey);
+    final unlockInfo = _parseFortuneType();
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {
@@ -468,8 +538,8 @@ class _FortuneCategoryChipSectionState
       // 광고 로드 시도
       await AdService.instance.loadRewardedAd(
         onLoaded: () async {
-          // 광고 로드 완료 후 표시
-          final shown = await AdService.instance.showRewardedAd(
+          // 광고 로드 완료 후 표시 (해금 추적 포함)
+          final shown = await AdService.instance.showRewardedAdWithUnlock(
             onRewarded: (amount, type) async {
               // 보상 지급 - 카테고리 잠금 해제
               _unlockCategory(categoryKey);
@@ -492,6 +562,11 @@ class _FortuneCategoryChipSectionState
                 }
               }
             },
+            featureType: unlockInfo?.featureType,
+            featureKey: categoryKey,
+            targetYear: unlockInfo?.targetYear,
+            targetMonth: unlockInfo?.targetMonth,
+            profileId: widget.profileId,
           );
 
           if (!shown && mounted) {
@@ -507,8 +582,8 @@ class _FortuneCategoryChipSectionState
         },
       );
     } else {
-      // 광고가 이미 로드됨 - 바로 표시
-      final shown = await AdService.instance.showRewardedAd(
+      // 광고가 이미 로드됨 - 바로 표시 (해금 추적 포함)
+      final shown = await AdService.instance.showRewardedAdWithUnlock(
         onRewarded: (amount, type) async {
           _unlockCategory(categoryKey);
 
@@ -530,6 +605,11 @@ class _FortuneCategoryChipSectionState
             }
           }
         },
+        featureType: unlockInfo?.featureType,
+        featureKey: categoryKey,
+        targetYear: unlockInfo?.targetYear,
+        targetMonth: unlockInfo?.targetMonth,
+        profileId: widget.profileId,
       );
 
       if (!shown && mounted) {

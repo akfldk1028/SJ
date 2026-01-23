@@ -91,6 +91,7 @@ dependencies:
 
   # Calendar - Date selection
   table_calendar: ^3.1.2
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
