@@ -188,7 +188,7 @@ class Yearly2026Service {
     return _mutations.invalidate(profileId);
   }
 
-  /// API 응답 파싱 (JSON 추출)
+  /// API 응답 파싱 + 구조 검증
   Map<String, dynamic>? _parseResponse(String response) {
     try {
       // JSON 블록 추출 시도
@@ -206,9 +206,51 @@ class Yearly2026Service {
         }
       }
 
-      return jsonDecode(jsonStr) as Map<String, dynamic>;
+      final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+      // 🔒 v3.1: 2026 신년운세 구조 검증 (monthly fortune 혼동 방지!)
+      if (!_validateYearly2026Structure(parsed)) {
+        print('[Yearly2026Service] ❌ 응답 구조가 2026 신년운세 포맷이 아님!');
+        print('[Yearly2026Service] 받은 키: ${parsed.keys.toList()}');
+        return null;
+      }
+
+      return parsed;
     } catch (e) {
+      print('[Yearly2026Service] ❌ JSON 파싱 에러: $e');
       return null;
     }
+  }
+
+  /// 2026 신년운세 구조 검증
+  /// - 필수 키: year=2026, lucky, overview, categories
+  /// - 금지 키: months, currentMonth, current (이건 monthly fortune 포맷!)
+  bool _validateYearly2026Structure(Map<String, dynamic> json) {
+    // 필수 키 확인
+    final requiredKeys = ['year', 'lucky', 'overview', 'categories'];
+    for (final key in requiredKeys) {
+      if (!json.containsKey(key)) {
+        print('[Yearly2026Service] ⚠️ 필수 키 없음: $key');
+        return false;
+      }
+    }
+
+    // year 값 확인 (2026이어야 함)
+    final year = json['year'];
+    if (year != 2026) {
+      print('[Yearly2026Service] ⚠️ year가 2026이 아님: $year');
+      return false;
+    }
+
+    // monthly fortune 구조 감지 (이건 잘못된 응답!)
+    final monthlyKeys = ['months', 'currentMonth', 'current'];
+    for (final key in monthlyKeys) {
+      if (json.containsKey(key)) {
+        print('[Yearly2026Service] ⚠️ monthly fortune 키 감지: $key');
+        return false;
+      }
+    }
+
+    return true;
   }
 }

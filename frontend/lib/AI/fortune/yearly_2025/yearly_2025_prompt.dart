@@ -199,6 +199,26 @@ class Yearly2025Prompt extends PromptTemplate {
 
 ## 응답 형식
 반드시 아래 JSON 형식으로 응답하세요. 각 필드의 문장들이 자연스럽게 이어지도록!
+
+---
+## [CRITICAL] 절대 금지 - AI 혼동 방지
+
+이 프롬프트는 2025년 회고 운세입니다. 월별 운세(monthly fortune)가 아닙니다.
+
+[절대 사용 금지 키]
+- "months" - 금지
+- "currentMonth" - 금지
+- "current" - 금지
+- "year": 2026 - 금지 (year는 반드시 2025)
+
+[반드시 사용해야 하는 키]
+- "year": 2025 - 필수
+- "overview" - 필수
+- "categories" - 필수
+- "timeline" - 필수
+- "lessons" - 필수
+
+위 금지 키를 사용하면 응답이 거부됩니다.
 ''';
 
   @override
@@ -369,6 +389,11 @@ ${_formatSajuBase()}
     "message": "2025년 한 해 고생 많으셨어요, {이름}님. 좋은 일도, 힘든 일도 모두 {이름}님을 성장시킨 소중한 경험이었습니다. 그 경험을 바탕으로 2026년에는 더 빛나시길 바랍니다. 새해에도 함께할게요! (3-4문장의 따뜻한 마무리)"
   }
 }
+
+[FINAL CHECK] 최종 확인
+- "year": 반드시 2025 (2026 아님!)
+- "months", "currentMonth", "current" 키 절대 사용 금지
+- 이것은 2025년 회고 분석입니다. 월별 운세가 아닙니다!
 ''';
   }
 

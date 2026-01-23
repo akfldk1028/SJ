@@ -22,12 +22,101 @@ class TodayMessageCard extends ConsumerWidget {
     );
 
     return affirmation.when(
-      loading: () => _buildCard(context, theme, '오늘의 메시지를 불러오는 중...'),
+      loading: () => _buildLoadingCard(context, theme),
       error: (_, __) => _buildCard(context, theme, '메시지를 불러올 수 없습니다.'),
-      data: (message) => _buildCard(
-        context,
-        theme,
-        message ?? '긍정적인 마음으로 하루를 시작하세요!',
+      data: (message) {
+        // message가 null이면 AI 분석 중
+        if (message == null) {
+          return _buildLoadingCard(context, theme);
+        }
+        return _buildCard(context, theme, message);
+      },
+    );
+  }
+
+  Widget _buildLoadingCard(BuildContext context, AppThemeExtension theme) {
+    final scale = context.scaleFactor;
+    final iconBoxSize = (40 * scale).clamp(36.0, 52.0);
+    final iconSize = context.scaledIcon(22);
+    final titleSize = context.scaledFont(12);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: context.scaledPadding(20)),
+      child: Container(
+        padding: EdgeInsets.all(context.scaledPadding(20)),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.isDark ? _shadowDark : _shadowLight,
+              offset: const Offset(0, 4),
+              blurRadius: 16,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: iconBoxSize,
+                  height: iconBoxSize,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.lightbulb_outline_rounded,
+                    color: theme.primaryColor,
+                    size: iconSize,
+                  ),
+                ),
+                SizedBox(width: context.scaledPadding(12)),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.scaledPadding(10),
+                    vertical: context.scaledPadding(4),
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '오늘의 한마디',
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w600,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: context.scaledPadding(16)),
+            Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.primaryColor.withValues(alpha: 0.6),
+                  ),
+                ),
+                SizedBox(width: context.scaledPadding(12)),
+                Text(
+                  'AI가 메시지를 준비하고 있어요...',
+                  style: TextStyle(
+                    fontSize: context.scaledFont(14),
+                    color: theme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/illustrations/illustrations.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
 import '../providers/new_year_fortune_provider.dart';
@@ -87,11 +88,27 @@ class NewYearFortuneScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
+          SizedBox(
+            width: 100,
+            height: 100,
+            child: AnimatedYinYangIllustration(
+              size: 100,
+              showGlow: true,
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(
-            '2026년 신년운세를 분석하고 있습니다...',
-            style: TextStyle(color: theme.textSecondary, fontSize: 16),
+            '🔮 AI가 신년운세를 분석하고 있어요',
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '잠시만 기다려주세요...',
+            style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
       ),

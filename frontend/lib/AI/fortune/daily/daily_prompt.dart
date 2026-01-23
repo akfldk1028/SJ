@@ -141,7 +141,7 @@ $_dateString ($_weekdayString)
 {
   "date": "$_dateString",
   "overall_score": 75,
-  "overall_message": "오늘은 마치 아침 안개가 서서히 걷히듯, 처음엔 흐릿하던 것들이 시간이 지나며 선명해지는 하루가 될 거예요. ${inputData.dayGan ?? '?'} 일간인 당신은 ... (8-10문장)",
+  "overall_message": "오늘은 마치 아침 안개가 서서히 걷히듯, 처음엔 흐릿하던 것들이 시간이 지나며 선명해지는 하루가 될 거예요. ${inputData.dayGan ?? '?'} 일간인 당신은 ... (5-7문장)",
   "categories": {
     "work": {
       "score": 80,

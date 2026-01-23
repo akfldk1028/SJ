@@ -306,7 +306,7 @@ class _SajuLoadingAnimationState extends State<SajuLoadingAnimation>
         return Transform.translate(
           offset: Offset(x, y),
           child: Opacity(
-            opacity: _fadeAnimations[index].value,
+            opacity: _fadeAnimations[index].value.clamp(0.0, 1.0),
             child: Transform.scale(
               scale: _scaleAnimations[index].value * pulse,
               child: Container(
