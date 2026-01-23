@@ -7,6 +7,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_config.dart';
 import 'ad_tracking_service.dart';
+import 'feature_unlock_service.dart';
 
 /// 광고 서비스 싱글톤
 class AdService {
@@ -258,25 +259,74 @@ class AdService {
     );
   }
 
-  /// 보상형 광고 표시
+  /// 보상형 광고 표시 (기본)
   /// [onRewarded] 보상 지급 콜백 (보상 금액, 보상 타입)
   Future<bool> showRewardedAd({
     required void Function(int amount, String type) onRewarded,
+  }) async {
+    return showRewardedAdWithUnlock(onRewarded: onRewarded);
+  }
+
+  /// 보상형 광고 표시 + 기능 해금 추적
+  ///
+  /// [onRewarded] 보상 지급 콜백
+  /// [featureType] 해금할 기능 유형 (null이면 해금 없이 광고만)
+  /// [featureKey] 해금할 기능 키 (career, love 등)
+  /// [targetYear] 대상 연도
+  /// [targetMonth] 대상 월 (연간은 0)
+  /// [profileId] 현재 활성 프로필 ID
+  Future<bool> showRewardedAdWithUnlock({
+    required void Function(int amount, String type) onRewarded,
+    FeatureType? featureType,
+    String? featureKey,
+    int? targetYear,
+    int? targetMonth,
+    String? profileId,
   }) async {
     if (!_isRewardedLoaded || _rewardedAd == null) {
       debugPrint('[AdService] Rewarded not ready');
       return false;
     }
 
+    // screen 문자열 생성 (추적용)
+    String? screen;
+    if (featureType != null && featureKey != null && targetYear != null) {
+      screen = '${featureType.toDbString()}_${featureKey}_$targetYear';
+      if (targetMonth != null && targetMonth > 0) {
+        screen += '_${targetMonth.toString().padLeft(2, '0')}';
+      }
+    }
+
     await _rewardedAd!.show(
-      onUserEarnedReward: (ad, reward) {
+      onUserEarnedReward: (ad, reward) async {
         debugPrint(
             '[AdService] User earned reward: ${reward.amount} ${reward.type}');
-        // 보상 지급 추적
-        AdTrackingService.instance.trackRewarded(
+
+        // 1. 광고 이벤트 추적 (ad_events 테이블)
+        final adEventId = await AdTrackingService.instance.trackRewarded(
           rewardAmount: reward.amount.toInt(),
           rewardType: reward.type,
+          screen: screen,
+          profileId: profileId,
         );
+
+        // 2. 기능 해금 (feature_unlocks 테이블)
+        if (featureType != null &&
+            featureKey != null &&
+            targetYear != null) {
+          await FeatureUnlockService.instance.unlockByRewardedAd(
+            featureType: featureType,
+            featureKey: featureKey,
+            targetYear: targetYear,
+            targetMonth: targetMonth ?? 0,
+            rewardAmount: reward.amount.toInt(),
+            rewardType: reward.type,
+            adEventId: adEventId,
+            profileId: profileId,
+          );
+        }
+
+        // 3. 콜백 호출
         onRewarded(reward.amount.toInt(), reward.type);
       },
     );
