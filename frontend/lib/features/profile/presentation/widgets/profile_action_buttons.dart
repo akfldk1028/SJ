@@ -10,7 +10,13 @@ import '../../../../router/routes.dart';
 /// - Primary: "만세력 보러가기"
 /// - Secondary: "저장된 만세력 불러오기"
 class ProfileActionButtons extends ConsumerWidget {
-  const ProfileActionButtons({super.key});
+  const ProfileActionButtons({
+    super.key,
+    this.editingProfileId,
+  });
+
+  /// 수정 모드일 경우 기존 프로필 ID
+  final String? editingProfileId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,8 +45,10 @@ class ProfileActionButtons extends ConsumerWidget {
   /// 프로필 저장 후 만세력 화면으로 이동
   Future<void> _onSaveAndViewChart(BuildContext context, WidgetRef ref) async {
     try {
-      // 프로필 저장
-      await ref.read(profileFormProvider.notifier).saveProfile();
+      // 프로필 저장 (수정 모드면 editingId 전달)
+      await ref.read(profileFormProvider.notifier).saveProfile(
+        editingId: editingProfileId,
+      );
 
       // 성공 메시지
       if (context.mounted) {

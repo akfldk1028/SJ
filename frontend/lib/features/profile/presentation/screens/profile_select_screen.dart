@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../router/routes.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../domain/entities/saju_profile.dart';
 import '../providers/profile_provider.dart';
@@ -49,7 +50,7 @@ class ProfileSelectScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/profile/edit'),
+        onPressed: () => context.push(Routes.profileEdit),
         backgroundColor: theme.primaryColor,
         child: Icon(Icons.add, color: theme.textPrimary),
       ),
@@ -187,6 +188,18 @@ class _ProfileCard extends ConsumerWidget {
                 _ProfileAvatar(profile: profile, theme: theme),
                 const SizedBox(width: 16),
                 Expanded(child: _ProfileInfo(profile: profile, theme: theme)),
+                // 수정 버튼 (연필 아이콘)
+                IconButton(
+                  onPressed: () => _onEdit(context),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: theme.textMuted,
+                    size: 20,
+                  ),
+                  tooltip: '프로필 수정',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
                 if (profile.isActive)
                   Icon(
                     Icons.check_circle,
@@ -213,6 +226,11 @@ class _ProfileCard extends ConsumerWidget {
     if (context.mounted) {
       context.pop();
     }
+  }
+
+  /// 프로필 수정 화면으로 이동
+  void _onEdit(BuildContext context) {
+    context.push('${Routes.profileEdit}?profileId=${profile.id}');
   }
 }
 

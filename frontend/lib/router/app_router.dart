@@ -75,7 +75,11 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: Routes.profileEdit,
         name: 'profileEdit',
-        builder: (context, state) => const ProfileEditScreen(),
+        builder: (context, state) {
+          // 쿼리 파라미터에서 profileId 추출 (수정 모드)
+          final profileId = state.uri.queryParameters['profileId'];
+          return ProfileEditScreen(profileId: profileId);
+        },
       ),
       GoRoute(
         path: Routes.sajuChart,

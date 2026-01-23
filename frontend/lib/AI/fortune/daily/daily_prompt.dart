@@ -142,6 +142,7 @@ $_dateString ($_weekdayString)
   "date": "$_dateString",
   "overall_score": 75,
   "overall_message": "오늘은 마치 아침 안개가 서서히 걷히듯, 처음엔 흐릿하던 것들이 시간이 지나며 선명해지는 하루가 될 거예요. ${inputData.dayGan ?? '?'} 일간인 당신은 ... (5-7문장)",
+  "overall_message_short": "${inputData.dayGan ?? '?'} 일간과 사자성어 정보를 통합해 하루 운세 설명... (2-3문장)",
   "categories": {
     "work": {
       "score": 80,
@@ -177,7 +178,7 @@ $_dateString ($_weekdayString)
     "message": "오늘에 딱 맞는 의미 풀이 (2-3문장)"
   },
   "caution": "오늘은 성급한 판단이 가장 위험해요. ... (2문장)",
-  "affirmation": "나는 오늘 하루를 온전히 살아낼 힘이 있어요. ... (1-2문장)"
+  "affirmation": "${inputData.dayGan ?? '?'} 일간과 사자성어 정보를 통합해 하루 운세 설명 객관적으로 (2-3문장)"
 }
 ```
 

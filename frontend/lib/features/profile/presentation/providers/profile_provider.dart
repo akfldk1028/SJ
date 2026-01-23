@@ -490,6 +490,14 @@ class ProfileForm extends _$ProfileForm {
     }
 
     final now = DateTime.now();
+    final repository = ref.read(profileRepositoryProvider);
+
+    // 수정 모드: 기존 프로필의 isActive, createdAt 보존
+    SajuProfile? existingProfile;
+    if (editingId != null) {
+      existingProfile = await repository.getById(editingId);
+    }
+
     final profile = SajuProfile(
       id: editingId ?? const Uuid().v4(),
       displayName: state.displayName,
@@ -502,14 +510,13 @@ class ProfileForm extends _$ProfileForm {
       useYaJasi: state.useYaJasi,
       birthCity: state.birthCity,
       timeCorrection: state.timeCorrection,
-      createdAt: now,
+      createdAt: existingProfile?.createdAt ?? now,
       updatedAt: now,
-      isActive: editingId == null, // 새 프로필은 자동으로 활성화
+      isActive: existingProfile?.isActive ?? (editingId == null),
       relationType: state.relationType,
       memo: state.memo,
     );
 
-    final repository = ref.read(profileRepositoryProvider);
     if (editingId != null) {
       await repository.update(profile);
     } else {
