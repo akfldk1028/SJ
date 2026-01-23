@@ -27,9 +27,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     _selectedDay = _focusedDay;
   }
 
+  /// 해당 날짜에 운세 기록이 있는지 확인
+  List<String> _getEventsForDay(DateTime day, List<DateTime> fortuneDates) {
+    // 날짜만 비교 (시간 제외)
+    final hasData = fortuneDates.any((d) =>
+        d.year == day.year && d.month == day.month && d.day == day.day);
+    return hasData ? ['fortune'] : [];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    // 운세 기록이 있는 날짜 목록 watch
+    final fortuneDatesAsync = ref.watch(dailyFortuneDatesProvider);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
@@ -42,7 +52,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      _buildCalendar(theme),
+                      fortuneDatesAsync.when(
+                        data: (dates) => _buildCalendar(theme, dates),
+                        loading: () => _buildCalendar(theme, []),
+                        error: (_, __) => _buildCalendar(theme, []),
+                      ),
                       const SizedBox(height: 16),
                       if (_selectedDay != null)
                         _buildSelectedDateFortune(theme),
@@ -130,7 +144,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildCalendar(AppThemeExtension theme) {
+  Widget _buildCalendar(AppThemeExtension theme, List<DateTime> fortuneDates) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -156,6 +170,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         focusedDay: _focusedDay,
         calendarFormat: _calendarFormat,
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+        // 운세 기록이 있는 날짜에 마커 표시
+        eventLoader: (day) => _getEventsForDay(day, fortuneDates),
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             _selectedDay = selectedDay;

@@ -85,7 +85,14 @@ class HomeScreen extends ConsumerWidget {
                         data: (profile) => _buildUserChip(
                           theme,
                           profile?.displayName ?? '프로필',
-                          () => context.push(Routes.profileEdit),
+                          () {
+                            // 프로필 있으면 수정 모드, 없으면 신규 생성 모드
+                            if (profile != null) {
+                              context.push('${Routes.profileEdit}?profileId=${profile.id}');
+                            } else {
+                              context.push(Routes.profileEdit);
+                            }
+                          },
                         ),
                         loading: () => _buildUserChip(theme, '로딩...', () {}),
                         error: (_, __) => _buildUserChip(theme, '프로필', () {}),

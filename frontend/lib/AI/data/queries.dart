@@ -209,6 +209,43 @@ class AiQueries extends BaseQueries {
     );
   }
 
+  /// 프로필의 일운이 있는 날짜 목록 조회 (캘린더 마커용)
+  ///
+  /// ## 용도
+  /// 캘린더에서 운세가 저장된 날에 마커(점)를 표시하기 위해
+  /// 해당 프로필의 모든 daily_fortune target_date를 조회합니다.
+  ///
+  /// ## 반환값
+  /// - 성공: 날짜 목록 (DateTime 리스트)
+  /// - 실패: 빈 리스트
+  Future<QueryResult<List<DateTime>>> getDailyFortuneDates(
+    String profileId,
+  ) async {
+    // 오프라인이거나 client가 null이면 빈 리스트 반환
+    if (!isConnected || client == null) {
+      return QueryResult.success([]);
+    }
+
+    try {
+      final response = await client!
+          .from(AiSummaries.table_name)
+          .select(AiSummaries.c_targetDate)
+          .eq(AiSummaries.c_profileId, profileId)
+          .eq(AiSummaries.c_summaryType, SummaryType.dailyFortune)
+          .eq(AiSummaries.c_status, 'completed')
+          .not(AiSummaries.c_targetDate, 'is', null);
+
+      final dates = (response as List)
+          .map((row) => DateTime.parse(row['target_date'] as String))
+          .toList();
+
+      return QueryResult.success(dates);
+    } catch (e) {
+      print('[AiQueries] 일운 날짜 목록 조회 실패: $e');
+      return QueryResult.success([]); // 실패해도 빈 리스트 반환 (UI 영향 최소화)
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // saju_analyses 조회 (GPT 입력 데이터)
   // ═══════════════════════════════════════════════════════════════════════════

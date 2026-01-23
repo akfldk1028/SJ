@@ -56,4 +56,3 @@ test_full.ps1
 test_prompt.json
 test_prompt_full.json
 tools
-frontend/lib/AI/services/saju_analysis_service.dart

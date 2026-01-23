@@ -193,11 +193,12 @@ class Splash extends _$Splash {
           }
 
         case QuerySuccess():
-          // 프로필 없음 (신규 사용자)
+          // Supabase에 프로필 없음 - Hive 캐시로 폴백
+          // (세션 복원 실패로 새 user_id 생성된 경우 대비)
           if (kDebugMode) {
-            print('[Splash] No profile found - new user');
+            print('[Splash] No profile in cloud - checking local cache');
           }
-          return const SplashState.noProfile();
+          return _loadFromCache();
 
         case QueryOffline():
           // 오프라인

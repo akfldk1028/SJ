@@ -255,3 +255,26 @@ Future<DailyFortuneData?> dailyFortuneForDate(Ref ref, DateTime date) async {
 
   return DailyFortuneData.fromJson(content as Map<String, dynamic>);
 }
+
+/// 프로필의 일운이 있는 날짜 목록 Provider (캘린더 마커용)
+///
+/// ## 용도
+/// 캘린더에서 운세가 저장된 날에 마커(점)를 표시하기 위해
+/// 해당 프로필의 모든 daily_fortune 날짜를 조회합니다.
+///
+/// ## 사용 예시
+/// ```dart
+/// final datesAsync = ref.watch(dailyFortuneDatesProvider);
+/// datesAsync.when(
+///   data: (dates) => dates.contains(day) ? ['fortune'] : [],
+///   ...
+/// );
+/// ```
+@riverpod
+Future<List<DateTime>> dailyFortuneDates(Ref ref) async {
+  final activeProfile = await ref.watch(activeProfileProvider.future);
+  if (activeProfile == null) return [];
+
+  final result = await aiQueries.getDailyFortuneDates(activeProfile.id);
+  return result.data ?? [];
+}
