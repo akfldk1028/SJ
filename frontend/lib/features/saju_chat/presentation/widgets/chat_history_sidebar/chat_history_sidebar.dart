@@ -47,9 +47,11 @@ class ChatHistorySidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // 상단 SafeArea 패딩
+          SizedBox(height: MediaQuery.of(context).padding.top),
           SidebarHeader(onNewChat: onNewChat),
-          // 페르소나 선택 그리드 - 가로 모드에서는 숨김
-          if (!isLandscape) const PersonaSelectorGrid(),
+          // 페르소나 선택 그리드 - 메인에서 설정하므로 주석처리
+          // if (!isLandscape) const PersonaSelectorGrid(),
           // 대화 히스토리 목록
           Expanded(
             child: SessionList(
