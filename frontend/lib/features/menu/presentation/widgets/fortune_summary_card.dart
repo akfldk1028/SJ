@@ -23,7 +23,13 @@ class FortuneSummaryCard extends ConsumerWidget {
     return fortuneAsync.when(
       loading: () => _buildLoadingCard(theme),
       error: (error, stack) => _buildErrorCard(context, theme, error),
-      data: (fortune) => _buildFortuneCard(context, theme, fortune ?? _getSampleFortuneData()),
+      data: (fortune) {
+        // fortune이 null이면 AI 분석 중 → 로딩 표시
+        if (fortune == null) {
+          return _buildAnalyzingCard(theme);
+        }
+        return _buildFortuneCard(context, theme, fortune);
+      },
     );
   }
 
@@ -52,6 +58,60 @@ class FortuneSummaryCard extends ConsumerWidget {
               const SizedBox(height: 20),
               Text(
                 '운세를 불러오는 중...',
+                style: TextStyle(
+                  color: theme.textMuted,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// AI 분석 중일 때 표시하는 카드
+  Widget _buildAnalyzingCard(AppThemeExtension theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        height: 320,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: theme.isDark ? _shadowDark : _shadowLight,
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 100,
+                height: 100,
+                child: AnimatedYinYangIllustration(
+                  size: 100,
+                  showGlow: true,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                '🔮 AI가 운세를 분석하고 있어요',
+                style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '잠시만 기다려주세요...',
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 14,
@@ -165,7 +225,7 @@ class FortuneSummaryCard extends ConsumerWidget {
       child: Column(
         children: [
           // 메인 운세 카드 (시간대별 오행 테마)
-          _buildMainScoreCard(context, theme, score, message, hour),
+          _buildMainScoreCard(context, theme, score, message, hour, fortune.idiom),
           SizedBox(height: context.scaledPadding(16)),
           // 4개 카테고리 통계 그리드
           _buildCategoryStatsGrid(context, theme, fortune),
@@ -183,6 +243,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     int score,
     String message,
     int hour,
+    IdiomInfo idiom,
   ) {
     final timeTheme = _getTimeTheme(hour);
     final isNight = hour >= 17 || hour < 5;
@@ -289,6 +350,27 @@ class FortuneSummaryCard extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  // 사자성어 (점수 아래)
+                  if (idiom.isValid) ...[
+                    SizedBox(height: context.scaledPadding(12)),
+                    Text(
+                      idiom.korean,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${idiom.chinese} · ${idiom.meaning}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                   SizedBox(height: context.scaledPadding(16)),
                   // 메시지 텍스트
                   Container(

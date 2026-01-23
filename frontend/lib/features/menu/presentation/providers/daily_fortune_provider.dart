@@ -16,6 +16,7 @@ class DailyFortuneData {
   final String date;
   final Map<String, CategoryScore> categories;
   final LuckyInfo lucky;
+  final IdiomInfo idiom;  // 오늘의 사자성어
   final String caution;
   final String affirmation;
 
@@ -25,6 +26,7 @@ class DailyFortuneData {
     required this.date,
     required this.categories,
     required this.lucky,
+    this.idiom = IdiomInfo.empty,
     required this.caution,
     required this.affirmation,
   });
@@ -54,12 +56,22 @@ class DailyFortuneData {
       direction: luckyJson['direction'] as String? ?? '',
     );
 
+    // idiom 파싱 (오늘의 사자성어)
+    final idiomJson = json['idiom'] as Map<String, dynamic>? ?? {};
+    final idiom = IdiomInfo(
+      chinese: idiomJson['chinese'] as String? ?? '',
+      korean: idiomJson['korean'] as String? ?? '',
+      meaning: idiomJson['meaning'] as String? ?? '',
+      message: idiomJson['message'] as String? ?? '',
+    );
+
     return DailyFortuneData(
       overallScore: (json['overall_score'] as num?)?.toInt() ?? 0,
       overallMessage: json['overall_message'] as String? ?? '',
       date: json['date'] as String? ?? '',
       categories: categories,
       lucky: lucky,
+      idiom: idiom,
       caution: json['caution'] as String? ?? '',
       affirmation: json['affirmation'] as String? ?? '',
     );
@@ -109,6 +121,32 @@ class LuckyInfo {
   });
 }
 
+/// 오늘의 사자성어 정보
+class IdiomInfo {
+  final String chinese;   // 한자 (예: 磨斧爲針)
+  final String korean;    // 한글 (예: 마부위침)
+  final String meaning;   // 뜻풀이 (예: 도끼를 갈아 바늘을 만든다)
+  final String message;   // 오늘에 맞는 메시지 (2-3문장)
+
+  const IdiomInfo({
+    required this.chinese,
+    required this.korean,
+    required this.meaning,
+    required this.message,
+  });
+
+  /// 빈 사자성어 정보
+  static const empty = IdiomInfo(
+    chinese: '',
+    korean: '',
+    meaning: '',
+    message: '',
+  );
+
+  /// 유효한지 확인
+  bool get isValid => korean.isNotEmpty && chinese.isNotEmpty;
+}
+
 /// 오늘의 운세 Provider
 ///
 /// activeProfile의 오늘 운세를 DB에서 조회
@@ -131,8 +169,19 @@ class DailyFortune extends _$DailyFortune {
       final aiSummary = result.data!;
       final content = aiSummary.content;
       if (content != null) {
+        final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
+        print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
+
+        // idiom이 없는 오래된 캐시인 경우 재분석 필요
+        if (!fortune.idiom.isValid) {
+          print('[DailyFortune] 캐시 히트 but idiom 없음 - 재분석 필요');
+          await _triggerAnalysisIfNeeded(activeProfile.id);
+          // 일단 기존 데이터 반환 (idiom만 빠진 상태)
+          return fortune;
+        }
+
         print('[DailyFortune] 캐시 히트 - 오늘의 운세 로드');
-        return DailyFortuneData.fromJson(content as Map<String, dynamic>);
+        return fortune;
       }
     }
 
@@ -166,8 +215,12 @@ class DailyFortune extends _$DailyFortune {
       profileId: profileId,
       runInBackground: true,
       onComplete: (result) {
-        _isAnalyzing = false;
-        print('[DailyFortune] AI 분석 완료 - UI 갱신');
+        // saju_base가 설정되면 최종 완료로 판단 (중간 콜백은 dailyFortune만 설정됨)
+        if (result.sajuBase != null) {
+          _isAnalyzing = false;
+          print('[DailyFortune] 📌 최종 분석 완료 - _isAnalyzing 리셋');
+        }
+        print('[DailyFortune] AI 분석 콜백 - UI 갱신');
         print('  - 평생운세: ${result.sajuBase?.success ?? false}');
         print('  - 오늘운세: ${result.dailyFortune?.success ?? false}');
         // Provider 무효화하여 UI 갱신
