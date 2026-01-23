@@ -252,6 +252,69 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     await sessionNotifier.renameSession(sessionId, newTitle);
   }
 
+  /// 모바일 채팅 메뉴 표시 (햄버거 버튼)
+  void _showChatMenu(BuildContext context) {
+    final appTheme = context.appTheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: appTheme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 핸들바
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: appTheme.textMuted.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 새 채팅
+            ListTile(
+              leading: Icon(Icons.add_comment_outlined, color: appTheme.primaryColor),
+              title: Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('새로운 대화 시작', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _handleNewChat();
+              },
+            ),
+            // 채팅 기록
+            ListTile(
+              leading: Icon(Icons.history, color: appTheme.textPrimary),
+              title: Text('채팅 기록', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('이전 대화 기록 보기', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+            Divider(color: appTheme.textMuted.withOpacity(0.2)),
+            // 메인으로 돌아가기
+            ListTile(
+              leading: Icon(Icons.home_outlined, color: appTheme.textPrimary),
+              title: Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('메인 화면으로 이동', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                context.go(Routes.menu);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -282,20 +345,15 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         backgroundColor: appTheme.backgroundColor,
         foregroundColor: appTheme.textPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(Routes.menu),
-          tooltip: '메뉴로 돌아가기',
+          icon: const Icon(Icons.menu),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          tooltip: '메뉴',
         ),
         title: Text(
           currentSession?.title ?? _chatType.title,
           style: TextStyle(color: appTheme.textPrimary),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            tooltip: '채팅 기록',
-          ),
           // 궁합 버튼 (2명 선택)
           IconButton(
             icon: const Icon(Icons.group_add_outlined),
@@ -375,24 +433,66 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                   ),
                   child: Row(
                     children: [
-                      // 뒤로가기 버튼
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: appTheme.textPrimary),
-                        onPressed: () => context.go(Routes.menu),
-                        tooltip: '메뉴로 돌아가기',
-                      ),
-                      // 햄버거 아이콘 (사이드바 토글)
-                      IconButton(
-                        icon: Icon(
-                          _isSidebarVisible ? Icons.menu_open : Icons.menu,
-                          color: appTheme.textPrimary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isSidebarVisible = !_isSidebarVisible;
-                          });
+                      // 햄버거 메뉴 (새 채팅, 메인으로 이동, 사이드바 토글)
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.menu, color: appTheme.textPrimary),
+                        tooltip: '메뉴',
+                        color: appTheme.cardColor,
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'new_chat':
+                              _handleNewChat();
+                              break;
+                            case 'go_main':
+                              context.go(Routes.menu);
+                              break;
+                            case 'toggle_sidebar':
+                              setState(() {
+                                _isSidebarVisible = !_isSidebarVisible;
+                              });
+                              break;
+                          }
                         },
-                        tooltip: _isSidebarVisible ? '사이드바 숨기기' : '사이드바 보기',
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'new_chat',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_comment_outlined, color: appTheme.textPrimary, size: 20),
+                                const SizedBox(width: 12),
+                                Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'go_main',
+                            child: Row(
+                              children: [
+                                Icon(Icons.home_outlined, color: appTheme.textPrimary, size: 20),
+                                const SizedBox(width: 12),
+                                Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'toggle_sidebar',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _isSidebarVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  color: appTheme.textPrimary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _isSidebarVisible ? '사이드바 숨기기' : '사이드바 보기',
+                                  style: TextStyle(color: appTheme.textPrimary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 8),
                       // 현재 세션 제목
@@ -682,8 +782,8 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     // 상단 요소들 (가로 모드에서는 컴팩트하게)
     final topWidgets = <Widget>[
       const DisclaimerBanner(),
-      // 페르소나 가로 선택기 (원형 이모지 리스트)
-      const _PersonaHorizontalSelector(),
+      // 페르소나 가로 선택기 (원형 이모지 리스트) - 메인에서 설정하므로 주석처리
+      // const _PersonaHorizontalSelector(),
       // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
       if (chatState.isDeepAnalysisRunning)
         const _DeepAnalysisLoadingBanner(),

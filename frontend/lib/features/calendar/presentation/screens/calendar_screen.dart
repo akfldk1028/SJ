@@ -6,9 +6,12 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../domain/models/calendar_event.dart';
+import '../providers/calendar_event_provider.dart';
+import '../widgets/add_event_bottom_sheet.dart';
+import '../widgets/event_list_widget.dart';
 
-/// 캘린더 화면 - 날짜별 운세 기록 조회
+/// 캘린더 화면 - 날짜별 운세 기록 조회 + 일정 관리
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
@@ -28,11 +31,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   /// 해당 날짜에 운세 기록이 있는지 확인
-  List<String> _getEventsForDay(DateTime day, List<DateTime> fortuneDates) {
-    // 날짜만 비교 (시간 제외)
+  List<String> _getFortuneEventsForDay(DateTime day, List<DateTime> fortuneDates) {
     final hasData = fortuneDates.any((d) =>
         d.year == day.year && d.month == day.month && d.day == day.day);
     return hasData ? ['fortune'] : [];
+  }
+
+  /// 일정 추가 Bottom Sheet 열기
+  Future<void> _showAddEventSheet() async {
+    if (_selectedDay == null) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddEventBottomSheet(
+        selectedDate: _selectedDay!,
+      ),
+    );
   }
 
   @override
@@ -40,6 +56,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final theme = context.appTheme;
     // 운세 기록이 있는 날짜 목록 watch
     final fortuneDatesAsync = ref.watch(dailyFortuneDatesProvider);
+    // 일정 목록
+    final eventsAsync = ref.watch(calendarEventNotifierProvider);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
@@ -53,13 +71,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   child: Column(
                     children: [
                       fortuneDatesAsync.when(
-                        data: (dates) => _buildCalendar(theme, dates),
-                        loading: () => _buildCalendar(theme, []),
-                        error: (_, __) => _buildCalendar(theme, []),
+                        data: (dates) => _buildCalendar(theme, dates, eventsAsync),
+                        loading: () => _buildCalendar(theme, [], eventsAsync),
+                        error: (_, __) => _buildCalendar(theme, [], eventsAsync),
                       ),
                       const SizedBox(height: 16),
-                      if (_selectedDay != null)
+                      if (_selectedDay != null) ...[
+                        _buildEventSection(theme),
+                        const SizedBox(height: 16),
                         _buildSelectedDateFortune(theme),
+                      ],
+                      const SizedBox(height: 100), // FAB 공간
                     ],
                   ),
                 ),
@@ -67,6 +89,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ],
           ),
         ),
+      ),
+      // 일정 추가 FAB
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddEventSheet,
+        backgroundColor: theme.primaryColor,
+        foregroundColor: theme.isDark ? Colors.black : Colors.white,
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -76,29 +105,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.isDark
-                        ? const Color.fromRGBO(0, 0, 0, 0.3)
-                        : const Color.fromRGBO(0, 0, 0, 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.arrow_back_rounded,
-                color: theme.textPrimary,
-                size: 20,
-              ),
+          // 캘린더 아이콘 (탭 네비게이션이므로 뒤로가기 대신 아이콘 표시)
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.isDark
+                      ? const Color.fromRGBO(0, 0, 0, 0.3)
+                      : const Color.fromRGBO(0, 0, 0, 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.calendar_month_rounded,
+              color: theme.primaryColor,
+              size: 20,
             ),
           ),
           const SizedBox(width: 16),
@@ -144,7 +171,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildCalendar(AppThemeExtension theme, List<DateTime> fortuneDates) {
+  Widget _buildCalendar(
+    AppThemeExtension theme,
+    List<DateTime> fortuneDates,
+    AsyncValue<List<CalendarEvent>> eventsAsync,
+  ) {
+    // 일정이 있는 날짜 Set
+    final datesWithEvents = eventsAsync.when(
+      data: (events) => events
+          .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
+          .toSet(),
+      loading: () => <DateTime>{},
+      error: (_, __) => <DateTime>{},
+    );
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -170,8 +210,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         focusedDay: _focusedDay,
         calendarFormat: _calendarFormat,
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-        // 운세 기록이 있는 날짜에 마커 표시
-        eventLoader: (day) => _getEventsForDay(day, fortuneDates),
+        eventLoader: (day) {
+          // 운세 기록 또는 일정이 있으면 마커 표시
+          final fortuneEvents = _getFortuneEventsForDay(day, fortuneDates);
+          final normalizedDay = DateTime(day.year, day.month, day.day);
+          final hasCalendarEvent = datesWithEvents.contains(normalizedDay);
+
+          if (fortuneEvents.isNotEmpty || hasCalendarEvent) {
+            return [true];
+          }
+          return [];
+        },
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             _selectedDay = selectedDay;
@@ -212,9 +261,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             fontWeight: FontWeight.w600,
           ),
 
-          // 마커 (운세 데이터 있는 날)
-          markerDecoration: BoxDecoration(
-            color: theme.primaryColor,
+          // 마커 (일정 있는 날)
+          markerDecoration: const BoxDecoration(
+            color: Color(0xFFEC4899), // 핑크색 마커
             shape: BoxShape.circle,
           ),
           markersMaxCount: 1,
@@ -254,9 +303,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildSelectedDateFortune(AppThemeExtension theme) {
+  /// 일정 섹션
+  Widget _buildEventSection(AppThemeExtension theme) {
     final selectedDay = _selectedDay!;
-    final fortuneAsync = ref.watch(dailyFortuneForDateProvider(selectedDay));
+    final events = ref.watch(eventsForDayProvider(selectedDay));
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -286,6 +336,105 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
+                  color: const Color(0xFFEC4899).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.event_note_rounded,
+                  color: Color(0xFFEC4899),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _formatDateHeader(selectedDay),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                ),
+              ),
+              // 일정 추가 버튼
+              GestureDetector(
+                onTap: _showAddEventSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: theme.primaryColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.add_rounded,
+                        size: 16,
+                        color: theme.primaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '추가',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: theme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 일정 목록
+          EventListWidget(
+            selectedDate: selectedDay,
+            events: events,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedDateFortune(AppThemeExtension theme) {
+    final selectedDay = _selectedDay!;
+    final fortuneAsync = ref.watch(dailyFortuneForDateProvider(selectedDay));
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.primaryColor.withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.isDark
+                ? const Color.fromRGBO(0, 0, 0, 0.3)
+                : const Color.fromRGBO(0, 0, 0, 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 운세 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
                   color: theme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -297,7 +446,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                _formatDateHeader(selectedDay),
+                '오늘의 운세',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
