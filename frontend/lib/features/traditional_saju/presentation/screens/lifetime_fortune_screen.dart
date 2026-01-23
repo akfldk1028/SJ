@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
+import '../../../../shared/widgets/fortune_section_card.dart';
+import '../../../../shared/widgets/fortune_title_header.dart';
 import '../../../../ad/ad_service.dart';
 import '../../../../animation/saju_loading_animation.dart';
 import '../providers/lifetime_fortune_provider.dart';
@@ -462,41 +464,72 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 진행 상황 배너 (상단)
+  /// 진행 상황 배너 (상단) - 개선된 UI
   Widget _buildProgressBanner(AppThemeExtension theme, PhaseProgressData progress) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.textPrimary.withValues(alpha: 0.3)),
+        gradient: LinearGradient(
+          colors: [
+            theme.cardColor,
+            theme.cardColor.withValues(alpha: 0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.textPrimary.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
-            height: 40,
-            child: CircularProgressIndicator(
-              value: progress.progress,
-              strokeWidth: 4,
-              backgroundColor: theme.textMuted.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(theme.textPrimary),
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  value: progress.progress,
+                  strokeWidth: 4,
+                  backgroundColor: theme.textMuted.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(theme.textPrimary),
+                ),
+              ),
+              Text(
+                '${(progress.progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '분석 진행 중 (${(progress.progress * 100).toInt()}%)',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 16, color: theme.textPrimary),
+                    const SizedBox(width: 6),
+                    Text(
+                      '분석 진행 중',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   progress.currentAnalysisDetail,
                   style: TextStyle(
@@ -756,26 +789,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   Widget _buildTitle(AppThemeExtension theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          '평생운세',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '타고난 사주로 본 나의 운명',
-          style: TextStyle(
-            fontSize: 16,
-            color: theme.textSecondary,
-          ),
-        ),
-      ],
+    return const FortuneTitleHeader(
+      title: '평생운세',
+      subtitle: '타고난 사주로 본 나의 운명',
+      style: HeaderStyle.centered,
     );
   }
 
@@ -783,14 +800,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
+        FortuneSectionTitle(title: title),
         const SizedBox(height: 12),
         ...children,
       ],
@@ -835,18 +845,20 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   Widget _buildListItem(AppThemeExtension theme, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-              height: 1.6,
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: theme.textPrimary.withValues(alpha: 0.6),
+              shape: BoxShape.circle,
             ),
           ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
@@ -863,37 +875,107 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   Widget _buildLuckyItem(AppThemeExtension theme, String label, String value) {
+    // 라벨별 아이콘
+    IconData icon;
+    switch (label) {
+      case '행운의 색상':
+        icon = Icons.palette_outlined;
+        break;
+      case '행운의 숫자':
+        icon = Icons.tag;
+        break;
+      case '좋은 방향':
+        icon = Icons.explore_outlined;
+        break;
+      case '유리한 계절':
+        icon = Icons.wb_sunny_outlined;
+        break;
+      case '궁합이 좋은 띠':
+        icon = Icons.favorite_outline;
+        break;
+      default:
+        icon = Icons.star_outline;
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          fontSize: 15,
-          color: theme.textSecondary,
-          height: 1.6,
-        ),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: theme.textPrimary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: theme.textPrimary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () => context.go('/saju/chat?type=lifetimeFortune'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.textPrimary,
-          foregroundColor: theme.backgroundColor,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.textPrimary,
+            theme.textPrimary.withValues(alpha: 0.8),
+          ],
         ),
-        child: const Text(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => context.go('/saju/chat?type=lifetimeFortune'),
+        icon: const Icon(Icons.auto_awesome, size: 20),
+        label: const Text(
           'AI에게 평생운세 상담받기',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: theme.backgroundColor,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
@@ -902,41 +984,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   /// v7.0: 나의 사주 소개 섹션 (카드 스타일)
   Widget _buildMySajuIntroSection(AppThemeExtension theme, MySajuIntroSection intro) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.person_outline, color: theme.textPrimary, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            intro.reading,
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-              height: 1.8,
-            ),
-          ),
-        ],
-      ),
+    return FortuneSectionCard(
+      title: intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
+      icon: Icons.person_outline,
+      content: intro.reading,
+      style: CardStyle.elevated,
     );
   }
 
@@ -959,7 +1011,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         lucky.seasons.isNotEmpty;
   }
 
-  /// 인생 주기 카드 (잠금/해제 상태에 따른 UI)
+  /// 인생 주기 카드 (잠금/해제 상태에 따른 UI) - 개선된 UI
   Widget _buildLifeCycleCard(
     AppThemeExtension theme, {
     required String cycleKey,
@@ -969,17 +1021,29 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }) {
     final isUnlocked = _unlockedCycles.contains(cycleKey);
 
+    // 주기별 아이콘
+    final IconData cycleIcon = cycleKey == 'middleAge'
+        ? Icons.trending_up
+        : Icons.spa;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isUnlocked
-              ? theme.textMuted.withValues(alpha: 0.3)
-              : theme.textMuted.withValues(alpha: 0.2),
+              ? theme.textPrimary.withValues(alpha: 0.2)
+              : theme.textMuted.withValues(alpha: 0.15),
         ),
+        boxShadow: isUnlocked ? [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -987,24 +1051,61 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           // 헤더
           Row(
             children: [
-              Text(
-                '$title ($ageRange)',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textPrimary,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isUnlocked
+                      ? theme.textPrimary.withValues(alpha: 0.1)
+                      : theme.textMuted.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isUnlocked ? cycleIcon : Icons.lock_outline,
+                  size: 18,
+                  color: isUnlocked ? theme.textPrimary : theme.textSecondary,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      ageRange,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               if (!isUnlocked)
-                Icon(
-                  Icons.lock_outline,
-                  size: 18,
-                  color: theme.textSecondary,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.textMuted.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '잠김',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.textSecondary,
+                    ),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
 
           // 내용 또는 잠금 UI
           if (isUnlocked)
@@ -1023,51 +1124,81 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 잠금 상태 UI
+  /// 잠금 상태 UI - 개선된 UI
   Widget _buildLockedContent(AppThemeExtension theme, String cycleKey, String title) {
-    return Column(
-      children: [
-        Text(
-          '광고를 시청하면 $title 운세를\n확인할 수 있습니다.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.textMuted,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _isLoadingAd ? null : () => _showRewardedAdAndUnlock(cycleKey, title),
-            icon: _isLoadingAd
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.textMuted.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.movie_outlined, size: 20, color: theme.textSecondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '광고를 시청하면 $title 운세를 확인할 수 있습니다.',
+                    style: TextStyle(
+                      fontSize: 13,
                       color: theme.textSecondary,
+                      height: 1.4,
                     ),
-                  )
-                : Icon(Icons.play_circle_outline, size: 20, color: theme.textPrimary),
-            label: Text(
-              _isLoadingAd ? '광고 로딩 중...' : '광고 보고 $title 확인하기',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textPrimary,
-              ),
+                  ),
+                ),
+              ],
             ),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              side: BorderSide(color: theme.textMuted.withValues(alpha: 0.4)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.textPrimary.withValues(alpha: 0.9),
+                    theme.textPrimary.withValues(alpha: 0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isLoadingAd ? null : () => _showRewardedAdAndUnlock(cycleKey, title),
+                icon: _isLoadingAd
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.backgroundColor,
+                        ),
+                      )
+                    : Icon(Icons.play_circle_filled, size: 20, color: theme.backgroundColor),
+                label: Text(
+                  _isLoadingAd ? '광고 로딩 중...' : '광고 보고 $title 확인',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: theme.backgroundColor,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1338,44 +1469,12 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 하이라이트 박스 (강조 정보)
+  /// 하이라이트 박스 (강조 정보) - 공통 위젯 사용
   Widget _buildHighlightBox(AppThemeExtension theme, String label, String content, {bool isWarning = false}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isWarning
-            ? Colors.orange.withValues(alpha: 0.1)
-            : theme.textPrimary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isWarning
-              ? Colors.orange.withValues(alpha: 0.3)
-              : theme.textMuted.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isWarning ? Colors.orange : theme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: 14,
-              color: theme.textSecondary,
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
+    return FortuneHighlightBox(
+      label: label,
+      content: content,
+      type: isWarning ? HighlightType.warning : HighlightType.info,
     );
   }
 }

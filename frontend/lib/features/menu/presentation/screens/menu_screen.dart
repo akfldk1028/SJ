@@ -105,9 +105,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   Widget _buildAppBar(AppThemeExtension theme) {
     final formattedDate = _formatDate(_selectedDate);
     final activeProfileAsync = ref.watch(activeProfileProvider);
+    final horizontalPadding = context.horizontalPadding;
+    final isSmall = context.isSmallMobile;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
       decoration: BoxDecoration(
         color: theme.backgroundColor,
       ),

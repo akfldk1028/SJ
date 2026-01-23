@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
+import '../../../../shared/widgets/fortune_title_header.dart';
+import '../../../../shared/widgets/fortune_section_card.dart';
+import '../../../../shared/widgets/fortune_year_info_card.dart';
 import '../providers/new_year_fortune_provider.dart';
 
-/// 2026 신년운세 화면 - 책처럼 읽기 쉬운 레이아웃
+/// 2026 신년운세 화면 - 개선된 UI/UX
 class NewYearFortuneScreen extends ConsumerWidget {
   const NewYearFortuneScreen({super.key});
 
@@ -54,30 +58,40 @@ class NewYearFortuneScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref, Object error) {
-    debugPrint('[NewYearFortuneScreen] ❌ 에러: $error');
+    debugPrint('[NewYearFortuneScreen] error: $error');
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '신년운세를 불러오지 못했습니다',
-            style: TextStyle(color: theme.textSecondary, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: theme.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              '신년운세를 불러오지 못했습니다',
+              style: TextStyle(color: theme.textSecondary, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
               '$error',
               style: TextStyle(color: theme.textMuted, fontSize: 12),
               textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => ref.read(newYearFortuneProvider.notifier).refresh(),
-            child: const Text('다시 시도'),
-          ),
-        ],
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => ref.read(newYearFortuneProvider.notifier).refresh(),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('다시 시도'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -87,11 +101,23 @@ class NewYearFortuneScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(
             '2026년 신년운세를 분석하고 있습니다...',
             style: TextStyle(color: theme.textSecondary, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '잠시만 기다려주세요',
+            style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
       ),
@@ -99,90 +125,159 @@ class NewYearFortuneScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, AppThemeExtension theme, NewYearFortuneData fortune) {
+    // 반응형 패딩 적용
+    final horizontalPadding = context.horizontalPadding;
+    final isSmall = context.isSmallMobile;
+
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
       children: [
-        // 제목
-        _buildTitle(theme, fortune),
-        const SizedBox(height: 32),
-
-        // v7.0: 나의 사주 소개
-        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
-          _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
-          const SizedBox(height: 32),
-        ],
-
-        // 연도 정보
-        if (_hasYearInfo(fortune.yearInfo)) ...[
-          _buildSection(
-            theme,
-            title: '${fortune.year}년 ${fortune.yearInfo.alias}',
-            children: [
-              if (fortune.yearInfo.napeum.isNotEmpty)
-                _buildSubSection(theme, '납음', '${fortune.yearInfo.napeum}\n${fortune.yearInfo.napeumExplain}'),
-              if (fortune.yearInfo.twelveUnsung.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '12운성', '${fortune.yearInfo.twelveUnsung}\n${fortune.yearInfo.unsungExplain}'),
-              ],
-              if (fortune.yearInfo.mainSinsal.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '주요 신살', '${fortune.yearInfo.mainSinsal}\n${fortune.yearInfo.sinsalExplain}'),
-              ],
-            ],
-          ),
-          const SizedBox(height: 32),
-        ],
-
-        // 개인 분석
-        if (_hasPersonalAnalysis(fortune.personalAnalysis)) ...[
-          _buildSection(
-            theme,
-            title: '나와 2026년의 관계',
-            children: [
-              if (fortune.personalAnalysis.ilgan.isNotEmpty)
-                _buildSubSection(theme, '일간 분석', '${fortune.personalAnalysis.ilgan}\n${fortune.personalAnalysis.ilganExplain}'),
-              if (fortune.personalAnalysis.fireEffect.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '화(火) 기운의 영향', fortune.personalAnalysis.fireEffect),
-              ],
-              if (fortune.personalAnalysis.yongshinMatch.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '용신 조화', fortune.personalAnalysis.yongshinMatch),
-              ],
-              if (fortune.personalAnalysis.hapchungEffect.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '합충 영향', fortune.personalAnalysis.hapchungEffect),
-              ],
-              if (fortune.personalAnalysis.sinsalEffect.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '신살 영향', fortune.personalAnalysis.sinsalEffect),
-              ],
-            ],
-          ),
-          const SizedBox(height: 32),
-        ],
-
-        // 총운
-        _buildSection(
-          theme,
-          title: '2026년 총운',
-          children: [
-            if (fortune.overview.keyword.isNotEmpty)
-              _buildKeyword(theme, fortune.overview.keyword, fortune.overview.score),
-            if (fortune.overview.summary.isNotEmpty)
-              _buildParagraph(theme, fortune.overview.summary),
-            if (fortune.overview.keyPoint.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildSubSection(theme, '핵심 포인트', fortune.overview.keyPoint),
-            ],
-          ],
+        // 히어로 헤더 (타이틀 + 점수 + 키워드)
+        FortuneTitleHeader(
+          title: '${fortune.year}년 신년운세',
+          subtitle: fortune.yearGanji,
+          keyword: fortune.overview.keyword.isNotEmpty ? fortune.overview.keyword : null,
+          score: fortune.overview.score > 0 ? fortune.overview.score : null,
+          style: HeaderStyle.hero,
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
+
+        // 년도 특징 카드 (붉은말의 해 등)
+        FortuneYearInfoCard(
+          year: fortune.year,
+          ganji: fortune.yearGanji.replaceAll('년', ''),
+        ),
+        const SizedBox(height: 24),
+
+        // 나의 사주 소개 (있으면)
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+          FortuneSectionCard(
+            title: fortune.mySajuIntro!.title.isNotEmpty
+                ? fortune.mySajuIntro!.title
+                : '나의 사주, 나는 누구인가요?',
+            icon: Icons.person_outline,
+            content: fortune.mySajuIntro!.reading,
+            style: CardStyle.gradient,
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 2026년 총운
+        FortuneSectionCard(
+          title: '2026년 총운',
+          icon: Icons.auto_awesome,
+          style: CardStyle.elevated,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (fortune.overview.summary.isNotEmpty)
+                Text(
+                  fortune.overview.summary,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                ),
+              if (fortune.overview.keyPoint.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '핵심 포인트',
+                  content: fortune.overview.keyPoint,
+                  type: HighlightType.primary,
+                  icon: Icons.lightbulb_outline,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 연도 정보 (납음, 12운성, 신살)
+        if (_hasYearInfo(fortune.yearInfo)) ...[
+          FortuneSectionCard(
+            title: '${fortune.year}년 ${fortune.yearInfo.alias}',
+            icon: Icons.calendar_today,
+            style: CardStyle.outlined,
+            child: Column(
+              children: [
+                if (fortune.yearInfo.napeum.isNotEmpty)
+                  _buildInfoTile(theme, '납음', fortune.yearInfo.napeum, fortune.yearInfo.napeumExplain),
+                if (fortune.yearInfo.twelveUnsung.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildInfoTile(theme, '12운성', fortune.yearInfo.twelveUnsung, fortune.yearInfo.unsungExplain),
+                ],
+                if (fortune.yearInfo.mainSinsal.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildInfoTile(theme, '주요 신살', fortune.yearInfo.mainSinsal, fortune.yearInfo.sinsalExplain),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 나와 2026년의 관계 (개인 분석)
+        if (_hasPersonalAnalysis(fortune.personalAnalysis)) ...[
+          FortuneSectionCard(
+            title: '나와 2026년의 관계',
+            icon: Icons.connecting_airports,
+            style: CardStyle.outlined,
+            child: Column(
+              children: [
+                if (fortune.personalAnalysis.ilgan.isNotEmpty)
+                  _buildInfoTile(theme, '일간 분석', fortune.personalAnalysis.ilgan, fortune.personalAnalysis.ilganExplain),
+                if (fortune.personalAnalysis.fireEffect.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  FortuneHighlightBox(
+                    label: '화(火) 기운의 영향',
+                    content: fortune.personalAnalysis.fireEffect,
+                    type: HighlightType.warning,
+                    icon: Icons.local_fire_department,
+                  ),
+                ],
+                if (fortune.personalAnalysis.yongshinMatch.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  FortuneHighlightBox(
+                    label: '용신 조화',
+                    content: fortune.personalAnalysis.yongshinMatch,
+                    type: HighlightType.info,
+                  ),
+                ],
+                if (fortune.personalAnalysis.hapchungEffect.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  FortuneHighlightBox(
+                    label: '합충 영향',
+                    content: fortune.personalAnalysis.hapchungEffect,
+                    type: HighlightType.info,
+                  ),
+                ],
+                if (fortune.personalAnalysis.sinsalEffect.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  FortuneHighlightBox(
+                    label: '신살 영향',
+                    content: fortune.personalAnalysis.sinsalEffect,
+                    type: HighlightType.info,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 분야별 운세 섹션 제목
+        FortuneSectionTitle(
+          title: '2026년 분야별 운세',
+          subtitle: '탭하여 상세 운세를 확인하세요',
+          icon: Icons.grid_view,
+        ),
+        const SizedBox(height: 12),
 
         // 카테고리별 운세 (광고 잠금)
         FortuneCategoryChipSection(
           fortuneType: 'yearly_2026',
-          title: '2026년 분야별 운세',
+          title: '',
           categories: fortune.categories.isNotEmpty
               ? fortune.categories.map((key, cat) => MapEntry(
                   key,
@@ -199,42 +294,54 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 ))
               : _getDefaultCategories(),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
 
         // 행운 정보
         if (_hasLucky(fortune.lucky)) ...[
-          _buildSection(
-            theme,
+          FortuneSectionCard(
             title: '2026년 행운 정보',
-            children: [
-              if (fortune.lucky.colors.isNotEmpty)
-                _buildLuckyItem(theme, '행운의 색상', fortune.lucky.colors.join(', ')),
-              if (fortune.lucky.numbers.isNotEmpty)
-                _buildLuckyItem(theme, '행운의 숫자', fortune.lucky.numbers.join(', ')),
-              if (fortune.lucky.direction.isNotEmpty)
-                _buildLuckyItem(theme, '좋은 방향', fortune.lucky.direction),
-              if (fortune.lucky.items.isNotEmpty)
-                _buildLuckyItem(theme, '행운 아이템', fortune.lucky.items.join(', ')),
-            ],
+            icon: Icons.star,
+            style: CardStyle.gradient,
+            child: Column(
+              children: [
+                _buildLuckyGrid(theme, fortune.lucky),
+              ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
         // 마무리 메시지
         if (fortune.closing.yearMessage.isNotEmpty || fortune.closing.finalAdvice.isNotEmpty) ...[
-          _buildSection(
-            theme,
+          FortuneSectionCard(
             title: '2026년을 맞이하며',
-            children: [
-              if (fortune.closing.yearMessage.isNotEmpty)
-                _buildParagraph(theme, fortune.closing.yearMessage),
-              if (fortune.closing.finalAdvice.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _buildSubSection(theme, '마지막 조언', fortune.closing.finalAdvice),
+            icon: Icons.celebration,
+            style: CardStyle.elevated,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fortune.closing.yearMessage.isNotEmpty)
+                  Text(
+                    fortune.closing.yearMessage,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textSecondary,
+                      height: 1.8,
+                    ),
+                  ),
+                if (fortune.closing.finalAdvice.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  FortuneHighlightBox(
+                    label: '마지막 조언',
+                    content: fortune.closing.finalAdvice,
+                    type: HighlightType.success,
+                    icon: Icons.tips_and_updates,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
         // AI 상담 버튼
@@ -244,132 +351,168 @@ class NewYearFortuneScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTitle(AppThemeExtension theme, NewYearFortuneData fortune) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          '${fortune.year}년 신년운세',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
+  /// 정보 타일 (제목 + 값 + 설명)
+  Widget _buildInfoTile(AppThemeExtension theme, String label, String value, String? explain) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: theme.primaryColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        if (fortune.yearGanji.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            fortune.yearGanji,
-            style: TextStyle(
-              fontSize: 16,
-              color: theme.textSecondary,
+          if (explain != null && explain.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              explain,
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.textSecondary,
+                height: 1.6,
+              ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 행운 정보 그리드
+  Widget _buildLuckyGrid(AppThemeExtension theme, LuckySection lucky) {
+    final items = <Map<String, dynamic>>[];
+
+    if (lucky.colors.isNotEmpty) {
+      items.add({'icon': Icons.palette, 'label': '행운의 색상', 'value': lucky.colors.join(', ')});
+    }
+    if (lucky.numbers.isNotEmpty) {
+      items.add({'icon': Icons.pin, 'label': '행운의 숫자', 'value': lucky.numbers.join(', ')});
+    }
+    if (lucky.direction.isNotEmpty) {
+      items.add({'icon': Icons.explore, 'label': '좋은 방향', 'value': lucky.direction});
+    }
+    if (lucky.items.isNotEmpty) {
+      items.add({'icon': Icons.card_giftcard, 'label': '행운 아이템', 'value': lucky.items.join(', ')});
+    }
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: items.map((item) => _buildLuckyChip(
+        theme,
+        item['icon'] as IconData,
+        item['label'] as String,
+        item['value'] as String,
+      )).toList(),
+    );
+  }
+
+  Widget _buildLuckyChip(AppThemeExtension theme, IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: theme.primaryColor),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.textMuted,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+            ],
           ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildSection(AppThemeExtension theme, {required String title, required List<Widget> children}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildSubSection(AppThemeExtension theme, String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: theme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          content,
-          style: TextStyle(
-            fontSize: 15,
-            color: theme.textSecondary,
-            height: 1.8,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKeyword(AppThemeExtension theme, String keyword, int score) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Text(
-        '키워드: $keyword  |  총점: $score점',
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: theme.textPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildParagraph(AppThemeExtension theme, String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 15,
-        color: theme.textSecondary,
-        height: 1.8,
-      ),
-    );
-  }
-
-  Widget _buildLuckyItem(AppThemeExtension theme, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          fontSize: 15,
-          color: theme.textSecondary,
-          height: 1.6,
-        ),
       ),
     );
   }
 
   Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () => context.go('/saju/chat?type=newYearFortune'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.textPrimary,
-          foregroundColor: theme.backgroundColor,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.primaryColor,
+            theme.accentColor ?? theme.primaryColor,
+          ],
         ),
-        child: const Text(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primaryColor.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => context.go('/saju/chat?type=newYearFortune'),
+        icon: const Icon(Icons.chat_bubble_outline, size: 20),
+        label: const Text(
           '신년운세 AI 상담받기',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
@@ -397,8 +540,6 @@ class NewYearFortuneScreen extends ConsumerWidget {
         lucky.items.isNotEmpty;
   }
 
-  /// AI 응답에 카테고리가 없을 때 기본 카테고리 제공
-  /// 6개 카테고리 칩이 항상 표시되도록 함
   Map<String, CategoryData> _getDefaultCategories() {
     return {
       'career': const CategoryData(
@@ -432,45 +573,5 @@ class NewYearFortuneScreen extends ConsumerWidget {
         reading: '광고를 시청하면 2026년 사업운을 확인할 수 있습니다.',
       ),
     };
-  }
-
-  /// v7.0: 나의 사주 소개 섹션 (카드 스타일)
-  Widget _buildMySajuIntroSection(AppThemeExtension theme, MySajuIntroSection intro) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.person_outline, color: theme.textPrimary, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            intro.reading,
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-              height: 1.8,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

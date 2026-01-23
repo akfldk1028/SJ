@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
+import '../../../../shared/widgets/fortune_title_header.dart';
+import '../../../../shared/widgets/fortune_section_card.dart';
+import '../../../../shared/widgets/fortune_year_info_card.dart';
 import '../providers/yearly_2025_fortune_provider.dart';
 
-/// 2025년 운세 상세 화면 - 책처럼 읽기 쉬운 레이아웃
+/// 2025년 운세 상세 화면 - 개선된 UI/UX (회고 스타일)
 class Yearly2025FortuneScreen extends ConsumerWidget {
   const Yearly2025FortuneScreen({super.key});
 
@@ -54,30 +58,40 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, AppThemeExtension theme, WidgetRef ref, Object error) {
-    debugPrint('[Yearly2025FortuneScreen] ❌ 에러: $error');
+    debugPrint('[Yearly2025FortuneScreen] error: $error');
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '2025년 운세를 불러오지 못했습니다',
-            style: TextStyle(color: theme.textSecondary, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: theme.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              '2025년 운세를 불러오지 못했습니다',
+              style: TextStyle(color: theme.textSecondary, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
               '$error',
               style: TextStyle(color: theme.textMuted, fontSize: 12),
               textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => ref.read(yearly2025FortuneProvider.notifier).refresh(),
-            child: const Text('다시 시도'),
-          ),
-        ],
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => ref.read(yearly2025FortuneProvider.notifier).refresh(),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('다시 시도'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -87,11 +101,23 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(
             '2025년 운세를 분석하고 있습니다...',
             style: TextStyle(color: theme.textSecondary, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '잠시만 기다려주세요',
+            style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
       ),
@@ -99,83 +125,162 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, AppThemeExtension theme, Yearly2025FortuneData fortune) {
+    // 반응형 패딩 적용
+    final horizontalPadding = context.horizontalPadding;
+    final isSmall = context.isSmallMobile;
+
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
       children: [
-        // 제목
-        _buildTitle(theme, fortune),
-        const SizedBox(height: 32),
-
-        // v7.0: 나의 사주 소개
-        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
-          _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
-          const SizedBox(height: 32),
-        ],
-
-        // 연간 총운
-        _buildSection(
-          theme,
-          title: '2025년 총운',
-          children: [
-            if (fortune.overview.keyword.isNotEmpty)
-              _buildKeyword(theme, fortune.overview.keyword, fortune.overview.score),
-            if (fortune.overview.opening.isNotEmpty)
-              _buildParagraph(theme, fortune.overview.opening),
-            if (fortune.overview.yearEnergy.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildSubSection(theme, '올해의 기운', fortune.overview.yearEnergy),
-            ],
-            if (fortune.overview.hapchungEffect.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildSubSection(theme, '합충 영향', fortune.overview.hapchungEffect),
-            ],
-            if (fortune.overview.conclusion.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildSubSection(theme, '결론', fortune.overview.conclusion),
-            ],
-          ],
+        // 히어로 헤더 (회고 스타일)
+        FortuneTitleHeader(
+          title: '${fortune.year}년 회고',
+          subtitle: fortune.yearGanji,
+          keyword: fortune.overview.keyword.isNotEmpty ? fortune.overview.keyword : null,
+          score: fortune.overview.score > 0 ? fortune.overview.score : null,
+          style: HeaderStyle.hero,
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
 
-        // 성취
+        // 년도 특징 카드 (청뱀의 해 등)
+        FortuneYearInfoCard(
+          year: fortune.year,
+          ganji: fortune.yearGanji.replaceAll('년', ''),
+        ),
+        const SizedBox(height: 24),
+
+        // 나의 사주 소개 (있으면)
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+          FortuneSectionCard(
+            title: fortune.mySajuIntro!.title.isNotEmpty
+                ? fortune.mySajuIntro!.title
+                : '나의 사주, 나는 누구인가요?',
+            icon: Icons.person_outline,
+            content: fortune.mySajuIntro!.reading,
+            style: CardStyle.gradient,
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 2025년 총운
+        FortuneSectionCard(
+          title: '2025년 총운',
+          icon: Icons.auto_awesome,
+          style: CardStyle.elevated,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (fortune.overview.opening.isNotEmpty)
+                Text(
+                  fortune.overview.opening,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                ),
+              if (fortune.overview.yearEnergy.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '올해의 기운',
+                  content: fortune.overview.yearEnergy,
+                  type: HighlightType.info,
+                  icon: Icons.bolt,
+                ),
+              ],
+              if (fortune.overview.hapchungEffect.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                FortuneHighlightBox(
+                  label: '합충 영향',
+                  content: fortune.overview.hapchungEffect,
+                  type: HighlightType.warning,
+                ),
+              ],
+              if (fortune.overview.conclusion.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '결론',
+                  content: fortune.overview.conclusion,
+                  type: HighlightType.primary,
+                  icon: Icons.check_circle_outline,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 빛나는 순간들 (성취)
         if (fortune.achievements.reading.isNotEmpty || fortune.achievements.highlights.isNotEmpty) ...[
-          _buildSection(
-            theme,
-            title: fortune.achievements.title.isNotEmpty ? fortune.achievements.title : '2025년의 빛나는 순간들',
-            children: [
-              if (fortune.achievements.reading.isNotEmpty)
-                _buildParagraph(theme, fortune.achievements.reading),
-              if (fortune.achievements.highlights.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ...fortune.achievements.highlights.map((item) => _buildListItem(theme, item)),
+          FortuneSectionCard(
+            title: fortune.achievements.title.isNotEmpty
+                ? fortune.achievements.title
+                : '2025년의 빛나는 순간들',
+            icon: Icons.star,
+            style: CardStyle.outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fortune.achievements.reading.isNotEmpty)
+                  Text(
+                    fortune.achievements.reading,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textSecondary,
+                      height: 1.8,
+                    ),
+                  ),
+                if (fortune.achievements.highlights.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildHighlightsList(theme, fortune.achievements.highlights, HighlightType.success),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
-        // 도전
+        // 시련과 성장 (도전)
         if (fortune.challenges.reading.isNotEmpty || fortune.challenges.growthPoints.isNotEmpty) ...[
-          _buildSection(
-            theme,
-            title: fortune.challenges.title.isNotEmpty ? fortune.challenges.title : '2025년의 시련, 그리고 성장',
-            children: [
-              if (fortune.challenges.reading.isNotEmpty)
-                _buildParagraph(theme, fortune.challenges.reading),
-              if (fortune.challenges.growthPoints.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ...fortune.challenges.growthPoints.map((item) => _buildListItem(theme, item)),
+          FortuneSectionCard(
+            title: fortune.challenges.title.isNotEmpty
+                ? fortune.challenges.title
+                : '2025년의 시련, 그리고 성장',
+            icon: Icons.trending_up,
+            style: CardStyle.outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fortune.challenges.reading.isNotEmpty)
+                  Text(
+                    fortune.challenges.reading,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textSecondary,
+                      height: 1.8,
+                    ),
+                  ),
+                if (fortune.challenges.growthPoints.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildHighlightsList(theme, fortune.challenges.growthPoints, HighlightType.warning),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
-        // 카테고리별 운세 (광고 잠금)
+        // 분야별 운세 섹션
         if (fortune.categories.isNotEmpty) ...[
+          const FortuneSectionTitle(
+            title: '2025년 분야별 운세',
+            subtitle: '탭하여 상세 운세를 확인하세요',
+            icon: Icons.grid_view,
+          ),
+          const SizedBox(height: 12),
           FortuneCategoryChipSection(
             fortuneType: 'yearly_2025',
-            title: '2025년 분야별 운세',
+            title: '',
             categories: fortune.categories.map((key, cat) => MapEntry(
               key,
               CategoryData(
@@ -185,75 +290,94 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               ),
             )),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
         // 교훈
         if (fortune.lessons.reading.isNotEmpty || fortune.lessons.keyLessons.isNotEmpty) ...[
-          _buildSection(
-            theme,
-            title: fortune.lessons.title.isNotEmpty ? fortune.lessons.title : '2025년이 가르쳐준 것들',
-            children: [
-              if (fortune.lessons.reading.isNotEmpty)
-                _buildParagraph(theme, fortune.lessons.reading),
-              if (fortune.lessons.keyLessons.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ...fortune.lessons.keyLessons.map((item) => _buildListItem(theme, item)),
+          FortuneSectionCard(
+            title: fortune.lessons.title.isNotEmpty
+                ? fortune.lessons.title
+                : '2025년이 가르쳐준 것들',
+            icon: Icons.lightbulb_outline,
+            style: CardStyle.gradient,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fortune.lessons.reading.isNotEmpty)
+                  Text(
+                    fortune.lessons.reading,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textSecondary,
+                      height: 1.8,
+                    ),
+                  ),
+                if (fortune.lessons.keyLessons.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildLessonChips(theme, fortune.lessons.keyLessons),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
-        // 2026년으로
+        // 2026년으로 가져가세요
         if (fortune.to2026.reading.isNotEmpty || fortune.to2026.strengths.isNotEmpty) ...[
-          _buildSection(
-            theme,
-            title: fortune.to2026.title.isNotEmpty ? fortune.to2026.title : '2026년으로 가져가세요',
-            children: [
-              if (fortune.to2026.reading.isNotEmpty)
-                _buildParagraph(theme, fortune.to2026.reading),
-              if (fortune.to2026.strengths.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  '강점:',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textPrimary,
+          FortuneSectionCard(
+            title: fortune.to2026.title.isNotEmpty
+                ? fortune.to2026.title
+                : '2026년으로 가져가세요',
+            icon: Icons.arrow_forward,
+            style: CardStyle.elevated,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fortune.to2026.reading.isNotEmpty)
+                  Text(
+                    fortune.to2026.reading,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textSecondary,
+                      height: 1.8,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                ...fortune.to2026.strengths.map((item) => _buildListItem(theme, item)),
-              ],
-              if (fortune.to2026.watchOut.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  '주의할 점:',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textPrimary,
+                if (fortune.to2026.strengths.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildStrengthsAndCautions(
+                    theme,
+                    '강점',
+                    fortune.to2026.strengths,
+                    Icons.add_circle_outline,
+                    Colors.green,
                   ),
-                ),
-                const SizedBox(height: 8),
-                ...fortune.to2026.watchOut.map((item) => _buildListItem(theme, item)),
+                ],
+                if (fortune.to2026.watchOut.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildStrengthsAndCautions(
+                    theme,
+                    '주의할 점',
+                    fortune.to2026.watchOut,
+                    Icons.warning_amber,
+                    Colors.orange,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
         // 마무리 메시지
         if (fortune.closingMessage.isNotEmpty) ...[
-          _buildSection(
-            theme,
+          FortuneSectionCard(
             title: '2025년을 마무리하며',
-            children: [
-              _buildParagraph(theme, fortune.closingMessage),
-            ],
+            icon: Icons.favorite_border,
+            style: CardStyle.gradient,
+            content: fortune.closingMessage,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
 
         // AI 상담 버튼
@@ -263,189 +387,171 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTitle(AppThemeExtension theme, Yearly2025FortuneData fortune) {
+  /// 하이라이트 리스트 (성취, 도전)
+  Widget _buildHighlightsList(AppThemeExtension theme, List<String> items, HighlightType type) {
+    final color = type == HighlightType.success ? Colors.green : Colors.orange;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          '${fortune.year}년',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
-        if (fortune.yearGanji.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            fortune.yearGanji,
-            style: TextStyle(
-              fontSize: 16,
-              color: theme.textSecondary,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSection(AppThemeExtension theme, {required String title, required List<Widget> children}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildSubSection(AppThemeExtension theme, String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: theme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          content,
-          style: TextStyle(
-            fontSize: 15,
-            color: theme.textSecondary,
-            height: 1.8,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKeyword(AppThemeExtension theme, String keyword, int score) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Text(
-        '키워드: $keyword  |  총점: $score점',
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: theme.textPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildParagraph(AppThemeExtension theme, String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 15,
-        color: theme.textSecondary,
-        height: 1.8,
-      ),
-    );
-  }
-
-  Widget _buildListItem(AppThemeExtension theme, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-              height: 1.6,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 15,
-                color: theme.textSecondary,
-                height: 1.6,
+      children: items.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
               ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.textSecondary,
+                  height: 1.6,
+                ),
+              ),
+            ),
+          ],
+        ),
+      )).toList(),
     );
   }
 
-  Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () => context.go('/saju/chat?type=yearly2025Fortune'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.textPrimary,
-          foregroundColor: theme.backgroundColor,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+  /// 교훈 칩
+  Widget _buildLessonChips(AppThemeExtension theme, List<String> lessons) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: lessons.map((lesson) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.primaryColor.withValues(alpha: 0.3),
           ),
         ),
-        child: const Text(
-          'AI에게 2025년 상담받기',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.emoji_objects, size: 14, color: theme.primaryColor),
+            const SizedBox(width: 6),
+            Text(
+              lesson,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: theme.textPrimary,
+              ),
+            ),
+          ],
         ),
-      ),
+      )).toList(),
     );
   }
 
-  /// v7.0: 나의 사주 소개 섹션 (카드 스타일)
-  Widget _buildMySajuIntroSection(AppThemeExtension theme, MySajuIntroSection intro) {
+  /// 강점 & 주의사항
+  Widget _buildStrengthsAndCautions(
+    AppThemeExtension theme,
+    String label,
+    List<String> items,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline, color: theme.textPrimary, size: 22),
-              const SizedBox(width: 8),
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
               Text(
-                intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
+                label,
                 style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: color,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            intro.reading,
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-              height: 1.8,
+          const SizedBox(height: 10),
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('• ', style: TextStyle(color: theme.textSecondary)),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.primaryColor,
+            theme.accentColor ?? theme.primaryColor,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primaryColor.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => context.go('/saju/chat?type=yearly2025Fortune'),
+        icon: const Icon(Icons.chat_bubble_outline, size: 20),
+        label: const Text(
+          'AI에게 2025년 상담받기',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       ),
     );
   }
