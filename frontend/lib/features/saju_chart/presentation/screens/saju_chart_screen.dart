@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../router/routes.dart';
+import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../providers/saju_chart_provider.dart';
@@ -68,6 +69,7 @@ class SajuChartScreen extends ConsumerWidget {
   }
 
   Widget _buildNoProfile(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -75,20 +77,20 @@ class SajuChartScreen extends ConsumerWidget {
           Icon(
             Icons.person_outline,
             size: 64,
-            color: Colors.grey[400],
+            color: colorScheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
             '프로필이 없습니다',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '프로필을 먼저 등록해주세요',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[500],
+              color: colorScheme.outline,
             ),
           ),
           const SizedBox(height: 24),
@@ -102,6 +104,7 @@ class SajuChartScreen extends ConsumerWidget {
   }
 
   Widget _buildNoChart(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -109,13 +112,13 @@ class SajuChartScreen extends ConsumerWidget {
           Icon(
             Icons.auto_awesome,
             size: 64,
-            color: Colors.grey[400],
+            color: colorScheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
             '사주를 계산할 수 없습니다',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
@@ -129,6 +132,7 @@ class SajuChartScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -136,13 +140,13 @@ class SajuChartScreen extends ConsumerWidget {
           Icon(
             Icons.error_outline,
             size: 64,
-            color: Colors.red[400],
+            color: colorScheme.error,
           ),
           const SizedBox(height: 16),
           Text(
             '오류가 발생했습니다',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -151,7 +155,7 @@ class SajuChartScreen extends ConsumerWidget {
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[500],
+                color: colorScheme.outline,
               ),
               textAlign: TextAlign.center,
             ),
@@ -164,7 +168,7 @@ class SajuChartScreen extends ConsumerWidget {
   Widget _buildChartContent(
     BuildContext context,
     WidgetRef ref,
-    dynamic profile,
+    SajuProfile profile,
     SajuChart chart,
   ) {
     return SingleChildScrollView(
@@ -200,7 +204,7 @@ class SajuChartScreen extends ConsumerWidget {
             child: Text(
               chart.fullSajuHanja,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 4,
               ),
             ),
@@ -218,7 +222,7 @@ class SajuChartScreen extends ConsumerWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -237,12 +241,7 @@ class SajuChartScreen extends ConsumerWidget {
                 else
                   const UnknownHourPillarWidget(),
 
-                // 구분선
-                Container(
-                  width: 1,
-                  height: 200,
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+                _buildPillarDivider(context),
 
                 // 일주 (나)
                 PillarColumnWidget(
@@ -251,12 +250,7 @@ class SajuChartScreen extends ConsumerWidget {
                   isDayMaster: true,
                 ),
 
-                // 구분선
-                Container(
-                  width: 1,
-                  height: 200,
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+                _buildPillarDivider(context),
 
                 // 월주
                 PillarColumnWidget(
@@ -264,12 +258,7 @@ class SajuChartScreen extends ConsumerWidget {
                   label: '월주',
                 ),
 
-                // 구분선
-                Container(
-                  width: 1,
-                  height: 200,
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+                _buildPillarDivider(context),
 
                 // 년주
                 PillarColumnWidget(
@@ -288,8 +277,7 @@ class SajuChartScreen extends ConsumerWidget {
           // 하단 버튼들
           ShadButton(
             onPressed: () {
-              final profileId = (profile as dynamic).id; // Assuming profile has id
-              context.go(Uri(path: Routes.sajuChat, queryParameters: {'profileId': profileId}).toString());
+              context.go(Uri(path: Routes.sajuChat, queryParameters: {'profileId': profile.id}).toString());
             },
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -344,7 +332,7 @@ class SajuChartScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -375,11 +363,20 @@ class SajuChartScreen extends ConsumerWidget {
             '일간은 사주팔자에서 "나 자신"을 나타냅니다. '
             'AI 상담에서 더 자세한 해석을 받아보세요.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// 사주 기둥 간 구분선
+  Widget _buildPillarDivider(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 200,
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }

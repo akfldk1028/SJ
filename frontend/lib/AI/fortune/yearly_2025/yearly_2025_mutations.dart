@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
+import 'yearly_2025_queries.dart' show kYearly2025FortunePromptVersion;
 
 /// 2025 회고 운세 뮤테이션 클래스
 class Yearly2025Mutations {
@@ -72,7 +73,7 @@ class Yearly2025Mutations {
       'total_cost_usd': totalCost,
       'expires_at': null, // 무기한 캐시
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
-      'prompt_version': 'V3.1', // 2025 회고 프롬프트 버전
+      'prompt_version': kYearly2025FortunePromptVersion, // 2025 회고 프롬프트 버전
     };
 
     try {

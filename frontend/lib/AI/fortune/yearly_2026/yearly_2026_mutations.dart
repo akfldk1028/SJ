@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
+import 'yearly_2026_queries.dart' show kYearly2026FortunePromptVersion;
 
 /// 2026 신년운세 뮤테이션 클래스
 class Yearly2026Mutations {
@@ -74,7 +75,7 @@ class Yearly2026Mutations {
       'total_cost_usd': totalCost,
       'expires_at': expiresAt,
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
-      'prompt_version': 'V5.1', // 2026 신년운세 프롬프트 버전
+      'prompt_version': kYearly2026FortunePromptVersion, // 2026 신년운세 프롬프트 버전
     };
 
     try {

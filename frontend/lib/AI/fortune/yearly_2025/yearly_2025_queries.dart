@@ -11,6 +11,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/ai_constants.dart';
 
+/// 현재 2025 회고 운세 프롬프트 버전
+/// 프롬프트 변경 시 이 값을 업데이트하면 기존 캐시가 자동 무효화됨
+const String kYearly2025FortunePromptVersion = 'V3.1';
+
 /// 2025 회고 운세 쿼리 클래스
 class Yearly2025Queries {
   final SupabaseClient _supabase;
@@ -40,6 +44,15 @@ class Yearly2025Queries {
           .maybeSingle();
 
       // 2025 회고는 만료 체크 안 함 (무기한)
+      if (response == null) return null;
+
+      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      final cachedVersion = response['prompt_version'];
+      if (cachedVersion != kYearly2025FortunePromptVersion) {
+        print('[Yearly2025Queries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kYearly2025FortunePromptVersion');
+        return null;
+      }
+
       return response;
     } catch (e) {
       return null;

@@ -15,6 +15,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
+import 'daily_queries.dart' show kDailyFortunePromptVersion;
 
 /// 일운 뮤테이션 클래스
 class DailyMutations {
@@ -80,7 +81,7 @@ class DailyMutations {
       'total_cost_usd': totalCost,
       'expires_at': expiresAt,
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
-      'prompt_version': 'V2.0', // 일운 프롬프트 버전
+      'prompt_version': kDailyFortunePromptVersion, // 일운 프롬프트 버전
     };
 
     try {

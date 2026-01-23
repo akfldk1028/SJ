@@ -69,6 +69,7 @@
 import '../../core/data/data.dart';
 import '../../core/supabase/generated/ai_summaries.dart';
 import '../core/ai_constants.dart';
+import '../fortune/lifetime/lifetime_queries.dart' show kSajuBasePromptVersion;
 
 /// AI 관련 뮤테이션
 ///
@@ -238,7 +239,7 @@ class AiMutations extends BaseMutations {
         );
 
         // prompt_version 추가 (generated 클래스에 없으므로 직접 추가)
-        data['prompt_version'] = 'V1.0'; // saju_base 프롬프트 버전
+        data['prompt_version'] = kSajuBasePromptVersion; // saju_base 프롬프트 버전
 
         final response = await client
             .from(AiSummaries.table_name)

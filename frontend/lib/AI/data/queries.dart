@@ -643,8 +643,8 @@ class AiQueries extends BaseQueries {
           .select('id, status, phase, total_phases, partial_result, created_at')
           .eq('user_id', userId)
           .eq('task_type', 'saju_analysis')
-          .eq('model', 'gpt-5.2-thinking')
-          .inFilter('status', ['pending', 'processing'])
+          // v8.1: status 조건 수정 (in_progress 추가)
+          .inFilter('status', ['pending', 'processing', 'in_progress'])
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle(),

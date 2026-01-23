@@ -135,11 +135,17 @@ class SajuBasePrompt extends PromptTemplate {
 
 
 **합(合) 결속력 순서**
-- 방합(5 최강/고정적) > 삼합(4 유연) > 반합(3 불완전) > 육합(★ 부드러움)
+- 방합(최강/고정적) > 삼합(유연) > 반합(불완전) > 육합(부드러움)
 - 방합 있으면 해당 오행 매우 강력! 삼합보다 방합 먼저 확인
 
+**⚠️ 3글자 완성 조건 (매우 중요!)**
+- 삼합: 3글자 모두 있어야 완성 (木局:亥卯未 / 火局:寅午戌 / 金局:巳酉丑 / 水局:申子辰)
+- 방합: 3글자 모두 있어야 완성 (水局:亥子丑 / 木局:寅卯辰 / 火局:巳午未 / 金局:申酉戌)
+- 반합: 왕지(子午卯酉) 포함 2글자만 있을 때 → 삼합보다 약함
+- 왕지 없이 2글자만 있으면 반합 성립 안 됨!
+
 **충(沖) 파괴력 순서**
-- 왕지충(묘유/자오 5 원수충) > 생지충(인신/사해 4 역마) > 고지충(진술/축미 ★3)
+- 왕지충(묘유/자오, 원수충) > 생지충(인신/사해, 역마) > 고지충(진술/축미)
 - 충 영향력: 일지 > 월지 > 연지 > 시지
 
 **형(刑) 흉의 강도 순서**
@@ -223,7 +229,72 @@ ${_buildHapchungSection(data.hapchung)}
 ```json
 {
 
-  "summary": "이 사주의 핵심 특성을 10문장으로 간결하게 요약",
+  "summary": "이 사주의 핵심 특성을 10~20문장으로 사주에대해 모르는사람들이 이해할수있게 객관적으로 요약",
+
+  "my_saju_characters": {
+    "description": "사주팔자 8글자 각각의 의미를 초보자도 이해할 수 있게 설명",
+    "year_gan": {
+      "character": "연간 한자 (예: 甲)",
+      "reading": "연간 읽는 법 (예: 갑)",
+      "oheng": "오행 (목/화/토/금/수)",
+      "yin_yang": "음양 (양/음)",
+      "meaning": "이 글자가 뜻하는 의미를 쉽게 설명 (예: 갑목은 큰 나무처럼 꿋꿋하고 곧은 성질)"
+    },
+    "year_ji": {
+      "character": "연지 한자 (예: 子)",
+      "reading": "연지 읽는 법 (예: 자)",
+      "animal": "띠 동물 (예: 쥐)",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "이 글자가 뜻하는 의미를 쉽게 설명"
+    },
+    "month_gan": {
+      "character": "월간 한자",
+      "reading": "월간 읽는 법",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "월간의 의미 쉽게 설명"
+    },
+    "month_ji": {
+      "character": "월지 한자",
+      "reading": "월지 읽는 법",
+      "season": "계절 (봄/여름/환절기/가을/겨울)",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "월지의 의미 쉽게 설명"
+    },
+    "day_gan": {
+      "character": "일간 한자 (나를 대표하는 글자!)",
+      "reading": "일간 읽는 법",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "일간은 '나 자신'을 뜻합니다. 이 글자의 특성이 곧 내 성격과 기질입니다. 쉽게 설명"
+    },
+    "day_ji": {
+      "character": "일지 한자 (배우자궁)",
+      "reading": "일지 읽는 법",
+      "animal": "띠 동물",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "일지는 배우자궁으로 결혼운과 관련됩니다. 쉽게 설명"
+    },
+    "hour_gan": {
+      "character": "시간 한자",
+      "reading": "시간 읽는 법",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "시간의 의미 쉽게 설명"
+    },
+    "hour_ji": {
+      "character": "시지 한자 (자녀궁)",
+      "reading": "시지 읽는 법",
+      "animal": "띠 동물",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "시지는 자녀궁으로 자녀운과 말년운에 관련됩니다. 쉽게 설명"
+    },
+    "overall_reading": "8글자 조합이 만들어내는 전체적인 기운과 특성을 초보자도 이해할 수 있게 3-4문장으로 설명"
+  },
 
   "wonGuk_analysis": {
     "day_master": "일간 분석 (예: 甲木일간으로 성장과 진취성을 상징)",
@@ -459,7 +530,7 @@ ${_buildHapchungSection(data.hapchung)}
 
     buffer.writeln('');
     buffer.writeln('┌─────────────────────────────────────────────────┐');
-    buffer.writeln('│ ★★★ 이 값을 그대로 사용하세요 (재계산 금지) ★★★  │');
+    buffer.writeln('│ [중요] 이 값을 그대로 사용하세요 (재계산 금지)     │');
     buffer.writeln('├─────────────────────────────────────────────────┤');
     buffer.writeln('│ 점수: $score점                                   │');
     buffer.writeln('│ 등급: $level                                     │');
@@ -630,44 +701,74 @@ ${_buildHapchungSection(data.hapchung)}
   }
 
   /// 대운 섹션 빌드
+  ///
+  /// DB 형식 (camelCase)과 legacy 형식 (snake_case) 모두 지원
+  /// - DB: { startAge, isForward, list: [{ order, pillar, startAge, endAge }] }
+  /// - Legacy: { start_age, current: { gan, ji }, list: [...] }
   String _buildDaeunSection(Map<String, dynamic>? daeun) {
     if (daeun == null || daeun.isEmpty) return '';
 
     final buffer = StringBuffer('\n## 대운 (大運)\n');
 
-    // 대운 시작 나이
-    final startAge = daeun['start_age'];
+    // 대운 시작 나이 (snake_case 또는 camelCase)
+    final startAge = daeun['start_age'] ?? daeun['startAge'];
     if (startAge != null) {
       buffer.writeln('- 대운 시작: $startAge세');
     }
 
-    // 현재 대운
-    final current = daeun['current'];
-    if (current != null && current is Map) {
-      final gan = current['gan'] ?? '';
-      final ji = current['ji'] ?? '';
-      final startYear = current['start_year'];
-      final endYear = current['end_year'];
-
-      buffer.write('- 현재 대운: $gan$ji');
-      if (startYear != null && endYear != null) {
-        buffer.writeln(' ($startYear~$endYear)');
-      } else {
-        buffer.writeln('');
-      }
+    // 순행/역행
+    final isForward = daeun['isForward'] ?? daeun['is_forward'];
+    if (isForward != null) {
+      buffer.writeln('- 운행: ${isForward == true ? '순행' : '역행'}');
     }
 
-    // 대운 목록 (간략히)
+    // 대운 목록
     final list = daeun['list'];
     if (list != null && list is List && list.isNotEmpty) {
-      final limitedList = list.take(5);
-      buffer.writeln('- 대운 흐름: ${limitedList.map((d) {
-        if (d is Map) return '${d['gan'] ?? ''}${d['ji'] ?? ''}';
-        return d.toString();
-      }).join(' → ')}...');
+      buffer.writeln('');
+      buffer.writeln('### 대운 목록 (10년 단위)');
+      buffer.writeln('| 순서 | 대운 | 시작나이 | 종료나이 |');
+      buffer.writeln('|------|------|----------|----------|');
+
+      for (final d in list) {
+        if (d is Map) {
+          final order = d['order'] ?? '';
+          // pillar: "임(壬)신(申)" 형식 또는 gan/ji 분리 형식
+          String pillarStr = '';
+          if (d['pillar'] != null) {
+            pillarStr = _extractDaeunPillar(d['pillar'].toString());
+          } else if (d['gan'] != null && d['ji'] != null) {
+            pillarStr = '${d['gan']}${d['ji']}';
+          }
+          final sAge = d['startAge'] ?? d['start_age'] ?? '';
+          final eAge = d['endAge'] ?? d['end_age'] ?? '';
+          buffer.writeln('| $order | $pillarStr | ${sAge}세 | ${eAge}세 |');
+        }
+      }
+      buffer.writeln('');
+
+      // 대운 흐름 요약
+      final flowList = list.take(10).map((d) {
+        if (d is Map) {
+          if (d['pillar'] != null) {
+            return _extractDaeunPillar(d['pillar'].toString());
+          } else if (d['gan'] != null && d['ji'] != null) {
+            return '${d['gan']}${d['ji']}';
+          }
+        }
+        return '';
+      }).where((s) => s.isNotEmpty);
+      buffer.writeln('- 대운 흐름: ${flowList.join(' → ')}');
     }
 
     return buffer.toString();
+  }
+
+  /// 대운 간지 추출 (한자 포함 형식에서 한글만)
+  /// "임(壬)신(申)" → "임신"
+  String _extractDaeunPillar(String pillar) {
+    final hangulOnly = pillar.replaceAll(RegExp(r'\([^)]*\)'), '');
+    return hangulOnly;
   }
 
   /// 합충형파해 섹션 빌드
@@ -695,10 +796,10 @@ ${_buildHapchungSection(data.hapchung)}
     buffer.writeln('> 합 ${totalHaps}개, 충 ${totalChungs}개, 형/파/해/원진 ${totalNegatives}개');
     buffer.writeln('');
 
-    // 천간합 (★★★, 합화 시 ★★★★★)
+    // 천간합 (합화 시 더 강력)
     final cheonganHaps = hapchung['cheongan_haps'] as List? ?? [];
     if (cheonganHaps.isNotEmpty) {
-      buffer.writeln('### 천간합 (天干合) [강도: ★★★]');
+      buffer.writeln('### 천간합 (天干合) [중간 강도]');
       for (final h in cheonganHaps) {
         final desc = h['description'] ?? '${h['gan1']}${h['gan2']}합';
         buffer.writeln('- ${h['pillar1']}주-${h['pillar2']}주: $desc');
@@ -716,10 +817,10 @@ ${_buildHapchungSection(data.hapchung)}
       buffer.writeln('');
     }
 
-    // 지지육합 (★★ - 가장 부드러운 결합)
+    // 지지육합 (가장 부드러운 결합)
     final jijiYukhaps = hapchung['jiji_yukhaps'] as List? ?? [];
     if (jijiYukhaps.isNotEmpty) {
-      buffer.writeln('### 지지육합 (地支六合) [강도: ★★ 부드러운 결합]');
+      buffer.writeln('### 지지육합 (地支六合) [부드러운 결합]');
       for (final y in jijiYukhaps) {
         final desc = y['description'] ?? '${y['ji1']}${y['ji2']}합';
         buffer.writeln('- ${y['pillar1']}주-${y['pillar2']}주: $desc');
@@ -727,33 +828,33 @@ ${_buildHapchungSection(data.hapchung)}
       buffer.writeln('');
     }
 
-    // 삼합 (★★★★ 완성 / ★★★ 반합)
+    // 삼합 (완성 / 반합)
     final jijiSamhaps = hapchung['jiji_samhaps'] as List? ?? [];
     if (jijiSamhaps.isNotEmpty) {
-      buffer.writeln('### 삼합 (三合) [강도:  강하고 유연함]');
+      buffer.writeln('### 삼합 (三合) [강하고 유연함]');
       for (final s in jijiSamhaps) {
         final jijis = (s['jijis'] as List?)?.join('') ?? '';
         final pillars = (s['pillars'] as List?)?.join(',') ?? '';
         final isFull = s['is_full'] as bool? ?? true;
-        final label = isFull ? '삼합(★★★★)' : '반합(★★★)';
+        final label = isFull ? '삼합(완성)' : '반합(불완전)';
         buffer.writeln('- ${pillars}주: $jijis $label (${s['result_oheng']}국)');
       }
       buffer.writeln('');
     }
 
-    // 방합 (★★★★★ - 가장 강력!)
+    // 방합 (가장 강력!)
     final jijiBanghaps = hapchung['jiji_banghaps'] as List? ?? [];
     if (jijiBanghaps.isNotEmpty) {
-      buffer.writeln('### 방합 (方合) [강도:  가장 강력! 고정적]');
+      buffer.writeln('### 방합 (方合) [가장 강력! 고정적]');
       for (final b in jijiBanghaps) {
         final jijis = (b['jijis'] as List?)?.join('') ?? '';
         final pillars = (b['pillars'] as List?)?.join(',') ?? '';
-        buffer.writeln('- ${pillars}주: $jijis 방합(★★★★★) (${b['season']}, ${b['direction']}방)');
+        buffer.writeln('- ${pillars}주: $jijis 방합(최강) (${b['season']}, ${b['direction']}방)');
       }
       buffer.writeln('');
     }
 
-    // 지지충 (강도별: 왕지충★★★★★ > 생지충★★★★ > 고지충★★★)
+    // 지지충 (강도별: 왕지충 > 생지충 > 고지충)
     final jijiChungs = hapchung['jiji_chungs'] as List? ?? [];
     if (jijiChungs.isNotEmpty) {
       buffer.writeln('### 지지충 (地支沖) [왕지충>생지충>고지충]');
@@ -766,7 +867,7 @@ ${_buildHapchungSection(data.hapchung)}
       buffer.writeln('');
     }
 
-    // 지지형 (삼형★★★★★ > 상형★★★ > 자묘형★★ > 자형★)
+    // 지지형 (삼형 > 상형 > 자묘형 > 자형)
     final jijiHyungs = hapchung['jiji_hyungs'] as List? ?? [];
     if (jijiHyungs.isNotEmpty) {
       buffer.writeln('### 지지형 (地支刑) [삼형>상형>자묘형>자형]');
@@ -817,7 +918,7 @@ ${_buildHapchungSection(data.hapchung)}
   String _getChungStrength(String ji1, String ji2) {
     final pair = {ji1, ji2};
 
-    // 왕지충 ★★★★★
+    // 왕지충 (가장 강함)
     if (pair.containsAll({'묘', '유'}) || pair.containsAll({'卯', '酉'})) {
       return '(왕지충 원수충!)';
     }
@@ -825,7 +926,7 @@ ${_buildHapchungSection(data.hapchung)}
       return '(왕지충)';
     }
 
-    // 생지충 ★★★★
+    // 생지충 (강함)
     if (pair.containsAll({'인', '신'}) || pair.containsAll({'寅', '申'})) {
       return '(생지충 역마충돌!)';
     }
@@ -833,7 +934,7 @@ ${_buildHapchungSection(data.hapchung)}
       return '(생지충)';
     }
 
-    // 고지충 ★★★
+    // 고지충 (중간)
     if (pair.containsAll({'진', '술'}) || pair.containsAll({'辰', '戌'})) {
       return '(고지충 오래지속)';
     }

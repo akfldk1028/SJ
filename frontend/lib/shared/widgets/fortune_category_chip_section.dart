@@ -639,6 +639,7 @@ class _FortuneCategoryChipSectionState
   String _getCategoryName(String key) {
     const names = {
       'career': '직업운',
+      'work': '직장운',  // DB 키와 일치
       'business': '사업운',
       'wealth': '재물운',
       'love': '애정운',

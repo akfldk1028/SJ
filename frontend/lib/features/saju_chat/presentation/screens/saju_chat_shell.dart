@@ -369,6 +369,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
           onSessionSelected: _handleSessionSelected,
           onSessionDeleted: _handleSessionDeleted,
           onSessionRenamed: _handleSessionRenamed,
+          onDeleteCurrentSession: _handleSessionDeleted,
         ),
       ),
       body: _ChatContent(
@@ -408,6 +409,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                 onSessionSelected: _handleSessionSelected,
                 onSessionDeleted: _handleSessionDeleted,
                 onSessionRenamed: _handleSessionRenamed,
+                onDeleteCurrentSession: _handleSessionDeleted,
               ),
               VerticalDivider(
                 width: 1,

@@ -11,6 +11,7 @@ part 'lifetime_fortune_provider.g.dart';
 /// 평생운세 데이터 모델 (saju_base AI 응답 JSON 구조)
 class LifetimeFortuneData {
   final MySajuIntroSection? mySajuIntro;  // v7.0: 나의 사주 소개 추가
+  final MySajuCharactersSection? mySajuCharacters;  // v8.0: 사주팔자 8글자 설명 추가
   final String summary;
   final PersonalitySection personality;
   final WealthSection wealth;
@@ -28,9 +29,14 @@ class LifetimeFortuneData {
   final SipsungAnalysisSection? sipsungAnalysis;
   final HapchungAnalysisSection? hapchungAnalysis;
   final ModernInterpretationSection? modernInterpretation;
+  // v8.1: 누락된 섹션 추가
+  final PeakYearsSection? peakYears;
+  final DaeunDetailSection? daeunDetail;
+  final SinsalGilseongSection? sinsalGilseong;
 
   const LifetimeFortuneData({
     this.mySajuIntro,
+    this.mySajuCharacters,
     required this.summary,
     required this.personality,
     required this.wealth,
@@ -47,6 +53,9 @@ class LifetimeFortuneData {
     this.sipsungAnalysis,
     this.hapchungAnalysis,
     this.modernInterpretation,
+    this.peakYears,
+    this.daeunDetail,
+    this.sinsalGilseong,
   });
 
   /// AI 응답 JSON에서 파싱
@@ -58,6 +67,24 @@ class LifetimeFortuneData {
       mySajuIntro = MySajuIntroSection(
         title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
         reading: mySajuIntroJson['reading'] as String? ?? '',
+      );
+    }
+
+    // v8.0: mySajuCharacters 파싱 (8글자 설명)
+    MySajuCharactersSection? mySajuCharacters;
+    final mySajuCharsJson = json['my_saju_characters'] as Map<String, dynamic>?;
+    if (mySajuCharsJson != null) {
+      mySajuCharacters = MySajuCharactersSection(
+        description: mySajuCharsJson['description'] as String? ?? '',
+        yearGan: SajuCharacterInfo.fromJson(mySajuCharsJson['year_gan'] as Map<String, dynamic>? ?? {}),
+        yearJi: SajuCharacterInfo.fromJson(mySajuCharsJson['year_ji'] as Map<String, dynamic>? ?? {}),
+        monthGan: SajuCharacterInfo.fromJson(mySajuCharsJson['month_gan'] as Map<String, dynamic>? ?? {}),
+        monthJi: SajuCharacterInfo.fromJson(mySajuCharsJson['month_ji'] as Map<String, dynamic>? ?? {}),
+        dayGan: SajuCharacterInfo.fromJson(mySajuCharsJson['day_gan'] as Map<String, dynamic>? ?? {}),
+        dayJi: SajuCharacterInfo.fromJson(mySajuCharsJson['day_ji'] as Map<String, dynamic>? ?? {}),
+        hourGan: SajuCharacterInfo.fromJson(mySajuCharsJson['hour_gan'] as Map<String, dynamic>? ?? {}),
+        hourJi: SajuCharacterInfo.fromJson(mySajuCharsJson['hour_ji'] as Map<String, dynamic>? ?? {}),
+        overallReading: mySajuCharsJson['overall_reading'] as String? ?? '',
       );
     }
 
@@ -271,8 +298,57 @@ class LifetimeFortuneData {
       );
     }
 
+    // v8.1: peak_years 파싱
+    PeakYearsSection? peakYears;
+    final peakYearsJson = json['peak_years'] as Map<String, dynamic>?;
+    if (peakYearsJson != null) {
+      peakYears = PeakYearsSection(
+        period: peakYearsJson['period'] as String? ?? '',
+        ageRange: _parseIntList(peakYearsJson['age_range']),
+        why: peakYearsJson['why'] as String? ?? '',
+        whatToDo: peakYearsJson['what_to_do'] as String? ?? '',
+        whatToPrepare: peakYearsJson['what_to_prepare'] as String? ?? '',
+        cautions: peakYearsJson['cautions'] as String? ?? '',
+      );
+    }
+
+    // v8.1: daeun_detail 파싱
+    DaeunDetailSection? daeunDetail;
+    final daeunDetailJson = json['daeun_detail'] as Map<String, dynamic>?;
+    if (daeunDetailJson != null) {
+      final cyclesJson = daeunDetailJson['cycles'] as List<dynamic>? ?? [];
+      final cycles = cyclesJson
+          .map((e) => DaeunCycleItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      final bestDaeun = daeunDetailJson['best_daeun'] as Map<String, dynamic>? ?? {};
+      final worstDaeun = daeunDetailJson['worst_daeun'] as Map<String, dynamic>? ?? {};
+
+      daeunDetail = DaeunDetailSection(
+        intro: daeunDetailJson['intro'] as String? ?? '',
+        cycles: cycles,
+        bestDaeunPeriod: bestDaeun['period'] as String? ?? '',
+        bestDaeunWhy: bestDaeun['why'] as String? ?? '',
+        worstDaeunPeriod: worstDaeun['period'] as String? ?? '',
+        worstDaeunWhy: worstDaeun['why'] as String? ?? '',
+      );
+    }
+
+    // v8.1: sinsal_gilseong 파싱
+    SinsalGilseongSection? sinsalGilseong;
+    final sinsalJson = json['sinsal_gilseong'] as Map<String, dynamic>?;
+    if (sinsalJson != null) {
+      sinsalGilseong = SinsalGilseongSection(
+        majorSinsal: _parseStringList(sinsalJson['major_sinsal']),
+        majorGilseong: _parseStringList(sinsalJson['major_gilseong']),
+        practicalImplications: sinsalJson['practical_implications'] as String? ?? '',
+        reading: sinsalJson['reading'] as String? ?? '',
+      );
+    }
+
     return LifetimeFortuneData(
       mySajuIntro: mySajuIntro,
+      mySajuCharacters: mySajuCharacters,
       summary: json['summary'] as String? ?? '',
       personality: personality,
       wealth: wealth,
@@ -289,6 +365,10 @@ class LifetimeFortuneData {
       sipsungAnalysis: sipsungAnalysis,
       hapchungAnalysis: hapchungAnalysis,
       modernInterpretation: modernInterpretation,
+      // v8.1: 누락된 필드 추가
+      peakYears: peakYears,
+      daeunDetail: daeunDetail,
+      sinsalGilseong: sinsalGilseong,
     );
   }
 
@@ -590,6 +670,68 @@ class MySajuIntroSection {
   });
 }
 
+/// v8.0: 사주팔자 8글자 설명 섹션 (my_saju_characters)
+class MySajuCharactersSection {
+  final String description;
+  final SajuCharacterInfo yearGan;
+  final SajuCharacterInfo yearJi;
+  final SajuCharacterInfo monthGan;
+  final SajuCharacterInfo monthJi;
+  final SajuCharacterInfo dayGan;
+  final SajuCharacterInfo dayJi;
+  final SajuCharacterInfo hourGan;
+  final SajuCharacterInfo hourJi;
+  final String overallReading;
+
+  const MySajuCharactersSection({
+    required this.description,
+    required this.yearGan,
+    required this.yearJi,
+    required this.monthGan,
+    required this.monthJi,
+    required this.dayGan,
+    required this.dayJi,
+    required this.hourGan,
+    required this.hourJi,
+    required this.overallReading,
+  });
+
+  bool get hasContent => overallReading.isNotEmpty;
+}
+
+/// 사주 한 글자 정보
+class SajuCharacterInfo {
+  final String character;    // 한자 (예: 甲)
+  final String reading;      // 읽는 법 (예: 갑)
+  final String oheng;        // 오행 (목/화/토/금/수)
+  final String yinYang;      // 음양 (양/음)
+  final String meaning;      // 쉬운 설명
+  final String? animal;      // 띠 동물 (지지만)
+  final String? season;      // 계절 (월지만)
+
+  const SajuCharacterInfo({
+    required this.character,
+    required this.reading,
+    required this.oheng,
+    required this.yinYang,
+    required this.meaning,
+    this.animal,
+    this.season,
+  });
+
+  factory SajuCharacterInfo.fromJson(Map<String, dynamic> json) {
+    return SajuCharacterInfo(
+      character: json['character'] as String? ?? '',
+      reading: json['reading'] as String? ?? '',
+      oheng: json['oheng'] as String? ?? '',
+      yinYang: json['yin_yang'] as String? ?? '',
+      meaning: json['meaning'] as String? ?? '',
+      animal: json['animal'] as String?,
+      season: json['season'] as String?,
+    );
+  }
+}
+
 /// 원국 분석 섹션 (wonGuk_analysis)
 class WonGukAnalysisSection {
   final String gyeokguk;       // 격국 설명
@@ -700,6 +842,111 @@ class ModernInterpretationSection {
 
   bool get hasContent =>
       careerInAiEra != null || wealthInAiEra != null || relationshipsInAiEra != null;
+}
+
+/// v8.1: 전성기 섹션 (peak_years)
+class PeakYearsSection {
+  final String period;           // "31-41세"
+  final List<int> ageRange;      // [31, 41]
+  final String why;              // 왜 이 시기가 전성기인지
+  final String whatToDo;         // 무엇을 해야 하는지
+  final String whatToPrepare;    // 무엇을 준비해야 하는지
+  final String cautions;         // 주의사항
+
+  const PeakYearsSection({
+    required this.period,
+    required this.ageRange,
+    required this.why,
+    required this.whatToDo,
+    required this.whatToPrepare,
+    required this.cautions,
+  });
+
+  bool get hasContent =>
+      period.isNotEmpty || why.isNotEmpty || whatToDo.isNotEmpty;
+}
+
+/// v8.1: 대운 사이클 항목 (daeun_detail.cycles[])
+class DaeunCycleItem {
+  final int order;               // 순서 (1, 2, 3...)
+  final String pillar;           // 대운 간지
+  final String ageRange;         // "현재 나이 구간: 미상"
+  final String mainTheme;        // 주제
+  final String fortuneLevel;     // 운세 수준 (상/중상/중/중하/하)
+  final String reading;          // 상세 해석
+  final List<String> opportunities;  // 기회들
+  final List<String> challenges;     // 도전들
+
+  const DaeunCycleItem({
+    required this.order,
+    required this.pillar,
+    required this.ageRange,
+    required this.mainTheme,
+    required this.fortuneLevel,
+    required this.reading,
+    required this.opportunities,
+    required this.challenges,
+  });
+
+  factory DaeunCycleItem.fromJson(Map<String, dynamic> json) {
+    return DaeunCycleItem(
+      order: (json['order'] as int?) ?? 0,
+      pillar: json['pillar'] as String? ?? '',
+      ageRange: json['age_range'] as String? ?? '',
+      mainTheme: json['main_theme'] as String? ?? '',
+      fortuneLevel: json['fortune_level'] as String? ?? '',
+      reading: json['reading'] as String? ?? '',
+      opportunities: _parseStringListStatic(json['opportunities']),
+      challenges: _parseStringListStatic(json['challenges']),
+    );
+  }
+
+  static List<String> _parseStringListStatic(dynamic value) {
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+}
+
+/// v8.1: 대운 상세 섹션 (daeun_detail)
+class DaeunDetailSection {
+  final String intro;                    // 대운 소개
+  final List<DaeunCycleItem> cycles;     // 대운 사이클 목록
+  final String bestDaeunPeriod;          // 최고 대운 시기
+  final String bestDaeunWhy;             // 최고 대운 이유
+  final String worstDaeunPeriod;         // 최악 대운 시기
+  final String worstDaeunWhy;            // 최악 대운 이유
+
+  const DaeunDetailSection({
+    required this.intro,
+    required this.cycles,
+    required this.bestDaeunPeriod,
+    required this.bestDaeunWhy,
+    required this.worstDaeunPeriod,
+    required this.worstDaeunWhy,
+  });
+
+  bool get hasContent =>
+      intro.isNotEmpty || cycles.isNotEmpty || bestDaeunPeriod.isNotEmpty;
+}
+
+/// v8.1: 신살/길성 섹션 (sinsal_gilseong)
+class SinsalGilseongSection {
+  final List<String> majorSinsal;        // 주요 신살
+  final List<String> majorGilseong;      // 주요 길성
+  final String practicalImplications;    // 실질적 의미
+  final String reading;                  // 전체 해석
+
+  const SinsalGilseongSection({
+    required this.majorSinsal,
+    required this.majorGilseong,
+    required this.practicalImplications,
+    required this.reading,
+  });
+
+  bool get hasContent =>
+      majorSinsal.isNotEmpty || majorGilseong.isNotEmpty || reading.isNotEmpty;
 }
 
 /// Phase 진행 상황 데이터 (Progressive Disclosure용)

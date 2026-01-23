@@ -15,6 +15,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/korea_date_utils.dart';
 
+/// 현재 일운 프롬프트 버전
+/// 프롬프트 변경 시 이 값을 업데이트하면 기존 캐시가 자동 무효화됨
+const String kDailyFortunePromptVersion = 'V2.0';
+
 /// 일운 쿼리 클래스
 class DailyQueries {
   final SupabaseClient _supabase;
@@ -57,7 +61,14 @@ class DailyQueries {
         }
       }
 
-      print('[DailyQueries] ✅ 캐시 히트: $dateString');
+      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      final cachedVersion = response['prompt_version'];
+      if (cachedVersion != kDailyFortunePromptVersion) {
+        print('[DailyQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kDailyFortunePromptVersion');
+        return null;
+      }
+
+      print('[DailyQueries] ✅ 캐시 히트: $dateString (version=$cachedVersion)');
       return response;
     } catch (e) {
       print('[DailyQueries] 캐시 조회 실패: $e');

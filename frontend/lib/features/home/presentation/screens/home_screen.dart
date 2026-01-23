@@ -570,10 +570,11 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildCategoryList(BuildContext context, AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     // 카테고리 키 매핑 (DB key -> 표시명)
+    // NOTE: DB는 'wealth', 'work' 키 사용 (money/career X)
     const categoryMap = [
-      {'key': 'money', 'icon': '💰', 'name': '재물운'},
+      {'key': 'wealth', 'icon': '💰', 'name': '재물운'},
       {'key': 'love', 'icon': '💕', 'name': '애정운'},
-      {'key': 'career', 'icon': '💼', 'name': '직장운'},
+      {'key': 'work', 'icon': '💼', 'name': '직장운'},
       {'key': 'health', 'icon': '🏥', 'name': '건강운'},
     ];
 

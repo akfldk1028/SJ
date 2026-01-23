@@ -617,6 +617,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
         const SizedBox(height: 20),
 
+        // 오늘의 사자성어
+        if (fortune.idiom.isValid) _buildIdiomSection(theme, fortune.idiom),
+
+        if (fortune.idiom.isValid) const SizedBox(height: 16),
+
         // 카테고리별 점수
         _buildCategoryScores(theme, fortune),
 
@@ -625,6 +630,88 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         // 행운 정보
         _buildLuckyInfo(theme, fortune.lucky),
       ],
+    );
+  }
+
+  /// 사자성어 섹션
+  Widget _buildIdiomSection(AppThemeExtension theme, IdiomInfo idiom) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.primaryColor.withOpacity(0.08),
+            theme.primaryColor.withOpacity(0.03),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.primaryColor.withOpacity(0.15),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.format_quote_rounded,
+                  color: theme.primaryColor,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '오늘의 사자성어',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: theme.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 사자성어 (한글)
+          Text(
+            idiom.korean,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: theme.textPrimary,
+              letterSpacing: 4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // 한자 + 뜻
+          Text(
+            '${idiom.chinese} · ${idiom.meaning}',
+            style: TextStyle(
+              fontSize: 13,
+              color: theme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // 메시지
+          Text(
+            idiom.message,
+            style: TextStyle(
+              fontSize: 13,
+              color: theme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -663,7 +750,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget _buildCategoryScores(AppThemeExtension theme, DailyFortuneData fortune) {
     final categories = [
       ('love', '연애운', Icons.favorite_rounded),
-      ('money', '재물운', Icons.monetization_on_rounded),
+      ('wealth', '재물운', Icons.monetization_on_rounded),  // 'money' → 'wealth' (DB 키와 일치)
       ('work', '직장운', Icons.work_rounded),
       ('health', '건강운', Icons.health_and_safety_rounded),
     ];
@@ -703,7 +790,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
           const SizedBox(width: 6),
           Text(
-            '$label $score',
+            '$label $score',  // 점수 숫자로 표시
             style: TextStyle(
               fontSize: 12,
               color: theme.textSecondary,

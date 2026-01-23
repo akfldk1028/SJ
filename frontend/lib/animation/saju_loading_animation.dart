@@ -161,16 +161,20 @@ class _SajuLoadingAnimationState extends State<SajuLoadingAnimation>
       widget.yearJi, widget.monthJi, widget.dayJi, widget.hourJi,
     ];
 
-    return Stack(
-      children: [
-        // 배경 파티클 효과
-        _buildParticles(),
+    // SizedBox.expand()로 전체 화면 차지 → 정중앙 배치
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          // 배경 파티클 효과
+          _buildParticles(),
 
-        // 메인 콘텐츠
-        SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+          // 메인 콘텐츠 - 정중앙 배치
+          SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,  // 콘텐츠 크기만큼만
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
               // 상단 타이틀
               _buildTitle(),
               const SizedBox(height: 50),
@@ -187,10 +191,12 @@ class _SajuLoadingAnimationState extends State<SajuLoadingAnimation>
 
               // 상태 메시지
               _buildStatusMessage(),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
