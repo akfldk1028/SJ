@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ad_config.dart';
+import '../ad_tracking_service.dart';
 
 /// 채팅 내 인라인 배너 광고
 ///
@@ -54,6 +55,14 @@ class _InlineAdWidgetState extends State<InlineAdWidget> {
         onAdFailedToLoad: (ad, error) {
           debugPrint('[InlineAdWidget] Failed to load: ${error.message}');
           ad.dispose();
+        },
+        onAdImpression: (ad) {
+          debugPrint('[InlineAdWidget] Impression');
+          AdTrackingService.instance.trackBannerImpression();
+        },
+        onAdClicked: (ad) {
+          debugPrint('[InlineAdWidget] Clicked');
+          AdTrackingService.instance.trackBannerClick();
         },
       ),
     );

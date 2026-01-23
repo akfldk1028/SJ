@@ -8,6 +8,7 @@ export 'ad_strategy.dart';
 
 // Service
 export 'ad_service.dart';
+export 'ad_tracking_service.dart';
 
 // Providers
 export 'providers/ad_provider.dart';

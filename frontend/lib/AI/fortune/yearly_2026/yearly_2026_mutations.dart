@@ -74,6 +74,7 @@ class Yearly2026Mutations {
       'total_cost_usd': totalCost,
       'expires_at': expiresAt,
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
+      'prompt_version': 'V5.1', // 2026 신년운세 프롬프트 버전
     };
 
     try {

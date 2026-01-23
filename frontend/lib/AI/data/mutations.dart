@@ -237,6 +237,9 @@ class AiMutations extends BaseMutations {
           status: 'completed',
         );
 
+        // prompt_version 추가 (generated 클래스에 없으므로 직접 추가)
+        data['prompt_version'] = 'V1.0'; // saju_base 프롬프트 버전
+
         final response = await client
             .from(AiSummaries.table_name)
             .insert(data)
