@@ -21,10 +21,14 @@ class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
     super.initState();
     _hourController = TextEditingController();
     _minuteController = TextEditingController();
+  }
 
-    // 초기값 바인딩 (24시간제 그대로)
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Provider 값으로 controller 초기화 (위젯 생성 시 한 번만)
     final birthTimeMinutes = ref.read(profileFormProvider).birthTimeMinutes;
-    if (birthTimeMinutes != null) {
+    if (_hourController.text.isEmpty && birthTimeMinutes != null) {
       final hours = birthTimeMinutes ~/ 60;
       final minutes = birthTimeMinutes % 60;
       _hourController.text = hours.toString().padLeft(2, '0');

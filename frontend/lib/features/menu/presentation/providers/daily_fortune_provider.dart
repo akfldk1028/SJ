@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../AI/data/queries.dart';
-import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../core/supabase/generated/ai_summaries.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
@@ -167,11 +167,14 @@ class DailyFortune extends _$DailyFortune {
     final today = DateTime.now();
     final result = await aiQueries.getDailyFortune(activeProfile.id, today);
 
-    // 캐시가 있으면 바로 반환
+    // 캐시가 있으면 바로 반환 + 플래그 리셋
     if (result.isSuccess && result.data != null) {
       final aiSummary = result.data!;
       final content = aiSummary.content;
       if (content != null) {
+        // 캐시 히트 시 _isAnalyzing 플래그 리셋 (다른 provider가 분석 완료했을 수 있음)
+        _isAnalyzing = false;
+
         final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
         print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
 
@@ -197,6 +200,9 @@ class DailyFortune extends _$DailyFortune {
   }
 
   /// AI 분석 트리거 (중복 호출 방지)
+  ///
+  /// FortuneCoordinator.analyzeDailyOnly()를 직접 호출하여
+  /// 일운 분석 완료를 확실히 감지합니다.
   Future<void> _triggerAnalysisIfNeeded(String profileId) async {
     if (_isAnalyzing) {
       print('[DailyFortune] 이미 분석 중 - 스킵');
@@ -210,26 +216,24 @@ class DailyFortune extends _$DailyFortune {
     }
 
     _isAnalyzing = true;
-    print('[DailyFortune] AI 분석 백그라운드 시작...');
+    print('[DailyFortune] 🚀 일운 분석 시작 (FortuneCoordinator 직접 호출)');
 
-    // 백그라운드로 분석 실행
-    sajuAnalysisService.analyzeOnProfileSave(
+    // FortuneCoordinator를 통해 일운만 분석 (sajuAnalysisService 우회)
+    // 이렇게 하면 분석 완료를 확실히 감지할 수 있음
+    fortuneCoordinator.analyzeDailyOnly(
       userId: user.id,
       profileId: profileId,
-      runInBackground: true,
-      onComplete: (result) {
-        // saju_base가 설정되면 최종 완료로 판단 (중간 콜백은 dailyFortune만 설정됨)
-        if (result.sajuBase != null) {
-          _isAnalyzing = false;
-          print('[DailyFortune] 📌 최종 분석 완료 - _isAnalyzing 리셋');
-        }
-        print('[DailyFortune] AI 분석 콜백 - UI 갱신');
-        print('  - 평생운세: ${result.sajuBase?.success ?? false}');
-        print('  - 오늘운세: ${result.dailyFortune?.success ?? false}');
-        // Provider 무효화하여 UI 갱신
-        ref.invalidateSelf();
-      },
-    );
+    ).then((result) {
+      print('[DailyFortune] 📌 일운 분석 완료: success=${result.success}');
+      _isAnalyzing = false;
+
+      // Provider 무효화하여 UI 갱신
+      ref.invalidateSelf();
+    }).catchError((e) {
+      print('[DailyFortune] ❌ 일운 분석 오류: $e');
+      _isAnalyzing = false;
+      ref.invalidateSelf();
+    });
   }
 
   /// 운세 새로고침 (캐시 무효화)

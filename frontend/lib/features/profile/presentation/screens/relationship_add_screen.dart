@@ -7,7 +7,6 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
-import '../../../../AI/services/saju_analysis_service.dart';
 import '../widgets/profile_name_input.dart';
 import '../widgets/gender_toggle_buttons.dart';
 import '../widgets/calendar_type_dropdown.dart';
@@ -20,15 +19,9 @@ import '../widgets/time_correction_banner.dart';
 import '../providers/profile_provider.dart';
 import '../providers/relation_provider.dart';
 import '../../domain/entities/saju_profile.dart';
-import '../../domain/entities/gender.dart';
 import '../../domain/entities/relationship_type.dart';
 import '../../data/relation_schema.dart';
-// v4.0: 인연 사주 계산을 위한 추가 import
-import '../../../saju_chart/domain/entities/daeun.dart' as daeun_entities;
-import '../../../saju_chart/domain/services/jasi_service.dart';
-import '../../../saju_chart/domain/services/saju_calculation_service.dart';
-import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
-    hide sajuAnalysisService;
+import '../../data/relation_saju_helper.dart';
 import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
 
 /// 인연 추가 화면 (관계인 프로필 생성)
@@ -384,92 +377,74 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       );
       debugPrint('✅ [_saveRelationship] Step 2 완료: newProfile 객체 생성됨');
 
-      // 3. 프로필 저장
+      // 3. 프로필 저장 (로컬)
       debugPrint('🔍 [_saveRelationship] Step 3: 프로필 저장 시작 (repository.save)');
       final repository = ref.read(profileRepositoryProvider);
       await repository.save(newProfile);
-      debugPrint('✅ [_saveRelationship] Step 3 완료: 프로필 저장됨');
+      debugPrint('✅ [_saveRelationship] Step 3 완료: 로컬 프로필 저장됨');
 
-      // 3.5. 사주 분석 계산 및 DB 저장 (v4.0: 인연도 나와 동일하게 saju_analyses에 저장)
-      debugPrint('🔍 [_saveRelationship] Step 3.5: 만세력 계산 및 saju_analyses 저장');
-      String? toProfileAnalysisId; // 인연의 saju_analyses ID
-      String? fromProfileAnalysisId; // 나의 saju_analyses ID
-      try {
-        // 3.5a. 사주 차트 계산 (만세력)
-        final calculationService = ref.read(sajuCalculationServiceProvider);
-        DateTime birthDateTime;
-        if (newProfile.birthTimeUnknown || newProfile.birthTimeMinutes == null) {
-          birthDateTime = DateTime(
-            newProfile.birthDate.year,
-            newProfile.birthDate.month,
-            newProfile.birthDate.day,
-            12, 0,
-          );
-        } else {
-          final hours = newProfile.birthTimeMinutes! ~/ 60;
-          final minutes = newProfile.birthTimeMinutes! % 60;
-          birthDateTime = DateTime(
-            newProfile.birthDate.year,
-            newProfile.birthDate.month,
-            newProfile.birthDate.day,
-            hours, minutes,
-          );
-        }
-        final chart = calculationService.calculate(
-          birthDateTime: birthDateTime,
-          birthCity: newProfile.birthCity,
-          isLunarCalendar: newProfile.isLunar,
-          isLeapMonth: newProfile.isLeapMonth,
-          birthTimeUnknown: newProfile.birthTimeUnknown,
-          jasiMode: newProfile.useYaJasi ? JasiMode.yaJasi : JasiMode.joJasi,
-        );
-        debugPrint('   ✅ 만세력 계산 완료: ${chart.yearPillar.fullName}, ${chart.monthPillar.fullName}, ${chart.dayPillar.fullName}, ${chart.hourPillar?.fullName ?? "시주없음"}');
-
-        // 3.5b. 사주 분석 계산 (대운, 십신 등)
-        final analysisService = ref.read(sajuAnalysisServiceProvider);
-        final daeunGender = newProfile.gender.name == 'male'
-            ? daeun_entities.Gender.male
-            : daeun_entities.Gender.female;
-        final analysis = analysisService.analyze(
-          chart: chart,
-          gender: daeunGender,
-          currentYear: DateTime.now().year,
-        );
-        debugPrint('   ✅ 사주 분석 계산 완료');
-
-        // 3.5c. DB에 저장 (saju_analyses 테이블) → ID 반환
-        final dbNotifier = ref.read(currentSajuAnalysisDbProvider.notifier);
-        final savedAnalysis = await dbNotifier.saveFromAnalysisWithProfileId(newProfileId, analysis);
-        toProfileAnalysisId = savedAnalysis?.id;
-        debugPrint('   ✅ saju_analyses DB 저장 완료: $newProfileId → toProfileAnalysisId: $toProfileAnalysisId');
-
-        // 3.5d. 나(from_profile)의 saju_analyses ID 조회
-        final repository = ref.read(sajuAnalysisRepositoryProvider);
-        final myAnalysis = await repository.getByProfileId(activeProfile.id);
-        fromProfileAnalysisId = myAnalysis?.id;
-        debugPrint('   ✅ 나의 saju_analyses ID 조회: fromProfileAnalysisId: $fromProfileAnalysisId');
-      } catch (e) {
-        debugPrint('   ⚠️ 사주 분석 저장 실패 (무시됨): $e');
-        // 분석 저장 실패해도 프로필/관계 저장은 계속 진행
+      // 3.3. Supabase saju_profiles INSERT (인연 프로필)
+      debugPrint('🔍 [_saveRelationship] Step 3.3: Supabase saju_profiles INSERT');
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        throw Exception('로그인이 필요합니다');
       }
 
-      // 3.6. GPT-5.2 분석 트리거 (Fire-and-forget)
-      debugPrint('🔍 [_saveRelationship] Step 3.6: GPT 사주 분석 트리거 (백그라운드)');
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        sajuAnalysisService.analyzeOnProfileSave(
-          userId: user.id,
-          profileId: newProfileId,
-          runInBackground: true,
-          onComplete: (result) {
-            debugPrint('✅ [_saveRelationship] 인연 GPT 사주 분석 완료');
-            debugPrint('   - 평생운세: ${result.sajuBase?.success ?? false}');
-            debugPrint('   - 오늘운세: ${result.dailyFortune?.success ?? false}');
-          },
-        );
-        debugPrint('✅ [_saveRelationship] Step 3.6 완료: GPT 분석 백그라운드 시작됨');
-      } else {
-        debugPrint('⚠️ [_saveRelationship] Step 3.6 스킵: 로그인 정보 없음');
+      final profileData = <String, dynamic>{
+        'id': newProfileId,
+        'user_id': user.id,
+        'display_name': newProfile.displayName,
+        'gender': newProfile.gender.name,
+        'birth_date': newProfile.birthDate.toIso8601String().split('T')[0],
+        'is_lunar': newProfile.isLunar,
+        'is_leap_month': newProfile.isLeapMonth,
+        'birth_time_minutes': newProfile.birthTimeUnknown ? null : newProfile.birthTimeMinutes,
+        'birth_time_unknown': newProfile.birthTimeUnknown,
+        'birth_city': newProfile.birthCity,
+        'use_ya_jasi': newProfile.useYaJasi,
+        'relation_type': 'other', // 인연 프로필
+        'is_primary': false, // 인연은 주 프로필이 아님
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      await Supabase.instance.client
+          .from('saju_profiles')
+          .insert(profileData);
+      debugPrint('✅ [_saveRelationship] Step 3.3 완료: Supabase saju_profiles INSERT 성공');
+
+      // 3.5. 사주 분석 계산 및 DB 저장 (모듈화된 헬퍼 사용)
+      debugPrint('🔍 [_saveRelationship] Step 3.5: RelationSajuHelper 호출');
+      String? toProfileAnalysisId; // 인연의 saju_analyses ID
+      String? fromProfileAnalysisId; // 나의 saju_analyses ID
+
+      // 인연 프로필 사주 분석 (헬퍼 사용)
+      // Note: GPT 분석은 네비게이션 중 defunct 에러 유발하므로 스킵
+      // GPT 분석은 프로필 상세 화면 등에서 별도로 트리거
+      toProfileAnalysisId = await RelationSajuHelper.analyzeSajuProfile(
+        ref: ref,
+        profileId: newProfileId,
+        displayName: newProfile.displayName,
+        birthDate: newProfile.birthDate,
+        birthTimeMinutes: newProfile.birthTimeMinutes,
+        birthTimeUnknown: newProfile.birthTimeUnknown,
+        birthCity: newProfile.birthCity,
+        isLunar: newProfile.isLunar,
+        isLeapMonth: newProfile.isLeapMonth,
+        useYaJasi: newProfile.useYaJasi,
+        genderName: newProfile.gender.name,
+        triggerGptAnalysis: false, // GPT 분석 스킵 (defunct 에러 방지)
+      );
+      debugPrint('   ✅ 인연 사주 분석 완료: toProfileAnalysisId=$toProfileAnalysisId');
+
+      // 나(from_profile)의 saju_analyses ID 조회
+      try {
+        final sajuRepository = ref.read(sajuAnalysisRepositoryProvider);
+        final myAnalysis = await sajuRepository.getByProfileId(activeProfile.id);
+        fromProfileAnalysisId = myAnalysis?.id;
+        debugPrint('   ✅ 나의 saju_analyses ID: fromProfileAnalysisId=$fromProfileAnalysisId');
+      } catch (e) {
+        debugPrint('   ⚠️ 나의 saju_analyses ID 조회 실패: $e');
       }
 
       // 4. 관계 생성 (v4.0: saju_analyses 연결 포함)
@@ -492,25 +467,20 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
           );
       debugPrint('✅ [_saveRelationship] Step 4 완료: 관계 생성됨 (saju_analyses 연결: from=$fromProfileAnalysisId, to=$toProfileAnalysisId)');
 
-      // 5. 목록 갱신
-      debugPrint('🔍 [_saveRelationship] Step 5: Provider 갱신');
-      ref.invalidate(profileListProvider);
-      ref.invalidate(allProfilesProvider);
-      ref.invalidate(relationsByCategoryProvider(activeProfile.id));
+      // 5. Provider 갱신 생략 - RelationshipScreen에서 자체 감지
+      // Note: 여기서 provider invalidate하면 ShellRoute의 RelationshipScreen이
+      // 즉시 반응하여 defunct widget 에러 발생
+      debugPrint('🔍 [_saveRelationship] Step 5: 새로고침은 RelationshipScreen에서 처리');
       debugPrint('✅ [_saveRelationship] Step 5 완료');
 
       // 6. 성공 메시지 및 화면 닫기
       debugPrint('🔍 [_saveRelationship] Step 6: 성공 처리 및 네비게이션');
       if (mounted) {
-        ShadToaster.of(context).show(
-          ShadToast(
-            title: const Text('인연 추가 완료'),
-            description: Text('${formState.displayName}님이 추가되었습니다'),
-          ),
-        );
-        // 네비게이션 후에는 setState가 불필요하므로 여기서 return
-        debugPrint('✅ [_saveRelationship] 모든 단계 완료! 화면 이동');
-        context.go(Routes.relationshipList);
+        // context.pop()으로 push에서 정상 리턴
+        // → relationship_screen의 await context.push() 완료
+        // → _onRefresh() 호출됨
+        debugPrint('✅ [_saveRelationship] 모든 단계 완료! pop으로 이전 화면 복귀');
+        context.pop();
         return;
       }
     } catch (e, stackTrace) {

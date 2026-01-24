@@ -75,17 +75,17 @@ abstract class AdStrategy {
   /// 전면 광고 표시 간격 (메시지 수)
   static const int interstitialMessageInterval = 5;
 
-  /// 하루 최대 전면 광고 횟수
-  static const int interstitialDailyLimit = 5;
+  /// 하루 최대 전면 광고 횟수 (9999 = 무제한)
+  static const int interstitialDailyLimit = 9999;
 
-  /// 전면 광고 쿨다운 (초)
-  static const int interstitialCooldownSeconds = 60;
+  /// 전면 광고 쿨다운 (초) - 0 = 제한 없음
+  static const int interstitialCooldownSeconds = 0;
 
   /// 새 세션 시작 시 전면 광고 표시 여부
   static const bool showInterstitialOnNewSession = true;
 
-  /// 새 세션 전면 광고 하루 최대 횟수
-  static const int newSessionInterstitialDailyLimit = 3;
+  /// 새 세션 전면 광고 하루 최대 횟수 (9999 = 무제한)
+  static const int newSessionInterstitialDailyLimit = 9999;
 
   // ==================== 보상형 광고 ====================
 

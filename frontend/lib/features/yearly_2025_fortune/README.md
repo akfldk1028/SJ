@@ -94,6 +94,11 @@ WHERE summary_type = 'yearly_fortune_2025' LIMIT 1;
    - DB 필드 우선, 없으면 레거시 필드 사용
    - 예: `hapchungAnalysis` 우선 → 없으면 `hapchungEffect` 사용
 
+## 캐싱 시스템
+- **캐시 키**: `profile_id` + `summary_type` + `target_year`
+- **같은 사주라도 profile_id가 다르면 새로 분석됨**
+- **프롬프트 버전 변경 시 캐시 무효화됨**
+
 ## 관련 파일
 - `lib/AI/fortune/yearly_2025/yearly_2025_queries.dart` - DB 쿼리
 - `lib/AI/fortune/yearly_2025/yearly_2025_analyzer.dart` - AI 분석 로직

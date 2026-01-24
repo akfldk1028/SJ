@@ -28,6 +28,8 @@ import '../features/daily_fortune/presentation/screens/daily_fortune_detail_scre
 import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
 import '../features/traditional_saju/presentation/screens/lifetime_fortune_screen.dart';
 import '../features/compatibility/presentation/screens/compatibility_screen.dart';
+import '../features/compatibility/presentation/screens/compatibility_list_screen.dart';
+import '../features/compatibility/presentation/screens/compatibility_detail_screen.dart';
 import '../features/settings/presentation/screens/icon_generator_screen.dart';
 import '../features/monthly_fortune/presentation/screens/monthly_fortune_screen.dart';
 import '../features/yearly_2025_fortune/presentation/screens/yearly_2025_fortune_screen.dart';
@@ -78,7 +80,12 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) {
           // 쿼리 파라미터에서 profileId 추출 (수정 모드)
           final profileId = state.uri.queryParameters['profileId'];
-          return ProfileEditScreen(profileId: profileId);
+          // extra에서 ProfileRelationTarget 추출 (관계에서 수정 시)
+          final profileData = state.extra;
+          return ProfileEditScreen(
+            profileId: profileId,
+            profileData: profileData,
+          );
         },
       ),
       GoRoute(
@@ -154,6 +161,22 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const CompatibilityScreen(),
       ),
       GoRoute(
+        path: Routes.compatibilityList,
+        name: 'compatibilityList',
+        builder: (context, state) {
+          final profileId = state.uri.queryParameters['profileId'] ?? '';
+          return CompatibilityListScreen(profileId: profileId);
+        },
+      ),
+      GoRoute(
+        path: Routes.compatibilityDetail,
+        name: 'compatibilityDetail',
+        builder: (context, state) {
+          final analysisId = state.uri.queryParameters['analysisId'] ?? '';
+          return CompatibilityDetailScreen(analysisId: analysisId);
+        },
+      ),
+      GoRoute(
         path: Routes.monthlyFortune,
         name: 'monthlyFortune',
         builder: (context, state) => const MonthlyFortuneScreen(),
@@ -182,7 +205,11 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: Routes.relationshipList,
             name: 'relationships',
-            builder: (context, state) => const RelationshipScreen(),
+            builder: (context, state) {
+              // Note: UniqueKey 제거 - 구/신 위젯 동시 존재 시 defunct 에러 유발
+              // refresh 로직은 RelationshipScreen.didChangeDependencies()에서 처리
+              return const RelationshipScreen();
+            },
           ),
           GoRoute(
             path: Routes.sajuChat,

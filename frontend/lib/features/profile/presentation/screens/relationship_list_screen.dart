@@ -117,9 +117,15 @@ class RelationshipListScreen extends ConsumerWidget {
     WidgetRef ref,
     ProfileRelationModel relation,
   ) {
+    debugPrint('👆 [RelationshipListScreen] 관계 옵션 열기: ${relation.effectiveDisplayName}');
+
+    // 부모 context 캡처 (바텀시트 닫힌 후에도 유효)
+    final parentContext = context;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -127,19 +133,11 @@ class RelationshipListScreen extends ConsumerWidget {
               leading: const Icon(Icons.chat_bubble_outline),
               title: Text('${relation.effectiveDisplayName}님과 사주 상담'),
               onTap: () {
-                Navigator.pop(context);
-                // TODO: 채팅 화면으로 이동
-                // context.go('/saju/chat?profileId=${relation.toProfileId}');
+                Navigator.pop(sheetContext);
+                parentContext.go('${Routes.sajuChat}?profileId=${relation.toProfileId}');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('관계 수정'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: 관계 수정 화면
-              },
-            ),
+            // 수정 버튼 제거됨 - 삭제 후 재추가 방식으로 변경
             ListTile(
               leading: Icon(
                 relation.isFavorite ? Icons.star : Icons.star_border,
@@ -147,7 +145,7 @@ class RelationshipListScreen extends ConsumerWidget {
               ),
               title: Text(relation.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'),
               onTap: () async {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 try {
                   await ref.read(relationNotifierProvider.notifier).toggleFavorite(
                         relationId: relation.id,
@@ -155,11 +153,9 @@ class RelationshipListScreen extends ConsumerWidget {
                         isFavorite: !relation.isFavorite,
                       );
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('오류: $e')),
-                    );
-                  }
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('오류: $e')),
+                  );
                 }
               },
             ),
@@ -171,8 +167,9 @@ class RelationshipListScreen extends ConsumerWidget {
                 style: TextStyle(color: Colors.red[400]),
               ),
               onTap: () {
-                Navigator.pop(context);
-                _showDeleteConfirmation(context, ref, relation);
+                debugPrint('🗑️ [RelationshipListScreen] 관계 삭제 버튼 클릭!');
+                Navigator.pop(sheetContext);
+                _showDeleteConfirmation(parentContext, ref, relation, scaffoldMessenger);
               },
             ),
           ],
@@ -185,42 +182,51 @@ class RelationshipListScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ProfileRelationModel relation,
+    ScaffoldMessengerState scaffoldMessenger,
   ) {
+    debugPrint('🗑️ [RelationshipListScreen] 삭제 확인 다이얼로그 표시');
+    debugPrint('  - relationId: ${relation.id}');
+    debugPrint('  - fromProfileId: ${relation.fromProfileId}');
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('관계 삭제'),
         content: Text('${relation.effectiveDisplayName}님과의 관계를 삭제하시겠습니까?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소'),
           ),
           TextButton(
             onPressed: () async {
+              Navigator.pop(dialogContext);
+
+              debugPrint('🗑️ [RelationshipListScreen] 삭제 실행 시작');
+
               try {
                 await ref.read(relationNotifierProvider.notifier).delete(
                       relationId: relation.id,
                       fromProfileId: relation.fromProfileId,
                     );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${relation.effectiveDisplayName}님과의 관계가 삭제되었습니다'),
-                    ),
-                  );
-                }
+                debugPrint('✅ [RelationshipListScreen] 삭제 성공');
+
+                // Note: ref.invalidate() 제거! (defunct 에러 원인)
+                // RelationNotifier.delete()가 트리거를 업데이트하여 자동 refetch됨
+
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('${relation.effectiveDisplayName}님과의 관계가 삭제되었습니다'),
+                  ),
+                );
               } catch (e) {
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('삭제 실패: $e'),
-                      backgroundColor: Colors.red[400],
-                    ),
-                  );
-                }
+                debugPrint('❌ [RelationshipListScreen] 삭제 실패: $e');
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('삭제 실패: $e'),
+                    backgroundColor: Colors.red[400],
+                  ),
+                );
               }
             },
             child: Text(

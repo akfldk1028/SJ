@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../domain/entities/saju_profile.dart';
+import '../../domain/entities/relationship_type.dart';
 import '../providers/profile_provider.dart';
 
 /// 프로필 선택 화면
@@ -186,26 +188,59 @@ class _ProfileCard extends ConsumerWidget {
             child: Row(
               children: [
                 _ProfileAvatar(profile: profile, theme: theme),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(child: _ProfileInfo(profile: profile, theme: theme)),
-                // 수정 버튼 (연필 아이콘)
-                IconButton(
-                  onPressed: () => _onEdit(context),
+                // 활성 프로필 표시
+                if (profile.isActive)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.check_circle,
+                      color: theme.primaryColor,
+                      size: 20,
+                    ),
+                  ),
+                // 더보기 메뉴 (수정/삭제)
+                PopupMenuButton<String>(
                   icon: Icon(
-                    Icons.edit_outlined,
+                    Icons.more_vert,
                     color: theme.textMuted,
                     size: 20,
                   ),
-                  tooltip: '프로필 수정',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _onEdit(context);
+                    } else if (value == 'delete') {
+                      _onDelete(context, ref);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    // 본인 프로필만 수정 가능 (인연은 삭제 후 재추가)
+                    if (profile.relationType == RelationshipType.me)
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 18, color: theme.textMuted),
+                            const SizedBox(width: 8),
+                            const Text('수정'),
+                          ],
+                        ),
+                      ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 18, color: Colors.red[400]),
+                          const SizedBox(width: 8),
+                          Text('삭제', style: TextStyle(color: Colors.red[400])),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                if (profile.isActive)
-                  Icon(
-                    Icons.check_circle,
-                    color: theme.primaryColor,
-                    size: 24,
-                  ),
               ],
             ),
           ),
@@ -231,6 +266,66 @@ class _ProfileCard extends ConsumerWidget {
   /// 프로필 수정 화면으로 이동
   void _onEdit(BuildContext context) {
     context.push('${Routes.profileEdit}?profileId=${profile.id}');
+  }
+
+  /// 프로필 삭제
+  void _onDelete(BuildContext context, WidgetRef ref) {
+    final profileId = profile.id;
+    final profileName = profile.displayName;
+
+    // notifier 미리 캡처 (다이얼로그 닫힌 후에도 유효)
+    final notifier = ref.read(profileListProvider.notifier);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('프로필 삭제'),
+        content: Text('$profileName 프로필을 삭제하시겠습니까?\n\n관련된 모든 데이터가 삭제됩니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              debugPrint('🗑️ [ProfileSelectScreen] 프로필 삭제 시작: $profileId');
+
+              // 다이얼로그 먼저 닫기
+              Navigator.pop(dialogContext);
+
+              try {
+                // 캡처된 notifier 사용 (ref.read 대신)
+                await notifier.deleteProfile(profileId);
+                debugPrint('✅ [ProfileSelectScreen] 프로필 삭제 성공');
+
+                if (context.mounted) {
+                  ShadToaster.of(context).show(
+                    ShadToast(
+                      title: const Text('삭제 완료'),
+                      description: Text('$profileName 프로필이 삭제되었습니다'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                debugPrint('❌ [ProfileSelectScreen] 프로필 삭제 실패: $e');
+                if (context.mounted) {
+                  ShadToaster.of(context).show(
+                    ShadToast.destructive(
+                      title: const Text('삭제 실패'),
+                      description: Text(e.toString()),
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              '삭제',
+              style: TextStyle(color: Colors.red[400]),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

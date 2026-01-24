@@ -8,8 +8,7 @@ import '../../../domain/entities/relationship_type.dart';
 import '../../../domain/entities/gender.dart';
 import '../../../data/mock/mock_profiles.dart';
 import '../../../data/models/profile_relation_model.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/relation_provider.dart';
+// Note: Provider imports 제거됨 - props 기반 데이터 전달 방식으로 변경
 import '../../../../../router/routes.dart';
 import 'me_node_widget.dart';
 import 'profile_node_widget.dart';
@@ -21,8 +20,21 @@ import 'saju_quick_view_sheet.dart';
 const bool _useMockData = false;
 
 /// 관계 그래프 뷰 (SJ-Flow Large Tree 기능 사용)
+///
+/// 주의: Provider를 직접 watch하지 않음 (defunct widget 에러 방지)
+/// 부모 위젯에서 데이터를 전달받음
 class RelationshipGraphView extends ConsumerStatefulWidget {
-  const RelationshipGraphView({super.key});
+  const RelationshipGraphView({
+    super.key,
+    required this.activeProfile,
+    required this.relationsByCategory,
+  });
+
+  /// 활성 프로필
+  final SajuProfile activeProfile;
+
+  /// 카테고리별 관계 데이터
+  final Map<String, List<ProfileRelationModel>> relationsByCategory;
 
   @override
   ConsumerState<RelationshipGraphView> createState() =>
@@ -48,6 +60,18 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   /// 현재 프로필 목록 (그래프 재구성 감지용)
   List<SajuProfile> _currentProfiles = [];
 
+  /// 현재 관계 데이터 (그래프 재구성 감지용)
+  Map<String, List<ProfileRelationModel>>? _currentRelationsByCategory;
+
+  /// 현재 활성 프로필 ID (그래프 재구성 감지용)
+  String? _currentActiveProfileId;
+
+  /// 그래프 초기화 완료 여부
+  bool _isGraphInitialized = false;
+
+  /// 그래프 버전 (Key로 사용하여 GraphView 강제 재생성)
+  int _graphVersion = 0;
+
   @override
   void initState() {
     super.initState();
@@ -58,10 +82,13 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     );
 
     // Configuration 설정 (Large Tree 스타일)
+    // LEFT_RIGHT 방향: levelSeparation=가로, siblingSeparation=세로
+    // 노드 크기: 그룹 노드 100x50, 관계 노드 150x~100
+    // 세로 간격: 노드 높이(100) + 여백(100) = 200 이상 필요
     builder
-      ..siblingSeparation = 50
-      ..levelSeparation = 150
-      ..subtreeSeparation = 60
+      ..siblingSeparation = 120  // 세로 간격 (노드 간 순수 간격)
+      ..levelSeparation = 200    // 가로 간격 (레벨 간 거리)
+      ..subtreeSeparation = 150  // 서브트리 간 세로 간격
       ..useCurvedConnections = false  // 직선 연결
       ..orientation = BuchheimWalkerConfiguration.ORIENTATION_LEFT_RIGHT;
 
@@ -77,14 +104,19 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     }
   }
 
+  /// dispose 여부 플래그
+  bool _isDisposed = false;
+
   @override
   void dispose() {
+    _isDisposed = true;
     _transformController.dispose();
     super.dispose();
   }
 
   // === 줌 컨트롤 ===
   void _zoomIn() {
+    if (_isDisposed || !mounted) return;
     final currentScale = _transformController.value.getMaxScaleOnAxis();
     final newScale = (currentScale * 1.3).clamp(0.1, 5.0);
     final center = Offset(
@@ -98,6 +130,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   }
 
   void _zoomOut() {
+    if (_isDisposed || !mounted) return;
     final currentScale = _transformController.value.getMaxScaleOnAxis();
     final newScale = (currentScale / 1.3).clamp(0.1, 5.0);
     final center = Offset(
@@ -112,6 +145,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
   // === 노드 탭 핸들러 ===
   void _onNodeTap(Node node) {
+    if (_isDisposed || !mounted) return;
     final nodeId = node.key?.value as String? ?? '';
     // 그룹 노드 탭 → 확장/축소
     if (nodeId.startsWith('group_')) {
@@ -157,37 +191,49 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
   @override
   Widget build(BuildContext context) {
-    // 목업 데이터 또는 실제 데이터
+    // 목업 데이터 사용 시
     if (_useMockData) {
       return _buildGraph(context, MockProfiles.profiles, {});
     }
 
-    final activeProfileAsync = ref.watch(activeProfileProvider);
+    // ========================================
+    // Props 기반 데이터 사용 (Provider watch 안함!)
+    // 부모(RelationshipScreen)에서 데이터를 전달받음
+    // 이렇게 하면 상위에서 invalidate해도 이 위젯은 영향 없음
+    // ========================================
+    final activeProfile = widget.activeProfile;
+    final relationsByCategory = widget.relationsByCategory;
 
-    return activeProfileAsync.when(
-      data: (activeProfile) {
-        if (activeProfile == null) {
-          return const Center(child: Text('프로필이 없습니다'));
+    // 현재 관계 개수 계산
+    final totalCount = relationsByCategory.values.fold<int>(0, (sum, list) => sum + list.length);
+    debugPrint('📊 [Graph.build] Props로 받은 데이터: 총 $totalCount개');
+
+    // 데이터가 변경되었을 때만 그래프 재구성
+    final needsRebuild = !_isGraphInitialized ||
+        _currentActiveProfileId != activeProfile.id ||
+        !_isSameRelations(relationsByCategory);
+
+    debugPrint('📊 [Graph.build] needsRebuild=$needsRebuild, initialized=$_isGraphInitialized');
+
+    if (needsRebuild) {
+      // PostFrameCallback으로 레이아웃 계산 후 그래프 재구성
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isDisposed) {
+          _buildGraphFromRelations(activeProfile, relationsByCategory);
+          _currentActiveProfileId = activeProfile.id;
+          _currentRelationsByCategory = relationsByCategory;
+          _isGraphInitialized = true;
+          setState(() {});
         }
+      });
 
-        // Supabase 관계 데이터 조회 (카테고리별)
-        final relationsByCategoryAsync = ref.watch(
-          relationsByCategoryProvider(activeProfile.id),
-        );
+      // 첫 빌드 시 로딩 표시
+      if (!_isGraphInitialized) {
+        return const Center(child: CircularProgressIndicator());
+      }
+    }
 
-        return relationsByCategoryAsync.when(
-          data: (relationsByCategory) {
-            // 관계 데이터로 그래프 재구성
-            _buildGraphFromRelations(activeProfile, relationsByCategory);
-            return _buildGraph(context, [activeProfile], relationsByCategory);
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
+    return _buildGraph(context, [activeProfile], relationsByCategory);
   }
 
   /// 프로필 목록 비교
@@ -195,6 +241,51 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     if (_currentProfiles.length != profiles.length) return false;
     for (int i = 0; i < profiles.length; i++) {
       if (_currentProfiles[i].id != profiles[i].id) return false;
+    }
+    return true;
+  }
+
+  /// 관계 데이터 비교
+  bool _isSameRelations(Map<String, List<ProfileRelationModel>> newRelations) {
+    if (_currentRelationsByCategory == null) return false;
+
+    // 전체 관계 개수 비교 (삭제/추가 감지)
+    final oldTotalCount = _currentRelationsByCategory!.values.fold<int>(0, (sum, list) => sum + list.length);
+    final newTotalCount = newRelations.values.fold<int>(0, (sum, list) => sum + list.length);
+    if (oldTotalCount != newTotalCount) {
+      debugPrint('🔄 [Graph] 관계 개수 변경 감지: $oldTotalCount → $newTotalCount');
+      return false;
+    }
+
+    // 카테고리 키 비교
+    if (_currentRelationsByCategory!.length != newRelations.length) {
+      debugPrint('🔄 [Graph] 카테고리 개수 변경 감지');
+      return false;
+    }
+
+    for (final key in newRelations.keys) {
+      final oldList = _currentRelationsByCategory![key];
+      final newList = newRelations[key];
+      if (oldList == null || newList == null) return false;
+      if (oldList.length != newList.length) {
+        debugPrint('🔄 [Graph] 카테고리 "$key" 관계 개수 변경: ${oldList.length} → ${newList.length}');
+        return false;
+      }
+
+      for (int i = 0; i < oldList.length; i++) {
+        final oldItem = oldList[i];
+        final newItem = newList[i];
+        // ID + display_name + birth_date 비교 (수정 감지)
+        if (oldItem.id != newItem.id) return false;
+        if (oldItem.toProfile?.displayName != newItem.toProfile?.displayName) {
+          debugPrint('🔄 [Graph] 이름 변경 감지: ${oldItem.toProfile?.displayName} → ${newItem.toProfile?.displayName}');
+          return false;
+        }
+        if (oldItem.toProfile?.birthDate != newItem.toProfile?.birthDate) {
+          debugPrint('🔄 [Graph] 생년월일 변경 감지');
+          return false;
+        }
+      }
     }
     return true;
   }
@@ -212,6 +303,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
           child: Stack(
             children: [
               GraphView.builder(
+                key: ValueKey('graph_v$_graphVersion'),
                 controller: _controller,
                 graph: graph,
                 algorithm: algorithm,
@@ -230,8 +322,14 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
               GraphControls(
                 onZoomIn: _zoomIn,
                 onZoomOut: _zoomOut,
-                onZoomToFit: () => _controller.zoomToFit(),
-                onResetView: () => _controller.resetView(),
+                onZoomToFit: () {
+                  if (_isDisposed || !mounted) return;
+                  _controller.zoomToFit();
+                },
+                onResetView: () {
+                  if (_isDisposed || !mounted) return;
+                  _controller.resetView();
+                },
               ),
             ],
           ),
@@ -403,7 +501,13 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       },
       onDetailPressed: () {
         Navigator.pop(context);
-        // TODO: 상세보기 화면으로 이동 (나중에 구현)
+        // 궁합 분석이 있으면 상세 화면으로, 없으면 사주 상세로 이동
+        if (relation.compatibilityAnalysisId != null) {
+          context.push('${Routes.compatibilityDetail}?analysisId=${relation.compatibilityAnalysisId}');
+        } else {
+          // 사주 상세 화면으로 이동 (profileId 전달)
+          context.push('${Routes.sajuDetail}?profileId=${relation.toProfileId}');
+        }
       },
     );
   }
@@ -441,7 +545,10 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       }
     }
 
-    print('[Graph] ===== Supabase 관계 그래프 구축 완료 =====');
+    // 그래프 버전 증가 → GraphView.builder 강제 재생성 → 레이아웃 재계산
+    _graphVersion++;
+
+    print('[Graph] ===== Supabase 관계 그래프 구축 완료 (v$_graphVersion) =====');
     print('[Graph] 노드 수: ${graph.nodeCount()}, 엣지 수: ${graph.edges.length}');
   }
 
@@ -599,6 +706,8 @@ class _ShadcnGroupNodeWidget extends StatelessWidget {
 }
 
 /// shadcn_ui 기반 관계 노드 위젯
+///
+/// 궁합 점수 표시 포함 (pair_hapchung의 overall_score)
 class _ShadcnRelationNodeWidget extends StatelessWidget {
   const _ShadcnRelationNodeWidget({
     required this.relation,
@@ -617,77 +726,90 @@ class _ShadcnRelationNodeWidget extends StatelessWidget {
         ? '${birthDate.year}.${birthDate.month.toString().padLeft(2, '0')}.${birthDate.day.toString().padLeft(2, '0')}'
         : '';
     final avatarColor = _getAvatarColor(relation.categoryLabel);
+    final compatibilityScore = relation.compatibilityScore;
 
     return GestureDetector(
       onTap: onTap,
-      child: ShadCard(
-        width: 150,
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 아바타 (CircleAvatar 사용)
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    avatarColor,
-                    avatarColor.withValues(alpha: 0.7),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: avatarColor.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0] : '?',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // 이름 + 생년월일
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ShadCard(
+            width: 150,
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 아바타 (CircleAvatar 사용)
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        avatarColor,
+                        avatarColor.withValues(alpha: 0.7),
+                      ],
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                    boxShadow: [
+                      BoxShadow(
+                        color: avatarColor.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  if (birthDateStr.isNotEmpty)
-                    Text(
-                      birthDateStr,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
+                  child: Center(
+                    child: Text(
+                      displayName.isNotEmpty ? displayName[0] : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                ],
-              ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // 이름 + 생년월일
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      if (birthDateStr.isNotEmpty)
+                        Text(
+                          birthDateStr,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // 궁합 점수 뱃지 (우측 상단)
+          if (compatibilityScore != null)
+            Positioned(
+              top: -8,
+              right: -8,
+              child: _CompatibilityScoreBadge(score: compatibilityScore),
+            ),
+        ],
       ),
     );
   }
@@ -705,5 +827,55 @@ class _ShadcnRelationNodeWidget extends StatelessWidget {
       default:
         return const Color(0xFF78909C);
     }
+  }
+}
+
+/// 궁합 점수 뱃지 위젯
+///
+/// 관계 노드의 우측 상단에 표시되는 원형 뱃지
+class _CompatibilityScoreBadge extends StatelessWidget {
+  const _CompatibilityScoreBadge({
+    required this.score,
+  });
+
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getScoreColor(score);
+
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.5),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          '$score',
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getScoreColor(int score) {
+    if (score >= 80) return const Color(0xFFEC4899); // pink
+    if (score >= 60) return const Color(0xFF3B82F6); // blue
+    if (score >= 40) return const Color(0xFFF59E0B); // amber
+    return const Color(0xFF6B7280); // gray
   }
 }

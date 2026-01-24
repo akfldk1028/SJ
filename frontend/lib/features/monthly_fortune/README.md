@@ -34,24 +34,57 @@ DB `content.current.overview` 또는 `content.overview`에 있는 필드:
 | `hapchungEffect` | `overview.hapchungEffect` | "합충 영향" HighlightBox |
 | `conclusion` | `overview.conclusion` | "결론" HighlightBox |
 
-### Step 3: v4.0 구조 - 현재 월 vs 12개월 요약
+### Step 3: v5.2 구조 - 현재 월 vs 12개월 요약
+
+⚠️ **AI/개발자 필독: 데이터 위치 주의!**
+
 ```
 content: {
   year: 2026,
   currentMonth: 1,
-  current: {           // 현재 월 상세 데이터
+  current: {
+    month: 1,
     monthGanji: "경인(庚寅)",
     overview: {...},
-    categories: {...},
-    lucky: {...}
+    categories: {
+      career: {...},
+      lucky: {...}       // ⚠️ lucky가 categories 안에 있음!
+    },
+    months: {            // ⚠️ months가 current 안에 있음!
+      month1: { keyword, score, reading, highlights, idiom },
+      month2: { keyword, score, reading, highlights, idiom },
+      ...
+      month12: { keyword, score, reading, highlights, idiom }
+    },
+    closingMessage: "..."
+  }
+}
+```
+
+### 🚨 파싱 시 주의점 (버그 발생 이력)
+
+| 데이터 | 올바른 경로 | 틀린 경로 (버그) |
+|--------|-------------|------------------|
+| months | `content.current.months` | `content.months` ❌ |
+| lucky | `content.current.categories.lucky` | `content.current.lucky` ❌ |
+| overview | `content.current.overview` | `content.overview` (fallback) |
+
+### 각 월별 데이터 구조 (v5.0+)
+```json
+{
+  "keyword": "기회와 균형",
+  "score": 72,
+  "reading": "...",
+  "highlights": {
+    "career": { "score": 70, "summary": "..." },
+    "business": { "score": 68, "summary": "..." },
+    "wealth": { "score": 72, "summary": "..." },
+    "love": { "score": 75, "summary": "..." }
   },
-  months: {            // 12개월 요약
-    month1: { keyword, score, reading },
-    month2: { keyword, score, reading },
-    ...
-    month12: { keyword, score, reading }
-  },
-  closingMessage: "..."
+  "idiom": {
+    "phrase": "左右逢源",
+    "meaning": "..."
+  }
 }
 ```
 
@@ -112,3 +145,8 @@ WHERE summary_type = 'monthly_fortune' LIMIT 1;
 
 ## 수정 이력
 - v4.0: 12개월 통합 구조로 변경
+- v5.0: highlights, idiom 추가 (월별 카테고리 요약 + 사자성어)
+- v5.1: API 호출 제거 - 12개월 데이터가 이미 DB에 있으므로 fortune.months에서 직접 반환
+- v5.2 (2026-01-24):
+  - months 파싱 경로 수정 (`currentJson['months']`)
+  - lucky 파싱 경로 수정 (`categoriesJson['lucky']`)
