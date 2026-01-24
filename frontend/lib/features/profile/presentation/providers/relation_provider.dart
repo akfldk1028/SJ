@@ -8,6 +8,19 @@ import '../../data/data.dart';
 
 part 'relation_provider.g.dart';
 
+/// 관계 데이터 새로고침 트리거
+///
+/// 이 값이 변경되면 관계 관련 provider들이 자동으로 refetch됨
+/// 위젯에서 ref.invalidate() 대신 이 트리거를 사용해야 defunct 에러 방지
+final relationRefreshTriggerProvider = StateProvider<int>((ref) => 0);
+
+/// 관계 데이터 새로고침 필요 플래그
+///
+/// 수정/생성 후 네비게이션 시 설정됨
+/// RelationshipScreen이 이 플래그를 확인하고 직접 refresh 수행
+/// (소스 화면에서 트리거 업데이트하면 defunct 에러 발생하므로 도착 화면에서 처리)
+final relationDataStaleProvider = StateProvider<bool>((ref) => false);
+
 /// 특정 프로필의 관계 목록 Provider
 ///
 /// fromProfileId: "나"의 프로필 ID
@@ -42,8 +55,14 @@ class RelationList extends _$RelationList {
 /// 사용자의 모든 관계 목록 Provider
 ///
 /// userId 기준으로 모든 관계 조회 (모든 프로필의 관계 포함)
+///
+/// Note: trigger watch 제거! (defunct 에러 원인)
+/// 대신 필요 시 ref.invalidate(userRelationsProvider)를 직접 호출
 @riverpod
 Future<List<ProfileRelationModel>> userRelations(Ref ref) async {
+  // Note: trigger watch 제거 - 트리거 변경 시 모든 리스너에게 알림이 가서
+  // defunct widget 에러 발생함. 직접 invalidate 방식으로 변경.
+
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) {
     return [];
@@ -61,11 +80,17 @@ Future<List<ProfileRelationModel>> userRelations(Ref ref) async {
 ///
 /// Map<카테고리라벨, List<관계>> 형태 반환
 /// 예: {'가족': [...], '친구': [...], '직장': [...]}
+///
+/// Note: trigger watch 제거! (defunct 에러 원인)
+/// 대신 필요 시 ref.invalidate(relationsByCategoryProvider(id))를 직접 호출
 @riverpod
 Future<Map<String, List<ProfileRelationModel>>> relationsByCategory(
   Ref ref,
   String fromProfileId,
 ) async {
+  // Note: trigger watch 제거 - 트리거 변경 시 모든 리스너에게 알림이 가서
+  // defunct widget 에러 발생함. 직접 invalidate 방식으로 변경.
+
   final result = await relationQueries.getGroupedByCategory(fromProfileId);
   return switch (result) {
     QuerySuccess(:final data) => data,
@@ -211,7 +236,9 @@ class RelationNotifier extends _$RelationNotifier {
         case QuerySuccess(:final data):
           debugPrint('✅ [RelationNotifier.create] 성공: id=${data.id}');
           createdModel = data;
-          _invalidateRelatedProviders(fromProfileId);
+          // Note: create()는 cross-screen (RelationshipAddScreen)에서 호출됨
+          // caller가 navigation 후 지연된 플래그 설정을 처리하므로 여기서는 스킵
+          _invalidateRelatedProviders(fromProfileId, immediate: false);
           return;
         case QueryFailure(:final message):
           debugPrint('❌ [RelationNotifier.create] 실패: $message');
@@ -323,16 +350,24 @@ class RelationNotifier extends _$RelationNotifier {
   }
 
   /// 관계 삭제
+  ///
+  /// [triggerRefresh] - true면 삭제 후 즉시 트리거 업데이트 (caller가 동일 화면에서 처리할 때)
+  ///                    false면 caller가 직접 새로고침 처리 (다이얼로그 닫은 후 등)
   Future<void> delete({
     required String relationId,
     required String fromProfileId,
+    bool triggerRefresh = false,
   }) async {
     state = await AsyncValue.guard(() async {
       final result = await relationMutations.delete(relationId);
 
       switch (result) {
         case QuerySuccess():
-          _invalidateRelatedProviders(fromProfileId);
+          // triggerRefresh가 true일 때만 즉시 트리거 업데이트
+          // (다이얼로그 열린 상태에서 트리거 업데이트하면 defunct 에러 발생 가능)
+          if (triggerRefresh) {
+            _invalidateRelatedProviders(fromProfileId, immediate: true);
+          }
           return;
         case QueryFailure(:final message):
           throw Exception(message);
@@ -484,13 +519,21 @@ class RelationNotifier extends _$RelationNotifier {
     return upsertedModel;
   }
 
-  /// 관련 Provider들 무효화
-  void _invalidateRelatedProviders(String fromProfileId) {
-    ref.invalidate(relationListProvider(fromProfileId));
-    ref.invalidate(relationsByCategoryProvider(fromProfileId));
-    ref.invalidate(favoriteRelationsProvider(fromProfileId));
-    ref.invalidate(relationCountProvider(fromProfileId));
-    ref.invalidate(userRelationsProvider);
+  /// 관련 Provider들 새로고침 요청
+  ///
+  /// 같은 화면에서 호출된 경우에만 trigger 업데이트
+  /// cross-screen navigation 시에는 caller가 RelationRefreshState (static 변수)를 사용해야 함
+  /// (navigation 중 provider 업데이트하면 defunct widget 에러 발생)
+  ///
+  /// [immediate] - true면 즉시 trigger 업데이트 (같은 화면에서 호출 시 안전)
+  ///               false면 아무것도 안함 (cross-screen navigation 시, caller가 처리)
+  void _invalidateRelatedProviders(String fromProfileId, {bool immediate = true}) {
+    if (immediate) {
+      debugPrint('🔄 [RelationNotifier] trigger 업데이트 (immediate, 같은 화면)');
+      ref.read(relationRefreshTriggerProvider.notifier).state++;
+    } else {
+      debugPrint('🔄 [RelationNotifier] trigger 업데이트 스킵 (caller가 static 변수로 처리)');
+    }
   }
 }
 

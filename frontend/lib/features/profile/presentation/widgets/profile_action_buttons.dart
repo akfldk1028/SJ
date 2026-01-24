@@ -30,17 +30,25 @@ class ProfileActionButtons extends ConsumerWidget {
     final formState = ref.watch(profileFormProvider);
     final isValid = formState.isValid;
 
+    // 버튼 텍스트 결정:
+    // - 인연 편집: "저장"
+    // - 일반 수정 모드: "프로필 저장"
+    // - 새 프로필: "만세력 보러가기"
+    final isEditMode = editingProfileId != null;
+    final buttonText = isRelationEdit
+        ? '저장'
+        : (isEditMode ? '프로필 저장' : '만세력 보러가기');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 메인 버튼: 인연 편집이면 "저장", 아니면 "만세력 보러가기"
         ShadButton(
           enabled: isValid,
           onPressed: isValid ? () => _onSaveAndViewChart(context, ref) : null,
-          child: Text(isRelationEdit ? '저장' : '만세력 보러가기'),
+          child: Text(buttonText),
         ),
-        // 인연 편집이 아닐 때만 "저장된 만세력 불러오기" 버튼 표시
-        if (!isRelationEdit) ...[
+        // 새 프로필 생성 시에만 "저장된 만세력 불러오기" 버튼 표시
+        if (!isRelationEdit && !isEditMode) ...[
           const SizedBox(height: 12),
           ShadButton.secondary(
             onPressed: () => _onLoadSavedProfiles(context),
@@ -55,6 +63,10 @@ class ProfileActionButtons extends ConsumerWidget {
   /// - 인연 편집: Supabase saju_profiles 업데이트 + 사주분석 → 인연 리스트로 이동
   /// - 내 프로필: 로컬 저장 → 만세력 화면으로 이동
   Future<void> _onSaveAndViewChart(BuildContext context, WidgetRef ref) async {
+    debugPrint('🔍 [ProfileActionButtons._onSaveAndViewChart] 시작');
+    debugPrint('  - isRelationEdit: $isRelationEdit');
+    debugPrint('  - editingProfileId: $editingProfileId');
+
     try {
       // 인연 편집 모드: Supabase saju_profiles 테이블 업데이트 + 사주 분석
       if (isRelationEdit && editingProfileId != null) {
@@ -87,18 +99,21 @@ class ProfileActionButtons extends ConsumerWidget {
         }
       } else {
         // 일반 모드: 로컬 저장소에 저장
+        debugPrint('📝 [ProfileActionButtons] 일반 모드 - 로컬 저장');
+        debugPrint('  (isRelationEdit=$isRelationEdit, editingProfileId=$editingProfileId)');
         await ref.read(profileFormProvider.notifier).saveProfile(
           editingId: editingProfileId,
         );
       }
 
-      // 화면 이동 (네비게이션만, provider 조작 없음)
+      // 화면 이동
       if (context.mounted) {
         if (isRelationEdit) {
-          // 네비게이션만 수행 - RelationshipScreen에서 자체적으로 refresh
-          // Note: 여기서 provider를 건드리면 ShellRoute의 RelationshipScreen이
-          // 즉시 반응하여 defunct 에러 발생
-          context.go(Routes.relationshipList);
+          // context.pop()으로 push에서 정상 리턴
+          // → relationship_screen의 await context.push() 완료
+          // → _onRefresh() 호출됨
+          debugPrint('🔄 [ProfileActionButtons] pop으로 이전 화면 복귀');
+          context.pop();
         } else {
           // 일반 프로필 저장 시에만 Toast 표시 (같은 화면에서 이동하므로 안전)
           ShadToaster.of(context).show(

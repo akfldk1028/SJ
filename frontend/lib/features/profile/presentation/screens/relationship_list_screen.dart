@@ -137,20 +137,7 @@ class RelationshipListScreen extends ConsumerWidget {
                 parentContext.go('${Routes.sajuChat}?profileId=${relation.toProfileId}');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('관계 수정'),
-              onTap: () {
-                debugPrint('✏️ [RelationshipListScreen] 관계 수정 버튼 클릭!');
-                debugPrint('  - toProfileId: ${relation.toProfileId}');
-                debugPrint('  - toProfile: ${relation.toProfile}');
-                Navigator.pop(sheetContext);
-                parentContext.push(
-                  '${Routes.profileEdit}?profileId=${relation.toProfileId}',
-                  extra: relation.toProfile,
-                );
-              },
-            ),
+            // 수정 버튼 제거됨 - 삭제 후 재추가 방식으로 변경
             ListTile(
               leading: Icon(
                 relation.isFavorite ? Icons.star : Icons.star_border,
@@ -224,9 +211,8 @@ class RelationshipListScreen extends ConsumerWidget {
                     );
                 debugPrint('✅ [RelationshipListScreen] 삭제 성공');
 
-                // Provider 명시적 무효화
-                ref.invalidate(relationsByCategoryProvider(relation.fromProfileId));
-                ref.invalidate(userRelationsProvider);
+                // Note: ref.invalidate() 제거! (defunct 에러 원인)
+                // RelationNotifier.delete()가 트리거를 업데이트하여 자동 refetch됨
 
                 scaffoldMessenger.showSnackBar(
                   SnackBar(

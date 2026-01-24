@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../router/routes.dart';
 import '../../data/models/profile_relation_model.dart';
+import '../../data/relation_refresh_state.dart';
 import '../providers/profile_provider.dart';
 import '../providers/relation_provider.dart';
 import '../widgets/relation_category_section.dart';
@@ -19,6 +20,11 @@ final viewModeProvider = StateProvider<ViewModeType>((ref) => ViewModeType.graph
 ///
 /// Supabase profile_relations 테이블 기반
 /// activeProfile을 기준으로 연결된 관계들을 표시
+///
+/// Note: 로컬 캐시 기반 UI 업데이트
+/// - Provider는 초기 데이터 로드에만 사용
+/// - 삭제/수정 후에는 로컬 캐시를 직접 업데이트 (ref.invalidate() 사용 안함)
+/// - 이렇게 하면 Provider notification으로 인한 defunct widget 에러 방지
 class RelationshipScreen extends ConsumerStatefulWidget {
   const RelationshipScreen({super.key});
 
@@ -27,8 +33,14 @@ class RelationshipScreen extends ConsumerStatefulWidget {
 }
 
 class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
-  int? _lastRefreshTime;
-  bool _refreshScheduled = false;
+  /// 로컬 데이터 캐시
+  /// - Provider 데이터가 로드되면 여기에 복사
+  /// - 삭제 시 여기서 직접 제거 (setState로 UI 업데이트)
+  /// - null이면 Provider 데이터 사용, non-null이면 로컬 캐시 사용
+  Map<String, List<ProfileRelationModel>>? _localCache;
+
+  /// 새로고침 중 여부
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -36,46 +48,80 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     debugPrint('🔄 [RelationshipScreen] initState');
   }
 
-  /// 안전한 데이터 새로고침
-  void _safeRefresh() {
-    if (!mounted) return;
-    final activeProfile = ref.read(activeProfileProvider).value;
-    if (activeProfile == null) return;
+  /// Pull-to-Refresh 콜백
+  /// Provider invalidate로 모든 watcher (GraphView 포함) 업데이트
+  Future<void> _onRefresh() async {
+    if (_isRefreshing) return;
 
-    debugPrint('🔄 [RelationshipScreen] 데이터 새로고침 실행');
-    ref.invalidate(relationsByCategoryProvider(activeProfile.id));
-    ref.invalidate(userRelationsProvider);
-    _lastRefreshTime = DateTime.now().millisecondsSinceEpoch;
+    debugPrint('🔄 [RelationshipScreen] _onRefresh 시작');
+    setState(() => _isRefreshing = true);
+
+    try {
+      final activeProfile = ref.read(activeProfileProvider).value;
+      if (activeProfile != null) {
+        // Provider invalidate - 이 시점에서는 navigation 완료되어 안전
+        // GraphView 등 모든 watcher가 새 데이터로 업데이트됨
+        ref.invalidate(relationsByCategoryProvider(activeProfile.id));
+        debugPrint('✅ [RelationshipScreen] Provider invalidate 완료');
+
+        // 로컬 캐시도 클리어 → Provider 데이터 사용하도록
+        setState(() {
+          _localCache = null;
+          _isRefreshing = false;
+        });
+      } else {
+        if (mounted) {
+          setState(() => _isRefreshing = false);
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ [RelationshipScreen] _onRefresh 에러: $e');
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
+  }
+
+  /// 삭제 후 로컬 캐시에서 직접 제거
+  /// Provider notification 없이 UI만 업데이트
+  void _removeFromLocalCache(ProfileRelationModel relation) {
+    if (_localCache == null) return;
+
+    final category = relation.categoryLabel;
+    final updatedCache = Map<String, List<ProfileRelationModel>>.from(_localCache!);
+
+    if (updatedCache.containsKey(category)) {
+      updatedCache[category] = updatedCache[category]!
+          .where((r) => r.id != relation.id)
+          .toList();
+
+      // 빈 카테고리 제거
+      if (updatedCache[category]!.isEmpty) {
+        updatedCache.remove(category);
+      }
+    }
+
+    setState(() {
+      _localCache = updatedCache;
+    });
+    debugPrint('✅ [RelationshipScreen] 로컬 캐시에서 삭제됨: ${relation.id}');
   }
 
   @override
   Widget build(BuildContext context) {
+    // 정적 플래그 확인 - 다른 화면에서 데이터 변경 후 돌아온 경우
+    if (RelationRefreshState.checkAndClear()) {
+      debugPrint('🔄 [RelationshipScreen] 플래그 감지 → 새로고침 예약');
+      // build 중에는 setState 불가, PostFrameCallback으로 지연
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _onRefresh();
+        }
+      });
+    }
+
     final viewMode = ref.watch(viewModeProvider);
     final activeProfileAsync = ref.watch(activeProfileProvider);
-
-    // build에서 라우트 변경 감지 (ShellRoute에서는 didChangeDependencies가 호출 안됨)
-    final currentLocation = GoRouterState.of(context).uri.toString();
-    final isCurrentRoute = currentLocation.startsWith('/relationships');
-
-    // 현재 라우트이고, 새로고침이 예약되지 않았으면 체크
-    if (isCurrentRoute && !_refreshScheduled) {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      // 마지막 새로고침이 없거나 2초 이상 지났으면 새로고침
-      final needsRefresh = _lastRefreshTime == null || (now - _lastRefreshTime!) > 2000;
-
-      if (needsRefresh) {
-        _refreshScheduled = true;
-        debugPrint('🔄 [RelationshipScreen] 새로고침 필요 → 예약 (lastRefresh: $_lastRefreshTime)');
-
-        // 충분한 지연 후 안전하게 새로고침 (네비게이션 완료 대기)
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            _safeRefresh();
-            _refreshScheduled = false;
-          }
-        });
-      }
-    }
 
     return Scaffold(
       appBar: _buildAppBar(context, ref, viewMode),
@@ -88,29 +134,28 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
             );
           }
 
-          // 관계 목록 조회 (카테고리별 그룹핑)
+          // 로컬 캐시가 있으면 사용 (Provider watch 안함 → notification 없음)
+          if (_localCache != null) {
+            return _buildBody(context, viewMode, _localCache!);
+          }
+
+          // 로컬 캐시가 없으면 Provider에서 초기 데이터 로드
           final relationsByCategoryAsync = ref.watch(
             relationsByCategoryProvider(activeProfile.id),
           );
 
           return relationsByCategoryAsync.when(
             data: (relationsByCategory) {
-              // 그래프 뷰는 목업 데이터 사용 (테스트용)
-              if (viewMode == ViewModeType.graph) {
-                return const RelationshipGraphView();
-              }
+              // Provider 데이터를 로컬 캐시에 복사 (최초 1회)
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && _localCache == null) {
+                  setState(() {
+                    _localCache = Map.from(relationsByCategory);
+                  });
+                }
+              });
 
-              // 리스트 뷰: 관계가 없으면 빈 상태 표시
-              if (relationsByCategory.isEmpty) {
-                return EmptyRelationState(
-                  onAddPressed: () => context.push(Routes.relationshipAdd),
-                );
-              }
-
-              // Builder로 감싸서 Scaffold 안쪽 context 사용
-              return Builder(
-                builder: (scaffoldContext) => _buildListView(scaffoldContext, ref, relationsByCategory),
-              );
+              return _buildBody(context, viewMode, relationsByCategory);
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => _buildErrorState(context, err),
@@ -120,9 +165,84 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
         error: (err, stack) => _buildErrorState(context, err),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(Routes.relationshipAdd),
+        onPressed: () async {
+          // 추가 화면으로 이동 후 돌아오면 새로고침
+          await context.push(Routes.relationshipAdd);
+          // 애니메이션 완료 후 새로고침 (defunct 에러 방지)
+          if (mounted) {
+            await Future.delayed(const Duration(milliseconds: 300));
+            if (mounted) {
+              _onRefresh();
+            }
+          }
+        },
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.person_add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    ViewModeType viewMode,
+    Map<String, List<ProfileRelationModel>> relationsByCategory,
+  ) {
+    // activeProfile 가져오기 (이미 로드됨)
+    final activeProfile = ref.read(activeProfileProvider).value;
+
+    // 그래프 뷰
+    if (viewMode == ViewModeType.graph) {
+      // activeProfile이 없으면 안전하게 처리
+      if (activeProfile == null) {
+        return const Center(child: Text('프로필이 없습니다'));
+      }
+
+      return RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.8,
+            // Props로 데이터 전달 (GraphView는 Provider watch 안함)
+            child: RelationshipGraphView(
+              activeProfile: activeProfile,
+              relationsByCategory: relationsByCategory,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 리스트 뷰: 관계가 없으면 빈 상태 표시
+    if (relationsByCategory.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: ListView(
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: EmptyRelationState(
+                onAddPressed: () async {
+                  await context.push(Routes.relationshipAdd);
+                  if (mounted) {
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    if (mounted) {
+                      _onRefresh();
+                    }
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Builder로 감싸서 Scaffold 안쪽 context 사용
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: Builder(
+        builder: (scaffoldContext) => _buildListView(scaffoldContext, ref, relationsByCategory),
       ),
     );
   }
@@ -222,7 +342,15 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
             return RelationCategorySection(
               categoryLabel: category,
               relations: relations,
-              onAddPressed: () => context.push(Routes.relationshipAdd),
+              onAddPressed: () async {
+                await context.push(Routes.relationshipAdd);
+                if (mounted) {
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (mounted) {
+                    _onRefresh();
+                  }
+                }
+              },
               onRelationTap: (relation) {
                 _showRelationDetail(context, ref, relation);
               },
@@ -248,16 +376,8 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     final toProfile = relation.toProfile;
     if (toProfile != null) {
       debugPrint('✅ [RelationshipScreen] toProfile 있음 → QuickView 표시');
-      // 부모 context와 ScaffoldMessenger 캡처 (sheet가 닫힌 후에도 유효)
+      // 부모 context 캡처 (sheet가 닫힌 후에도 유효)
       final parentContext = context;
-
-      ScaffoldMessengerState? scaffoldMessenger;
-      try {
-        scaffoldMessenger = ScaffoldMessenger.of(context);
-        debugPrint('✅ [RelationshipScreen] ScaffoldMessenger 캡처 성공');
-      } catch (e) {
-        debugPrint('❌ [RelationshipScreen] ScaffoldMessenger 캡처 실패: $e');
-      }
 
       showModalBottomSheet(
         context: context,
@@ -272,17 +392,7 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
               '${Routes.sajuChat}?profileId=${relation.toProfileId}',
             );
           },
-          onEditPressed: () {
-            debugPrint('✏️ [RelationshipScreen] 수정 버튼 클릭됨!');
-            debugPrint('  - toProfileId: ${relation.toProfileId}');
-            debugPrint('  - toProfile: ${relation.toProfile}');
-            Navigator.pop(sheetContext);
-            // 해당 프로필 수정 화면으로 이동 (toProfile 데이터 직접 전달)
-            parentContext.push(
-              '${Routes.profileEdit}?profileId=${relation.toProfileId}',
-              extra: relation.toProfile,  // ProfileRelationTarget 전달
-            );
-          },
+          onEditPressed: null,  // 수정 기능 비활성화
           onDeletePressed: () {
             debugPrint('🗑️ [RelationshipScreen] 삭제 버튼 클릭됨!');
             Navigator.pop(sheetContext);
@@ -321,20 +431,26 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
               debugPrint('  - fromProfileId: ${relation.fromProfileId}');
 
               try {
+                // triggerRefresh: false - Provider notification 안함
                 await ref.read(relationNotifierProvider.notifier).delete(
                       relationId: relation.id,
                       fromProfileId: relation.fromProfileId,
+                      triggerRefresh: false,
                     );
                 debugPrint('✅ [RelationshipScreen] 삭제 성공');
 
-                // 명시적으로 관련 provider들 refresh하여 UI 업데이트 보장
-                ref.invalidate(relationsByCategoryProvider(relation.fromProfileId));
-                ref.invalidate(userRelationsProvider);
+                // 다이얼로그 닫기 전에 로컬 캐시 업데이트
+                // (다이얼로그가 닫히면 widget이 defunct될 수 있으므로)
+                _removeFromLocalCache(relation);
 
                 // 다이얼로그 닫기
                 if (dialogContext.mounted) {
                   Navigator.pop(dialogContext);
                 }
+
+                // Note: ref.invalidate() 호출 안함!
+                // 로컬 캐시를 직접 수정했으므로 Provider notification 불필요
+                // 이렇게 하면 defunct widget 에러 완전 방지
               } catch (e) {
                 debugPrint('❌ [RelationshipScreen] 삭제 실패: $e');
                 // 에러 다이얼로그 표시
@@ -371,13 +487,13 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
 class _RelationQuickViewSheet extends StatelessWidget {
   final ProfileRelationModel relation;
   final VoidCallback onChatPressed;
-  final VoidCallback onEditPressed;
+  final VoidCallback? onEditPressed;  // nullable - 수정 기능 비활성화
   final VoidCallback onDeletePressed;
 
   const _RelationQuickViewSheet({
     required this.relation,
     required this.onChatPressed,
-    required this.onEditPressed,
+    this.onEditPressed,  // optional
     required this.onDeletePressed,
   });
 
@@ -481,27 +597,16 @@ class _RelationQuickViewSheet extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 24),
-            // 액션 버튼
+            // 액션 버튼 - 사주 상담만 표시
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onEditPressed,
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('수정'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: onChatPressed,
-                      icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                      label: const Text('사주 상담'),
-                    ),
-                  ),
-                ],
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onChatPressed,
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('사주 상담'),
+                ),
               ),
             ),
             const SizedBox(height: 12),

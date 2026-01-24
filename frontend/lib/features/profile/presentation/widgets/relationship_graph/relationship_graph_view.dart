@@ -8,8 +8,7 @@ import '../../../domain/entities/relationship_type.dart';
 import '../../../domain/entities/gender.dart';
 import '../../../data/mock/mock_profiles.dart';
 import '../../../data/models/profile_relation_model.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/relation_provider.dart';
+// Note: Provider imports 제거됨 - props 기반 데이터 전달 방식으로 변경
 import '../../../../../router/routes.dart';
 import 'me_node_widget.dart';
 import 'profile_node_widget.dart';
@@ -21,8 +20,21 @@ import 'saju_quick_view_sheet.dart';
 const bool _useMockData = false;
 
 /// 관계 그래프 뷰 (SJ-Flow Large Tree 기능 사용)
+///
+/// 주의: Provider를 직접 watch하지 않음 (defunct widget 에러 방지)
+/// 부모 위젯에서 데이터를 전달받음
 class RelationshipGraphView extends ConsumerStatefulWidget {
-  const RelationshipGraphView({super.key});
+  const RelationshipGraphView({
+    super.key,
+    required this.activeProfile,
+    required this.relationsByCategory,
+  });
+
+  /// 활성 프로필
+  final SajuProfile activeProfile;
+
+  /// 카테고리별 관계 데이터
+  final Map<String, List<ProfileRelationModel>> relationsByCategory;
 
   @override
   ConsumerState<RelationshipGraphView> createState() =>
@@ -92,14 +104,19 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     }
   }
 
+  /// dispose 여부 플래그
+  bool _isDisposed = false;
+
   @override
   void dispose() {
+    _isDisposed = true;
     _transformController.dispose();
     super.dispose();
   }
 
   // === 줌 컨트롤 ===
   void _zoomIn() {
+    if (_isDisposed || !mounted) return;
     final currentScale = _transformController.value.getMaxScaleOnAxis();
     final newScale = (currentScale * 1.3).clamp(0.1, 5.0);
     final center = Offset(
@@ -113,6 +130,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   }
 
   void _zoomOut() {
+    if (_isDisposed || !mounted) return;
     final currentScale = _transformController.value.getMaxScaleOnAxis();
     final newScale = (currentScale / 1.3).clamp(0.1, 5.0);
     final center = Offset(
@@ -127,6 +145,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
   // === 노드 탭 핸들러 ===
   void _onNodeTap(Node node) {
+    if (_isDisposed || !mounted) return;
     final nodeId = node.key?.value as String? ?? '';
     // 그룹 노드 탭 → 확장/축소
     if (nodeId.startsWith('group_')) {
@@ -172,64 +191,49 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
   @override
   Widget build(BuildContext context) {
-    // 목업 데이터 또는 실제 데이터
+    // 목업 데이터 사용 시
     if (_useMockData) {
       return _buildGraph(context, MockProfiles.profiles, {});
     }
 
-    final activeProfileAsync = ref.watch(activeProfileProvider);
+    // ========================================
+    // Props 기반 데이터 사용 (Provider watch 안함!)
+    // 부모(RelationshipScreen)에서 데이터를 전달받음
+    // 이렇게 하면 상위에서 invalidate해도 이 위젯은 영향 없음
+    // ========================================
+    final activeProfile = widget.activeProfile;
+    final relationsByCategory = widget.relationsByCategory;
 
-    return activeProfileAsync.when(
-      data: (activeProfile) {
-        if (activeProfile == null) {
-          return const Center(child: Text('프로필이 없습니다'));
+    // 현재 관계 개수 계산
+    final totalCount = relationsByCategory.values.fold<int>(0, (sum, list) => sum + list.length);
+    debugPrint('📊 [Graph.build] Props로 받은 데이터: 총 $totalCount개');
+
+    // 데이터가 변경되었을 때만 그래프 재구성
+    final needsRebuild = !_isGraphInitialized ||
+        _currentActiveProfileId != activeProfile.id ||
+        !_isSameRelations(relationsByCategory);
+
+    debugPrint('📊 [Graph.build] needsRebuild=$needsRebuild, initialized=$_isGraphInitialized');
+
+    if (needsRebuild) {
+      // PostFrameCallback으로 레이아웃 계산 후 그래프 재구성
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isDisposed) {
+          _buildGraphFromRelations(activeProfile, relationsByCategory);
+          _currentActiveProfileId = activeProfile.id;
+          _currentRelationsByCategory = relationsByCategory;
+          _isGraphInitialized = true;
+          setState(() {});
         }
+      });
 
-        // Supabase 관계 데이터 조회 (카테고리별)
-        final relationsByCategoryAsync = ref.watch(
-          relationsByCategoryProvider(activeProfile.id),
-        );
+      // 첫 빌드 시 로딩 표시
+      if (!_isGraphInitialized) {
+        return const Center(child: CircularProgressIndicator());
+      }
+    }
 
-        return relationsByCategoryAsync.when(
-          data: (relationsByCategory) {
-            // 현재 관계 개수 계산
-            final totalCount = relationsByCategory.values.fold<int>(0, (sum, list) => sum + list.length);
-            debugPrint('📊 [Graph.build] 관계 데이터 수신: 총 $totalCount개');
-
-            // 데이터가 변경되었을 때만 그래프 재구성 (build 외부 타이밍)
-            final needsRebuild = !_isGraphInitialized ||
-                _currentActiveProfileId != activeProfile.id ||
-                !_isSameRelations(relationsByCategory);
-
-            debugPrint('📊 [Graph.build] needsRebuild=$needsRebuild, initialized=$_isGraphInitialized');
-
-            if (needsRebuild) {
-              // PostFrameCallback으로 레이아웃 계산 후 그래프 재구성
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  _buildGraphFromRelations(activeProfile, relationsByCategory);
-                  _currentActiveProfileId = activeProfile.id;
-                  _currentRelationsByCategory = relationsByCategory;
-                  _isGraphInitialized = true;
-                  setState(() {});
-                }
-              });
-
-              // 첫 빌드 시 로딩 표시
-              if (!_isGraphInitialized) {
-                return const Center(child: CircularProgressIndicator());
-              }
-            }
-
-            return _buildGraph(context, [activeProfile], relationsByCategory);
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
+    return _buildGraph(context, [activeProfile], relationsByCategory);
   }
 
   /// 프로필 목록 비교
@@ -245,7 +249,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   bool _isSameRelations(Map<String, List<ProfileRelationModel>> newRelations) {
     if (_currentRelationsByCategory == null) return false;
 
-    // 전체 관계 개수 비교 (삭제 감지)
+    // 전체 관계 개수 비교 (삭제/추가 감지)
     final oldTotalCount = _currentRelationsByCategory!.values.fold<int>(0, (sum, list) => sum + list.length);
     final newTotalCount = newRelations.values.fold<int>(0, (sum, list) => sum + list.length);
     if (oldTotalCount != newTotalCount) {
@@ -269,7 +273,18 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       }
 
       for (int i = 0; i < oldList.length; i++) {
-        if (oldList[i].id != newList[i].id) return false;
+        final oldItem = oldList[i];
+        final newItem = newList[i];
+        // ID + display_name + birth_date 비교 (수정 감지)
+        if (oldItem.id != newItem.id) return false;
+        if (oldItem.toProfile?.displayName != newItem.toProfile?.displayName) {
+          debugPrint('🔄 [Graph] 이름 변경 감지: ${oldItem.toProfile?.displayName} → ${newItem.toProfile?.displayName}');
+          return false;
+        }
+        if (oldItem.toProfile?.birthDate != newItem.toProfile?.birthDate) {
+          debugPrint('🔄 [Graph] 생년월일 변경 감지');
+          return false;
+        }
       }
     }
     return true;
@@ -307,8 +322,14 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
               GraphControls(
                 onZoomIn: _zoomIn,
                 onZoomOut: _zoomOut,
-                onZoomToFit: () => _controller.zoomToFit(),
-                onResetView: () => _controller.resetView(),
+                onZoomToFit: () {
+                  if (_isDisposed || !mounted) return;
+                  _controller.zoomToFit();
+                },
+                onResetView: () {
+                  if (_isDisposed || !mounted) return;
+                  _controller.resetView();
+                },
               ),
             ],
           ),

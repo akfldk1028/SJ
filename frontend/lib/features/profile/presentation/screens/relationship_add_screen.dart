@@ -445,14 +445,11 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       // 6. 성공 메시지 및 화면 닫기
       debugPrint('🔍 [_saveRelationship] Step 6: 성공 처리 및 네비게이션');
       if (mounted) {
-        ShadToaster.of(context).show(
-          ShadToast(
-            title: const Text('인연 추가 완료'),
-            description: Text('${formState.displayName}님이 추가되었습니다'),
-          ),
-        );
-        debugPrint('✅ [_saveRelationship] 모든 단계 완료! 화면 이동');
-        context.go(Routes.relationshipList);
+        // context.pop()으로 push에서 정상 리턴
+        // → relationship_screen의 await context.push() 완료
+        // → _onRefresh() 호출됨
+        debugPrint('✅ [_saveRelationship] 모든 단계 완료! pop으로 이전 화면 복귀');
+        context.pop();
         return;
       }
     } catch (e, stackTrace) {
