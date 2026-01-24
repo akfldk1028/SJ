@@ -531,7 +531,9 @@ abstract class PromptVersions {
   /// - V9.0 (2026-01-24): mySajuIntro에 ilju(일주설명) 필드 추가
   ///         일간+일지 조합의 의미를 초보자도 쉽게 이해할 수 있게 설명
   /// - V9.1 (2026-01-24): 캐시 무효화 (V9.0 데이터에 mySajuIntro/my_saju_characters 누락)
-  static const String sajuBase = 'V9.1';
+  /// - V9.2 (2026-01-24): Phase 1 프롬프트에 mySajuIntro/my_saju_characters 추가
+  ///         (Phase 분할 분석 시 누락 문제 해결)
+  static const String sajuBase = 'V9.2';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)

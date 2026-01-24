@@ -32,7 +32,7 @@ class SajuBasePhase1Prompt extends PromptTemplate {
   String get modelName => OpenAIModels.sajuAnalysis; // GPT-5.2
 
   @override
-  int get maxTokens => 4000; // Phase 1용 토큰 (2500→4000 확장, JSON 잘림 방지)
+  int get maxTokens => 6000; // Phase 1용 토큰 (4000→6000 확장, mySajuIntro/my_saju_characters 추가)
 
   @override
   double get temperature => 0.7;
@@ -129,6 +129,77 @@ ${_buildHapchungSection(data.hapchung)}
 
 ```json
 {
+  "mySajuIntro": {
+    "title": "나의 사주, 나는 누구인가요?",
+    "ilju": "일주(日柱) 설명: 일간+일지 조합의 의미 (예: '갑자일주는 큰 나무가 깊은 물을 만난 형상으로...')",
+    "reading": "일주를 기반으로 '나'라는 사람에 대한 핵심 설명 6-8문장. 타고난 기질, 성향, 인생의 방향성을 일주 중심으로 설명. 사주 초보자도 쉽게 이해할 수 있게 작성."
+  },
+
+  "my_saju_characters": {
+    "description": "사주팔자 8글자 각각의 의미를 초보자도 이해할 수 있게 설명",
+    "year_gan": {
+      "character": "연간 한자 (예: 甲)",
+      "reading": "연간 읽는 법 (예: 갑)",
+      "oheng": "오행 (목/화/토/금/수)",
+      "yin_yang": "음양 (양/음)",
+      "meaning": "이 글자가 뜻하는 의미를 쉽게 설명"
+    },
+    "year_ji": {
+      "character": "연지 한자 (예: 子)",
+      "reading": "연지 읽는 법 (예: 자)",
+      "animal": "띠 동물 (예: 쥐)",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "이 글자가 뜻하는 의미를 쉽게 설명"
+    },
+    "month_gan": {
+      "character": "월간 한자",
+      "reading": "월간 읽는 법",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "월간의 의미 쉽게 설명"
+    },
+    "month_ji": {
+      "character": "월지 한자",
+      "reading": "월지 읽는 법",
+      "season": "계절 (봄/여름/환절기/가을/겨울)",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "월지의 의미 쉽게 설명"
+    },
+    "day_gan": {
+      "character": "일간 한자 (나를 대표하는 글자!)",
+      "reading": "일간 읽는 법",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "일간은 '나 자신'을 뜻합니다. 이 글자의 특성이 곧 내 성격과 기질입니다. 쉽게 설명"
+    },
+    "day_ji": {
+      "character": "일지 한자 (배우자궁)",
+      "reading": "일지 읽는 법",
+      "animal": "띠 동물",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "일지는 배우자궁으로 결혼운과 관련됩니다. 쉽게 설명"
+    },
+    "hour_gan": {
+      "character": "시간 한자 (미상이면 null)",
+      "reading": "시간 읽는 법",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "시간의 의미 쉽게 설명"
+    },
+    "hour_ji": {
+      "character": "시지 한자 (자녀궁, 미상이면 null)",
+      "reading": "시지 읽는 법",
+      "animal": "띠 동물",
+      "oheng": "오행",
+      "yin_yang": "음양",
+      "meaning": "시지는 자녀궁으로 자녀운과 말년운에 관련됩니다. 쉽게 설명"
+    },
+    "overall_reading": "8글자 조합이 만들어내는 전체적인 기운과 특성을 초보자도 이해할 수 있게 3-4문장으로 설명"
+  },
+
   "wonGuk_analysis": {
     "day_master": "일간 분석 (예: 甲木일간으로 성장과 진취성을 상징)",
     "oheng_balance": "오행 균형 분석 (과다/부족 오행과 그 영향)",

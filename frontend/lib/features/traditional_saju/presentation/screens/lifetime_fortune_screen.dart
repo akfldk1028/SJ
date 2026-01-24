@@ -1125,12 +1125,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   /// 사주 8글자 그리드
+  /// 전통 순서: 시주 → 일주 → 월주 → 연주 (오른쪽에서 왼쪽으로 읽음)
   Widget _buildSajuGrid(AppThemeExtension theme, MySajuCharactersSection chars) {
     final columns = [
-      ('연주', chars.yearGan, chars.yearJi),
-      ('월주', chars.monthGan, chars.monthJi),
-      ('일주', chars.dayGan, chars.dayJi),
       ('시주', chars.hourGan, chars.hourJi),
+      ('일주', chars.dayGan, chars.dayJi),
+      ('월주', chars.monthGan, chars.monthJi),
+      ('연주', chars.yearGan, chars.yearJi),
     ];
 
     return Row(
