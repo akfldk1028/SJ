@@ -558,7 +558,9 @@ abstract class PromptVersions {
   /// [히스토리]
   /// - V1.0: 초기 버전
   /// - V2.0: 구조 개선
-  static const String dailyFortune = 'V2.0';
+  /// - V2.1 (2026-01-24): 사자성어(idiom) 다양화 - 하드코딩된 "마부위침" 제거
+  ///         AI가 사주 특성과 오늘 기운에 맞는 사자성어를 매번 다르게 생성
+  static const String dailyFortune = 'V2.1';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 월운 (monthly_fortune)

@@ -26,17 +26,18 @@ class MenuScreen extends ConsumerStatefulWidget {
 class _MenuScreenState extends ConsumerState<MenuScreen> {
   DateTime _selectedDate = DateTime.now();
 
-  void _previousDay() {
-    setState(() {
-      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
-    });
-  }
+  // TODO: 이전/다음 날짜 기능 - 추후 구현
+  // void _previousDay() {
+  //   setState(() {
+  //     _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+  //   });
+  // }
 
-  void _nextDay() {
-    setState(() {
-      _selectedDate = _selectedDate.add(const Duration(days: 1));
-    });
-  }
+  // void _nextDay() {
+  //   setState(() {
+  //     _selectedDate = _selectedDate.add(const Duration(days: 1));
+  //   });
+  // }
 
   /// 모바일 플랫폼 체크 (광고 표시용)
   bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -72,15 +73,12 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   SizedBox(height: context.scaledPadding(12)),
                   const FortuneCategoryList(),
                   SizedBox(height: context.scaledPadding(24)),
+                  // Native 광고 1 (운세 카테고리 아래) - 즉시 로드
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
                   // 내 사주 카드
                   const SajuMiniCard(),
                   SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 1 (사주 카드 아래) - 즉시 로드
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 2 - 500ms 지연
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
                   // TODO: 2025 신년운세/토정비결 - 임시 비활성화
                   // const SectionHeader(
                   //   title: '오늘의 조언',
@@ -90,8 +88,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   // SizedBox(height: context.scaledPadding(24)),
                   const TodayMessageCard(),
                   SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 3 (맨 하단) - 1000ms 지연
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 1000),
+                  // Native 광고 2 (맨 하단) - 500ms 지연
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
                 ],
               ),
             ),
@@ -169,23 +167,24 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _previousDay,
-                      child: Icon(
-                        Icons.chevron_left_rounded,
-                        size: 20,
-                        color: theme.textSecondary,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _nextDay,
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: theme.textSecondary,
-                      ),
-                    ),
+                    // TODO: 이전/다음 날짜 기능 - 추후 구현
+                    // const SizedBox(width: 8),
+                    // GestureDetector(
+                    //   onTap: _previousDay,
+                    //   child: Icon(
+                    //     Icons.chevron_left_rounded,
+                    //     size: 20,
+                    //     color: theme.textSecondary,
+                    //   ),
+                    // ),
+                    // GestureDetector(
+                    //   onTap: _nextDay,
+                    //   child: Icon(
+                    //     Icons.chevron_right_rounded,
+                    //     size: 20,
+                    //     color: theme.textSecondary,
+                    //   ),
+                    // ),
                   ],
                 ),
               ],
