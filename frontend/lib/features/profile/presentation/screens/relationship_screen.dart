@@ -19,13 +19,63 @@ final viewModeProvider = StateProvider<ViewModeType>((ref) => ViewModeType.graph
 ///
 /// Supabase profile_relations 테이블 기반
 /// activeProfile을 기준으로 연결된 관계들을 표시
-class RelationshipScreen extends ConsumerWidget {
+class RelationshipScreen extends ConsumerStatefulWidget {
   const RelationshipScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RelationshipScreen> createState() => _RelationshipScreenState();
+}
+
+class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
+  int? _lastRefreshTime;
+  bool _refreshScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('🔄 [RelationshipScreen] initState');
+  }
+
+  /// 안전한 데이터 새로고침
+  void _safeRefresh() {
+    if (!mounted) return;
+    final activeProfile = ref.read(activeProfileProvider).value;
+    if (activeProfile == null) return;
+
+    debugPrint('🔄 [RelationshipScreen] 데이터 새로고침 실행');
+    ref.invalidate(relationsByCategoryProvider(activeProfile.id));
+    ref.invalidate(userRelationsProvider);
+    _lastRefreshTime = DateTime.now().millisecondsSinceEpoch;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final viewMode = ref.watch(viewModeProvider);
     final activeProfileAsync = ref.watch(activeProfileProvider);
+
+    // build에서 라우트 변경 감지 (ShellRoute에서는 didChangeDependencies가 호출 안됨)
+    final currentLocation = GoRouterState.of(context).uri.toString();
+    final isCurrentRoute = currentLocation.startsWith('/relationships');
+
+    // 현재 라우트이고, 새로고침이 예약되지 않았으면 체크
+    if (isCurrentRoute && !_refreshScheduled) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      // 마지막 새로고침이 없거나 2초 이상 지났으면 새로고침
+      final needsRefresh = _lastRefreshTime == null || (now - _lastRefreshTime!) > 2000;
+
+      if (needsRefresh) {
+        _refreshScheduled = true;
+        debugPrint('🔄 [RelationshipScreen] 새로고침 필요 → 예약 (lastRefresh: $_lastRefreshTime)');
+
+        // 충분한 지연 후 안전하게 새로고침 (네비게이션 완료 대기)
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _safeRefresh();
+            _refreshScheduled = false;
+          }
+        });
+      }
+    }
 
     return Scaffold(
       appBar: _buildAppBar(context, ref, viewMode),
@@ -57,7 +107,10 @@ class RelationshipScreen extends ConsumerWidget {
                 );
               }
 
-              return _buildListView(context, ref, relationsByCategory);
+              // Builder로 감싸서 Scaffold 안쪽 context 사용
+              return Builder(
+                builder: (scaffoldContext) => _buildListView(scaffoldContext, ref, relationsByCategory),
+              );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => _buildErrorState(context, err),
@@ -187,32 +240,59 @@ class RelationshipScreen extends ConsumerWidget {
     WidgetRef ref,
     ProfileRelationModel relation,
   ) {
+    debugPrint('👆 [RelationshipScreen._showRelationDetail] 호출됨');
+    debugPrint('  - relation.id: ${relation.id}');
+    debugPrint('  - relation.toProfile: ${relation.toProfile}');
+
     // toProfile 정보가 있으면 QuickView 표시
     final toProfile = relation.toProfile;
     if (toProfile != null) {
+      debugPrint('✅ [RelationshipScreen] toProfile 있음 → QuickView 표시');
+      // 부모 context와 ScaffoldMessenger 캡처 (sheet가 닫힌 후에도 유효)
+      final parentContext = context;
+
+      ScaffoldMessengerState? scaffoldMessenger;
+      try {
+        scaffoldMessenger = ScaffoldMessenger.of(context);
+        debugPrint('✅ [RelationshipScreen] ScaffoldMessenger 캡처 성공');
+      } catch (e) {
+        debugPrint('❌ [RelationshipScreen] ScaffoldMessenger 캡처 실패: $e');
+      }
+
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (context) => _RelationQuickViewSheet(
+        builder: (sheetContext) => _RelationQuickViewSheet(
           relation: relation,
           onChatPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(sheetContext);
             // 상대방 프로필 기준 채팅 화면으로 이동
-            context.push(
+            parentContext.push(
               '${Routes.sajuChat}?profileId=${relation.toProfileId}',
             );
           },
           onEditPressed: () {
-            Navigator.pop(context);
-            // TODO: 관계 수정 화면
+            debugPrint('✏️ [RelationshipScreen] 수정 버튼 클릭됨!');
+            debugPrint('  - toProfileId: ${relation.toProfileId}');
+            debugPrint('  - toProfile: ${relation.toProfile}');
+            Navigator.pop(sheetContext);
+            // 해당 프로필 수정 화면으로 이동 (toProfile 데이터 직접 전달)
+            parentContext.push(
+              '${Routes.profileEdit}?profileId=${relation.toProfileId}',
+              extra: relation.toProfile,  // ProfileRelationTarget 전달
+            );
           },
           onDeletePressed: () {
-            Navigator.pop(context);
-            _showDeleteConfirmation(context, ref, relation);
+            debugPrint('🗑️ [RelationshipScreen] 삭제 버튼 클릭됨!');
+            Navigator.pop(sheetContext);
+            // ScaffoldMessenger 없이 삭제 진행
+            _showDeleteConfirmation(parentContext, ref, relation);
           },
         ),
       );
+    } else {
+      debugPrint('❌ [RelationshipScreen] toProfile가 NULL! QuickView 표시 불가');
     }
   }
 
@@ -221,38 +301,56 @@ class RelationshipScreen extends ConsumerWidget {
     WidgetRef ref,
     ProfileRelationModel relation,
   ) {
+    debugPrint('🗑️ [RelationshipScreen._showDeleteConfirmation] 호출됨');
+    final displayName = relation.effectiveDisplayName;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('관계 삭제'),
-        content: Text('${relation.effectiveDisplayName}님과의 관계를 삭제하시겠습니까?'),
+        content: Text('$displayName님과의 관계를 삭제하시겠습니까?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소'),
           ),
           TextButton(
             onPressed: () async {
+              debugPrint('🗑️ [RelationshipScreen] 삭제 시작');
+              debugPrint('  - relationId: ${relation.id}');
+              debugPrint('  - fromProfileId: ${relation.fromProfileId}');
+
               try {
                 await ref.read(relationNotifierProvider.notifier).delete(
                       relationId: relation.id,
                       fromProfileId: relation.fromProfileId,
                     );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${relation.effectiveDisplayName}님과의 관계가 삭제되었습니다'),
-                    ),
-                  );
+                debugPrint('✅ [RelationshipScreen] 삭제 성공');
+
+                // 명시적으로 관련 provider들 refresh하여 UI 업데이트 보장
+                ref.invalidate(relationsByCategoryProvider(relation.fromProfileId));
+                ref.invalidate(userRelationsProvider);
+
+                // 다이얼로그 닫기
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
                 }
               } catch (e) {
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('삭제 실패: $e'),
-                      backgroundColor: Colors.red[400],
+                debugPrint('❌ [RelationshipScreen] 삭제 실패: $e');
+                // 에러 다이얼로그 표시
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('삭제 실패'),
+                      content: Text('$e'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('확인'),
+                        ),
+                      ],
                     ),
                   );
                 }

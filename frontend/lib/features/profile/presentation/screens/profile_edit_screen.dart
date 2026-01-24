@@ -28,16 +28,23 @@ class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({
     super.key,
     this.profileId,
+    this.profileData,
   });
 
   /// 수정 모드일 경우 기존 프로필 ID
   final String? profileId;
+
+  /// 관계에서 수정할 때 전달받은 프로필 데이터 (ProfileRelationTarget)
+  final dynamic profileData;
 
   @override
   ConsumerState<ProfileEditScreen> createState() => _ProfileEditScreenState();
 }
 
 class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
+  /// 폼 리빌드를 위한 키 (데이터 로드 후 증가시켜 위젯 재생성)
+  int _formKey = 0;
+
   @override
   void initState() {
     super.initState();
@@ -48,17 +55,44 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   Future<void> _initializeForm() async {
+    debugPrint('🔄 [ProfileEditScreen._initializeForm] 시작');
+    debugPrint('  - profileId: ${widget.profileId}');
+    debugPrint('  - profileData: ${widget.profileData}');
+    debugPrint('  - profileData type: ${widget.profileData?.runtimeType}');
+
     final formNotifier = ref.read(profileFormProvider.notifier);
 
-    if (widget.profileId != null) {
-      // 수정 모드: 기존 프로필 로드
+    if (widget.profileData != null) {
+      // 관계에서 수정 모드: 전달받은 ProfileRelationTarget 사용
+      debugPrint('📝 [ProfileEditScreen] 관계 수정 모드 - loadFromRelationTarget 호출');
+      formNotifier.loadFromRelationTarget(widget.profileData);
+      // 데이터 로드 후 폼 위젯 리빌드 (didChangeDependencies가 다시 실행되어 데이터 반영)
+      if (mounted) {
+        setState(() {
+          _formKey++;
+        });
+        debugPrint('🔄 [ProfileEditScreen] 폼 리빌드 트리거: _formKey=$_formKey');
+      }
+    } else if (widget.profileId != null) {
+      // 일반 수정 모드: 로컬 저장소에서 프로필 로드
+      debugPrint('📝 [ProfileEditScreen] 일반 수정 모드 - 로컬 저장소에서 로드');
       final repository = ref.read(profileRepositoryProvider);
       final profile = await repository.getById(widget.profileId!);
       if (profile != null) {
         formNotifier.loadProfile(profile);
+        // 데이터 로드 후 폼 위젯 리빌드
+        if (mounted) {
+          setState(() {
+            _formKey++;
+          });
+          debugPrint('🔄 [ProfileEditScreen] 폼 리빌드 트리거: _formKey=$_formKey');
+        }
+      } else {
+        debugPrint('⚠️ [ProfileEditScreen] 로컬 저장소에서 프로필을 찾을 수 없음');
       }
     } else {
-      // 신규 모드: 폼 초기화
+      // 신규 모드: 폼 초기화 (리빌드 불필요 - 처음부터 빈 폼)
+      debugPrint('📝 [ProfileEditScreen] 신규 모드 - 폼 초기화');
       formNotifier.reset();
     }
   }
@@ -98,21 +132,26 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
+              key: ValueKey('profile_form_$_formKey'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const RelationshipTypeDropdown(),
+                // Key 변경 시 재생성을 보장하기 위해 const 제거
+                RelationshipTypeDropdown(key: ValueKey('rel_$_formKey')),
                 const SizedBox(height: 24),
-                const ProfileNameInput(),
+                ProfileNameInput(key: ValueKey('name_$_formKey')),
                 const SizedBox(height: 24),
-                const GenderToggleButtons(),
+                GenderToggleButtons(key: ValueKey('gender_$_formKey')),
                 const SizedBox(height: 24),
-                const _BirthDateSection(),
+                _BirthDateSection(key: ValueKey('birth_$_formKey')),
                 const SizedBox(height: 24),
-                const CitySearchField(),
+                CitySearchField(key: ValueKey('city_$_formKey')),
                 const SizedBox(height: 16),
                 const TimeCorrectionBanner(),
                 const SizedBox(height: 32),
-                ProfileActionButtons(editingProfileId: widget.profileId),
+                ProfileActionButtons(
+                  editingProfileId: widget.profileId,
+                  isRelationEdit: widget.profileData != null,
+                ),
               ],
             ),
           ),
@@ -184,22 +223,23 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
 /// 생년월일 섹션 (날짜 관련 입력 그룹)
 class _BirthDateSection extends StatelessWidget {
-  const _BirthDateSection();
+  const _BirthDateSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    // key가 변경되면 자식 위젯들도 재생성됨
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        CalendarTypeDropdown(),
+        CalendarTypeDropdown(key: key != null ? ValueKey('cal_${key.hashCode}') : null),
         // Phase 18: 음력 선택 시 윤달 옵션 표시
-        LunarOptions(),
-        SizedBox(height: 12),
-        BirthDateInputWidget(), // 날짜 직접 입력
-        SizedBox(height: 12),
-        BirthTimeInputWidget(), // 시간 직접 입력 (24시간제)
-        SizedBox(height: 12),
-        BirthTimeOptions(),
+        LunarOptions(key: key != null ? ValueKey('lunar_${key.hashCode}') : null),
+        const SizedBox(height: 12),
+        BirthDateInputWidget(key: key != null ? ValueKey('date_${key.hashCode}') : null),
+        const SizedBox(height: 12),
+        BirthTimeInputWidget(key: key != null ? ValueKey('time_${key.hashCode}') : null),
+        const SizedBox(height: 12),
+        BirthTimeOptions(key: key != null ? ValueKey('time_opt_${key.hashCode}') : null),
       ],
     );
   }

@@ -478,6 +478,83 @@ class ProfileForm extends _$ProfileForm {
     }
   }
 
+  /// ProfileRelationTarget으로 폼 초기화 (인연 수정 모드)
+  void loadFromRelationTarget(dynamic target) {
+    print('🔄 [ProfileForm.loadFromRelationTarget] 시작');
+    print('  - target: $target');
+    print('  - target type: ${target.runtimeType}');
+
+    // ProfileRelationTarget의 필드들 추출
+    final String displayName = target.displayName ?? '';
+    final DateTime? birthDate = target.birthDate;
+    final String genderStr = target.gender ?? 'male';
+    final String? relationTypeStr = target.relationType;
+    final int? birthTimeMinutes = target.birthTimeMinutes;
+    final bool birthTimeUnknown = target.birthTimeUnknown ?? false;
+    final bool isLunar = target.isLunar ?? false;
+    final bool isLeapMonth = target.isLeapMonth ?? false;
+    final String birthCity = target.birthCity ?? '';
+    final bool useYaJasi = target.useYaJasi ?? true;
+
+    print('📋 [ProfileForm.loadFromRelationTarget] 추출된 데이터:');
+    print('  - displayName: $displayName');
+    print('  - birthDate: $birthDate');
+    print('  - gender: $genderStr');
+    print('  - relationType: $relationTypeStr');
+    print('  - birthTimeMinutes: $birthTimeMinutes');
+    print('  - birthTimeUnknown: $birthTimeUnknown');
+    print('  - isLunar: $isLunar');
+    print('  - isLeapMonth: $isLeapMonth');
+    print('  - birthCity: $birthCity');
+    print('  - useYaJasi: $useYaJasi');
+
+    // Gender 변환
+    final gender = genderStr == 'female' ? Gender.female : Gender.male;
+
+    // RelationType 변환
+    RelationshipType relationType = RelationshipType.friend;
+    if (relationTypeStr != null) {
+      try {
+        relationType = RelationshipType.values.firstWhere(
+          (e) => e.name == relationTypeStr,
+          orElse: () => RelationshipType.friend,
+        );
+      } catch (e) {
+        print('⚠️ [ProfileForm.loadFromRelationTarget] relationType 변환 실패: $e');
+      }
+    }
+
+    // 도시 시간 보정값 계산
+    final timeCorrection = birthCity.isNotEmpty
+        ? TrueSolarTimeService.getLongitudeCorrectionMinutes(birthCity).round()
+        : 0;
+
+    // 상태 설정
+    state = ProfileFormState(
+      displayName: displayName,
+      gender: gender,
+      birthDate: birthDate,
+      isLunar: isLunar,
+      isLeapMonth: isLeapMonth,
+      birthTimeMinutes: birthTimeMinutes,
+      birthTimeUnknown: birthTimeUnknown,
+      useYaJasi: useYaJasi,
+      birthCity: birthCity,
+      timeCorrection: timeCorrection,
+      relationType: relationType,
+    );
+
+    print('✅ [ProfileForm.loadFromRelationTarget] 폼 상태 설정 완료');
+    print('  - state.displayName: ${state.displayName}');
+    print('  - state.birthDate: ${state.birthDate}');
+    print('  - state.gender: ${state.gender}');
+
+    // 음력일 경우 윤달 정보 업데이트
+    if (isLunar) {
+      _updateLeapMonthInfo();
+    }
+  }
+
   /// 폼 초기화
   void reset() {
     state = const ProfileFormState();

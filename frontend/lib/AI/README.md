@@ -306,6 +306,41 @@ class GoogleModels {
 
 ---
 
+## 🚨 AI 캐싱 시스템 (중요!)
+
+### 캐시 저장 위치
+- **테이블**: `ai_summaries`
+- **캐시 키**: `profile_id` + `summary_type` + `target_date/year/month`
+
+### 캐시 무효화 조건
+1. **프롬프트 버전 변경** - `PromptVersions` 상수 변경 시
+2. **만료 시간 도달** - `expires_at` 필드
+3. **수동 삭제** - DB에서 직접 삭제
+
+### ⚠️ 주의: 같은 사주 ≠ 같은 캐시
+```
+프로필 A (profile_id: aaa-111)  →  사주: 1994-11-28 여자
+프로필 B (profile_id: bbb-222)  →  사주: 1994-11-28 여자 (동일!)
+
+BUT 캐시는 별도! profile_id가 다르므로 각각 분석됨
+```
+
+### 프롬프트 버전 관리
+```dart
+// core/ai_constants.dart
+class PromptVersions {
+  static const String sajuBase = 'V9.5';
+  static const String dailyFortune = 'V2.1';
+  static const String monthlyFortune = 'V5.1';
+  static const String yearlyFortune2025 = 'V2.0';
+  static const String yearlyFortune2026 = 'V2.0';
+}
+```
+
+버전을 올리면 기존 캐시가 무효화되고 새로 분석됩니다.
+
+---
+
 ## 문제 해결
 
 ### Q: 페르소나가 목록에 안 보여요
@@ -316,6 +351,12 @@ class GoogleModels {
 
 ### Q: 캐시가 안 돼요
 → `cacheExpiry`가 null이면 무기한, Duration 설정시 해당 시간만 캐시
+
+### Q: 같은 사주인데 왜 또 분석하나요?
+→ **profile_id가 다르면 별도 캐시!** 새 프로필 생성 시 항상 새로 분석됩니다.
+
+### Q: DB에 데이터 있는데 UI에 안 보여요
+→ **파싱 경로 확인!** content 구조가 `current.months`, `categories.lucky` 등 중첩되어 있을 수 있음
 
 ---
 

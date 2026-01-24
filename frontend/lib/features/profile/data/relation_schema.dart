@@ -24,6 +24,11 @@ abstract class RelationColumns {
   static const String toProfileAnalysisId = 'to_profile_analysis_id';
   static const String analysisStatus = 'analysis_status';
   static const String analysisRequestedAt = 'analysis_requested_at';
+
+  // === 궁합 분석 연결 (Phase 51) ===
+  static const String compatibilityAnalysisId = 'compatibility_analysis_id';
+  static const String analysisCompletedAt = 'analysis_completed_at';
+  static const String pairHapchung = 'pair_hapchung';
 }
 
 /// SELECT에 사용할 컬럼 목록
@@ -42,7 +47,10 @@ const String relationSelectColumns = '''
   from_profile_analysis_id,
   to_profile_analysis_id,
   analysis_status,
-  analysis_requested_at
+  analysis_requested_at,
+  compatibility_analysis_id,
+  analysis_completed_at,
+  pair_hapchung
 ''';
 
 /// JOIN하여 프로필 정보까지 가져오는 SELECT
@@ -63,6 +71,9 @@ const String relationWithProfileSelectColumns = '''
   to_profile_analysis_id,
   analysis_status,
   analysis_requested_at,
+  compatibility_analysis_id,
+  analysis_completed_at,
+  pair_hapchung,
   to_profile:saju_profiles!profile_relations_to_profile_id_fkey (
     id,
     display_name,

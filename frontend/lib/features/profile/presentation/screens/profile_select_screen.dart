@@ -200,6 +200,18 @@ class _ProfileCard extends ConsumerWidget {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
+                // 삭제 버튼 (휴지통 아이콘)
+                IconButton(
+                  onPressed: () => _onDelete(context, ref),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red[400],
+                    size: 20,
+                  ),
+                  tooltip: '프로필 삭제',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
                 if (profile.isActive)
                   Icon(
                     Icons.check_circle,
@@ -231,6 +243,53 @@ class _ProfileCard extends ConsumerWidget {
   /// 프로필 수정 화면으로 이동
   void _onEdit(BuildContext context) {
     context.push('${Routes.profileEdit}?profileId=${profile.id}');
+  }
+
+  /// 프로필 삭제
+  void _onDelete(BuildContext context, WidgetRef ref) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('프로필 삭제'),
+        content: Text('${profile.displayName} 프로필을 삭제하시겠습니까?\n\n관련된 모든 데이터가 삭제됩니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+
+              debugPrint('🗑️ [ProfileSelectScreen] 프로필 삭제 시작: ${profile.id}');
+
+              try {
+                await ref.read(profileListProvider.notifier).deleteProfile(profile.id);
+                debugPrint('✅ [ProfileSelectScreen] 프로필 삭제 성공');
+
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text('${profile.displayName} 프로필이 삭제되었습니다')),
+                );
+              } catch (e) {
+                debugPrint('❌ [ProfileSelectScreen] 프로필 삭제 실패: $e');
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('삭제 실패: $e'),
+                    backgroundColor: Colors.red[400],
+                  ),
+                );
+              }
+            },
+            child: Text(
+              '삭제',
+              style: TextStyle(color: Colors.red[400]),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
