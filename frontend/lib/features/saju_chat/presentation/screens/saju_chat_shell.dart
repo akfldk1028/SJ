@@ -784,8 +784,8 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     // 상단 요소들 (가로 모드에서는 컴팩트하게)
     final topWidgets = <Widget>[
       const DisclaimerBanner(),
-      // 페르소나 가로 선택기 (원형 이모지 리스트) - 메인에서 설정하므로 주석처리
-      // const _PersonaHorizontalSelector(),
+      // 페르소나 가로 선택기 (원형 이모지 리스트)
+      const _PersonaHorizontalSelector(),
       // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
       if (chatState.isDeepAnalysisRunning)
         const _DeepAnalysisLoadingBanner(),
@@ -1232,110 +1232,110 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     final quadrantColor = canAdjustMbti ? _getQuadrantColor(currentQuadrant) : appTheme.primaryColor;
 
     // 페르소나 아이템 크기 계산용 상수
-    const double circleSize = 44; // 40 → 44
-    const double itemPadding = 8; // 좌우 패딩
-    const double itemWidth = 56; // 아이템 최소 너비 (4글자 기준)
-    const double containerPadding = 16; // 컨테이너 좌우 패딩
-    const int personaCount = 6;
-
-    // MBTI 버튼 고정 너비
-    const double mbtiButtonWidth = 52;
+    const double circleSize = 44;
+    const double containerPadding = 16;
 
     return Container(
-      height: 90, // 82 → 90
+      height: 90,
       padding: const EdgeInsets.symmetric(horizontal: containerPadding, vertical: 6),
       decoration: BoxDecoration(
         color: appTheme.cardColor.withValues(alpha: 0.8),
       ),
       child: Row(
         children: [
-          // MBTI 버튼이 있을 때만 왼쪽 공간 확보 (잠금 상태면 비활성화 스타일)
-          if (canAdjustMbti)
-            SizedBox(
-              width: mbtiButtonWidth,
-              child: GestureDetector(
-                onTap: isPersonaLocked ? null : () => _showMbtiSelectorSheet(context, ref),
-                child: Tooltip(
-                  message: isPersonaLocked ? '새 채팅에서 변경 가능' : 'MBTI 성향 선택',
-                  child: Opacity(
-                    opacity: isPersonaLocked ? 0.5 : 1.0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: quadrantColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: quadrantColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            currentQuadrant.name,
-                            style: TextStyle(
-                              color: quadrantColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+          // 왼쪽: MBTI 버튼 영역 (항상 같은 공간 차지)
+          SizedBox(
+            width: 56,
+            child: (canAdjustMbti && !isPersonaLocked)
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildMbtiButton(
+                      context,
+                      ref,
+                      quadrantColor: quadrantColor,
+                      currentQuadrant: currentQuadrant,
                     ),
-                  ),
+                  )
+                : null,
+          ),
+          // 중앙: 페르소나 목록
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: ChatPersona.values.map((persona) {
+                    final isSelected = persona == currentPersona;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: _buildPersonaCircle(
+                        context,
+                        ref,
+                        persona,
+                        isSelected: isSelected,
+                        accentColor: quadrantColor,
+                        size: circleSize,
+                        isLocked: isPersonaLocked,
+                        onTapSelected: (canAdjustMbti && isSelected && !isPersonaLocked)
+                            ? () => _showMbtiSelectorSheet(context, ref)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
-          // 6개 페르소나 원형 리스트
-          // MBTI 버튼 활성화: 왼쪽 정렬 (버튼 옆에 붙임)
-          // MBTI 버튼 비활성화: 중앙 정렬
-          Expanded(
-            child: canAdjustMbti
-                ? SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: ChatPersona.values.map((persona) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: _buildPersonaCircle(
-                            context,
-                            ref,
-                            persona,
-                            isSelected: persona == currentPersona,
-                            accentColor: quadrantColor,
-                            size: circleSize,
-                            isLocked: isPersonaLocked,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: ChatPersona.values.map((persona) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _buildPersonaCircle(
-                          context,
-                          ref,
-                          persona,
-                          isSelected: persona == currentPersona,
-                          accentColor: quadrantColor,
-                          size: circleSize,
-                          isLocked: isPersonaLocked,
-                        ),
-                      );
-                    }).toList(),
-                  ),
           ),
+          // 오른쪽: 대칭을 위한 빈 공간
+          const SizedBox(width: 56),
         ],
+      ),
+    );
+  }
+
+  /// MBTI 버튼 빌드 (왼쪽 고정 위치)
+  Widget _buildMbtiButton(
+    BuildContext context,
+    WidgetRef ref, {
+    required Color quadrantColor,
+    required MbtiQuadrant currentQuadrant,
+  }) {
+    return GestureDetector(
+      onTap: () => _showMbtiSelectorSheet(context, ref),
+      child: Tooltip(
+        message: 'AI 성향 변경 (${currentQuadrant.displayName})',
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: quadrantColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: quadrantColor.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: quadrantColor,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                currentQuadrant.name,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: quadrantColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1348,6 +1348,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     required Color accentColor,
     double size = 44,
     bool isLocked = false,
+    VoidCallback? onTapSelected,
   }) {
     final appTheme = context.appTheme;
     final iconSize = (size * 0.5).clamp(18.0, 22.0); // 16-20 → 18-22
@@ -1366,10 +1367,15 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
         onTap: isLocked
             ? null // 잠금 상태면 탭 무시
             : () {
-                ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
-                // 메시지 없는 세션이면 세션의 페르소나도 업데이트
-                ref.read(chatSessionNotifierProvider.notifier)
-                    .updateCurrentSessionPersona(chatPersona: persona);
+                if (isSelected && onTapSelected != null) {
+                  // 이미 선택된 상태에서 탭하면 onTapSelected 콜백 호출
+                  onTapSelected();
+                } else {
+                  ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+                  // 메시지 없는 세션이면 세션의 페르소나도 업데이트
+                  ref.read(chatSessionNotifierProvider.notifier)
+                      .updateCurrentSessionPersona(chatPersona: persona);
+                }
               },
         child: Opacity(
           opacity: isDisabled ? 0.4 : 1.0,
