@@ -34,9 +34,13 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: MysticBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+                  child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
               // 테마 설정 섹션
@@ -126,8 +130,11 @@ class SettingsScreen extends ConsumerWidget {
               //     ],
               //   ),
               // ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+            );
+          },
           ),
         ),
       ),
@@ -162,7 +169,20 @@ class SettingsScreen extends ConsumerWidget {
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
-        children: AppThemeType.values.map((themeType) {
+        children: [
+          // 활성화된 테마만 표시
+          AppThemeType.streetLamp,
+          AppThemeType.streetLampLight,
+          AppThemeType.orientalLight, // 레드 라이트
+          AppThemeType.darkPurple,
+          // 비활성화된 테마 (주석처리)
+          // AppThemeType.orientalDark,
+          // AppThemeType.defaultLight,
+          // AppThemeType.orientalRed,
+          // AppThemeType.natureGreen,
+          // AppThemeType.nightSky,
+          // AppThemeType.sakuraPink,
+        ].map((themeType) {
           final isSelected = themeType == currentThemeType;
           return _buildThemeOption(context, ref, themeType, isSelected);
         }).toList(),
@@ -180,6 +200,7 @@ class SettingsScreen extends ConsumerWidget {
     final previewColor = AppTheme.getPreviewColor(themeType);
     final themeName = AppTheme.getThemeName(themeType);
     final themeIcon = AppTheme.getThemeIcon(themeType);
+    final themeExtension = AppTheme.getExtension(themeType);
 
     return GestureDetector(
       onTap: () {
@@ -205,12 +226,18 @@ class SettingsScreen extends ConsumerWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: previewColor,
+                color: themeExtension.isDark
+                    ? themeExtension.cardColor
+                    : themeExtension.backgroundColor.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: previewColor.withOpacity(0.6),
+                  width: 1.5,
+                ),
               ),
               child: Icon(
                 themeIcon,
-                color: appTheme.isDark ? Colors.black : Colors.white,
+                color: previewColor,
                 size: 18,
               ),
             ),

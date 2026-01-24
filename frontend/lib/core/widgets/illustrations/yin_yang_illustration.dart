@@ -71,50 +71,53 @@ class _YinYangPainter extends CustomPainter {
       canvas.drawCircle(center, radius * 1.3, glowPaint);
     }
 
-    // 1. 전체 원을 양(흰색)으로 채우기
     final yangPaint = Paint()..color = yangColor.withValues(alpha: 0.9);
+    final yinPaint = Paint()..color = yinColor.withValues(alpha: 0.9);
+    final smallRadius = radius / 2;
+
+    // 1. 전체 원을 양(흰색)으로 채우기
     canvas.drawCircle(center, radius, yangPaint);
 
-    // 2. 왼쪽 반원을 음(검정)으로 채우기
-    final yinPaint = Paint()..color = yinColor.withValues(alpha: 0.9);
-    canvas.save();
-    canvas.clipRect(Rect.fromLTWH(
-      center.dx - radius,
-      center.dy - radius,
-      radius,
-      radius * 2,
-    ));
-    canvas.drawCircle(center, radius, yinPaint);
-    canvas.restore();
+    // 2. Path 기반으로 음(검정) 영역 그리기
+    final yinPath = Path();
 
-    // 3. 상단에 작은 양(흰색) 반원
-    final smallRadius = radius / 2;
-    canvas.drawCircle(
-      Offset(center.dx, center.dy - smallRadius),
-      smallRadius,
-      yangPaint,
+    // 왼쪽 큰 반원 (닫힌 반원 Path)
+    yinPath.moveTo(center.dx, center.dy - radius);
+    yinPath.arcToPoint(
+      Offset(center.dx, center.dy + radius),
+      radius: Radius.circular(radius),
+      clockwise: false,
     );
-
-    // 4. 하단에 작은 음(검정) 반원
-    canvas.drawCircle(
-      Offset(center.dx, center.dy + smallRadius),
-      smallRadius,
-      yinPaint,
+    // 하단 작은 반원 (오른쪽으로 볼록 - 음 영역 추가)
+    yinPath.arcToPoint(
+      Offset(center.dx, center.dy),
+      radius: Radius.circular(smallRadius),
+      clockwise: false,
     );
+    // 상단 작은 반원 (오른쪽으로 볼록 - 양 영역 빼기)
+    yinPath.arcToPoint(
+      Offset(center.dx, center.dy - radius),
+      radius: Radius.circular(smallRadius),
+      clockwise: true,
+    );
+    yinPath.close();
+    canvas.drawPath(yinPath, yinPaint);
 
-    // 5. 상단 양 영역 안에 작은 음 점
-    final dotRadius = radius * 0.1;
+    // 3. 음 점 (순수 검정) - 상단 양 영역 안
+    final dotRadius = radius * 0.15;
+    final yinDotPaint = Paint()..color = const Color(0xFF000000);
     canvas.drawCircle(
       Offset(center.dx, center.dy - smallRadius),
       dotRadius,
-      yinPaint,
+      yinDotPaint,
     );
 
-    // 6. 하단 음 영역 안에 작은 양 점
+    // 4. 양 점 (순수 흰색) - 하단 음 영역 안
+    final yangDotPaint = Paint()..color = const Color(0xFFFFFFFF);
     canvas.drawCircle(
       Offset(center.dx, center.dy + smallRadius),
       dotRadius,
-      yangPaint,
+      yangDotPaint,
     );
 
     // 외곽선 (선택적)

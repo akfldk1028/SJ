@@ -40,13 +40,13 @@ class AppTheme {
   static String getThemeName(AppThemeType type) {
     switch (type) {
       case AppThemeType.streetLamp:
-        return '가로등불';
+        return '오로라 다크';
       case AppThemeType.streetLampLight:
-        return '가로등불 라이트';
+        return '오로라 라이트';
       case AppThemeType.orientalDark:
         return '동양풍 다크';
       case AppThemeType.orientalLight:
-        return '동양풍 라이트';
+        return '레드 라이트';
       case AppThemeType.defaultLight:
         return '기본 라이트';
       case AppThemeType.darkPurple:
@@ -66,9 +66,9 @@ class AppTheme {
   static IconData getThemeIcon(AppThemeType type) {
     switch (type) {
       case AppThemeType.streetLamp:
-        return Icons.light_mode_rounded;
+        return Icons.auto_awesome_rounded;
       case AppThemeType.streetLampLight:
-        return Icons.wb_sunny_rounded;
+        return Icons.auto_awesome_rounded;
       case AppThemeType.orientalDark:
         return Icons.nightlight_rounded;
       case AppThemeType.orientalLight:

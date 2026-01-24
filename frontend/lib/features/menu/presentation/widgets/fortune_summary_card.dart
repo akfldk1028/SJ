@@ -37,7 +37,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        height: 320,
+        height: 220,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: theme.cardColor,
@@ -48,14 +48,14 @@ class FortuneSummaryCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 120,
-                height: 120,
+                width: 80,
+                height: 80,
                 child: AnimatedYinYangIllustration(
-                  size: 120,
+                  size: 80,
                   showGlow: true,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
                 '운세를 불러오는 중...',
                 style: TextStyle(
@@ -75,7 +75,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        height: 320,
+        height: 220,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: theme.cardColor,
@@ -93,14 +93,14 @@ class FortuneSummaryCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 100,
-                height: 100,
+                width: 80,
+                height: 80,
                 child: AnimatedYinYangIllustration(
-                  size: 100,
+                  size: 80,
                   showGlow: true,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Text(
                 '🔮 AI가 운세를 분석하고 있어요',
                 style: TextStyle(
@@ -473,7 +473,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () => context.push('/fortune/daily'),
       child: Container(
-        padding: EdgeInsets.all(context.scaledPadding(16)),
+        padding: EdgeInsets.all(context.scaledPadding(12)),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
@@ -506,7 +506,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                 ),
               ],
             ),
-            SizedBox(height: context.scaledPadding(16)),
+            SizedBox(height: context.scaledPadding(8)),
             // 2x2 그리드
             GridView.builder(
               shrinkWrap: true,
@@ -650,7 +650,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               ),
             ],
           ),
-          SizedBox(height: context.scaledPadding(12)),
+          SizedBox(height: context.scaledPadding(8)),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
