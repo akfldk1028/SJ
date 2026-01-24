@@ -167,11 +167,14 @@ class DailyFortune extends _$DailyFortune {
     final today = DateTime.now();
     final result = await aiQueries.getDailyFortune(activeProfile.id, today);
 
-    // 캐시가 있으면 바로 반환
+    // 캐시가 있으면 바로 반환 + 플래그 리셋
     if (result.isSuccess && result.data != null) {
       final aiSummary = result.data!;
       final content = aiSummary.content;
       if (content != null) {
+        // 캐시 히트 시 _isAnalyzing 플래그 리셋 (다른 provider가 분석 완료했을 수 있음)
+        _isAnalyzing = false;
+
         final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
         print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
 
@@ -218,14 +221,21 @@ class DailyFortune extends _$DailyFortune {
       profileId: profileId,
       runInBackground: true,
       onComplete: (result) {
-        // saju_base가 설정되면 최종 완료로 판단 (중간 콜백은 dailyFortune만 설정됨)
-        if (result.sajuBase != null) {
-          _isAnalyzing = false;
-          print('[DailyFortune] 📌 최종 분석 완료 - _isAnalyzing 리셋');
-        }
         print('[DailyFortune] AI 분석 콜백 - UI 갱신');
         print('  - 평생운세: ${result.sajuBase?.success ?? false}');
         print('  - 오늘운세: ${result.dailyFortune?.success ?? false}');
+
+        // 오늘운세가 완료되면 플래그 리셋 (기존: sajuBase 체크 → 수정: dailyFortune 체크)
+        if (result.dailyFortune?.success == true) {
+          _isAnalyzing = false;
+          print('[DailyFortune] 📌 오늘운세 완료 - _isAnalyzing 리셋');
+        }
+        // saju_base가 설정되어도 리셋 (최종 완료)
+        if (result.sajuBase != null) {
+          _isAnalyzing = false;
+          print('[DailyFortune] 📌 평생운세 완료 - _isAnalyzing 리셋');
+        }
+
         // Provider 무효화하여 UI 갱신
         ref.invalidateSelf();
       },
