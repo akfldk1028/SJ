@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/profile_provider.dart';
 // 사주 분석 헬퍼 (모듈화)
 import '../../data/relation_saju_helper.dart';
+// 광고 Provider
+import '../../../../ad/providers/ad_provider.dart';
 
 /// 프로필 액션 버튼
 ///
@@ -99,13 +101,24 @@ class ProfileActionButtons extends ConsumerWidget {
         } else {
           // 일반 모드 (수정/신규): 이전 화면으로 복귀
           debugPrint('🔄 [ProfileActionButtons] 저장 완료 - pop으로 이전 화면 복귀');
-          ShadToaster.of(context).show(
-            ShadToast(
-              title: const Text('저장 완료'),
-              description: const Text('프로필이 저장되었습니다'),
-            ),
-          );
-          context.pop();
+
+          // 내 프로필 수정 시 전면광고 표시
+          if (editingProfileId != null) {
+            debugPrint('📺 [ProfileActionButtons] 전면광고 표시 시도');
+            final adController = ref.read(adControllerProvider.notifier);
+            final adShown = await adController.showInterstitial();
+            debugPrint('📺 [ProfileActionButtons] 전면광고 결과: $adShown');
+          }
+
+          if (context.mounted) {
+            ShadToaster.of(context).show(
+              ShadToast(
+                title: const Text('저장 완료'),
+                description: const Text('프로필이 저장되었습니다'),
+              ),
+            );
+            context.pop();
+          }
         }
       }
     } catch (e) {

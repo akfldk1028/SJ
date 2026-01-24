@@ -622,12 +622,8 @@ class ProfileForm extends _$ProfileForm {
     ref.invalidate(activeProfileProvider);
     ref.invalidate(allProfilesProvider);
 
-    // Fortune providers 무효화 (UI 즉시 갱신 + 재분석 트리거)
-    ref.invalidate(dailyFortuneProvider);
-    ref.invalidate(monthlyFortuneProvider);
-    ref.invalidate(newYearFortuneProvider);
-    ref.invalidate(yearly2025FortuneProvider);
-    ref.invalidate(lifetimeFortuneProvider);
+    // Note: Fortune providers 무효화는 _triggerAiAnalysis() 완료 콜백에서 수행
+    // (분석 완료 전 무효화하면 캐시 없음 → 영원히 로딩 상태)
 
     // 사주 분석 결과 자동 저장 (Supabase 연동)
     // 프로필 저장 후 사주 분석을 계산하고 DB에 저장
@@ -755,9 +751,13 @@ class ProfileForm extends _$ProfileForm {
       profileId: profileId,
       runInBackground: true,
       onComplete: (result) {
-        // 분석 완료 시 UI 갱신을 위해 provider invalidate
-        print('[Profile] AI 분석 완료 - UI 갱신');
+        // 분석 완료 시 UI 갱신을 위해 모든 fortune providers invalidate
+        print('[Profile] AI 분석 완료 - 모든 Fortune providers 무효화');
         ref.invalidate(dailyFortuneProvider);
+        ref.invalidate(monthlyFortuneProvider);
+        ref.invalidate(newYearFortuneProvider);
+        ref.invalidate(yearly2025FortuneProvider);
+        ref.invalidate(lifetimeFortuneProvider);
       },
     );
 
