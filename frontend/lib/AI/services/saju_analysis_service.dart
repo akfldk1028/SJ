@@ -536,6 +536,7 @@ class SajuAnalysisService {
         temperature: prompt.temperature,
         logType: 'saju_base',
         userId: userId,  // 중복 task 방지용
+        taskType: 'saju_base',  // v29: 병렬 실행 시 task 분리
       );
 
       if (!response.success) {
@@ -1271,6 +1272,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         temperature: prompt.temperature,
         logType: 'saju_base_phase1',
         userId: userId,
+        taskType: 'saju_base_phase1',  // v29: 병렬 실행 시 task 분리
       );
 
       stopwatch.stop();
@@ -1321,6 +1323,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         temperature: prompt.temperature,
         logType: 'saju_base_phase2',
         userId: userId,
+        taskType: 'saju_base_phase2',  // v29: 병렬 실행 시 task 분리
       );
 
       stopwatch.stop();
@@ -1371,6 +1374,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         temperature: prompt.temperature,
         logType: 'saju_base_phase3',
         userId: userId,
+        taskType: 'saju_base_phase3',  // v29: 병렬 실행 시 task 분리
       );
 
       stopwatch.stop();
@@ -1428,6 +1432,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         temperature: prompt.temperature,
         logType: 'saju_base_phase4',
         userId: userId,
+        taskType: 'saju_base_phase4',  // v29: 병렬 실행 시 task 분리
       );
 
       stopwatch.stop();

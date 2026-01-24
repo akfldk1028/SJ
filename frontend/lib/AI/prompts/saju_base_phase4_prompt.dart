@@ -31,7 +31,7 @@ class SajuBasePhase4Prompt extends PromptTemplate {
   String get modelName => OpenAIModels.sajuAnalysis; // GPT-5.2
 
   @override
-  int get maxTokens => 2500; // Phase 4용 토큰
+  int get maxTokens => 4000; // Phase 4용 토큰 (2500→4000 확장, JSON 잘림 방지)
 
   @override
   double get temperature => 0.7;

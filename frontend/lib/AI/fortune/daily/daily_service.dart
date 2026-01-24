@@ -127,6 +127,7 @@ class DailyService {
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
         userId: userId,
+        taskType: 'daily_fortune', // v29: 병렬 실행 시 task 분리
       );
       print('[DailyService] 📡 API 응답: success=${apiResponse.success}');
 

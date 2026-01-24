@@ -126,6 +126,7 @@ class MonthlyService {
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
         userId: userId,
+        taskType: 'monthly_fortune', // v29: 병렬 실행 시 task 분리
       );
       print('[MonthlyService] 📡 API 응답: success=${apiResponse.success}');
 

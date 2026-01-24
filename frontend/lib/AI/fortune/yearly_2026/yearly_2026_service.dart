@@ -115,6 +115,7 @@ class Yearly2026Service {
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
         userId: userId,
+        taskType: 'yearly_2026', // v29: 병렬 실행 시 task 분리
       );
       print('[Yearly2026Service] 📡 API 응답: success=${apiResponse.success}');
 
