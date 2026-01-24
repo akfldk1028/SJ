@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
 import '../../../AI/fortune/common/korea_date_utils.dart';
+// AdType, AdEventType은 ad_tracking_service.dart에서 정의됨
 import '../../ad_tracking_service.dart' show AdType, AdEventType;
 
 /// 광고 이벤트 Mutation

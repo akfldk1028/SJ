@@ -93,18 +93,20 @@ class AdQueries {
     if (_client == null || _userId == null) return [];
 
     try {
-      var filterQuery = _client!
+      // adType 필터가 있으면 먼저 적용
+      var baseQuery = _client!
           .from('ad_events')
           .select()
           .eq('user_id', _userId!);
 
       if (adType != null) {
-        filterQuery = filterQuery.eq('ad_type', adType);
+        baseQuery = baseQuery.eq('ad_type', adType);
       }
 
-      final result = await filterQuery
+      final result = await baseQuery
           .order('created_at', ascending: false)
           .limit(limit);
+
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
       debugPrint('[AdQueries] Failed to get recent events: $e');
