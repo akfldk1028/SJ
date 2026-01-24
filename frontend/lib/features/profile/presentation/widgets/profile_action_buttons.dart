@@ -4,14 +4,13 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/profile_provider.dart';
-import '../../../../router/routes.dart';
 // 사주 분석 헬퍼 (모듈화)
 import '../../data/relation_saju_helper.dart';
 
 /// 프로필 액션 버튼
 ///
-/// - Primary: "만세력 보러가기" 또는 "저장" (인연 편집 시)
-/// - Secondary: "저장된 만세력 불러오기"
+/// - 인연 편집: "저장"
+/// - 일반 (수정/신규): "프로필 저장"
 class ProfileActionButtons extends ConsumerWidget {
   const ProfileActionButtons({
     super.key,
@@ -32,30 +31,13 @@ class ProfileActionButtons extends ConsumerWidget {
 
     // 버튼 텍스트 결정:
     // - 인연 편집: "저장"
-    // - 일반 수정 모드: "프로필 저장"
-    // - 새 프로필: "만세력 보러가기"
-    final isEditMode = editingProfileId != null;
-    final buttonText = isRelationEdit
-        ? '저장'
-        : (isEditMode ? '프로필 저장' : '만세력 보러가기');
+    // - 일반 (수정/신규): "프로필 저장"
+    final buttonText = isRelationEdit ? '저장' : '프로필 저장';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ShadButton(
-          enabled: isValid,
-          onPressed: isValid ? () => _onSaveAndViewChart(context, ref) : null,
-          child: Text(buttonText),
-        ),
-        // 새 프로필 생성 시에만 "저장된 만세력 불러오기" 버튼 표시
-        if (!isRelationEdit && !isEditMode) ...[
-          const SizedBox(height: 12),
-          ShadButton.secondary(
-            onPressed: () => _onLoadSavedProfiles(context),
-            child: const Text('저장된 만세력 불러오기'),
-          ),
-        ],
-      ],
+    return ShadButton(
+      enabled: isValid,
+      onPressed: isValid ? () => _onSaveAndViewChart(context, ref) : null,
+      child: Text(buttonText),
     );
   }
 
@@ -115,14 +97,15 @@ class ProfileActionButtons extends ConsumerWidget {
           debugPrint('🔄 [ProfileActionButtons] pop으로 이전 화면 복귀');
           context.pop();
         } else {
-          // 일반 프로필 저장 시에만 Toast 표시 (같은 화면에서 이동하므로 안전)
+          // 일반 모드 (수정/신규): 이전 화면으로 복귀
+          debugPrint('🔄 [ProfileActionButtons] 저장 완료 - pop으로 이전 화면 복귀');
           ShadToaster.of(context).show(
             ShadToast(
               title: const Text('저장 완료'),
               description: const Text('프로필이 저장되었습니다'),
             ),
           );
-          context.go(Routes.sajuChart);
+          context.pop();
         }
       }
     } catch (e) {
@@ -182,90 +165,5 @@ class ProfileActionButtons extends ConsumerWidget {
 
     // Provider 무효화는 navigation 후 새 화면에서 처리
     // (여기서 하면 defunct widget rebuild 에러 발생)
-  }
-
-  /// 저장된 프로필 목록 표시
-  void _onLoadSavedProfiles(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => const _SavedProfilesSheet(),
-    );
-  }
-}
-
-/// 저장된 프로필 목록 바텀시트
-class _SavedProfilesSheet extends ConsumerWidget {
-  const _SavedProfilesSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profilesAsync = ref.watch(profileListProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '저장된 프로필',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
-          profilesAsync.when(
-            data: (profiles) {
-              if (profiles.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Text('저장된 프로필이 없습니다'),
-                  ),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                itemCount: profiles.length,
-                itemBuilder: (context, index) {
-                  final profile = profiles[index];
-                  return ListTile(
-                    title: Text(profile.displayName),
-                    subtitle: Text(
-                      '${profile.birthDateFormatted} ${profile.calendarTypeLabel}',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 불러오기 버튼
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          tooltip: '불러오기',
-                          onPressed: () {
-                            ref.read(profileFormProvider.notifier).loadProfile(profile);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        // 만세력 보기 버튼
-                        IconButton(
-                          icon: const Icon(Icons.visibility),
-                          tooltip: '만세력 보기',
-                          onPressed: () {
-                            // 활성 프로필 설정 후 만세력 화면으로 이동
-                            ref.read(profileListProvider.notifier).setActiveProfile(profile.id);
-                            Navigator.pop(context);
-                            context.go(Routes.sajuChart);
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('오류: $e')),
-          ),
-        ],
-      ),
-    );
   }
 }

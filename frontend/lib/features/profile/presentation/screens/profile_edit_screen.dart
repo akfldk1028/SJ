@@ -100,6 +100,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.profileId != null;
+    final isRelationEdit = widget.profileData != null;
+    // 본인 프로필 수정: profileId 있고 profileData 없음 → 관계 유형 변경 불가
+    final isMyProfileEdit = isEditing && !isRelationEdit;
     final theme = context.appTheme;
 
     return Scaffold(
@@ -135,9 +138,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               key: ValueKey('profile_form_$_formKey'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Key 변경 시 재생성을 보장하기 위해 const 제거
-                RelationshipTypeDropdown(key: ValueKey('rel_$_formKey')),
-                const SizedBox(height: 24),
+                // 본인 프로필 수정 시 관계 유형 변경 불가 (숨김)
+                // 신규 모드 또는 인연 편집 모드에서만 표시
+                if (!isMyProfileEdit) ...[
+                  RelationshipTypeDropdown(key: ValueKey('rel_$_formKey')),
+                  const SizedBox(height: 24),
+                ],
                 ProfileNameInput(key: ValueKey('name_$_formKey')),
                 const SizedBox(height: 24),
                 GenderToggleButtons(key: ValueKey('gender_$_formKey')),
@@ -150,7 +156,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 const SizedBox(height: 32),
                 ProfileActionButtons(
                   editingProfileId: widget.profileId,
-                  isRelationEdit: widget.profileData != null,
+                  isRelationEdit: isRelationEdit,
                 ),
               ],
             ),

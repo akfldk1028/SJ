@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../domain/entities/saju_profile.dart';
+import '../../domain/entities/relationship_type.dart';
 import '../providers/profile_provider.dart';
 
 /// 프로필 선택 화면
@@ -215,16 +217,18 @@ class _ProfileCard extends ConsumerWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 18, color: theme.textMuted),
-                          const SizedBox(width: 8),
-                          const Text('수정'),
-                        ],
+                    // 본인 프로필만 수정 가능 (인연은 삭제 후 재추가)
+                    if (profile.relationType == RelationshipType.me)
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 18, color: theme.textMuted),
+                            const SizedBox(width: 8),
+                            const Text('수정'),
+                          ],
+                        ),
                       ),
-                    ),
                     PopupMenuItem(
                       value: 'delete',
                       child: Row(
@@ -266,7 +270,6 @@ class _ProfileCard extends ConsumerWidget {
 
   /// 프로필 삭제
   void _onDelete(BuildContext context, WidgetRef ref) {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final profileId = profile.id;
     final profileName = profile.displayName;
 
@@ -295,17 +298,24 @@ class _ProfileCard extends ConsumerWidget {
                 await notifier.deleteProfile(profileId);
                 debugPrint('✅ [ProfileSelectScreen] 프로필 삭제 성공');
 
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('$profileName 프로필이 삭제되었습니다')),
-                );
+                if (context.mounted) {
+                  ShadToaster.of(context).show(
+                    ShadToast(
+                      title: const Text('삭제 완료'),
+                      description: Text('$profileName 프로필이 삭제되었습니다'),
+                    ),
+                  );
+                }
               } catch (e) {
                 debugPrint('❌ [ProfileSelectScreen] 프로필 삭제 실패: $e');
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text('삭제 실패: $e'),
-                    backgroundColor: Colors.red[400],
-                  ),
-                );
+                if (context.mounted) {
+                  ShadToaster.of(context).show(
+                    ShadToast.destructive(
+                      title: const Text('삭제 실패'),
+                      description: Text(e.toString()),
+                    ),
+                  );
+                }
               }
             },
             child: Text(

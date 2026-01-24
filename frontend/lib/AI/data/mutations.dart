@@ -411,6 +411,34 @@ class AiMutations extends BaseMutations {
     );
   }
 
+  /// 프로필의 모든 AI 캐시 삭제
+  ///
+  /// ## 용도
+  /// - 프로필 수정 시 기존 분석 결과 무효화
+  /// - 생년월일 변경 시 모든 운세 재분석 필요
+  ///
+  /// ## 삭제 대상
+  /// - saju_base (평생운세)
+  /// - daily_fortune (오늘의 운세)
+  /// - monthly_fortune (월운)
+  /// - yearly_2025, yearly_2026 (년운)
+  Future<QueryResult<int>> invalidateAllForProfile(String profileId) async {
+    return safeMutation(
+      mutation: (client) async {
+        final response = await client
+            .from(AiSummaries.table_name)
+            .delete()
+            .eq(AiSummaries.c_profileId, profileId)
+            .select('id');
+
+        final count = (response as List).length;
+        print('[AiMutations] 프로필 AI 캐시 삭제 완료: profileId=$profileId, 삭제된 레코드=$count');
+        return count;
+      },
+      errorPrefix: '프로필 AI 캐시 삭제 실패',
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Phase 분할 분석 (ai_tasks)
   // ═══════════════════════════════════════════════════════════════════════════

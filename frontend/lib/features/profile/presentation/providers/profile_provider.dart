@@ -20,7 +20,12 @@ import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
     hide sajuAnalysisService;
 import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
+import '../../../monthly_fortune/presentation/providers/monthly_fortune_provider.dart';
+import '../../../new_year_fortune/presentation/providers/new_year_fortune_provider.dart';
+import '../../../yearly_2025_fortune/presentation/providers/yearly_2025_fortune_provider.dart';
+import '../../../traditional_saju/presentation/providers/lifetime_fortune_provider.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../AI/data/mutations.dart';
 
 part 'profile_provider.g.dart';
 
@@ -78,6 +83,7 @@ class ProfileList extends _$ProfileList {
     await repository.delete(id);
     await refresh();
     ref.invalidate(allProfilesProvider);
+    ref.invalidate(activeProfileProvider); // 활성 프로필일 수 있으므로 함께 갱신
   }
 
   /// 활성 프로필 설정
@@ -596,6 +602,17 @@ class ProfileForm extends _$ProfileForm {
 
     if (editingId != null) {
       await repository.update(profile);
+
+      // 프로필 수정 시 기존 AI 분석 캐시 삭제 (생년월일 변경 대응)
+      // 새로운 분석이 실행되도록 기존 캐시를 모두 무효화
+      print('[ProfileForm] 프로필 수정 - AI 캐시 무효화 시작: $editingId');
+      final aiMutations = AiMutations();
+      final cacheResult = await aiMutations.invalidateAllForProfile(editingId);
+      if (cacheResult.isSuccess) {
+        print('[ProfileForm] AI 캐시 무효화 완료: ${cacheResult.data}개 삭제');
+      } else {
+        print('[ProfileForm] AI 캐시 무효화 실패: ${cacheResult.errorMessage}');
+      }
     } else {
       await repository.save(profile);
     }
@@ -604,6 +621,13 @@ class ProfileForm extends _$ProfileForm {
     ref.invalidate(profileListProvider);
     ref.invalidate(activeProfileProvider);
     ref.invalidate(allProfilesProvider);
+
+    // Fortune providers 무효화 (UI 즉시 갱신 + 재분석 트리거)
+    ref.invalidate(dailyFortuneProvider);
+    ref.invalidate(monthlyFortuneProvider);
+    ref.invalidate(newYearFortuneProvider);
+    ref.invalidate(yearly2025FortuneProvider);
+    ref.invalidate(lifetimeFortuneProvider);
 
     // 사주 분석 결과 자동 저장 (Supabase 연동)
     // 프로필 저장 후 사주 분석을 계산하고 DB에 저장
