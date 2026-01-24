@@ -358,6 +358,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         ],
 
         // ========== 4단계: 분야별 운세 ==========
+        // v9.4: 카테고리별 상세 필드 전체 전달 (DB 필드 100% 매핑)
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
@@ -368,6 +369,30 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 title: cat.title,
                 score: cat.score,
                 reading: cat.reading,
+                advice: cat.advice,
+                cautions: cat.cautions.isNotEmpty ? cat.cautions : null,
+                strengths: cat.strengths.isNotEmpty ? cat.strengths : null,
+                weaknesses: cat.weaknesses.isNotEmpty ? cat.weaknesses : null,
+                timing: cat.timing,
+                suitableFields: cat.suitableFields.isNotEmpty ? cat.suitableFields : null,
+                unsuitableFields: cat.unsuitableFields.isNotEmpty ? cat.unsuitableFields : null,
+                // v9.4: 카테고리별 상세 필드
+                workStyle: cat.workStyle,
+                leadershipPotential: cat.leadershipPotential,
+                datingPattern: cat.datingPattern,
+                attractionStyle: cat.attractionStyle,
+                idealPartnerTraits: cat.idealPartnerTraits.isNotEmpty ? cat.idealPartnerTraits : null,
+                overallTendency: cat.overallTendency,
+                earningStyle: cat.earningStyle,
+                spendingTendency: cat.spendingTendency,
+                investmentAptitude: cat.investmentAptitude,
+                entrepreneurshipAptitude: cat.entrepreneurshipAptitude,
+                businessPartnerTraits: cat.businessPartnerTraits,
+                spousePalaceAnalysis: cat.spousePalaceAnalysis,
+                spouseCharacteristics: cat.spouseCharacteristics,
+                marriedLifeTendency: cat.marriedLifeTendency,
+                mentalHealth: cat.mentalHealth,
+                lifestyleAdvice: cat.lifestyleAdvice.isNotEmpty ? cat.lifestyleAdvice : null,
               ),
             )),
           ),
@@ -454,9 +479,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // AI 시대 해석
+        // AI 시대 해석 (광고 잠금)
         if (fortune.modernInterpretation != null && fortune.modernInterpretation!.hasContent) ...[
-          _buildModernInterpretationSection(theme, fortune.modernInterpretation!),
+          _buildModernInterpretationCard(theme, fortune.modernInterpretation!),
           const SizedBox(height: 32),
         ],
 
@@ -707,7 +732,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         ],
 
         // ========== 4단계: 분야별 운세 (구체적인 삶의 영역) ==========
-        // v8.2: 상세 필드 (advice, cautions, strengths 등) 전달
+        // v9.4: 카테고리별 상세 필드 전체 전달 (DB 필드 100% 매핑)
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
@@ -725,6 +750,23 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 timing: cat.timing,
                 suitableFields: cat.suitableFields.isNotEmpty ? cat.suitableFields : null,
                 unsuitableFields: cat.unsuitableFields.isNotEmpty ? cat.unsuitableFields : null,
+                // v9.4: 카테고리별 상세 필드
+                workStyle: cat.workStyle,
+                leadershipPotential: cat.leadershipPotential,
+                datingPattern: cat.datingPattern,
+                attractionStyle: cat.attractionStyle,
+                idealPartnerTraits: cat.idealPartnerTraits.isNotEmpty ? cat.idealPartnerTraits : null,
+                overallTendency: cat.overallTendency,
+                earningStyle: cat.earningStyle,
+                spendingTendency: cat.spendingTendency,
+                investmentAptitude: cat.investmentAptitude,
+                entrepreneurshipAptitude: cat.entrepreneurshipAptitude,
+                businessPartnerTraits: cat.businessPartnerTraits,
+                spousePalaceAnalysis: cat.spousePalaceAnalysis,
+                spouseCharacteristics: cat.spouseCharacteristics,
+                marriedLifeTendency: cat.marriedLifeTendency,
+                mentalHealth: cat.mentalHealth,
+                lifestyleAdvice: cat.lifestyleAdvice.isNotEmpty ? cat.lifestyleAdvice : null,
               ),
             )),
           ),
@@ -814,9 +856,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // AI 시대 해석
+        // AI 시대 해석 (광고 잠금)
         if (fortune.modernInterpretation != null && fortune.modernInterpretation!.hasContent) ...[
-          _buildModernInterpretationSection(theme, fortune.modernInterpretation!),
+          _buildModernInterpretationCard(theme, fortune.modernInterpretation!),
           const SizedBox(height: 32),
         ],
 
@@ -1762,10 +1804,131 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           _buildParagraph(theme, hapchung.overallImpact),
           const SizedBox(height: 12),
         ],
-        if (hapchung.otherInteractions.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, '기타 상호작용'),
-          _buildParagraph(theme, hapchung.otherInteractions),
-        ],
+        // v9.3: 기타 상호작용 섹션 숨김 처리
+        // if (hapchung.otherInteractions.isNotEmpty) ...[
+        //   _buildSubSectionHeader(theme, '기타 상호작용'),
+        //   _buildParagraph(theme, hapchung.otherInteractions),
+        // ],
+      ],
+    );
+  }
+
+  /// AI 시대 해석 카드 (광고 잠금)
+  Widget _buildModernInterpretationCard(AppThemeExtension theme, ModernInterpretationSection modern) {
+    final isUnlocked = _unlockedCycles.contains('modernInterpretation');
+
+    // 잠금 해제 상태면 전체 내용 표시
+    if (isUnlocked) {
+      return _buildModernInterpretationSection(theme, modern);
+    }
+
+    // 잠금 상태: 미리보기 + 광고 버튼
+    return _buildSection(
+      theme,
+      title: 'AI 시대의 사주 해석',
+      children: [
+        // 미리보기 텍스트
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.textSecondary.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.smart_toy_outlined, size: 24, color: Colors.purple),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '디지털 시대에 맞는 사주 해석',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '🔒 잠김',
+                      style: TextStyle(fontSize: 12, color: Colors.purple),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '• 디지털 시대 직업운\n• 디지털 자산 운용법\n• 현대적 인간관계 스타일',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: theme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 광고 버튼
+              Row(
+                children: [
+                  Icon(Icons.movie_outlined, size: 20, color: theme.textSecondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '광고를 시청하면 AI 시대 해석을 확인할 수 있습니다.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoadingAd
+                      ? null
+                      : () => _showRewardedAdAndUnlock('modernInterpretation', 'AI 시대 해석'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: _isLoadingAd
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(Icons.play_circle_filled, size: 20),
+                  label: Text(
+                    _isLoadingAd ? '광고 로딩 중...' : '광고 보고 AI 시대 해석 확인',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -2165,6 +2328,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           Row(
             children: [
               Container(
+                constraints: const BoxConstraints(maxWidth: 120),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: levelColor.withValues(alpha: 0.15),
@@ -2177,6 +2341,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                     fontWeight: FontWeight.bold,
                     color: levelColor,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 10),
@@ -2191,6 +2357,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                         fontWeight: FontWeight.w600,
                         color: theme.textPrimary,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       cycle.ageRange,
@@ -2198,6 +2366,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                         fontSize: 12,
                         color: theme.textSecondary,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

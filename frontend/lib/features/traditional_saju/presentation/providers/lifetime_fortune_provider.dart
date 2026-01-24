@@ -189,57 +189,81 @@ class LifetimeFortuneData {
 
     // categories 빌드 (FortuneCategoryChipSection용)
     // v8.2: 모든 상세 필드 (advice, cautions, strengths 등) 포함
+    // v9.4: 카테고리별 상세 필드 전체 추가 (DB 필드 100% 매핑)
+    // NOTE: reading은 AI 응답에 없으므로 _buildXxxReading() 함수로 생성
     final categories = <String, CategoryFortuneData>{
       'career': CategoryFortuneData(
         title: '직업운',
         score: _calculateScore(careerJson),
-        reading: _buildCareerReading(career),
+        reading: careerJson['reading'] as String? ?? _buildCareerReading(career),
         advice: career.advice.isNotEmpty ? career.advice : null,
         timing: career.careerTiming.isNotEmpty ? career.careerTiming : null,
         suitableFields: career.suitableFields,
         unsuitableFields: career.unsuitableFields,
+        // v9.4: 직업운 상세 필드
+        workStyle: career.workStyle.isNotEmpty ? career.workStyle : null,
+        leadershipPotential: career.leadershipPotential.isNotEmpty ? career.leadershipPotential : null,
       ),
       'business': CategoryFortuneData(
         title: '사업운',
         score: _calculateScore(businessJson),
-        reading: _buildBusinessReading(business),
+        reading: businessJson['reading'] as String? ?? _buildBusinessReading(business),
         advice: business.advice.isNotEmpty ? business.advice : null,
         cautions: business.cautions,
         strengths: business.successFactors,  // 성공 요인 → 강점으로 표시
         suitableFields: business.suitableBusinessTypes,
+        // v9.4: 사업운 상세 필드
+        entrepreneurshipAptitude: business.entrepreneurshipAptitude.isNotEmpty ? business.entrepreneurshipAptitude : null,
+        businessPartnerTraits: business.businessPartnerTraits.isNotEmpty ? business.businessPartnerTraits : null,
       ),
       'wealth': CategoryFortuneData(
         title: '재물운',
         score: _calculateScore(wealthJson),
-        reading: _buildWealthReading(wealth),
+        reading: wealthJson['reading'] as String? ?? _buildWealthReading(wealth),
         advice: wealth.advice.isNotEmpty ? wealth.advice : null,
         cautions: wealth.cautions,
         timing: wealth.wealthTiming.isNotEmpty ? wealth.wealthTiming : null,
+        // v9.4: 재물운 상세 필드
+        overallTendency: wealth.overallTendency.isNotEmpty ? wealth.overallTendency : null,
+        earningStyle: wealth.earningStyle.isNotEmpty ? wealth.earningStyle : null,
+        spendingTendency: wealth.spendingTendency.isNotEmpty ? wealth.spendingTendency : null,
+        investmentAptitude: wealth.investmentAptitude.isNotEmpty ? wealth.investmentAptitude : null,
       ),
       'love': CategoryFortuneData(
         title: '연애운',
         score: _calculateScore(loveJson),
-        reading: _buildLoveReading(love),
+        reading: loveJson['reading'] as String? ?? _buildLoveReading(love),
         advice: love.advice.isNotEmpty ? love.advice : null,
         strengths: love.romanticStrengths,
         weaknesses: love.romanticWeaknesses,
         timing: love.loveTiming.isNotEmpty ? love.loveTiming : null,
+        // v9.4: 연애운 상세 필드
+        datingPattern: love.datingPattern.isNotEmpty ? love.datingPattern : null,
+        attractionStyle: love.attractionStyle.isNotEmpty ? love.attractionStyle : null,
+        idealPartnerTraits: love.idealPartnerTraits,
       ),
       'marriage': CategoryFortuneData(
         title: '결혼운',
         score: _calculateScore(marriageJson),
-        reading: _buildMarriageReading(marriage),
+        reading: marriageJson['reading'] as String? ?? _buildMarriageReading(marriage),
         advice: marriage.advice.isNotEmpty ? marriage.advice : null,
         cautions: marriage.cautions,
         timing: marriage.marriageTiming.isNotEmpty ? marriage.marriageTiming : null,
+        // v9.4: 결혼운 상세 필드
+        spousePalaceAnalysis: marriage.spousePalaceAnalysis.isNotEmpty ? marriage.spousePalaceAnalysis : null,
+        spouseCharacteristics: marriage.spouseCharacteristics.isNotEmpty ? marriage.spouseCharacteristics : null,
+        marriedLifeTendency: marriage.marriedLifeTendency.isNotEmpty ? marriage.marriedLifeTendency : null,
       ),
       'health': CategoryFortuneData(
         title: '건강운',
         score: _calculateScore(healthJson),
-        reading: _buildHealthReading(health),
+        reading: healthJson['reading'] as String? ?? _buildHealthReading(health),
         cautions: health.potentialIssues,            // 잠재적 문제 → 주의사항
         weaknesses: health.vulnerableOrgans,         // 취약 부위 → 약점
         timing: health.cautionPeriods.isNotEmpty ? health.cautionPeriods : null,
+        // v9.4: 건강운 상세 필드
+        mentalHealth: health.mentalHealth.isNotEmpty ? health.mentalHealth : null,
+        lifestyleAdvice: health.lifestyleAdvice,
       ),
     };
 
@@ -703,6 +727,7 @@ class LuckyElementsSection {
 
 /// 카테고리별 운세 데이터 (칩 표시용)
 /// v8.2: advice, cautions, strengths 등 상세 필드 추가
+/// v9.4: 카테고리별 상세 필드 전체 추가 (DB 필드 100% 매핑)
 class CategoryFortuneData {
   final String title;
   final int score;
@@ -717,6 +742,35 @@ class CategoryFortuneData {
   final List<String> suitableFields;       // 적합 분야
   final List<String> unsuitableFields;     // 비적합 분야
 
+  // v9.4: 카테고리별 상세 필드 추가
+  // 직업운
+  final String? workStyle;                 // 업무 스타일
+  final String? leadershipPotential;       // 리더십 잠재력
+
+  // 연애운
+  final String? datingPattern;             // 연애 패턴
+  final String? attractionStyle;           // 끌리는 유형
+  final List<String> idealPartnerTraits;   // 이상형 특성
+
+  // 재물운
+  final String? overallTendency;           // 전반적 경향
+  final String? earningStyle;              // 돈 버는 방식
+  final String? spendingTendency;          // 소비 성향
+  final String? investmentAptitude;        // 투자 적성
+
+  // 사업운
+  final String? entrepreneurshipAptitude;  // 창업 적성
+  final String? businessPartnerTraits;     // 사업 파트너 특성
+
+  // 결혼운
+  final String? spousePalaceAnalysis;      // 배우자궁 분석
+  final String? spouseCharacteristics;     // 배우자 특성
+  final String? marriedLifeTendency;       // 결혼 생활 경향
+
+  // 건강운
+  final String? mentalHealth;              // 정신 건강
+  final List<String> lifestyleAdvice;      // 생활 습관 조언
+
   const CategoryFortuneData({
     required this.title,
     required this.score,
@@ -728,6 +782,23 @@ class CategoryFortuneData {
     this.timing,
     this.suitableFields = const [],
     this.unsuitableFields = const [],
+    // v9.4: 카테고리별 상세 필드
+    this.workStyle,
+    this.leadershipPotential,
+    this.datingPattern,
+    this.attractionStyle,
+    this.idealPartnerTraits = const [],
+    this.overallTendency,
+    this.earningStyle,
+    this.spendingTendency,
+    this.investmentAptitude,
+    this.entrepreneurshipAptitude,
+    this.businessPartnerTraits,
+    this.spousePalaceAnalysis,
+    this.spouseCharacteristics,
+    this.marriedLifeTendency,
+    this.mentalHealth,
+    this.lifestyleAdvice = const [],
   });
 }
 

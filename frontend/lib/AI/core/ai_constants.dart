@@ -533,7 +533,22 @@ abstract class PromptVersions {
   /// - V9.1 (2026-01-24): 캐시 무효화 (V9.0 데이터에 mySajuIntro/my_saju_characters 누락)
   /// - V9.2 (2026-01-24): Phase 1 프롬프트에 mySajuIntro/my_saju_characters 추가
   ///         (Phase 분할 분석 시 누락 문제 해결)
-  static const String sajuBase = 'V9.2';
+  /// - V9.3 (2026-01-24): Phase 3 프롬프트 _buildDaeunSection 수정
+  ///         DB 형식(camelCase, pillar)과 legacy 형식(snake_case, gan/ji) 모두 지원
+  ///         대운 "미상" 문제 해결 - AI에게 실제 대운 간지/나이 정보 전달
+  /// - V9.4 (2026-01-24): 카테고리별 상세 필드 전체 매핑 (DB 필드 100% UI 표시)
+  ///         직업운: workStyle, leadershipPotential
+  ///         연애운: datingPattern, attractionStyle, idealPartnerTraits
+  ///         재물운: overallTendency, earningStyle, spendingTendency, investmentAptitude
+  ///         사업운: entrepreneurshipAptitude, businessPartnerTraits
+  ///         결혼운: spousePalaceAnalysis, spouseCharacteristics, marriedLifeTendency
+  ///         건강운: mentalHealth, lifestyleAdvice
+  /// - V9.5 (2026-01-24): Phase maxTokens 대폭 확장 (JSON 잘림 방지)
+  ///         Phase 1: 6000 → 10000
+  ///         Phase 2: 4000 → 8000 (결혼운 잘림 해결)
+  ///         Phase 3: 5000 → 10000
+  ///         Phase 4: 4000 → 8000
+  static const String sajuBase = 'V9.5';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)

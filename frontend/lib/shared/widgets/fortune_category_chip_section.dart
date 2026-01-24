@@ -7,6 +7,7 @@ import '../../AI/fortune/common/korea_date_utils.dart';
 
 /// 공통 카테고리 데이터 인터페이스
 /// v8.2: 평생운세용 상세 필드 추가
+/// v9.4: 카테고리별 상세 필드 전체 추가 (DB 필드 100% 매핑)
 class CategoryData {
   final String title;
   final int score;
@@ -26,6 +27,35 @@ class CategoryData {
   final List<String>? suitableFields;      // 적합 분야
   final List<String>? unsuitableFields;    // 비적합 분야
 
+  // v9.4: 카테고리별 상세 필드 추가
+  // 직업운
+  final String? workStyle;                 // 업무 스타일
+  final String? leadershipPotential;       // 리더십 잠재력
+
+  // 연애운
+  final String? datingPattern;             // 연애 패턴
+  final String? attractionStyle;           // 끌리는 유형
+  final List<String>? idealPartnerTraits;  // 이상형 특성
+
+  // 재물운
+  final String? overallTendency;           // 전반적 경향
+  final String? earningStyle;              // 돈 버는 방식
+  final String? spendingTendency;          // 소비 성향
+  final String? investmentAptitude;        // 투자 적성
+
+  // 사업운
+  final String? entrepreneurshipAptitude;  // 창업 적성
+  final String? businessPartnerTraits;     // 사업 파트너 특성
+
+  // 결혼운
+  final String? spousePalaceAnalysis;      // 배우자궁 분석
+  final String? spouseCharacteristics;     // 배우자 특성
+  final String? marriedLifeTendency;       // 결혼 생활 경향
+
+  // 건강운
+  final String? mentalHealth;              // 정신 건강
+  final List<String>? lifestyleAdvice;     // 생활 습관 조언
+
   const CategoryData({
     required this.title,
     required this.score,
@@ -42,6 +72,23 @@ class CategoryData {
     this.timing,
     this.suitableFields,
     this.unsuitableFields,
+    // v9.4: 카테고리별 상세 필드
+    this.workStyle,
+    this.leadershipPotential,
+    this.datingPattern,
+    this.attractionStyle,
+    this.idealPartnerTraits,
+    this.overallTendency,
+    this.earningStyle,
+    this.spendingTendency,
+    this.investmentAptitude,
+    this.entrepreneurshipAptitude,
+    this.businessPartnerTraits,
+    this.spousePalaceAnalysis,
+    this.spouseCharacteristics,
+    this.marriedLifeTendency,
+    this.mentalHealth,
+    this.lifestyleAdvice,
   });
 }
 
@@ -627,6 +674,104 @@ class _FortuneCategoryChipSectionState
                 ],
               ),
             ),
+          ],
+
+          // ═══════════════════════════════════════════════════════════════
+          // v9.4: 카테고리별 상세 필드 (DB 필드 100% 표시)
+          // ═══════════════════════════════════════════════════════════════
+
+          // 직업운 전용 필드
+          if (cat.workStyle != null && cat.workStyle!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '업무 스타일', cat.workStyle!),
+          ],
+          if (cat.leadershipPotential != null && cat.leadershipPotential!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '리더십 잠재력', cat.leadershipPotential!),
+          ],
+
+          // 연애운 전용 필드
+          if (cat.datingPattern != null && cat.datingPattern!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '연애 패턴', cat.datingPattern!),
+          ],
+          if (cat.attractionStyle != null && cat.attractionStyle!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '끌리는 유형', cat.attractionStyle!),
+          ],
+          if (cat.idealPartnerTraits != null && cat.idealPartnerTraits!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '이상형 특성:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.pink.shade600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.idealPartnerTraits!.map((t) => _buildListItem(theme, t)),
+          ],
+
+          // 재물운 전용 필드
+          if (cat.overallTendency != null && cat.overallTendency!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '전반적 경향', cat.overallTendency!),
+          ],
+          if (cat.earningStyle != null && cat.earningStyle!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '돈 버는 방식', cat.earningStyle!),
+          ],
+          if (cat.spendingTendency != null && cat.spendingTendency!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '소비 성향', cat.spendingTendency!),
+          ],
+          if (cat.investmentAptitude != null && cat.investmentAptitude!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '투자 적성', cat.investmentAptitude!),
+          ],
+
+          // 사업운 전용 필드
+          if (cat.entrepreneurshipAptitude != null && cat.entrepreneurshipAptitude!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '창업 적성', cat.entrepreneurshipAptitude!),
+          ],
+          if (cat.businessPartnerTraits != null && cat.businessPartnerTraits!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '사업 파트너 특성', cat.businessPartnerTraits!),
+          ],
+
+          // 결혼운 전용 필드
+          if (cat.spousePalaceAnalysis != null && cat.spousePalaceAnalysis!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '배우자궁 분석', cat.spousePalaceAnalysis!),
+          ],
+          if (cat.spouseCharacteristics != null && cat.spouseCharacteristics!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '배우자 특성', cat.spouseCharacteristics!),
+          ],
+          if (cat.marriedLifeTendency != null && cat.marriedLifeTendency!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '결혼 생활 경향', cat.marriedLifeTendency!),
+          ],
+
+          // 건강운 전용 필드
+          if (cat.mentalHealth != null && cat.mentalHealth!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '정신 건강', cat.mentalHealth!),
+          ],
+          if (cat.lifestyleAdvice != null && cat.lifestyleAdvice!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '생활 습관 조언:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.teal.shade600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.lifestyleAdvice!.map((a) => _buildListItem(theme, a)),
           ],
         ],
       ),

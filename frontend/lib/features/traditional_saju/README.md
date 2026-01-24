@@ -84,13 +84,79 @@ traditional_saju/
 
 ---
 
+## 카테고리별 상세 필드 (V9.4)
+
+### CategoryFortuneData → CategoryData 매핑
+
+각 카테고리(직업/사업/재물/연애/결혼/건강)의 DB 필드가 UI에 100% 매핑됨.
+
+#### 공통 필드 (모든 카테고리)
+| 필드 | 설명 | UI 위치 |
+|------|------|---------|
+| `title` | 카테고리 제목 | 칩/헤더 |
+| `score` | 점수 (0-100) | 칩/헤더 |
+| `reading` | AI 분석 본문 | 펼친 카드 본문 |
+| `advice` | 조언 | 조언 박스 (보라색) |
+| `cautions` | 주의사항 리스트 | 주의사항 박스 (주황색) |
+| `timing` | 타이밍 정보 | 타이밍 섹션 |
+
+#### 직업운 (career)
+| 필드 | 설명 |
+|------|------|
+| `suitableFields` | 적합한 분야 |
+| `unsuitableFields` | 피해야 할 분야 |
+| `workStyle` | 업무 스타일 |
+| `leadershipPotential` | 리더십 잠재력 |
+
+#### 사업운 (business)
+| 필드 | 설명 |
+|------|------|
+| `suitableFields` | 적합한 사업 유형 |
+| `strengths` | 성공 요인 |
+| `entrepreneurshipAptitude` | 창업 적성 |
+| `businessPartnerTraits` | 사업 파트너 특성 |
+
+#### 재물운 (wealth)
+| 필드 | 설명 |
+|------|------|
+| `overallTendency` | 전반적 경향 |
+| `earningStyle` | 돈 버는 방식 |
+| `spendingTendency` | 소비 성향 |
+| `investmentAptitude` | 투자 적성 |
+
+#### 연애운 (love)
+| 필드 | 설명 |
+|------|------|
+| `strengths` | 연애 강점 |
+| `weaknesses` | 연애 약점 |
+| `datingPattern` | 연애 패턴 |
+| `attractionStyle` | 끌리는 유형 |
+| `idealPartnerTraits` | 이상형 특성 |
+
+#### 결혼운 (marriage)
+| 필드 | 설명 |
+|------|------|
+| `spousePalaceAnalysis` | 배우자궁 분석 |
+| `spouseCharacteristics` | 배우자 특성 |
+| `marriedLifeTendency` | 결혼 생활 경향 |
+
+#### 건강운 (health)
+| 필드 | 설명 |
+|------|------|
+| `weaknesses` | 취약 부위 |
+| `cautions` | 잠재적 건강 문제 |
+| `mentalHealth` | 정신 건강 |
+| `lifestyleAdvice` | 생활 습관 조언 |
+
+---
+
 ## 프롬프트 버전 관리
 
 위치: `AI/core/ai_constants.dart` → `PromptVersions.sajuBase`
 
 ```dart
 // 현재 버전
-static const String sajuBase = 'V9.2';
+static const String sajuBase = 'V9.5';
 
 // 버전 히스토리
 // V8.0: my_saju_characters 추가
@@ -98,6 +164,13 @@ static const String sajuBase = 'V9.2';
 // V9.0: mySajuIntro.ilju 추가
 // V9.1: 캐시 무효화
 // V9.2: Phase 1 프롬프트에 mySajuIntro/my_saju_characters 추가
+// V9.3: Phase 3 대운 "미상" 문제 해결 (DB 형식/legacy 형식 모두 지원)
+// V9.4: 카테고리별 상세 필드 전체 매핑 (DB 필드 100% UI 표시)
+// V9.5: Phase maxTokens 대폭 확장 (JSON 잘림 방지)
+//       Phase 1: 6000 → 10000
+//       Phase 2: 4000 → 8000 (결혼운 잘림 해결)
+//       Phase 3: 5000 → 10000
+//       Phase 4: 4000 → 8000
 ```
 
 **중요**: 프롬프트 수정 시 **Phase 프롬프트**도 함께 수정해야 함!
@@ -129,6 +202,29 @@ static const String sajuBase = 'V9.2';
 - **원인**: `saju_base_prompt.dart`만 수정하고 `phase1~4` 프롬프트는 수정 안 함
 - **해결**: Phase 프롬프트에도 동일하게 필드 추가
 
+### 4. 대운에 "미상" 표시됨
+- **원인**: Phase 3 프롬프트가 DB 형식(camelCase)을 인식 못함
+- **해결**: `_buildDaeunSection`에서 camelCase/snake_case 모두 지원 (V9.3)
+
+### 5. 카테고리 상세 정보가 안 뜸
+- **원인**: `CategoryFortuneData`에 해당 필드가 없거나 매핑 안 됨
+- **해결**: V9.4에서 전체 필드 매핑 완료
+  - Provider: `lifetime_fortune_provider.dart`의 categories 빌드 부분
+  - UI: `fortune_category_chip_section.dart`의 `_buildExpandedContent`
+
+### 6. saju_base 데이터가 저장 안 됨 (V9.5 해결)
+- **증상**: ai_tasks 테이블에서 task는 completed지만 ai_summaries에 데이터 없음
+- **원인**: Phase maxTokens 한도 도달 → JSON 중간에 잘림 → 파싱 실패 → 저장 실패
+- **진단**:
+  ```sql
+  SELECT partial_result->'_parse_error' FROM ai_tasks WHERE task_type = 'saju_analysis' ORDER BY created_at DESC LIMIT 1;
+  ```
+- **해결**: V9.5에서 Phase maxTokens 대폭 확장
+  - Phase 1: 6000 → 10000
+  - Phase 2: 4000 → 8000 (결혼운 잘림 해결)
+  - Phase 3: 5000 → 10000
+  - Phase 4: 4000 → 8000
+
 ---
 
 ## 관련 파일
@@ -141,4 +237,5 @@ static const String sajuBase = 'V9.2';
 | `AI/prompts/saju_base_phase3_prompt.dart` | Phase 3 프롬프트 (직업/사업/건강) |
 | `AI/prompts/saju_base_phase4_prompt.dart` | Phase 4 프롬프트 (시간축) |
 | `AI/core/ai_constants.dart` | 버전 관리 |
-| `shared/widgets/fortune_category_chip_section.dart` | 분야별 운세 칩 UI |
+| `shared/widgets/fortune_category_chip_section.dart` | 분야별 운세 칩 UI + 상세 표시 |
+| `features/traditional_saju/presentation/providers/lifetime_fortune_provider.dart` | CategoryFortuneData 정의 + JSON→객체 파싱 |
