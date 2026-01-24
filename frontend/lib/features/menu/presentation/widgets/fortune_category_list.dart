@@ -17,9 +17,9 @@ class FortuneCategoryList extends StatelessWidget {
 
     final categories = [
       {'name': '평생운세', 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
-      {'name': '2025운세', 'icon': Icons.calendar_today_rounded, 'route': '/fortune/yearly-2025'},
-      {'name': '2026운세', 'icon': Icons.auto_awesome_rounded, 'route': '/fortune/new-year'},
-      {'name': '한달운세', 'icon': Icons.wb_sunny_rounded, 'route': '/fortune/monthly'},
+      {'name': '2025운세', 'icon': Icons.history_rounded, 'route': '/fortune/yearly-2025'},  // 회고/돌아보기
+      {'name': '2026운세', 'icon': Icons.flare_rounded, 'route': '/fortune/new-year'},  // 신년/새빛
+      {'name': '한달운세', 'icon': Icons.calendar_month_rounded, 'route': '/fortune/monthly'},
     ];
 
     return Padding(

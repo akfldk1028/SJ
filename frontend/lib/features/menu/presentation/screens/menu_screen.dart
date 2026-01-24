@@ -65,20 +65,20 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 padding: EdgeInsets.only(bottom: context.scaledPadding(100)),
                 children: [
                   const FortuneSummaryCard(),
-                  SizedBox(height: context.scaledPadding(24)),
+                  SizedBox(height: context.scaledPadding(16)),
                   // 오늘의 운세 섹션 - 내 사주 위로 이동
                   const SectionHeader(
                     title: '오늘의 운세',
                   ),
-                  SizedBox(height: context.scaledPadding(12)),
+                  SizedBox(height: context.scaledPadding(8)),
                   const FortuneCategoryList(),
-                  SizedBox(height: context.scaledPadding(24)),
+                  SizedBox(height: context.scaledPadding(16)),
                   // Native 광고 1 (운세 카테고리 아래) - 즉시 로드
                   if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
-                  SizedBox(height: context.scaledPadding(24)),
+                  SizedBox(height: context.scaledPadding(16)),
                   // TODO: 2025 신년운세/토정비결 - 임시 비활성화
                   // const SectionHeader(
                   //   title: '오늘의 조언',
