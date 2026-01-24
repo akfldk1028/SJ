@@ -10,23 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
 import '../../../AI/fortune/common/korea_date_utils.dart';
-
-/// 광고 유형
-enum AdType {
-  banner,
-  interstitial,
-  rewarded,
-  native,
-}
-
-/// 광고 이벤트 유형
-enum AdEventType {
-  impression, // 배너/네이티브 노출
-  show, // 전면/보상형 표시 시작
-  complete, // 전면/보상형 완료 (닫힘)
-  click, // 클릭
-  rewarded, // 보상 지급
-}
+// AdType, AdEventType은 ad_tracking_service.dart에서 정의됨
+import '../../ad_tracking_service.dart' show AdType, AdEventType;
 
 /// 광고 이벤트 Mutation
 class AdMutations {
