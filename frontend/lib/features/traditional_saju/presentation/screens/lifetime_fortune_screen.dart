@@ -1278,15 +1278,14 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
                           children: [
                             _buildTag(theme, info.oheng, ohengColor),
-                            const SizedBox(width: 8),
                             _buildTag(theme, info.yinYang, theme.textSecondary),
-                            if (isDay) ...[
-                              const SizedBox(width: 8),
+                            if (isDay)
                               _buildTag(theme, '일간 (나)', theme.textPrimary),
-                            ],
                           ],
                         ),
                       ],
@@ -1344,6 +1343,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   Widget _buildInfoRow(AppThemeExtension theme, String label, String value) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '$label: ',
@@ -1353,11 +1353,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             color: theme.textSecondary,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.textPrimary,
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.textPrimary,
+            ),
           ),
         ),
       ],

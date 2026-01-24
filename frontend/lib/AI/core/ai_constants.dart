@@ -530,7 +530,8 @@ abstract class PromptVersions {
   ///         대운 목록을 테이블 형식으로 AI에게 전달
   /// - V9.0 (2026-01-24): mySajuIntro에 ilju(일주설명) 필드 추가
   ///         일간+일지 조합의 의미를 초보자도 쉽게 이해할 수 있게 설명
-  static const String sajuBase = 'V9.0';
+  /// - V9.1 (2026-01-24): 캐시 무효화 (V9.0 데이터에 mySajuIntro/my_saju_characters 누락)
+  static const String sajuBase = 'V9.1';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)
