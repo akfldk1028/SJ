@@ -21,6 +21,8 @@ abstract class ProfileColumns {
   static const String birthCity = 'birth_city';
   static const String timeCorrection = 'time_correction';
   static const String useYaJasi = 'use_ya_jasi';
+  static const String profileType = 'profile_type'; // 'primary' | 'other'
+  @Deprecated('Use profileType instead - is_primary 컬럼 삭제됨')
   static const String isPrimary = 'is_primary';
   static const String createdAt = 'created_at';
   static const String updatedAt = 'updated_at';
@@ -42,7 +44,7 @@ const String profileSelectColumns = '''
   birth_city,
   time_correction,
   use_ya_jasi,
-  is_primary,
+  profile_type,
   created_at,
   updated_at
 ''';

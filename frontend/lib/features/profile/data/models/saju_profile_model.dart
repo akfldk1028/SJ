@@ -153,7 +153,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       'birth_city': birthCity,
       'time_correction': timeCorrection,
       'use_ya_jasi': useYaJasi,
-      'is_primary': isActive,
+      // is_primary 컬럼 삭제됨 - profile_type으로 대체
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
     };
@@ -175,7 +175,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       timeCorrection: map['time_correction'] as int? ?? 0,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
-      isActive: map['is_primary'] as bool? ?? false,
+      isActive: (map['profile_type'] as String?) == 'primary', // profile_type → isActive
       relationType: map['relation_type'] as String? ?? 'me',
       profileType: map['profile_type'] as String? ?? 'primary',
       memo: map['memo'] as String?,
