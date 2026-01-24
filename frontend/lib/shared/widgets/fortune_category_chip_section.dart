@@ -6,6 +6,7 @@ import '../../ad/feature_unlock_service.dart';
 import '../../AI/fortune/common/korea_date_utils.dart';
 
 /// 공통 카테고리 데이터 인터페이스
+/// v8.2: 평생운세용 상세 필드 추가
 class CategoryData {
   final String title;
   final int score;
@@ -16,6 +17,15 @@ class CategoryData {
   final String? actionTip;
   final List<String>? focusAreas;
 
+  // v8.2: 평생운세 상세 필드
+  final String? advice;                    // 조언
+  final List<String>? cautions;            // 주의사항
+  final List<String>? strengths;           // 강점
+  final List<String>? weaknesses;          // 약점
+  final String? timing;                    // 타이밍 정보
+  final List<String>? suitableFields;      // 적합 분야
+  final List<String>? unsuitableFields;    // 비적합 분야
+
   const CategoryData({
     required this.title,
     required this.score,
@@ -25,6 +35,13 @@ class CategoryData {
     this.cautionMonths,
     this.actionTip,
     this.focusAreas,
+    this.advice,
+    this.cautions,
+    this.strengths,
+    this.weaknesses,
+    this.timing,
+    this.suitableFields,
+    this.unsuitableFields,
   });
 }
 
@@ -428,6 +445,188 @@ class _FortuneCategoryChipSectionState
             ),
             const SizedBox(height: 4),
             ...cat.focusAreas!.map((area) => _buildListItem(theme, area)),
+          ],
+
+          // ═══════════════════════════════════════════════════════════════
+          // v8.2: 평생운세 상세 필드 (조언, 주의사항, 강점/약점 등)
+          // ═══════════════════════════════════════════════════════════════
+
+          // 조언 (가장 중요!)
+          if (cat.advice != null && cat.advice!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.primaryColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        size: 18,
+                        color: theme.primaryColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '조언',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: theme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    cat.advice!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.textPrimary,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // 타이밍
+          if (cat.timing != null && cat.timing!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '타이밍', cat.timing!),
+          ],
+
+          // 강점
+          if (cat.strengths != null && cat.strengths!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '강점:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.green.shade700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.strengths!.map((s) => _buildListItem(theme, s)),
+          ],
+
+          // 약점
+          if (cat.weaknesses != null && cat.weaknesses!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '주의할 점:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.weaknesses!.map((w) => _buildListItem(theme, w)),
+          ],
+
+          // 적합 분야
+          if (cat.suitableFields != null && cat.suitableFields!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '적합한 분야:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.suitableFields!.map((f) => _buildListItem(theme, f)),
+          ],
+
+          // 비적합 분야
+          if (cat.unsuitableFields != null && cat.unsuitableFields!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '피해야 할 분야:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: theme.textMuted,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.unsuitableFields!.map((f) => _buildListItem(theme, f)),
+          ],
+
+          // 주의사항 (cautions 리스트)
+          if (cat.cautions != null && cat.cautions!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.shade200,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_outlined,
+                        size: 18,
+                        color: Colors.orange.shade700,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '주의사항',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...cat.cautions!.map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange.shade800,
+                            height: 1.6,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            c,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange.shade800,
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
           ],
         ],
       ),

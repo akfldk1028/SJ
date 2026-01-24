@@ -379,10 +379,35 @@ class SajuAnalysisService {
     });
 
     // ═══════════════════════════════════════════════════════════════════════
-    // GPT-5.2 평생사주 분석 (즉시 시작! - Fortune 대기 없음) ⭐
+    // GPT-5.2 평생사주 분석 (Phase 분할 + Progressive Disclosure) ⭐
+    // v8.2: 각 Phase 완료 시 ai_tasks.partial_result 업데이트 → UI 즉시 표시
     // ═══════════════════════════════════════════════════════════════════════
-    print('[SajuAnalysisService] 📊 saju_base 분석 즉시 시작! (Fortune과 병렬)');
-    final sajuBaseResult = await _runSajuBaseAnalysis(userId, profileId, inputJson);
+
+    // 캐시 확인 (이미 분석된 경우 스킵)
+    print('[SajuAnalysisService] 🔍 saju_base 캐시 확인 중...');
+    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    AnalysisResult sajuBaseResult;
+
+    if (cached.isSuccess && cached.data != null) {
+      print('[SajuAnalysisService] ✅ saju_base 캐시 히트 - 즉시 반환');
+      sajuBaseResult = AnalysisResult.success(
+        summaryId: cached.data!.id,
+        processingTimeMs: 0,
+      );
+    } else {
+      // Phase 분할 분석 실행 (Progressive Disclosure 지원)
+      print('[SajuAnalysisService] 📊 saju_base Phase 분할 분석 시작...');
+      final phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        onPhaseComplete: (phaseResult) {
+          print('[SajuAnalysisService] 🎯 Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
+        },
+      );
+      sajuBaseResult = phasedResult.overall;
+    }
+
     print('[SajuAnalysisService] 📊 saju_base 결과: success=${sajuBaseResult.success}');
 
     // GPT 결과를 Gemini 프롬프트에 포함

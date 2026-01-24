@@ -48,12 +48,19 @@ class Yearly2025FortuneData {
       );
     }
 
-    // overview 파싱
+    // overview 파싱 (DB 구조 일치 - 2026-01-24)
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
       score: (overviewJson['score'] as num?)?.toInt() ?? 0,
       opening: overviewJson['opening'] as String? ?? '',
+      // DB 필드 (신규)
+      ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
+      sinsalAnalysis: overviewJson['sinsalAnalysis'] as String? ?? '',
+      hapchungAnalysis: overviewJson['hapchungAnalysis'] as String? ?? '',
+      yongshinAnalysis: overviewJson['yongshinAnalysis'] as String? ?? '',
+      yearEnergyConclusion: overviewJson['yearEnergyConclusion'] as String? ?? '',
+      // 레거시 호환성 (기존 필드)
       yearEnergy: overviewJson['yearEnergy'] as String? ?? '',
       hapchungEffect: overviewJson['hapchungEffect'] as String? ?? '',
       conclusion: overviewJson['conclusion'] as String? ?? '',
@@ -159,11 +166,17 @@ class Yearly2025FortuneData {
   }
 }
 
-/// 개요 섹션
+/// 개요 섹션 (DB 구조 일치 - 2026-01-24)
 class OverviewSection {
   final String keyword;
   final int score;
-  final String opening;
+  final String opening;           // 총운 오프닝
+  final String ilganAnalysis;     // 일간 분석 (DB 필드)
+  final String sinsalAnalysis;    // 신살 분석 (DB 필드)
+  final String hapchungAnalysis;  // 합충 분석 (DB 필드)
+  final String yongshinAnalysis;  // 용신 분석 (DB 필드)
+  final String yearEnergyConclusion; // 연도 에너지 결론 (DB 필드)
+  // 레거시 호환성 (기존 필드)
   final String yearEnergy;
   final String hapchungEffect;
   final String conclusion;
@@ -172,9 +185,14 @@ class OverviewSection {
     required this.keyword,
     required this.score,
     required this.opening,
-    required this.yearEnergy,
-    required this.hapchungEffect,
-    required this.conclusion,
+    this.ilganAnalysis = '',
+    this.sinsalAnalysis = '',
+    this.hapchungAnalysis = '',
+    this.yongshinAnalysis = '',
+    this.yearEnergyConclusion = '',
+    this.yearEnergy = '',
+    this.hapchungEffect = '',
+    this.conclusion = '',
   });
 
   /// summary getter (opening을 반환) - 호환성 유지
@@ -456,8 +474,13 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
         keyword: '도약의 해',
         score: 78,
         opening: '2025년 을사년은 당신에게 새로운 시작과 도약의 기회가 열리는 해입니다. 지난 몇 년간 쌓아온 경험과 노력이 빛을 발할 시기이며, 특히 상반기에 중요한 전환점이 찾아올 수 있습니다.',
-        yearEnergy: '을목(乙木)과 사화(巳火)의 조합은 나무가 불의 기운을 받아 활활 타오르는 형상입니다. 이는 당신의 잠재력이 폭발적으로 발현될 수 있음을 의미합니다.',
-        hapchungEffect: '사주 내 인목(寅木)과 사화(巳火)가 형(刑)을 이루어 예상치 못한 변화가 있을 수 있으나, 이를 잘 활용하면 오히려 성장의 발판이 됩니다.',
+        ilganAnalysis: '을목 일간에게 2025년의 화는 명확히 식신의 자리입니다. 식신은 재능을 밖으로 펼치고 표현하는 기운이라 발표·창작·프로젝트 실행에서 성과가 나왔을 가능성이 높습니다.',
+        sinsalAnalysis: '원국에 도화살과 역마 기운이 있어 2025년의 화 기운과 만나면 사람을 끌어들이는 표현력과 이동·변화의 기회가 함께 작용했을 수 있습니다.',
+        hapchungAnalysis: '사주 내 인목(寅木)과 사화(巳火)가 형(刑)을 이루어 예상치 못한 변화가 있을 수 있으나, 이를 잘 활용하면 오히려 성장의 발판이 됩니다.',
+        yongshinAnalysis: '용신이 토(土)인 당신에게 을사년의 화는 궁극적으로 도움되는 기운이었습니다. 화는 토를 생해(火生土) 용신을 돕기 때문입니다.',
+        yearEnergyConclusion: '종합하면 2025년은 표현으로 기반을 다진 해였습니다. 식신(화)이 활동을 촉진해 아이디어를 결과로 만드는 힘을 줬고, 그 결과가 용신 토와 좋은 상생으로 연결되었습니다.',
+        yearEnergy: '을목(乙木)과 사화(巳火)의 조합은 나무가 불의 기운을 받아 활활 타오르는 형상입니다.',
+        hapchungEffect: '',
         conclusion: '전반적으로 긍정적인 흐름이 예상되며, 적극적인 자세로 기회를 잡는다면 뜻깊은 한 해가 될 것입니다.',
       ),
       achievements: const AchievementsSection(

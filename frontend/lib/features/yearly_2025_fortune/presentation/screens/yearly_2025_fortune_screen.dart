@@ -184,7 +184,55 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                     height: 1.8,
                   ),
                 ),
-              if (fortune.overview.yearEnergy.isNotEmpty) ...[
+              // 일간 분석 (DB 필드)
+              if (fortune.overview.ilganAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '일간 분석',
+                  content: fortune.overview.ilganAnalysis,
+                  type: HighlightType.info,
+                  icon: Icons.person_outline,
+                ),
+              ],
+              // 신살 분석 (DB 필드)
+              if (fortune.overview.sinsalAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                FortuneHighlightBox(
+                  label: '신살 분석',
+                  content: fortune.overview.sinsalAnalysis,
+                  type: HighlightType.info,
+                  icon: Icons.stars,
+                ),
+              ],
+              // 합충 분석 (DB 필드 우선, 없으면 레거시)
+              if (fortune.overview.hapchungAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                FortuneHighlightBox(
+                  label: '합충 분석',
+                  content: fortune.overview.hapchungAnalysis,
+                  type: HighlightType.warning,
+                  icon: Icons.sync_alt,
+                ),
+              ] else if (fortune.overview.hapchungEffect.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                FortuneHighlightBox(
+                  label: '합충 영향',
+                  content: fortune.overview.hapchungEffect,
+                  type: HighlightType.warning,
+                ),
+              ],
+              // 용신 분석 (DB 필드)
+              if (fortune.overview.yongshinAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                FortuneHighlightBox(
+                  label: '용신 분석',
+                  content: fortune.overview.yongshinAnalysis,
+                  type: HighlightType.success,
+                  icon: Icons.favorite_border,
+                ),
+              ],
+              // 레거시: 올해의 기운 (yearEnergy)
+              if (fortune.overview.yearEnergy.isNotEmpty && fortune.overview.ilganAnalysis.isEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
                   label: '올해의 기운',
@@ -193,15 +241,16 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                   icon: Icons.bolt,
                 ),
               ],
-              if (fortune.overview.hapchungEffect.isNotEmpty) ...[
-                const SizedBox(height: 12),
+              // 연도 에너지 결론 (DB 필드)
+              if (fortune.overview.yearEnergyConclusion.isNotEmpty) ...[
+                const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '합충 영향',
-                  content: fortune.overview.hapchungEffect,
-                  type: HighlightType.warning,
+                  label: '2025년 총평',
+                  content: fortune.overview.yearEnergyConclusion,
+                  type: HighlightType.primary,
+                  icon: Icons.check_circle_outline,
                 ),
-              ],
-              if (fortune.overview.conclusion.isNotEmpty) ...[
+              ] else if (fortune.overview.conclusion.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
                   label: '결론',

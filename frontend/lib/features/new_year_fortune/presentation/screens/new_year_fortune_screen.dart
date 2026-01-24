@@ -172,7 +172,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           const SizedBox(height: 24),
         ],
 
-        // 2026년 총운
+        // 2026년 총운 (opening 사용)
         FortuneSectionCard(
           title: '2026년 총운',
           icon: Icons.auto_awesome,
@@ -180,7 +180,17 @@ class NewYearFortuneScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (fortune.overview.summary.isNotEmpty)
+              // opening (DB 구조)이 있으면 우선 사용, 없으면 summary 사용
+              if (fortune.overview.opening.isNotEmpty)
+                Text(
+                  fortune.overview.opening,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                )
+              else if (fortune.overview.summary.isNotEmpty)
                 Text(
                   fortune.overview.summary,
                   style: TextStyle(
@@ -189,6 +199,57 @@ class NewYearFortuneScreen extends ConsumerWidget {
                     height: 1.8,
                   ),
                 ),
+              // 일간 분석
+              if (fortune.overview.ilganAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '일간 분석',
+                  content: fortune.overview.ilganAnalysis,
+                  type: HighlightType.primary,
+                  icon: Icons.person_outline,
+                ),
+              ],
+              // 신살 분석
+              if (fortune.overview.sinsalAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '신살 분석',
+                  content: fortune.overview.sinsalAnalysis,
+                  type: HighlightType.info,
+                  icon: Icons.star_outline,
+                ),
+              ],
+              // 합충 분석
+              if (fortune.overview.hapchungAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '합충 분석',
+                  content: fortune.overview.hapchungAnalysis,
+                  type: HighlightType.info,
+                  icon: Icons.sync_alt,
+                ),
+              ],
+              // 용신 분석
+              if (fortune.overview.yongshinAnalysis.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '용신 분석',
+                  content: fortune.overview.yongshinAnalysis,
+                  type: HighlightType.warning,
+                  icon: Icons.water_drop_outlined,
+                ),
+              ],
+              // 연도 에너지 결론
+              if (fortune.overview.yearEnergyConclusion.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                FortuneHighlightBox(
+                  label: '2026년 에너지 총평',
+                  content: fortune.overview.yearEnergyConclusion,
+                  type: HighlightType.success,
+                  icon: Icons.bolt,
+                ),
+              ],
+              // 레거시 keyPoint
               if (fortune.overview.keyPoint.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
@@ -315,6 +376,193 @@ class NewYearFortuneScreen extends ConsumerWidget {
             child: Column(
               children: [
                 _buildLuckyGrid(theme, fortune.lucky),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 빛날 순간들 (achievements)
+        if (fortune.achievements != null && fortune.achievements!.reading.isNotEmpty) ...[
+          FortuneSectionCard(
+            title: fortune.achievements!.title.isNotEmpty
+                ? fortune.achievements!.title
+                : '2026년에 빛날 순간들',
+            icon: Icons.emoji_events_outlined,
+            style: CardStyle.gradient,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fortune.achievements!.reading,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                ),
+                if (fortune.achievements!.highlights.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  ...fortune.achievements!.highlights.map((highlight) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.star, size: 16, color: theme.primaryColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            highlight,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 도전과 성장 (challenges)
+        if (fortune.challenges != null && fortune.challenges!.reading.isNotEmpty) ...[
+          FortuneSectionCard(
+            title: fortune.challenges!.title.isNotEmpty
+                ? fortune.challenges!.title
+                : '2026년의 도전, 그리고 성장',
+            icon: Icons.trending_up,
+            style: CardStyle.outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fortune.challenges!.reading,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                ),
+                if (fortune.challenges!.growthPoints.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  ...fortune.challenges!.growthPoints.map((point) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 16, color: const Color(0xFF2D8659)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            point,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 교훈 (lessons)
+        if (fortune.lessons != null && fortune.lessons!.reading.isNotEmpty) ...[
+          FortuneSectionCard(
+            title: fortune.lessons!.title.isNotEmpty
+                ? fortune.lessons!.title
+                : '2026년이 가르쳐줄 것들',
+            icon: Icons.school_outlined,
+            style: CardStyle.outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fortune.lessons!.reading,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                ),
+                if (fortune.lessons!.keyLessons.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  ...fortune.lessons!.keyLessons.map((lesson) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.lightbulb_outline, size: 16, color: const Color(0xFFB8860B)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            lesson,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // 2027년으로 이어가기 (to2027)
+        if (fortune.to2027 != null && fortune.to2027!.reading.isNotEmpty) ...[
+          FortuneSectionCard(
+            title: fortune.to2027!.title.isNotEmpty
+                ? fortune.to2027!.title
+                : '2027년으로 가져가세요',
+            icon: Icons.arrow_forward_outlined,
+            style: CardStyle.gradient,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fortune.to2027!.reading,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.8,
+                  ),
+                ),
+                if (fortune.to2027!.strengths.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  FortuneHighlightBox(
+                    label: '강점',
+                    content: fortune.to2027!.strengths.join('\n'),
+                    type: HighlightType.success,
+                    icon: Icons.thumb_up_outlined,
+                  ),
+                ],
+                if (fortune.to2027!.watchOut.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  FortuneHighlightBox(
+                    label: '주의할 점',
+                    content: fortune.to2027!.watchOut.join('\n'),
+                    type: HighlightType.warning,
+                    icon: Icons.warning_amber_outlined,
+                  ),
+                ],
               ],
             ),
           ),

@@ -707,6 +707,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         ],
 
         // ========== 4단계: 분야별 운세 (구체적인 삶의 영역) ==========
+        // v8.2: 상세 필드 (advice, cautions, strengths 등) 전달
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
@@ -717,6 +718,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 title: cat.title,
                 score: cat.score,
                 reading: cat.reading,
+                advice: cat.advice,
+                cautions: cat.cautions.isNotEmpty ? cat.cautions : null,
+                strengths: cat.strengths.isNotEmpty ? cat.strengths : null,
+                weaknesses: cat.weaknesses.isNotEmpty ? cat.weaknesses : null,
+                timing: cat.timing,
+                suitableFields: cat.suitableFields.isNotEmpty ? cat.suitableFields : null,
+                unsuitableFields: cat.unsuitableFields.isNotEmpty ? cat.unsuitableFields : null,
               ),
             )),
           ),
@@ -1675,7 +1683,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (wonGuk.ohengBalance.isNotEmpty) ...[
           _buildSubSectionHeader(theme, '오행 균형'),
           _buildParagraph(theme, wonGuk.ohengBalance),
+          const SizedBox(height: 12),
         ],
+        // v8.2: singangSingak 필드 - 사용자 요청으로 주석 처리
+        // if (wonGuk.singangSingak.isNotEmpty) ...[
+        //   _buildSubSectionHeader(theme, '신강/신약'),
+        //   _buildParagraph(theme, wonGuk.singangSingak),
+        // ],
       ],
     );
   }

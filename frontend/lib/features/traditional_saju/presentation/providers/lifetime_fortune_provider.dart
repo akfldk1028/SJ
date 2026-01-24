@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -60,9 +62,27 @@ class LifetimeFortuneData {
 
   /// AI 응답 JSON에서 파싱
   factory LifetimeFortuneData.fromJson(Map<String, dynamic> json) {
+    // v9.0: raw 필드 파싱 (AI 응답이 raw 문자열로 저장된 경우)
+    Map<String, dynamic> parsedJson = json;
+    if (json.containsKey('raw') && json['raw'] is String) {
+      try {
+        final rawString = json['raw'] as String;
+        final rawParsed = Map<String, dynamic>.from(
+          (rawString.startsWith('{') ?
+            _parseJsonSafely(rawString) :
+            {}) as Map
+        );
+        // raw에서 파싱한 데이터와 기존 json 병합 (raw 내용 우선)
+        parsedJson = {...json, ...rawParsed};
+        print('[LifetimeFortuneData] raw 필드 파싱 성공: ${rawParsed.keys.take(5)}...');
+      } catch (e) {
+        print('[LifetimeFortuneData] raw 파싱 실패: $e');
+      }
+    }
+
     // v7.0: mySajuIntro 파싱
     MySajuIntroSection? mySajuIntro;
-    final mySajuIntroJson = json['mySajuIntro'] as Map<String, dynamic>?;
+    final mySajuIntroJson = parsedJson['mySajuIntro'] as Map<String, dynamic>?;
     if (mySajuIntroJson != null) {
       mySajuIntro = MySajuIntroSection(
         title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
@@ -72,7 +92,7 @@ class LifetimeFortuneData {
 
     // v8.0: mySajuCharacters 파싱 (8글자 설명)
     MySajuCharactersSection? mySajuCharacters;
-    final mySajuCharsJson = json['my_saju_characters'] as Map<String, dynamic>?;
+    final mySajuCharsJson = parsedJson['my_saju_characters'] as Map<String, dynamic>?;
     if (mySajuCharsJson != null) {
       mySajuCharacters = MySajuCharactersSection(
         description: mySajuCharsJson['description'] as String? ?? '',
@@ -89,7 +109,7 @@ class LifetimeFortuneData {
     }
 
     // personality 파싱
-    final personalityJson = json['personality'] as Map<String, dynamic>? ?? {};
+    final personalityJson = parsedJson['personality'] as Map<String, dynamic>? ?? {};
     final personality = PersonalitySection(
       coreTraits: _parseStringList(personalityJson['core_traits']),
       strengths: _parseStringList(personalityJson['strengths']),
@@ -99,7 +119,7 @@ class LifetimeFortuneData {
     );
 
     // wealth 파싱
-    final wealthJson = json['wealth'] as Map<String, dynamic>? ?? {};
+    final wealthJson = parsedJson['wealth'] as Map<String, dynamic>? ?? {};
     final wealth = WealthSection(
       overallTendency: wealthJson['overall_tendency'] as String? ?? '',
       earningStyle: wealthJson['earning_style'] as String? ?? '',
@@ -111,7 +131,7 @@ class LifetimeFortuneData {
     );
 
     // love 파싱
-    final loveJson = json['love'] as Map<String, dynamic>? ?? {};
+    final loveJson = parsedJson['love'] as Map<String, dynamic>? ?? {};
     final love = LoveSection(
       attractionStyle: loveJson['attraction_style'] as String? ?? '',
       datingPattern: loveJson['dating_pattern'] as String? ?? '',
@@ -123,7 +143,7 @@ class LifetimeFortuneData {
     );
 
     // marriage 파싱
-    final marriageJson = json['marriage'] as Map<String, dynamic>? ?? {};
+    final marriageJson = parsedJson['marriage'] as Map<String, dynamic>? ?? {};
     final marriage = MarriageSection(
       spousePalaceAnalysis: marriageJson['spouse_palace_analysis'] as String? ?? '',
       marriageTiming: marriageJson['marriage_timing'] as String? ?? '',
@@ -134,7 +154,7 @@ class LifetimeFortuneData {
     );
 
     // career 파싱
-    final careerJson = json['career'] as Map<String, dynamic>? ?? {};
+    final careerJson = parsedJson['career'] as Map<String, dynamic>? ?? {};
     final career = CareerSection(
       suitableFields: _parseStringList(careerJson['suitable_fields']),
       unsuitableFields: _parseStringList(careerJson['unsuitable_fields']),
@@ -145,7 +165,7 @@ class LifetimeFortuneData {
     );
 
     // business 파싱
-    final businessJson = json['business'] as Map<String, dynamic>? ?? {};
+    final businessJson = parsedJson['business'] as Map<String, dynamic>? ?? {};
     final business = BusinessSection(
       entrepreneurshipAptitude: businessJson['entrepreneurship_aptitude'] as String? ?? '',
       suitableBusinessTypes: _parseStringList(businessJson['suitable_business_types']),
@@ -156,7 +176,7 @@ class LifetimeFortuneData {
     );
 
     // health 파싱
-    final healthJson = json['health'] as Map<String, dynamic>? ?? {};
+    final healthJson = parsedJson['health'] as Map<String, dynamic>? ?? {};
     final health = HealthSection(
       vulnerableOrgans: _parseStringList(healthJson['vulnerable_organs']),
       potentialIssues: _parseStringList(healthJson['potential_issues']),
@@ -166,41 +186,63 @@ class LifetimeFortuneData {
     );
 
     // categories 빌드 (FortuneCategoryChipSection용)
+    // v8.2: 모든 상세 필드 (advice, cautions, strengths 등) 포함
     final categories = <String, CategoryFortuneData>{
       'career': CategoryFortuneData(
         title: '직업운',
         score: _calculateScore(careerJson),
         reading: _buildCareerReading(career),
+        advice: career.advice.isNotEmpty ? career.advice : null,
+        timing: career.careerTiming.isNotEmpty ? career.careerTiming : null,
+        suitableFields: career.suitableFields,
+        unsuitableFields: career.unsuitableFields,
       ),
       'business': CategoryFortuneData(
         title: '사업운',
         score: _calculateScore(businessJson),
         reading: _buildBusinessReading(business),
+        advice: business.advice.isNotEmpty ? business.advice : null,
+        cautions: business.cautions,
+        strengths: business.successFactors,  // 성공 요인 → 강점으로 표시
+        suitableFields: business.suitableBusinessTypes,
       ),
       'wealth': CategoryFortuneData(
         title: '재물운',
         score: _calculateScore(wealthJson),
         reading: _buildWealthReading(wealth),
+        advice: wealth.advice.isNotEmpty ? wealth.advice : null,
+        cautions: wealth.cautions,
+        timing: wealth.wealthTiming.isNotEmpty ? wealth.wealthTiming : null,
       ),
       'love': CategoryFortuneData(
         title: '연애운',
         score: _calculateScore(loveJson),
         reading: _buildLoveReading(love),
+        advice: love.advice.isNotEmpty ? love.advice : null,
+        strengths: love.romanticStrengths,
+        weaknesses: love.romanticWeaknesses,
+        timing: love.loveTiming.isNotEmpty ? love.loveTiming : null,
       ),
       'marriage': CategoryFortuneData(
         title: '결혼운',
         score: _calculateScore(marriageJson),
         reading: _buildMarriageReading(marriage),
+        advice: marriage.advice.isNotEmpty ? marriage.advice : null,
+        cautions: marriage.cautions,
+        timing: marriage.marriageTiming.isNotEmpty ? marriage.marriageTiming : null,
       ),
       'health': CategoryFortuneData(
         title: '건강운',
         score: _calculateScore(healthJson),
         reading: _buildHealthReading(health),
+        cautions: health.potentialIssues,            // 잠재적 문제 → 주의사항
+        weaknesses: health.vulnerableOrgans,         // 취약 부위 → 약점
+        timing: health.cautionPeriods.isNotEmpty ? health.cautionPeriods : null,
       ),
     };
 
     // lifeCycles 파싱
-    final lifeCyclesJson = json['life_cycles'] as Map<String, dynamic>? ?? {};
+    final lifeCyclesJson = parsedJson['life_cycles'] as Map<String, dynamic>? ?? {};
     final lifeCycles = LifeCyclesSection(
       youth: lifeCyclesJson['youth'] as String? ?? '',
       middleAge: lifeCyclesJson['middle_age'] as String? ?? '',
@@ -209,7 +251,7 @@ class LifetimeFortuneData {
     );
 
     // luckyElements 파싱
-    final luckyJson = json['lucky_elements'] as Map<String, dynamic>? ?? {};
+    final luckyJson = parsedJson['lucky_elements'] as Map<String, dynamic>? ?? {};
     final luckyElements = LuckyElementsSection(
       colors: _parseStringList(luckyJson['colors']),
       directions: _parseStringList(luckyJson['directions']),
@@ -220,7 +262,7 @@ class LifetimeFortuneData {
 
     // v7.3: wonGuk_analysis 파싱
     WonGukAnalysisSection? wonGukAnalysis;
-    final wonGukJson = json['wonGuk_analysis'] as Map<String, dynamic>?;
+    final wonGukJson = parsedJson['wonGuk_analysis'] as Map<String, dynamic>?;
     if (wonGukJson != null) {
       wonGukAnalysis = WonGukAnalysisSection(
         gyeokguk: wonGukJson['gyeokguk'] as String? ?? '',
@@ -232,7 +274,7 @@ class LifetimeFortuneData {
 
     // v7.3: sipsung_analysis 파싱
     SipsungAnalysisSection? sipsungAnalysis;
-    final sipsungJson = json['sipsung_analysis'] as Map<String, dynamic>?;
+    final sipsungJson = parsedJson['sipsung_analysis'] as Map<String, dynamic>?;
     if (sipsungJson != null) {
       sipsungAnalysis = SipsungAnalysisSection(
         weakSipsung: _parseStringList(sipsungJson['weak_sipsung']),
@@ -244,7 +286,7 @@ class LifetimeFortuneData {
 
     // v7.3: hapchung_analysis 파싱
     HapchungAnalysisSection? hapchungAnalysis;
-    final hapchungJson = json['hapchung_analysis'] as Map<String, dynamic>?;
+    final hapchungJson = parsedJson['hapchung_analysis'] as Map<String, dynamic>?;
     if (hapchungJson != null) {
       hapchungAnalysis = HapchungAnalysisSection(
         majorHaps: _parseStringList(hapchungJson['major_haps']),
@@ -256,7 +298,7 @@ class LifetimeFortuneData {
 
     // v7.3: modern_interpretation 파싱
     ModernInterpretationSection? modernInterpretation;
-    final modernJson = json['modern_interpretation'] as Map<String, dynamic>?;
+    final modernJson = parsedJson['modern_interpretation'] as Map<String, dynamic>?;
     if (modernJson != null) {
       // career_in_ai_era 파싱
       ModernCareerSection? careerInAiEra;
@@ -300,7 +342,7 @@ class LifetimeFortuneData {
 
     // v8.1: peak_years 파싱
     PeakYearsSection? peakYears;
-    final peakYearsJson = json['peak_years'] as Map<String, dynamic>?;
+    final peakYearsJson = parsedJson['peak_years'] as Map<String, dynamic>?;
     if (peakYearsJson != null) {
       peakYears = PeakYearsSection(
         period: peakYearsJson['period'] as String? ?? '',
@@ -314,7 +356,7 @@ class LifetimeFortuneData {
 
     // v8.1: daeun_detail 파싱
     DaeunDetailSection? daeunDetail;
-    final daeunDetailJson = json['daeun_detail'] as Map<String, dynamic>?;
+    final daeunDetailJson = parsedJson['daeun_detail'] as Map<String, dynamic>?;
     if (daeunDetailJson != null) {
       final cyclesJson = daeunDetailJson['cycles'] as List<dynamic>? ?? [];
       final cycles = cyclesJson
@@ -336,7 +378,7 @@ class LifetimeFortuneData {
 
     // v8.1: sinsal_gilseong 파싱
     SinsalGilseongSection? sinsalGilseong;
-    final sinsalJson = json['sinsal_gilseong'] as Map<String, dynamic>?;
+    final sinsalJson = parsedJson['sinsal_gilseong'] as Map<String, dynamic>?;
     if (sinsalJson != null) {
       sinsalGilseong = SinsalGilseongSection(
         majorSinsal: _parseStringList(sinsalJson['major_sinsal']),
@@ -349,7 +391,7 @@ class LifetimeFortuneData {
     return LifetimeFortuneData(
       mySajuIntro: mySajuIntro,
       mySajuCharacters: mySajuCharacters,
-      summary: json['summary'] as String? ?? '',
+      summary: parsedJson['summary'] as String? ?? '',
       personality: personality,
       wealth: wealth,
       love: love,
@@ -359,7 +401,7 @@ class LifetimeFortuneData {
       health: health,
       categories: categories,
       lifeCycles: lifeCycles,
-      overallAdvice: json['overall_advice'] as String? ?? '',
+      overallAdvice: parsedJson['overall_advice'] as String? ?? '',
       luckyElements: luckyElements,
       wonGukAnalysis: wonGukAnalysis,
       sipsungAnalysis: sipsungAnalysis,
@@ -377,6 +419,17 @@ class LifetimeFortuneData {
       return value.map((e) => e.toString()).toList();
     }
     return [];
+  }
+
+  /// JSON 문자열 안전 파싱 (raw 필드용)
+  static dynamic _parseJsonSafely(String jsonString) {
+    if (jsonString.isEmpty) return {};
+    try {
+      return jsonDecode(jsonString);
+    } catch (e) {
+      print('[LifetimeFortuneData] JSON 파싱 실패: $e');
+      return {};
+    }
   }
 
   static List<int> _parseIntList(dynamic value) {
@@ -647,15 +700,32 @@ class LuckyElementsSection {
 }
 
 /// 카테고리별 운세 데이터 (칩 표시용)
+/// v8.2: advice, cautions, strengths 등 상세 필드 추가
 class CategoryFortuneData {
   final String title;
   final int score;
   final String reading;
 
+  // v8.2: 상세 필드 추가
+  final String? advice;                    // 조언
+  final List<String> cautions;             // 주의사항
+  final List<String> strengths;            // 강점
+  final List<String> weaknesses;           // 약점
+  final String? timing;                    // 타이밍 (love_timing, career_timing 등)
+  final List<String> suitableFields;       // 적합 분야
+  final List<String> unsuitableFields;     // 비적합 분야
+
   const CategoryFortuneData({
     required this.title,
     required this.score,
     required this.reading,
+    this.advice,
+    this.cautions = const [],
+    this.strengths = const [],
+    this.weaknesses = const [],
+    this.timing,
+    this.suitableFields = const [],
+    this.unsuitableFields = const [],
   });
 }
 

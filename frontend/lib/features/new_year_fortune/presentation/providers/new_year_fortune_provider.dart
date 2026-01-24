@@ -20,6 +20,11 @@ class NewYearFortuneData {
   final TimelineSection timeline;
   final LuckySection lucky;
   final ClosingSection closing;
+  // DB 구조에 맞는 추가 섹션들
+  final LessonsSection? lessons;
+  final AchievementsSection? achievements;
+  final ChallengesSection? challenges;
+  final To2027Section? to2027;
 
   const NewYearFortuneData({
     required this.year,
@@ -32,6 +37,10 @@ class NewYearFortuneData {
     required this.timeline,
     required this.lucky,
     required this.closing,
+    this.lessons,
+    this.achievements,
+    this.challenges,
+    this.to2027,
   });
 
   /// AI 응답 JSON에서 파싱
@@ -69,11 +78,18 @@ class NewYearFortuneData {
       sinsalEffect: personalJson['sinsalEffect'] as String? ?? '',
     );
 
-    // overview 파싱
+    // overview 파싱 (DB 구조 일치)
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
       score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      opening: overviewJson['opening'] as String? ?? '',
+      ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
+      sinsalAnalysis: overviewJson['sinsalAnalysis'] as String? ?? '',
+      hapchungAnalysis: overviewJson['hapchungAnalysis'] as String? ?? '',
+      yongshinAnalysis: overviewJson['yongshinAnalysis'] as String? ?? '',
+      yearEnergyConclusion: overviewJson['yearEnergyConclusion'] as String? ?? '',
+      // 레거시 호환성
       summary: overviewJson['summary'] as String? ?? '',
       keyPoint: overviewJson['keyPoint'] as String? ?? '',
     );
@@ -123,6 +139,51 @@ class NewYearFortuneData {
       finalAdvice: closingJson['finalAdvice'] as String? ?? '',
     );
 
+    // lessons 파싱
+    LessonsSection? lessons;
+    final lessonsJson = json['lessons'] as Map<String, dynamic>?;
+    if (lessonsJson != null) {
+      lessons = LessonsSection(
+        title: lessonsJson['title'] as String? ?? '',
+        reading: lessonsJson['reading'] as String? ?? '',
+        keyLessons: _parseStringList(lessonsJson['keyLessons']),
+      );
+    }
+
+    // achievements 파싱
+    AchievementsSection? achievements;
+    final achievementsJson = json['achievements'] as Map<String, dynamic>?;
+    if (achievementsJson != null) {
+      achievements = AchievementsSection(
+        title: achievementsJson['title'] as String? ?? '',
+        reading: achievementsJson['reading'] as String? ?? '',
+        highlights: _parseStringList(achievementsJson['highlights']),
+      );
+    }
+
+    // challenges 파싱
+    ChallengesSection? challenges;
+    final challengesJson = json['challenges'] as Map<String, dynamic>?;
+    if (challengesJson != null) {
+      challenges = ChallengesSection(
+        title: challengesJson['title'] as String? ?? '',
+        reading: challengesJson['reading'] as String? ?? '',
+        growthPoints: _parseStringList(challengesJson['growthPoints']),
+      );
+    }
+
+    // to2027 파싱
+    To2027Section? to2027;
+    final to2027Json = json['to2027'] as Map<String, dynamic>?;
+    if (to2027Json != null) {
+      to2027 = To2027Section(
+        title: to2027Json['title'] as String? ?? '',
+        reading: to2027Json['reading'] as String? ?? '',
+        strengths: _parseStringList(to2027Json['strengths']),
+        watchOut: _parseStringList(to2027Json['watchOut']),
+      );
+    }
+
     return NewYearFortuneData(
       year: (json['year'] as num?)?.toInt() ?? 2026,
       yearGanji: json['yearGanji'] as String? ?? '병오(丙午)',
@@ -134,6 +195,10 @@ class NewYearFortuneData {
       timeline: timeline,
       lucky: lucky,
       closing: closing,
+      lessons: lessons,
+      achievements: achievements,
+      challenges: challenges,
+      to2027: to2027,
     );
   }
 
@@ -209,18 +274,31 @@ class PersonalAnalysisSection {
   });
 }
 
-/// 개요 섹션
+/// 개요 섹션 (DB 구조 일치)
 class OverviewSection {
   final String keyword;
   final int score;
+  final String opening;           // 총운 오프닝
+  final String ilganAnalysis;     // 일간 분석
+  final String sinsalAnalysis;    // 신살 분석
+  final String hapchungAnalysis;  // 합충 분석
+  final String yongshinAnalysis;  // 용신 분석
+  final String yearEnergyConclusion; // 연도 에너지 결론
+  // 레거시 호환성 (있으면 사용)
   final String summary;
   final String keyPoint;
 
   const OverviewSection({
     required this.keyword,
     required this.score,
-    required this.summary,
-    required this.keyPoint,
+    this.opening = '',
+    this.ilganAnalysis = '',
+    this.sinsalAnalysis = '',
+    this.hapchungAnalysis = '',
+    this.yongshinAnalysis = '',
+    this.yearEnergyConclusion = '',
+    this.summary = '',
+    this.keyPoint = '',
   });
 }
 
@@ -323,6 +401,60 @@ class MySajuIntroSection {
   const MySajuIntroSection({
     required this.title,
     required this.reading,
+  });
+}
+
+/// 교훈 섹션 (lessons)
+class LessonsSection {
+  final String title;
+  final String reading;
+  final List<String> keyLessons;
+
+  const LessonsSection({
+    required this.title,
+    required this.reading,
+    required this.keyLessons,
+  });
+}
+
+/// 성취 섹션 (achievements)
+class AchievementsSection {
+  final String title;
+  final String reading;
+  final List<String> highlights;
+
+  const AchievementsSection({
+    required this.title,
+    required this.reading,
+    required this.highlights,
+  });
+}
+
+/// 도전 섹션 (challenges)
+class ChallengesSection {
+  final String title;
+  final String reading;
+  final List<String> growthPoints;
+
+  const ChallengesSection({
+    required this.title,
+    required this.reading,
+    required this.growthPoints,
+  });
+}
+
+/// 2027년으로 이어가기 섹션 (to2027)
+class To2027Section {
+  final String title;
+  final String reading;
+  final List<String> strengths;
+  final List<String> watchOut;
+
+  const To2027Section({
+    required this.title,
+    required this.reading,
+    required this.strengths,
+    required this.watchOut,
   });
 }
 
