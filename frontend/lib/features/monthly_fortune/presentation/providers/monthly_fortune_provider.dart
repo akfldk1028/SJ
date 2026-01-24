@@ -39,8 +39,12 @@ class MonthlyFortuneData {
 
   /// AI 응답 JSON에서 파싱 (v5.0: 12개월 확장 구조)
   factory MonthlyFortuneData.fromJson(Map<String, dynamic> json) {
+    print('[MonthlyFortuneData] 🔍 fromJson 시작');
+    print('[MonthlyFortuneData] json.keys=${json.keys.toList()}');
+
     // v5.0: current 섹션에서 현재 월 데이터 파싱
     final currentJson = json['current'] as Map<String, dynamic>? ?? json;
+    print('[MonthlyFortuneData] currentJson.keys=${currentJson.keys.toList()}');
     final overviewJson = currentJson['overview'] as Map<String, dynamic>? ?? json['overview'] as Map<String, dynamic>? ?? {};
 
     final overview = OverviewSection(
@@ -66,8 +70,11 @@ class MonthlyFortuneData {
       );
     }
 
-    // v4.0: lucky가 current.lucky 안에 있거나 루트에 있음
-    final luckyJson = currentJson['lucky'] as Map<String, dynamic>? ?? json['lucky'] as Map<String, dynamic>? ?? {};
+    // v5.2: lucky가 current.categories.lucky 안에 있거나 current.lucky에 있음
+    final luckyJson = categoriesJson['lucky'] as Map<String, dynamic>?
+        ?? currentJson['lucky'] as Map<String, dynamic>?
+        ?? json['lucky'] as Map<String, dynamic>?
+        ?? {};
     final lucky = LuckySection(
       colors: _parseStringList(luckyJson['colors']),
       numbers: _parseIntList(luckyJson['numbers']),
@@ -76,7 +83,8 @@ class MonthlyFortuneData {
     );
 
     // v5.0: 12개월 확장 데이터 파싱 (highlights, lucky 포함)
-    final monthsJson = json['months'] as Map<String, dynamic>? ?? {};
+    // v5.2: months는 current 안에 있음! (content.current.months.month1 구조)
+    final monthsJson = currentJson['months'] as Map<String, dynamic>? ?? json['months'] as Map<String, dynamic>? ?? {};
     final months = <String, MonthSummary>{};
     print('[MonthlyFortuneData] 🔍 fromJson: monthsJson.keys=${monthsJson.keys.toList()}');
     for (int i = 1; i <= 12; i++) {

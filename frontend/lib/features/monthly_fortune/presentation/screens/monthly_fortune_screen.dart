@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
@@ -10,9 +9,6 @@ import '../../../../shared/widgets/fortune_monthly_chip_section.dart';
 import '../../../../shared/widgets/fortune_title_header.dart';
 import '../../../../shared/widgets/fortune_section_card.dart';
 import '../../../../shared/widgets/fortune_score_gauge.dart';
-import '../../../../AI/fortune/fortune_coordinator.dart';
-import '../../../../AI/fortune/common/fortune_input_data.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/monthly_fortune_provider.dart';
 
 /// 월별 운세 상세 화면 - 개선된 UI/UX
@@ -588,96 +584,81 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
     return months;
   }
 
-  /// 특정 월의 상세 운세 API 호출
+  /// 특정 월의 상세 운세 반환 (이미 로드된 데이터 사용)
+  ///
+  /// v5.1: API 호출 제거 - 12개월 데이터가 이미 DB에 있으므로
+  /// fortune.months에서 직접 반환
   Future<MonthData?> _fetchDetailedMonthFortune(int year, int monthNumber) async {
-    debugPrint('[MonthlyFortune] API call: $year년 $monthNumber월');
+    debugPrint('[MonthlyFortune] 월 데이터 조회: $year년 $monthNumber월');
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return null;
+      // 현재 로드된 fortune 데이터에서 가져오기
+      final fortune = ref.read(monthlyFortuneProvider).value;
+      if (fortune == null) {
+        debugPrint('[MonthlyFortune] fortune 데이터 없음');
+        return null;
+      }
 
-      final activeProfile = await ref.read(activeProfileProvider.future);
-      if (activeProfile == null) return null;
+      final monthKey = 'month$monthNumber';
+      final monthSummary = fortune.months[monthKey];
 
-      final result = await fortuneCoordinator.analyzeMonthly(
-        userId: user.id,
-        profileId: activeProfile.id,
-        inputData: await _getFortuneInputData(activeProfile.id),
-        year: year,
-        month: monthNumber,
-        forceRefresh: true,
-      );
+      if (monthSummary == null) {
+        debugPrint('[MonthlyFortune] $monthKey 데이터 없음');
+        return null;
+      }
 
-      if (!result.success || result.content == null) return null;
+      debugPrint('[MonthlyFortune] ✅ $monthKey 데이터 반환: keyword=${monthSummary.keyword}');
 
-      final fortuneData = MonthlyFortuneData.fromJson(result.content!);
+      // v5.0: highlights 변환
+      Map<String, MonthHighlightData>? highlights;
+      if (monthSummary.highlights != null) {
+        highlights = {};
+        if (monthSummary.highlights!.career != null) {
+          highlights['career'] = MonthHighlightData(
+            score: monthSummary.highlights!.career!.score,
+            summary: monthSummary.highlights!.career!.summary,
+          );
+        }
+        if (monthSummary.highlights!.business != null) {
+          highlights['business'] = MonthHighlightData(
+            score: monthSummary.highlights!.business!.score,
+            summary: monthSummary.highlights!.business!.summary,
+          );
+        }
+        if (monthSummary.highlights!.wealth != null) {
+          highlights['wealth'] = MonthHighlightData(
+            score: monthSummary.highlights!.wealth!.score,
+            summary: monthSummary.highlights!.wealth!.summary,
+          );
+        }
+        if (monthSummary.highlights!.love != null) {
+          highlights['love'] = MonthHighlightData(
+            score: monthSummary.highlights!.love!.score,
+            summary: monthSummary.highlights!.love!.summary,
+          );
+        }
+      }
 
-      final categories = <String, CategoryData>{};
-      for (final entry in fortuneData.categories.entries) {
-        categories[entry.key] = CategoryData(
-          title: _getCategoryName(entry.key),
-          score: entry.value.score,
-          reading: entry.value.reading,
+      // v5.0: idiom 변환
+      MonthIdiomData? idiom;
+      if (monthSummary.idiom != null) {
+        idiom = MonthIdiomData(
+          phrase: monthSummary.idiom!.phrase,
+          meaning: monthSummary.idiom!.meaning,
         );
       }
 
       return MonthData(
-        keyword: fortuneData.overview.keyword,
-        score: fortuneData.overview.score,
-        reading: fortuneData.overview.opening.isNotEmpty
-            ? fortuneData.overview.opening
-            : fortuneData.overview.conclusion,
-        tip: fortuneData.lucky.tip,
-        categories: categories,
+        keyword: monthSummary.keyword,
+        score: monthSummary.score,
+        reading: monthSummary.reading,
+        tip: '',
+        highlights: highlights,
+        idiom: idiom,
       );
     } catch (e) {
-      debugPrint('[MonthlyFortune] API error: $e');
+      debugPrint('[MonthlyFortune] 데이터 조회 오류: $e');
       return null;
     }
-  }
-
-  /// FortuneInputData 가져오기
-  Future<FortuneInputData> _getFortuneInputData(String profileId) async {
-    final supabase = Supabase.instance.client;
-
-    final sajuAnalysesResponse = await supabase
-        .from('saju_analyses')
-        .select()
-        .eq('profile_id', profileId)
-        .maybeSingle();
-
-    if (sajuAnalysesResponse == null) {
-      throw Exception('saju_analyses가 없습니다.');
-    }
-
-    final profileResponse = await supabase
-        .from('saju_profiles')
-        .select('display_name, birth_date, birth_time_minutes, gender')
-        .eq('id', profileId)
-        .maybeSingle();
-
-    if (profileResponse == null) {
-      throw Exception('프로필을 찾을 수 없습니다.');
-    }
-
-    final profileName = profileResponse['display_name'] as String? ?? '';
-    final birthDate = profileResponse['birth_date'] as String? ?? '';
-    final birthTimeMinutes = profileResponse['birth_time_minutes'] as int?;
-    final gender = profileResponse['gender'] as String? ?? 'M';
-
-    String? birthTime;
-    if (birthTimeMinutes != null) {
-      final hours = birthTimeMinutes ~/ 60;
-      final minutes = birthTimeMinutes % 60;
-      birthTime = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
-    }
-
-    return FortuneInputData.fromSajuAnalyses(
-      profileName: profileName,
-      birthDate: birthDate,
-      birthTime: birthTime,
-      gender: gender,
-      sajuAnalyses: sajuAnalysesResponse,
-    );
   }
 }

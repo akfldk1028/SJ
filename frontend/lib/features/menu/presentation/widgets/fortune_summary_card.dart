@@ -132,6 +132,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     return DailyFortuneData(
       overallScore: 85,
       overallMessage: '오늘은 새로운 시작에 좋은 날입니다. 중요한 결정을 내리기에 적합합니다.',
+      overallMessageShort: '새로운 시작에 좋은 날, 중요한 결정을 내리세요.',
       date: DateTime.now().toString().split(' ')[0],
       categories: {
         'wealth': const CategoryScore(
@@ -217,7 +218,10 @@ class FortuneSummaryCard extends ConsumerWidget {
     DailyFortuneData fortune,
   ) {
     final score = fortune.overallScore;
-    final message = fortune.overallMessage;
+    // 짧은 메시지 우선 사용 (오늘의 한마디), 없으면 긴 메시지 fallback
+    final message = fortune.overallMessageShort.isNotEmpty
+        ? fortune.overallMessageShort
+        : fortune.overallMessage;
     final hour = DateTime.now().hour;
 
     return Padding(

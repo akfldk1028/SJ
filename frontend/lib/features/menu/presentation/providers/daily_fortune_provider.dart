@@ -13,6 +13,7 @@ part 'daily_fortune_provider.g.dart';
 class DailyFortuneData {
   final int overallScore;
   final String overallMessage;
+  final String overallMessageShort;  // 짧은 버전 (오늘의 한마디)
   final String date;
   final Map<String, CategoryScore> categories;
   final LuckyInfo lucky;
@@ -23,6 +24,7 @@ class DailyFortuneData {
   const DailyFortuneData({
     required this.overallScore,
     required this.overallMessage,
+    this.overallMessageShort = '',
     required this.date,
     required this.categories,
     required this.lucky,
@@ -68,6 +70,7 @@ class DailyFortuneData {
     return DailyFortuneData(
       overallScore: (json['overall_score'] as num?)?.toInt() ?? 0,
       overallMessage: json['overall_message'] as String? ?? '',
+      overallMessageShort: json['overall_message_short'] as String? ?? '',
       date: json['date'] as String? ?? '',
       categories: categories,
       lucky: lucky,
