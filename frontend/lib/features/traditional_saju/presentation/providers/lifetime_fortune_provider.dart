@@ -81,11 +81,13 @@ class LifetimeFortuneData {
     }
 
     // v7.0: mySajuIntro 파싱
+    // v9.0: ilju (일주설명) 필드 추가
     MySajuIntroSection? mySajuIntro;
     final mySajuIntroJson = parsedJson['mySajuIntro'] as Map<String, dynamic>?;
     if (mySajuIntroJson != null) {
       mySajuIntro = MySajuIntroSection(
         title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
+        ilju: mySajuIntroJson['ilju'] as String? ?? '',
         reading: mySajuIntroJson['reading'] as String? ?? '',
       );
     }
@@ -730,14 +732,20 @@ class CategoryFortuneData {
 }
 
 /// v7.0: 나의 사주 소개 섹션
+/// v9.0: ilju (일주설명) 필드 추가
 class MySajuIntroSection {
   final String title;
+  final String ilju;     // v9.0: 일주(日柱) 설명
   final String reading;
 
   const MySajuIntroSection({
     required this.title,
+    required this.ilju,
     required this.reading,
   });
+
+  /// 표시할 콘텐츠가 있는지 확인 (ilju 또는 reading)
+  bool get hasContent => ilju.isNotEmpty || reading.isNotEmpty;
 }
 
 /// v8.0: 사주팔자 8글자 설명 섹션 (my_saju_characters)

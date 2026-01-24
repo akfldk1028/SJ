@@ -495,15 +495,21 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
     return icons[key] ?? Icons.category;
   }
 
-  /// 12개월 데이터 생성
+  /// 12개월 데이터 생성 (v5.0: highlights, lucky 포함)
   Map<String, MonthData> _generate12MonthsData(MonthlyFortuneData fortune) {
     final currentMonth = fortune.month;
     final months = <String, MonthData>{};
+
+    debugPrint('[MonthlyScreen] 🔍 _generate12MonthsData 시작 (v5.0)');
+    debugPrint('[MonthlyScreen] currentMonth=$currentMonth, fortune.months.length=${fortune.months.length}');
+    debugPrint('[MonthlyScreen] fortune.months.keys=${fortune.months.keys.toList()}');
 
     for (int i = 1; i <= 12; i++) {
       final monthKey = 'month$i';
 
       if (i == currentMonth) {
+        // 현재 월은 overview 데이터 사용
+        debugPrint('[MonthlyScreen] $monthKey: 현재월 - overview.keyword=${fortune.overview.keyword}');
         months[monthKey] = MonthData(
           keyword: fortune.overview.keyword,
           score: fortune.overview.score,
@@ -513,13 +519,59 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
           tip: fortune.lucky.tip,
         );
       } else {
+        // 다른 월은 months 데이터 사용 (v5.0: highlights, idiom 포함)
         final monthSummary = fortune.months[monthKey];
+        final hasHighlights = monthSummary?.highlights != null;
+        final hasIdiom = monthSummary?.idiom != null;
+        debugPrint('[MonthlyScreen] $monthKey: monthSummary=${monthSummary != null ? "있음(keyword=${monthSummary.keyword}, highlights=$hasHighlights, idiom=$hasIdiom)" : "없음"}');
+
         if (monthSummary != null && monthSummary.keyword.isNotEmpty) {
+          // v5.0: highlights 변환 (career, business, wealth, love)
+          Map<String, MonthHighlightData>? highlights;
+          if (monthSummary.highlights != null) {
+            highlights = {};
+            if (monthSummary.highlights!.career != null) {
+              highlights['career'] = MonthHighlightData(
+                score: monthSummary.highlights!.career!.score,
+                summary: monthSummary.highlights!.career!.summary,
+              );
+            }
+            if (monthSummary.highlights!.business != null) {
+              highlights['business'] = MonthHighlightData(
+                score: monthSummary.highlights!.business!.score,
+                summary: monthSummary.highlights!.business!.summary,
+              );
+            }
+            if (monthSummary.highlights!.wealth != null) {
+              highlights['wealth'] = MonthHighlightData(
+                score: monthSummary.highlights!.wealth!.score,
+                summary: monthSummary.highlights!.wealth!.summary,
+              );
+            }
+            if (monthSummary.highlights!.love != null) {
+              highlights['love'] = MonthHighlightData(
+                score: monthSummary.highlights!.love!.score,
+                summary: monthSummary.highlights!.love!.summary,
+              );
+            }
+          }
+
+          // v5.0: idiom 변환 (사자성어)
+          MonthIdiomData? idiom;
+          if (monthSummary.idiom != null) {
+            idiom = MonthIdiomData(
+              phrase: monthSummary.idiom!.phrase,
+              meaning: monthSummary.idiom!.meaning,
+            );
+          }
+
           months[monthKey] = MonthData(
             keyword: monthSummary.keyword,
             score: monthSummary.score,
             reading: monthSummary.reading,
             tip: '',
+            highlights: highlights,
+            idiom: idiom,
           );
         } else {
           months[monthKey] = MonthData(
@@ -532,6 +584,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
       }
     }
 
+    debugPrint('[MonthlyScreen] ✅ 생성된 months: ${months.entries.map((e) => "${e.key}:${e.value.keyword}(highlights=${e.value.hasHighlights},idiom=${e.value.hasIdiom})").join(", ")}');
     return months;
   }
 

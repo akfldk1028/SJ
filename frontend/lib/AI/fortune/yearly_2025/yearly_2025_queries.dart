@@ -12,8 +12,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 
 /// 현재 2025 회고 운세 프롬프트 버전
-/// 프롬프트 변경 시 이 값을 업데이트하면 기존 캐시가 자동 무효화됨
-const String kYearly2025FortunePromptVersion = 'V3.1';
+/// @deprecated PromptVersions.yearlyFortune2025 사용
+/// 하위 호환성을 위해 유지
+const String kYearly2025FortunePromptVersion = PromptVersions.yearlyFortune2025;
 
 /// 2025 회고 운세 쿼리 클래스
 class Yearly2025Queries {

@@ -262,7 +262,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         const SizedBox(height: 32),
 
         // 나의 사주 소개
-        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.hasContent) ...[
           _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
           const SizedBox(height: 32),
         ],
@@ -611,7 +611,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         const SizedBox(height: 32),
 
         // 나의 사주 소개
-        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.hasContent) ...[
           _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
           const SizedBox(height: 32),
         ],
@@ -1035,11 +1035,26 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   /// v7.0: 나의 사주 소개 섹션 (카드 스타일)
+  /// v9.0: ilju (일주설명) 필드 추가
   Widget _buildMySajuIntroSection(AppThemeExtension theme, MySajuIntroSection intro) {
+    // ilju와 reading을 조합하여 표시
+    final contentBuffer = StringBuffer();
+
+    // 일주 설명 (있으면 먼저 표시)
+    if (intro.ilju.isNotEmpty) {
+      contentBuffer.writeln('📍 ${intro.ilju}');
+      contentBuffer.writeln('');
+    }
+
+    // 일반 reading
+    if (intro.reading.isNotEmpty) {
+      contentBuffer.write(intro.reading);
+    }
+
     return FortuneSectionCard(
       title: intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
       icon: Icons.person_outline,
-      content: intro.reading,
+      content: contentBuffer.toString().trim(),
       style: CardStyle.elevated,
     );
   }

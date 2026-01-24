@@ -13,8 +13,9 @@ import '../../core/ai_constants.dart';
 import '../common/korea_date_utils.dart';
 
 /// 현재 2026 신년운세 프롬프트 버전
-/// 프롬프트 변경 시 이 값을 업데이트하면 기존 캐시가 자동 무효화됨
-const String kYearly2026FortunePromptVersion = 'V5.1';
+/// @deprecated PromptVersions.yearlyFortune2026 사용
+/// 하위 호환성을 위해 유지
+const String kYearly2026FortunePromptVersion = PromptVersions.yearlyFortune2026;
 
 /// 2026 신년운세 쿼리 클래스
 class Yearly2026Queries {

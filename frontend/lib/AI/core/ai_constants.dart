@@ -514,7 +514,7 @@ abstract class ModelProvider {
 ///
 /// ## 예시
 /// V8.0 → V8.1: 프롬프트 튜닝
-/// V8.1 → V9.0: 새 필드 추가
+/// V9.0: mySajuIntro.ilju 일주설명 추가
 abstract class PromptVersions {
   // ─────────────────────────────────────────────────────────────────────────
   // 평생운세 (saju_base)
@@ -528,19 +528,30 @@ abstract class PromptVersions {
   /// - V8.1: _buildDaeunSection 대운 데이터 형식 호환성 수정
   ///         DB 형식(camelCase)과 legacy 형식(snake_case) 모두 지원
   ///         대운 목록을 테이블 형식으로 AI에게 전달
-  static const String sajuBase = 'V8.1';
+  /// - V9.0 (2026-01-24): mySajuIntro에 ilju(일주설명) 필드 추가
+  ///         일간+일지 조합의 의미를 초보자도 쉽게 이해할 수 있게 설명
+  static const String sajuBase = 'V9.0';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)
   // ─────────────────────────────────────────────────────────────────────────
   /// 일운 프롬프트 버전
-  static const String dailyFortune = 'V1.0';
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V2.0: 구조 개선
+  static const String dailyFortune = 'V2.0';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 월운 (monthly_fortune)
   // ─────────────────────────────────────────────────────────────────────────
   /// 월운 프롬프트 버전
-  static const String monthlyFortune = 'V1.0';
+  ///
+  /// [히스토리]
+  /// - V4.0: 12개월 통합 구조 (기본 데이터만)
+  /// - V5.0 (2026-01-24): 12개월 확장 - highlights(career/wealth/love), lucky, reading 6-8문장
+  /// - V5.1 (2026-01-24): lucky 제거, business 추가, idiom(사자성어) 추가
+  static const String monthlyFortune = 'V5.1';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 년운 (yearly_fortune)
@@ -552,11 +563,19 @@ abstract class PromptVersions {
   // 2026 신년운세
   // ─────────────────────────────────────────────────────────────────────────
   /// 2026 신년운세 프롬프트 버전
-  static const String yearlyFortune2026 = 'V1.0';
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V5.1: 구조 확장
+  static const String yearlyFortune2026 = 'V5.1';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2025 회고
   // ─────────────────────────────────────────────────────────────────────────
   /// 2025 회고 프롬프트 버전
-  static const String yearlyFortune2025 = 'V1.0';
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V3.1: 구조 확장
+  static const String yearlyFortune2025 = 'V3.1';
 }

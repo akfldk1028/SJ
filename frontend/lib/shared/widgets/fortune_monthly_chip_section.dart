@@ -16,7 +16,29 @@ class CategoryData {
   });
 }
 
-/// 월별 데이터 인터페이스
+/// v5.0: 월별 하이라이트 데이터 (career/business/wealth/love)
+class MonthHighlightData {
+  final int score;
+  final String summary;
+
+  const MonthHighlightData({
+    required this.score,
+    required this.summary,
+  });
+}
+
+/// v5.0: 월별 사자성어 데이터
+class MonthIdiomData {
+  final String phrase;
+  final String meaning;
+
+  const MonthIdiomData({
+    required this.phrase,
+    required this.meaning,
+  });
+}
+
+/// 월별 데이터 인터페이스 (v5.0: highlights, idiom 포함)
 class MonthData {
   final String keyword;
   final int score;
@@ -24,6 +46,10 @@ class MonthData {
   final String tip;
   /// v5.0: 7개 카테고리 상세 데이터 (광고 해금 후 로드)
   final Map<String, CategoryData>? categories;
+  /// v5.0: 4개 하이라이트 (career/business/wealth/love) - 광고 해금 전에도 표시
+  final Map<String, MonthHighlightData>? highlights;
+  /// v5.0: 사자성어 정보 - 광고 해금 전에도 표시
+  final MonthIdiomData? idiom;
   /// 상세 데이터 로딩 중 플래그
   final bool isLoading;
 
@@ -33,11 +59,19 @@ class MonthData {
     this.reading = '',
     this.tip = '',
     this.categories,
+    this.highlights,
+    this.idiom,
     this.isLoading = false,
   });
 
   /// 카테고리 데이터가 있는지 확인
   bool get hasCategories => categories != null && categories!.isNotEmpty;
+
+  /// v5.0: 하이라이트 데이터가 있는지 확인
+  bool get hasHighlights => highlights != null && highlights!.isNotEmpty;
+
+  /// v5.0: 사자성어 데이터가 있는지 확인
+  bool get hasIdiom => idiom != null && idiom!.phrase.isNotEmpty;
 
   /// 로딩 중 상태로 복사
   MonthData copyWithLoading(bool loading) {
@@ -47,6 +81,8 @@ class MonthData {
       reading: reading,
       tip: tip,
       categories: categories,
+      highlights: highlights,
+      idiom: idiom,
       isLoading: loading,
     );
   }
@@ -59,6 +95,8 @@ class MonthData {
       reading: reading,
       tip: tip,
       categories: newCategories,
+      highlights: highlights,
+      idiom: idiom,
       isLoading: false,
     );
   }
@@ -406,12 +444,36 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
             const SizedBox(height: 16),
           ],
 
-          // v5.0: 카테고리별 운세 (상세 데이터가 있을 때)
+          // v5.0: 사자성어 - 가장 먼저 표시
+          if (month.hasIdiom) ...[
+            _buildIdiomCard(theme, month.idiom!),
+            const SizedBox(height: 16),
+          ],
+
+          // v5.0: 하이라이트 (career/business/wealth/love) - 광고 해금 전에도 표시
+          if (month.hasHighlights) ...[
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              '분야별 요약',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: theme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...month.highlights!.entries.map((entry) {
+              return _buildHighlightCard(theme, entry.key, entry.value);
+            }),
+          ],
+
+          // v5.0: 카테고리별 운세 (상세 데이터가 있을 때 - API 호출 후)
           if (month.hasCategories) ...[
             const Divider(),
             const SizedBox(height: 12),
             Text(
-              '분야별 운세',
+              '분야별 상세 운세',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -564,11 +626,159 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
     return names[key] ?? key;
   }
 
+  /// v5.0: 하이라이트 카드 아이콘 가져오기
+  IconData _getHighlightIcon(String key) {
+    const icons = {
+      'career': Icons.work_outline,
+      'business': Icons.business_center_outlined,
+      'wealth': Icons.account_balance_wallet_outlined,
+      'love': Icons.favorite_outline,
+    };
+    return icons[key] ?? Icons.star_outline;
+  }
+
   Color _getScoreColor(int score) {
     if (score >= 80) return Colors.green;
     if (score >= 60) return Colors.blue;
     if (score >= 40) return Colors.orange;
     return Colors.red;
+  }
+
+  /// v5.0: 하이라이트 카드 빌드
+  Widget _buildHighlightCard(AppThemeExtension theme, String key, MonthHighlightData highlight) {
+    final categoryName = _getCategoryName(key);
+    final icon = _getHighlightIcon(key);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.textMuted.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 아이콘
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: theme.primaryColor),
+          ),
+          const SizedBox(width: 12),
+          // 내용
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      categoryName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (highlight.score > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getScoreColor(highlight.score).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${highlight.score}점',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _getScoreColor(highlight.score),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                if (highlight.summary.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    highlight.summary,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// v5.0: 사자성어 카드 빌드
+  Widget _buildIdiomCard(AppThemeExtension theme, MonthIdiomData idiom) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.primaryColor.withValues(alpha: 0.12),
+            theme.primaryColor.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.primaryColor.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.format_quote, size: 20, color: theme.primaryColor),
+              const SizedBox(width: 8),
+              Text(
+                '이달의 사자성어',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: theme.primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            idiom.phrase,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: theme.textPrimary,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            idiom.meaning,
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _onChipTap(String monthKey, bool isUnlocked) async {
