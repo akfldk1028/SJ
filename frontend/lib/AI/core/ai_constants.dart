@@ -470,9 +470,10 @@ abstract class TokenLimits {
   /// - 상세한 연간 전망 (3072 → 8192)
   static const int yearlyFortuneMaxTokens = 8192;
 
-  /// 질문 응답: 4096 토큰
-  /// - 답변 (1024 → 4096)
-  static const int questionAnswerMaxTokens = 4096;
+  /// 질문 응답 (채팅): 2048 토큰
+  /// - 적당한 답변 (4096 → 2048)
+  /// - 약 1000-1500자, 5-10문장 정도
+  static const int questionAnswerMaxTokens = 2048;
 
   /// 궁합: 8192 토큰
   /// - (3072 → 8192)
@@ -491,4 +492,111 @@ abstract class ModelProvider {
   static const String openai = 'openai';
   static const String google = 'google';
   static const String anthropic = 'anthropic';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 프롬프트 버전 (캐시 무효화용)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// 프롬프트 버전 관리
+///
+/// ## 목적
+/// - 프롬프트 변경 시 기존 캐시 자동 무효화
+/// - DB `ai_summaries.prompt_version` 컬럼과 비교
+///
+/// ## 사용법
+/// 1. 프롬프트 수정 후 해당 버전 상수 증가
+/// 2. 앱 배포 시 기존 캐시 자동 무효화
+/// 3. 사용자가 앱 열면 AI 재생성 트리거
+///
+/// ## 버전 규칙
+/// - Major: 구조 변경 (필드 추가/삭제)
+/// - Minor: 내용 개선 (프롬프트 튜닝)
+///
+/// ## 예시
+/// V8.0 → V8.1: 프롬프트 튜닝
+/// V9.0: mySajuIntro.ilju 일주설명 추가
+abstract class PromptVersions {
+  // ─────────────────────────────────────────────────────────────────────────
+  // 평생운세 (saju_base)
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 평생운세 프롬프트 버전
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V8.0: my_saju_characters 8글자 설명 추가
+  ///         peak_years, daeun_detail, sinsal_gilseong 필드 추가
+  /// - V8.1: _buildDaeunSection 대운 데이터 형식 호환성 수정
+  ///         DB 형식(camelCase)과 legacy 형식(snake_case) 모두 지원
+  ///         대운 목록을 테이블 형식으로 AI에게 전달
+  /// - V9.0 (2026-01-24): mySajuIntro에 ilju(일주설명) 필드 추가
+  ///         일간+일지 조합의 의미를 초보자도 쉽게 이해할 수 있게 설명
+  /// - V9.1 (2026-01-24): 캐시 무효화 (V9.0 데이터에 mySajuIntro/my_saju_characters 누락)
+  /// - V9.2 (2026-01-24): Phase 1 프롬프트에 mySajuIntro/my_saju_characters 추가
+  ///         (Phase 분할 분석 시 누락 문제 해결)
+  /// - V9.3 (2026-01-24): Phase 3 프롬프트 _buildDaeunSection 수정
+  ///         DB 형식(camelCase, pillar)과 legacy 형식(snake_case, gan/ji) 모두 지원
+  ///         대운 "미상" 문제 해결 - AI에게 실제 대운 간지/나이 정보 전달
+  /// - V9.4 (2026-01-24): 카테고리별 상세 필드 전체 매핑 (DB 필드 100% UI 표시)
+  ///         직업운: workStyle, leadershipPotential
+  ///         연애운: datingPattern, attractionStyle, idealPartnerTraits
+  ///         재물운: overallTendency, earningStyle, spendingTendency, investmentAptitude
+  ///         사업운: entrepreneurshipAptitude, businessPartnerTraits
+  ///         결혼운: spousePalaceAnalysis, spouseCharacteristics, marriedLifeTendency
+  ///         건강운: mentalHealth, lifestyleAdvice
+  /// - V9.5 (2026-01-24): Phase maxTokens 대폭 확장 (JSON 잘림 방지)
+  ///         Phase 1: 6000 → 10000
+  ///         Phase 2: 4000 → 8000 (결혼운 잘림 해결)
+  ///         Phase 3: 5000 → 10000
+  ///         Phase 4: 4000 → 8000
+  static const String sajuBase = 'V9.5';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 일운 (daily_fortune)
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 일운 프롬프트 버전
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V2.0: 구조 개선
+  /// - V2.1 (2026-01-24): 사자성어(idiom) 다양화 - 하드코딩된 "마부위침" 제거
+  ///         AI가 사주 특성과 오늘 기운에 맞는 사자성어를 매번 다르게 생성
+  static const String dailyFortune = 'V2.1';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 월운 (monthly_fortune)
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 월운 프롬프트 버전
+  ///
+  /// [히스토리]
+  /// - V4.0: 12개월 통합 구조 (기본 데이터만)
+  /// - V5.0 (2026-01-24): 12개월 확장 - highlights(career/wealth/love), lucky, reading 6-8문장
+  /// - V5.1 (2026-01-24): lucky 제거, business 추가, idiom(사자성어) 추가
+  static const String monthlyFortune = 'V5.1';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 년운 (yearly_fortune)
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 년운 프롬프트 버전
+  static const String yearlyFortune = 'V1.0';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 2026 신년운세
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 2026 신년운세 프롬프트 버전
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V5.1: 구조 확장
+  static const String yearlyFortune2026 = 'V5.1';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 2025 회고
+  // ─────────────────────────────────────────────────────────────────────────
+  /// 2025 회고 프롬프트 버전
+  ///
+  /// [히스토리]
+  /// - V1.0: 초기 버전
+  /// - V3.1: 구조 확장
+  static const String yearlyFortune2025 = 'V3.1';
 }

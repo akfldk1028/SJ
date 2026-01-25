@@ -56,7 +56,7 @@ class SajuProfileRepository {
         .from(_tableName)
         .select()
         .eq('user_id', userId)
-        .order('is_primary', ascending: false)
+        .order('profile_type', ascending: true) // 'primary' < 'other' 정렬 (primary 먼저)
         .order('created_at', ascending: false);
 
     return (response as List)
@@ -89,7 +89,7 @@ class SajuProfileRepository {
         .from(_tableName)
         .select()
         .eq('user_id', userId)
-        .eq('is_primary', true)
+        .eq('profile_type', 'primary')
         .maybeSingle();
 
     if (response == null) return null;
@@ -127,9 +127,9 @@ class SajuProfileRepository {
     if (_client == null) return;
     await _client
         .from(_tableName)
-        .update({'is_primary': true})
+        .update({'profile_type': 'primary'})
         .eq('id', profileId);
-    // 트리거가 자동으로 다른 프로필의 is_primary를 false로 변경
+    // Note: 기존 primary 프로필을 'other'로 변경하는 로직 필요시 추가
   }
 
   // ============================================================
@@ -164,7 +164,7 @@ class SajuProfileRepository {
       'birth_city': profile.birthCity,
       'time_correction': profile.timeCorrection,
       'use_ya_jasi': profile.useYaJasi,
-      'is_primary': profile.isActive, // isActive → is_primary
+      'profile_type': profile.isActive ? 'primary' : 'other', // isActive → profile_type
       'created_at': profile.createdAt.toIso8601String(),
       'updated_at': profile.updatedAt.toIso8601String(),
     };
@@ -198,7 +198,7 @@ class SajuProfileRepository {
       birthCity: birthCity,
       timeCorrection: map['time_correction'] as int? ?? 0,
       useYaJasi: map['use_ya_jasi'] as bool? ?? true,
-      isActive: map['is_primary'] as bool? ?? false, // is_primary → isActive
+      isActive: (map['profile_type'] as String?) == 'primary', // profile_type → isActive
       createdAt: createdAtStr != null
           ? DateTime.parse(createdAtStr)
           : DateTime.now(),

@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/twelve_sinsal.dart';
 import '../../domain/services/gilseong_service.dart';
 
@@ -121,6 +122,7 @@ class GilseongRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     // 시/일/월/년 순서로 표시 (포스텔러 스타일)
     final pillars = [
       result.hourResult,
@@ -132,9 +134,9 @@ class GilseongRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +150,7 @@ class GilseongRow extends StatelessWidget {
                 child: Text(
                   '길성',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: theme.textMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -157,22 +159,22 @@ class GilseongRow extends StatelessWidget {
             ),
           // 각 기둥별 신살
           ...pillars.map((pillar) => Expanded(
-                child: _buildPillarSinsals(pillar),
+                child: _buildPillarSinsals(pillar, theme),
               )),
         ],
       ),
     );
   }
 
-  Widget _buildPillarSinsals(PillarGilseongResult? pillar) {
+  Widget _buildPillarSinsals(PillarGilseongResult? pillar, AppThemeExtension theme) {
     if (pillar == null || !pillar.hasSinsals) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
             '-',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 12,
             ),
           ),
@@ -227,42 +229,43 @@ class SinsalGilseongTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 헤더: "신살과 길성"
-          _buildHeader(),
+          _buildHeader(theme),
           // 전체 신살 목록 (가로 스크롤)
-          _buildAllSinsalList(),
-          const Divider(height: 1, color: AppColors.border),
+          _buildAllSinsalList(theme),
+          Divider(height: 1, color: theme.border),
           // 테이블
-          _buildTable(),
+          _buildTable(theme),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHover,
+        color: theme.surfaceHover,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.auto_awesome, size: 18, color: AppColors.accent),
+          Icon(Icons.auto_awesome, size: 18, color: theme.primaryColor),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             '신살과 길성',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: theme.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -272,7 +275,7 @@ class SinsalGilseongTable extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
@@ -303,14 +306,14 @@ class SinsalGilseongTable extends StatelessWidget {
     );
   }
 
-  Widget _buildAllSinsalList() {
+  Widget _buildAllSinsalList(AppThemeExtension theme) {
     if (gilseongResult.allUniqueSinsals.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
+      return Padding(
+        padding: const EdgeInsets.all(12),
         child: Text(
           '특수 신살 없음',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: 12,
           ),
         ),
@@ -334,7 +337,7 @@ class SinsalGilseongTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTable() {
+  Widget _buildTable(AppThemeExtension theme) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Table(
@@ -348,40 +351,40 @@ class SinsalGilseongTable extends StatelessWidget {
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
           // 헤더 행
-          _buildTableHeader(),
+          _buildTableHeader(theme),
           // 천간 행
-          _buildGanRow(),
+          _buildGanRow(theme),
           // 천간 길성 행 (포스텔러 스타일)
-          _buildGanGilseongRow(),
+          _buildGanGilseongRow(theme),
           // 지지 행
-          _buildJiRow(),
+          _buildJiRow(theme),
           // 지지 길성 행 (포스텔러 스타일)
-          _buildJiGilseongRow(),
+          _buildJiGilseongRow(theme),
         ],
       ),
     );
   }
 
-  TableRow _buildTableHeader() {
+  TableRow _buildTableHeader(AppThemeExtension theme) {
     return TableRow(
       children: [
         const SizedBox(height: 32),
-        _buildHeaderCell('시주'),
-        _buildHeaderCell('일주'),
-        _buildHeaderCell('월주'),
-        _buildHeaderCell('년주'),
+        _buildHeaderCell('시주', theme),
+        _buildHeaderCell('일주', theme),
+        _buildHeaderCell('월주', theme),
+        _buildHeaderCell('년주', theme),
       ],
     );
   }
 
-  Widget _buildHeaderCell(String text) {
+  Widget _buildHeaderCell(String text, AppThemeExtension theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Text(
           text,
-          style: const TextStyle(
-            color: AppColors.textMuted,
+          style: TextStyle(
+            color: theme.textMuted,
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -390,38 +393,38 @@ class SinsalGilseongTable extends StatelessWidget {
     );
   }
 
-  TableRow _buildGanRow() {
+  TableRow _buildGanRow(AppThemeExtension theme) {
     return TableRow(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.5),
+        color: theme.surface.withValues(alpha: 0.5),
       ),
       children: [
-        _buildRowLabel('천간'),
-        _buildGanCell(hourGan),
-        _buildGanCell(dayGan),
-        _buildGanCell(monthGan),
-        _buildGanCell(yearGan),
+        _buildRowLabel('천간', theme),
+        _buildGanCell(hourGan, theme),
+        _buildGanCell(dayGan, theme),
+        _buildGanCell(monthGan, theme),
+        _buildGanCell(yearGan, theme),
       ],
     );
   }
 
-  Widget _buildRowLabel(String text) {
+  Widget _buildRowLabel(String text, AppThemeExtension theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Text(
         text,
-        style: const TextStyle(
-          color: AppColors.textMuted,
+        style: TextStyle(
+          color: theme.textMuted,
           fontSize: 10,
         ),
       ),
     );
   }
 
-  Widget _buildGanCell(String? gan) {
+  Widget _buildGanCell(String? gan, AppThemeExtension theme) {
     if (gan == null) {
-      return const Center(
-        child: Text('-', style: TextStyle(color: AppColors.textMuted)),
+      return Center(
+        child: Text('-', style: TextStyle(color: theme.textMuted)),
       );
     }
     return Center(
@@ -429,14 +432,14 @@ class SinsalGilseongTable extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: AppColors.surfaceHover,
+          color: theme.surfaceHover,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Center(
           child: Text(
             gan,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: theme.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -446,22 +449,22 @@ class SinsalGilseongTable extends StatelessWidget {
     );
   }
 
-  TableRow _buildJiRow() {
+  TableRow _buildJiRow(AppThemeExtension theme) {
     return TableRow(
       children: [
-        _buildRowLabel('지지'),
-        _buildJiCell(hourJi),
-        _buildJiCell(dayJi),
-        _buildJiCell(monthJi),
-        _buildJiCell(yearJi),
+        _buildRowLabel('지지', theme),
+        _buildJiCell(hourJi, theme),
+        _buildJiCell(dayJi, theme),
+        _buildJiCell(monthJi, theme),
+        _buildJiCell(yearJi, theme),
       ],
     );
   }
 
-  Widget _buildJiCell(String? ji) {
+  Widget _buildJiCell(String? ji, AppThemeExtension theme) {
     if (ji == null) {
-      return const Center(
-        child: Text('-', style: TextStyle(color: AppColors.textMuted)),
+      return Center(
+        child: Text('-', style: TextStyle(color: theme.textMuted)),
       );
     }
     return Center(
@@ -469,14 +472,14 @@ class SinsalGilseongTable extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: AppColors.surfaceHover,
+          color: theme.surfaceHover,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Center(
           child: Text(
             ji,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: theme.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -487,7 +490,7 @@ class SinsalGilseongTable extends StatelessWidget {
   }
 
   /// 천간 길성 행 (포스텔러 스타일)
-  TableRow _buildGanGilseongRow() {
+  TableRow _buildGanGilseongRow(AppThemeExtension theme) {
     final pillars = [
       gilseongResult.hourResult,
       gilseongResult.dayResult,
@@ -497,17 +500,17 @@ class SinsalGilseongTable extends StatelessWidget {
 
     return TableRow(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.3),
+        color: theme.surface.withValues(alpha: 0.3),
       ),
       children: [
-        _buildRowLabel('길성'),
-        ...pillars.map((p) => _buildGanGilseongCell(p)),
+        _buildRowLabel('길성', theme),
+        ...pillars.map((p) => _buildGanGilseongCell(p, theme)),
       ],
     );
   }
 
   /// 지지 길성 행 (포스텔러 스타일)
-  TableRow _buildJiGilseongRow() {
+  TableRow _buildJiGilseongRow(AppThemeExtension theme) {
     final pillars = [
       gilseongResult.hourResult,
       gilseongResult.dayResult,
@@ -517,23 +520,23 @@ class SinsalGilseongTable extends StatelessWidget {
 
     return TableRow(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.3),
+        color: theme.surface.withValues(alpha: 0.3),
       ),
       children: [
-        _buildRowLabel('길성'),
-        ...pillars.map((p) => _buildJiGilseongCell(p)),
+        _buildRowLabel('길성', theme),
+        ...pillars.map((p) => _buildJiGilseongCell(p, theme)),
       ],
     );
   }
 
   /// 천간 길성 셀 (천간에서 작용하는 신살만 표시)
-  Widget _buildGanGilseongCell(PillarGilseongResult? pillar) {
+  Widget _buildGanGilseongCell(PillarGilseongResult? pillar, AppThemeExtension theme) {
     if (pillar == null || !pillar.hasGanSinsals) {
-      return const Center(
+      return Center(
         child: Text(
           '×',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: 12,
           ),
         ),
@@ -558,13 +561,13 @@ class SinsalGilseongTable extends StatelessWidget {
   }
 
   /// 지지 길성 셀 (지지에서 작용하는 신살만 표시)
-  Widget _buildJiGilseongCell(PillarGilseongResult? pillar) {
+  Widget _buildJiGilseongCell(PillarGilseongResult? pillar, AppThemeExtension theme) {
     if (pillar == null || !pillar.hasJiSinsals) {
-      return const Center(
+      return Center(
         child: Text(
           '×',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: 12,
           ),
         ),
@@ -601,12 +604,13 @@ class GilseongSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,12 +618,12 @@ class GilseongSummaryCard extends StatelessWidget {
           // 헤더
           Row(
             children: [
-              const Icon(Icons.stars, size: 16, color: AppColors.accent),
+              Icon(Icons.stars, size: 16, color: theme.primaryColor),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '특수 신살',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -628,8 +632,8 @@ class GilseongSummaryCard extends StatelessWidget {
               // 개수
               Text(
                 '${result.allUniqueSinsals.length}개',
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: theme.textMuted,
                   fontSize: 11,
                 ),
               ),
@@ -638,10 +642,10 @@ class GilseongSummaryCard extends StatelessWidget {
           const SizedBox(height: 8),
           // 신살 목록
           if (result.allUniqueSinsals.isEmpty)
-            const Text(
+            Text(
               '특수 신살 없음',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 12,
               ),
             )
@@ -680,6 +684,7 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     // 표시할 특수 상태가 있는지 확인
     final hasSpecialInfo = result.hasHyosinsal ||
         (isMale && result.hasGosinsal) ||
@@ -694,9 +699,9 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -704,12 +709,12 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
           // 헤더
           Row(
             children: [
-              Icon(Icons.info_outline, size: 16, color: AppColors.accent),
+              Icon(Icons.info_outline, size: 16, color: theme.primaryColor),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '특수 상태',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),

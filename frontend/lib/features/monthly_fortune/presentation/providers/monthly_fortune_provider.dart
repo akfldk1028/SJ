@@ -9,7 +9,12 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'monthly_fortune_provider.g.dart';
 
-/// 월별 운세 데이터 모델 (v4.0: 12개월 통합)
+/// 월별 운세 데이터 모델 (v5.0: 12개월 확장)
+///
+/// ## v5.0 변경사항 (2026-01-24)
+/// - 각 월별 데이터에 highlights (career/wealth/love) 추가
+/// - 각 월별 데이터에 lucky (color/number) 추가
+/// - reading 확장: 3-4문장 → 6-8문장
 class MonthlyFortuneData {
   final int year;
   final int month;
@@ -18,7 +23,7 @@ class MonthlyFortuneData {
   final Map<String, CategorySection> categories;
   final LuckySection lucky;
   final String closingMessage;
-  /// v4.0: 12개월 요약 데이터
+  /// v5.0: 12개월 확장 데이터 (highlights, lucky 포함)
   final Map<String, MonthSummary> months;
 
   const MonthlyFortuneData({
@@ -32,10 +37,14 @@ class MonthlyFortuneData {
     required this.months,
   });
 
-  /// AI 응답 JSON에서 파싱 (v4.0: 12개월 통합 구조)
+  /// AI 응답 JSON에서 파싱 (v5.0: 12개월 확장 구조)
   factory MonthlyFortuneData.fromJson(Map<String, dynamic> json) {
-    // v4.0: current 섹션에서 현재 월 데이터 파싱
+    print('[MonthlyFortuneData] 🔍 fromJson 시작');
+    print('[MonthlyFortuneData] json.keys=${json.keys.toList()}');
+
+    // v5.0: current 섹션에서 현재 월 데이터 파싱
     final currentJson = json['current'] as Map<String, dynamic>? ?? json;
+    print('[MonthlyFortuneData] currentJson.keys=${currentJson.keys.toList()}');
     final overviewJson = currentJson['overview'] as Map<String, dynamic>? ?? json['overview'] as Map<String, dynamic>? ?? {};
 
     final overview = OverviewSection(
@@ -61,8 +70,11 @@ class MonthlyFortuneData {
       );
     }
 
-    // v4.0: lucky가 current.lucky 안에 있거나 루트에 있음
-    final luckyJson = currentJson['lucky'] as Map<String, dynamic>? ?? json['lucky'] as Map<String, dynamic>? ?? {};
+    // v5.2: lucky가 current.categories.lucky 안에 있거나 current.lucky에 있음
+    final luckyJson = categoriesJson['lucky'] as Map<String, dynamic>?
+        ?? currentJson['lucky'] as Map<String, dynamic>?
+        ?? json['lucky'] as Map<String, dynamic>?
+        ?? {};
     final lucky = LuckySection(
       colors: _parseStringList(luckyJson['colors']),
       numbers: _parseIntList(luckyJson['numbers']),
@@ -70,20 +82,24 @@ class MonthlyFortuneData {
       tip: luckyJson['tip'] as String? ?? '',
     );
 
-    // v4.0: 12개월 요약 데이터 파싱
-    final monthsJson = json['months'] as Map<String, dynamic>? ?? {};
+    // v5.0: 12개월 확장 데이터 파싱 (highlights, lucky 포함)
+    // v5.2: months는 current 안에 있음! (content.current.months.month1 구조)
+    final monthsJson = currentJson['months'] as Map<String, dynamic>? ?? json['months'] as Map<String, dynamic>? ?? {};
     final months = <String, MonthSummary>{};
+    print('[MonthlyFortuneData] 🔍 fromJson: monthsJson.keys=${monthsJson.keys.toList()}');
     for (int i = 1; i <= 12; i++) {
       final monthKey = 'month$i';
       final monthJson = monthsJson[monthKey] as Map<String, dynamic>?;
       if (monthJson != null) {
-        months[monthKey] = MonthSummary(
-          keyword: monthJson['keyword'] as String? ?? '',
-          score: (monthJson['score'] as num?)?.toInt() ?? 0,
-          reading: monthJson['reading'] as String? ?? '',
-        );
+        final hasHighlights = monthJson['highlights'] != null;
+        final hasLucky = monthJson['lucky'] != null;
+        print('[MonthlyFortuneData] $monthKey 파싱: keyword=${monthJson['keyword']}, highlights=$hasHighlights, lucky=$hasLucky');
+        months[monthKey] = MonthSummary.fromJson(monthJson);
+      } else {
+        print('[MonthlyFortuneData] $monthKey: monthJson이 null!');
       }
     }
+    print('[MonthlyFortuneData] ✅ 파싱 완료: months.length=${months.length}');
 
     // closing 파싱 (v4.0: closingMessage가 루트에 있거나 closing.message에 있음)
     final closingMessage = json['closingMessage'] as String? ??
@@ -156,17 +172,109 @@ class CategorySection {
   });
 }
 
-/// 월별 요약 데이터 (v4.0: 12개월 통합)
+/// 월별 요약 데이터 (v5.0: 12개월 확장 - highlights, idiom 포함)
 class MonthSummary {
   final String keyword;
   final int score;
   final String reading;
+  /// v5.0: 카테고리별 하이라이트 (career, business, wealth, love)
+  final MonthHighlights? highlights;
+  /// v5.0: 사자성어
+  final MonthIdiom? idiom;
 
   const MonthSummary({
     required this.keyword,
     required this.score,
     required this.reading,
+    this.highlights,
+    this.idiom,
   });
+
+  /// JSON에서 파싱 (v5.0)
+  factory MonthSummary.fromJson(Map<String, dynamic> json) {
+    return MonthSummary(
+      keyword: json['keyword'] as String? ?? '',
+      score: (json['score'] as num?)?.toInt() ?? 0,
+      reading: json['reading'] as String? ?? '',
+      highlights: json['highlights'] != null
+          ? MonthHighlights.fromJson(json['highlights'] as Map<String, dynamic>)
+          : null,
+      idiom: json['idiom'] != null
+          ? MonthIdiom.fromJson(json['idiom'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  /// 카테고리 데이터가 있는지 (광고 해금 후 표시 여부)
+  bool get hasCategories => highlights != null;
+}
+
+/// v5.0: 월별 카테고리 하이라이트 (career, business, wealth, love)
+class MonthHighlights {
+  final MonthHighlightItem? career;
+  final MonthHighlightItem? business;
+  final MonthHighlightItem? wealth;
+  final MonthHighlightItem? love;
+
+  const MonthHighlights({
+    this.career,
+    this.business,
+    this.wealth,
+    this.love,
+  });
+
+  factory MonthHighlights.fromJson(Map<String, dynamic> json) {
+    return MonthHighlights(
+      career: json['career'] != null
+          ? MonthHighlightItem.fromJson(json['career'] as Map<String, dynamic>)
+          : null,
+      business: json['business'] != null
+          ? MonthHighlightItem.fromJson(json['business'] as Map<String, dynamic>)
+          : null,
+      wealth: json['wealth'] != null
+          ? MonthHighlightItem.fromJson(json['wealth'] as Map<String, dynamic>)
+          : null,
+      love: json['love'] != null
+          ? MonthHighlightItem.fromJson(json['love'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
+
+/// v5.0: 카테고리별 하이라이트 아이템
+class MonthHighlightItem {
+  final int score;
+  final String summary;
+
+  const MonthHighlightItem({
+    required this.score,
+    required this.summary,
+  });
+
+  factory MonthHighlightItem.fromJson(Map<String, dynamic> json) {
+    return MonthHighlightItem(
+      score: (json['score'] as num?)?.toInt() ?? 0,
+      summary: json['summary'] as String? ?? '',
+    );
+  }
+}
+
+/// v5.0: 월별 사자성어
+class MonthIdiom {
+  final String phrase;
+  final String meaning;
+
+  const MonthIdiom({
+    required this.phrase,
+    required this.meaning,
+  });
+
+  factory MonthIdiom.fromJson(Map<String, dynamic> json) {
+    return MonthIdiom(
+      phrase: json['phrase'] as String? ?? '',
+      meaning: json['meaning'] as String? ?? '',
+    );
+  }
 }
 
 /// 행운 섹션

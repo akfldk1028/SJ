@@ -6,9 +6,13 @@ library;
 export 'ad_config.dart';
 export 'ad_strategy.dart';
 
+// Data Layer (Supabase queries/mutations)
+export 'data/ad_data.dart';
+
 // Service
 export 'ad_service.dart';
 export 'ad_tracking_service.dart';
+export 'feature_unlock_service.dart';
 
 // Providers
 export 'providers/ad_provider.dart';

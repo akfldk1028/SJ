@@ -11,6 +11,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/ai_constants.dart';
 
+/// 현재 평생운세(saju_base) 프롬프트 버전
+/// @deprecated PromptVersions.sajuBase 사용
+/// 하위 호환성을 위해 유지
+const String kSajuBasePromptVersion = PromptVersions.sajuBase;
+
 /// 평생운세 쿼리 클래스
 class LifetimeQueries {
   final SupabaseClient _supabase;
@@ -34,6 +39,15 @@ class LifetimeQueries {
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
+
+      if (response == null) return null;
+
+      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      final cachedVersion = response['prompt_version'];
+      if (cachedVersion != kSajuBasePromptVersion) {
+        print('[LifetimeQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kSajuBasePromptVersion');
+        return null;
+      }
 
       // saju_base는 만료 체크 안 함 (무기한)
       return response;

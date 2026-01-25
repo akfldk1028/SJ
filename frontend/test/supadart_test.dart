@@ -134,7 +134,7 @@ void main() {
         expect(SajuProfiles.c_displayName, 'display_name');
         expect(SajuProfiles.c_birthDate, 'birth_date');
         expect(SajuProfiles.c_birthTimeMinutes, 'birth_time_minutes');
-        expect(SajuProfiles.c_isPrimary, 'is_primary');
+        expect(SajuProfiles.c_profileType, 'profile_type');
       });
 
       test('fromJson should parse correctly', () {
@@ -146,7 +146,7 @@ void main() {
           'birth_time_minutes': 480,
           'gender': 'male',
           'birth_city': '서울',
-          'is_primary': true,
+          'profile_type': 'primary',
         };
 
         final profile = SajuProfiles.fromJson(json);
@@ -155,7 +155,8 @@ void main() {
         expect(profile.userId, 'user-123');
         expect(profile.displayName, '홍길동');
         expect(profile.birthTimeMinutes, 480);
-        expect(profile.isPrimary, true);
+        expect(profile.profileType, 'primary');
+        expect(profile.isPrimary, true); // getter 테스트
       });
     });
 

@@ -2,7 +2,10 @@
 /// 광고 이벤트 추적 및 Supabase 저장을 담당하는 서비스
 library;
 
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/services/supabase_service.dart';
@@ -25,6 +28,27 @@ enum AdEventType {
   rewarded, // 보상 지급
 }
 
+/// 광고 시청 목적
+enum AdPurpose {
+  general, // 일반 광고 (배너, 전면 등)
+  featureUnlock, // 자물쇠 해제 (프리미엄 콘텐츠 언락)
+  tokenBonus, // 토큰 보상 (채팅 중 토큰 충전)
+}
+
+/// AdPurpose 확장
+extension AdPurposeExtension on AdPurpose {
+  String toDbString() {
+    switch (this) {
+      case AdPurpose.general:
+        return 'general';
+      case AdPurpose.featureUnlock:
+        return 'feature_unlock';
+      case AdPurpose.tokenBonus:
+        return 'token_bonus';
+    }
+  }
+}
+
 /// 광고 추적 서비스
 ///
 /// 광고 이벤트를 Supabase에 기록하고 일별 집계를 업데이트
@@ -34,6 +58,30 @@ class AdTrackingService {
 
   SupabaseClient? get _client => SupabaseService.client;
   String? get _userId => SupabaseService.currentUserId;
+
+  // 디바이스 정보 캐시
+  Map<String, dynamic>? _deviceInfoCache;
+
+  /// 디바이스 정보 수집 (한 번만 실행)
+  Future<Map<String, dynamic>> _getDeviceInfo() async {
+    if (_deviceInfoCache != null) return _deviceInfoCache!;
+
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      _deviceInfoCache = {
+        'platform': Platform.isAndroid ? 'android' : 'ios',
+        'os_version': Platform.operatingSystemVersion,
+        'app_version': packageInfo.version,
+        'build_number': packageInfo.buildNumber,
+      };
+    } catch (e) {
+      _deviceInfoCache = {
+        'platform': Platform.isAndroid ? 'android' : 'ios',
+        'error': 'Failed to get device info',
+      };
+    }
+    return _deviceInfoCache!;
+  }
 
   // ==================== 이벤트 추적 ====================
 
@@ -118,19 +166,32 @@ class AdTrackingService {
   }
 
   /// 보상 지급 추적
-  Future<void> trackRewarded({
+  ///
+  /// [rewardAmount] AdMob 보상 금액
+  /// [rewardType] AdMob 보상 타입
+  /// [screen] 화면명 (예: category_yearly_career_2026)
+  /// [profileId] 현재 활성 프로필 ID
+  /// [purpose] 광고 시청 목적 (feature_unlock 또는 token_bonus)
+  ///
+  /// 반환: ad_event ID (feature_unlocks 연결용), 실패 시 null
+  Future<String?> trackRewarded({
     required int rewardAmount,
     required String rewardType,
     String? screen,
+    String? profileId,
+    AdPurpose purpose = AdPurpose.general,
   }) async {
-    await _trackEvent(
+    final adEventId = await _trackEventWithReturn(
       adType: AdType.rewarded,
       eventType: AdEventType.rewarded,
       rewardAmount: rewardAmount,
       rewardType: rewardType,
       screen: screen,
+      profileId: profileId,
+      purpose: purpose,
     );
     await _incrementDailyCounter('rewarded_tokens_earned', increment: rewardAmount);
+    return adEventId;
   }
 
   /// 네이티브 광고 노출 추적
@@ -165,14 +226,41 @@ class AdTrackingService {
     String? rewardType,
     String? screen,
     String? sessionId,
+    String? profileId,
+    AdPurpose purpose = AdPurpose.general,
+  }) async {
+    await _trackEventWithReturn(
+      adType: adType,
+      eventType: eventType,
+      rewardAmount: rewardAmount,
+      rewardType: rewardType,
+      screen: screen,
+      sessionId: sessionId,
+      profileId: profileId,
+      purpose: purpose,
+    );
+  }
+
+  /// 광고 이벤트를 ad_events 테이블에 기록하고 ID 반환
+  Future<String?> _trackEventWithReturn({
+    required AdType adType,
+    required AdEventType eventType,
+    int? rewardAmount,
+    String? rewardType,
+    String? screen,
+    String? sessionId,
+    String? profileId,
+    AdPurpose purpose = AdPurpose.general,
   }) async {
     if (_client == null || _userId == null) {
       debugPrint('[AdTracking] Supabase not connected, skipping event tracking');
-      return;
+      return null;
     }
 
     try {
-      await _client!.from('ad_events').insert({
+      final deviceInfo = await _getDeviceInfo();
+
+      final response = await _client!.from('ad_events').insert({
         'user_id': _userId,
         'ad_type': adType.name,
         'event_type': eventType.name,
@@ -180,11 +268,17 @@ class AdTrackingService {
         'reward_type': rewardType,
         'screen': screen,
         'session_id': sessionId,
-      });
+        'profile_id': profileId,
+        'device_info': deviceInfo,
+        'purpose': purpose.toDbString(),
+      }).select('id').single();
 
-      debugPrint('[AdTracking] Event tracked: ${adType.name} - ${eventType.name}');
+      final adEventId = response['id'] as String?;
+      debugPrint('[AdTracking] Event tracked: ${adType.name} - ${eventType.name} - ${purpose.toDbString()} (id: $adEventId)');
+      return adEventId;
     } catch (e) {
       debugPrint('[AdTracking] Failed to track event: $e');
+      return null;
     }
   }
 

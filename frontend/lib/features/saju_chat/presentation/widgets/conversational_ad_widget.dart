@@ -12,6 +12,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../domain/models/ai_persona.dart';
 import '../providers/conversational_ad_provider.dart';
+import '../providers/chat_provider.dart';
 import 'ad_native_bubble.dart';
 import 'ad_transition_bubble.dart';
 import '../../domain/entities/ad_chat_message.dart';
@@ -130,9 +131,23 @@ class ConversationalAdWidget extends ConsumerWidget {
   }
 
   /// 광고 완료 처리
+  ///
+  /// Rewarded 광고를 끝까지 봤을 때만 토큰 충전
+  /// (adWatched: true이고 rewardedTokens가 있는 경우)
   void _handleAdComplete(WidgetRef ref) {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    notifier.dismissAd();
+    final adState = ref.read(conversationalAdNotifierProvider);
+    final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
+
+    // Rewarded 광고를 끝까지 봤으면 토큰 충전
+    if (adState.adWatched &&
+        adState.rewardedTokens != null &&
+        adState.rewardedTokens! > 0) {
+      // ChatNotifier에 보너스 토큰 추가
+      ref.read(chatNotifierProvider(sessionId).notifier)
+          .addBonusTokens(adState.rewardedTokens!);
+    }
+
+    adNotifier.dismissAd();
     onAdComplete?.call();
   }
 

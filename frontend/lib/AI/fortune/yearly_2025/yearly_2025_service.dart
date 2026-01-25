@@ -115,6 +115,7 @@ class Yearly2025Service {
         maxTokens: prompt.maxTokens,
         temperature: prompt.temperature,
         userId: userId,
+        taskType: 'yearly_2025', // v29: 병렬 실행 시 task 분리
       );
       print('[Yearly2025Service] 📡 API 응답: success=${apiResponse.success}');
 
@@ -183,7 +184,7 @@ class Yearly2025Service {
     return _queries.exists(profileId);
   }
 
-  /// API 응답 파싱
+  /// API 응답 파싱 + 구조 검증
   Map<String, dynamic>? _parseResponse(String response) {
     try {
       String jsonStr = response;
@@ -198,9 +199,51 @@ class Yearly2025Service {
         }
       }
 
-      return jsonDecode(jsonStr) as Map<String, dynamic>;
+      final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+      // 🔒 v3.1: 2025 회고 운세 구조 검증 (monthly fortune 혼동 방지!)
+      if (!_validateYearly2025Structure(parsed)) {
+        print('[Yearly2025Service] ❌ 응답 구조가 2025 회고 포맷이 아님!');
+        print('[Yearly2025Service] 받은 키: ${parsed.keys.toList()}');
+        return null;
+      }
+
+      return parsed;
     } catch (e) {
+      print('[Yearly2025Service] ❌ JSON 파싱 에러: $e');
       return null;
     }
+  }
+
+  /// 2025 회고 운세 구조 검증
+  /// - 필수 키: year=2025, overview, categories, timeline, lessons
+  /// - 금지 키: months, currentMonth (이건 monthly fortune 포맷!)
+  bool _validateYearly2025Structure(Map<String, dynamic> json) {
+    // 필수 키 확인
+    final requiredKeys = ['year', 'overview', 'categories'];
+    for (final key in requiredKeys) {
+      if (!json.containsKey(key)) {
+        print('[Yearly2025Service] ⚠️ 필수 키 없음: $key');
+        return false;
+      }
+    }
+
+    // year 값 확인 (2025여야 함)
+    final year = json['year'];
+    if (year != 2025) {
+      print('[Yearly2025Service] ⚠️ year가 2025가 아님: $year');
+      return false;
+    }
+
+    // monthly fortune 구조 감지 (이건 잘못된 응답!)
+    final monthlyKeys = ['months', 'currentMonth', 'current'];
+    for (final key in monthlyKeys) {
+      if (json.containsKey(key)) {
+        print('[Yearly2025Service] ⚠️ monthly fortune 키 감지: $key');
+        return false;
+      }
+    }
+
+    return true;
   }
 }

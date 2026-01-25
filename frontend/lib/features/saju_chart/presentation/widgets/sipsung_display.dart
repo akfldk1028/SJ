@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/sipsin_relations.dart';
 
 /// 십성(十星) 표시 위젯
@@ -114,6 +115,7 @@ class SipSungRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Row(
       children: [
         if (label != null) ...[
@@ -122,7 +124,7 @@ class SipSungRow extends StatelessWidget {
             child: Text(
               label!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textMuted,
+                    color: theme.textMuted,
                     fontSize: 10,
                   ),
             ),
@@ -138,7 +140,7 @@ class SipSungRow extends StatelessWidget {
                     : Text(
                         '-',
                         style: TextStyle(
-                          color: AppColors.textMuted,
+                          color: theme.textMuted,
                           fontSize: 10,
                         ),
                       ),
@@ -165,6 +167,7 @@ class SipSungDistributionChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final maxCount = distribution.values.fold<int>(0, (a, b) => a > b ? a : b);
     if (maxCount == 0) {
       return const SizedBox.shrink();
@@ -225,7 +228,7 @@ class SipSungDistributionChart extends StatelessWidget {
                 child: Text(
                   sipsin.korean.substring(0, 1), // 첫 글자만
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textMuted,
+                        color: theme.textMuted,
                         fontSize: 9,
                       ),
                 ),
@@ -290,6 +293,7 @@ class SipSungCategoryChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final total = distribution.values.fold<int>(0, (a, b) => a + b);
     if (total == 0) {
       return const SizedBox.shrink();
@@ -300,9 +304,9 @@ class SipSungCategoryChart extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -313,13 +317,14 @@ class SipSungCategoryChart extends StatelessWidget {
               distribution: distribution,
               maxValue: maxCount > 0 ? maxCount.toDouble() : 4.0,
               colors: _categoryColors,
+              theme: theme,
             ),
           ),
           const SizedBox(height: 20),
           // 구분선
           Container(
             height: 1,
-            color: AppColors.border,
+            color: theme.border,
           ),
           const SizedBox(height: 16),
           // 카테고리 카드 리스트
@@ -332,6 +337,7 @@ class SipSungCategoryChart extends StatelessWidget {
 
             return _buildCategoryCard(
               context,
+              theme: theme,
               category: category,
               count: count,
               ratio: ratio,
@@ -347,6 +353,7 @@ class SipSungCategoryChart extends StatelessWidget {
 
   Widget _buildCategoryCard(
     BuildContext context, {
+    required AppThemeExtension theme,
     required SipSinCategory category,
     required int count,
     required double ratio,
@@ -398,7 +405,7 @@ class SipSungCategoryChart extends StatelessWidget {
                 Text(
                   description,
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: theme.textMuted,
                     fontSize: 11,
                   ),
                 ),
@@ -428,7 +435,7 @@ class SipSungCategoryChart extends StatelessWidget {
               Text(
                 '${(ratio * 100).toStringAsFixed(0)}%',
                 style: TextStyle(
-                  color: AppColors.textMuted,
+                  color: theme.textMuted,
                   fontSize: 11,
                 ),
               ),
@@ -445,11 +452,13 @@ class _SipSungRadarChart extends StatelessWidget {
   final Map<SipSinCategory, int> distribution;
   final double maxValue;
   final Map<SipSinCategory, Color> colors;
+  final AppThemeExtension theme;
 
   const _SipSungRadarChart({
     required this.distribution,
     required this.maxValue,
     required this.colors,
+    required this.theme,
   });
 
   @override
@@ -462,6 +471,9 @@ class _SipSungRadarChart extends StatelessWidget {
             .toList(),
         maxValue: maxValue,
         colors: colors,
+        textMuted: theme.textMuted,
+        textPrimary: theme.textPrimary,
+        accentColor: theme.primaryColor,
       ),
     );
   }
@@ -471,6 +483,9 @@ class _SipSungRadarPainter extends CustomPainter {
   final List<double> values;
   final double maxValue;
   final Map<SipSinCategory, Color> colors;
+  final Color textMuted;
+  final Color textPrimary;
+  final Color accentColor;
 
   static const labels = ['비겁', '식상', '재성', '관성', '인성'];
 
@@ -478,6 +493,9 @@ class _SipSungRadarPainter extends CustomPainter {
     required this.values,
     required this.maxValue,
     required this.colors,
+    required this.textMuted,
+    required this.textPrimary,
+    required this.accentColor,
   });
 
   @override
@@ -497,7 +515,7 @@ class _SipSungRadarPainter extends CustomPainter {
     for (int level = 1; level <= 4; level++) {
       final levelRadius = radius * (level / 4);
       final bgPaint = Paint()
-        ..color = AppColors.textMuted.withOpacity(level == 4 ? 0.2 : 0.08)
+        ..color = textMuted.withOpacity(level == 4 ? 0.2 : 0.08)
         ..style = PaintingStyle.stroke
         ..strokeWidth = level == 4 ? 1.5 : 1;
       _drawPentagon(canvas, center, levelRadius, bgPaint);
@@ -505,7 +523,7 @@ class _SipSungRadarPainter extends CustomPainter {
 
     // 축선
     final axisPaint = Paint()
-      ..color = AppColors.textMuted.withOpacity(0.15)
+      ..color = textMuted.withOpacity(0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -521,10 +539,10 @@ class _SipSungRadarPainter extends CustomPainter {
     // 데이터 오각형 (그라데이션 효과)
     final dataPath = Path();
     final dataFillPaint = Paint()
-      ..color = AppColors.accent.withOpacity(0.2)
+      ..color = accentColor.withOpacity(0.2)
       ..style = PaintingStyle.fill;
     final dataStrokePaint = Paint()
-      ..color = AppColors.accent
+      ..color = accentColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
@@ -593,7 +611,7 @@ class _SipSungRadarPainter extends CustomPainter {
       final valueSpan = TextSpan(
         text: '${values[i].toInt()}',
         style: TextStyle(
-          color: AppColors.textPrimary,
+          color: textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w800,
         ),

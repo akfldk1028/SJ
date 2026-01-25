@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/services/supabase_service.dart';
 import '../../../../AI/core/ai_logger.dart';
+import '../../../../AI/core/ai_constants.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
 import '../services/sse_stream_client.dart';
@@ -119,6 +120,49 @@ class GeminiEdgeDatasource {
     }
   }
 
+  /// 기존 세션 복원 (앱 백그라운드 → 포그라운드 복귀 시)
+  ///
+  /// - 시스템 프롬프트 재설정
+  /// - 대화 기록 복원 (Gemini 히스토리 동기화)
+  /// - _isNewSession = true로 설정하여 첫 메시지에 사주 정보 포함
+  void restoreSession(String systemPrompt, {List<Map<String, dynamic>>? messages}) {
+    _systemPrompt = systemPrompt;
+    _windowManager.setSystemPrompt(systemPrompt);
+    _isNewSession = true; // 복원 후 첫 메시지에 사주 정보 포함!
+
+    // 대화 히스토리 복원 (Gemini 포맷)
+    if (messages != null && messages.isNotEmpty) {
+      _conversationHistory.clear();
+      _conversationHistory.addAll(messages);
+      if (kDebugMode) {
+        print('[GeminiEdge] 대화 히스토리 복원: ${messages.length}개 메시지');
+      }
+    }
+
+    if (kDebugMode) {
+      final promptTokens = TokenCounter.estimateSystemPromptTokens(systemPrompt);
+      print('[GeminiEdge] 세션 복원, 시스템 프롬프트 토큰: $promptTokens');
+    }
+  }
+
+  /// 보너스 토큰 추가 (광고 시청 시)
+  ///
+  /// 광고를 보면 토큰 한도가 증가하여 이전 대화를 유지하면서 더 대화 가능
+  /// [tokens]: 추가할 토큰 수
+  void addBonusTokens(int tokens) {
+    _windowManager.addBonusTokens(tokens);
+    if (kDebugMode) {
+      final newInfo = getTokenUsageInfo();
+      print('[GeminiEdge] 보너스 토큰 추가: +$tokens');
+      print('[GeminiEdge] 새 토큰 상태: ${newInfo.totalUsed}/${newInfo.maxTokens} (${newInfo.usagePercent}%)');
+    }
+  }
+
+  /// 보너스 토큰 리셋 (새 세션 시작 시)
+  void resetBonusTokens() {
+    _windowManager.resetBonusTokens();
+  }
+
   /// v6.0 (Phase 57): 시스템 프롬프트만 업데이트 (대화 기록 유지)
   ///
   /// 궁합 모드에서 참가자가 변경될 때 사용
@@ -170,7 +214,7 @@ class GeminiEdgeDatasource {
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': 16384, // 응답 잘림 방지 (2048 → 16384)
+          'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
           'is_new_session': isNewSessionFlag, // 새 세션 플래그
@@ -257,6 +301,7 @@ class GeminiEdgeDatasource {
   /// 스트리밍 응답 (SSE - Server-Sent Events)
   ///
   /// v17: 모듈화된 SseStreamClient 사용
+  /// v18: MAX_TOKENS 자동 continuation 추가 (응답 끊김 방지)
   /// 응답이 실시간으로 yield되어 ChatGPT처럼 타이핑 효과 제공
   ///
   /// Web 플랫폼 참고:
@@ -288,6 +333,12 @@ class GeminiEdgeDatasource {
         print('[GeminiEdge] SSE 스트리밍 요청 시작... (newSession: $isNewSessionFlag)');
       }
 
+      String accumulatedContent = '';
+      String? lastFinishReason;
+      int? totalPromptTokens;
+      int? totalCompletionTokens;
+      int? totalTokensUsed;
+
       // 모듈화된 SSE 클라이언트로 스트리밍
       // Web 플랫폼에서는 자동으로 시뮬레이션 스트리밍 적용
       await for (final chunk in _sseClient.streamRequestWithSimulation(
@@ -295,7 +346,7 @@ class GeminiEdgeDatasource {
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': 16384,
+          'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
           'temperature': 0.8,
           'stream': true,
           if (userId != null) 'user_id': userId,
@@ -308,21 +359,84 @@ class GeminiEdgeDatasource {
         // 텍스트 청크 yield
         if (chunk.accumulatedText.isNotEmpty) {
           hasYieldedContent = true;
+          accumulatedContent = chunk.accumulatedText;
           yield chunk.accumulatedText;
         }
 
-        // 완료 시 후처리
+        // 완료 시 정보 저장
         if (chunk.isDone) {
-          await _handleStreamCompletion(
-            message: message,
-            content: chunk.accumulatedText,
-            promptTokens: chunk.promptTokens,
-            completionTokens: chunk.completionTokens,
-            totalTokens: chunk.totalTokens,
-            finishReason: chunk.finishReason,
-          );
+          lastFinishReason = chunk.finishReason;
+          totalPromptTokens = chunk.promptTokens;
+          totalCompletionTokens = chunk.completionTokens;
+          totalTokensUsed = chunk.totalTokens;
         }
       }
+
+      // v18: MAX_TOKENS로 끊긴 경우 자동 continuation (최대 1회)
+      if (_shouldContinue(lastFinishReason, accumulatedContent)) {
+        if (kDebugMode) {
+          print('[GeminiEdge] ⚠️ MAX_TOKENS 감지 - 자동 continuation 요청');
+        }
+
+        // 현재 응답을 대화 기록에 임시 추가 (continuation을 위해)
+        _conversationHistory.add({
+          'role': 'model',
+          'parts': [{'text': accumulatedContent}],
+        });
+
+        // continuation 요청 - 태그 상태에 따라 다른 프롬프트
+        final continuationMessages = _buildMessagesForEdge();
+        final hasSuggestionsTag = accumulatedContent.contains('[SUGGESTED_QUESTIONS]');
+        final continuationPrompt = hasSuggestionsTag
+            ? '(방금 말이 끊겼어. 후속질문 태그만 마무리해줘)'
+            : '(방금 말이 끊겼어. 마지막 문장 마무리하고 후속질문 3개도 [SUGGESTED_QUESTIONS]질문1|질문2|질문3[/SUGGESTED_QUESTIONS] 형식으로 추가해줘)';
+        continuationMessages.add({
+          'role': 'user',
+          'content': continuationPrompt,
+        });
+
+        await for (final contChunk in _sseClient.streamRequestWithSimulation(
+          url: '',
+          data: {
+            'messages': continuationMessages,
+            'model': 'gemini-3-flash-preview',
+            'max_tokens': 256, // continuation은 짧게
+            'temperature': 0.8,
+            'stream': true,
+            if (userId != null) 'user_id': userId,
+          },
+          headers: {
+            'Authorization': 'Bearer $_authToken',
+          },
+        )) {
+          if (contChunk.accumulatedText.isNotEmpty) {
+            final continued = accumulatedContent + contChunk.accumulatedText;
+            yield continued;
+            if (contChunk.isDone) {
+              accumulatedContent = continued;
+              // continuation 토큰 누적
+              totalCompletionTokens = (totalCompletionTokens ?? 0) + (contChunk.completionTokens ?? 0);
+              totalTokensUsed = (totalTokensUsed ?? 0) + (contChunk.totalTokens ?? 0);
+            }
+          }
+        }
+
+        // 임시로 추가한 부분 응답 제거 (완성된 응답으로 교체될 예정)
+        if (_conversationHistory.isNotEmpty && _conversationHistory.last['role'] == 'model') {
+          _conversationHistory.removeLast();
+        }
+      }
+
+      // 최종 완료 처리
+      await _handleStreamCompletion(
+        message: message,
+        content: accumulatedContent,
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+        totalTokens: totalTokensUsed,
+        finishReason: lastFinishReason,
+      );
+
     } on SseException catch (e) {
       if (kDebugMode) {
         print('[GeminiEdge] SSE 에러: ${e.message}');
@@ -348,6 +462,67 @@ class GeminiEdgeDatasource {
       _rollbackUserMessage();
       throw Exception('AI 스트리밍 오류: $e');
     }
+  }
+
+  /// v18: continuation이 필요한지 판단
+  ///
+  /// finishReason이 MAX_TOKENS이고:
+  /// 1. 문장이 완성되지 않은 경우
+  /// 2. [SUGGESTED_QUESTIONS] 태그가 없거나 불완전한 경우
+  bool _shouldContinue(String? finishReason, String content) {
+    // STOP이면 정상 완료
+    if (finishReason == 'STOP' || finishReason == null) return false;
+
+    // MAX_TOKENS 또는 LENGTH인 경우
+    if (finishReason != 'MAX_TOKENS' && finishReason != 'LENGTH') return false;
+
+    // 내용이 비어있으면 continuation 불필요
+    if (content.isEmpty) return false;
+
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return false;
+
+    // v18.1: [SUGGESTED_QUESTIONS] 태그 체크 (Chip 연동을 위해 필수!)
+    final hasStartTag = trimmed.contains('[SUGGESTED_QUESTIONS]');
+    final hasEndTag = trimmed.contains('[/SUGGESTED_QUESTIONS]');
+
+    // 태그가 완성되면 continuation 불필요
+    if (hasStartTag && hasEndTag) {
+      if (kDebugMode) {
+        print('[GeminiEdge] SUGGESTED_QUESTIONS 태그 완성됨');
+      }
+      return false;
+    }
+
+    // 시작 태그는 있는데 끝 태그가 없으면 continuation 필요 (태그 중간에 끊김)
+    if (hasStartTag && !hasEndTag) {
+      if (kDebugMode) {
+        print('[GeminiEdge] ⚠️ SUGGESTED_QUESTIONS 태그 불완전 - continuation 필요');
+      }
+      return true;
+    }
+
+    // 시작 태그도 없으면 문장 완성 여부로 판단
+    // (AI가 아직 태그를 시작하지 않았거나 태그 없이 응답)
+
+    // 마지막 문자 확인
+    final lastChar = trimmed[trimmed.length - 1];
+    final completionChars = ['.', '!', '?', '~', '요', '다', '죠', '네', '야', '해'];
+    final emojiPattern = RegExp(r'[\u{1F300}-\u{1F9FF}]', unicode: true);
+
+    // 완성된 문장이면 continuation 불필요 (태그 없이 완성)
+    if (completionChars.contains(lastChar) || emojiPattern.hasMatch(lastChar)) {
+      if (kDebugMode) {
+        print('[GeminiEdge] finishReason=$finishReason but sentence complete (no tag)');
+      }
+      return false;
+    }
+
+    // 문장이 불완전하면 continuation 필요
+    if (kDebugMode) {
+      print('[GeminiEdge] ⚠️ Incomplete sentence detected: "...${trimmed.substring(trimmed.length > 20 ? trimmed.length - 20 : 0)}"');
+    }
+    return true;
   }
 
   /// Mock 스트리밍 응답 (개발/테스트용)

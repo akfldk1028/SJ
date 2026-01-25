@@ -20,16 +20,23 @@ class _BirthDateInputWidgetState extends ConsumerState<BirthDateInputWidget> {
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    
-    // 초기값 바인딩 (수정 시 등)
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Provider 값으로 controller 초기화 (위젯 생성 시 한 번만)
     final birthDate = ref.read(profileFormProvider).birthDate;
-    if (birthDate != null) {
-        // YYYYMMDD 포맷으로 변환
-        final y = birthDate.year.toString().padLeft(4, '0');
-        final m = birthDate.month.toString().padLeft(2, '0');
-        final d = birthDate.day.toString().padLeft(2, '0');
-        _controller.text = '$y$m$d';
+    if (_controller.text.isEmpty && birthDate != null) {
+      _controller.text = _formatDate(birthDate);
     }
+  }
+
+  String _formatDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y$m$d';
   }
 
   @override

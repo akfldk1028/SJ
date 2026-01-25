@@ -1,4 +1,4 @@
-/// # 월별 운세 프롬프트 (v4.0 - 12개월 통합)
+/// # 월별 운세 프롬프트 (v5.0 - 12개월 상세 통합)
 ///
 /// ## 개요
 /// saju_base(평생운세) + saju_analyses(원국 데이터)를 기반으로 12개월 전체 운세 분석
@@ -6,10 +6,10 @@
 /// ## 파일 위치
 /// `frontend/lib/AI/fortune/monthly/monthly_prompt.dart`
 ///
-/// ## v4.0 개선사항 (12개월 통합)
+/// ## v5.0 개선사항 (12개월 상세화)
 /// - 현재 월: 7개 카테고리 상세 분석 (12-15문장)
-/// - 나머지 11개월: 요약 버전 (키워드 + 점수 + 3-4문장)
-/// - weekly 섹션 제거 (토큰 절약)
+/// - 나머지 11개월: 상세 버전으로 확장! (6-8문장 + 3개 카테고리 하이라이트 + 행운요소)
+/// - 광고 해금 시 충분한 가치 제공
 /// - 한 번의 API 호출로 12개월 전체 분석
 ///
 /// ## 모델
@@ -43,7 +43,7 @@ class MonthlyPrompt extends PromptTemplate {
   String get modelName => OpenAIModels.fortuneAnalysis; // gpt-5-mini
 
   @override
-  int get maxTokens => 12000; // v4.0: 12개월 통합 분석용 (현재월 상세 + 11개월 요약)
+  int get maxTokens => 16000; // v5.0: 12개월 상세 분석용 (현재월 상세 + 11개월 확장)
 
   @override
   double get temperature => 0.7;
@@ -331,18 +331,95 @@ ${_formatSajuBase()}
   },
 
   "months": {
-    "month1": {"keyword": "1월 키워드", "score": 70, "reading": "1월은 {월간지}의 기운으로 {일간}에게 {십성}이 작용합니다. {핵심 영향}하고, {주의점/기회}. {간단한 조언}. (3-4문장 요약)"},
-    "month2": {"keyword": "2월 키워드", "score": 72, "reading": "2월은 {월간지}의 기운으로 {십성}이 작용합니다. {핵심 영향}하고, {간단한 조언}. (3-4문장 요약)"},
-    "month3": {"keyword": "3월 키워드", "score": 68, "reading": "3월은... (3-4문장 요약)"},
-    "month4": {"keyword": "4월 키워드", "score": 75, "reading": "4월은... (3-4문장 요약)"},
-    "month5": {"keyword": "5월 키워드", "score": 70, "reading": "5월은... (3-4문장 요약)"},
-    "month6": {"keyword": "6월 키워드", "score": 72, "reading": "6월은... (3-4문장 요약)"},
-    "month7": {"keyword": "7월 키워드", "score": 68, "reading": "7월은... (3-4문장 요약)"},
-    "month8": {"keyword": "8월 키워드", "score": 74, "reading": "8월은... (3-4문장 요약)"},
-    "month9": {"keyword": "9월 키워드", "score": 70, "reading": "9월은... (3-4문장 요약)"},
-    "month10": {"keyword": "10월 키워드", "score": 72, "reading": "10월은... (3-4문장 요약)"},
-    "month11": {"keyword": "11월 키워드", "score": 68, "reading": "11월은... (3-4문장 요약)"},
-    "month12": {"keyword": "12월 키워드", "score": 75, "reading": "12월은... (3-4문장 요약)"}
+    "month1": {
+      "keyword": "1월 핵심 키워드 (3-4자)",
+      "score": 70,
+      "reading": "1월은 {월간지}의 기운으로 {일간}에게 {십성}이 작용합니다. 고전에서는 {전통해석}이지만 현대에서는 {현대해석}으로 볼 수 있어요. {용신/기신 관계 설명}. {합충이 있다면 변화/기회 설명}. 이 달의 핵심은 {핵심 포인트}입니다. {구체적 조언}하시면 좋은 결과를 얻을 수 있어요. {마무리 조언}. (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자 및 한글)", "meaning": "이 달에 어울리는 사자성어 의미와 적용 조언 (2문장)"},
+      "highlights": {
+        "career": {"score": 72, "summary": "직장에서 {십성} 기운으로 {핵심 영향}. {1줄 조언}"},
+        "business": {"score": 70, "summary": "사업/자영업에서 {핵심 영향}. {1줄 조언}"},
+        "wealth": {"score": 68, "summary": "재물 측면에서 {핵심 영향}. {1줄 조언}"},
+        "love": {"score": 70, "summary": "애정/관계에서 {핵심 영향}. {1줄 조언}"}
+      }
+    },
+    "month2": {
+      "keyword": "2월 키워드",
+      "score": 72,
+      "reading": "2월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 70, "summary": "..."}, "business": {"score": 72, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 68, "summary": "..."}}
+    },
+    "month3": {
+      "keyword": "3월 키워드",
+      "score": 68,
+      "reading": "3월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 68, "summary": "..."}, "business": {"score": 66, "summary": "..."}, "wealth": {"score": 70, "summary": "..."}, "love": {"score": 72, "summary": "..."}}
+    },
+    "month4": {
+      "keyword": "4월 키워드",
+      "score": 75,
+      "reading": "4월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 74, "summary": "..."}, "business": {"score": 72, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
+    },
+    "month5": {
+      "keyword": "5월 키워드",
+      "score": 70,
+      "reading": "5월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 70, "summary": "..."}, "business": {"score": 68, "summary": "..."}, "wealth": {"score": 68, "summary": "..."}, "love": {"score": 72, "summary": "..."}}
+    },
+    "month6": {
+      "keyword": "6월 키워드",
+      "score": 72,
+      "reading": "6월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 72, "summary": "..."}, "business": {"score": 70, "summary": "..."}, "wealth": {"score": 70, "summary": "..."}, "love": {"score": 74, "summary": "..."}}
+    },
+    "month7": {
+      "keyword": "7월 키워드",
+      "score": 68,
+      "reading": "7월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 68, "summary": "..."}, "business": {"score": 66, "summary": "..."}, "wealth": {"score": 66, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
+    },
+    "month8": {
+      "keyword": "8월 키워드",
+      "score": 74,
+      "reading": "8월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 75, "summary": "..."}, "business": {"score": 73, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
+    },
+    "month9": {
+      "keyword": "9월 키워드",
+      "score": 70,
+      "reading": "9월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 70, "summary": "..."}, "business": {"score": 68, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 68, "summary": "..."}}
+    },
+    "month10": {
+      "keyword": "10월 키워드",
+      "score": 72,
+      "reading": "10월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 72, "summary": "..."}, "business": {"score": 70, "summary": "..."}, "wealth": {"score": 74, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
+    },
+    "month11": {
+      "keyword": "11월 키워드",
+      "score": 68,
+      "reading": "11월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 68, "summary": "..."}, "business": {"score": 66, "summary": "..."}, "wealth": {"score": 70, "summary": "..."}, "love": {"score": 66, "summary": "..."}}
+    },
+    "month12": {
+      "keyword": "12월 키워드",
+      "score": 75,
+      "reading": "12월은... (반드시 6-8문장)",
+      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
+      "highlights": {"career": {"score": 74, "summary": "..."}, "business": {"score": 76, "summary": "..."}, "wealth": {"score": 76, "summary": "..."}, "love": {"score": 72, "summary": "..."}}
+    }
   },
 
   "closingMessage": "${targetYear}년을 보내는 {이름}님께. 12개월 전체를 보면 {연간 흐름 요약}. {격려/응원}. (2문장)"

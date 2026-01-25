@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
+import '../../../../shared/widgets/fortune_section_card.dart';
+import '../../../../shared/widgets/fortune_title_header.dart';
 import '../../../../ad/ad_service.dart';
 import '../../../../animation/saju_loading_animation.dart';
 import '../providers/lifetime_fortune_provider.dart';
@@ -255,17 +257,43 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 24),
         ],
 
-        // 제목
+        // ========== 1단계: 소개 (나는 누구?) ==========
         _buildTitle(theme),
         const SizedBox(height: 32),
 
-        // v7.0: 나의 사주 소개
-        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+        // 나의 사주 소개
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.hasContent) ...[
           _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
           const SizedBox(height: 32),
         ],
 
-        // 요약 (Phase 4 완료 시)
+        // 사주팔자 8글자 설명
+        if (fortune.mySajuCharacters != null && fortune.mySajuCharacters!.hasContent) ...[
+          _buildMySajuCharactersSection(theme, fortune.mySajuCharacters!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 2단계: 분석 기초 (내 사주의 구조) ==========
+        // 십성 분석
+        if (fortune.sipsungAnalysis != null && fortune.sipsungAnalysis!.hasContent) ...[
+          _buildSipsungSection(theme, fortune.sipsungAnalysis!),
+          const SizedBox(height: 32),
+        ],
+
+        // 합충 분석
+        if (fortune.hapchungAnalysis != null && fortune.hapchungAnalysis!.hasContent) ...[
+          _buildHapchungSection(theme, fortune.hapchungAnalysis!),
+          const SizedBox(height: 32),
+        ],
+
+        // v8.1: 신살/길성 분석
+        if (fortune.sinsalGilseong != null && fortune.sinsalGilseong!.hasContent) ...[
+          _buildSinsalGilseongSection(theme, fortune.sinsalGilseong!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 3단계: 해석 (분석 결과 요약) ==========
+        // 나의 사주 요약
         if (fortune.summary.isNotEmpty) ...[
           _buildSection(
             theme,
@@ -277,7 +305,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // 성격 분석 (Phase 1 완료 시)
+        // 타고난 성격
         if (_hasPersonality(fortune.personality)) ...[
           _buildSection(
             theme,
@@ -329,7 +357,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // 분야별 운세 (Phase 2 완료 시)
+        // ========== 4단계: 분야별 운세 ==========
+        // v9.4: 카테고리별 상세 필드 전체 전달 (DB 필드 100% 매핑)
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
@@ -340,34 +369,43 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 title: cat.title,
                 score: cat.score,
                 reading: cat.reading,
+                advice: cat.advice,
+                cautions: cat.cautions.isNotEmpty ? cat.cautions : null,
+                strengths: cat.strengths.isNotEmpty ? cat.strengths : null,
+                weaknesses: cat.weaknesses.isNotEmpty ? cat.weaknesses : null,
+                timing: cat.timing,
+                suitableFields: cat.suitableFields.isNotEmpty ? cat.suitableFields : null,
+                unsuitableFields: cat.unsuitableFields.isNotEmpty ? cat.unsuitableFields : null,
+                // v9.4: 카테고리별 상세 필드
+                workStyle: cat.workStyle,
+                leadershipPotential: cat.leadershipPotential,
+                datingPattern: cat.datingPattern,
+                attractionStyle: cat.attractionStyle,
+                idealPartnerTraits: cat.idealPartnerTraits.isNotEmpty ? cat.idealPartnerTraits : null,
+                overallTendency: cat.overallTendency,
+                earningStyle: cat.earningStyle,
+                spendingTendency: cat.spendingTendency,
+                investmentAptitude: cat.investmentAptitude,
+                entrepreneurshipAptitude: cat.entrepreneurshipAptitude,
+                businessPartnerTraits: cat.businessPartnerTraits,
+                spousePalaceAnalysis: cat.spousePalaceAnalysis,
+                spouseCharacteristics: cat.spouseCharacteristics,
+                marriedLifeTendency: cat.marriedLifeTendency,
+                mentalHealth: cat.mentalHealth,
+                lifestyleAdvice: cat.lifestyleAdvice.isNotEmpty ? cat.lifestyleAdvice : null,
               ),
             )),
           ),
           const SizedBox(height: 8),
         ],
 
-        // 행운 정보 (Phase 1 완료 시)
-        if (_hasLucky(fortune.luckyElements)) ...[
-          _buildSection(
-            theme,
-            title: '행운 정보',
-            children: [
-              if (fortune.luckyElements.colors.isNotEmpty)
-                _buildLuckyItem(theme, '행운의 색상', fortune.luckyElements.colors.join(', ')),
-              if (fortune.luckyElements.numbers.isNotEmpty)
-                _buildLuckyItem(theme, '행운의 숫자', fortune.luckyElements.numbers.join(', ')),
-              if (fortune.luckyElements.directions.isNotEmpty)
-                _buildLuckyItem(theme, '좋은 방향', fortune.luckyElements.directions.join(', ')),
-              if (fortune.luckyElements.seasons.isNotEmpty)
-                _buildLuckyItem(theme, '유리한 계절', fortune.luckyElements.seasons),
-              if (fortune.luckyElements.partnerElements.isNotEmpty)
-                _buildLuckyItem(theme, '궁합이 좋은 띠', fortune.luckyElements.partnerElements.join(', ')),
-            ],
-          ),
+        // ========== 5단계: 시간축 ==========
+        // v8.1: 전성기 섹션
+        if (fortune.peakYears != null && fortune.peakYears!.hasContent) ...[
+          _buildPeakYearsSection(theme, fortune.peakYears!),
           const SizedBox(height: 32),
         ],
 
-        // 인생 주기 (Phase 4 완료 시)
         if (_hasLifeCycles(fortune.lifeCycles)) ...[
           _buildSection(
             theme,
@@ -413,7 +451,42 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // 종합 조언 (Phase 4 완료 시)
+        // v8.1: 대운 상세 섹션
+        if (fortune.daeunDetail != null && fortune.daeunDetail!.hasContent) ...[
+          _buildDaeunDetailSection(theme, fortune.daeunDetail!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 6단계: 보너스 정보 ==========
+        // 행운 정보
+        if (_hasLucky(fortune.luckyElements)) ...[
+          _buildSection(
+            theme,
+            title: '행운 정보',
+            children: [
+              if (fortune.luckyElements.colors.isNotEmpty)
+                _buildLuckyItem(theme, '행운의 색상', fortune.luckyElements.colors.join(', ')),
+              if (fortune.luckyElements.numbers.isNotEmpty)
+                _buildLuckyItem(theme, '행운의 숫자', fortune.luckyElements.numbers.join(', ')),
+              if (fortune.luckyElements.directions.isNotEmpty)
+                _buildLuckyItem(theme, '좋은 방향', fortune.luckyElements.directions.join(', ')),
+              if (fortune.luckyElements.seasons.isNotEmpty)
+                _buildLuckyItem(theme, '유리한 계절', fortune.luckyElements.seasons),
+              if (fortune.luckyElements.partnerElements.isNotEmpty)
+                _buildLuckyItem(theme, '궁합이 좋은 띠', fortune.luckyElements.partnerElements.join(', ')),
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+
+        // AI 시대 해석 (광고 잠금)
+        if (fortune.modernInterpretation != null && fortune.modernInterpretation!.hasContent) ...[
+          _buildModernInterpretationCard(theme, fortune.modernInterpretation!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 7단계: 마무리 ==========
+        // 종합 인생 조언
         if (fortune.overallAdvice.isNotEmpty) ...[
           _buildSection(
             theme,
@@ -422,30 +495,6 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               _buildParagraph(theme, fortune.overallAdvice),
             ],
           ),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 원국 분석
-        if (fortune.wonGukAnalysis != null && fortune.wonGukAnalysis!.hasContent) ...[
-          _buildWonGukSection(theme, fortune.wonGukAnalysis!),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 십성 분석
-        if (fortune.sipsungAnalysis != null && fortune.sipsungAnalysis!.hasContent) ...[
-          _buildSipsungSection(theme, fortune.sipsungAnalysis!),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 합충 분석
-        if (fortune.hapchungAnalysis != null && fortune.hapchungAnalysis!.hasContent) ...[
-          _buildHapchungSection(theme, fortune.hapchungAnalysis!),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 현대적 해석
-        if (fortune.modernInterpretation != null && fortune.modernInterpretation!.hasContent) ...[
-          _buildModernInterpretationSection(theme, fortune.modernInterpretation!),
           const SizedBox(height: 32),
         ],
 
@@ -462,41 +511,72 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 진행 상황 배너 (상단)
+  /// 진행 상황 배너 (상단) - 개선된 UI
   Widget _buildProgressBanner(AppThemeExtension theme, PhaseProgressData progress) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.textPrimary.withValues(alpha: 0.3)),
+        gradient: LinearGradient(
+          colors: [
+            theme.cardColor,
+            theme.cardColor.withValues(alpha: 0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.textPrimary.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
-            height: 40,
-            child: CircularProgressIndicator(
-              value: progress.progress,
-              strokeWidth: 4,
-              backgroundColor: theme.textMuted.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(theme.textPrimary),
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  value: progress.progress,
+                  strokeWidth: 4,
+                  backgroundColor: theme.textMuted.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(theme.textPrimary),
+                ),
+              ),
+              Text(
+                '${(progress.progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '분석 진행 중 (${(progress.progress * 100).toInt()}%)',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 16, color: theme.textPrimary),
+                    const SizedBox(width: 6),
+                    Text(
+                      '분석 진행 중',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   progress.currentAnalysisDetail,
                   style: TextStyle(
@@ -551,17 +631,43 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       children: [
-        // 제목
+        // ========== 1단계: 소개 (나는 누구?) ==========
         _buildTitle(theme),
         const SizedBox(height: 32),
 
-        // v7.0: 나의 사주 소개
-        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.reading.isNotEmpty) ...[
+        // 나의 사주 소개
+        if (fortune.mySajuIntro != null && fortune.mySajuIntro!.hasContent) ...[
           _buildMySajuIntroSection(theme, fortune.mySajuIntro!),
           const SizedBox(height: 32),
         ],
 
-        // 요약
+        // 사주팔자 8글자 설명
+        if (fortune.mySajuCharacters != null && fortune.mySajuCharacters!.hasContent) ...[
+          _buildMySajuCharactersSection(theme, fortune.mySajuCharacters!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 2단계: 분석 기초 (내 사주의 구조) ==========
+        // 십성 분석
+        if (fortune.sipsungAnalysis != null && fortune.sipsungAnalysis!.hasContent) ...[
+          _buildSipsungSection(theme, fortune.sipsungAnalysis!),
+          const SizedBox(height: 32),
+        ],
+
+        // 합충 분석
+        if (fortune.hapchungAnalysis != null && fortune.hapchungAnalysis!.hasContent) ...[
+          _buildHapchungSection(theme, fortune.hapchungAnalysis!),
+          const SizedBox(height: 32),
+        ],
+
+        // v8.1: 신살/길성 분석
+        if (fortune.sinsalGilseong != null && fortune.sinsalGilseong!.hasContent) ...[
+          _buildSinsalGilseongSection(theme, fortune.sinsalGilseong!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 3단계: 해석 (분석 결과 요약) ==========
+        // 나의 사주 요약
         if (fortune.summary.isNotEmpty) ...[
           _buildSection(
             theme,
@@ -573,7 +679,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // 성격 분석
+        // 타고난 성격
         if (_hasPersonality(fortune.personality)) ...[
           _buildSection(
             theme,
@@ -625,7 +731,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // 분야별 운세 (칩 형태로 표시, 광고 보고 펼치기)
+        // ========== 4단계: 분야별 운세 (구체적인 삶의 영역) ==========
+        // v9.4: 카테고리별 상세 필드 전체 전달 (DB 필드 100% 매핑)
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
@@ -636,13 +743,43 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 title: cat.title,
                 score: cat.score,
                 reading: cat.reading,
+                advice: cat.advice,
+                cautions: cat.cautions.isNotEmpty ? cat.cautions : null,
+                strengths: cat.strengths.isNotEmpty ? cat.strengths : null,
+                weaknesses: cat.weaknesses.isNotEmpty ? cat.weaknesses : null,
+                timing: cat.timing,
+                suitableFields: cat.suitableFields.isNotEmpty ? cat.suitableFields : null,
+                unsuitableFields: cat.unsuitableFields.isNotEmpty ? cat.unsuitableFields : null,
+                // v9.4: 카테고리별 상세 필드
+                workStyle: cat.workStyle,
+                leadershipPotential: cat.leadershipPotential,
+                datingPattern: cat.datingPattern,
+                attractionStyle: cat.attractionStyle,
+                idealPartnerTraits: cat.idealPartnerTraits.isNotEmpty ? cat.idealPartnerTraits : null,
+                overallTendency: cat.overallTendency,
+                earningStyle: cat.earningStyle,
+                spendingTendency: cat.spendingTendency,
+                investmentAptitude: cat.investmentAptitude,
+                entrepreneurshipAptitude: cat.entrepreneurshipAptitude,
+                businessPartnerTraits: cat.businessPartnerTraits,
+                spousePalaceAnalysis: cat.spousePalaceAnalysis,
+                spouseCharacteristics: cat.spouseCharacteristics,
+                marriedLifeTendency: cat.marriedLifeTendency,
+                mentalHealth: cat.mentalHealth,
+                lifestyleAdvice: cat.lifestyleAdvice.isNotEmpty ? cat.lifestyleAdvice : null,
               ),
             )),
           ),
           const SizedBox(height: 8),
         ],
 
-        // 인생 주기
+        // ========== 5단계: 시간축 (언제?) ==========
+        // v8.1: 전성기 섹션 (시간축 최상단에 배치)
+        if (fortune.peakYears != null && fortune.peakYears!.hasContent) ...[
+          _buildPeakYearsSection(theme, fortune.peakYears!),
+          const SizedBox(height: 32),
+        ],
+
         if (_hasLifeCycles(fortune.lifeCycles)) ...[
           _buildSection(
             theme,
@@ -691,6 +828,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
+        // v8.1: 대운 상세 섹션 (인생 주기 후에 배치)
+        if (fortune.daeunDetail != null && fortune.daeunDetail!.hasContent) ...[
+          _buildDaeunDetailSection(theme, fortune.daeunDetail!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 6단계: 보너스 정보 ==========
         // 행운 정보
         if (_hasLucky(fortune.luckyElements)) ...[
           _buildSection(
@@ -712,7 +856,14 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // 종합 조언
+        // AI 시대 해석 (광고 잠금)
+        if (fortune.modernInterpretation != null && fortune.modernInterpretation!.hasContent) ...[
+          _buildModernInterpretationCard(theme, fortune.modernInterpretation!),
+          const SizedBox(height: 32),
+        ],
+
+        // ========== 7단계: 마무리 ==========
+        // 종합 인생 조언
         if (fortune.overallAdvice.isNotEmpty) ...[
           _buildSection(
             theme,
@@ -724,30 +875,6 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 32),
         ],
 
-        // v7.3: 원국 분석
-        if (fortune.wonGukAnalysis != null && fortune.wonGukAnalysis!.hasContent) ...[
-          _buildWonGukSection(theme, fortune.wonGukAnalysis!),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 십성 분석
-        if (fortune.sipsungAnalysis != null && fortune.sipsungAnalysis!.hasContent) ...[
-          _buildSipsungSection(theme, fortune.sipsungAnalysis!),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 합충 분석
-        if (fortune.hapchungAnalysis != null && fortune.hapchungAnalysis!.hasContent) ...[
-          _buildHapchungSection(theme, fortune.hapchungAnalysis!),
-          const SizedBox(height: 32),
-        ],
-
-        // v7.3: 현대적 해석
-        if (fortune.modernInterpretation != null && fortune.modernInterpretation!.hasContent) ...[
-          _buildModernInterpretationSection(theme, fortune.modernInterpretation!),
-          const SizedBox(height: 32),
-        ],
-
         // AI 상담 버튼
         _buildConsultButton(context, theme),
         const SizedBox(height: 40),
@@ -756,26 +883,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   Widget _buildTitle(AppThemeExtension theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          '평생운세',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '타고난 사주로 본 나의 운명',
-          style: TextStyle(
-            fontSize: 16,
-            color: theme.textSecondary,
-          ),
-        ),
-      ],
+    return const FortuneTitleHeader(
+      title: '평생운세',
+      subtitle: '타고난 사주로 본 나의 운명',
+      style: HeaderStyle.centered,
     );
   }
 
@@ -783,14 +894,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: theme.textPrimary,
-          ),
-        ),
+        FortuneSectionTitle(title: title),
         const SizedBox(height: 12),
         ...children,
       ],
@@ -835,18 +939,20 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   Widget _buildListItem(AppThemeExtension theme, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 15,
-              color: theme.textSecondary,
-              height: 1.6,
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: theme.textPrimary.withValues(alpha: 0.6),
+              shape: BoxShape.circle,
             ),
           ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
@@ -863,37 +969,107 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   Widget _buildLuckyItem(AppThemeExtension theme, String label, String value) {
+    // 라벨별 아이콘
+    IconData icon;
+    switch (label) {
+      case '행운의 색상':
+        icon = Icons.palette_outlined;
+        break;
+      case '행운의 숫자':
+        icon = Icons.tag;
+        break;
+      case '좋은 방향':
+        icon = Icons.explore_outlined;
+        break;
+      case '유리한 계절':
+        icon = Icons.wb_sunny_outlined;
+        break;
+      case '궁합이 좋은 띠':
+        icon = Icons.favorite_outline;
+        break;
+      default:
+        icon = Icons.star_outline;
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          fontSize: 15,
-          color: theme.textSecondary,
-          height: 1.6,
-        ),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: theme.textPrimary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: theme.textPrimary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildConsultButton(BuildContext context, AppThemeExtension theme) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () => context.go('/saju/chat?type=lifetimeFortune'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.textPrimary,
-          foregroundColor: theme.backgroundColor,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.textPrimary,
+            theme.textPrimary.withValues(alpha: 0.8),
+          ],
         ),
-        child: const Text(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => context.go('/saju/chat?type=lifetimeFortune'),
+        icon: const Icon(Icons.auto_awesome, size: 20),
+        label: const Text(
           'AI에게 평생운세 상담받기',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: theme.backgroundColor,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
@@ -901,42 +1077,335 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   /// v7.0: 나의 사주 소개 섹션 (카드 스타일)
+  /// v9.0: ilju (일주설명) 필드 추가
   Widget _buildMySajuIntroSection(AppThemeExtension theme, MySajuIntroSection intro) {
+    // ilju와 reading을 조합하여 표시
+    final contentBuffer = StringBuffer();
+
+    // 일주 설명 (있으면 먼저 표시)
+    if (intro.ilju.isNotEmpty) {
+      contentBuffer.writeln('📍 ${intro.ilju}');
+      contentBuffer.writeln('');
+    }
+
+    // 일반 reading
+    if (intro.reading.isNotEmpty) {
+      contentBuffer.write(intro.reading);
+    }
+
+    return FortuneSectionCard(
+      title: intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
+      icon: Icons.person_outline,
+      content: contentBuffer.toString().trim(),
+      style: CardStyle.elevated,
+    );
+  }
+
+  /// v8.0: 사주팔자 8글자 설명 섹션
+  Widget _buildMySajuCharactersSection(AppThemeExtension theme, MySajuCharactersSection chars) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.textMuted.withValues(alpha: 0.2)),
+        border: Border.all(color: theme.textPrimary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 제목
           Row(
             children: [
-              Icon(Icons.person_outline, color: theme.textPrimary, size: 22),
-              const SizedBox(width: 8),
+              Icon(Icons.grid_view_rounded, color: theme.textPrimary, size: 22),
+              const SizedBox(width: 10),
               Text(
-                intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
+                '나의 사주팔자 8글자',
                 style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                   color: theme.textPrimary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Text(
-            intro.reading,
+            chars.description,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               color: theme.textSecondary,
-              height: 1.8,
             ),
           ),
+          const SizedBox(height: 20),
+
+          // 8글자 그리드 (4열 2행)
+          _buildSajuGrid(theme, chars),
+
+          const SizedBox(height: 20),
+
+          // 종합 해석
+          if (chars.overallReading.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.textPrimary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                chars.overallReading,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.6,
+                  color: theme.textPrimary,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  /// 사주 8글자 그리드
+  /// 전통 순서: 시주 → 일주 → 월주 → 연주 (오른쪽에서 왼쪽으로 읽음)
+  Widget _buildSajuGrid(AppThemeExtension theme, MySajuCharactersSection chars) {
+    final columns = [
+      ('시주', chars.hourGan, chars.hourJi),
+      ('일주', chars.dayGan, chars.dayJi),
+      ('월주', chars.monthGan, chars.monthJi),
+      ('연주', chars.yearGan, chars.yearJi),
+    ];
+
+    return Row(
+      children: columns.map((column) {
+        final (label, gan, ji) = column;
+        return Expanded(
+          child: Column(
+            children: [
+              // 기둥 라벨
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 천간
+              _buildCharacterCard(theme, gan, isGan: true, isDay: label == '일주'),
+              const SizedBox(height: 6),
+              // 지지
+              _buildCharacterCard(theme, ji, isGan: false, isDay: label == '일주'),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// 개별 글자 카드
+  Widget _buildCharacterCard(AppThemeExtension theme, SajuCharacterInfo info, {required bool isGan, required bool isDay}) {
+    // 오행별 색상
+    final ohengColor = _getOhengColor(info.oheng);
+
+    return GestureDetector(
+      onTap: () => _showCharacterDetail(theme, info, isGan: isGan, isDay: isDay),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: ohengColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isDay ? ohengColor : ohengColor.withValues(alpha: 0.3),
+            width: isDay ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              info.character,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: ohengColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              info.reading,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.textSecondary,
+              ),
+            ),
+            if (info.animal != null && info.animal!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                info.animal!,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: theme.textMuted,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 오행별 색상
+  Color _getOhengColor(String oheng) {
+    switch (oheng) {
+      case '목':
+        return const Color(0xFF00C853);  // 초록
+      case '화':
+        return const Color(0xFFFF5252);  // 빨강
+      case '토':
+        return const Color(0xFFFFB300);  // 노랑
+      case '금':
+        return const Color(0xFFFFFFFF);  // 흰색/금색
+      case '수':
+        return const Color(0xFF2196F3);  // 파랑
+      default:
+        return const Color(0xFF9E9E9E);  // 회색
+    }
+  }
+
+  /// 글자 상세 다이얼로그
+  void _showCharacterDetail(AppThemeExtension theme, SajuCharacterInfo info, {required bool isGan, required bool isDay}) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final ohengColor = _getOhengColor(info.oheng);
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 헤더
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: ohengColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      info.character,
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: ohengColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${info.reading} (${info.character})',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: theme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            _buildTag(theme, info.oheng, ohengColor),
+                            _buildTag(theme, info.yinYang, theme.textSecondary),
+                            if (isDay)
+                              _buildTag(theme, '일간 (나)', theme.textPrimary),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 설명
+              Text(
+                info.meaning,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.7,
+                  color: theme.textPrimary,
+                ),
+              ),
+
+              // 추가 정보
+              if (info.animal != null && info.animal!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildInfoRow(theme, '띠', info.animal!),
+              ],
+              if (info.season != null && info.season!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildInfoRow(theme, '계절', info.season!),
+              ],
+
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTag(AppThemeExtension theme, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(AppThemeExtension theme, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.textSecondary,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -959,7 +1428,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         lucky.seasons.isNotEmpty;
   }
 
-  /// 인생 주기 카드 (잠금/해제 상태에 따른 UI)
+  /// 인생 주기 카드 (잠금/해제 상태에 따른 UI) - 개선된 UI
   Widget _buildLifeCycleCard(
     AppThemeExtension theme, {
     required String cycleKey,
@@ -969,17 +1438,29 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }) {
     final isUnlocked = _unlockedCycles.contains(cycleKey);
 
+    // 주기별 아이콘
+    final IconData cycleIcon = cycleKey == 'middleAge'
+        ? Icons.trending_up
+        : Icons.spa;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isUnlocked
-              ? theme.textMuted.withValues(alpha: 0.3)
-              : theme.textMuted.withValues(alpha: 0.2),
+              ? theme.textPrimary.withValues(alpha: 0.2)
+              : theme.textMuted.withValues(alpha: 0.15),
         ),
+        boxShadow: isUnlocked ? [
+          BoxShadow(
+            color: theme.textPrimary.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -987,24 +1468,61 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           // 헤더
           Row(
             children: [
-              Text(
-                '$title ($ageRange)',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textPrimary,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isUnlocked
+                      ? theme.textPrimary.withValues(alpha: 0.1)
+                      : theme.textMuted.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isUnlocked ? cycleIcon : Icons.lock_outline,
+                  size: 18,
+                  color: isUnlocked ? theme.textPrimary : theme.textSecondary,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      ageRange,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               if (!isUnlocked)
-                Icon(
-                  Icons.lock_outline,
-                  size: 18,
-                  color: theme.textSecondary,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.textMuted.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '잠김',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.textSecondary,
+                    ),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
 
           // 내용 또는 잠금 UI
           if (isUnlocked)
@@ -1023,51 +1541,81 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 잠금 상태 UI
+  /// 잠금 상태 UI - 개선된 UI
   Widget _buildLockedContent(AppThemeExtension theme, String cycleKey, String title) {
-    return Column(
-      children: [
-        Text(
-          '광고를 시청하면 $title 운세를\n확인할 수 있습니다.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.textMuted,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _isLoadingAd ? null : () => _showRewardedAdAndUnlock(cycleKey, title),
-            icon: _isLoadingAd
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.textMuted.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.movie_outlined, size: 20, color: theme.textSecondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '광고를 시청하면 $title 운세를 확인할 수 있습니다.',
+                    style: TextStyle(
+                      fontSize: 13,
                       color: theme.textSecondary,
+                      height: 1.4,
                     ),
-                  )
-                : Icon(Icons.play_circle_outline, size: 20, color: theme.textPrimary),
-            label: Text(
-              _isLoadingAd ? '광고 로딩 중...' : '광고 보고 $title 확인하기',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textPrimary,
-              ),
+                  ),
+                ),
+              ],
             ),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              side: BorderSide(color: theme.textMuted.withValues(alpha: 0.4)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.textPrimary.withValues(alpha: 0.9),
+                    theme.textPrimary.withValues(alpha: 0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isLoadingAd ? null : () => _showRewardedAdAndUnlock(cycleKey, title),
+                icon: _isLoadingAd
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.backgroundColor,
+                        ),
+                      )
+                    : Icon(Icons.play_circle_filled, size: 20, color: theme.backgroundColor),
+                label: Text(
+                  _isLoadingAd ? '광고 로딩 중...' : '광고 보고 $title 확인',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: theme.backgroundColor,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1197,10 +1745,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           _buildParagraph(theme, wonGuk.ohengBalance),
           const SizedBox(height: 12),
         ],
-        if (wonGuk.singangSingak.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, '신강/신약'),
-          _buildParagraph(theme, wonGuk.singangSingak),
-        ],
+        // v8.2: singangSingak 필드 - 사용자 요청으로 주석 처리
+        // if (wonGuk.singangSingak.isNotEmpty) ...[
+        //   _buildSubSectionHeader(theme, '신강/신약'),
+        //   _buildParagraph(theme, wonGuk.singangSingak),
+        // ],
       ],
     );
   }
@@ -1255,10 +1804,131 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           _buildParagraph(theme, hapchung.overallImpact),
           const SizedBox(height: 12),
         ],
-        if (hapchung.otherInteractions.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, '기타 상호작용'),
-          _buildParagraph(theme, hapchung.otherInteractions),
-        ],
+        // v9.3: 기타 상호작용 섹션 숨김 처리
+        // if (hapchung.otherInteractions.isNotEmpty) ...[
+        //   _buildSubSectionHeader(theme, '기타 상호작용'),
+        //   _buildParagraph(theme, hapchung.otherInteractions),
+        // ],
+      ],
+    );
+  }
+
+  /// AI 시대 해석 카드 (광고 잠금)
+  Widget _buildModernInterpretationCard(AppThemeExtension theme, ModernInterpretationSection modern) {
+    final isUnlocked = _unlockedCycles.contains('modernInterpretation');
+
+    // 잠금 해제 상태면 전체 내용 표시
+    if (isUnlocked) {
+      return _buildModernInterpretationSection(theme, modern);
+    }
+
+    // 잠금 상태: 미리보기 + 광고 버튼
+    return _buildSection(
+      theme,
+      title: 'AI 시대의 사주 해석',
+      children: [
+        // 미리보기 텍스트
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.textSecondary.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.smart_toy_outlined, size: 24, color: Colors.purple),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '디지털 시대에 맞는 사주 해석',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '🔒 잠김',
+                      style: TextStyle(fontSize: 12, color: Colors.purple),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '• 디지털 시대 직업운\n• 디지털 자산 운용법\n• 현대적 인간관계 스타일',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: theme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 광고 버튼
+              Row(
+                children: [
+                  Icon(Icons.movie_outlined, size: 20, color: theme.textSecondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '광고를 시청하면 AI 시대 해석을 확인할 수 있습니다.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoadingAd
+                      ? null
+                      : () => _showRewardedAdAndUnlock('modernInterpretation', 'AI 시대 해석'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: _isLoadingAd
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(Icons.play_circle_filled, size: 20),
+                  label: Text(
+                    _isLoadingAd ? '광고 로딩 중...' : '광고 보고 AI 시대 해석 확인',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1338,42 +2008,464 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 하이라이트 박스 (강조 정보)
+  /// 하이라이트 박스 (강조 정보) - 공통 위젯 사용
   Widget _buildHighlightBox(AppThemeExtension theme, String label, String content, {bool isWarning = false}) {
+    return FortuneHighlightBox(
+      label: label,
+      content: content,
+      type: isWarning ? HighlightType.warning : HighlightType.info,
+    );
+  }
+
+  // ============================================================
+  // v8.1: 누락된 섹션 Builder 메서드들
+  // ============================================================
+
+  /// 신살/길성 분석 섹션
+  Widget _buildSinsalGilseongSection(AppThemeExtension theme, SinsalGilseongSection sinsal) {
+    return _buildSection(
+      theme,
+      title: '신살/길성 분석',
+      children: [
+        if (sinsal.majorGilseong.isNotEmpty) ...[
+          _buildSubSectionHeader(theme, '✨ 길성 (좋은 별)'),
+          ...sinsal.majorGilseong.map((g) => _buildListItem(theme, g)),
+          const SizedBox(height: 12),
+        ],
+        if (sinsal.majorSinsal.isNotEmpty) ...[
+          _buildSubSectionHeader(theme, '⚡ 신살 (주의할 별)'),
+          ...sinsal.majorSinsal.map((s) => _buildListItem(theme, s)),
+          const SizedBox(height: 12),
+        ],
+        if (sinsal.practicalImplications.isNotEmpty) ...[
+          _buildSubSectionHeader(theme, '실생활 영향'),
+          _buildParagraph(theme, sinsal.practicalImplications),
+          const SizedBox(height: 12),
+        ],
+        if (sinsal.reading.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: theme.textPrimary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              sinsal.reading,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.7,
+                color: theme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 전성기 섹션
+  Widget _buildPeakYearsSection(AppThemeExtension theme, PeakYearsSection peakYears) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isWarning
-            ? Colors.orange.withValues(alpha: 0.1)
-            : theme.textPrimary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isWarning
-              ? Colors.orange.withValues(alpha: 0.3)
-              : theme.textMuted.withValues(alpha: 0.2),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFD700).withValues(alpha: 0.15),
+            const Color(0xFFFF8C00).withValues(alpha: 0.1),
+          ],
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.star, color: Color(0xFFFFD700), size: 24),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '나의 전성기',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: theme.textPrimary,
+                    ),
+                  ),
+                  if (peakYears.period.isNotEmpty)
+                    Text(
+                      peakYears.period,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFFFD700),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 왜 이 시기가 전성기인가?
+          if (peakYears.why.isNotEmpty) ...[
+            _buildSubSectionHeader(theme, '왜 이 시기인가요?'),
+            _buildParagraph(theme, peakYears.why),
+            const SizedBox(height: 14),
+          ],
+
+          // 무엇을 해야 하는가?
+          if (peakYears.whatToDo.isNotEmpty) ...[
+            _buildSubSectionHeader(theme, '이 시기에 해야 할 것'),
+            _buildParagraph(theme, peakYears.whatToDo),
+            const SizedBox(height: 14),
+          ],
+
+          // 무엇을 준비해야 하는가?
+          if (peakYears.whatToPrepare.isNotEmpty) ...[
+            _buildSubSectionHeader(theme, '미리 준비할 것'),
+            _buildParagraph(theme, peakYears.whatToPrepare),
+            const SizedBox(height: 14),
+          ],
+
+          // 주의사항
+          if (peakYears.cautions.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      peakYears.cautions,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 대운 상세 섹션
+  Widget _buildDaeunDetailSection(AppThemeExtension theme, DaeunDetailSection daeun) {
+    return _buildSection(
+      theme,
+      title: '대운(大運) 상세 분석',
+      children: [
+        // 대운 소개
+        if (daeun.intro.isNotEmpty) ...[
+          _buildParagraph(theme, daeun.intro),
+          const SizedBox(height: 20),
+        ],
+
+        // 최고/최악 대운 요약
+        if (daeun.bestDaeunPeriod.isNotEmpty || daeun.worstDaeunPeriod.isNotEmpty) ...[
+          Row(
+            children: [
+              if (daeun.bestDaeunPeriod.isNotEmpty)
+                Expanded(
+                  child: _buildDaeunHighlight(
+                    theme,
+                    title: '최고의 대운',
+                    period: daeun.bestDaeunPeriod,
+                    reason: daeun.bestDaeunWhy,
+                    isPositive: true,
+                  ),
+                ),
+              if (daeun.bestDaeunPeriod.isNotEmpty && daeun.worstDaeunPeriod.isNotEmpty)
+                const SizedBox(width: 12),
+              if (daeun.worstDaeunPeriod.isNotEmpty)
+                Expanded(
+                  child: _buildDaeunHighlight(
+                    theme,
+                    title: '주의할 대운',
+                    period: daeun.worstDaeunPeriod,
+                    reason: daeun.worstDaeunWhy,
+                    isPositive: false,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+
+        // 대운 사이클 목록
+        if (daeun.cycles.isNotEmpty) ...[
+          _buildSubSectionHeader(theme, '대운 흐름'),
+          const SizedBox(height: 8),
+          ...daeun.cycles.map((cycle) => _buildDaeunCycleCard(theme, cycle)),
+        ],
+      ],
+    );
+  }
+
+  /// 대운 하이라이트 카드 (최고/최악)
+  Widget _buildDaeunHighlight(
+    AppThemeExtension theme, {
+    required String title,
+    required String period,
+    required String reason,
+    required bool isPositive,
+  }) {
+    final color = isPositive ? Colors.green : Colors.orange;
+    final icon = isPositive ? Icons.trending_up : Icons.trending_down;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           Text(
-            label,
+            period,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isWarning ? Colors.orange : theme.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: theme.textPrimary,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: 14,
-              color: theme.textSecondary,
-              height: 1.6,
+          if (reason.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              reason,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: theme.textSecondary,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 대운 사이클 개별 카드
+  Widget _buildDaeunCycleCard(AppThemeExtension theme, DaeunCycleItem cycle) {
+    // 운세 수준에 따른 색상
+    Color levelColor;
+    switch (cycle.fortuneLevel) {
+      case '상':
+        levelColor = Colors.green;
+        break;
+      case '중상':
+        levelColor = Colors.teal;
+        break;
+      case '중':
+        levelColor = Colors.blue;
+        break;
+      case '중하':
+        levelColor = Colors.orange;
+        break;
+      case '하':
+        levelColor = Colors.red;
+        break;
+      default:
+        levelColor = theme.textSecondary;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: levelColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                constraints: const BoxConstraints(maxWidth: 120),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  cycle.pillar,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: levelColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      cycle.mainTheme,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textPrimary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      cycle.ageRange,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  cycle.fortuneLevel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: levelColor,
+                  ),
+                ),
+              ),
+            ],
           ),
+
+          // 해석
+          if (cycle.reading.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              cycle.reading,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.6,
+                color: theme.textSecondary,
+              ),
+            ),
+          ],
+
+          // 기회 & 도전
+          if (cycle.opportunities.isNotEmpty || cycle.challenges.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (cycle.opportunities.isNotEmpty)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '기회',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        ...cycle.opportunities.take(2).map((o) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            '• $o',
+                            style: TextStyle(fontSize: 12, color: theme.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                if (cycle.opportunities.isNotEmpty && cycle.challenges.isNotEmpty)
+                  const SizedBox(width: 12),
+                if (cycle.challenges.isNotEmpty)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '도전',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        ...cycle.challenges.take(2).map((c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            '• $c',
+                            style: TextStyle(fontSize: 12, color: theme.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

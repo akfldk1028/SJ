@@ -33,9 +33,16 @@ class WindowedConversation {
 /// - 슬라이딩 윈도우: 최근 메시지 우선 유지
 /// - 시스템 프롬프트는 항상 포함
 /// - 오래된 메시지는 제거 (추후 요약 기능 추가 가능)
+/// - 광고 시청 시 보너스 토큰 추가 가능
 class ConversationWindowManager {
-  /// 최대 입력 토큰 (기본값)
-  final int maxInputTokens;
+  /// 기본 최대 입력 토큰
+  final int _baseMaxInputTokens;
+
+  /// 보너스 토큰 (광고 시청으로 획득)
+  int _bonusTokens = 0;
+
+  /// 현재 최대 입력 토큰 (기본 + 보너스)
+  int get maxInputTokens => _baseMaxInputTokens + _bonusTokens;
 
   /// 최소 유지 메시지 수 (user + assistant 쌍)
   final int minMessagePairs;
@@ -45,9 +52,28 @@ class ConversationWindowManager {
   int _systemPromptTokens = 0;
 
   ConversationWindowManager({
-    this.maxInputTokens = TokenCounter.defaultMaxInputTokens,
+    int maxInputTokens = TokenCounter.defaultMaxInputTokens,
     this.minMessagePairs = 3, // 최소 3쌍 (6개 메시지) 유지
-  });
+  }) : _baseMaxInputTokens = maxInputTokens;
+
+  /// 보너스 토큰 추가 (광고 시청 시)
+  ///
+  /// [tokens]: 추가할 토큰 수
+  /// 광고를 보면 이전 대화를 유지하면서 더 대화할 수 있음
+  void addBonusTokens(int tokens) {
+    _bonusTokens += tokens;
+    if (kDebugMode) {
+      print('[ConversationWindow] 보너스 토큰 추가: +$tokens (총: $maxInputTokens)');
+    }
+  }
+
+  /// 보너스 토큰 리셋 (새 세션 시작 시)
+  void resetBonusTokens() {
+    _bonusTokens = 0;
+  }
+
+  /// 현재 보너스 토큰
+  int get bonusTokens => _bonusTokens;
 
   /// 시스템 프롬프트 설정
   void setSystemPrompt(String? prompt) {

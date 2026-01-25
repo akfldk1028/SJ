@@ -103,31 +103,159 @@ class RelationMutations extends BaseMutations {
     );
   }
 
-  /// 관계 삭제
+  /// 관계 삭제 (+ 상대방 프로필도 함께 삭제)
+  ///
+  /// 1. 관계 정보 조회 (to_profile_id, compatibility_analysis_id)
+  /// 2. 연결된 compatibility_analyses 삭제 시도 (RLS 실패해도 계속 진행)
+  /// 3. profile_relations 삭제
+  /// 4. to_profile (saju_profiles) 삭제
   Future<QueryResult<void>> delete(String relationId) async {
+    debugPrint('🗑️ [RelationMutations.delete] 시작: relationId=$relationId');
+
     return safeMutation(
       mutation: (client) async {
+        debugPrint('🔍 [RelationMutations.delete] Step 1: 관계 정보 조회');
+
+        // 1. 먼저 관계 정보 조회 (to_profile_id, compatibility_analysis_id)
+        final relation = await client
+            .from(profileRelationsTable)
+            .select('to_profile_id, compatibility_analysis_id')
+            .eq(RelationColumns.id, relationId)
+            .maybeSingle();
+
+        debugPrint('🔍 [RelationMutations.delete] 조회 결과: $relation');
+
+        if (relation == null) {
+          debugPrint('⚠️ [RelationMutations.delete] 관계가 존재하지 않음');
+          return;
+        }
+
+        final toProfileId = relation['to_profile_id'] as String?;
+
+        // 2. 연결된 궁합 분석이 있으면 삭제 시도 (RLS 실패해도 무시)
+        if (relation['compatibility_analysis_id'] != null) {
+          final analysisId = relation['compatibility_analysis_id'] as String;
+          debugPrint('🗑️ [RelationMutations.delete] Step 2: 궁합 분석 삭제 시도: $analysisId');
+
+          try {
+            await client
+                .from('compatibility_analyses')
+                .delete()
+                .eq('id', analysisId);
+            debugPrint('✅ [RelationMutations.delete] 궁합 분석 삭제 성공');
+          } catch (e) {
+            // RLS 정책으로 인해 삭제 실패할 수 있음 - 무시하고 계속 진행
+            debugPrint('⚠️ [RelationMutations.delete] 궁합 분석 삭제 실패 (RLS?): $e');
+          }
+        } else {
+          debugPrint('ℹ️ [RelationMutations.delete] Step 2 스킵: 연결된 궁합 분석 없음');
+        }
+
+        // 3. profile_relations 삭제
+        debugPrint('🗑️ [RelationMutations.delete] Step 3: profile_relations 삭제');
         await client
             .from(profileRelationsTable)
             .delete()
             .eq(RelationColumns.id, relationId);
+
+        // 4. 삭제 검증 (Supabase delete()는 void 반환, RLS 차단 시 silent fail)
+        debugPrint('🔍 [RelationMutations.delete] Step 4: profile_relations 삭제 검증');
+        final verifyResult = await client
+            .from(profileRelationsTable)
+            .select('id')
+            .eq(RelationColumns.id, relationId)
+            .maybeSingle();
+
+        if (verifyResult != null) {
+          debugPrint('❌ [RelationMutations.delete] profile_relations 삭제 검증 실패');
+          throw Exception('관계 삭제 실패: RLS 정책에 의해 차단되었거나 권한이 없습니다');
+        }
+
+        debugPrint('✅ [RelationMutations.delete] profile_relations 삭제 완료');
+
+        // 5. to_profile (saju_profiles) 삭제
+        if (toProfileId != null) {
+          debugPrint('🗑️ [RelationMutations.delete] Step 5: saju_profiles 삭제: $toProfileId');
+
+          try {
+            await client
+                .from('saju_profiles')
+                .delete()
+                .eq('id', toProfileId);
+
+            // 프로필 삭제 검증
+            final profileVerify = await client
+                .from('saju_profiles')
+                .select('id')
+                .eq('id', toProfileId)
+                .maybeSingle();
+
+            if (profileVerify != null) {
+              debugPrint('⚠️ [RelationMutations.delete] saju_profiles 삭제 실패 (RLS?)');
+            } else {
+              debugPrint('✅ [RelationMutations.delete] saju_profiles 삭제 완료: $toProfileId');
+            }
+          } catch (e) {
+            debugPrint('⚠️ [RelationMutations.delete] saju_profiles 삭제 실패: $e');
+          }
+        }
+
+        debugPrint('✅ [RelationMutations.delete] 전체 삭제 완료: $relationId');
       },
       errorPrefix: '관계 삭제 실패',
     );
   }
 
   /// 두 프로필 간 관계 삭제
+  ///
+  /// 1. 연결된 compatibility_analyses 삭제 (있으면)
+  /// 2. profile_relations 삭제
   Future<QueryResult<void>> deleteByProfilePair(
     String fromProfileId,
     String toProfileId,
   ) async {
     return safeMutation(
       mutation: (client) async {
+        // 1. 먼저 관계 정보 조회하여 compatibility_analysis_id 확인
+        final relation = await client
+            .from(profileRelationsTable)
+            .select('compatibility_analysis_id')
+            .eq(RelationColumns.fromProfileId, fromProfileId)
+            .eq(RelationColumns.toProfileId, toProfileId)
+            .maybeSingle();
+
+        // 2. 연결된 궁합 분석이 있으면 삭제
+        if (relation != null && relation['compatibility_analysis_id'] != null) {
+          final analysisId = relation['compatibility_analysis_id'] as String;
+          debugPrint('🗑️ [RelationMutations.deleteByProfilePair] 연결된 궁합 분석 삭제: $analysisId');
+
+          await client
+              .from('compatibility_analyses')
+              .delete()
+              .eq('id', analysisId);
+        }
+
+        // 3. profile_relations 삭제
         await client
             .from(profileRelationsTable)
             .delete()
             .eq(RelationColumns.fromProfileId, fromProfileId)
             .eq(RelationColumns.toProfileId, toProfileId);
+
+        // 4. 삭제 검증
+        final verifyResult = await client
+            .from(profileRelationsTable)
+            .select('id')
+            .eq(RelationColumns.fromProfileId, fromProfileId)
+            .eq(RelationColumns.toProfileId, toProfileId)
+            .maybeSingle();
+
+        if (verifyResult != null) {
+          debugPrint('❌ [RelationMutations.deleteByProfilePair] 삭제 검증 실패');
+          throw Exception('삭제 실패: RLS 정책에 의해 차단되었거나 권한이 없습니다');
+        }
+
+        debugPrint('✅ [RelationMutations.deleteByProfilePair] 관계 삭제 완료');
       },
       errorPrefix: '프로필 간 관계 삭제 실패',
     );
@@ -258,14 +386,50 @@ class RelationMutations extends BaseMutations {
 
   /// 특정 프로필의 모든 관계 삭제
   ///
-  /// 프로필 삭제 시 호출 (CASCADE로 처리되지만 명시적으로도 가능)
+  /// 1. 연결된 모든 compatibility_analyses 삭제
+  /// 2. profile_relations 삭제
+  /// 프로필 삭제 시 호출
   Future<QueryResult<void>> deleteAllByFromProfile(String fromProfileId) async {
     return safeMutation(
       mutation: (client) async {
+        // 1. 먼저 모든 관계의 compatibility_analysis_id 조회
+        final relations = await client
+            .from(profileRelationsTable)
+            .select('compatibility_analysis_id')
+            .eq(RelationColumns.fromProfileId, fromProfileId);
+
+        // 2. 연결된 궁합 분석들 삭제
+        final analysisIds = (relations as List)
+            .where((r) => r['compatibility_analysis_id'] != null)
+            .map((r) => r['compatibility_analysis_id'] as String)
+            .toList();
+
+        if (analysisIds.isNotEmpty) {
+          debugPrint('🗑️ [RelationMutations.deleteAllByFromProfile] 연결된 궁합 분석 ${analysisIds.length}개 삭제');
+          await client
+              .from('compatibility_analyses')
+              .delete()
+              .inFilter('id', analysisIds);
+        }
+
+        // 3. profile_relations 삭제
         await client
             .from(profileRelationsTable)
             .delete()
             .eq(RelationColumns.fromProfileId, fromProfileId);
+
+        // 4. 삭제 검증
+        final verifyResult = await client
+            .from(profileRelationsTable)
+            .select('id')
+            .eq(RelationColumns.fromProfileId, fromProfileId);
+
+        if ((verifyResult as List).isNotEmpty) {
+          debugPrint('❌ [RelationMutations.deleteAllByFromProfile] 삭제 검증 실패: ${verifyResult.length}개 행 남아있음');
+          throw Exception('전체 관계 삭제 실패: RLS 정책에 의해 일부 또는 전체가 차단되었습니다');
+        }
+
+        debugPrint('✅ [RelationMutations.deleteAllByFromProfile] 전체 관계 삭제 완료');
       },
       errorPrefix: '전체 관계 삭제 실패',
     );

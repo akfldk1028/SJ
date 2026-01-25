@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'supabase_service.dart';
+import '../../ad/ad_tracking_service.dart';
 
 /// 토큰 Quota 서비스
 ///
@@ -59,8 +60,12 @@ class QuotaService {
   ///
   /// RPC: add_ad_bonus_tokens(p_user_id, p_bonus_tokens)
   /// 반환: 성공 여부
+  ///
+  /// [bonusTokens] 추가할 보너스 토큰 수
+  /// [trackAdEvent] ad_events 테이블에 기록 여부 (기본: true)
   static Future<AdBonusResult> addAdBonusTokens({
     int bonusTokens = adBonusTokens,
+    bool trackAdEvent = true,
   }) async {
     try {
       final client = SupabaseService.client;
@@ -70,6 +75,17 @@ class QuotaService {
         return AdBonusResult.failure('로그인이 필요합니다.');
       }
 
+      // 1. 광고 이벤트 추적 (ad_events 테이블에 purpose: token_bonus로 기록)
+      if (trackAdEvent) {
+        await AdTrackingService.instance.trackRewarded(
+          rewardAmount: bonusTokens,
+          rewardType: 'token_bonus',
+          screen: 'quota_exceeded_dialog',
+          purpose: AdPurpose.tokenBonus,
+        );
+      }
+
+      // 2. 보너스 토큰 추가 (RPC)
       final response = await client.rpc(
         'add_ad_bonus_tokens',
         params: {

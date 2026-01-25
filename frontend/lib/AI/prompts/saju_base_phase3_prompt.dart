@@ -33,7 +33,7 @@ class SajuBasePhase3Prompt extends PromptTemplate {
   String get modelName => OpenAIModels.sajuAnalysis; // GPT-5.2
 
   @override
-  int get maxTokens => 2500; // Phase 3용 토큰
+  int get maxTokens => 10000; // Phase 3용 토큰 (5000→10000 확장, JSON 잘림 방지)
 
   @override
   double get temperature => 0.7;
@@ -245,50 +245,79 @@ ${phase1Result['hapchung_analysis']?['overall_impact'] ?? ''}
     return buffer.toString();
   }
 
+  /// 대운 섹션 빌드
+  ///
+  /// DB 형식 (camelCase)과 legacy 형식 (snake_case) 모두 지원
+  /// - DB: { startAge, isForward, list: [{ order, pillar, startAge, endAge }] }
+  /// - Legacy: { start_age, current: { gan, ji }, list: [...] }
   String _buildDaeunSection(Map<String, dynamic>? daeun) {
     if (daeun == null || daeun.isEmpty) return '';
 
     final buffer = StringBuffer('\n## 대운 (大運) - 상세 정보\n');
 
-    // 대운 시작 나이
-    final startAge = daeun['start_age'];
+    // 대운 시작 나이 (camelCase 또는 snake_case)
+    final startAge = daeun['startAge'] ?? daeun['start_age'];
     if (startAge != null) {
       buffer.writeln('- 대운 시작: $startAge세');
     }
 
-    // 현재 대운
-    final current = daeun['current'];
-    if (current != null && current is Map) {
-      final gan = current['gan'] ?? '';
-      final ji = current['ji'] ?? '';
-      final startYear = current['start_year'];
-      final endYear = current['end_year'];
-
-      buffer.write('- 현재 대운: $gan$ji');
-      if (startYear != null && endYear != null) {
-        buffer.writeln(' ($startYear~$endYear)');
-      } else {
-        buffer.writeln('');
-      }
+    // 순행/역행
+    final isForward = daeun['isForward'] ?? daeun['is_forward'];
+    if (isForward != null) {
+      buffer.writeln('- 운행: ${isForward == true ? '순행' : '역행'}');
     }
 
     // 대운 전체 목록
     final list = daeun['list'];
     if (list != null && list is List && list.isNotEmpty) {
-      buffer.writeln('\n### 대운 흐름 (전체)');
-      for (int i = 0; i < list.length && i < 8; i++) {
+      buffer.writeln('');
+      buffer.writeln('### 대운 목록 (10년 단위)');
+      buffer.writeln('| 순서 | 대운 | 시작나이 | 종료나이 |');
+      buffer.writeln('|------|------|----------|----------|');
+
+      for (int i = 0; i < list.length && i < 10; i++) {
         final d = list[i];
         if (d is Map) {
-          final gan = d['gan'] ?? '';
-          final ji = d['ji'] ?? '';
-          final startYear = d['start_year'] ?? '';
-          final endYear = d['end_year'] ?? '';
-          buffer.writeln(
-              '${i + 1}. $gan$ji (${startYear}~${endYear})');
+          // pillar 형식 (DB) 또는 gan/ji 형식 (legacy)
+          String pillar;
+          if (d['pillar'] != null) {
+            pillar = _extractDaeunPillar(d['pillar'].toString());
+          } else {
+            final gan = d['gan'] ?? '';
+            final ji = d['ji'] ?? '';
+            pillar = '$gan$ji';
+          }
+
+          // startAge/endAge (DB) 또는 start_year/end_year (legacy)
+          final daeunStartAge = d['startAge'] ?? d['start_age'] ?? d['start_year'] ?? '';
+          final daeunEndAge = d['endAge'] ?? d['end_age'] ?? d['end_year'] ?? '';
+
+          buffer.writeln('| ${i + 1} | $pillar | ${daeunStartAge}세 | ${daeunEndAge}세 |');
         }
       }
+      buffer.writeln('');
+
+      // 대운 흐름 요약
+      final flowList = list.take(10).map((d) {
+        if (d is Map) {
+          if (d['pillar'] != null) {
+            return _extractDaeunPillar(d['pillar'].toString());
+          } else {
+            return '${d['gan'] ?? ''}${d['ji'] ?? ''}';
+          }
+        }
+        return '';
+      }).where((s) => s.isNotEmpty);
+      buffer.writeln('- 대운 흐름: ${flowList.join(' → ')}');
     }
 
     return buffer.toString();
+  }
+
+  /// 대운 간지 추출 (한자 포함 형식에서 한글만)
+  /// "임(壬)신(申)" → "임신"
+  String _extractDaeunPillar(String pillar) {
+    final hangulOnly = pillar.replaceAll(RegExp(r'\([^)]*\)'), '');
+    return hangulOnly.trim();
   }
 }

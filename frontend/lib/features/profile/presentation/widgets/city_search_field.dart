@@ -31,9 +31,14 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
   @override
   void initState() {
     super.initState();
-    // 초기값 설정 (수정 모드 시 기존 도시 표시)
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Provider 값으로 초기화 (위젯 생성 시 한 번만)
     final formState = ref.read(profileFormProvider);
-    if (formState.birthCity.isNotEmpty && _cities.contains(formState.birthCity)) {
+    if (_selectedCity == null && formState.birthCity.isNotEmpty && _cities.contains(formState.birthCity)) {
       _selectedCity = formState.birthCity;
     }
   }

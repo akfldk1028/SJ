@@ -46,7 +46,7 @@ final allProfilesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllProfilesRef = AutoDisposeFutureProviderRef<List<SajuProfile>>;
-String _$profileListHash() => r'a626b2540abb39c53aac0f396e3fffd6c1d8728f';
+String _$profileListHash() => r'b484e04b4f98baf85b4d4335f9f0274f27b4a8d7';
 
 /// 프로필 목록 Provider
 ///
@@ -82,7 +82,7 @@ final activeProfileProvider =
     );
 
 typedef _$ActiveProfile = AutoDisposeAsyncNotifier<SajuProfile?>;
-String _$profileFormHash() => r'492ada8b5dbb84b3741a4a502147411c489a511f';
+String _$profileFormHash() => r'cb0b349516c551370ac02582a34e20c13fd95263';
 
 /// 프로필 폼 Provider
 ///

@@ -22,9 +22,17 @@ class _ProfileNameInputState extends ConsumerState<ProfileNameInput> {
     super.initState();
     _controller = TextEditingController();
 
-    // 초기값 설정
+    // 초기값 설정은 didChangeDependencies에서 처리
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Provider 값으로 controller 초기화 (위젯 생성 시 한 번만)
     final formState = ref.read(profileFormProvider);
-    _controller.text = formState.displayName;
+    if (_controller.text.isEmpty && formState.displayName.isNotEmpty) {
+      _controller.text = formState.displayName;
+    }
   }
 
   @override

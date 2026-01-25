@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/day_strength.dart';
 import '../../domain/entities/saju_analysis.dart';
@@ -12,61 +13,62 @@ class DayStrengthDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 신강/신약 지수 섹션
-          _buildSectionTitle(context, '신강/신약지수'),
+          _buildSectionTitle(context, '신강/신약지수', theme),
           const SizedBox(height: 12),
-          _buildDayStrengthCard(context),
+          _buildDayStrengthCard(context, theme),
           const SizedBox(height: 8),
-          _buildDayStrengthChart(context),
+          _buildDayStrengthChart(context, theme),
           const SizedBox(height: 24),
 
           // 용신 섹션
-          _buildSectionTitle(context, '용신'),
+          _buildSectionTitle(context, '용신', theme),
           const SizedBox(height: 12),
-          _buildYongsinCard(context),
+          _buildYongsinCard(context, theme),
           const SizedBox(height: 24),
 
           // 득령/득지/득시/득세 분석
-          _buildSectionTitle(context, '일간 강약 분석'),
+          _buildSectionTitle(context, '일간 강약 분석', theme),
           const SizedBox(height: 12),
-          _buildStrengthFactorsCard(context),
+          _buildStrengthFactorsCard(context, theme),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Row(
       children: [
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
               ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.help_outline, size: 16, color: AppColors.textMuted),
+        Icon(Icons.help_outline, size: 16, color: theme.textMuted),
       ],
     );
   }
 
   /// 신강/신약 상태 카드
-  Widget _buildDayStrengthCard(BuildContext context) {
+  Widget _buildDayStrengthCard(BuildContext context, AppThemeExtension theme) {
     final dayStrength = analysis.dayStrength;
     final level = dayStrength.level;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,13 +76,13 @@ class DayStrengthDisplay extends StatelessWidget {
           // 득령/득지/득시/득세 표시 (실제 계산값 사용)
           Row(
             children: [
-              _buildDeukBadge('득령', dayStrength.deukryeong),
+              _buildDeukBadge('득령', dayStrength.deukryeong, theme),
               const SizedBox(width: 8),
-              _buildDeukBadge('득지', dayStrength.deukji),
+              _buildDeukBadge('득지', dayStrength.deukji, theme),
               const SizedBox(width: 8),
-              _buildDeukBadge('득시', dayStrength.deuksi),
+              _buildDeukBadge('득시', dayStrength.deuksi, theme),
               const SizedBox(width: 8),
-              _buildDeukBadge('득세', dayStrength.deukse),
+              _buildDeukBadge('득세', dayStrength.deukse, theme),
             ],
           ),
           const SizedBox(height: 16),
@@ -88,7 +90,7 @@ class DayStrengthDisplay extends StatelessWidget {
           RichText(
             text: TextSpan(
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
                 fontSize: 14,
               ),
               children: [
@@ -119,14 +121,14 @@ class DayStrengthDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildDeukBadge(String label, bool isActive) {
+  Widget _buildDeukBadge(String label, bool isActive, AppThemeExtension theme) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: theme.textSecondary,
             fontSize: 12,
           ),
         ),
@@ -141,7 +143,7 @@ class DayStrengthDisplay extends StatelessWidget {
   }
 
   /// 신강/신약 그래프 (8단계)
-  Widget _buildDayStrengthChart(BuildContext context) {
+  Widget _buildDayStrengthChart(BuildContext context, AppThemeExtension theme) {
     final dayStrength = analysis.dayStrength;
     final score = dayStrength.score;
 
@@ -154,9 +156,9 @@ class DayStrengthDisplay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -197,8 +199,8 @@ class DayStrengthDisplay extends StatelessWidget {
                           height: height,
                           decoration: BoxDecoration(
                             color: isActive
-                                ? AppColors.accent
-                                : AppColors.surfaceHover,
+                                ? theme.primaryColor
+                                : theme.surfaceHover,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -218,7 +220,7 @@ class DayStrengthDisplay extends StatelessWidget {
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: theme.textMuted,
                     fontSize: 9,
                   ),
                 ),
@@ -232,11 +234,11 @@ class DayStrengthDisplay extends StatelessWidget {
             children: [
               Text(
                 '(만명)',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+                style: TextStyle(color: theme.textMuted, fontSize: 10),
               ),
               Text(
                 '점수: $score점',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: theme.textSecondary, fontSize: 11),
               ),
             ],
           ),
@@ -246,7 +248,7 @@ class DayStrengthDisplay extends StatelessWidget {
   }
 
   /// 용신 카드
-  Widget _buildYongsinCard(BuildContext context) {
+  Widget _buildYongsinCard(BuildContext context, AppThemeExtension theme) {
     final yongsin = analysis.yongsin;
 
     // 조후용신 계산 (월지 기반)
@@ -255,9 +257,9 @@ class DayStrengthDisplay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -281,6 +283,7 @@ class DayStrengthDisplay extends StatelessWidget {
   Widget _buildYongsinBadge({
     required String label,
     required Oheng oheng,
+    AppThemeExtension? theme,
   }) {
     final color = _getOhengColor(oheng);
 
@@ -289,7 +292,7 @@ class DayStrengthDisplay extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme?.textMuted ?? AppColors.textMuted,
             fontSize: 11,
           ),
         ),
@@ -315,39 +318,39 @@ class DayStrengthDisplay extends StatelessWidget {
   }
 
   /// 일간 강약 분석 요소 카드
-  Widget _buildStrengthFactorsCard(BuildContext context) {
+  Widget _buildStrengthFactorsCard(BuildContext context, AppThemeExtension theme) {
     final details = analysis.dayStrength.details;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
           _buildFactorRow('월령', details.monthStatus.korean,
-              details.monthStatus == MonthStatus.deukwol),
+              details.monthStatus == MonthStatus.deukwol, theme),
           _buildFactorRow('비겁', '${details.bigeopCount}개',
-              details.bigeopCount > 1),
+              details.bigeopCount > 1, theme),
           _buildFactorRow('인성', '${details.inseongCount}개',
-              details.inseongCount > 0),
+              details.inseongCount > 0, theme),
           _buildFactorRow('재성', '${details.jaeseongCount}개',
-              details.jaeseongCount > 2, isNegative: true),
+              details.jaeseongCount > 2, theme, isNegative: true),
           _buildFactorRow('관성', '${details.gwanseongCount}개',
-              details.gwanseongCount > 1, isNegative: true),
+              details.gwanseongCount > 1, theme, isNegative: true),
           _buildFactorRow('식상', '${details.siksangCount}개',
-              details.siksangCount > 1, isNegative: true),
+              details.siksangCount > 1, theme, isNegative: true),
         ],
       ),
     );
   }
 
-  Widget _buildFactorRow(String label, String value, bool isActive, {bool isNegative = false}) {
+  Widget _buildFactorRow(String label, String value, bool isActive, AppThemeExtension theme, {bool isNegative = false}) {
     final color = isActive
         ? (isNegative ? AppColors.error : AppColors.success)
-        : AppColors.textMuted;
+        : theme.textMuted;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -357,7 +360,7 @@ class DayStrengthDisplay extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
             ),
           ),

@@ -86,8 +86,12 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, AppThemeExtension theme, DailyFortuneData fortune) {
+    // 반응형 패딩 적용
+    final horizontalPadding = context.horizontalPadding;
+    final isSmall = context.isSmallMobile;
+
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 16 : 20),
       children: [
         // 상단 종합 점수 카드 (그라데이션 + 애니메이션 느낌)
         _buildOverallScoreCard(context, theme, fortune),

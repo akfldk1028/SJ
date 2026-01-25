@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,6 +13,7 @@ part 'lifetime_fortune_provider.g.dart';
 /// 평생운세 데이터 모델 (saju_base AI 응답 JSON 구조)
 class LifetimeFortuneData {
   final MySajuIntroSection? mySajuIntro;  // v7.0: 나의 사주 소개 추가
+  final MySajuCharactersSection? mySajuCharacters;  // v8.0: 사주팔자 8글자 설명 추가
   final String summary;
   final PersonalitySection personality;
   final WealthSection wealth;
@@ -28,9 +31,14 @@ class LifetimeFortuneData {
   final SipsungAnalysisSection? sipsungAnalysis;
   final HapchungAnalysisSection? hapchungAnalysis;
   final ModernInterpretationSection? modernInterpretation;
+  // v8.1: 누락된 섹션 추가
+  final PeakYearsSection? peakYears;
+  final DaeunDetailSection? daeunDetail;
+  final SinsalGilseongSection? sinsalGilseong;
 
   const LifetimeFortuneData({
     this.mySajuIntro,
+    this.mySajuCharacters,
     required this.summary,
     required this.personality,
     required this.wealth,
@@ -47,22 +55,63 @@ class LifetimeFortuneData {
     this.sipsungAnalysis,
     this.hapchungAnalysis,
     this.modernInterpretation,
+    this.peakYears,
+    this.daeunDetail,
+    this.sinsalGilseong,
   });
 
   /// AI 응답 JSON에서 파싱
   factory LifetimeFortuneData.fromJson(Map<String, dynamic> json) {
+    // v9.0: raw 필드 파싱 (AI 응답이 raw 문자열로 저장된 경우)
+    Map<String, dynamic> parsedJson = json;
+    if (json.containsKey('raw') && json['raw'] is String) {
+      try {
+        final rawString = json['raw'] as String;
+        final rawParsed = Map<String, dynamic>.from(
+          (rawString.startsWith('{') ?
+            _parseJsonSafely(rawString) :
+            {}) as Map
+        );
+        // raw에서 파싱한 데이터와 기존 json 병합 (raw 내용 우선)
+        parsedJson = {...json, ...rawParsed};
+        print('[LifetimeFortuneData] raw 필드 파싱 성공: ${rawParsed.keys.take(5)}...');
+      } catch (e) {
+        print('[LifetimeFortuneData] raw 파싱 실패: $e');
+      }
+    }
+
     // v7.0: mySajuIntro 파싱
+    // v9.0: ilju (일주설명) 필드 추가
     MySajuIntroSection? mySajuIntro;
-    final mySajuIntroJson = json['mySajuIntro'] as Map<String, dynamic>?;
+    final mySajuIntroJson = parsedJson['mySajuIntro'] as Map<String, dynamic>?;
     if (mySajuIntroJson != null) {
       mySajuIntro = MySajuIntroSection(
         title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
+        ilju: mySajuIntroJson['ilju'] as String? ?? '',
         reading: mySajuIntroJson['reading'] as String? ?? '',
       );
     }
 
+    // v8.0: mySajuCharacters 파싱 (8글자 설명)
+    MySajuCharactersSection? mySajuCharacters;
+    final mySajuCharsJson = parsedJson['my_saju_characters'] as Map<String, dynamic>?;
+    if (mySajuCharsJson != null) {
+      mySajuCharacters = MySajuCharactersSection(
+        description: mySajuCharsJson['description'] as String? ?? '',
+        yearGan: SajuCharacterInfo.fromJson(mySajuCharsJson['year_gan'] as Map<String, dynamic>? ?? {}),
+        yearJi: SajuCharacterInfo.fromJson(mySajuCharsJson['year_ji'] as Map<String, dynamic>? ?? {}),
+        monthGan: SajuCharacterInfo.fromJson(mySajuCharsJson['month_gan'] as Map<String, dynamic>? ?? {}),
+        monthJi: SajuCharacterInfo.fromJson(mySajuCharsJson['month_ji'] as Map<String, dynamic>? ?? {}),
+        dayGan: SajuCharacterInfo.fromJson(mySajuCharsJson['day_gan'] as Map<String, dynamic>? ?? {}),
+        dayJi: SajuCharacterInfo.fromJson(mySajuCharsJson['day_ji'] as Map<String, dynamic>? ?? {}),
+        hourGan: SajuCharacterInfo.fromJson(mySajuCharsJson['hour_gan'] as Map<String, dynamic>? ?? {}),
+        hourJi: SajuCharacterInfo.fromJson(mySajuCharsJson['hour_ji'] as Map<String, dynamic>? ?? {}),
+        overallReading: mySajuCharsJson['overall_reading'] as String? ?? '',
+      );
+    }
+
     // personality 파싱
-    final personalityJson = json['personality'] as Map<String, dynamic>? ?? {};
+    final personalityJson = parsedJson['personality'] as Map<String, dynamic>? ?? {};
     final personality = PersonalitySection(
       coreTraits: _parseStringList(personalityJson['core_traits']),
       strengths: _parseStringList(personalityJson['strengths']),
@@ -72,7 +121,7 @@ class LifetimeFortuneData {
     );
 
     // wealth 파싱
-    final wealthJson = json['wealth'] as Map<String, dynamic>? ?? {};
+    final wealthJson = parsedJson['wealth'] as Map<String, dynamic>? ?? {};
     final wealth = WealthSection(
       overallTendency: wealthJson['overall_tendency'] as String? ?? '',
       earningStyle: wealthJson['earning_style'] as String? ?? '',
@@ -84,7 +133,7 @@ class LifetimeFortuneData {
     );
 
     // love 파싱
-    final loveJson = json['love'] as Map<String, dynamic>? ?? {};
+    final loveJson = parsedJson['love'] as Map<String, dynamic>? ?? {};
     final love = LoveSection(
       attractionStyle: loveJson['attraction_style'] as String? ?? '',
       datingPattern: loveJson['dating_pattern'] as String? ?? '',
@@ -96,7 +145,7 @@ class LifetimeFortuneData {
     );
 
     // marriage 파싱
-    final marriageJson = json['marriage'] as Map<String, dynamic>? ?? {};
+    final marriageJson = parsedJson['marriage'] as Map<String, dynamic>? ?? {};
     final marriage = MarriageSection(
       spousePalaceAnalysis: marriageJson['spouse_palace_analysis'] as String? ?? '',
       marriageTiming: marriageJson['marriage_timing'] as String? ?? '',
@@ -107,7 +156,7 @@ class LifetimeFortuneData {
     );
 
     // career 파싱
-    final careerJson = json['career'] as Map<String, dynamic>? ?? {};
+    final careerJson = parsedJson['career'] as Map<String, dynamic>? ?? {};
     final career = CareerSection(
       suitableFields: _parseStringList(careerJson['suitable_fields']),
       unsuitableFields: _parseStringList(careerJson['unsuitable_fields']),
@@ -118,7 +167,7 @@ class LifetimeFortuneData {
     );
 
     // business 파싱
-    final businessJson = json['business'] as Map<String, dynamic>? ?? {};
+    final businessJson = parsedJson['business'] as Map<String, dynamic>? ?? {};
     final business = BusinessSection(
       entrepreneurshipAptitude: businessJson['entrepreneurship_aptitude'] as String? ?? '',
       suitableBusinessTypes: _parseStringList(businessJson['suitable_business_types']),
@@ -129,7 +178,7 @@ class LifetimeFortuneData {
     );
 
     // health 파싱
-    final healthJson = json['health'] as Map<String, dynamic>? ?? {};
+    final healthJson = parsedJson['health'] as Map<String, dynamic>? ?? {};
     final health = HealthSection(
       vulnerableOrgans: _parseStringList(healthJson['vulnerable_organs']),
       potentialIssues: _parseStringList(healthJson['potential_issues']),
@@ -139,41 +188,87 @@ class LifetimeFortuneData {
     );
 
     // categories 빌드 (FortuneCategoryChipSection용)
+    // v8.2: 모든 상세 필드 (advice, cautions, strengths 등) 포함
+    // v9.4: 카테고리별 상세 필드 전체 추가 (DB 필드 100% 매핑)
+    // NOTE: reading은 AI 응답에 없으므로 _buildXxxReading() 함수로 생성
     final categories = <String, CategoryFortuneData>{
       'career': CategoryFortuneData(
         title: '직업운',
         score: _calculateScore(careerJson),
-        reading: _buildCareerReading(career),
+        reading: careerJson['reading'] as String? ?? _buildCareerReading(career),
+        advice: career.advice.isNotEmpty ? career.advice : null,
+        timing: career.careerTiming.isNotEmpty ? career.careerTiming : null,
+        suitableFields: career.suitableFields,
+        unsuitableFields: career.unsuitableFields,
+        // v9.4: 직업운 상세 필드
+        workStyle: career.workStyle.isNotEmpty ? career.workStyle : null,
+        leadershipPotential: career.leadershipPotential.isNotEmpty ? career.leadershipPotential : null,
       ),
       'business': CategoryFortuneData(
         title: '사업운',
         score: _calculateScore(businessJson),
-        reading: _buildBusinessReading(business),
+        reading: businessJson['reading'] as String? ?? _buildBusinessReading(business),
+        advice: business.advice.isNotEmpty ? business.advice : null,
+        cautions: business.cautions,
+        strengths: business.successFactors,  // 성공 요인 → 강점으로 표시
+        suitableFields: business.suitableBusinessTypes,
+        // v9.4: 사업운 상세 필드
+        entrepreneurshipAptitude: business.entrepreneurshipAptitude.isNotEmpty ? business.entrepreneurshipAptitude : null,
+        businessPartnerTraits: business.businessPartnerTraits.isNotEmpty ? business.businessPartnerTraits : null,
       ),
       'wealth': CategoryFortuneData(
         title: '재물운',
         score: _calculateScore(wealthJson),
-        reading: _buildWealthReading(wealth),
+        reading: wealthJson['reading'] as String? ?? _buildWealthReading(wealth),
+        advice: wealth.advice.isNotEmpty ? wealth.advice : null,
+        cautions: wealth.cautions,
+        timing: wealth.wealthTiming.isNotEmpty ? wealth.wealthTiming : null,
+        // v9.4: 재물운 상세 필드
+        overallTendency: wealth.overallTendency.isNotEmpty ? wealth.overallTendency : null,
+        earningStyle: wealth.earningStyle.isNotEmpty ? wealth.earningStyle : null,
+        spendingTendency: wealth.spendingTendency.isNotEmpty ? wealth.spendingTendency : null,
+        investmentAptitude: wealth.investmentAptitude.isNotEmpty ? wealth.investmentAptitude : null,
       ),
       'love': CategoryFortuneData(
         title: '연애운',
         score: _calculateScore(loveJson),
-        reading: _buildLoveReading(love),
+        reading: loveJson['reading'] as String? ?? _buildLoveReading(love),
+        advice: love.advice.isNotEmpty ? love.advice : null,
+        strengths: love.romanticStrengths,
+        weaknesses: love.romanticWeaknesses,
+        timing: love.loveTiming.isNotEmpty ? love.loveTiming : null,
+        // v9.4: 연애운 상세 필드
+        datingPattern: love.datingPattern.isNotEmpty ? love.datingPattern : null,
+        attractionStyle: love.attractionStyle.isNotEmpty ? love.attractionStyle : null,
+        idealPartnerTraits: love.idealPartnerTraits,
       ),
       'marriage': CategoryFortuneData(
         title: '결혼운',
         score: _calculateScore(marriageJson),
-        reading: _buildMarriageReading(marriage),
+        reading: marriageJson['reading'] as String? ?? _buildMarriageReading(marriage),
+        advice: marriage.advice.isNotEmpty ? marriage.advice : null,
+        cautions: marriage.cautions,
+        timing: marriage.marriageTiming.isNotEmpty ? marriage.marriageTiming : null,
+        // v9.4: 결혼운 상세 필드
+        spousePalaceAnalysis: marriage.spousePalaceAnalysis.isNotEmpty ? marriage.spousePalaceAnalysis : null,
+        spouseCharacteristics: marriage.spouseCharacteristics.isNotEmpty ? marriage.spouseCharacteristics : null,
+        marriedLifeTendency: marriage.marriedLifeTendency.isNotEmpty ? marriage.marriedLifeTendency : null,
       ),
       'health': CategoryFortuneData(
         title: '건강운',
         score: _calculateScore(healthJson),
-        reading: _buildHealthReading(health),
+        reading: healthJson['reading'] as String? ?? _buildHealthReading(health),
+        cautions: health.potentialIssues,            // 잠재적 문제 → 주의사항
+        weaknesses: health.vulnerableOrgans,         // 취약 부위 → 약점
+        timing: health.cautionPeriods.isNotEmpty ? health.cautionPeriods : null,
+        // v9.4: 건강운 상세 필드
+        mentalHealth: health.mentalHealth.isNotEmpty ? health.mentalHealth : null,
+        lifestyleAdvice: health.lifestyleAdvice,
       ),
     };
 
     // lifeCycles 파싱
-    final lifeCyclesJson = json['life_cycles'] as Map<String, dynamic>? ?? {};
+    final lifeCyclesJson = parsedJson['life_cycles'] as Map<String, dynamic>? ?? {};
     final lifeCycles = LifeCyclesSection(
       youth: lifeCyclesJson['youth'] as String? ?? '',
       middleAge: lifeCyclesJson['middle_age'] as String? ?? '',
@@ -182,7 +277,7 @@ class LifetimeFortuneData {
     );
 
     // luckyElements 파싱
-    final luckyJson = json['lucky_elements'] as Map<String, dynamic>? ?? {};
+    final luckyJson = parsedJson['lucky_elements'] as Map<String, dynamic>? ?? {};
     final luckyElements = LuckyElementsSection(
       colors: _parseStringList(luckyJson['colors']),
       directions: _parseStringList(luckyJson['directions']),
@@ -193,7 +288,7 @@ class LifetimeFortuneData {
 
     // v7.3: wonGuk_analysis 파싱
     WonGukAnalysisSection? wonGukAnalysis;
-    final wonGukJson = json['wonGuk_analysis'] as Map<String, dynamic>?;
+    final wonGukJson = parsedJson['wonGuk_analysis'] as Map<String, dynamic>?;
     if (wonGukJson != null) {
       wonGukAnalysis = WonGukAnalysisSection(
         gyeokguk: wonGukJson['gyeokguk'] as String? ?? '',
@@ -205,7 +300,7 @@ class LifetimeFortuneData {
 
     // v7.3: sipsung_analysis 파싱
     SipsungAnalysisSection? sipsungAnalysis;
-    final sipsungJson = json['sipsung_analysis'] as Map<String, dynamic>?;
+    final sipsungJson = parsedJson['sipsung_analysis'] as Map<String, dynamic>?;
     if (sipsungJson != null) {
       sipsungAnalysis = SipsungAnalysisSection(
         weakSipsung: _parseStringList(sipsungJson['weak_sipsung']),
@@ -217,7 +312,7 @@ class LifetimeFortuneData {
 
     // v7.3: hapchung_analysis 파싱
     HapchungAnalysisSection? hapchungAnalysis;
-    final hapchungJson = json['hapchung_analysis'] as Map<String, dynamic>?;
+    final hapchungJson = parsedJson['hapchung_analysis'] as Map<String, dynamic>?;
     if (hapchungJson != null) {
       hapchungAnalysis = HapchungAnalysisSection(
         majorHaps: _parseStringList(hapchungJson['major_haps']),
@@ -229,7 +324,7 @@ class LifetimeFortuneData {
 
     // v7.3: modern_interpretation 파싱
     ModernInterpretationSection? modernInterpretation;
-    final modernJson = json['modern_interpretation'] as Map<String, dynamic>?;
+    final modernJson = parsedJson['modern_interpretation'] as Map<String, dynamic>?;
     if (modernJson != null) {
       // career_in_ai_era 파싱
       ModernCareerSection? careerInAiEra;
@@ -271,9 +366,58 @@ class LifetimeFortuneData {
       );
     }
 
+    // v8.1: peak_years 파싱
+    PeakYearsSection? peakYears;
+    final peakYearsJson = parsedJson['peak_years'] as Map<String, dynamic>?;
+    if (peakYearsJson != null) {
+      peakYears = PeakYearsSection(
+        period: peakYearsJson['period'] as String? ?? '',
+        ageRange: _parseIntList(peakYearsJson['age_range']),
+        why: peakYearsJson['why'] as String? ?? '',
+        whatToDo: peakYearsJson['what_to_do'] as String? ?? '',
+        whatToPrepare: peakYearsJson['what_to_prepare'] as String? ?? '',
+        cautions: peakYearsJson['cautions'] as String? ?? '',
+      );
+    }
+
+    // v8.1: daeun_detail 파싱
+    DaeunDetailSection? daeunDetail;
+    final daeunDetailJson = parsedJson['daeun_detail'] as Map<String, dynamic>?;
+    if (daeunDetailJson != null) {
+      final cyclesJson = daeunDetailJson['cycles'] as List<dynamic>? ?? [];
+      final cycles = cyclesJson
+          .map((e) => DaeunCycleItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      final bestDaeun = daeunDetailJson['best_daeun'] as Map<String, dynamic>? ?? {};
+      final worstDaeun = daeunDetailJson['worst_daeun'] as Map<String, dynamic>? ?? {};
+
+      daeunDetail = DaeunDetailSection(
+        intro: daeunDetailJson['intro'] as String? ?? '',
+        cycles: cycles,
+        bestDaeunPeriod: bestDaeun['period'] as String? ?? '',
+        bestDaeunWhy: bestDaeun['why'] as String? ?? '',
+        worstDaeunPeriod: worstDaeun['period'] as String? ?? '',
+        worstDaeunWhy: worstDaeun['why'] as String? ?? '',
+      );
+    }
+
+    // v8.1: sinsal_gilseong 파싱
+    SinsalGilseongSection? sinsalGilseong;
+    final sinsalJson = parsedJson['sinsal_gilseong'] as Map<String, dynamic>?;
+    if (sinsalJson != null) {
+      sinsalGilseong = SinsalGilseongSection(
+        majorSinsal: _parseStringList(sinsalJson['major_sinsal']),
+        majorGilseong: _parseStringList(sinsalJson['major_gilseong']),
+        practicalImplications: sinsalJson['practical_implications'] as String? ?? '',
+        reading: sinsalJson['reading'] as String? ?? '',
+      );
+    }
+
     return LifetimeFortuneData(
       mySajuIntro: mySajuIntro,
-      summary: json['summary'] as String? ?? '',
+      mySajuCharacters: mySajuCharacters,
+      summary: parsedJson['summary'] as String? ?? '',
       personality: personality,
       wealth: wealth,
       love: love,
@@ -283,12 +427,16 @@ class LifetimeFortuneData {
       health: health,
       categories: categories,
       lifeCycles: lifeCycles,
-      overallAdvice: json['overall_advice'] as String? ?? '',
+      overallAdvice: parsedJson['overall_advice'] as String? ?? '',
       luckyElements: luckyElements,
       wonGukAnalysis: wonGukAnalysis,
       sipsungAnalysis: sipsungAnalysis,
       hapchungAnalysis: hapchungAnalysis,
       modernInterpretation: modernInterpretation,
+      // v8.1: 누락된 필드 추가
+      peakYears: peakYears,
+      daeunDetail: daeunDetail,
+      sinsalGilseong: sinsalGilseong,
     );
   }
 
@@ -297,6 +445,17 @@ class LifetimeFortuneData {
       return value.map((e) => e.toString()).toList();
     }
     return [];
+  }
+
+  /// JSON 문자열 안전 파싱 (raw 필드용)
+  static dynamic _parseJsonSafely(String jsonString) {
+    if (jsonString.isEmpty) return {};
+    try {
+      return jsonDecode(jsonString);
+    } catch (e) {
+      print('[LifetimeFortuneData] JSON 파싱 실패: $e');
+      return {};
+    }
   }
 
   static List<int> _parseIntList(dynamic value) {
@@ -567,27 +726,159 @@ class LuckyElementsSection {
 }
 
 /// 카테고리별 운세 데이터 (칩 표시용)
+/// v8.2: advice, cautions, strengths 등 상세 필드 추가
+/// v9.4: 카테고리별 상세 필드 전체 추가 (DB 필드 100% 매핑)
 class CategoryFortuneData {
   final String title;
   final int score;
   final String reading;
 
+  // v8.2: 상세 필드 추가
+  final String? advice;                    // 조언
+  final List<String> cautions;             // 주의사항
+  final List<String> strengths;            // 강점
+  final List<String> weaknesses;           // 약점
+  final String? timing;                    // 타이밍 (love_timing, career_timing 등)
+  final List<String> suitableFields;       // 적합 분야
+  final List<String> unsuitableFields;     // 비적합 분야
+
+  // v9.4: 카테고리별 상세 필드 추가
+  // 직업운
+  final String? workStyle;                 // 업무 스타일
+  final String? leadershipPotential;       // 리더십 잠재력
+
+  // 연애운
+  final String? datingPattern;             // 연애 패턴
+  final String? attractionStyle;           // 끌리는 유형
+  final List<String> idealPartnerTraits;   // 이상형 특성
+
+  // 재물운
+  final String? overallTendency;           // 전반적 경향
+  final String? earningStyle;              // 돈 버는 방식
+  final String? spendingTendency;          // 소비 성향
+  final String? investmentAptitude;        // 투자 적성
+
+  // 사업운
+  final String? entrepreneurshipAptitude;  // 창업 적성
+  final String? businessPartnerTraits;     // 사업 파트너 특성
+
+  // 결혼운
+  final String? spousePalaceAnalysis;      // 배우자궁 분석
+  final String? spouseCharacteristics;     // 배우자 특성
+  final String? marriedLifeTendency;       // 결혼 생활 경향
+
+  // 건강운
+  final String? mentalHealth;              // 정신 건강
+  final List<String> lifestyleAdvice;      // 생활 습관 조언
+
   const CategoryFortuneData({
     required this.title,
     required this.score,
     required this.reading,
+    this.advice,
+    this.cautions = const [],
+    this.strengths = const [],
+    this.weaknesses = const [],
+    this.timing,
+    this.suitableFields = const [],
+    this.unsuitableFields = const [],
+    // v9.4: 카테고리별 상세 필드
+    this.workStyle,
+    this.leadershipPotential,
+    this.datingPattern,
+    this.attractionStyle,
+    this.idealPartnerTraits = const [],
+    this.overallTendency,
+    this.earningStyle,
+    this.spendingTendency,
+    this.investmentAptitude,
+    this.entrepreneurshipAptitude,
+    this.businessPartnerTraits,
+    this.spousePalaceAnalysis,
+    this.spouseCharacteristics,
+    this.marriedLifeTendency,
+    this.mentalHealth,
+    this.lifestyleAdvice = const [],
   });
 }
 
 /// v7.0: 나의 사주 소개 섹션
+/// v9.0: ilju (일주설명) 필드 추가
 class MySajuIntroSection {
   final String title;
+  final String ilju;     // v9.0: 일주(日柱) 설명
   final String reading;
 
   const MySajuIntroSection({
     required this.title,
+    required this.ilju,
     required this.reading,
   });
+
+  /// 표시할 콘텐츠가 있는지 확인 (ilju 또는 reading)
+  bool get hasContent => ilju.isNotEmpty || reading.isNotEmpty;
+}
+
+/// v8.0: 사주팔자 8글자 설명 섹션 (my_saju_characters)
+class MySajuCharactersSection {
+  final String description;
+  final SajuCharacterInfo yearGan;
+  final SajuCharacterInfo yearJi;
+  final SajuCharacterInfo monthGan;
+  final SajuCharacterInfo monthJi;
+  final SajuCharacterInfo dayGan;
+  final SajuCharacterInfo dayJi;
+  final SajuCharacterInfo hourGan;
+  final SajuCharacterInfo hourJi;
+  final String overallReading;
+
+  const MySajuCharactersSection({
+    required this.description,
+    required this.yearGan,
+    required this.yearJi,
+    required this.monthGan,
+    required this.monthJi,
+    required this.dayGan,
+    required this.dayJi,
+    required this.hourGan,
+    required this.hourJi,
+    required this.overallReading,
+  });
+
+  bool get hasContent => overallReading.isNotEmpty;
+}
+
+/// 사주 한 글자 정보
+class SajuCharacterInfo {
+  final String character;    // 한자 (예: 甲)
+  final String reading;      // 읽는 법 (예: 갑)
+  final String oheng;        // 오행 (목/화/토/금/수)
+  final String yinYang;      // 음양 (양/음)
+  final String meaning;      // 쉬운 설명
+  final String? animal;      // 띠 동물 (지지만)
+  final String? season;      // 계절 (월지만)
+
+  const SajuCharacterInfo({
+    required this.character,
+    required this.reading,
+    required this.oheng,
+    required this.yinYang,
+    required this.meaning,
+    this.animal,
+    this.season,
+  });
+
+  factory SajuCharacterInfo.fromJson(Map<String, dynamic> json) {
+    return SajuCharacterInfo(
+      character: json['character'] as String? ?? '',
+      reading: json['reading'] as String? ?? '',
+      oheng: json['oheng'] as String? ?? '',
+      yinYang: json['yin_yang'] as String? ?? '',
+      meaning: json['meaning'] as String? ?? '',
+      animal: json['animal'] as String?,
+      season: json['season'] as String?,
+    );
+  }
 }
 
 /// 원국 분석 섹션 (wonGuk_analysis)
@@ -700,6 +991,111 @@ class ModernInterpretationSection {
 
   bool get hasContent =>
       careerInAiEra != null || wealthInAiEra != null || relationshipsInAiEra != null;
+}
+
+/// v8.1: 전성기 섹션 (peak_years)
+class PeakYearsSection {
+  final String period;           // "31-41세"
+  final List<int> ageRange;      // [31, 41]
+  final String why;              // 왜 이 시기가 전성기인지
+  final String whatToDo;         // 무엇을 해야 하는지
+  final String whatToPrepare;    // 무엇을 준비해야 하는지
+  final String cautions;         // 주의사항
+
+  const PeakYearsSection({
+    required this.period,
+    required this.ageRange,
+    required this.why,
+    required this.whatToDo,
+    required this.whatToPrepare,
+    required this.cautions,
+  });
+
+  bool get hasContent =>
+      period.isNotEmpty || why.isNotEmpty || whatToDo.isNotEmpty;
+}
+
+/// v8.1: 대운 사이클 항목 (daeun_detail.cycles[])
+class DaeunCycleItem {
+  final int order;               // 순서 (1, 2, 3...)
+  final String pillar;           // 대운 간지
+  final String ageRange;         // "현재 나이 구간: 미상"
+  final String mainTheme;        // 주제
+  final String fortuneLevel;     // 운세 수준 (상/중상/중/중하/하)
+  final String reading;          // 상세 해석
+  final List<String> opportunities;  // 기회들
+  final List<String> challenges;     // 도전들
+
+  const DaeunCycleItem({
+    required this.order,
+    required this.pillar,
+    required this.ageRange,
+    required this.mainTheme,
+    required this.fortuneLevel,
+    required this.reading,
+    required this.opportunities,
+    required this.challenges,
+  });
+
+  factory DaeunCycleItem.fromJson(Map<String, dynamic> json) {
+    return DaeunCycleItem(
+      order: (json['order'] as int?) ?? 0,
+      pillar: json['pillar'] as String? ?? '',
+      ageRange: json['age_range'] as String? ?? '',
+      mainTheme: json['main_theme'] as String? ?? '',
+      fortuneLevel: json['fortune_level'] as String? ?? '',
+      reading: json['reading'] as String? ?? '',
+      opportunities: _parseStringListStatic(json['opportunities']),
+      challenges: _parseStringListStatic(json['challenges']),
+    );
+  }
+
+  static List<String> _parseStringListStatic(dynamic value) {
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+}
+
+/// v8.1: 대운 상세 섹션 (daeun_detail)
+class DaeunDetailSection {
+  final String intro;                    // 대운 소개
+  final List<DaeunCycleItem> cycles;     // 대운 사이클 목록
+  final String bestDaeunPeriod;          // 최고 대운 시기
+  final String bestDaeunWhy;             // 최고 대운 이유
+  final String worstDaeunPeriod;         // 최악 대운 시기
+  final String worstDaeunWhy;            // 최악 대운 이유
+
+  const DaeunDetailSection({
+    required this.intro,
+    required this.cycles,
+    required this.bestDaeunPeriod,
+    required this.bestDaeunWhy,
+    required this.worstDaeunPeriod,
+    required this.worstDaeunWhy,
+  });
+
+  bool get hasContent =>
+      intro.isNotEmpty || cycles.isNotEmpty || bestDaeunPeriod.isNotEmpty;
+}
+
+/// v8.1: 신살/길성 섹션 (sinsal_gilseong)
+class SinsalGilseongSection {
+  final List<String> majorSinsal;        // 주요 신살
+  final List<String> majorGilseong;      // 주요 길성
+  final String practicalImplications;    // 실질적 의미
+  final String reading;                  // 전체 해석
+
+  const SinsalGilseongSection({
+    required this.majorSinsal,
+    required this.majorGilseong,
+    required this.practicalImplications,
+    required this.reading,
+  });
+
+  bool get hasContent =>
+      majorSinsal.isNotEmpty || majorGilseong.isNotEmpty || reading.isNotEmpty;
 }
 
 /// Phase 진행 상황 데이터 (Progressive Disclosure용)

@@ -12,6 +12,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/korea_date_utils.dart';
 
+/// 현재 2026 신년운세 프롬프트 버전
+/// @deprecated PromptVersions.yearlyFortune2026 사용
+/// 하위 호환성을 위해 유지
+const String kYearly2026FortunePromptVersion = PromptVersions.yearlyFortune2026;
+
 /// 2026 신년운세 쿼리 클래스
 class Yearly2026Queries {
   final SupabaseClient _supabase;
@@ -48,6 +53,13 @@ class Yearly2026Queries {
           // 만료됨 - null 반환
           return null;
         }
+      }
+
+      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      final cachedVersion = response['prompt_version'];
+      if (cachedVersion != kYearly2026FortunePromptVersion) {
+        print('[Yearly2026Queries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kYearly2026FortunePromptVersion');
+        return null;
       }
 
       return response;

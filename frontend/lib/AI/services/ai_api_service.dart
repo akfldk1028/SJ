@@ -203,6 +203,12 @@ class AiApiService {
   /// 4. completed 상태일 때 결과 반환
   /// 5. 토큰 사용량/비용 계산
   /// 6. 로컬 로그 저장
+  /// v29: taskType 파라미터 추가 - 병렬 실행 시 task 분리용
+  /// - saju_base: 평생운세
+  /// - monthly_fortune: 월별운세
+  /// - yearly_2026: 2026 신년운세
+  /// - yearly_2025: 2025 회고운세
+  /// - daily_fortune: 오늘의 일운
   Future<AiApiResponse> callOpenAI({
     required List<Map<String, String>> messages,
     required String model,
@@ -211,9 +217,10 @@ class AiApiService {
     String logType = 'unknown',
     String? userId,
     bool runInBackground = true,  // v24: 기본값 true
+    String taskType = 'saju_analysis',  // v29: task 구분용 (기본값 유지)
   }) async {
     try {
-      print('[AiApiService v24] OpenAI 호출: $model (background=$runInBackground, userId: ${userId ?? "null"})');
+      print('[AiApiService v29] OpenAI 호출: $model (background=$runInBackground, taskType=$taskType, userId: ${userId ?? "null"})');
 
       final response = await _client.functions.invoke(
         'ai-openai',
@@ -224,6 +231,7 @@ class AiApiService {
           'temperature': temperature,
           'response_format': {'type': 'json_object'},
           'run_in_background': runInBackground,  // v24: Background 모드
+          'task_type': taskType,  // v29: 병렬 실행 시 task 분리!
           if (userId != null) 'user_id': userId,
         },
       );
@@ -640,19 +648,25 @@ class AiApiService {
   // 유틸리티 메서드
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// JSON 문자열 파싱
+  /// JSON 문자열 파싱 (v26: 강화된 파싱 로직)
   ///
   /// ## 처리 케이스
   /// 1. `{"key": "value"}` → 그대로 파싱
   /// 2. ` ```json\n{...}\n``` ` → 마크다운 블록 제거 후 파싱
-  /// 3. 파싱 실패 → `{'raw': content}` 반환
+  /// 3. 이중 이스케이프된 JSON → 2단계 파싱
+  /// 4. 파싱 실패 → `{'raw': content}` 반환 (최후의 수단)
+  ///
+  /// ## v26 개선
+  /// - 이중 이스케이프된 JSON 처리 (\\n, \\", etc.)
+  /// - 마크다운 블록 내 이스케이프 처리
+  /// - 여러 번 파싱 시도 후 실패 시에만 raw 반환
   Map<String, dynamic> _parseJsonContent(String? content) {
     if (content == null || content.isEmpty) {
       return {};
     }
 
     try {
-      // ```json ... ``` 형식 처리
+      // 1차: 마크다운 블록 제거
       String cleaned = content.trim();
       if (cleaned.startsWith('```json')) {
         cleaned = cleaned.substring(7);
@@ -662,11 +676,41 @@ class AiApiService {
       if (cleaned.endsWith('```')) {
         cleaned = cleaned.substring(0, cleaned.length - 3);
       }
+      cleaned = cleaned.trim();
 
-      return jsonDecode(cleaned.trim()) as Map<String, dynamic>;
+      // 2차: 직접 파싱 시도
+      try {
+        return jsonDecode(cleaned) as Map<String, dynamic>;
+      } catch (_) {
+        // 3차: 이중 이스케이프된 경우 처리
+        // AI가 JSON 문자열을 한 번 더 이스케이프한 경우
+        // 예: "{\"summary\": \"...\"}" 대신 "{\\\"summary\\\": \\\"...\\\"}"
+        if (cleaned.contains(r'\"') || cleaned.contains(r'\n')) {
+          try {
+            // 이스케이프 문자 언이스케이프
+            final unescaped = cleaned
+                .replaceAll(r'\"', '"')
+                .replaceAll(r'\n', '\n')
+                .replaceAll(r'\t', '\t')
+                .replaceAll(r'\\', r'\');
+            return jsonDecode(unescaped) as Map<String, dynamic>;
+          } catch (_) {
+            // 4차: JSON 문자열로 래핑된 경우
+            // 예: "{\\"summary\\": \\"...\\"}"
+            if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+              try {
+                final inner = jsonDecode(cleaned) as String;
+                return jsonDecode(inner) as Map<String, dynamic>;
+              } catch (_) {}
+            }
+          }
+        }
+        rethrow;
+      }
     } catch (e) {
-      print('[AiApiService] JSON 파싱 실패: $e');
-      return {'raw': content};
+      print('[AiApiService v26] JSON 파싱 실패: $e');
+      print('[AiApiService v26] 원본 content (처음 200자): ${content.substring(0, content.length > 200 ? 200 : content.length)}');
+      return {'raw': content, '_parse_error': e.toString()};
     }
   }
 
@@ -731,6 +775,7 @@ class AiApiService {
   /// v7.0: Gemini 모델 자동 감지 및 라우팅
   /// - gemini-* 모델 → callGemini() 사용
   /// - 그 외 → callOpenAI() 사용
+  /// v29: taskType 파라미터 추가 - 병렬 실행 시 task 분리용
   Future<ChatResponse> chat({
     required String model,
     required String systemPrompt,
@@ -739,6 +784,7 @@ class AiApiService {
     double temperature = 0.7,
     String logType = 'fortune',
     String? userId,
+    String taskType = 'saju_analysis',  // v29: 병렬 실행 시 task 분리!
   }) async {
     final messages = [
       {'role': 'system', 'content': systemPrompt},
@@ -769,7 +815,7 @@ class AiApiService {
       );
     }
 
-    // OpenAI 모델
+    // OpenAI 모델 - v29: taskType 전달
     final response = await callOpenAI(
       messages: messages,
       model: model,
@@ -777,6 +823,7 @@ class AiApiService {
       temperature: temperature,
       logType: logType,
       userId: userId,
+      taskType: taskType,  // v29: 병렬 실행 시 task 분리!
     );
 
     return ChatResponse(

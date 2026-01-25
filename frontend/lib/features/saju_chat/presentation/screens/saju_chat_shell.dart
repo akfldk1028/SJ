@@ -252,6 +252,69 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     await sessionNotifier.renameSession(sessionId, newTitle);
   }
 
+  /// 모바일 채팅 메뉴 표시 (햄버거 버튼)
+  void _showChatMenu(BuildContext context) {
+    final appTheme = context.appTheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: appTheme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 핸들바
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: appTheme.textMuted.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 새 채팅
+            ListTile(
+              leading: Icon(Icons.add_comment_outlined, color: appTheme.primaryColor),
+              title: Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('새로운 대화 시작', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _handleNewChat();
+              },
+            ),
+            // 채팅 기록
+            ListTile(
+              leading: Icon(Icons.history, color: appTheme.textPrimary),
+              title: Text('채팅 기록', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('이전 대화 기록 보기', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+            Divider(color: appTheme.textMuted.withOpacity(0.2)),
+            // 메인으로 돌아가기
+            ListTile(
+              leading: Icon(Icons.home_outlined, color: appTheme.textPrimary),
+              title: Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('메인 화면으로 이동', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                context.go(Routes.menu);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -282,20 +345,15 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         backgroundColor: appTheme.backgroundColor,
         foregroundColor: appTheme.textPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(Routes.menu),
-          tooltip: '메뉴로 돌아가기',
+          icon: const Icon(Icons.menu),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          tooltip: '메뉴',
         ),
         title: Text(
           currentSession?.title ?? _chatType.title,
           style: TextStyle(color: appTheme.textPrimary),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            tooltip: '채팅 기록',
-          ),
           // 궁합 버튼 (2명 선택)
           IconButton(
             icon: const Icon(Icons.group_add_outlined),
@@ -311,6 +369,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
           onSessionSelected: _handleSessionSelected,
           onSessionDeleted: _handleSessionDeleted,
           onSessionRenamed: _handleSessionRenamed,
+          onDeleteCurrentSession: _handleSessionDeleted,
         ),
       ),
       body: _ChatContent(
@@ -350,6 +409,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                 onSessionSelected: _handleSessionSelected,
                 onSessionDeleted: _handleSessionDeleted,
                 onSessionRenamed: _handleSessionRenamed,
+                onDeleteCurrentSession: _handleSessionDeleted,
               ),
               VerticalDivider(
                 width: 1,
@@ -375,24 +435,66 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                   ),
                   child: Row(
                     children: [
-                      // 뒤로가기 버튼
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: appTheme.textPrimary),
-                        onPressed: () => context.go(Routes.menu),
-                        tooltip: '메뉴로 돌아가기',
-                      ),
-                      // 햄버거 아이콘 (사이드바 토글)
-                      IconButton(
-                        icon: Icon(
-                          _isSidebarVisible ? Icons.menu_open : Icons.menu,
-                          color: appTheme.textPrimary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isSidebarVisible = !_isSidebarVisible;
-                          });
+                      // 햄버거 메뉴 (새 채팅, 메인으로 이동, 사이드바 토글)
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.menu, color: appTheme.textPrimary),
+                        tooltip: '메뉴',
+                        color: appTheme.cardColor,
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'new_chat':
+                              _handleNewChat();
+                              break;
+                            case 'go_main':
+                              context.go(Routes.menu);
+                              break;
+                            case 'toggle_sidebar':
+                              setState(() {
+                                _isSidebarVisible = !_isSidebarVisible;
+                              });
+                              break;
+                          }
                         },
-                        tooltip: _isSidebarVisible ? '사이드바 숨기기' : '사이드바 보기',
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'new_chat',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_comment_outlined, color: appTheme.textPrimary, size: 20),
+                                const SizedBox(width: 12),
+                                Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'go_main',
+                            child: Row(
+                              children: [
+                                Icon(Icons.home_outlined, color: appTheme.textPrimary, size: 20),
+                                const SizedBox(width: 12),
+                                Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'toggle_sidebar',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _isSidebarVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  color: appTheme.textPrimary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _isSidebarVisible ? '사이드바 숨기기' : '사이드바 보기',
+                                  style: TextStyle(color: appTheme.textPrimary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 8),
                       // 현재 세션 제목
@@ -1130,110 +1232,110 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     final quadrantColor = canAdjustMbti ? _getQuadrantColor(currentQuadrant) : appTheme.primaryColor;
 
     // 페르소나 아이템 크기 계산용 상수
-    const double circleSize = 44; // 40 → 44
-    const double itemPadding = 8; // 좌우 패딩
-    const double itemWidth = 56; // 아이템 최소 너비 (4글자 기준)
-    const double containerPadding = 16; // 컨테이너 좌우 패딩
-    const int personaCount = 6;
-
-    // MBTI 버튼 고정 너비
-    const double mbtiButtonWidth = 52;
+    const double circleSize = 44;
+    const double containerPadding = 16;
 
     return Container(
-      height: 90, // 82 → 90
+      height: 90,
       padding: const EdgeInsets.symmetric(horizontal: containerPadding, vertical: 6),
       decoration: BoxDecoration(
         color: appTheme.cardColor.withValues(alpha: 0.8),
       ),
       child: Row(
         children: [
-          // MBTI 버튼이 있을 때만 왼쪽 공간 확보 (잠금 상태면 비활성화 스타일)
-          if (canAdjustMbti)
-            SizedBox(
-              width: mbtiButtonWidth,
-              child: GestureDetector(
-                onTap: isPersonaLocked ? null : () => _showMbtiSelectorSheet(context, ref),
-                child: Tooltip(
-                  message: isPersonaLocked ? '새 채팅에서 변경 가능' : 'MBTI 성향 선택',
-                  child: Opacity(
-                    opacity: isPersonaLocked ? 0.5 : 1.0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: quadrantColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: quadrantColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            currentQuadrant.name,
-                            style: TextStyle(
-                              color: quadrantColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+          // 왼쪽: MBTI 버튼 영역 (항상 같은 공간 차지)
+          SizedBox(
+            width: 56,
+            child: (canAdjustMbti && !isPersonaLocked)
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildMbtiButton(
+                      context,
+                      ref,
+                      quadrantColor: quadrantColor,
+                      currentQuadrant: currentQuadrant,
                     ),
-                  ),
+                  )
+                : null,
+          ),
+          // 중앙: 페르소나 목록
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: ChatPersona.values.map((persona) {
+                    final isSelected = persona == currentPersona;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: _buildPersonaCircle(
+                        context,
+                        ref,
+                        persona,
+                        isSelected: isSelected,
+                        accentColor: quadrantColor,
+                        size: circleSize,
+                        isLocked: isPersonaLocked,
+                        onTapSelected: (canAdjustMbti && isSelected && !isPersonaLocked)
+                            ? () => _showMbtiSelectorSheet(context, ref)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
-          // 6개 페르소나 원형 리스트
-          // MBTI 버튼 활성화: 왼쪽 정렬 (버튼 옆에 붙임)
-          // MBTI 버튼 비활성화: 중앙 정렬
-          Expanded(
-            child: canAdjustMbti
-                ? SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: ChatPersona.values.map((persona) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: _buildPersonaCircle(
-                            context,
-                            ref,
-                            persona,
-                            isSelected: persona == currentPersona,
-                            accentColor: quadrantColor,
-                            size: circleSize,
-                            isLocked: isPersonaLocked,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: ChatPersona.values.map((persona) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _buildPersonaCircle(
-                          context,
-                          ref,
-                          persona,
-                          isSelected: persona == currentPersona,
-                          accentColor: quadrantColor,
-                          size: circleSize,
-                          isLocked: isPersonaLocked,
-                        ),
-                      );
-                    }).toList(),
-                  ),
           ),
+          // 오른쪽: 대칭을 위한 빈 공간
+          const SizedBox(width: 56),
         ],
+      ),
+    );
+  }
+
+  /// MBTI 버튼 빌드 (왼쪽 고정 위치)
+  Widget _buildMbtiButton(
+    BuildContext context,
+    WidgetRef ref, {
+    required Color quadrantColor,
+    required MbtiQuadrant currentQuadrant,
+  }) {
+    return GestureDetector(
+      onTap: () => _showMbtiSelectorSheet(context, ref),
+      child: Tooltip(
+        message: 'AI 성향 변경 (${currentQuadrant.displayName})',
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: quadrantColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: quadrantColor.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: quadrantColor,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                currentQuadrant.name,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: quadrantColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1246,6 +1348,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     required Color accentColor,
     double size = 44,
     bool isLocked = false,
+    VoidCallback? onTapSelected,
   }) {
     final appTheme = context.appTheme;
     final iconSize = (size * 0.5).clamp(18.0, 22.0); // 16-20 → 18-22
@@ -1264,10 +1367,15 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
         onTap: isLocked
             ? null // 잠금 상태면 탭 무시
             : () {
-                ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
-                // 메시지 없는 세션이면 세션의 페르소나도 업데이트
-                ref.read(chatSessionNotifierProvider.notifier)
-                    .updateCurrentSessionPersona(chatPersona: persona);
+                if (isSelected && onTapSelected != null) {
+                  // 이미 선택된 상태에서 탭하면 onTapSelected 콜백 호출
+                  onTapSelected();
+                } else {
+                  ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+                  // 메시지 없는 세션이면 세션의 페르소나도 업데이트
+                  ref.read(chatSessionNotifierProvider.notifier)
+                      .updateCurrentSessionPersona(chatPersona: persona);
+                }
               },
         child: Opacity(
           opacity: isDisabled ? 0.4 : 1.0,

@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/fortune/yearly_2025/yearly_2025_queries.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'yearly_2025_fortune_provider.g.dart';
@@ -48,12 +48,19 @@ class Yearly2025FortuneData {
       );
     }
 
-    // overview 파싱
+    // overview 파싱 (DB 구조 일치 - 2026-01-24)
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
       score: (overviewJson['score'] as num?)?.toInt() ?? 0,
       opening: overviewJson['opening'] as String? ?? '',
+      // DB 필드 (신규)
+      ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
+      sinsalAnalysis: overviewJson['sinsalAnalysis'] as String? ?? '',
+      hapchungAnalysis: overviewJson['hapchungAnalysis'] as String? ?? '',
+      yongshinAnalysis: overviewJson['yongshinAnalysis'] as String? ?? '',
+      yearEnergyConclusion: overviewJson['yearEnergyConclusion'] as String? ?? '',
+      // 레거시 호환성 (기존 필드)
       yearEnergy: overviewJson['yearEnergy'] as String? ?? '',
       hapchungEffect: overviewJson['hapchungEffect'] as String? ?? '',
       conclusion: overviewJson['conclusion'] as String? ?? '',
@@ -159,11 +166,17 @@ class Yearly2025FortuneData {
   }
 }
 
-/// 개요 섹션
+/// 개요 섹션 (DB 구조 일치 - 2026-01-24)
 class OverviewSection {
   final String keyword;
   final int score;
-  final String opening;
+  final String opening;           // 총운 오프닝
+  final String ilganAnalysis;     // 일간 분석 (DB 필드)
+  final String sinsalAnalysis;    // 신살 분석 (DB 필드)
+  final String hapchungAnalysis;  // 합충 분석 (DB 필드)
+  final String yongshinAnalysis;  // 용신 분석 (DB 필드)
+  final String yearEnergyConclusion; // 연도 에너지 결론 (DB 필드)
+  // 레거시 호환성 (기존 필드)
   final String yearEnergy;
   final String hapchungEffect;
   final String conclusion;
@@ -172,9 +185,14 @@ class OverviewSection {
     required this.keyword,
     required this.score,
     required this.opening,
-    required this.yearEnergy,
-    required this.hapchungEffect,
-    required this.conclusion,
+    this.ilganAnalysis = '',
+    this.sinsalAnalysis = '',
+    this.hapchungAnalysis = '',
+    this.yongshinAnalysis = '',
+    this.yearEnergyConclusion = '',
+    this.yearEnergy = '',
+    this.hapchungEffect = '',
+    this.conclusion = '',
   });
 
   /// summary getter (opening을 반환) - 호환성 유지
@@ -316,7 +334,13 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     final activeProfile = await ref.watch(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
-    final queries = Yearly2025Queries(Supabase.instance.client);
+    // 오프라인 모드 - 더미 데이터 반환 (UI 테스트용)
+    if (!SupabaseService.isConnected) {
+      print('[Yearly2025Fortune] 오프라인 모드 - 더미 데이터 반환');
+      return _getDummyData();
+    }
+
+    final queries = Yearly2025Queries(SupabaseService.client!);
     final result = await queries.getCached(activeProfile.id);
 
     // 캐시가 있으면 바로 반환
@@ -356,7 +380,13 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     await Future.delayed(const Duration(seconds: 3));
     if (!_isPolling) return;
 
-    final queries = Yearly2025Queries(Supabase.instance.client);
+    // 오프라인 모드 체크
+    if (!SupabaseService.isConnected) {
+      _isPolling = false;
+      return;
+    }
+
+    final queries = Yearly2025Queries(SupabaseService.client!);
     final result = await queries.getCached(profileId);
 
     if (result != null && result['content'] != null) {
@@ -392,7 +422,13 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       return;
     }
 
-    final user = Supabase.instance.client.auth.currentUser;
+    // 오프라인 모드 체크
+    if (!SupabaseService.isConnected) {
+      print('[Yearly2025Fortune] 오프라인 모드 - 분석 스킵');
+      return;
+    }
+
+    final user = SupabaseService.currentUser;
     if (user == null) {
       print('[Yearly2025Fortune] 사용자 없음 - 분석 스킵');
       return;
@@ -423,5 +459,120 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     _isPolling = false;
     _isAnalyzing = false;
     ref.invalidateSelf();
+  }
+
+  /// UI 테스트용 더미 데이터
+  Yearly2025FortuneData _getDummyData() {
+    return Yearly2025FortuneData(
+      year: 2025,
+      yearGanji: '을사(乙巳)',
+      mySajuIntro: const MySajuIntroSection(
+        title: '나의 사주, 나는 누구인가요?',
+        reading: '당신은 타고난 창의력과 직관력을 가진 사람입니다. 목(木)의 기운이 강해 성장과 발전을 향한 열망이 크며, 새로운 것에 대한 호기심이 남다릅니다. 다만 때로는 너무 앞서나가려는 성향이 있어 주변과의 조화를 이루는 것이 중요합니다.',
+      ),
+      overview: const OverviewSection(
+        keyword: '도약의 해',
+        score: 78,
+        opening: '2025년 을사년은 당신에게 새로운 시작과 도약의 기회가 열리는 해입니다. 지난 몇 년간 쌓아온 경험과 노력이 빛을 발할 시기이며, 특히 상반기에 중요한 전환점이 찾아올 수 있습니다.',
+        ilganAnalysis: '을목 일간에게 2025년의 화는 명확히 식신의 자리입니다. 식신은 재능을 밖으로 펼치고 표현하는 기운이라 발표·창작·프로젝트 실행에서 성과가 나왔을 가능성이 높습니다.',
+        sinsalAnalysis: '원국에 도화살과 역마 기운이 있어 2025년의 화 기운과 만나면 사람을 끌어들이는 표현력과 이동·변화의 기회가 함께 작용했을 수 있습니다.',
+        hapchungAnalysis: '사주 내 인목(寅木)과 사화(巳火)가 형(刑)을 이루어 예상치 못한 변화가 있을 수 있으나, 이를 잘 활용하면 오히려 성장의 발판이 됩니다.',
+        yongshinAnalysis: '용신이 토(土)인 당신에게 을사년의 화는 궁극적으로 도움되는 기운이었습니다. 화는 토를 생해(火生土) 용신을 돕기 때문입니다.',
+        yearEnergyConclusion: '종합하면 2025년은 표현으로 기반을 다진 해였습니다. 식신(화)이 활동을 촉진해 아이디어를 결과로 만드는 힘을 줬고, 그 결과가 용신 토와 좋은 상생으로 연결되었습니다.',
+        yearEnergy: '을목(乙木)과 사화(巳火)의 조합은 나무가 불의 기운을 받아 활활 타오르는 형상입니다.',
+        hapchungEffect: '',
+        conclusion: '전반적으로 긍정적인 흐름이 예상되며, 적극적인 자세로 기회를 잡는다면 뜻깊은 한 해가 될 것입니다.',
+      ),
+      achievements: const AchievementsSection(
+        title: '2025년의 빛나는 순간들',
+        reading: '올해는 그동안 준비해온 일들이 결실을 맺는 시기입니다. 특히 창의적인 프로젝트나 새로운 도전에서 좋은 성과를 거둘 수 있습니다.',
+        highlights: [
+          '3월~5월 사이 중요한 성과 달성',
+          '인간관계에서의 의미 있는 만남',
+          '재정적 안정 기반 마련',
+        ],
+      ),
+      challenges: const ChallengesSection(
+        title: '2025년의 시련, 그리고 성장',
+        reading: '성장에는 언제나 도전이 따릅니다. 올해 마주할 어려움들은 당신을 더 강하게 만들어 줄 것입니다.',
+        growthPoints: [
+          '인내심을 기르는 것이 중요',
+          '건강 관리에 더 신경 쓸 필요',
+          '재정 관리에 있어 신중함 필요',
+        ],
+      ),
+      categories: {
+        'career': const CategorySection(
+          title: '직장/취업운',
+          icon: '💼',
+          score: 82,
+          reading: '직장에서의 인정과 승진 기회가 높아지는 해입니다. 특히 하반기에 좋은 소식이 있을 수 있으며, 이직을 고려 중이라면 신중하게 판단하세요.',
+        ),
+        'wealth': const CategorySection(
+          title: '재물운',
+          icon: '💰',
+          score: 75,
+          reading: '안정적인 재정 흐름이 예상됩니다. 큰 투자보다는 착실한 저축이 유리하며, 하반기에 예상치 못한 수입이 있을 수 있습니다.',
+        ),
+        'love': const CategorySection(
+          title: '연애운',
+          icon: '💕',
+          score: 80,
+          reading: '싱글이라면 봄에 좋은 인연을 만날 수 있습니다. 연인이 있다면 관계가 더욱 깊어지는 해가 될 것입니다.',
+        ),
+        'health': const CategorySection(
+          title: '건강운',
+          icon: '🏥',
+          score: 70,
+          reading: '전반적으로 양호하나, 과로를 피하고 규칙적인 생활 습관을 유지하는 것이 중요합니다. 특히 소화기 건강에 신경 쓰세요.',
+        ),
+      },
+      timeline: const TimelineSection(
+        q1: QuarterSection(
+          period: '1~3월',
+          theme: '준비와 계획',
+          reading: '새해의 시작과 함께 철저한 계획을 세우는 것이 좋습니다. 급하게 서두르기보다 차근차근 준비하세요.',
+        ),
+        q2: QuarterSection(
+          period: '4~6월',
+          theme: '도약과 실행',
+          reading: '준비한 것들을 실행에 옮기기 좋은 시기입니다. 적극적으로 행동하면 좋은 결과를 얻을 수 있습니다.',
+        ),
+        q3: QuarterSection(
+          period: '7~9월',
+          theme: '수확과 조정',
+          reading: '상반기 노력의 결실을 거두는 시기입니다. 다만 지나친 욕심은 금물, 적절한 조정이 필요합니다.',
+        ),
+        q4: QuarterSection(
+          period: '10~12월',
+          theme: '정리와 준비',
+          reading: '한 해를 마무리하며 다음 해를 준비하는 시기입니다. 성찰과 반성을 통해 더 나은 내년을 계획하세요.',
+        ),
+      ),
+      lessons: const LessonsSection(
+        title: '2025년이 가르쳐준 것들',
+        reading: '올해를 통해 얻게 될 소중한 교훈들입니다.',
+        keyLessons: [
+          '꾸준함의 가치',
+          '인간관계의 소중함',
+          '자기 자신에 대한 믿음',
+        ],
+      ),
+      to2026: const To2026Section(
+        title: '2026년으로 가져가세요',
+        reading: '2025년의 경험을 바탕으로 2026년을 준비하세요.',
+        strengths: [
+          '쌓아온 경험과 지식',
+          '강화된 인적 네트워크',
+          '성장한 자신감',
+        ],
+        watchOut: [
+          '과도한 자만심 주의',
+          '건강 관리 지속',
+          '재정 계획 재검토',
+        ],
+      ),
+      closingMessage: '2025년 을사년은 당신에게 성장과 도약의 해가 될 것입니다. 어려움이 있더라도 포기하지 마세요. 당신의 노력은 반드시 빛을 발할 것입니다. 행복하고 의미 있는 한 해가 되길 바랍니다.',
+    );
   }
 }

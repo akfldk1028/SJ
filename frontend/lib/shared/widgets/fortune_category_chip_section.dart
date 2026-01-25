@@ -2,8 +2,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+import '../../ad/feature_unlock_service.dart';
+import '../../AI/fortune/common/korea_date_utils.dart';
 
 /// 공통 카테고리 데이터 인터페이스
+/// v8.2: 평생운세용 상세 필드 추가
+/// v9.4: 카테고리별 상세 필드 전체 추가 (DB 필드 100% 매핑)
 class CategoryData {
   final String title;
   final int score;
@@ -14,6 +18,44 @@ class CategoryData {
   final String? actionTip;
   final List<String>? focusAreas;
 
+  // v8.2: 평생운세 상세 필드
+  final String? advice;                    // 조언
+  final List<String>? cautions;            // 주의사항
+  final List<String>? strengths;           // 강점
+  final List<String>? weaknesses;          // 약점
+  final String? timing;                    // 타이밍 정보
+  final List<String>? suitableFields;      // 적합 분야
+  final List<String>? unsuitableFields;    // 비적합 분야
+
+  // v9.4: 카테고리별 상세 필드 추가
+  // 직업운
+  final String? workStyle;                 // 업무 스타일
+  final String? leadershipPotential;       // 리더십 잠재력
+
+  // 연애운
+  final String? datingPattern;             // 연애 패턴
+  final String? attractionStyle;           // 끌리는 유형
+  final List<String>? idealPartnerTraits;  // 이상형 특성
+
+  // 재물운
+  final String? overallTendency;           // 전반적 경향
+  final String? earningStyle;              // 돈 버는 방식
+  final String? spendingTendency;          // 소비 성향
+  final String? investmentAptitude;        // 투자 적성
+
+  // 사업운
+  final String? entrepreneurshipAptitude;  // 창업 적성
+  final String? businessPartnerTraits;     // 사업 파트너 특성
+
+  // 결혼운
+  final String? spousePalaceAnalysis;      // 배우자궁 분석
+  final String? spouseCharacteristics;     // 배우자 특성
+  final String? marriedLifeTendency;       // 결혼 생활 경향
+
+  // 건강운
+  final String? mentalHealth;              // 정신 건강
+  final List<String>? lifestyleAdvice;     // 생활 습관 조언
+
   const CategoryData({
     required this.title,
     required this.score,
@@ -23,6 +65,30 @@ class CategoryData {
     this.cautionMonths,
     this.actionTip,
     this.focusAreas,
+    this.advice,
+    this.cautions,
+    this.strengths,
+    this.weaknesses,
+    this.timing,
+    this.suitableFields,
+    this.unsuitableFields,
+    // v9.4: 카테고리별 상세 필드
+    this.workStyle,
+    this.leadershipPotential,
+    this.datingPattern,
+    this.attractionStyle,
+    this.idealPartnerTraits,
+    this.overallTendency,
+    this.earningStyle,
+    this.spendingTendency,
+    this.investmentAptitude,
+    this.entrepreneurshipAptitude,
+    this.businessPartnerTraits,
+    this.spousePalaceAnalysis,
+    this.spouseCharacteristics,
+    this.marriedLifeTendency,
+    this.mentalHealth,
+    this.lifestyleAdvice,
   });
 }
 
@@ -44,12 +110,16 @@ class FortuneCategoryChipSection extends StatefulWidget {
   /// 상세 내용 표시 여부
   final bool showDetailedContent;
 
+  /// 현재 활성 프로필 ID (해금 추적용)
+  final String? profileId;
+
   const FortuneCategoryChipSection({
     super.key,
     required this.fortuneType,
     required this.categories,
     this.title,
     this.showDetailedContent = true,
+    this.profileId,
   });
 
   @override
@@ -78,6 +148,69 @@ class _FortuneCategoryChipSectionState
     super.initState();
     // static 변수 초기화 (fortuneType별로)
     _sessionUnlockedCategories[widget.fortuneType] ??= {};
+    // DB에서 이미 해금된 카테고리 로드
+    _loadUnlockedCategoriesFromDb();
+  }
+
+  /// DB에서 이미 해금된 카테고리 로드
+  Future<void> _loadUnlockedCategoriesFromDb() async {
+    final unlockInfo = _parseFortuneType();
+    if (unlockInfo == null) return;
+
+    // 모든 카테고리에 대해 해금 상태 확인
+    for (final categoryKey in widget.categories.keys) {
+      final isUnlocked = await FeatureUnlockService.instance.isUnlocked(
+        featureType: unlockInfo.featureType,
+        featureKey: categoryKey,
+        targetYear: unlockInfo.targetYear,
+        targetMonth: unlockInfo.targetMonth,
+      );
+      if (isUnlocked && mounted) {
+        _sessionUnlockedCategories[widget.fortuneType] ??= {};
+        _sessionUnlockedCategories[widget.fortuneType]!.add(categoryKey);
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// fortuneType에서 해금 정보 파싱
+  /// - yearly_2026 → FeatureType.categoryYearly, year=2026, month=0
+  /// - monthly → FeatureType.categoryMonthly, year=현재연도, month=현재월
+  /// - lifetime → FeatureType.lifetime, year=현재연도, month=0
+  ({FeatureType featureType, int targetYear, int targetMonth})? _parseFortuneType() {
+    final fortuneType = widget.fortuneType;
+
+    if (fortuneType.startsWith('yearly_')) {
+      // yearly_2026 형태
+      final yearStr = fortuneType.replaceFirst('yearly_', '');
+      final year = int.tryParse(yearStr);
+      if (year != null) {
+        return (
+          featureType: FeatureType.categoryYearly,
+          targetYear: year,
+          targetMonth: 0,
+        );
+      }
+    } else if (fortuneType == 'monthly') {
+      return (
+        featureType: FeatureType.categoryMonthly,
+        targetYear: KoreaDateUtils.currentYear,
+        targetMonth: KoreaDateUtils.currentMonth,
+      );
+    } else if (fortuneType == 'lifetime') {
+      return (
+        featureType: FeatureType.lifetime,
+        targetYear: KoreaDateUtils.currentYear,
+        targetMonth: 0,
+      );
+    }
+
+    // 기본값: 연간 운세
+    return (
+      featureType: FeatureType.categoryYearly,
+      targetYear: KoreaDateUtils.currentYear,
+      targetMonth: 0,
+    );
   }
 
   /// 카테고리 잠금 해제 (세션 메모리 - 앱 종료 시 초기화!)
@@ -322,7 +455,7 @@ class _FortuneCategoryChipSectionState
           if (cat.bestMonths != null && cat.bestMonths!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '좋은 달: ${cat.bestMonths!.map((m) => '${m}월').join(', ')}',
+              '좋은 달: ${cat.bestMonths!.map((m) => '$m월').join(', ')}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.green.shade700,
@@ -332,7 +465,7 @@ class _FortuneCategoryChipSectionState
           ],
           if (cat.cautionMonths != null && cat.cautionMonths!.isNotEmpty)
             Text(
-              '주의할 달: ${cat.cautionMonths!.map((m) => '${m}월').join(', ')}',
+              '주의할 달: ${cat.cautionMonths!.map((m) => '$m월').join(', ')}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.orange.shade700,
@@ -359,6 +492,286 @@ class _FortuneCategoryChipSectionState
             ),
             const SizedBox(height: 4),
             ...cat.focusAreas!.map((area) => _buildListItem(theme, area)),
+          ],
+
+          // ═══════════════════════════════════════════════════════════════
+          // v8.2: 평생운세 상세 필드 (조언, 주의사항, 강점/약점 등)
+          // ═══════════════════════════════════════════════════════════════
+
+          // 조언 (가장 중요!)
+          if (cat.advice != null && cat.advice!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.primaryColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        size: 18,
+                        color: theme.primaryColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '조언',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: theme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    cat.advice!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.textPrimary,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // 타이밍
+          if (cat.timing != null && cat.timing!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '타이밍', cat.timing!),
+          ],
+
+          // 강점
+          if (cat.strengths != null && cat.strengths!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '강점:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.green.shade700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.strengths!.map((s) => _buildListItem(theme, s)),
+          ],
+
+          // 약점
+          if (cat.weaknesses != null && cat.weaknesses!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '주의할 점:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.weaknesses!.map((w) => _buildListItem(theme, w)),
+          ],
+
+          // 적합 분야
+          if (cat.suitableFields != null && cat.suitableFields!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '적합한 분야:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.suitableFields!.map((f) => _buildListItem(theme, f)),
+          ],
+
+          // 비적합 분야
+          if (cat.unsuitableFields != null && cat.unsuitableFields!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '피해야 할 분야:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: theme.textMuted,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.unsuitableFields!.map((f) => _buildListItem(theme, f)),
+          ],
+
+          // 주의사항 (cautions 리스트)
+          if (cat.cautions != null && cat.cautions!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.shade200,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_outlined,
+                        size: 18,
+                        color: Colors.orange.shade700,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '주의사항',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...cat.cautions!.map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange.shade800,
+                            height: 1.6,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            c,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange.shade800,
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ],
+
+          // ═══════════════════════════════════════════════════════════════
+          // v9.4: 카테고리별 상세 필드 (DB 필드 100% 표시)
+          // ═══════════════════════════════════════════════════════════════
+
+          // 직업운 전용 필드
+          if (cat.workStyle != null && cat.workStyle!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '업무 스타일', cat.workStyle!),
+          ],
+          if (cat.leadershipPotential != null && cat.leadershipPotential!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '리더십 잠재력', cat.leadershipPotential!),
+          ],
+
+          // 연애운 전용 필드
+          if (cat.datingPattern != null && cat.datingPattern!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '연애 패턴', cat.datingPattern!),
+          ],
+          if (cat.attractionStyle != null && cat.attractionStyle!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '끌리는 유형', cat.attractionStyle!),
+          ],
+          if (cat.idealPartnerTraits != null && cat.idealPartnerTraits!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '이상형 특성:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.pink.shade600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.idealPartnerTraits!.map((t) => _buildListItem(theme, t)),
+          ],
+
+          // 재물운 전용 필드
+          if (cat.overallTendency != null && cat.overallTendency!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '전반적 경향', cat.overallTendency!),
+          ],
+          if (cat.earningStyle != null && cat.earningStyle!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '돈 버는 방식', cat.earningStyle!),
+          ],
+          if (cat.spendingTendency != null && cat.spendingTendency!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '소비 성향', cat.spendingTendency!),
+          ],
+          if (cat.investmentAptitude != null && cat.investmentAptitude!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '투자 적성', cat.investmentAptitude!),
+          ],
+
+          // 사업운 전용 필드
+          if (cat.entrepreneurshipAptitude != null && cat.entrepreneurshipAptitude!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '창업 적성', cat.entrepreneurshipAptitude!),
+          ],
+          if (cat.businessPartnerTraits != null && cat.businessPartnerTraits!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '사업 파트너 특성', cat.businessPartnerTraits!),
+          ],
+
+          // 결혼운 전용 필드
+          if (cat.spousePalaceAnalysis != null && cat.spousePalaceAnalysis!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '배우자궁 분석', cat.spousePalaceAnalysis!),
+          ],
+          if (cat.spouseCharacteristics != null && cat.spouseCharacteristics!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '배우자 특성', cat.spouseCharacteristics!),
+          ],
+          if (cat.marriedLifeTendency != null && cat.marriedLifeTendency!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '결혼 생활 경향', cat.marriedLifeTendency!),
+          ],
+
+          // 건강운 전용 필드
+          if (cat.mentalHealth != null && cat.mentalHealth!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildSubSection(theme, '정신 건강', cat.mentalHealth!),
+          ],
+          if (cat.lifestyleAdvice != null && cat.lifestyleAdvice!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              '생활 습관 조언:',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.teal.shade600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...cat.lifestyleAdvice!.map((a) => _buildListItem(theme, a)),
           ],
         ],
       ),
@@ -441,6 +854,7 @@ class _FortuneCategoryChipSectionState
     setState(() => _isLoadingAd = true);
 
     final categoryName = _getCategoryName(categoryKey);
+    final unlockInfo = _parseFortuneType();
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {
@@ -468,8 +882,8 @@ class _FortuneCategoryChipSectionState
       // 광고 로드 시도
       await AdService.instance.loadRewardedAd(
         onLoaded: () async {
-          // 광고 로드 완료 후 표시
-          final shown = await AdService.instance.showRewardedAd(
+          // 광고 로드 완료 후 표시 (해금 추적 포함)
+          final shown = await AdService.instance.showRewardedAdWithUnlock(
             onRewarded: (amount, type) async {
               // 보상 지급 - 카테고리 잠금 해제
               _unlockCategory(categoryKey);
@@ -492,6 +906,11 @@ class _FortuneCategoryChipSectionState
                 }
               }
             },
+            featureType: unlockInfo?.featureType,
+            featureKey: categoryKey,
+            targetYear: unlockInfo?.targetYear,
+            targetMonth: unlockInfo?.targetMonth,
+            profileId: widget.profileId,
           );
 
           if (!shown && mounted) {
@@ -507,8 +926,8 @@ class _FortuneCategoryChipSectionState
         },
       );
     } else {
-      // 광고가 이미 로드됨 - 바로 표시
-      final shown = await AdService.instance.showRewardedAd(
+      // 광고가 이미 로드됨 - 바로 표시 (해금 추적 포함)
+      final shown = await AdService.instance.showRewardedAdWithUnlock(
         onRewarded: (amount, type) async {
           _unlockCategory(categoryKey);
 
@@ -530,6 +949,11 @@ class _FortuneCategoryChipSectionState
             }
           }
         },
+        featureType: unlockInfo?.featureType,
+        featureKey: categoryKey,
+        targetYear: unlockInfo?.targetYear,
+        targetMonth: unlockInfo?.targetMonth,
+        profileId: widget.profileId,
       );
 
       if (!shown && mounted) {
@@ -559,6 +983,7 @@ class _FortuneCategoryChipSectionState
   String _getCategoryName(String key) {
     const names = {
       'career': '직업운',
+      'work': '직장운',  // DB 키와 일치
       'business': '사업운',
       'wealth': '재물운',
       'love': '애정운',

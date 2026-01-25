@@ -117,24 +117,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           style: TextStyle(color: theme.textPrimary),
         ),
         centerTitle: true,
-        // Admin 버튼 - 개발 환경에서만 표시
-        actions: [
-          if (AdminConfig.isAdminModeAvailable)
-            _isAdminLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.admin_panel_settings),
-                    tooltip: '개발자 모드',
-                    onPressed: () => _handleAdminLogin(context),
-                  ),
-        ],
+        // TODO: Admin 버튼 - 배포 시 비활성화
+        // actions: [
+        //   if (AdminConfig.isAdminModeAvailable)
+        //     _isAdminLoading
+        //         ? const Padding(
+        //             padding: EdgeInsets.all(16),
+        //             child: SizedBox(
+        //               width: 20,
+        //               height: 20,
+        //               child: CircularProgressIndicator(strokeWidth: 2),
+        //             ),
+        //           )
+        //         : IconButton(
+        //             icon: const Icon(Icons.admin_panel_settings),
+        //             tooltip: '개발자 모드',
+        //             onPressed: () => _handleAdminLogin(context),
+        //           ),
+        // ],
       ),
       body: MysticBackground(
         child: SafeArea(

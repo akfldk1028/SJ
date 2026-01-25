@@ -28,6 +28,10 @@ abstract class Routes {
   static const String traditionalSaju = '/fortune/traditional-saju';
   static const String compatibility = '/fortune/compatibility';
 
+  // Compatibility (궁합)
+  static const String compatibilityList = '/compatibility/list';
+  static const String compatibilityDetail = '/compatibility/detail';
+
   // History
   static const String history = '/history';
 

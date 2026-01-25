@@ -17,6 +17,16 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - OpenAI 클라우드에서 비동기 처리 (시간 제한 없음)
  * - response.id 반환 → 클라이언트가 ai-openai-result로 폴링
  *
+ * v25 변경사항 (2026-01-14):
+ * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규 필드)
+ * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
+ * - gpt_saju_analysis_count 증가 추가
+ *
+ * v27 변경사항 (2026-01-23):
+ * - Phase 기반 Progressive Disclosure 지원
+ * - 작업 생성 시 phase=1, total_phases=4 설정
+ * - Flutter UI에서 Phase별 진행 상태 표시 가능
+ *
  * === 모델 변경 금지 ===
  * 이 Edge Function의 기본 모델은 반드시 gpt-5.2 유지
  * (GPT-5.2 Thinking = API ID: gpt-5.2)
@@ -122,6 +132,11 @@ async function checkQuota(
 
 /**
  * 토큰 사용량 기록
+ *
+ * v25 변경사항 (2026-01-14):
+ * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규)
+ * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
+ * - gpt_saju_analysis_count 증가 추가
  */
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
@@ -137,36 +152,34 @@ async function recordTokenUsage(
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, ai_analysis_tokens, total_tokens, total_cost_usd")
+      .select("id, gpt_saju_analysis_tokens, gpt_saju_analysis_count, gpt_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
+      // UPDATE: 개별 필드만 업데이트 (total_tokens, is_quota_exceeded는 GENERATED 컬럼)
       await supabase
         .from("user_daily_token_usage")
         .update({
-          ai_analysis_tokens: (existing.ai_analysis_tokens || 0) + totalTokens,
-          total_tokens: (existing.total_tokens || 0) + totalTokens,
-          total_cost_usd: parseFloat(existing.total_cost_usd || "0") + cost,
+          gpt_saju_analysis_tokens: (existing.gpt_saju_analysis_tokens || 0) + totalTokens,
+          gpt_saju_analysis_count: (existing.gpt_saju_analysis_count || 0) + 1,
+          gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
           daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
-          is_quota_exceeded: !isAdmin && ((existing.total_tokens || 0) + totalTokens) >= DAILY_QUOTA,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id);
     } else {
+      // INSERT: 새 레코드 생성 (total_tokens, is_quota_exceeded는 자동 계산)
       await supabase
         .from("user_daily_token_usage")
         .insert({
           user_id: userId,
           usage_date: today,
-          chat_tokens: 0,
-          ai_analysis_tokens: totalTokens,
-          ai_chat_tokens: 0,
-          total_tokens: totalTokens,
-          total_cost_usd: cost,
+          gpt_saju_analysis_tokens: totalTokens,
+          gpt_saju_analysis_count: 1,
+          gpt_cost_usd: cost,
           daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
-          is_quota_exceeded: !isAdmin && totalTokens >= DAILY_QUOTA,
         });
     }
   } catch (error) {
@@ -493,9 +506,9 @@ Deno.serve(async (req) => {
       const openaiResponseId = responseData.id;
       const openaiStatus = responseData.status; // "queued" or "in_progress"
 
-      console.log(`[ai-openai v24] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
+      console.log(`[ai-openai v27] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
 
-      // ai_tasks 테이블에 저장
+      // ai_tasks 테이블에 저장 (v27: Phase 정보 포함)
       const { data: task, error: insertError } = await supabase
         .from("ai_tasks")
         .insert({
@@ -505,17 +518,20 @@ Deno.serve(async (req) => {
           openai_response_id: openaiResponseId, // 핵심! OpenAI response ID
           request_data: { messages, model, max_tokens, response_format },
           model,
+          phase: 1,            // v27: 시작 Phase
+          total_phases: 4,     // v27: 총 4개 Phase
+          partial_result: {},  // v27: 초기 빈 객체
           started_at: new Date().toISOString(),
         })
         .select("id")
         .single();
 
       if (insertError || !task) {
-        console.error("[ai-openai v24] Failed to create task:", insertError);
+        console.error("[ai-openai v27] Failed to create task:", insertError);
         throw new Error("Failed to create task record");
       }
 
-      console.log(`[ai-openai v24] Created task ${task.id} with openai_response_id ${openaiResponseId}`);
+      console.log(`[ai-openai v27] Created task ${task.id} with openai_response_id ${openaiResponseId}, total_phases=4`);
 
       // 즉시 응답 반환 (Supabase 타임아웃 전에!)
       return new Response(
@@ -524,6 +540,8 @@ Deno.serve(async (req) => {
           task_id: task.id,
           openai_response_id: openaiResponseId,
           status: openaiStatus,
+          phase: 1,            // v27: 시작 Phase
+          total_phases: 4,     // v27: 총 4개 Phase
           message: "Analysis started in OpenAI cloud. Poll /ai-openai-result with task_id.",
         }),
         {

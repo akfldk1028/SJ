@@ -22,6 +22,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
  * - gpt_saju_analysis_count 증가 추가
  *
+ * v27 변경사항 (2026-01-23):
+ * - Phase 기반 Progressive Disclosure 지원
+ * - 작업 생성 시 phase=1, total_phases=4 설정
+ * - Flutter UI에서 Phase별 진행 상태 표시 가능
+ *
  * === 모델 변경 금지 ===
  * 이 Edge Function의 기본 모델은 반드시 gpt-5.2 유지
  * (GPT-5.2 Thinking = API ID: gpt-5.2)
@@ -58,6 +63,7 @@ interface OpenAIRequest {
   response_format?: { type: "json_object" | "text" };
   user_id?: string; // Quota 체크용
   run_in_background?: boolean; // Background Task 모드 (GPT-5.2 전용)
+  task_type?: string; // v29: 병렬 실행 시 task 분리용
 }
 
 interface UsageInfo {
@@ -369,10 +375,11 @@ Deno.serve(async (req) => {
       response_format,
       user_id,
       run_in_background = true,    // v24: 기본값 true (Responses API background 모드)
+      task_type = "saju_analysis", // v29: 병렬 실행 시 task 분리! (기본값 유지)
     } = requestData;
 
     // Debug: 요청 파라미터 로그
-    console.log(`[ai-openai v24] Request: run_in_background=${run_in_background}, model=${model}, user_id=${user_id}`);
+    console.log(`[ai-openai v29] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, user_id=${user_id}`);
 
     // 필수 파라미터 검증
     if (!messages || messages.length === 0) {
@@ -415,27 +422,29 @@ Deno.serve(async (req) => {
       console.log(`[ai-openai v24] *** RESPONSES API BACKGROUND MODE ***`);
       console.log(`[ai-openai v24] Using /v1/responses with background=true`);
 
-      // 중복 방지: 동일 user의 pending/processing task 확인
+      // v29: 중복 방지 - 동일 user + 동일 task_type만 체크!
+      // 이전: 모든 운세가 "saju_analysis"로 충돌
+      // 이후: 각 운세별로 task_type 분리 (monthly_fortune, yearly_2026, etc.)
       if (user_id) {
         const { data: existingTask } = await supabase
           .from("ai_tasks")
           .select("id, status, openai_response_id, created_at")
           .eq("user_id", user_id)
-          .eq("task_type", "saju_analysis")
+          .eq("task_type", task_type)  // v29: 동적 task_type 사용!
           .in("status", ["pending", "processing", "queued", "in_progress"])
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
         if (existingTask) {
-          console.log(`[ai-openai v24] Found existing task ${existingTask.id} (${existingTask.status})`);
+          console.log(`[ai-openai v29] Found existing ${task_type} task ${existingTask.id} (${existingTask.status})`);
           return new Response(
             JSON.stringify({
               success: true,
               task_id: existingTask.id,
               openai_response_id: existingTask.openai_response_id,
               status: existingTask.status,
-              message: "Existing task in progress. Poll /ai-openai-result with task_id.",
+              message: `Existing ${task_type} task in progress. Poll /ai-openai-result with task_id.`,
               reused: true,
             }),
             {
@@ -501,29 +510,32 @@ Deno.serve(async (req) => {
       const openaiResponseId = responseData.id;
       const openaiStatus = responseData.status; // "queued" or "in_progress"
 
-      console.log(`[ai-openai v24] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
+      console.log(`[ai-openai v27] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
 
-      // ai_tasks 테이블에 저장
+      // ai_tasks 테이블에 저장 (v29: task_type 동적 지정)
       const { data: task, error: insertError } = await supabase
         .from("ai_tasks")
         .insert({
           user_id: user_id || null,
-          task_type: "saju_analysis",
+          task_type: task_type,  // v29: 동적 task_type 사용!
           status: openaiStatus, // OpenAI 상태 그대로 저장 (queued/in_progress)
           openai_response_id: openaiResponseId, // 핵심! OpenAI response ID
-          request_data: { messages, model, max_tokens, response_format },
+          request_data: { messages, model, max_tokens, response_format, task_type },
           model,
+          phase: 1,            // v27: 시작 Phase
+          total_phases: 4,     // v27: 총 4개 Phase
+          partial_result: {},  // v27: 초기 빈 객체
           started_at: new Date().toISOString(),
         })
         .select("id")
         .single();
 
       if (insertError || !task) {
-        console.error("[ai-openai v24] Failed to create task:", insertError);
+        console.error("[ai-openai v29] Failed to create task:", insertError);
         throw new Error("Failed to create task record");
       }
 
-      console.log(`[ai-openai v24] Created task ${task.id} with openai_response_id ${openaiResponseId}`);
+      console.log(`[ai-openai v29] Created ${task_type} task ${task.id} with openai_response_id ${openaiResponseId}`);
 
       // 즉시 응답 반환 (Supabase 타임아웃 전에!)
       return new Response(
@@ -532,6 +544,8 @@ Deno.serve(async (req) => {
           task_id: task.id,
           openai_response_id: openaiResponseId,
           status: openaiStatus,
+          phase: 1,            // v27: 시작 Phase
+          total_phases: 4,     // v27: 총 4개 Phase
           message: "Analysis started in OpenAI cloud. Poll /ai-openai-result with task_id.",
         }),
         {

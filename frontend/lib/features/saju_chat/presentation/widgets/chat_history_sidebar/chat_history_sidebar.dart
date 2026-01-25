@@ -18,6 +18,7 @@ class ChatHistorySidebar extends StatelessWidget {
   final Function(String sessionId)? onSessionSelected;
   final Function(String sessionId)? onSessionDeleted;
   final Function(String sessionId, String newTitle)? onSessionRenamed;
+  final Function(String sessionId)? onDeleteCurrentSession;
 
   const ChatHistorySidebar({
     super.key,
@@ -25,6 +26,7 @@ class ChatHistorySidebar extends StatelessWidget {
     this.onSessionSelected,
     this.onSessionDeleted,
     this.onSessionRenamed,
+    this.onDeleteCurrentSession,
   });
 
   @override
@@ -47,9 +49,14 @@ class ChatHistorySidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          SidebarHeader(onNewChat: onNewChat),
-          // 페르소나 선택 그리드 - 가로 모드에서는 숨김
-          if (!isLandscape) const PersonaSelectorGrid(),
+          // 상단 SafeArea 패딩
+          SizedBox(height: MediaQuery.of(context).padding.top),
+          SidebarHeader(
+            onNewChat: onNewChat,
+            onDeleteCurrentSession: onDeleteCurrentSession,
+          ),
+          // 페르소나 선택 그리드 - 메인에서 설정하므로 주석처리
+          // if (!isLandscape) const PersonaSelectorGrid(),
           // 대화 히스토리 목록
           Expanded(
             child: SessionList(
@@ -58,7 +65,8 @@ class ChatHistorySidebar extends StatelessWidget {
               onSessionRenamed: onSessionRenamed,
             ),
           ),
-          const SidebarFooter(),
+          // TODO: 설정 버튼 - 임시 비활성화
+          // const SidebarFooter(),
         ],
       ),
     );

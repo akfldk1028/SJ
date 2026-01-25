@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/fortune/yearly_2026/yearly_2026_queries.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'new_year_fortune_provider.g.dart';
@@ -20,6 +20,11 @@ class NewYearFortuneData {
   final TimelineSection timeline;
   final LuckySection lucky;
   final ClosingSection closing;
+  // DB 구조에 맞는 추가 섹션들
+  final LessonsSection? lessons;
+  final AchievementsSection? achievements;
+  final ChallengesSection? challenges;
+  final To2027Section? to2027;
 
   const NewYearFortuneData({
     required this.year,
@@ -32,6 +37,10 @@ class NewYearFortuneData {
     required this.timeline,
     required this.lucky,
     required this.closing,
+    this.lessons,
+    this.achievements,
+    this.challenges,
+    this.to2027,
   });
 
   /// AI 응답 JSON에서 파싱
@@ -69,11 +78,18 @@ class NewYearFortuneData {
       sinsalEffect: personalJson['sinsalEffect'] as String? ?? '',
     );
 
-    // overview 파싱
+    // overview 파싱 (DB 구조 일치)
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
       score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      opening: overviewJson['opening'] as String? ?? '',
+      ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
+      sinsalAnalysis: overviewJson['sinsalAnalysis'] as String? ?? '',
+      hapchungAnalysis: overviewJson['hapchungAnalysis'] as String? ?? '',
+      yongshinAnalysis: overviewJson['yongshinAnalysis'] as String? ?? '',
+      yearEnergyConclusion: overviewJson['yearEnergyConclusion'] as String? ?? '',
+      // 레거시 호환성
       summary: overviewJson['summary'] as String? ?? '',
       keyPoint: overviewJson['keyPoint'] as String? ?? '',
     );
@@ -123,6 +139,51 @@ class NewYearFortuneData {
       finalAdvice: closingJson['finalAdvice'] as String? ?? '',
     );
 
+    // lessons 파싱
+    LessonsSection? lessons;
+    final lessonsJson = json['lessons'] as Map<String, dynamic>?;
+    if (lessonsJson != null) {
+      lessons = LessonsSection(
+        title: lessonsJson['title'] as String? ?? '',
+        reading: lessonsJson['reading'] as String? ?? '',
+        keyLessons: _parseStringList(lessonsJson['keyLessons']),
+      );
+    }
+
+    // achievements 파싱
+    AchievementsSection? achievements;
+    final achievementsJson = json['achievements'] as Map<String, dynamic>?;
+    if (achievementsJson != null) {
+      achievements = AchievementsSection(
+        title: achievementsJson['title'] as String? ?? '',
+        reading: achievementsJson['reading'] as String? ?? '',
+        highlights: _parseStringList(achievementsJson['highlights']),
+      );
+    }
+
+    // challenges 파싱
+    ChallengesSection? challenges;
+    final challengesJson = json['challenges'] as Map<String, dynamic>?;
+    if (challengesJson != null) {
+      challenges = ChallengesSection(
+        title: challengesJson['title'] as String? ?? '',
+        reading: challengesJson['reading'] as String? ?? '',
+        growthPoints: _parseStringList(challengesJson['growthPoints']),
+      );
+    }
+
+    // to2027 파싱
+    To2027Section? to2027;
+    final to2027Json = json['to2027'] as Map<String, dynamic>?;
+    if (to2027Json != null) {
+      to2027 = To2027Section(
+        title: to2027Json['title'] as String? ?? '',
+        reading: to2027Json['reading'] as String? ?? '',
+        strengths: _parseStringList(to2027Json['strengths']),
+        watchOut: _parseStringList(to2027Json['watchOut']),
+      );
+    }
+
     return NewYearFortuneData(
       year: (json['year'] as num?)?.toInt() ?? 2026,
       yearGanji: json['yearGanji'] as String? ?? '병오(丙午)',
@@ -134,6 +195,10 @@ class NewYearFortuneData {
       timeline: timeline,
       lucky: lucky,
       closing: closing,
+      lessons: lessons,
+      achievements: achievements,
+      challenges: challenges,
+      to2027: to2027,
     );
   }
 
@@ -209,18 +274,31 @@ class PersonalAnalysisSection {
   });
 }
 
-/// 개요 섹션
+/// 개요 섹션 (DB 구조 일치)
 class OverviewSection {
   final String keyword;
   final int score;
+  final String opening;           // 총운 오프닝
+  final String ilganAnalysis;     // 일간 분석
+  final String sinsalAnalysis;    // 신살 분석
+  final String hapchungAnalysis;  // 합충 분석
+  final String yongshinAnalysis;  // 용신 분석
+  final String yearEnergyConclusion; // 연도 에너지 결론
+  // 레거시 호환성 (있으면 사용)
   final String summary;
   final String keyPoint;
 
   const OverviewSection({
     required this.keyword,
     required this.score,
-    required this.summary,
-    required this.keyPoint,
+    this.opening = '',
+    this.ilganAnalysis = '',
+    this.sinsalAnalysis = '',
+    this.hapchungAnalysis = '',
+    this.yongshinAnalysis = '',
+    this.yearEnergyConclusion = '',
+    this.summary = '',
+    this.keyPoint = '',
   });
 }
 
@@ -326,6 +404,60 @@ class MySajuIntroSection {
   });
 }
 
+/// 교훈 섹션 (lessons)
+class LessonsSection {
+  final String title;
+  final String reading;
+  final List<String> keyLessons;
+
+  const LessonsSection({
+    required this.title,
+    required this.reading,
+    required this.keyLessons,
+  });
+}
+
+/// 성취 섹션 (achievements)
+class AchievementsSection {
+  final String title;
+  final String reading;
+  final List<String> highlights;
+
+  const AchievementsSection({
+    required this.title,
+    required this.reading,
+    required this.highlights,
+  });
+}
+
+/// 도전 섹션 (challenges)
+class ChallengesSection {
+  final String title;
+  final String reading;
+  final List<String> growthPoints;
+
+  const ChallengesSection({
+    required this.title,
+    required this.reading,
+    required this.growthPoints,
+  });
+}
+
+/// 2027년으로 이어가기 섹션 (to2027)
+class To2027Section {
+  final String title;
+  final String reading;
+  final List<String> strengths;
+  final List<String> watchOut;
+
+  const To2027Section({
+    required this.title,
+    required this.reading,
+    required this.strengths,
+    required this.watchOut,
+  });
+}
+
 /// 2026년 신년운세 Provider
 ///
 /// activeProfile의 2026년 신년운세를 DB에서 조회
@@ -343,7 +475,13 @@ class NewYearFortune extends _$NewYearFortune {
     final activeProfile = await ref.watch(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
-    final queries = Yearly2026Queries(Supabase.instance.client);
+    // 오프라인 모드 - 더미 데이터 반환 (UI 테스트용)
+    if (!SupabaseService.isConnected) {
+      print('[NewYearFortune] 오프라인 모드 - 더미 데이터 반환');
+      return _getDummyData();
+    }
+
+    final queries = Yearly2026Queries(SupabaseService.client!);
     final result = await queries.getCached(activeProfile.id);
 
     // 캐시가 있으면 바로 반환
@@ -383,7 +521,13 @@ class NewYearFortune extends _$NewYearFortune {
     await Future.delayed(const Duration(seconds: 3));
     if (!_isPolling) return;
 
-    final queries = Yearly2026Queries(Supabase.instance.client);
+    // 오프라인 모드 체크
+    if (!SupabaseService.isConnected) {
+      _isPolling = false;
+      return;
+    }
+
+    final queries = Yearly2026Queries(SupabaseService.client!);
     final result = await queries.getCached(profileId);
 
     if (result != null && result['content'] != null) {
@@ -419,7 +563,13 @@ class NewYearFortune extends _$NewYearFortune {
       return;
     }
 
-    final user = Supabase.instance.client.auth.currentUser;
+    // 오프라인 모드 체크
+    if (!SupabaseService.isConnected) {
+      print('[NewYearFortune] 오프라인 모드 - 분석 스킵');
+      return;
+    }
+
+    final user = SupabaseService.currentUser;
     if (user == null) {
       print('[NewYearFortune] 사용자 없음 - 분석 스킵');
       return;
@@ -450,5 +600,122 @@ class NewYearFortune extends _$NewYearFortune {
     _isPolling = false;
     _isAnalyzing = false;
     ref.invalidateSelf();
+  }
+
+  /// UI 테스트용 더미 데이터
+  NewYearFortuneData _getDummyData() {
+    return NewYearFortuneData(
+      year: 2026,
+      yearGanji: '병오(丙午)',
+      mySajuIntro: const MySajuIntroSection(
+        title: '나의 사주, 나는 누구인가요?',
+        reading: '당신은 타고난 창의력과 직관력을 가진 사람입니다. 목(木)의 기운이 강해 성장과 발전을 향한 열망이 크며, 새로운 것에 대한 호기심이 남다릅니다.',
+      ),
+      yearInfo: const YearInfoSection(
+        alias: '붉은 말의 해',
+        napeum: '천하수(天河水)',
+        napeumExplain: '하늘에서 내리는 은하수처럼 맑고 순수한 기운을 상징합니다.',
+        twelveUnsung: '관대(冠帶)',
+        unsungExplain: '성인이 되어 관을 쓰는 시기로, 사회적 인정과 성장의 시기입니다.',
+        mainSinsal: '역마(驛馬)',
+        sinsalExplain: '이동과 변화가 많은 해로, 여행이나 이사, 직장 변동의 기회가 있습니다.',
+      ),
+      personalAnalysis: const PersonalAnalysisSection(
+        ilgan: '무토(戊土)',
+        ilganExplain: '산처럼 듬직하고 안정감 있는 성격으로, 신뢰를 주는 타입입니다.',
+        fireEffect: '병오년의 화(火) 기운이 토(土)를 생하여 전반적으로 긍정적인 영향을 줍니다.',
+        yongshinMatch: '용신인 금(金) 기운이 화(火)에 의해 약화될 수 있어 조절이 필요합니다.',
+        hapchungEffect: '일지와 연지 사이에 특별한 충돌은 없으나, 오월에 주의가 필요합니다.',
+        sinsalEffect: '역마살로 인해 이동이 잦을 수 있으며, 이를 기회로 삼으면 좋습니다.',
+      ),
+      overview: const OverviewSection(
+        keyword: '열정의 해',
+        score: 82,
+        summary: '2026년 병오년은 붉은 말의 해로, 열정과 활력이 넘치는 한 해가 될 것입니다. 당신의 사주와 조화를 이루어 새로운 도전에 유리한 시기입니다.',
+        keyPoint: '상반기에 기회를 잡고, 하반기에는 안정을 추구하세요.',
+      ),
+      categories: {
+        'career': const CategorySection(
+          title: '직장/취업운',
+          icon: '💼',
+          score: 85,
+          summary: '승진과 인정의 기회',
+          reading: '직장에서 능력을 인정받고 승진의 기회가 있습니다. 특히 봄에 좋은 소식이 기대됩니다.',
+          bestMonths: [3, 4, 9],
+          cautionMonths: [6, 7],
+          actionTip: '상사와의 관계를 잘 유지하고, 팀워크를 중시하세요.',
+          focusAreas: ['리더십 개발', '전문성 강화'],
+        ),
+        'wealth': const CategorySection(
+          title: '재물운',
+          icon: '💰',
+          score: 78,
+          summary: '안정적인 재정 흐름',
+          reading: '큰 횡재보다는 꾸준한 수입이 예상됩니다. 투자는 신중하게 접근하세요.',
+          bestMonths: [2, 5, 11],
+          cautionMonths: [8],
+          actionTip: '저축을 늘리고 충동 구매를 자제하세요.',
+          focusAreas: ['저축 습관', '재테크 공부'],
+        ),
+        'love': const CategorySection(
+          title: '연애운',
+          icon: '💕',
+          score: 80,
+          summary: '로맨틱한 만남',
+          reading: '싱글이라면 봄에 좋은 인연을 만날 수 있습니다. 연인이 있다면 관계가 더욱 깊어집니다.',
+          bestMonths: [3, 5, 10],
+          cautionMonths: [7],
+          actionTip: '적극적으로 표현하고, 상대방의 이야기에 귀 기울이세요.',
+          focusAreas: ['소통 능력', '감정 표현'],
+        ),
+        'health': const CategorySection(
+          title: '건강운',
+          icon: '🏥',
+          score: 72,
+          summary: '규칙적인 생활 필요',
+          reading: '화(火) 기운이 강해 심장과 혈압 관리에 신경 쓰세요. 규칙적인 운동이 도움됩니다.',
+          bestMonths: [4, 9, 12],
+          cautionMonths: [6, 7],
+          actionTip: '충분한 수면과 균형 잡힌 식단을 유지하세요.',
+          focusAreas: ['심혈관 건강', '스트레스 관리'],
+        ),
+      },
+      timeline: const TimelineSection(
+        q1: QuarterSection(
+          period: '1~3월',
+          theme: '새로운 시작',
+          score: 80,
+          reading: '새해의 포부를 세우고 실행에 옮기기 좋은 시기입니다. 새로운 프로젝트를 시작하세요.',
+        ),
+        q2: QuarterSection(
+          period: '4~6월',
+          theme: '성장과 발전',
+          score: 85,
+          reading: '노력의 결실을 보기 시작하는 시기입니다. 인간관계도 넓어집니다.',
+        ),
+        q3: QuarterSection(
+          period: '7~9월',
+          theme: '조정과 휴식',
+          score: 70,
+          reading: '무리하지 말고 휴식을 취하세요. 건강 관리에 특히 신경 쓰세요.',
+        ),
+        q4: QuarterSection(
+          period: '10~12월',
+          theme: '수확의 계절',
+          score: 82,
+          reading: '한 해의 노력이 결실을 맺는 시기입니다. 감사하는 마음으로 마무리하세요.',
+        ),
+      ),
+      lucky: const LuckySection(
+        colors: ['빨강', '주황', '보라'],
+        numbers: [3, 7, 9],
+        direction: '남쪽',
+        items: ['말 장식품', '붉은 액세서리', '삼각형 모양'],
+      ),
+      closing: const ClosingSection(
+        yearMessage: '2026년 병오년은 당신에게 열정과 도전의 해가 될 것입니다. 붉은 말의 기운을 받아 힘차게 달려나가세요!',
+        finalAdvice: '변화를 두려워하지 말고, 새로운 기회를 적극적으로 잡으세요. 당신의 노력은 반드시 좋은 결과로 이어질 것입니다.',
+      ),
+    );
   }
 }

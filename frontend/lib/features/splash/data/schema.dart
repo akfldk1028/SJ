@@ -37,7 +37,7 @@ const String primaryProfileColumns = '''
   birth_city,
   time_correction,
   use_ya_jasi,
-  is_primary,
+  profile_type,
   relation_type,
   memo,
   created_at,

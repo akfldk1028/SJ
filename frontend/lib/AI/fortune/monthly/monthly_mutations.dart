@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/fortune_input_data.dart';
 import '../common/korea_date_utils.dart';
+import 'monthly_queries.dart' show kMonthlyFortunePromptVersion;
 
 /// 이번달 운세 뮤테이션 클래스
 class MonthlyMutations {
@@ -77,7 +78,7 @@ class MonthlyMutations {
       'total_cost_usd': totalCost,
       'expires_at': expiresAt,
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
-      'prompt_version': 'V4.0', // 월운 프롬프트 버전
+      'prompt_version': kMonthlyFortunePromptVersion, // 월운 프롬프트 버전
     };
 
     try {

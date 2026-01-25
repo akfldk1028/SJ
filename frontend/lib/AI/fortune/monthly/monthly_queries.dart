@@ -12,6 +12,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/ai_constants.dart';
 import '../common/korea_date_utils.dart';
 
+/// 현재 월운 프롬프트 버전
+/// @deprecated PromptVersions.monthlyFortune 사용
+/// 하위 호환성을 위해 유지
+const String kMonthlyFortunePromptVersion = PromptVersions.monthlyFortune;
+
 /// 이번달 운세 쿼리 클래스
 class MonthlyQueries {
   final SupabaseClient _supabase;
@@ -52,6 +57,13 @@ class MonthlyQueries {
         if (KoreaDateUtils.nowKorea().isAfter(expiry)) {
           return null;
         }
+      }
+
+      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      final cachedVersion = response['prompt_version'];
+      if (cachedVersion != kMonthlyFortunePromptVersion) {
+        print('[MonthlyQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kMonthlyFortunePromptVersion');
+        return null;
       }
 
       return response;

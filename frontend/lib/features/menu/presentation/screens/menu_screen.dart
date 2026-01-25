@@ -12,8 +12,6 @@ import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
 import '../widgets/fortune_category_list.dart';
-import '../widgets/daily_advice_section.dart';
-import '../widgets/today_message_card.dart';
 
 /// Main menu screen - 테마 적용
 class MenuScreen extends ConsumerStatefulWidget {
@@ -26,17 +24,18 @@ class MenuScreen extends ConsumerStatefulWidget {
 class _MenuScreenState extends ConsumerState<MenuScreen> {
   DateTime _selectedDate = DateTime.now();
 
-  void _previousDay() {
-    setState(() {
-      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
-    });
-  }
+  // TODO: 이전/다음 날짜 기능 - 추후 구현
+  // void _previousDay() {
+  //   setState(() {
+  //     _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+  //   });
+  // }
 
-  void _nextDay() {
-    setState(() {
-      _selectedDate = _selectedDate.add(const Duration(days: 1));
-    });
-  }
+  // void _nextDay() {
+  //   setState(() {
+  //     _selectedDate = _selectedDate.add(const Duration(days: 1));
+  //   });
+  // }
 
   /// 모바일 플랫폼 체크 (광고 표시용)
   bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -64,34 +63,24 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 padding: EdgeInsets.only(bottom: context.scaledPadding(100)),
                 children: [
                   const FortuneSummaryCard(),
-                  SizedBox(height: context.scaledPadding(24)),
+                  SizedBox(height: context.scaledPadding(16)),
                   // 오늘의 운세 섹션 - 내 사주 위로 이동
                   const SectionHeader(
                     title: '오늘의 운세',
                   ),
-                  SizedBox(height: context.scaledPadding(12)),
+                  SizedBox(height: context.scaledPadding(8)),
                   const FortuneCategoryList(),
-                  SizedBox(height: context.scaledPadding(24)),
+                  SizedBox(height: context.scaledPadding(16)),
+                  // Native 광고 1 (운세 카테고리 아래) - 즉시 로드
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
-                  SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 1 (사주 카드 아래) - 즉시 로드
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 2 - 500ms 지연
+                  SizedBox(height: context.scaledPadding(16)),
+                  // Native 광고 2 (내 사주 카드 아래) - 500ms 지연
                   if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(24)),
-                  // TODO: 2025 신년운세/토정비결 - 임시 비활성화
-                  // const SectionHeader(
-                  //   title: '오늘의 조언',
-                  // ),
-                  // SizedBox(height: context.scaledPadding(12)),
-                  // const DailyAdviceSection(),
-                  // SizedBox(height: context.scaledPadding(24)),
-                  const TodayMessageCard(),
-                  SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 3 (맨 하단) - 1000ms 지연
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 1000),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
+                  // 오늘의 한마디는 FortuneSummaryCard 내 시간대별 운세 아래에 배치됨
                 ],
               ),
             ),
@@ -105,9 +94,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   Widget _buildAppBar(AppThemeExtension theme) {
     final formattedDate = _formatDate(_selectedDate);
     final activeProfileAsync = ref.watch(activeProfileProvider);
+    final horizontalPadding = context.horizontalPadding;
+    final isSmall = context.isSmallMobile;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
       decoration: BoxDecoration(
         color: theme.backgroundColor,
       ),
@@ -167,23 +158,24 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _previousDay,
-                      child: Icon(
-                        Icons.chevron_left_rounded,
-                        size: 20,
-                        color: theme.textSecondary,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _nextDay,
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: theme.textSecondary,
-                      ),
-                    ),
+                    // TODO: 이전/다음 날짜 기능 - 추후 구현
+                    // const SizedBox(width: 8),
+                    // GestureDetector(
+                    //   onTap: _previousDay,
+                    //   child: Icon(
+                    //     Icons.chevron_left_rounded,
+                    //     size: 20,
+                    //     color: theme.textSecondary,
+                    //   ),
+                    // ),
+                    // GestureDetector(
+                    //   onTap: _nextDay,
+                    //   child: Icon(
+                    //     Icons.chevron_right_rounded,
+                    //     size: 20,
+                    //     color: theme.textSecondary,
+                    //   ),
+                    // ),
                   ],
                 ),
               ],

@@ -165,6 +165,44 @@ class ChatRepositoryImpl implements ChatRepository {
     _pipeline?.dispose();
   }
 
+  /// 기존 세션 복원 (앱 복귀 시)
+  ///
+  /// - 메시지가 이미 로드된 기존 세션에서 시스템 프롬프트 재설정
+  /// - 대화 히스토리 동기화 (Gemini가 이전 대화 맥락을 기억하도록)
+  /// - 첫 메시지에 사주 정보가 포함되도록 _isNewSession = true
+  ///
+  /// [systemPrompt]: 시스템 프롬프트
+  /// [messages]: DB에서 로드한 ChatMessage 리스트 (Gemini 포맷으로 변환)
+  void restoreExistingSession(String systemPrompt, {List<ChatMessage>? messages}) {
+    _datasource.initialize();
+
+    // ChatMessage → Gemini 포맷 변환
+    List<Map<String, dynamic>>? geminiMessages;
+    if (messages != null && messages.isNotEmpty) {
+      geminiMessages = messages.map((msg) => {
+        'role': msg.role == MessageRole.user ? 'user' : 'model',
+        'parts': [{'text': msg.content}],
+      }).toList();
+    }
+
+    _datasource.restoreSession(systemPrompt, messages: geminiMessages);
+
+    if (usePipeline && _pipeline != null) {
+      _pipeline.initialize();
+      _pipeline.restoreSession(systemPrompt);
+    }
+
+    _isSessionStarted = true; // 세션이 복원되었음을 표시
+  }
+
+  /// 보너스 토큰 추가 (광고 시청 시)
+  ///
+  /// 광고를 보면 토큰 한도가 증가하여 이전 대화를 유지하면서 더 대화 가능
+  /// [tokens]: 추가할 토큰 수
+  void addBonusTokens(int tokens) {
+    _datasource.addBonusTokens(tokens);
+  }
+
   /// 분석 캐시 초기화
   void clearAnalysisCache([String? sessionId]) {
     _pipeline?.clearCache(sessionId);

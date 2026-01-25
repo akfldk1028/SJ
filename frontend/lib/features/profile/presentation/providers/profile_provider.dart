@@ -20,7 +20,14 @@ import '../../../saju_chart/presentation/providers/saju_chart_provider.dart'
     hide sajuAnalysisService;
 import '../../../saju_chart/presentation/providers/saju_analysis_repository_provider.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
+import '../../../monthly_fortune/presentation/providers/monthly_fortune_provider.dart';
+import '../../../new_year_fortune/presentation/providers/new_year_fortune_provider.dart';
+import '../../../yearly_2025_fortune/presentation/providers/yearly_2025_fortune_provider.dart';
+import '../../../traditional_saju/presentation/providers/lifetime_fortune_provider.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../AI/services/ai_api_service.dart';
+import '../../../../AI/fortune/fortune_coordinator.dart';
+import '../../../../AI/data/mutations.dart';
 
 part 'profile_provider.g.dart';
 
@@ -78,6 +85,7 @@ class ProfileList extends _$ProfileList {
     await repository.delete(id);
     await refresh();
     ref.invalidate(allProfilesProvider);
+    ref.invalidate(activeProfileProvider); // 활성 프로필일 수 있으므로 함께 갱신
   }
 
   /// 활성 프로필 설정
@@ -478,6 +486,83 @@ class ProfileForm extends _$ProfileForm {
     }
   }
 
+  /// ProfileRelationTarget으로 폼 초기화 (인연 수정 모드)
+  void loadFromRelationTarget(dynamic target) {
+    print('🔄 [ProfileForm.loadFromRelationTarget] 시작');
+    print('  - target: $target');
+    print('  - target type: ${target.runtimeType}');
+
+    // ProfileRelationTarget의 필드들 추출
+    final String displayName = target.displayName ?? '';
+    final DateTime? birthDate = target.birthDate;
+    final String genderStr = target.gender ?? 'male';
+    final String? relationTypeStr = target.relationType;
+    final int? birthTimeMinutes = target.birthTimeMinutes;
+    final bool birthTimeUnknown = target.birthTimeUnknown ?? false;
+    final bool isLunar = target.isLunar ?? false;
+    final bool isLeapMonth = target.isLeapMonth ?? false;
+    final String birthCity = target.birthCity ?? '';
+    final bool useYaJasi = target.useYaJasi ?? true;
+
+    print('📋 [ProfileForm.loadFromRelationTarget] 추출된 데이터:');
+    print('  - displayName: $displayName');
+    print('  - birthDate: $birthDate');
+    print('  - gender: $genderStr');
+    print('  - relationType: $relationTypeStr');
+    print('  - birthTimeMinutes: $birthTimeMinutes');
+    print('  - birthTimeUnknown: $birthTimeUnknown');
+    print('  - isLunar: $isLunar');
+    print('  - isLeapMonth: $isLeapMonth');
+    print('  - birthCity: $birthCity');
+    print('  - useYaJasi: $useYaJasi');
+
+    // Gender 변환
+    final gender = genderStr == 'female' ? Gender.female : Gender.male;
+
+    // RelationType 변환
+    RelationshipType relationType = RelationshipType.friend;
+    if (relationTypeStr != null) {
+      try {
+        relationType = RelationshipType.values.firstWhere(
+          (e) => e.name == relationTypeStr,
+          orElse: () => RelationshipType.friend,
+        );
+      } catch (e) {
+        print('⚠️ [ProfileForm.loadFromRelationTarget] relationType 변환 실패: $e');
+      }
+    }
+
+    // 도시 시간 보정값 계산
+    final timeCorrection = birthCity.isNotEmpty
+        ? TrueSolarTimeService.getLongitudeCorrectionMinutes(birthCity).round()
+        : 0;
+
+    // 상태 설정
+    state = ProfileFormState(
+      displayName: displayName,
+      gender: gender,
+      birthDate: birthDate,
+      isLunar: isLunar,
+      isLeapMonth: isLeapMonth,
+      birthTimeMinutes: birthTimeMinutes,
+      birthTimeUnknown: birthTimeUnknown,
+      useYaJasi: useYaJasi,
+      birthCity: birthCity,
+      timeCorrection: timeCorrection,
+      relationType: relationType,
+    );
+
+    print('✅ [ProfileForm.loadFromRelationTarget] 폼 상태 설정 완료');
+    print('  - state.displayName: ${state.displayName}');
+    print('  - state.birthDate: ${state.birthDate}');
+    print('  - state.gender: ${state.gender}');
+
+    // 음력일 경우 윤달 정보 업데이트
+    if (isLunar) {
+      _updateLeapMonthInfo();
+    }
+  }
+
   /// 폼 초기화
   void reset() {
     state = const ProfileFormState();
@@ -490,6 +575,14 @@ class ProfileForm extends _$ProfileForm {
     }
 
     final now = DateTime.now();
+    final repository = ref.read(profileRepositoryProvider);
+
+    // 수정 모드: 기존 프로필의 isActive, createdAt 보존
+    SajuProfile? existingProfile;
+    if (editingId != null) {
+      existingProfile = await repository.getById(editingId);
+    }
+
     final profile = SajuProfile(
       id: editingId ?? const Uuid().v4(),
       displayName: state.displayName,
@@ -502,16 +595,26 @@ class ProfileForm extends _$ProfileForm {
       useYaJasi: state.useYaJasi,
       birthCity: state.birthCity,
       timeCorrection: state.timeCorrection,
-      createdAt: now,
+      createdAt: existingProfile?.createdAt ?? now,
       updatedAt: now,
-      isActive: editingId == null, // 새 프로필은 자동으로 활성화
+      isActive: existingProfile?.isActive ?? (editingId == null),
       relationType: state.relationType,
       memo: state.memo,
     );
 
-    final repository = ref.read(profileRepositoryProvider);
     if (editingId != null) {
       await repository.update(profile);
+
+      // 프로필 수정 시 기존 AI 분석 캐시 삭제 (생년월일 변경 대응)
+      // 새로운 분석이 실행되도록 기존 캐시를 모두 무효화
+      print('[ProfileForm] 프로필 수정 - AI 캐시 무효화 시작: $editingId');
+      final aiMutations = AiMutations();
+      final cacheResult = await aiMutations.invalidateAllForProfile(editingId);
+      if (cacheResult.isSuccess) {
+        print('[ProfileForm] AI 캐시 무효화 완료: ${cacheResult.data}개 삭제');
+      } else {
+        print('[ProfileForm] AI 캐시 무효화 실패: ${cacheResult.errorMessage}');
+      }
     } else {
       await repository.save(profile);
     }
@@ -520,6 +623,9 @@ class ProfileForm extends _$ProfileForm {
     ref.invalidate(profileListProvider);
     ref.invalidate(activeProfileProvider);
     ref.invalidate(allProfilesProvider);
+
+    // Note: Fortune providers 무효화는 _triggerAiAnalysis() 완료 콜백에서 수행
+    // (분석 완료 전 무효화하면 캐시 없음 → 영원히 로딩 상태)
 
     // 사주 분석 결과 자동 저장 (Supabase 연동)
     // 프로필 저장 후 사주 분석을 계산하고 DB에 저장
@@ -631,9 +737,15 @@ class ProfileForm extends _$ProfileForm {
     ref.invalidate(dailyFortuneProvider);
   }
 
-  /// AI 분석 백그라운드 트리거 (deprecated - 호환성 유지)
+  /// AI 분석 백그라운드 트리거 (v7.1 개선)
   ///
-  /// 평생 사주운세 (GPT-5.2) + 오늘의 운세 (Gemini) 병렬 실행
+  /// ## 변경사항 (v7.1)
+  /// - Fortune 완료 시 **즉시** UI 갱신 (saju_base 대기 안 함!)
+  /// - saju_base는 별도 백그라운드에서 진행
+  ///
+  /// ## 실행 흐름
+  /// 1. Fortune 분석 시작 (Gemini) → 완료 시 바로 dailyFortuneProvider invalidate
+  /// 2. saju_base 분석 시작 (GPT-5.2) → 완료 시 나머지 providers invalidate
   void _triggerAiAnalysis(String profileId) {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -641,18 +753,57 @@ class ProfileForm extends _$ProfileForm {
       return;
     }
 
-    // Fire-and-forget: 백그라운드에서 실행
-    sajuAnalysisService.analyzeOnProfileSave(
-      userId: user.id,
+    print('[Profile] 🚀 v7.1 AI 분석 시작: $profileId');
+
+    // 1. Fortune 분석 먼저! (daily만 빠르게 완료 → UI 즉시 갱신)
+    _triggerFortuneAnalysis(user.id, profileId);
+
+    // 2. saju_base 분석 (백그라운드, 느림)
+    _triggerSajuBaseAnalysis(user.id, profileId);
+  }
+
+  /// Fortune 분석 (daily 포함) - 완료 시 즉시 UI 갱신
+  void _triggerFortuneAnalysis(String userId, String profileId) {
+    print('[Profile] 🔮 Fortune 분석 시작 (daily 포함)...');
+
+    // FortuneCoordinator 사용하여 Fortune만 분석
+    final fortuneCoordinator = FortuneCoordinator(
+      supabase: Supabase.instance.client,
+      aiApiService: AiApiService(),
+    );
+
+    // fire-and-forget
+    fortuneCoordinator.analyzeAllFortunes(
+      userId: userId,
+      profileId: profileId,
+      profileName: '',  // 내부에서 조회됨
+      birthDate: '',
+      gender: '',
+    ).then((results) {
+      print('[Profile] ✅ Fortune 분석 완료! (daily: ${results.daily != null})');
+      // Fortune 완료 즉시 UI 갱신
+      ref.invalidate(dailyFortuneProvider);
+      ref.invalidate(monthlyFortuneProvider);
+      ref.invalidate(newYearFortuneProvider);
+      ref.invalidate(yearly2025FortuneProvider);
+    }).catchError((e) {
+      print('[Profile] ❌ Fortune 분석 오류: $e');
+    });
+  }
+
+  /// saju_base 분석 (GPT-5.2) - 백그라운드
+  void _triggerSajuBaseAnalysis(String userId, String profileId) {
+    print('[Profile] 📊 saju_base 분석 시작 (백그라운드)...');
+
+    sajuAnalysisService.ensureSajuBaseAnalysis(
+      userId: userId,
       profileId: profileId,
       runInBackground: true,
       onComplete: (result) {
-        // 분석 완료 시 UI 갱신을 위해 provider invalidate
-        print('[Profile] AI 분석 완료 - UI 갱신');
-        ref.invalidate(dailyFortuneProvider);
+        print('[Profile] ✅ saju_base 분석 완료: ${result.success}');
+        // 평생운세 UI 갱신
+        ref.invalidate(lifetimeFortuneProvider);
       },
     );
-
-    print('[Profile] AI 분석 백그라운드 시작: $profileId');
   }
 }

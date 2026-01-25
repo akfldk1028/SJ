@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
@@ -25,12 +26,18 @@ class HomeScreen extends ConsumerWidget {
       body: MysticBackground(
         child: SafeArea(
           child: SingleChildScrollView(
-            child: Column(
+            child: Builder(
+              builder: (context) {
+                // 반응형 패딩
+                final horizontalPadding = context.horizontalPadding;
+                final isSmall = context.isSmallMobile;
+
+                return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // App Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
                   child: Row(
                     children: [
                       // Menu Button
@@ -60,14 +67,14 @@ class HomeScreen extends ConsumerWidget {
                                     color: theme.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '◀ ▶',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: theme.textMuted,
-                                  ),
-                                ),
+                                // const SizedBox(width: 8),
+                                // Text(
+                                //   '◀ ▶',
+                                //   style: TextStyle(
+                                //     fontSize: 10,
+                                //     color: theme.textMuted,
+                                //   ),
+                                // ),
                               ],
                             ),
                           ],
@@ -78,7 +85,14 @@ class HomeScreen extends ConsumerWidget {
                         data: (profile) => _buildUserChip(
                           theme,
                           profile?.displayName ?? '프로필',
-                          () => context.push(Routes.profileEdit),
+                          () {
+                            // 프로필 있으면 수정 모드, 없으면 신규 생성 모드
+                            if (profile != null) {
+                              context.push('${Routes.profileEdit}?profileId=${profile.id}');
+                            } else {
+                              context.push(Routes.profileEdit);
+                            }
+                          },
                         ),
                         loading: () => _buildUserChip(theme, '로딩...', () {}),
                         error: (_, __) => _buildUserChip(theme, '프로필', () {}),
@@ -87,14 +101,14 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // Fortune Card (오늘의 총운)
-                _buildFortuneCard(theme, dailyFortuneAsync),
+                // Fortune Card (오늘의 총운 + 사자성어 통합)
+                _buildFortuneCard(context, theme, dailyFortuneAsync, horizontalPadding),
 
-                const SizedBox(height: 24),
+                SizedBox(height: isSmall ? 20 : 24),
 
                 // Section Header - 오늘의 운세
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -117,12 +131,12 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: isSmall ? 12 : 16),
 
                 // Category Fortune List (재물운, 애정운, 직장운, 건강운)
-                _buildCategoryList(theme, dailyFortuneAsync),
+                _buildCategoryList(context, theme, dailyFortuneAsync, horizontalPadding),
 
-                const SizedBox(height: 24),
+                SizedBox(height: isSmall ? 20 : 24),
 
                 // Saju Mini Card (나의 사주팔자)
                 myProfileAsync.when(
@@ -133,17 +147,17 @@ class HomeScreen extends ConsumerWidget {
                         child: const SajuMiniCard(),
                       );
                     }
-                    return _buildNoProfileCard(theme, context);
+                    return _buildNoProfileCard(theme, context, horizontalPadding);
                   },
-                  loading: () => _buildLoadingCard(theme),
-                  error: (_, __) => _buildNoProfileCard(theme, context),
+                  loading: () => _buildLoadingCard(theme, horizontalPadding),
+                  error: (_, __) => _buildNoProfileCard(theme, context, horizontalPadding),
                 ),
 
-                const SizedBox(height: 28),
+                SizedBox(height: isSmall ? 24 : 28),
 
                 // Section Header - 오늘의 조언
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Text(
                     '오늘의 조언',
                     style: TextStyle(
@@ -154,13 +168,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: isSmall ? 12 : 16),
 
                 // Advice Card
-                _buildAdviceCard(theme, dailyFortuneAsync),
+                _buildAdviceCard(theme, dailyFortuneAsync, horizontalPadding),
 
                 const SizedBox(height: 100), // Bottom nav spacing
               ],
+            );
+              },
             ),
           ),
         ),
@@ -238,9 +254,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFortuneCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  Widget _buildFortuneCard(BuildContext context, AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -282,6 +298,12 @@ class HomeScreen extends ConsumerWidget {
                 final score = fortune?.overallScore ?? 0;
                 final message = fortune?.overallMessage ?? '';
                 final isLoading = fortune == null;
+
+                // 디버그: idiom 상태 확인
+                print('[HomeScreen] fortune: ${fortune != null}, isLoading: $isLoading');
+                if (fortune != null) {
+                  print('[HomeScreen] idiom.korean: "${fortune.idiom.korean}", isValid: ${fortune.idiom.isValid}');
+                }
 
                 // 점수 기반 운세 등급
                 String gradeText;
@@ -423,6 +445,27 @@ class HomeScreen extends ConsumerWidget {
                           );
                         }),
                       ),
+
+                      // 사자성어 섹션 (점수 아래 - 텍스트만)
+                      // 무조건 표시 (디버그용)
+                      const SizedBox(height: 20),
+                      Text(
+                        fortune?.idiom.korean ?? '사자성어없음',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textPrimary,
+                          letterSpacing: 4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${fortune?.idiom.chinese ?? ''} · ${fortune?.idiom.meaning ?? ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -525,32 +568,38 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryList(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  Widget _buildCategoryList(BuildContext context, AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     // 카테고리 키 매핑 (DB key -> 표시명)
+    // NOTE: DB는 'wealth', 'work' 키 사용 (money/career X)
     const categoryMap = [
-      {'key': 'money', 'icon': '💰', 'name': '재물운'},
+      {'key': 'wealth', 'icon': '💰', 'name': '재물운'},
       {'key': 'love', 'icon': '💕', 'name': '애정운'},
-      {'key': 'career', 'icon': '💼', 'name': '직장운'},
+      {'key': 'work', 'icon': '💼', 'name': '직장운'},
       {'key': 'health', 'icon': '🏥', 'name': '건강운'},
     ];
 
+    // 반응형 카드 높이
+    final isSmall = context.isSmallMobile;
+    final cardHeight = isSmall ? 105.0 : 120.0;
+    final cardWidth = isSmall ? 80.0 : 90.0;
+
     return SizedBox(
-      height: 120,
+      height: cardHeight,
       child: fortuneAsync.when(
         data: (fortune) {
           final isLoading = fortune == null;
 
           return ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             itemCount: categoryMap.length,
             itemBuilder: (context, index) {
               final cat = categoryMap[index];
               final score = isLoading ? 0 : fortune.getCategoryScore(cat['key']!);
 
               return Container(
-                width: 90,
-                margin: EdgeInsets.only(right: index < categoryMap.length - 1 ? 12 : 0),
+                width: cardWidth,
+                margin: EdgeInsets.only(right: index < categoryMap.length - 1 ? (isSmall ? 10 : 12) : 0),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -610,10 +659,10 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryListLoading(AppThemeExtension theme, int count) {
+  Widget _buildCategoryListLoading(AppThemeExtension theme, int count, {double horizontalPadding = 20}) {
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       itemCount: count,
       itemBuilder: (context, index) {
         return Container(
@@ -655,9 +704,142 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAdviceCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync) {
+  /// 오늘의 사자성어 카드 - 모던 타이포그래피 스타일
+  Widget _buildIdiomCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.cardColor,
+              theme.cardColor.withValues(alpha: 0.9),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.primaryColor.withValues(alpha: 0.15),
+          ),
+        ),
+        child: fortuneAsync.when(
+          data: (fortune) {
+            final isLoading = fortune == null;
+            final idiom = fortune?.idiom;
+
+            if (isLoading || idiom == null || !idiom.isValid) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    _buildShimmerBox(theme, 120, 32),
+                    const SizedBox(height: 12),
+                    _buildShimmerBox(theme, 80, 18),
+                    const SizedBox(height: 16),
+                    _buildShimmerBox(theme, double.infinity, 14),
+                    const SizedBox(height: 8),
+                    _buildShimmerBox(theme, 200, 14),
+                  ],
+                ),
+              );
+            }
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+              child: Column(
+                children: [
+                  // 한글 (크게 강조)
+                  Text(
+                    idiom.korean,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: theme.textPrimary,
+                      letterSpacing: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 한자
+                  Text(
+                    idiom.chinese,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textSecondary.withValues(alpha: 0.7),
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 구분선
+                  Container(
+                    width: 40,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 뜻풀이
+                  Text(
+                    idiom.meaning,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  // 오늘의 메시지
+                  Text(
+                    idiom.message,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.textMuted,
+                      height: 1.7,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          },
+          loading: () => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildShimmerBox(theme, 120, 32),
+                const SizedBox(height: 12),
+                _buildShimmerBox(theme, 80, 18),
+                const SizedBox(height: 16),
+                _buildShimmerBox(theme, double.infinity, 14),
+                const SizedBox(height: 8),
+                _buildShimmerBox(theme, 200, 14),
+              ],
+            ),
+          ),
+          error: (e, _) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              '사자성어를 불러올 수 없습니다.',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.textMuted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdviceCard(AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -743,9 +925,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNoProfileCard(AppThemeExtension theme, BuildContext context) {
+  Widget _buildNoProfileCard(AppThemeExtension theme, BuildContext context, [double horizontalPadding = 20]) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: GestureDetector(
         onTap: () => context.push(Routes.profileEdit),
         child: Container(
@@ -795,9 +977,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoadingCard(AppThemeExtension theme) {
+  Widget _buildLoadingCard(AppThemeExtension theme, [double horizontalPadding = 20]) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
         height: 150,
         decoration: BoxDecoration(
