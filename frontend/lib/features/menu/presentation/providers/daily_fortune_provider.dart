@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../AI/data/queries.dart';
 import '../../../../AI/fortune/fortune_coordinator.dart';
+import '../../../../AI/fortune/common/korea_date_utils.dart';
 import '../../../../core/supabase/generated/ai_summaries.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
@@ -164,7 +165,8 @@ class DailyFortune extends _$DailyFortune {
     final activeProfile = await ref.watch(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
-    final today = DateTime.now();
+    // 🔧 한국 시간 기준으로 조회해야 캐시 히트됨 (저장도 한국 시간 기준)
+    final today = KoreaDateUtils.today;
     final result = await aiQueries.getDailyFortune(activeProfile.id, today);
 
     // 캐시가 있으면 바로 반환 + 플래그 리셋

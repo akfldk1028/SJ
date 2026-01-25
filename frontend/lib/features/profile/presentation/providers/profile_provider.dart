@@ -25,6 +25,8 @@ import '../../../new_year_fortune/presentation/providers/new_year_fortune_provid
 import '../../../yearly_2025_fortune/presentation/providers/yearly_2025_fortune_provider.dart';
 import '../../../traditional_saju/presentation/providers/lifetime_fortune_provider.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../AI/services/ai_api_service.dart';
+import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/data/mutations.dart';
 
 part 'profile_provider.g.dart';
@@ -735,9 +737,15 @@ class ProfileForm extends _$ProfileForm {
     ref.invalidate(dailyFortuneProvider);
   }
 
-  /// AI 분석 백그라운드 트리거 (deprecated - 호환성 유지)
+  /// AI 분석 백그라운드 트리거 (v7.1 개선)
   ///
-  /// 평생 사주운세 (GPT-5.2) + 오늘의 운세 (Gemini) 병렬 실행
+  /// ## 변경사항 (v7.1)
+  /// - Fortune 완료 시 **즉시** UI 갱신 (saju_base 대기 안 함!)
+  /// - saju_base는 별도 백그라운드에서 진행
+  ///
+  /// ## 실행 흐름
+  /// 1. Fortune 분석 시작 (Gemini) → 완료 시 바로 dailyFortuneProvider invalidate
+  /// 2. saju_base 분석 시작 (GPT-5.2) → 완료 시 나머지 providers invalidate
   void _triggerAiAnalysis(String profileId) {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -745,22 +753,57 @@ class ProfileForm extends _$ProfileForm {
       return;
     }
 
-    // Fire-and-forget: 백그라운드에서 실행
-    sajuAnalysisService.analyzeOnProfileSave(
-      userId: user.id,
+    print('[Profile] 🚀 v7.1 AI 분석 시작: $profileId');
+
+    // 1. Fortune 분석 먼저! (daily만 빠르게 완료 → UI 즉시 갱신)
+    _triggerFortuneAnalysis(user.id, profileId);
+
+    // 2. saju_base 분석 (백그라운드, 느림)
+    _triggerSajuBaseAnalysis(user.id, profileId);
+  }
+
+  /// Fortune 분석 (daily 포함) - 완료 시 즉시 UI 갱신
+  void _triggerFortuneAnalysis(String userId, String profileId) {
+    print('[Profile] 🔮 Fortune 분석 시작 (daily 포함)...');
+
+    // FortuneCoordinator 사용하여 Fortune만 분석
+    final fortuneCoordinator = FortuneCoordinator(
+      supabase: Supabase.instance.client,
+      aiApiService: AiApiService(),
+    );
+
+    // fire-and-forget
+    fortuneCoordinator.analyzeAllFortunes(
+      userId: userId,
+      profileId: profileId,
+      profileName: '',  // 내부에서 조회됨
+      birthDate: '',
+      gender: '',
+    ).then((results) {
+      print('[Profile] ✅ Fortune 분석 완료! (daily: ${results.daily != null})');
+      // Fortune 완료 즉시 UI 갱신
+      ref.invalidate(dailyFortuneProvider);
+      ref.invalidate(monthlyFortuneProvider);
+      ref.invalidate(newYearFortuneProvider);
+      ref.invalidate(yearly2025FortuneProvider);
+    }).catchError((e) {
+      print('[Profile] ❌ Fortune 분석 오류: $e');
+    });
+  }
+
+  /// saju_base 분석 (GPT-5.2) - 백그라운드
+  void _triggerSajuBaseAnalysis(String userId, String profileId) {
+    print('[Profile] 📊 saju_base 분석 시작 (백그라운드)...');
+
+    sajuAnalysisService.ensureSajuBaseAnalysis(
+      userId: userId,
       profileId: profileId,
       runInBackground: true,
       onComplete: (result) {
-        // 분석 완료 시 UI 갱신을 위해 모든 fortune providers invalidate
-        print('[Profile] AI 분석 완료 - 모든 Fortune providers 무효화');
-        ref.invalidate(dailyFortuneProvider);
-        ref.invalidate(monthlyFortuneProvider);
-        ref.invalidate(newYearFortuneProvider);
-        ref.invalidate(yearly2025FortuneProvider);
+        print('[Profile] ✅ saju_base 분석 완료: ${result.success}');
+        // 평생운세 UI 갱신
         ref.invalidate(lifetimeFortuneProvider);
       },
     );
-
-    print('[Profile] AI 분석 백그라운드 시작: $profileId');
   }
 }

@@ -79,6 +79,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   // 내 사주 카드
                   const SajuMiniCard(),
                   SizedBox(height: context.scaledPadding(16)),
+                  // Native 광고 2 (오늘의 한마디 위) - 500ms 지연
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
+                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // TODO: 2025 신년운세/토정비결 - 임시 비활성화
                   // const SectionHeader(
                   //   title: '오늘의 조언',
@@ -88,8 +91,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   // SizedBox(height: context.scaledPadding(24)),
                   const TodayMessageCard(),
                   SizedBox(height: context.scaledPadding(24)),
-                  // Native 광고 2 (맨 하단) - 500ms 지연
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
                 ],
               ),
             ),
