@@ -403,7 +403,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
         'birth_city': newProfile.birthCity,
         'use_ya_jasi': newProfile.useYaJasi,
         'relation_type': 'other', // 인연 프로필
-        'is_primary': false, // 인연은 주 프로필이 아님
+        'profile_type': 'other', // 인연은 주 프로필이 아님 (is_primary 삭제됨)
         'created_at': DateTime.now().toUtc().toIso8601String(),
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       };

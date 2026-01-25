@@ -109,6 +109,7 @@ $$ LANGUAGE plpgsql;
 | 2026-01-25 | `is_admin_user` 함수 `is_primary` 참조 | `profile_type = 'primary'`로 수정 |
 | 2026-01-25 | `user_display_name`, `profile_display_name` NULL | DB 트리거 생성 + 백필 완료 |
 | 2026-01-25 | Flutter `defaultMaxInputTokens` 100,000 | 50,000으로 수정 |
+| 2026-01-25 | Flutter `is_primary` 참조 코드 정리 | `profile_type`으로 마이그레이션 |
 
 ---
 
