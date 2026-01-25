@@ -65,7 +65,8 @@ class ChatHistorySidebar extends StatelessWidget {
               onSessionRenamed: onSessionRenamed,
             ),
           ),
-          const SidebarFooter(),
+          // TODO: 설정 버튼 - 임시 비활성화
+          // const SidebarFooter(),
         ],
       ),
     );

@@ -230,6 +230,19 @@ class ChatNotifier extends _$ChatNotifier {
           hasMoreMessages: messages.length < totalCount,
           totalMessageCount: totalCount,
         );
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 기존 세션 복원: 메시지가 있으면 시스템 프롬프트 + 대화 히스토리 재설정
+        // 앱 백그라운드 → 포그라운드 복귀 시 AI가 페르소나/사주 정보 + 대화 맥락 기억
+        // ═══════════════════════════════════════════════════════════════════
+        if (messages.isNotEmpty) {
+          // v7.1: 사주 정보 포함한 완전한 시스템 프롬프트 생성
+          final fullSystemPrompt = await _buildRestoreSystemPrompt();
+          _repository.restoreExistingSession(fullSystemPrompt, messages: messages);
+          if (kDebugMode) {
+            print('[ChatProvider] 기존 세션 복원 완료 (${messages.length}개 메시지, 사주 정보 포함)');
+          }
+        }
       } else {
         state = state.copyWith(isLoading: false);
       }
@@ -437,6 +450,58 @@ class ChatNotifier extends _$ChatNotifier {
         print('   💥 오류: $e');
       }
       return null;
+    }
+  }
+
+  /// 세션 복원용 시스템 프롬프트 빌드
+  ///
+  /// v7.1: 앱 백그라운드 → 포그라운드 복귀 시 사주 정보 포함
+  /// - 프로필 + 사주 분석 + AI Summary 로드하여 완전한 프롬프트 생성
+  /// - 궁합 모드는 미지원 (일반 채팅만)
+  Future<String> _buildRestoreSystemPrompt() async {
+    try {
+      // 1. 페르소나 프롬프트 (기본)
+      final personaPrompt = ref.read(finalSystemPromptProvider);
+
+      // 2. 프로필 로드
+      final activeProfile = await ref.read(activeProfileProvider.future);
+      if (activeProfile == null) {
+        if (kDebugMode) {
+          print('[ChatProvider] 세션 복원: 프로필 없음 - 페르소나 프롬프트만 사용');
+        }
+        return personaPrompt;
+      }
+
+      // 3. 사주 분석 로드
+      final sajuAnalysis = await ref.read(currentSajuAnalysisProvider.future);
+
+      // 4. AI Summary (캐시된 것만 사용 - 새로 생성하지 않음!)
+      // 세션 복원 시 Edge Function 호출하면 비용 발생하므로 캐시만 확인
+      final aiSummary = _cachedAiSummary;
+
+      // 5. 완전한 시스템 프롬프트 생성
+      final fullPrompt = _buildFullSystemPrompt(
+        basePrompt: personaPrompt,
+        aiSummary: aiSummary,
+        sajuAnalysis: sajuAnalysis,
+        profile: activeProfile,
+        personaPrompt: personaPrompt,
+        isFirstMessage: true,  // 복원 후 첫 메시지로 취급
+      );
+
+      if (kDebugMode) {
+        print('[ChatProvider] 세션 복원: 사주 정보 포함 프롬프트 생성 완료');
+        print('   프로필: ${activeProfile.displayName}');
+        print('   사주: ${sajuAnalysis != null ? "있음" : "없음"}');
+        print('   AI Summary: ${aiSummary != null ? "있음" : "없음"}');
+      }
+
+      return fullPrompt;
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatProvider] 세션 복원 프롬프트 오류: $e - 페르소나 프롬프트만 사용');
+      }
+      return ref.read(finalSystemPromptProvider);
     }
   }
 
@@ -1243,6 +1308,26 @@ class ChatNotifier extends _$ChatNotifier {
       await sessionNotifier.loadSessions();
     } catch (e) {
       // 메타데이터 업데이트 실패해도 무시
+    }
+  }
+
+  /// 보너스 토큰 추가 (광고 시청 시)
+  ///
+  /// 광고를 보면 토큰 한도가 증가하여 이전 대화를 유지하면서 더 대화 가능
+  /// [tokens]: 추가할 토큰 수
+  void addBonusTokens(int tokens) {
+    _repository.addBonusTokens(tokens);
+
+    // 토큰 사용량 정보 업데이트
+    final tokenUsage = _repository.getTokenUsageInfo();
+    state = state.copyWith(
+      tokenUsage: tokenUsage,
+      wasContextTrimmed: false, // 토큰 충전으로 트리밍 해제
+    );
+
+    if (kDebugMode) {
+      print('[ChatProvider] 보너스 토큰 추가: +$tokens');
+      print('[ChatProvider] 새 토큰 상태: $tokenUsage');
     }
   }
 

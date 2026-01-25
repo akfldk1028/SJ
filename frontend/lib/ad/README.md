@@ -156,6 +156,42 @@ const AdMode currentAdMode = AdMode.test;  // 테스트 모드
 
 ---
 
+## DB 토큰 컬럼 (user_daily_token_usage)
+
+### ⚠️ 중요: 컬럼 구현 현황
+
+| 컬럼 | 상태 | 설명 |
+|------|------|------|
+| `rewarded_tokens_earned` | ✅ **구현됨** | 보상형(Rewarded) 광고로 얻은 토큰 |
+| `bonus_tokens_earned` | ❌ **미구현** | 비광고 보너스용 (이벤트, 출석 등) |
+
+### 현재 동작
+
+**`rewarded_tokens_earned`만 실제로 증가됨:**
+```dart
+// ad_mutations.dart - trackRewardedComplete()
+await incrementDailyCounter('rewarded_tokens_earned', increment: rewardAmount);
+```
+
+**`bonus_tokens_earned`는 쿼리에서만 읽힘:**
+- 증가시키는 코드 없음
+- 미래 확장용으로 DB에만 존재
+- 현재는 사용하지 않음
+
+### 원래 설계 의도
+
+| 컬럼 | 용도 (미래) |
+|------|------------|
+| `rewarded_tokens_earned` | 광고 시청 토큰 (구현됨) |
+| `bonus_tokens_earned` | 출석 보상, 이벤트 보상 등 (미구현) |
+
+### TODO
+
+- [ ] `bonus_tokens_earned` 증가 로직 구현 (이벤트/출석 기능 추가 시)
+- [ ] 또는 미사용 시 컬럼 제거 검토
+
+---
+
 ## 비즈니스 수익화 전략
 
 ### 광고 배치

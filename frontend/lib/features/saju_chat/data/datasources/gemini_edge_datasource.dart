@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/services/supabase_service.dart';
 import '../../../../AI/core/ai_logger.dart';
+import '../../../../AI/core/ai_constants.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
 import '../services/sse_stream_client.dart';
@@ -119,6 +120,49 @@ class GeminiEdgeDatasource {
     }
   }
 
+  /// 기존 세션 복원 (앱 백그라운드 → 포그라운드 복귀 시)
+  ///
+  /// - 시스템 프롬프트 재설정
+  /// - 대화 기록 복원 (Gemini 히스토리 동기화)
+  /// - _isNewSession = true로 설정하여 첫 메시지에 사주 정보 포함
+  void restoreSession(String systemPrompt, {List<Map<String, dynamic>>? messages}) {
+    _systemPrompt = systemPrompt;
+    _windowManager.setSystemPrompt(systemPrompt);
+    _isNewSession = true; // 복원 후 첫 메시지에 사주 정보 포함!
+
+    // 대화 히스토리 복원 (Gemini 포맷)
+    if (messages != null && messages.isNotEmpty) {
+      _conversationHistory.clear();
+      _conversationHistory.addAll(messages);
+      if (kDebugMode) {
+        print('[GeminiEdge] 대화 히스토리 복원: ${messages.length}개 메시지');
+      }
+    }
+
+    if (kDebugMode) {
+      final promptTokens = TokenCounter.estimateSystemPromptTokens(systemPrompt);
+      print('[GeminiEdge] 세션 복원, 시스템 프롬프트 토큰: $promptTokens');
+    }
+  }
+
+  /// 보너스 토큰 추가 (광고 시청 시)
+  ///
+  /// 광고를 보면 토큰 한도가 증가하여 이전 대화를 유지하면서 더 대화 가능
+  /// [tokens]: 추가할 토큰 수
+  void addBonusTokens(int tokens) {
+    _windowManager.addBonusTokens(tokens);
+    if (kDebugMode) {
+      final newInfo = getTokenUsageInfo();
+      print('[GeminiEdge] 보너스 토큰 추가: +$tokens');
+      print('[GeminiEdge] 새 토큰 상태: ${newInfo.totalUsed}/${newInfo.maxTokens} (${newInfo.usagePercent}%)');
+    }
+  }
+
+  /// 보너스 토큰 리셋 (새 세션 시작 시)
+  void resetBonusTokens() {
+    _windowManager.resetBonusTokens();
+  }
+
   /// v6.0 (Phase 57): 시스템 프롬프트만 업데이트 (대화 기록 유지)
   ///
   /// 궁합 모드에서 참가자가 변경될 때 사용
@@ -170,7 +214,7 @@ class GeminiEdgeDatasource {
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': 16384, // 응답 잘림 방지 (2048 → 16384)
+          'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
           'is_new_session': isNewSessionFlag, // 새 세션 플래그
@@ -295,7 +339,7 @@ class GeminiEdgeDatasource {
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': 16384,
+          'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
           'temperature': 0.8,
           'stream': true,
           if (userId != null) 'user_id': userId,

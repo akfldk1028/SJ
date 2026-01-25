@@ -470,9 +470,10 @@ abstract class TokenLimits {
   /// - 상세한 연간 전망 (3072 → 8192)
   static const int yearlyFortuneMaxTokens = 8192;
 
-  /// 질문 응답: 4096 토큰
-  /// - 답변 (1024 → 4096)
-  static const int questionAnswerMaxTokens = 4096;
+  /// 질문 응답 (채팅): 2048 토큰
+  /// - 적당한 답변 (4096 → 2048)
+  /// - 약 1000-1500자, 5-10문장 정도
+  static const int questionAnswerMaxTokens = 2048;
 
   /// 궁합: 8192 토큰
   /// - (3072 → 8192)

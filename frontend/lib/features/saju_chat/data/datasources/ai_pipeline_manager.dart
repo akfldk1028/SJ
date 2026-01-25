@@ -218,6 +218,11 @@ $userMessage
     _geminiDatasource.updateSystemPrompt(systemPrompt);
   }
 
+  /// 기존 세션 복원 (앱 복귀 시)
+  void restoreSession(String systemPrompt) {
+    _geminiDatasource.restoreSession(systemPrompt);
+  }
+
   /// 리소스 정리
   void dispose() {
     _gptDatasource.dispose();
