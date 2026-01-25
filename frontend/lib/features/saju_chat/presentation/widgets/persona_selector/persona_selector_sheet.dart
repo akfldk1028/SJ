@@ -212,9 +212,9 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
         crossAxisSpacing: 12,
         childAspectRatio: 0.85,
       ),
-      itemCount: AiPersona.values.length,
+      itemCount: AiPersona.visibleValues.length,
       itemBuilder: (context, index) {
-        final persona = AiPersona.values[index];
+        final persona = AiPersona.visibleValues[index];
         return _AllPersonaGridItem(
           persona: persona,
           isSelected: persona == widget.currentPersona,

@@ -39,7 +39,7 @@ class PersonaHorizontalList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayPersonas = personas ?? AiPersona.values;
+    final displayPersonas = personas ?? AiPersona.visibleValues;
 
     return Container(
       height: itemSize + 16,

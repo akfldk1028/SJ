@@ -1265,7 +1265,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: ChatPersona.values.map((persona) {
+                  children: ChatPersona.visibleValues.map((persona) {
                     final isSelected = persona == currentPersona;
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),

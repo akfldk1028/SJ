@@ -15,6 +15,15 @@ class StreamingMessageBubble extends StatelessWidget {
     required this.content,
   });
 
+  /// 태그 제거된 콘텐츠 (스트리밍 중에도 [SUGGESTED_QUESTIONS] 숨김)
+  String get _cleanedContent {
+    final tagStartIndex = content.indexOf('[SUGGESTED_QUESTIONS]');
+    if (tagStartIndex != -1) {
+      return content.substring(0, tagStartIndex).trim();
+    }
+    return content;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -112,7 +121,7 @@ class StreamingMessageBubble extends StatelessWidget {
     );
 
     return Text.rich(
-      _parseMarkdownBold(content, aiStyle),
+      _parseMarkdownBold(_cleanedContent, aiStyle),
     );
   }
 

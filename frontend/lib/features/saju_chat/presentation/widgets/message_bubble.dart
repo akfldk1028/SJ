@@ -126,14 +126,23 @@ class MessageBubble extends StatelessWidget {
       return Text(message.content, style: userStyle);
     }
 
-    // AI 메시지: 커스텀 볼드 파싱
+    // AI 메시지: 커스텀 볼드 파싱 (태그 제거 후)
     final aiStyle = AppFonts.aiMessage(
       color: appTheme.textPrimary,
     );
 
     return SelectableText.rich(
-      _parseMarkdownBold(message.content, aiStyle),
+      _parseMarkdownBold(_cleanContent(message.content), aiStyle),
     );
+  }
+
+  /// [SUGGESTED_QUESTIONS] 태그 제거 (기존 저장된 메시지 호환)
+  String _cleanContent(String content) {
+    final tagStartIndex = content.indexOf('[SUGGESTED_QUESTIONS]');
+    if (tagStartIndex != -1) {
+      return content.substring(0, tagStartIndex).trim();
+    }
+    return content;
   }
 
   /// **text** 패턴을 파싱해서 볼드체로 변환

@@ -45,6 +45,20 @@ enum ChatPersona {
   /// 시궁창 술사 - 팩폭 장인 (MBTI 조절 불가)
   sewerSaju;
 
+  /// UI에서 숨길 페르소나 여부
+  bool get isHidden {
+    switch (this) {
+      case ChatPersona.scenarioWriter:
+        return true; // 송작가 - 사용 안함
+      default:
+        return false;
+    }
+  }
+
+  /// UI에 표시할 페르소나 목록 (isHidden=false만)
+  static List<ChatPersona> get visibleValues =>
+      ChatPersona.values.where((p) => !p.isHidden).toList();
+
   /// 타입 확인
   ChatPersonaType get type {
     if (this == ChatPersona.basePerson) {

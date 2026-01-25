@@ -83,6 +83,20 @@ enum AiPersona {
   saOngJiMa,
   sewerSaju;
 
+  /// UI에서 숨길 페르소나 여부
+  bool get isHidden {
+    switch (this) {
+      case AiPersona.scenarioWriter:
+        return true; // 송작가 - 사용 안함
+      default:
+        return false;
+    }
+  }
+
+  /// UI에 표시할 페르소나 목록 (isHidden=false만)
+  static List<AiPersona> get visibleValues =>
+      AiPersona.values.where((p) => !p.isHidden).toList();
+
   /// PersonaRegistry ID 매핑
   ///
   /// AI/jina/personas/ 폴더의 PersonaBase.id와 매핑
@@ -215,9 +229,9 @@ enum AiPersona {
     }
   }
 
-  /// 분면별 페르소나 목록 가져오기
+  /// 분면별 페르소나 목록 가져오기 (숨김 제외)
   static List<AiPersona> getByQuadrant(MbtiQuadrant quadrant) {
-    return AiPersona.values.where((p) => p.quadrant == quadrant).toList();
+    return AiPersona.visibleValues.where((p) => p.quadrant == quadrant).toList();
   }
 
   /// 시스템 프롬프트 (PersonaRegistry에서 가져옴)
