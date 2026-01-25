@@ -303,11 +303,15 @@ class AdService {
             '[AdService] User earned reward: ${reward.amount} ${reward.type}');
 
         // 1. 광고 이벤트 추적 (ad_events 테이블)
+        // featureType이 있으면 잠금해제 목적, 없으면 일반
         final adEventId = await AdTrackingService.instance.trackRewarded(
           rewardAmount: reward.amount.toInt(),
           rewardType: reward.type,
           screen: screen,
           profileId: profileId,
+          purpose: featureType != null
+              ? AdPurpose.featureUnlock
+              : AdPurpose.general,
         );
 
         // 2. 기능 해금 (feature_unlocks 테이블)

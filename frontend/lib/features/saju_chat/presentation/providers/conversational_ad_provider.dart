@@ -13,6 +13,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../ad/ad_config.dart';
+import '../../../../ad/ad_tracking_service.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../data/services/ad_trigger_service.dart';
 import '../../data/services/conversation_window_manager.dart' show TokenUsageInfo;
@@ -273,10 +274,19 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     );
 
     _rewardedAd!.show(
-      onUserEarnedReward: (ad, reward) {
+      onUserEarnedReward: (ad, reward) async {
         if (kDebugMode) {
           print('   🎁 [AD] Reward earned: ${reward.amount} ${reward.type}');
         }
+
+        // 광고 이벤트 추적 (ad_events 테이블에 purpose: token_bonus로 기록)
+        await AdTrackingService.instance.trackRewarded(
+          rewardAmount: reward.amount.toInt(),
+          rewardType: reward.type,
+          screen: 'saju_chat_token_depleted',
+          purpose: AdPurpose.tokenBonus,
+        );
+
         _onRewardEarned();
       },
     );
