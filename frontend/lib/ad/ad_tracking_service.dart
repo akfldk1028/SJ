@@ -28,6 +28,27 @@ enum AdEventType {
   rewarded, // 보상 지급
 }
 
+/// 광고 시청 목적
+enum AdPurpose {
+  general, // 일반 광고 (배너, 전면 등)
+  featureUnlock, // 자물쇠 해제 (프리미엄 콘텐츠 언락)
+  tokenBonus, // 토큰 보상 (채팅 중 토큰 충전)
+}
+
+/// AdPurpose 확장
+extension AdPurposeExtension on AdPurpose {
+  String toDbString() {
+    switch (this) {
+      case AdPurpose.general:
+        return 'general';
+      case AdPurpose.featureUnlock:
+        return 'feature_unlock';
+      case AdPurpose.tokenBonus:
+        return 'token_bonus';
+    }
+  }
+}
+
 /// 광고 추적 서비스
 ///
 /// 광고 이벤트를 Supabase에 기록하고 일별 집계를 업데이트
@@ -150,6 +171,7 @@ class AdTrackingService {
   /// [rewardType] AdMob 보상 타입
   /// [screen] 화면명 (예: category_yearly_career_2026)
   /// [profileId] 현재 활성 프로필 ID
+  /// [purpose] 광고 시청 목적 (feature_unlock 또는 token_bonus)
   ///
   /// 반환: ad_event ID (feature_unlocks 연결용), 실패 시 null
   Future<String?> trackRewarded({
@@ -157,6 +179,7 @@ class AdTrackingService {
     required String rewardType,
     String? screen,
     String? profileId,
+    AdPurpose purpose = AdPurpose.general,
   }) async {
     final adEventId = await _trackEventWithReturn(
       adType: AdType.rewarded,
@@ -165,6 +188,7 @@ class AdTrackingService {
       rewardType: rewardType,
       screen: screen,
       profileId: profileId,
+      purpose: purpose,
     );
     await _incrementDailyCounter('rewarded_tokens_earned', increment: rewardAmount);
     return adEventId;
@@ -203,6 +227,7 @@ class AdTrackingService {
     String? screen,
     String? sessionId,
     String? profileId,
+    AdPurpose purpose = AdPurpose.general,
   }) async {
     await _trackEventWithReturn(
       adType: adType,
@@ -212,6 +237,7 @@ class AdTrackingService {
       screen: screen,
       sessionId: sessionId,
       profileId: profileId,
+      purpose: purpose,
     );
   }
 
@@ -224,6 +250,7 @@ class AdTrackingService {
     String? screen,
     String? sessionId,
     String? profileId,
+    AdPurpose purpose = AdPurpose.general,
   }) async {
     if (_client == null || _userId == null) {
       debugPrint('[AdTracking] Supabase not connected, skipping event tracking');
@@ -243,10 +270,11 @@ class AdTrackingService {
         'session_id': sessionId,
         'profile_id': profileId,
         'device_info': deviceInfo,
+        'purpose': purpose.toDbString(),
       }).select('id').single();
 
       final adEventId = response['id'] as String?;
-      debugPrint('[AdTracking] Event tracked: ${adType.name} - ${eventType.name} (id: $adEventId)');
+      debugPrint('[AdTracking] Event tracked: ${adType.name} - ${eventType.name} - ${purpose.toDbString()} (id: $adEventId)');
       return adEventId;
     } catch (e) {
       debugPrint('[AdTracking] Failed to track event: $e');
