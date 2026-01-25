@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/daeun.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/entities/saju_analysis.dart';
@@ -68,6 +69,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
     final isFullPage = widget.isFullPage;
 
@@ -76,7 +78,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
       decoration: isFullPage
           ? null
           : BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
       child: Column(
@@ -89,7 +91,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -103,13 +105,13 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                   Text(
                     '사주 풀이 자세히 보기',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: theme.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: Icon(Icons.close, color: theme.textSecondary),
                   ),
                 ],
               ),
@@ -118,16 +120,16 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
           Container(
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: AppColors.border, width: 1),
+                bottom: BorderSide(color: theme.border, width: 1),
               ),
             ),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              labelColor: AppColors.accent,
-              unselectedLabelColor: AppColors.textMuted,
-              indicatorColor: AppColors.accent,
+              labelColor: theme.primaryColor,
+              unselectedLabelColor: theme.textMuted,
+              indicatorColor: theme.primaryColor,
               indicatorWeight: 2,
               labelStyle: const TextStyle(
                 fontSize: 13,
@@ -156,10 +158,10 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
             child: sajuAnalysisAsync.when(
               data: (analysis) {
                 if (analysis == null) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       '분석 정보를 불러올 수 없습니다.',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: theme.textSecondary),
                     ),
                   );
                 }
@@ -192,10 +194,10 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                   ],
                 );
               },
-              loading: () => const Center(
+              loading: () => Center(
                 child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(),
+                  padding: const EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: theme.primaryColor),
                 ),
               ),
               error: (err, stack) => Center(
@@ -203,7 +205,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     '오류가 발생했습니다:\n$err',
-                    style: const TextStyle(color: AppColors.error),
+                    style: TextStyle(color: theme.fireColor ?? AppColors.error),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -236,26 +238,27 @@ class _ManseryeokTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 포스텔러 스타일 통합 테이블
-          _buildSectionTitle(context, '사주 팔자 분석표'),
+          _buildSectionTitle(context, '사주 팔자 분석표', theme),
           const SizedBox(height: 12),
           PosstellerStyleTable(chart: chart),
           const SizedBox(height: 24),
 
           // 기존 4주 카드 표시
-          _buildSectionTitle(context, '사주팔자 (Four Pillars)'),
+          _buildSectionTitle(context, '사주팔자 (Four Pillars)', theme),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: theme.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: theme.border),
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -302,22 +305,22 @@ class _ManseryeokTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 오행 분포
-          _buildSectionTitle(context, '오행 분포'),
+          _buildSectionTitle(context, '오행 분포', theme),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: theme.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: theme.border),
             ),
             child: Column(
               children: [
-                _buildOhengBar(context, '목(木) Wood', oheng.mok, AppColors.wood),
-                _buildOhengBar(context, '화(火) Fire', oheng.hwa, AppColors.fire),
-                _buildOhengBar(context, '토(土) Earth', oheng.to, AppColors.earth),
-                _buildOhengBar(context, '금(金) Metal', oheng.geum, AppColors.metal),
-                _buildOhengBar(context, '수(水) Water', oheng.su, AppColors.water),
+                _buildOhengBar(context, '목(木) Wood', oheng.mok, theme.woodColor ?? AppColors.wood, theme),
+                _buildOhengBar(context, '화(火) Fire', oheng.hwa, theme.fireColor ?? AppColors.fire, theme),
+                _buildOhengBar(context, '토(土) Earth', oheng.to, theme.earthColor ?? AppColors.earth, theme),
+                _buildOhengBar(context, '금(金) Metal', oheng.geum, theme.metalColor ?? AppColors.metal, theme),
+                _buildOhengBar(context, '수(水) Water', oheng.su, theme.waterColor ?? AppColors.water, theme),
               ],
             ),
           ),
@@ -326,18 +329,18 @@ class _ManseryeokTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
+            color: theme.textSecondary,
           ),
     );
   }
 
   Widget _buildOhengBar(
-      BuildContext context, String label, int count, Color color) {
+      BuildContext context, String label, int count, Color color, AppThemeExtension theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -358,7 +361,7 @@ class _ManseryeokTab extends StatelessWidget {
                 Container(
                   height: 12,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated,
+                    color: theme.surfaceElevated,
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -396,6 +399,7 @@ class _SipSungTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final jijangganResult = JiJangGanService.analyzeFromChart(chart);
 
     return SingleChildScrollView(
@@ -404,20 +408,20 @@ class _SipSungTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 십성이란? 설명 카드
-          _buildExplanationCard(context),
+          _buildExplanationCard(context, theme),
           const SizedBox(height: 20),
 
-          _buildSectionTitle(context, '천간 십성'),
+          _buildSectionTitle(context, '천간 십성', theme),
           const SizedBox(height: 12),
-          _buildCheonganSipSin(context),
+          _buildCheonganSipSin(context, theme),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, '지장간 십성'),
+          _buildSectionTitle(context, '지장간 십성', theme),
           const SizedBox(height: 12),
           JiJangGanRow(analysis: jijangganResult, compact: true),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, '십성 분포'),
+          _buildSectionTitle(context, '십성 분포', theme),
           const SizedBox(height: 12),
           SipSungCategoryChart(
             distribution: jijangganResult.categoryDistribution,
@@ -427,7 +431,7 @@ class _SipSungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildExplanationCard(BuildContext context) {
+  Widget _buildExplanationCard(BuildContext context, AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -435,24 +439,24 @@ class _SipSungTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.accent.withOpacity(0.1),
-            AppColors.accent.withOpacity(0.05),
+            theme.primaryColor.withOpacity(0.1),
+            theme.primaryColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline_rounded, color: AppColors.accent, size: 20),
+              Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 '십성(十星)이란?',
                 style: TextStyle(
-                  color: AppColors.accent,
+                  color: theme.primaryColor,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -464,7 +468,7 @@ class _SipSungTab extends StatelessWidget {
             '일간(日干, 나)을 기준으로 다른 간지와의 관계를 나타낸 것입니다. '
             '오행의 상생상극 관계와 음양 조화에 따라 10가지 관계가 정해집니다.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -477,7 +481,7 @@ class _SipSungTab extends StatelessWidget {
             '• 관성(官星): 나를 극하는 오행 - 직장, 명예, 남편(여)\n'
             '• 인성(印星): 나를 생하는 오행 - 학문, 문서, 어머니',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 12,
               height: 1.6,
             ),
@@ -487,17 +491,17 @@ class _SipSungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
+            color: theme.textSecondary,
           ),
     );
   }
 
-  Widget _buildCheonganSipSin(BuildContext context) {
+  Widget _buildCheonganSipSin(BuildContext context, AppThemeExtension theme) {
     final dayGan = chart.dayPillar.gan;
 
     // 각 천간의 십성 계산
@@ -513,18 +517,18 @@ class _SipSungTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 60,
             child: Text(
               '천간',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 10,
               ),
             ),
@@ -536,10 +540,10 @@ class _SipSungTab extends StatelessWidget {
                           sipsin: sipsin,
                           size: SipSungSize.medium,
                         )
-                      : const Text(
+                      : Text(
                           '-',
                           style: TextStyle(
-                            color: AppColors.textMuted,
+                            color: theme.textMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -591,6 +595,7 @@ class _UnsungTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final result = UnsungService.analyzeFromChart(chart);
 
     return SingleChildScrollView(
@@ -599,27 +604,27 @@ class _UnsungTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 운성이란? 설명 카드
-          _buildExplanationCard(context),
+          _buildExplanationCard(context, theme),
           const SizedBox(height: 16),
 
           // 궁성이란? 설명 카드
-          _buildGungseongExplanationCard(context),
+          _buildGungseongExplanationCard(context, theme),
           const SizedBox(height: 16),
 
           // 요약 카드 (개선된 디자인)
-          _buildSummaryCard(context, result),
+          _buildSummaryCard(context, result, theme),
           const SizedBox(height: 20),
 
           // 12운성 상세 카드 리스트
-          _buildSectionHeader(context, '궁성별 12운성', '각 궁의 운성과 그 의미', AppColors.accent, Icons.analytics_rounded),
+          _buildSectionHeader(context, '궁성별 12운성', '각 궁의 운성과 그 의미', theme.primaryColor, Icons.analytics_rounded, theme),
           const SizedBox(height: 12),
-          _buildUnsungDetailCards(context, result),
+          _buildUnsungDetailCards(context, result, theme),
         ],
       ),
     );
   }
 
-  Widget _buildExplanationCard(BuildContext context) {
+  Widget _buildExplanationCard(BuildContext context, AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -627,24 +632,24 @@ class _UnsungTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.accent.withOpacity(0.1),
-            AppColors.accent.withOpacity(0.05),
+            theme.primaryColor.withOpacity(0.1),
+            theme.primaryColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline_rounded, color: AppColors.accent, size: 20),
+              Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 '12운성(十二運星)이란?',
                 style: TextStyle(
-                  color: AppColors.accent,
+                  color: theme.primaryColor,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -656,7 +661,7 @@ class _UnsungTab extends StatelessWidget {
             '12운성은 일간(日干)의 기운이 각 지지(地支)에서 어떤 상태인지를 나타냅니다. '
             '마치 사람의 일생처럼 탄생(장생)부터 죽음(사)까지의 순환을 12단계로 표현합니다.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -665,24 +670,24 @@ class _UnsungTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildCycleItem('장생', '탄생'),
-                  _buildCycleArrow(),
-                  _buildCycleItem('목욕', '성장'),
-                  _buildCycleArrow(),
-                  _buildCycleItem('관대', '성인'),
-                  _buildCycleArrow(),
-                  _buildCycleItem('건록', '전성'),
-                  _buildCycleArrow(),
-                  _buildCycleItem('제왕', '정점'),
-                  _buildCycleArrow(),
-                  _buildCycleItem('쇠', '쇠퇴'),
+                  _buildCycleItem('장생', '탄생', theme),
+                  _buildCycleArrow(theme),
+                  _buildCycleItem('목욕', '성장', theme),
+                  _buildCycleArrow(theme),
+                  _buildCycleItem('관대', '성인', theme),
+                  _buildCycleArrow(theme),
+                  _buildCycleItem('건록', '전성', theme),
+                  _buildCycleArrow(theme),
+                  _buildCycleItem('제왕', '정점', theme),
+                  _buildCycleArrow(theme),
+                  _buildCycleItem('쇠', '쇠퇴', theme),
                 ],
               ),
             ),
@@ -692,8 +697,8 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCycleItem(String name, String desc) {
-    final color = _unsungColors[name] ?? AppColors.textSecondary;
+  Widget _buildCycleItem(String name, String desc, AppThemeExtension theme) {
+    final color = _unsungColors[name] ?? theme.textSecondary;
     return Column(
       children: [
         Container(
@@ -715,7 +720,7 @@ class _UnsungTab extends StatelessWidget {
         Text(
           desc,
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: 9,
           ),
         ),
@@ -723,14 +728,15 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCycleArrow() {
+  Widget _buildCycleArrow(AppThemeExtension theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.textMuted),
+      child: Icon(Icons.arrow_forward_ios_rounded, size: 10, color: theme.textMuted),
     );
   }
 
-  Widget _buildGungseongExplanationCard(BuildContext context) {
+  Widget _buildGungseongExplanationCard(BuildContext context, AppThemeExtension theme) {
+    const tealColor = Color(0xFF009688);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -738,24 +744,24 @@ class _UnsungTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF009688).withOpacity(0.1),
-            const Color(0xFF009688).withOpacity(0.05),
+            tealColor.withOpacity(0.1),
+            tealColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF009688).withOpacity(0.2)),
+        border: Border.all(color: tealColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.account_tree_rounded, color: const Color(0xFF009688), size: 20),
+              Icon(Icons.account_tree_rounded, color: tealColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 '궁성(宮星)이란?',
                 style: TextStyle(
-                  color: const Color(0xFF009688),
+                  color: tealColor,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -767,7 +773,7 @@ class _UnsungTab extends StatelessWidget {
             '궁성은 사주팔자의 4개 기둥(년주, 월주, 일주, 시주)이 각각 나타내는 삶의 영역입니다. '
             '각 궁성의 운성을 통해 그 영역에서의 기운 상태를 파악할 수 있습니다.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -776,18 +782,18 @@ class _UnsungTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               children: [
-                _buildGungseongRow('년주(年柱)', '조상궁', '조상, 유년기, 사회적 배경'),
+                _buildGungseongRow('년주(年柱)', '조상궁', '조상, 유년기, 사회적 배경', theme),
                 const SizedBox(height: 8),
-                _buildGungseongRow('월주(月柱)', '부모궁', '부모, 청년기, 성장환경'),
+                _buildGungseongRow('월주(月柱)', '부모궁', '부모, 청년기, 성장환경', theme),
                 const SizedBox(height: 8),
-                _buildGungseongRow('일주(日柱)', '자신궁', '자신, 배우자, 중년기'),
+                _buildGungseongRow('일주(日柱)', '자신궁', '자신, 배우자, 중년기', theme),
                 const SizedBox(height: 8),
-                _buildGungseongRow('시주(時柱)', '자녀궁', '자녀, 노년기, 결과'),
+                _buildGungseongRow('시주(時柱)', '자녀궁', '자녀, 노년기, 결과', theme),
               ],
             ),
           ),
@@ -796,20 +802,21 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildGungseongRow(String pillar, String palace, String meaning) {
+  Widget _buildGungseongRow(String pillar, String palace, String meaning, AppThemeExtension theme) {
+    const tealColor = Color(0xFF009688);
     return Row(
       children: [
         Container(
           width: 70,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF009688).withOpacity(0.15),
+            color: tealColor.withOpacity(0.15),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             pillar,
             style: TextStyle(
-              color: const Color(0xFF009688),
+              color: tealColor,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
@@ -821,13 +828,13 @@ class _UnsungTab extends StatelessWidget {
           width: 50,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.surfaceHover,
+            color: theme.surfaceHover,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
             palace,
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: theme.textPrimary,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
@@ -839,7 +846,7 @@ class _UnsungTab extends StatelessWidget {
           child: Text(
             meaning,
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 11,
             ),
           ),
@@ -848,7 +855,7 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon, AppThemeExtension theme) {
     return Row(
       children: [
         Container(
@@ -866,7 +873,7 @@ class _UnsungTab extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -874,7 +881,7 @@ class _UnsungTab extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -884,13 +891,13 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, UnsungAnalysisResult result) {
+  Widget _buildSummaryCard(BuildContext context, UnsungAnalysisResult result, AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -904,12 +911,12 @@ class _UnsungTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome_rounded, color: AppColors.accent, size: 20),
+              Icon(Icons.auto_awesome_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 10),
               Text(
                 '12운성 요약',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -920,19 +927,19 @@ class _UnsungTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.08),
+              color: theme.primaryColor.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+              border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
             ),
             child: Row(
               children: [
-                Icon(Icons.format_quote_rounded, color: AppColors.accent.withOpacity(0.5), size: 18),
+                Icon(Icons.format_quote_rounded, color: theme.primaryColor.withOpacity(0.5), size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     result.summary,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -946,7 +953,7 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildUnsungDetailCards(BuildContext context, UnsungAnalysisResult result) {
+  Widget _buildUnsungDetailCards(BuildContext context, UnsungAnalysisResult result, AppThemeExtension theme) {
     final items = [
       result.yearUnsung,
       result.monthUnsung,
@@ -955,19 +962,19 @@ class _UnsungTab extends StatelessWidget {
     ].whereType<UnsungResult>().toList();
 
     return Column(
-      children: items.map((item) => _buildUnsungItemCard(context, item)).toList(),
+      children: items.map((item) => _buildUnsungItemCard(context, item, theme)).toList(),
     );
   }
 
-  Widget _buildUnsungItemCard(BuildContext context, UnsungResult item) {
+  Widget _buildUnsungItemCard(BuildContext context, UnsungResult item, AppThemeExtension theme) {
     final unsungName = item.unsung.korean;
-    final color = _unsungColors[unsungName] ?? AppColors.textSecondary;
+    final color = _unsungColors[unsungName] ?? theme.textSecondary;
     final icon = _unsungIcons[unsungName] ?? Icons.circle;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
         boxShadow: [
@@ -993,13 +1000,13 @@ class _UnsungTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: theme.surface,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     item.pillarName,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1069,13 +1076,13 @@ class _UnsungTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceHover,
+                        color: theme.surfaceHover,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         item.unsung.hanja,
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: theme.textSecondary,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1086,7 +1093,7 @@ class _UnsungTab extends StatelessWidget {
                       child: Text(
                         item.unsung.meaning,
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: theme.textPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1111,7 +1118,7 @@ class _UnsungTab extends StatelessWidget {
                         child: Text(
                           UnsungService.getDetailedInterpretation(item.unsung),
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: theme.textSecondary,
                             fontSize: 12,
                             height: 1.5,
                           ),
@@ -1173,6 +1180,7 @@ class _SinsalTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     // 12신살 분석 (년지 기준 - 포스텔러 호환, Phase 39)
     final twelveSinsalResult = TwelveSinsalService.analyzeFromChart(chart);
     final gilseongResult = GilseongService.analyzeFromChart(chart);
@@ -1183,11 +1191,11 @@ class _SinsalTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 신살이란? 설명 카드
-          _buildExplanationCard(context),
+          _buildExplanationCard(context, theme),
           const SizedBox(height: 16),
 
           // 12신살 요약 카드 (개선된 디자인)
-          _buildSinsalSummaryCard(context, twelveSinsalResult),
+          _buildSinsalSummaryCard(context, twelveSinsalResult, theme),
           const SizedBox(height: 20),
 
           // 주요 신살 하이라이트
@@ -1195,20 +1203,20 @@ class _SinsalTab extends StatelessWidget {
               twelveSinsalResult.dohwaResult != null ||
               twelveSinsalResult.hwagaeResult != null ||
               twelveSinsalResult.jangsungResult != null) ...[
-            _buildSectionHeader(context, '주요 신살', '특히 주목해야 할 신살', AppColors.accent, Icons.star_rounded),
+            _buildSectionHeader(context, '주요 신살', '특히 주목해야 할 신살', theme.primaryColor, Icons.star_rounded, theme),
             const SizedBox(height: 12),
-            _buildKeySinsalCards(context, twelveSinsalResult),
+            _buildKeySinsalCards(context, twelveSinsalResult, theme),
             const SizedBox(height: 20),
           ],
 
           // 12신살 상세 카드 리스트
-          _buildSectionHeader(context, '12신살 상세', '각 궁성별 신살 분석', AppColors.textSecondary, Icons.grid_view_rounded),
+          _buildSectionHeader(context, '12신살 상세', '각 궁성별 신살 분석', theme.textSecondary, Icons.grid_view_rounded, theme),
           const SizedBox(height: 12),
-          _buildSinsalDetailCards(context, twelveSinsalResult),
+          _buildSinsalDetailCards(context, twelveSinsalResult, theme),
           const SizedBox(height: 20),
 
           // 신살과 길성 통합 테이블 (포스텔러 스타일)
-          _buildSectionHeader(context, '신살·길성 테이블', '전체 신살 현황', AppColors.textSecondary, Icons.table_chart_rounded),
+          _buildSectionHeader(context, '신살·길성 테이블', '전체 신살 현황', theme.textSecondary, Icons.table_chart_rounded, theme),
           const SizedBox(height: 12),
           SinsalGilseongTable(
             gilseongResult: gilseongResult,
@@ -1233,7 +1241,8 @@ class _SinsalTab extends StatelessWidget {
     );
   }
 
-  Widget _buildExplanationCard(BuildContext context) {
+  Widget _buildExplanationCard(BuildContext context, AppThemeExtension theme) {
+    const purpleColor = Color(0xFF9C27B0);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1241,24 +1250,24 @@ class _SinsalTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF9C27B0).withOpacity(0.1),
-            const Color(0xFF9C27B0).withOpacity(0.05),
+            purpleColor.withOpacity(0.1),
+            purpleColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF9C27B0).withOpacity(0.2)),
+        border: Border.all(color: purpleColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline_rounded, color: const Color(0xFF9C27B0), size: 20),
+              Icon(Icons.help_outline_rounded, color: purpleColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 '신살(神殺)이란?',
                 style: TextStyle(
-                  color: const Color(0xFF9C27B0),
+                  color: purpleColor,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1270,7 +1279,7 @@ class _SinsalTab extends StatelessWidget {
             '신살은 사주팔자에 나타나는 특별한 기운으로, 길한 영향(길신)과 흉한 영향(흉신)을 분석합니다. '
             '12신살은 년지를 기준으로 각 지지의 특성을 파악하는 대표적인 신살 체계입니다.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -1279,16 +1288,16 @@ class _SinsalTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                _buildLegendItem('길신(吉神)', AppColors.success),
+                _buildLegendItem('길신(吉神)', AppColors.success, theme),
                 const SizedBox(width: 16),
-                _buildLegendItem('흉신(凶神)', AppColors.error),
+                _buildLegendItem('흉신(凶神)', AppColors.error, theme),
                 const SizedBox(width: 16),
-                _buildLegendItem('혼합', AppColors.accent),
+                _buildLegendItem('혼합', theme.primaryColor, theme),
               ],
             ),
           ),
@@ -1297,7 +1306,7 @@ class _SinsalTab extends StatelessWidget {
     );
   }
 
-  Widget _buildLegendItem(String label, Color color) {
+  Widget _buildLegendItem(String label, Color color, AppThemeExtension theme) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1314,7 +1323,7 @@ class _SinsalTab extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: theme.textSecondary,
             fontSize: 11,
           ),
         ),
@@ -1322,7 +1331,7 @@ class _SinsalTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon, AppThemeExtension theme) {
     return Row(
       children: [
         Container(
@@ -1340,7 +1349,7 @@ class _SinsalTab extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -1348,7 +1357,7 @@ class _SinsalTab extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1358,13 +1367,13 @@ class _SinsalTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSinsalSummaryCard(BuildContext context, TwelveSinsalAnalysisResult result) {
+  Widget _buildSinsalSummaryCard(BuildContext context, TwelveSinsalAnalysisResult result, AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -1388,7 +1397,7 @@ class _SinsalTab extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildStatBox('혼합', result.mixedSinsalCount, AppColors.accent),
+                child: _buildStatBox('혼합', result.mixedSinsalCount, theme.primaryColor),
               ),
             ],
           ),
@@ -1397,18 +1406,18 @@ class _SinsalTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                Icon(Icons.auto_awesome_rounded, color: AppColors.accent, size: 18),
+                Icon(Icons.auto_awesome_rounded, color: theme.primaryColor, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     result.summary,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -1454,7 +1463,7 @@ class _SinsalTab extends StatelessWidget {
     );
   }
 
-  Widget _buildKeySinsalCards(BuildContext context, TwelveSinsalAnalysisResult result) {
+  Widget _buildKeySinsalCards(BuildContext context, TwelveSinsalAnalysisResult result, AppThemeExtension theme) {
     final keyItems = <Widget>[];
 
     if (result.jangsungResult != null) {
@@ -1463,6 +1472,7 @@ class _SinsalTab extends StatelessWidget {
         sinsal: result.jangsungResult!.sinsal,
         pillarName: result.jangsungResult!.pillarName,
         description: '권위와 성공을 상징하며, 출세와 명예를 얻을 수 있는 좋은 기운입니다.',
+        theme: theme,
       ));
     }
     if (result.yeokmaResult != null) {
@@ -1471,6 +1481,7 @@ class _SinsalTab extends StatelessWidget {
         sinsal: result.yeokmaResult!.sinsal,
         pillarName: result.yeokmaResult!.pillarName,
         description: '이동과 변화의 기운으로, 활동적이고 여행이나 이사가 많을 수 있습니다.',
+        theme: theme,
       ));
     }
     if (result.dohwaResult != null) {
@@ -1479,6 +1490,7 @@ class _SinsalTab extends StatelessWidget {
         sinsal: result.dohwaResult!.sinsal,
         pillarName: result.dohwaResult!.pillarName,
         description: '매력과 인기의 기운으로, 이성운과 대인관계에 영향을 줍니다.',
+        theme: theme,
       ));
     }
     if (result.hwagaeResult != null) {
@@ -1487,6 +1499,7 @@ class _SinsalTab extends StatelessWidget {
         sinsal: result.hwagaeResult!.sinsal,
         pillarName: result.hwagaeResult!.pillarName,
         description: '예술성과 영적 감수성을 나타내며, 종교나 예술 분야에 재능이 있습니다.',
+        theme: theme,
       ));
     }
 
@@ -1498,19 +1511,20 @@ class _SinsalTab extends StatelessWidget {
     required dynamic sinsal,
     required String pillarName,
     required String description,
+    required AppThemeExtension theme,
   }) {
     final sinsalName = sinsal.korean;
-    final color = _sinsalColors[sinsalName] ?? AppColors.accent;
+    final color = _sinsalColors[sinsalName] ?? theme.primaryColor;
     final icon = _sinsalIcons[sinsalName] ?? Icons.star_rounded;
     final fortuneType = sinsal.fortuneType;
     final fortuneColor = fortuneType == '길' ? AppColors.success :
-                         fortuneType == '흉' ? AppColors.error : AppColors.accent;
+                         fortuneType == '흉' ? AppColors.error : theme.primaryColor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
         boxShadow: [
@@ -1576,13 +1590,13 @@ class _SinsalTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceHover,
+                        color: theme.surfaceHover,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         pillarName,
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: theme.textSecondary,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1594,7 +1608,7 @@ class _SinsalTab extends StatelessWidget {
                 Text(
                   description,
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: theme.textSecondary,
                     fontSize: 12,
                     height: 1.4,
                   ),
@@ -1607,7 +1621,7 @@ class _SinsalTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSinsalDetailCards(BuildContext context, TwelveSinsalAnalysisResult result) {
+  Widget _buildSinsalDetailCards(BuildContext context, TwelveSinsalAnalysisResult result, AppThemeExtension theme) {
     final items = [
       result.yearResult,
       result.monthResult,
@@ -1616,24 +1630,24 @@ class _SinsalTab extends StatelessWidget {
     ].whereType<TwelveSinsalResult>().toList();
 
     return Column(
-      children: items.map((item) => _buildSinsalItemCard(context, item)).toList(),
+      children: items.map((item) => _buildSinsalItemCard(context, item, theme)).toList(),
     );
   }
 
-  Widget _buildSinsalItemCard(BuildContext context, TwelveSinsalResult item) {
+  Widget _buildSinsalItemCard(BuildContext context, TwelveSinsalResult item, AppThemeExtension theme) {
     final sinsalName = item.sinsal.korean;
-    final color = _sinsalColors[sinsalName] ?? AppColors.textSecondary;
+    final color = _sinsalColors[sinsalName] ?? theme.textSecondary;
     final icon = _sinsalIcons[sinsalName] ?? Icons.circle;
     final fortuneType = item.sinsal.fortuneType;
     final fortuneColor = fortuneType == '길' ? AppColors.success :
-                         fortuneType == '흉' ? AppColors.error : AppColors.accent;
+                         fortuneType == '흉' ? AppColors.error : theme.primaryColor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -1650,13 +1664,13 @@ class _SinsalTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: theme.surface,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     item.pillarName,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1745,7 +1759,7 @@ class _SinsalTab extends StatelessWidget {
                 Text(
                   item.sinsal.meaning,
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: theme.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1754,7 +1768,7 @@ class _SinsalTab extends StatelessWidget {
                 Text(
                   TwelveSinsalService.getDetailedInterpretation(item.sinsal),
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: theme.textSecondary,
                     fontSize: 12,
                     height: 1.5,
                   ),
@@ -1776,6 +1790,7 @@ class _GongmangTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final result = GongmangService.analyzeFromChart(chart);
     final hasGongmang = result.hasGongmang;
 
@@ -1785,27 +1800,28 @@ class _GongmangTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 공망이란? 설명 카드
-          _buildExplanationCard(context),
+          _buildExplanationCard(context, theme),
           const SizedBox(height: 16),
 
           // 공망 지지 표시 (개선된 디자인)
-          _buildGongmangJijiCard(context, result),
+          _buildGongmangJijiCard(context, result, theme),
           const SizedBox(height: 16),
 
           // 요약 카드 (개선된 디자인)
-          _buildSummaryCard(context, result),
+          _buildSummaryCard(context, result, theme),
           const SizedBox(height: 20),
 
           // 각 궁성별 공망 상세 카드
-          _buildSectionHeader(context, '궁성별 공망 분석', '각 궁의 공망 여부와 해석', AppColors.textSecondary, Icons.grid_view_rounded),
+          _buildSectionHeader(context, '궁성별 공망 분석', '각 궁의 공망 여부와 해석', theme.textSecondary, Icons.grid_view_rounded, theme),
           const SizedBox(height: 12),
-          _buildGongmangDetailCards(context, result),
+          _buildGongmangDetailCards(context, result, theme),
         ],
       ),
     );
   }
 
-  Widget _buildExplanationCard(BuildContext context) {
+  Widget _buildExplanationCard(BuildContext context, AppThemeExtension theme) {
+    const grayBlue = Color(0xFF607D8B);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1813,24 +1829,24 @@ class _GongmangTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF607D8B).withOpacity(0.1),
-            const Color(0xFF607D8B).withOpacity(0.05),
+            grayBlue.withOpacity(0.1),
+            grayBlue.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF607D8B).withOpacity(0.2)),
+        border: Border.all(color: grayBlue.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline_rounded, color: const Color(0xFF607D8B), size: 20),
+              Icon(Icons.help_outline_rounded, color: grayBlue, size: 20),
               const SizedBox(width: 8),
               Text(
                 '공망(空亡)이란?',
                 style: TextStyle(
-                  color: const Color(0xFF607D8B),
+                  color: grayBlue,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1842,7 +1858,7 @@ class _GongmangTab extends StatelessWidget {
             '공망은 \'비어있다\'는 의미로, 일주를 기준으로 특정 지지가 빈 상태를 말합니다. '
             '공망에 해당하는 궁성은 그 영역의 기운이 약해지거나 허무하게 될 수 있습니다.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -1851,7 +1867,7 @@ class _GongmangTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -1862,7 +1878,7 @@ class _GongmangTab extends StatelessWidget {
                   child: Text(
                     '공망은 반드시 나쁜 것만은 아닙니다. 흉한 것이 공망이면 오히려 흉함이 줄어들기도 합니다.',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: theme.textSecondary,
                       fontSize: 11,
                       height: 1.4,
                     ),
@@ -1876,7 +1892,7 @@ class _GongmangTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+  Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon, AppThemeExtension theme) {
     return Row(
       children: [
         Container(
@@ -1894,7 +1910,7 @@ class _GongmangTab extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -1902,7 +1918,7 @@ class _GongmangTab extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1912,13 +1928,13 @@ class _GongmangTab extends StatelessWidget {
     );
   }
 
-  Widget _buildGongmangJijiCard(BuildContext context, GongmangAnalysisResult result) {
+  Widget _buildGongmangJijiCard(BuildContext context, GongmangAnalysisResult result, AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -1935,19 +1951,19 @@ class _GongmangTab extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.1),
+                  color: theme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                  border: Border.all(color: theme.primaryColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.calendar_today_rounded, color: AppColors.accent, size: 14),
+                    Icon(Icons.calendar_today_rounded, color: theme.primaryColor, size: 14),
                     const SizedBox(width: 6),
                     Text(
                       '일주: ${result.dayGapja}',
                       style: TextStyle(
-                        color: AppColors.accent,
+                        color: theme.primaryColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1959,13 +1975,13 @@ class _GongmangTab extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceHover,
+                  color: theme.surfaceHover,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '${result.sunInfo.sunName} 소속',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: theme.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1981,7 +1997,7 @@ class _GongmangTab extends StatelessWidget {
               Text(
                 '공망 지지',
                 style: TextStyle(
-                  color: AppColors.textMuted,
+                  color: theme.textMuted,
                   fontSize: 13,
                 ),
               ),
@@ -2032,7 +2048,7 @@ class _GongmangTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, GongmangAnalysisResult result) {
+  Widget _buildSummaryCard(BuildContext context, GongmangAnalysisResult result, AppThemeExtension theme) {
     final hasGongmang = result.hasGongmang;
     final color = hasGongmang ? AppColors.warning : AppColors.success;
 
@@ -2062,7 +2078,7 @@ class _GongmangTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -2077,7 +2093,7 @@ class _GongmangTab extends StatelessWidget {
                   child: Text(
                     result.summary,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -2157,22 +2173,22 @@ class _GongmangTab extends StatelessWidget {
     );
   }
 
-  Widget _buildGongmangDetailCards(BuildContext context, GongmangAnalysisResult result) {
+  Widget _buildGongmangDetailCards(BuildContext context, GongmangAnalysisResult result, AppThemeExtension theme) {
     return Column(
-      children: result.allResults.map((item) => _buildGongmangItemCard(context, item)).toList(),
+      children: result.allResults.map((item) => _buildGongmangItemCard(context, item, theme)).toList(),
     );
   }
 
-  Widget _buildGongmangItemCard(BuildContext context, GongmangResult item) {
+  Widget _buildGongmangItemCard(BuildContext context, GongmangResult item, AppThemeExtension theme) {
     final isGongmang = item.isGongmang;
     final color = isGongmang ? AppColors.error : AppColors.success;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isGongmang ? color.withOpacity(0.3) : AppColors.border),
+        border: Border.all(color: isGongmang ? color.withOpacity(0.3) : theme.border),
         boxShadow: isGongmang
             ? [
                 BoxShadow(
@@ -2189,7 +2205,7 @@ class _GongmangTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isGongmang ? color.withOpacity(0.08) : AppColors.surfaceHover,
+              color: isGongmang ? color.withOpacity(0.08) : theme.surfaceHover,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
             ),
             child: Row(
@@ -2198,13 +2214,13 @@ class _GongmangTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: theme.surface,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     item.pillarName,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -2216,10 +2232,10 @@ class _GongmangTab extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isGongmang ? color.withOpacity(0.15) : AppColors.surface,
+                    color: isGongmang ? color.withOpacity(0.15) : theme.surface,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isGongmang ? color.withOpacity(0.5) : AppColors.border,
+                      color: isGongmang ? color.withOpacity(0.5) : theme.border,
                       width: isGongmang ? 2 : 1,
                     ),
                   ),
@@ -2227,7 +2243,7 @@ class _GongmangTab extends StatelessWidget {
                     child: Text(
                       item.jiji,
                       style: TextStyle(
-                        color: isGongmang ? color : AppColors.textPrimary,
+                        color: isGongmang ? color : theme.textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -2283,7 +2299,7 @@ class _GongmangTab extends StatelessWidget {
                   Text(
                     item.interpretation,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: theme.textPrimary,
                       fontSize: 14,
                       height: 1.5,
                     ),
@@ -2305,7 +2321,7 @@ class _GongmangTab extends StatelessWidget {
                           child: Text(
                             GongmangService.getDetailedInterpretation(item),
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: theme.textSecondary,
                               fontSize: 12,
                               height: 1.5,
                             ),
@@ -2322,7 +2338,7 @@ class _GongmangTab extends StatelessWidget {
                       Text(
                         '공망에 해당하지 않아 정상적인 기운을 발휘합니다.',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: theme.textSecondary,
                           fontSize: 13,
                         ),
                       ),

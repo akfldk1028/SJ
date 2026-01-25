@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/services/hapchung_service.dart';
 
@@ -20,6 +21,7 @@ class HapchungTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final result = HapchungService.analyzeSaju(
       yearGan: chart.yearPillar.gan,
       monthGan: chart.monthPillar.gan,
@@ -133,6 +135,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(BuildContext context, HapchungAnalysisResult result) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -140,12 +143,12 @@ class HapchungTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.surfaceElevated,
-            AppColors.surface,
+            theme.surfaceElevated,
+            theme.surface,
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -161,7 +164,7 @@ class HapchungTab extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: theme.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -186,14 +189,20 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildSummaryDivider() {
-    return Container(
-      width: 1,
-      height: 50,
-      color: AppColors.border.withOpacity(0.5),
+    return Builder(
+      builder: (context) {
+        final theme = context.appTheme;
+        return Container(
+          width: 1,
+          height: 50,
+          color: theme.border.withOpacity(0.5),
+        );
+      },
     );
   }
 
   Widget _buildSummaryItem(BuildContext context, String label, int count, Color color, IconData icon) {
+    final theme = context.appTheme;
     return Expanded(
       child: Column(
         children: [
@@ -201,16 +210,16 @@ class HapchungTab extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: count > 0 ? color.withOpacity(0.15) : AppColors.surfaceElevated,
+              color: count > 0 ? color.withOpacity(0.15) : theme.surfaceElevated,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: count > 0 ? color.withOpacity(0.3) : AppColors.border,
+                color: count > 0 ? color.withOpacity(0.3) : theme.border,
                 width: 1.5,
               ),
             ),
             child: Icon(
               icon,
-              color: count > 0 ? color : AppColors.textMuted,
+              color: count > 0 ? color : theme.textMuted,
               size: 18,
             ),
           ),
@@ -218,7 +227,7 @@ class HapchungTab extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: count > 0 ? color : AppColors.textMuted,
+              color: count > 0 ? color : theme.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -227,7 +236,7 @@ class HapchungTab extends StatelessWidget {
           Text(
             '$count',
             style: TextStyle(
-              color: count > 0 ? color : AppColors.textMuted,
+              color: count > 0 ? color : theme.textMuted,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -238,6 +247,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildSectionHeader(BuildContext context, String title, String subtitle, Color color, IconData icon) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -286,7 +296,7 @@ class HapchungTab extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: theme.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -393,16 +403,17 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildSubSectionTitle(BuildContext context, String title) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         title,
         style: TextStyle(
-          color: AppColors.textSecondary,
+          color: theme.textSecondary,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
@@ -475,12 +486,13 @@ class HapchungTab extends StatelessWidget {
     final hanjaName = showHanjaName ? _getHanjaName(type, char1, char2) : null;
     final explanation = _getRelationExplanation(type, char1, char2);
 
+    final theme = context.appTheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: theme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -561,12 +573,12 @@ class HapchungTab extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: AppColors.textMuted),
+                    Icon(Icons.location_on_outlined, size: 14, color: theme.textMuted),
                     const SizedBox(width: 4),
                     Text(
                       '$pillar1주 ↔ $pillar2주',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: theme.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -577,7 +589,7 @@ class HapchungTab extends StatelessWidget {
                 Text(
                   description,
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: theme.textPrimary,
                     fontSize: 14,
                     height: 1.4,
                   ),
@@ -605,7 +617,7 @@ class HapchungTab extends StatelessWidget {
                           child: Text(
                             explanation,
                             style: TextStyle(
-                              color: AppColors.textMuted,
+                              color: theme.textMuted,
                               fontSize: 12,
                               height: 1.5,
                             ),
@@ -653,6 +665,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildSamhapCard(BuildContext context, {required SamhapResult samhap}) {
+    final theme = context.appTheme;
     final label = samhap.isFullSamhap ? '삼합' : samhap.displayLabel;
     final isHalfSamhap = !samhap.isFullSamhap;
 
@@ -665,9 +678,9 @@ class HapchungTab extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: theme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -738,12 +751,12 @@ class HapchungTab extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: AppColors.textMuted),
+                    Icon(Icons.location_on_outlined, size: 14, color: theme.textMuted),
                     const SizedBox(width: 4),
                     Text(
                       '${samhap.pillars.join(", ")}주',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: theme.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -754,7 +767,7 @@ class HapchungTab extends StatelessWidget {
                 Text(
                   samhap.description,
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: theme.textPrimary,
                     fontSize: 14,
                     height: 1.4,
                   ),
@@ -776,7 +789,7 @@ class HapchungTab extends StatelessWidget {
                           child: Text(
                             halfExplanation,
                             style: TextStyle(
-                              color: AppColors.textMuted,
+                              color: theme.textMuted,
                               fontSize: 11,
                               height: 1.4,
                             ),
@@ -795,6 +808,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildBanghapCard(BuildContext context, {required BanghapResult banghap}) {
+    final theme = context.appTheme;
     final label = banghap.displayLabel;
     final isHalfBanghap = !banghap.isFullBanghap;
 
@@ -807,9 +821,9 @@ class HapchungTab extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: theme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -858,7 +872,7 @@ class HapchungTab extends StatelessWidget {
                       Text(
                         '${banghap.direction}방 ${banghap.season}',
                         style: TextStyle(
-                          color: AppColors.textMuted,
+                          color: theme.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -890,7 +904,7 @@ class HapchungTab extends StatelessWidget {
                 Text(
                   banghap.description,
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: theme.textPrimary,
                     fontSize: 14,
                     height: 1.4,
                   ),
@@ -912,7 +926,7 @@ class HapchungTab extends StatelessWidget {
                           child: Text(
                             halfExplanation,
                             style: TextStyle(
-                              color: AppColors.textMuted,
+                              color: theme.textMuted,
                               fontSize: 11,
                               height: 1.4,
                             ),
@@ -931,6 +945,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildExplanationCard(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -938,24 +953,24 @@ class HapchungTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.accent.withOpacity(0.1),
-            AppColors.accent.withOpacity(0.05),
+            theme.primaryColor.withOpacity(0.1),
+            theme.primaryColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline_rounded, color: AppColors.accent, size: 20),
+              Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 '합충형파해란?',
                 style: TextStyle(
-                  color: AppColors.accent,
+                  color: theme.primaryColor,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
@@ -968,7 +983,7 @@ class HapchungTab extends StatelessWidget {
             '합(合)은 화합과 조화를, 충(沖)은 대립과 변화를 의미합니다. '
             '형(刑)·파(破)·해(害)·원진은 갈등과 어려움을 나타냅니다.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -977,7 +992,7 @@ class HapchungTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -997,50 +1012,56 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildTermRow(String term, String description, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: color.withOpacity(0.3)),
-            ),
-            child: Text(
-              term,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+    return Builder(
+      builder: (context) {
+        final theme = context.appTheme;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Text(
+                  term,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              description,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  description,
+                  style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildNoRelationCard(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -1061,7 +1082,7 @@ class HapchungTab extends StatelessWidget {
           Text(
             '합충형파해 관계가 없습니다',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: theme.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -1070,7 +1091,7 @@ class HapchungTab extends StatelessWidget {
           Text(
             '사주 내 간지들 간에 특별한 합충 관계가 발견되지 않았습니다.\n안정적인 구조를 가지고 있습니다.',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 14,
               height: 1.5,
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
@@ -36,6 +37,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     // 분석 데이터 계산
     final jijangganResult = JiJangGanService.analyzeFromChart(chart);
     final unsungResult = UnsungService.analyzeFromChart(chart);
@@ -45,9 +47,9 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -82,13 +84,14 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 헤더 행
   Widget _buildHeaderRow(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       padding: EdgeInsets.symmetric(
         vertical: compact ? 8 : 12,
         horizontal: compact ? 8 : 12,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHover,
+        color: theme.surfaceHover,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
       ),
       child: Row(
@@ -286,12 +289,13 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 라벨 셀 (구분 열)
   Widget _buildLabelCell(BuildContext context, String text, {bool isHeader = false}) {
+    final theme = context.appTheme;
     return SizedBox(
       width: compact ? 50 : 60,
       child: Text(
         text,
         style: TextStyle(
-          color: isHeader ? AppColors.textMuted : AppColors.textSecondary,
+          color: isHeader ? theme.textMuted : theme.textSecondary,
           fontSize: compact ? 11 : 12,
           fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
         ),
@@ -301,12 +305,13 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 헤더 셀
   Widget _buildHeaderCell(BuildContext context, String text) {
+    final theme = context.appTheme;
     return Expanded(
       child: Center(
         child: Text(
           text,
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w500,
           ),
@@ -427,12 +432,13 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 빈 셀
   Widget _buildEmptyCell(BuildContext context) {
+    final theme = context.appTheme;
     return Expanded(
       child: Center(
         child: Text(
           '-',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: compact ? 10 : 12,
           ),
         ),
@@ -442,10 +448,15 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 구분선
   Widget _buildDivider() {
-    return const Divider(
-      height: 1,
-      thickness: 1,
-      color: AppColors.border,
+    return Builder(
+      builder: (context) {
+        final theme = context.appTheme;
+        return Divider(
+          height: 1,
+          thickness: 1,
+          color: theme.border,
+        );
+      },
     );
   }
 

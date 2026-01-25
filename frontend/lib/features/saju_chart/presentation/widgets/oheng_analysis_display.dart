@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/saju_analysis.dart';
 
@@ -12,86 +13,87 @@ class OhengAnalysisDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(context, '오행과 십성 분석'),
+          _buildSectionTitle(context, '오행과 십성 분석', theme),
           const SizedBox(height: 16),
 
           // 도넛 차트 2개 (오행, 십성)
           Row(
             children: [
               Expanded(
-                child: _buildOhengDonutChart(context),
+                child: _buildOhengDonutChart(context, theme),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildSipsinDonutChart(context),
+                child: _buildSipsinDonutChart(context, theme),
               ),
             ],
           ),
           const SizedBox(height: 24),
 
           // 오행 분포 테이블
-          _buildSectionTitle(context, '오행'),
+          _buildSectionTitle(context, '오행', theme),
           const SizedBox(height: 12),
-          _buildOhengTable(context),
+          _buildOhengTable(context, theme),
           const SizedBox(height: 24),
 
           // 십성 분포 테이블
-          _buildSectionTitle(context, '십성'),
+          _buildSectionTitle(context, '십성', theme),
           const SizedBox(height: 12),
-          _buildSipsinTable(context),
+          _buildSipsinTable(context, theme),
           const SizedBox(height: 24),
 
           // 오행 상생상극 관계도
-          _buildSectionTitle(context, '나의 오행: ${_getDayGanOheng().korean}'),
+          _buildSectionTitle(context, '나의 오행: ${_getDayGanOheng().korean}', theme),
           const SizedBox(height: 12),
-          _buildOhengRelationDiagram(context),
+          _buildOhengRelationDiagram(context, theme),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Row(
       children: [
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
               ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.help_outline, size: 16, color: AppColors.textMuted),
+        Icon(Icons.help_outline, size: 16, color: theme.textMuted),
       ],
     );
   }
 
   /// 오행 도넛 차트
-  Widget _buildOhengDonutChart(BuildContext context) {
+  Widget _buildOhengDonutChart(BuildContext context, AppThemeExtension theme) {
     final oheng = analysis.ohengDistribution;
     final total = oheng.total;
     final strongest = oheng.strongest;
 
     final data = [
-      _ChartData('목', oheng.mok, AppColors.wood),
-      _ChartData('화', oheng.hwa, AppColors.fire),
-      _ChartData('토', oheng.to, AppColors.earth),
-      _ChartData('금', oheng.geum, AppColors.metal),
-      _ChartData('수', oheng.su, AppColors.water),
+      _ChartData('목', oheng.mok, theme.woodColor ?? AppColors.wood),
+      _ChartData('화', oheng.hwa, theme.fireColor ?? AppColors.fire),
+      _ChartData('토', oheng.to, theme.earthColor ?? AppColors.earth),
+      _ChartData('금', oheng.geum, theme.metalColor ?? AppColors.metal),
+      _ChartData('수', oheng.su, theme.waterColor ?? AppColors.water),
     ];
 
     return Container(
       height: 180,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -132,7 +134,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 십성 도넛 차트
-  Widget _buildSipsinDonutChart(BuildContext context) {
+  Widget _buildSipsinDonutChart(BuildContext context, AppThemeExtension theme) {
     final sipsinDist = _calculateSipsinDistribution();
     final total = sipsinDist.values.fold(0, (a, b) => a + b);
     final strongest = sipsinDist.entries
@@ -147,9 +149,9 @@ class OhengAnalysisDisplay extends StatelessWidget {
       height: 180,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -190,23 +192,23 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 오행 분포 테이블
-  Widget _buildOhengTable(BuildContext context) {
+  Widget _buildOhengTable(BuildContext context, AppThemeExtension theme) {
     final oheng = analysis.ohengDistribution;
     final total = oheng.total;
 
     final items = [
-      _OhengItem('목(木)', oheng.mok, total, AppColors.wood),
-      _OhengItem('화(火)', oheng.hwa, total, AppColors.fire),
-      _OhengItem('토(土)', oheng.to, total, AppColors.earth),
-      _OhengItem('금(金)', oheng.geum, total, AppColors.metal),
-      _OhengItem('수(水)', oheng.su, total, AppColors.water),
+      _OhengItem('목(木)', oheng.mok, total, theme.woodColor ?? AppColors.wood),
+      _OhengItem('화(火)', oheng.hwa, total, theme.fireColor ?? AppColors.fire),
+      _OhengItem('토(土)', oheng.to, total, theme.earthColor ?? AppColors.earth),
+      _OhengItem('금(金)', oheng.geum, total, theme.metalColor ?? AppColors.metal),
+      _OhengItem('수(水)', oheng.su, total, theme.waterColor ?? AppColors.water),
     ];
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: items.map((item) {
@@ -232,7 +234,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                   child: Text(
                     '${percentage.toStringAsFixed(1)}% $status',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: theme.textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -246,15 +248,15 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 십성 분포 테이블
-  Widget _buildSipsinTable(BuildContext context) {
+  Widget _buildSipsinTable(BuildContext context, AppThemeExtension theme) {
     final sipsinDist = _calculateSipsinDistribution();
     final total = sipsinDist.values.fold(0, (a, b) => a + b);
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: SipSin.values.map((sipsin) {
@@ -270,7 +272,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                   child: Text(
                     '${sipsin.korean}(${sipsin.hanja})',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: theme.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -280,7 +282,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                     count > 0 ? '${percentage.toStringAsFixed(1)}%' : '-',
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                      color: count > 0 ? AppColors.textPrimary : AppColors.textMuted,
+                      color: count > 0 ? theme.textPrimary : theme.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -294,16 +296,16 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 오행 상생상극 관계도
-  Widget _buildOhengRelationDiagram(BuildContext context) {
+  Widget _buildOhengRelationDiagram(BuildContext context, AppThemeExtension theme) {
     final oheng = analysis.ohengDistribution;
     final total = oheng.total;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -325,6 +327,8 @@ class OhengAnalysisDisplay extends StatelessWidget {
               painter: _OhengPentagonPainter(
                 distribution: oheng,
                 dayGanOheng: _getDayGanOheng(),
+                surfaceColor: theme.surfaceElevated,
+                textSecondaryColor: theme.textSecondary,
               ),
             ),
           ),
@@ -478,10 +482,14 @@ class _DonutChartPainter extends CustomPainter {
 class _OhengPentagonPainter extends CustomPainter {
   final OhengDistribution distribution;
   final Oheng dayGanOheng;
+  final Color surfaceColor;
+  final Color textSecondaryColor;
 
   _OhengPentagonPainter({
     required this.distribution,
     required this.dayGanOheng,
+    required this.surfaceColor,
+    required this.textSecondaryColor,
   });
 
   @override
@@ -548,7 +556,7 @@ class _OhengPentagonPainter extends CustomPainter {
 
       // 원 배경
       final circlePaint = Paint()
-        ..color = AppColors.surfaceElevated
+        ..color = surfaceColor
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(points[i], 35, circlePaint);
@@ -576,7 +584,7 @@ class _OhengPentagonPainter extends CustomPainter {
             TextSpan(
               text: '${percentage.toStringAsFixed(1)}%',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: textSecondaryColor,
                 fontSize: 10,
               ),
             ),

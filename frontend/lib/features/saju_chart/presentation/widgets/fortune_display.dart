@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
@@ -16,6 +17,7 @@ class FortuneDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -23,12 +25,12 @@ class FortuneDisplay extends StatelessWidget {
         children: [
           // 대운수 정보
           if (analysis.daeun != null) ...[
-            _buildDaeunHeader(context, analysis.daeun!),
+            _buildDaeunHeader(context, analysis.daeun!, theme),
             const SizedBox(height: 20),
             // 대운 슬라이더
-            _buildSectionTitle(context, '대운'),
+            _buildSectionTitle(context, '대운', theme),
             const SizedBox(height: 8),
-            _buildSubtitle(context, '좌우로 슬라이드해서 더 볼 수 있어요.'),
+            _buildSubtitle(context, '좌우로 슬라이드해서 더 볼 수 있어요.', theme),
             const SizedBox(height: 12),
             DaeunSlider(
               daeunResult: analysis.daeun!,
@@ -39,7 +41,7 @@ class FortuneDisplay extends StatelessWidget {
           ],
 
           // 세운 (연운)
-          _buildSectionTitle(context, '연운'),
+          _buildSectionTitle(context, '연운', theme),
           const SizedBox(height: 12),
           SeunSlider(
             birthYear: analysis.chart.birthDateTime.year,
@@ -49,7 +51,7 @@ class FortuneDisplay extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 월운
-          _buildSectionTitle(context, '월운'),
+          _buildSectionTitle(context, '월운', theme),
           const SizedBox(height: 12),
           WolunSlider(
             birthYear: analysis.chart.birthDateTime.year,
@@ -61,17 +63,17 @@ class FortuneDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildDaeunHeader(BuildContext context, DaeUnResult daeun) {
+  Widget _buildDaeunHeader(BuildContext context, DaeUnResult daeun, AppThemeExtension theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.1),
+        color: theme.primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.timeline, color: AppColors.accent, size: 24),
+          Icon(Icons.timeline, color: theme.primaryColor, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -79,8 +81,8 @@ class FortuneDisplay extends StatelessWidget {
               children: [
                 Text(
                   '대운수 : ${daeun.startAge}(${daeun.daeUnList.isNotEmpty ? daeun.daeUnList.first.pillar.ji : ""}${daeun.daeUnList.isNotEmpty ? jijiHanja[daeun.daeUnList.first.pillar.ji] ?? "" : ""})',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: theme.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -89,7 +91,7 @@ class FortuneDisplay extends StatelessWidget {
                 Text(
                   daeun.isForward ? '순행 (順行)' : '역행 (逆行)',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: theme.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -101,27 +103,27 @@ class FortuneDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Row(
       children: [
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: theme.textPrimary,
               ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.help_outline, size: 16, color: AppColors.textMuted),
+        Icon(Icons.help_outline, size: 16, color: theme.textMuted),
       ],
     );
   }
 
-  Widget _buildSubtitle(BuildContext context, String text) {
+  Widget _buildSubtitle(BuildContext context, String text, AppThemeExtension theme) {
     return Text(
       text,
       style: TextStyle(
-        color: AppColors.textMuted,
+        color: theme.textMuted,
         fontSize: 12,
       ),
     );
@@ -169,6 +171,7 @@ class DaeunSlider extends StatelessWidget {
   }
 
   Widget _buildDaeunCard(BuildContext context, DaeUn daeun, bool isCurrent) {
+    final theme = context.appTheme;
     final ganSipsin = calculateSipSin(dayGan, daeun.pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(daeun.pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(daeun.pillar.ganOheng);
@@ -178,10 +181,10 @@ class DaeunSlider extends StatelessWidget {
       width: 70,
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: isCurrent ? AppColors.accent.withOpacity(0.15) : AppColors.surfaceElevated,
+        color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isCurrent ? AppColors.accent : AppColors.border,
+          color: isCurrent ? theme.primaryColor : theme.border,
           width: isCurrent ? 2 : 1,
         ),
       ),
@@ -192,14 +195,14 @@ class DaeunSlider extends StatelessWidget {
           Text(
             '${daeun.startAge}',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 11,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 10,
             ),
           ),
@@ -248,7 +251,7 @@ class DaeunSlider extends StatelessWidget {
           Text(
             jiSipsin.korean.substring(0, 2),
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 10,
             ),
           ),
@@ -310,6 +313,7 @@ class SeunSlider extends StatelessWidget {
   }
 
   Widget _buildSeunCard(BuildContext context, SeUn seun, bool isCurrent) {
+    final theme = context.appTheme;
     final ganSipsin = calculateSipSin(dayGan, seun.pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(seun.pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(seun.pillar.ganOheng);
@@ -319,10 +323,10 @@ class SeunSlider extends StatelessWidget {
       width: 70,
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: isCurrent ? AppColors.accent.withOpacity(0.15) : AppColors.surfaceElevated,
+        color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isCurrent ? AppColors.accent : AppColors.border,
+          color: isCurrent ? theme.primaryColor : theme.border,
           width: isCurrent ? 2 : 1,
         ),
       ),
@@ -333,14 +337,14 @@ class SeunSlider extends StatelessWidget {
           Text(
             '${seun.year}',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 11,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 10,
             ),
           ),
@@ -389,7 +393,7 @@ class SeunSlider extends StatelessWidget {
           Text(
             jiSipsin.korean.substring(0, 2),
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 10,
             ),
           ),
@@ -490,6 +494,7 @@ class WolunSlider extends StatelessWidget {
 
   Widget _buildWolunCard(
       BuildContext context, Map<String, dynamic> wolun, bool isCurrent) {
+    final theme = context.appTheme;
     final pillar = wolun['pillar'] as Pillar;
     final month = wolun['month'] as int;
 
@@ -502,10 +507,10 @@ class WolunSlider extends StatelessWidget {
       width: 70,
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: isCurrent ? AppColors.accent.withOpacity(0.15) : AppColors.surfaceElevated,
+        color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isCurrent ? AppColors.accent : AppColors.border,
+          color: isCurrent ? theme.primaryColor : theme.border,
           width: isCurrent ? 2 : 1,
         ),
       ),
@@ -516,14 +521,14 @@ class WolunSlider extends StatelessWidget {
           Text(
             '$month월',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: 11,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 10,
             ),
           ),
@@ -572,7 +577,7 @@ class WolunSlider extends StatelessWidget {
           Text(
             jiSipsin.korean.substring(0, 2),
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 10,
             ),
           ),

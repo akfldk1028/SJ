@@ -363,6 +363,12 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   final Color? metalColor; // 금
   final Color? waterColor; // 수
 
+  // 표면/테두리 색상 (사주 상세 화면용)
+  final Color? surfaceColor; // 기본 표면
+  final Color? surfaceElevatedColor; // 높은 표면
+  final Color? surfaceHoverColor; // 호버 표면
+  final Color? borderColor; // 테두리
+
   const AppThemeExtension({
     required this.backgroundColor,
     required this.cardColor,
@@ -377,7 +383,17 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     this.earthColor,
     this.metalColor,
     this.waterColor,
+    this.surfaceColor,
+    this.surfaceElevatedColor,
+    this.surfaceHoverColor,
+    this.borderColor,
   });
+
+  // 편의 getter - surfaceColor가 없으면 isDark에 따라 기본값 제공
+  Color get surface => surfaceColor ?? (isDark ? const Color(0xFF18181B) : const Color(0xFFF4F4F5));
+  Color get surfaceElevated => surfaceElevatedColor ?? (isDark ? const Color(0xFF1F1F23) : Colors.white);
+  Color get surfaceHover => surfaceHoverColor ?? (isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7));
+  Color get border => borderColor ?? (isDark ? const Color(0xFF27272A) : const Color(0xFFE4E4E7));
 
   @override
   AppThemeExtension copyWith({
@@ -394,6 +410,10 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     Color? earthColor,
     Color? metalColor,
     Color? waterColor,
+    Color? surfaceColor,
+    Color? surfaceElevatedColor,
+    Color? surfaceHoverColor,
+    Color? borderColor,
   }) {
     return AppThemeExtension(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -409,6 +429,10 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       earthColor: earthColor ?? this.earthColor,
       metalColor: metalColor ?? this.metalColor,
       waterColor: waterColor ?? this.waterColor,
+      surfaceColor: surfaceColor ?? this.surfaceColor,
+      surfaceElevatedColor: surfaceElevatedColor ?? this.surfaceElevatedColor,
+      surfaceHoverColor: surfaceHoverColor ?? this.surfaceHoverColor,
+      borderColor: borderColor ?? this.borderColor,
     );
   }
 
@@ -429,6 +453,10 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       earthColor: Color.lerp(earthColor, other.earthColor, t),
       metalColor: Color.lerp(metalColor, other.metalColor, t),
       waterColor: Color.lerp(waterColor, other.waterColor, t),
+      surfaceColor: Color.lerp(surfaceColor, other.surfaceColor, t),
+      surfaceElevatedColor: Color.lerp(surfaceElevatedColor, other.surfaceElevatedColor, t),
+      surfaceHoverColor: Color.lerp(surfaceHoverColor, other.surfaceHoverColor, t),
+      borderColor: Color.lerp(borderColor, other.borderColor, t),
     );
   }
 }

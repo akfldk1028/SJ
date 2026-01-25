@@ -12,8 +12,6 @@ import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
 import '../widgets/fortune_category_list.dart';
-import '../widgets/daily_advice_section.dart';
-import '../widgets/today_message_card.dart';
 
 /// Main menu screen - 테마 적용
 class MenuScreen extends ConsumerStatefulWidget {
@@ -79,18 +77,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   // 내 사주 카드
                   const SajuMiniCard(),
                   SizedBox(height: context.scaledPadding(16)),
-                  // Native 광고 2 (오늘의 한마디 위) - 500ms 지연
+                  // Native 광고 2 (내 사주 카드 아래) - 500ms 지연
                   if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
                   if (_isMobile) SizedBox(height: context.scaledPadding(16)),
-                  // TODO: 2025 신년운세/토정비결 - 임시 비활성화
-                  // const SectionHeader(
-                  //   title: '오늘의 조언',
-                  // ),
-                  // SizedBox(height: context.scaledPadding(12)),
-                  // const DailyAdviceSection(),
-                  // SizedBox(height: context.scaledPadding(24)),
-                  const TodayMessageCard(),
-                  SizedBox(height: context.scaledPadding(24)),
+                  // 오늘의 한마디는 FortuneSummaryCard 내 시간대별 운세 아래에 배치됨
                 ],
               ),
             ),

@@ -231,6 +231,9 @@ class FortuneSummaryCard extends ConsumerWidget {
           // 메인 운세 카드 (시간대별 오행 테마)
           _buildMainScoreCard(context, theme, score, message, hour, fortune.idiom),
           SizedBox(height: context.scaledPadding(16)),
+          // 오늘의 한마디 (시간대별 운세 아래, 운세 분석 위)
+          _buildTodayMessageSection(context, theme, fortune.affirmation),
+          SizedBox(height: context.scaledPadding(16)),
           // 4개 카테고리 통계 그리드
           _buildCategoryStatsGrid(context, theme, fortune),
           SizedBox(height: context.scaledPadding(16)),
@@ -707,6 +710,165 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
+
+  /// 오늘의 한마디 섹션
+  Widget _buildTodayMessageSection(
+    BuildContext context,
+    AppThemeExtension theme,
+    String affirmation,
+  ) {
+    final scale = context.scaleFactor;
+    final iconBoxSize = (40 * scale).clamp(36.0, 52.0);
+    final iconSize = context.scaledIcon(22);
+    final titleSize = context.scaledFont(12);
+    final messageSize = context.scaledFont(15);
+
+    // 메시지가 비어있으면 로딩 표시
+    if (affirmation.isEmpty) {
+      return Container(
+        padding: EdgeInsets.all(context.scaledPadding(20)),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.isDark ? _shadowDark : _shadowLight,
+              offset: const Offset(0, 4),
+              blurRadius: 16,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: iconBoxSize,
+                  height: iconBoxSize,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.lightbulb_outline_rounded,
+                    color: theme.primaryColor,
+                    size: iconSize,
+                  ),
+                ),
+                SizedBox(width: context.scaledPadding(12)),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.scaledPadding(10),
+                    vertical: context.scaledPadding(4),
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '오늘의 한마디',
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w600,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: context.scaledPadding(16)),
+            Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.primaryColor.withValues(alpha: 0.6),
+                  ),
+                ),
+                SizedBox(width: context.scaledPadding(12)),
+                Text(
+                  'AI가 메시지를 준비하고 있어요...',
+                  style: TextStyle(
+                    fontSize: context.scaledFont(14),
+                    color: theme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.all(context.scaledPadding(20)),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.isDark ? _shadowDark : _shadowLight,
+            offset: const Offset(0, 4),
+            blurRadius: 16,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: iconBoxSize,
+                height: iconBoxSize,
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.lightbulb_outline_rounded,
+                  color: theme.primaryColor,
+                  size: iconSize,
+                ),
+              ),
+              SizedBox(width: context.scaledPadding(12)),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.scaledPadding(10),
+                  vertical: context.scaledPadding(4),
+                ),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '오늘의 한마디',
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w600,
+                    color: theme.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.scaledPadding(16)),
+          Text(
+            affirmation,
+            style: TextStyle(
+              fontSize: messageSize,
+              height: 1.6,
+              fontWeight: FontWeight.w400,
+              color: theme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _getGradeText(int score) {
     if (score >= 90) return '대길';
