@@ -13,13 +13,15 @@ import '../providers/chat_session_provider.dart';
 import '../widgets/chat_history_sidebar/chat_history_sidebar.dart';
 import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_list.dart';
-import '../widgets/disclaimer_banner.dart';
+// import '../widgets/disclaimer_banner.dart'; // 주석처리: 사주상담 참고용 안내 배너
 import '../widgets/error_banner.dart';
 import '../widgets/relation_selector_sheet.dart';
 import '../widgets/suggested_questions.dart';
 import '../widgets/persona_selector/persona_selector.dart';
 import '../providers/persona_provider.dart';
 import '../providers/chat_persona_provider.dart';
+import '../providers/conversational_ad_provider.dart';
+import '../../data/models/conversational_ad_model.dart';
 import '../../domain/models/chat_persona.dart';
 import '../../domain/models/ai_persona.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
@@ -597,7 +599,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     if (currentSessionId == null) {
       return Column(
         children: [
-          const DisclaimerBanner(),
+          // const DisclaimerBanner(), // 주석처리: 사주상담 참고용 안내 배너
           Expanded(
             child: Center(
               child: Column(
@@ -783,7 +785,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
 
     // 상단 요소들 (가로 모드에서는 컴팩트하게)
     final topWidgets = <Widget>[
-      const DisclaimerBanner(),
+      // const DisclaimerBanner(), // 주석처리: 사주상담 참고용 안내 배너
       // 페르소나 가로 선택기 (원형 이모지 리스트)
       const _PersonaHorizontalSelector(),
       // GPT-5.2 상세 분석 로딩 배너 (첫 프로필 분석 시 ~2분 소요)
@@ -814,7 +816,30 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             isLoading: chatState.isLoading,
           ),
         ),
-        if (chatState.error != null) ErrorBanner(message: chatState.error!),
+        // 토큰 소진 시 광고 안내 배너 (에러 배너 대신)
+        Builder(
+          builder: (context) {
+            final adState = ref.watch(conversationalAdNotifierProvider);
+            // 광고 모드 (토큰 소진) 시 광고 안내 표시
+            if (adState.isAdMode && adState.adType == AdMessageType.tokenDepleted) {
+              return _AdPromptBanner(
+                onWatchAd: () async {
+                  final success = await ref.read(conversationalAdNotifierProvider.notifier).showRewardedAd();
+                  if (success) {
+                    // 광고 시청 완료 → 토큰 충전 → 대화 재개
+                    ref.read(chatNotifierProvider(currentSessionId).notifier).addBonusTokens(10000);
+                    ref.read(conversationalAdNotifierProvider.notifier).dismissAd();
+                  }
+                },
+              );
+            }
+            // 일반 에러
+            if (chatState.error != null) {
+              return ErrorBanner(message: chatState.error!);
+            }
+            return const SizedBox.shrink();
+          },
+        ),
         // 추천 질문 표시 (로딩 중이 아니고 메시지가 있을 때)
         if (!chatState.isLoading && chatState.messages.isNotEmpty)
           Padding(
@@ -1087,8 +1112,16 @@ class _DeepAnalysisLoadingBanner extends StatelessWidget {
 /// 사이드바: MBTI 4축 선택기 (Base 선택 시만 활성화)
 /// 모바일: MBTI 버튼 탭 시 BottomSheet로 4축 선택기 표시
 /// ```
-class _PersonaHorizontalSelector extends ConsumerWidget {
+class _PersonaHorizontalSelector extends ConsumerStatefulWidget {
   const _PersonaHorizontalSelector();
+
+  @override
+  ConsumerState<_PersonaHorizontalSelector> createState() => _PersonaHorizontalSelectorState();
+}
+
+class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSelector>
+    with SingleTickerProviderStateMixin {
+  bool _isExpanded = false;
 
   /// MBTI 4축 선택기 BottomSheet 표시
   void _showMbtiSelectorSheet(BuildContext context, WidgetRef ref) {
@@ -1212,7 +1245,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final currentPersona = ref.watch(chatPersonaNotifierProvider);
     final currentQuadrant = ref.watch(mbtiQuadrantNotifierProvider);
     final canAdjustMbti = ref.watch(canAdjustMbtiProvider);
@@ -1235,6 +1268,85 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
     const double circleSize = 44;
     const double containerPadding = 16;
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 접힌 상태: 선택된 페르소나만 표시 (컴팩트)
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (!_isExpanded) {
+      return GestureDetector(
+        onTap: () => setState(() => _isExpanded = true),
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: appTheme.cardColor.withValues(alpha: 0.8),
+            border: Border(
+              bottom: BorderSide(
+                color: appTheme.primaryColor.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              // 선택된 페르소나 아이콘
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: quadrantColor.withValues(alpha: 0.15),
+                  border: Border.all(
+                    color: quadrantColor.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    currentPersona.icon,
+                    size: 18,
+                    color: quadrantColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 선택된 페르소나 이름
+              Text(
+                currentPersona.displayName,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              // 펼치기 힌트
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '페르소나 변경',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: appTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.expand_more,
+                    size: 20,
+                    color: appTheme.textMuted,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 펼친 상태: 전체 페르소나 목록 (기존 UI)
+    // ═══════════════════════════════════════════════════════════════════════════
     return Container(
       height: 90,
       padding: const EdgeInsets.symmetric(horizontal: containerPadding, vertical: 6),
@@ -1251,7 +1363,6 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                     alignment: Alignment.centerLeft,
                     child: _buildMbtiButton(
                       context,
-                      ref,
                       quadrantColor: quadrantColor,
                       currentQuadrant: currentQuadrant,
                     ),
@@ -1271,7 +1382,6 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: _buildPersonaCircle(
                         context,
-                        ref,
                         persona,
                         isSelected: isSelected,
                         accentColor: quadrantColor,
@@ -1287,8 +1397,29 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
               ),
             ),
           ),
-          // 오른쪽: 대칭을 위한 빈 공간
-          const SizedBox(width: 56),
+          // 오른쪽: 접기 버튼
+          SizedBox(
+            width: 56,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () => setState(() => _isExpanded = false),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: appTheme.textMuted.withValues(alpha: 0.1),
+                  ),
+                  child: Icon(
+                    Icons.expand_less,
+                    size: 20,
+                    color: appTheme.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1296,8 +1427,7 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
 
   /// MBTI 버튼 빌드 (왼쪽 고정 위치)
   Widget _buildMbtiButton(
-    BuildContext context,
-    WidgetRef ref, {
+    BuildContext context, {
     required Color quadrantColor,
     required MbtiQuadrant currentQuadrant,
   }) {
@@ -1342,7 +1472,6 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
 
   Widget _buildPersonaCircle(
     BuildContext context,
-    WidgetRef ref,
     ChatPersona persona, {
     required bool isSelected,
     required Color accentColor,
@@ -1438,5 +1567,80 @@ class _PersonaHorizontalSelector extends ConsumerWidget {
       case MbtiQuadrant.ST:
         return const Color(0xFFF4A261);
     }
+  }
+}
+
+/// 광고 안내 배너 (토큰 소진 시)
+///
+/// "광고를 클릭하면 좀 더 대화할 수 있어요!" 메시지 표시
+class _AdPromptBanner extends StatelessWidget {
+  final VoidCallback onWatchAd;
+
+  const _AdPromptBanner({required this.onWatchAd});
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: appTheme.isDark
+              ? [const Color(0xFF2D3A4A), const Color(0xFF1E2830)]
+              : [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)],
+        ),
+        border: Border(
+          top: BorderSide(
+            color: appTheme.isDark
+                ? const Color(0xFFD4AF37).withValues(alpha: 0.3)
+                : const Color(0xFFFFB300),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.play_circle_outline,
+            size: 24,
+            color: appTheme.isDark
+                ? const Color(0xFFD4AF37)
+                : const Color(0xFFFF8F00),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '광고를 보면 더 대화할 수 있어요!',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: appTheme.isDark
+                    ? const Color(0xFFE0E0E0)
+                    : const Color(0xFF5D4037),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onWatchAd,
+            style: TextButton.styleFrom(
+              backgroundColor: appTheme.isDark
+                  ? const Color(0xFFD4AF37)
+                  : const Color(0xFFFF8F00),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text(
+              '광고 보기',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

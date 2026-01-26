@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -381,37 +380,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       debugPrint('🔍 [_saveRelationship] Step 3: 프로필 저장 시작 (repository.save)');
       final repository = ref.read(profileRepositoryProvider);
       await repository.save(newProfile);
-      debugPrint('✅ [_saveRelationship] Step 3 완료: 로컬 프로필 저장됨');
-
-      // 3.3. Supabase saju_profiles INSERT (인연 프로필)
-      debugPrint('🔍 [_saveRelationship] Step 3.3: Supabase saju_profiles INSERT');
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        throw Exception('로그인이 필요합니다');
-      }
-
-      final profileData = <String, dynamic>{
-        'id': newProfileId,
-        'user_id': user.id,
-        'display_name': newProfile.displayName,
-        'gender': newProfile.gender.name,
-        'birth_date': newProfile.birthDate.toIso8601String().split('T')[0],
-        'is_lunar': newProfile.isLunar,
-        'is_leap_month': newProfile.isLeapMonth,
-        'birth_time_minutes': newProfile.birthTimeUnknown ? null : newProfile.birthTimeMinutes,
-        'birth_time_unknown': newProfile.birthTimeUnknown,
-        'birth_city': newProfile.birthCity,
-        'use_ya_jasi': newProfile.useYaJasi,
-        'relation_type': 'other', // 인연 프로필
-        'profile_type': 'other', // 인연은 주 프로필이 아님 (is_primary 삭제됨)
-        'created_at': DateTime.now().toUtc().toIso8601String(),
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      };
-
-      await Supabase.instance.client
-          .from('saju_profiles')
-          .insert(profileData);
-      debugPrint('✅ [_saveRelationship] Step 3.3 완료: Supabase saju_profiles INSERT 성공');
+      debugPrint('✅ [_saveRelationship] Step 3 완료: 로컬 + Supabase 프로필 저장됨 (repository.save가 upsert 처리)');
 
       // 3.5. 사주 분석 계산 및 DB 저장 (모듈화된 헬퍼 사용)
       debugPrint('🔍 [_saveRelationship] Step 3.5: RelationSajuHelper 호출');
