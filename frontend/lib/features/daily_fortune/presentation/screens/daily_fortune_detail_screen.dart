@@ -484,78 +484,83 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                 final message = fortune.getCategoryMessage(cat['key'] as String);
                 final color = cat['color'] as Color;
 
-                return SizedBox(
-                  width: cardWidth,
-                  height: cardHeight,
-                  child: Container(
-                    padding: EdgeInsets.all(padding),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          color.withOpacity(0.15),
-                          color.withOpacity(0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: color.withOpacity(0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              width: iconSize,
-                              height: iconSize,
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(cat['icon'] as IconData, color: Colors.white, size: iconSize * 0.5),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 10 * scaleFactor, vertical: 4 * scaleFactor),
-                              decoration: BoxDecoration(
-                                color: color.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '$score',
-                                style: TextStyle(
-                                  fontSize: scoreSize,
-                                  fontWeight: FontWeight.w700,
-                                  color: color,
-                                ),
-                              ),
-                            ),
+                return GestureDetector(
+                  onTap: () => context.push(
+                    '/fortune/daily/category?key=${cat['key']}',
+                  ),
+                  child: SizedBox(
+                    width: cardWidth,
+                    height: cardHeight,
+                    child: Container(
+                      padding: EdgeInsets.all(padding),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            color.withOpacity(0.15),
+                            color.withOpacity(0.05),
                           ],
                         ),
-                        SizedBox(height: 10 * scaleFactor),
-                        Text(
-                          cat['name'] as String,
-                          style: TextStyle(
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.w600,
-                            color: theme.textPrimary,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: color.withOpacity(0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                width: iconSize,
+                                height: iconSize,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(cat['icon'] as IconData, color: Colors.white, size: iconSize * 0.5),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 10 * scaleFactor, vertical: 4 * scaleFactor),
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '$score',
+                                  style: TextStyle(
+                                    fontSize: scoreSize,
+                                    fontWeight: FontWeight.w700,
+                                    color: color,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        SizedBox(height: 4 * scaleFactor),
-                        Expanded(
-                          child: Text(
-                            message,
+                          SizedBox(height: 10 * scaleFactor),
+                          Text(
+                            cat['name'] as String,
                             style: TextStyle(
-                              fontSize: descSize,
-                              color: theme.textSecondary,
-                              height: 1.4,
+                              fontSize: titleSize,
+                              fontWeight: FontWeight.w600,
+                              color: theme.textPrimary,
                             ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 4 * scaleFactor),
+                          Expanded(
+                            child: Text(
+                              message,
+                              style: TextStyle(
+                                fontSize: descSize,
+                                color: theme.textSecondary,
+                                height: 1.4,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -603,69 +608,68 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 1.35, // 1.6 → 1.35로 조정 (더 세로로 길게)
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+        // 2x2 레이아웃 (텍스트 길이에 따라 높이 자동 조절)
+        for (int i = 0; i < items.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _buildLuckyCard(theme, items[i])),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: i + 1 < items.length
+                      ? _buildLuckyCard(theme, items[i + 1])
+                      : const SizedBox(),
+                ),
+              ],
+            ),
           ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            final color = item['color'] as Color;
-
-            return Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: color.withOpacity(0.15)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(item['icon'] as IconData, color: color, size: 18),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item['label'] as String,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.textMuted,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item['value'] as String,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: color,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildLuckyCard(AppThemeExtension theme, Map<String, dynamic> item) {
+    final color = item['color'] as Color;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(item['icon'] as IconData, color: color, size: 18),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            item['label'] as String,
+            style: TextStyle(
+              fontSize: 11,
+              color: theme.textMuted,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item['value'] as String,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

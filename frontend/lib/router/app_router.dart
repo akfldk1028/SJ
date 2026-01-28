@@ -25,6 +25,7 @@ import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_graph_screen.dart';
 import '../features/daily_fortune/presentation/screens/daily_fortune_detail_screen.dart';
+import '../features/daily_fortune/presentation/screens/category_fortune_detail_screen.dart';
 import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
 import '../features/traditional_saju/presentation/screens/lifetime_fortune_screen.dart';
 import '../features/compatibility/presentation/screens/compatibility_screen.dart';
@@ -140,6 +141,14 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const IconGeneratorScreen(),
       ),
       // Fortune 페이지
+      GoRoute(
+        path: Routes.categoryFortuneDetail,
+        name: 'categoryFortuneDetail',
+        builder: (context, state) {
+          final key = state.uri.queryParameters['key'] ?? 'wealth';
+          return CategoryFortuneDetailScreen(categoryKey: key);
+        },
+      ),
       GoRoute(
         path: Routes.dailyFortuneDetail,
         name: 'dailyFortuneDetail',
