@@ -56,3 +56,4 @@ test_full.ps1
 test_prompt.json
 test_prompt_full.json
 tools
+docs/DEPLOY_GUIDE.md
