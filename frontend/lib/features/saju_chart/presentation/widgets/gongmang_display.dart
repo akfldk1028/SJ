@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/gongmang_table.dart';
 import '../../domain/services/gongmang_service.dart';
 
@@ -15,25 +16,26 @@ class GongmangJijiDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.blur_circular,
             size: 20,
-            color: AppColors.textMuted,
+            color: theme.textMuted,
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             '공망 지지',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: theme.textSecondary,
               fontSize: 13,
             ),
           ),
@@ -131,11 +133,12 @@ class GongmangTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -143,19 +146,19 @@ class GongmangTable extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceHover,
+              color: theme.surfaceHover,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(11),
               ),
             ),
             child: Row(
-              children: const [
+              children: [
                 Expanded(
                   flex: 2,
                   child: Text(
                     '궁성',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -166,7 +169,7 @@ class GongmangTable extends StatelessWidget {
                   child: Text(
                     '지지',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -178,7 +181,7 @@ class GongmangTable extends StatelessWidget {
                   child: Text(
                     '상태',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -190,7 +193,7 @@ class GongmangTable extends StatelessWidget {
                   child: Text(
                     '해석',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -201,19 +204,19 @@ class GongmangTable extends StatelessWidget {
             ),
           ),
           // 데이터 행
-          _buildRow(context, result.yearResult, isLast: false),
-          _buildDivider(),
-          _buildRow(context, result.monthResult, isLast: result.hourResult == null),
+          _buildRow(context, theme, result.yearResult, isLast: false),
+          _buildDivider(theme),
+          _buildRow(context, theme, result.monthResult, isLast: result.hourResult == null),
           if (result.hourResult != null) ...[
-            _buildDivider(),
-            _buildRow(context, result.hourResult!, isLast: true),
+            _buildDivider(theme),
+            _buildRow(context, theme, result.hourResult!, isLast: true),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildRow(BuildContext context, GongmangResult item, {required bool isLast}) {
+  Widget _buildRow(BuildContext context, AppThemeExtension theme, GongmangResult item, {required bool isLast}) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
@@ -229,8 +232,8 @@ class GongmangTable extends StatelessWidget {
             flex: 2,
             child: Text(
               item.pillarName,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: theme.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -246,7 +249,7 @@ class GongmangTable extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: item.isGongmang
                       ? AppColors.error.withOpacity(0.15)
-                      : AppColors.surfaceHover,
+                      : theme.surfaceHover,
                   borderRadius: BorderRadius.circular(6),
                   border: item.isGongmang
                       ? Border.all(color: AppColors.error.withOpacity(0.3))
@@ -258,7 +261,7 @@ class GongmangTable extends StatelessWidget {
                     style: TextStyle(
                       color: item.isGongmang
                           ? AppColors.error
-                          : AppColors.textPrimary,
+                          : theme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -285,7 +288,7 @@ class GongmangTable extends StatelessWidget {
               style: TextStyle(
                 color: item.isGongmang
                     ? AppColors.error
-                    : AppColors.textMuted,
+                    : theme.textMuted,
                 fontSize: 11,
               ),
               maxLines: 2,
@@ -297,10 +300,10 @@ class GongmangTable extends StatelessWidget {
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(
+  Widget _buildDivider(AppThemeExtension theme) {
+    return Divider(
       height: 1,
-      color: AppColors.border,
+      color: theme.border,
     );
   }
 }
@@ -313,6 +316,7 @@ class GongmangRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final items = [
       result.hourResult,
       null, // 일지는 공망 대상이 아님
@@ -323,18 +327,18 @@ class GongmangRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 50,
             child: Text(
               '공망',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 10,
               ),
             ),
@@ -346,10 +350,10 @@ class GongmangRow extends StatelessWidget {
                           isGongmang: item.isGongmang,
                           size: GongmangBadgeSize.small,
                         )
-                      : const Text(
+                      : Text(
                           '-',
                           style: TextStyle(
-                            color: AppColors.textMuted,
+                            color: theme.textMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -369,15 +373,16 @@ class GongmangDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final color = result.isGongmang ? AppColors.error : AppColors.success;
     final interpretation = GongmangService.getDetailedInterpretation(result);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,8 +408,8 @@ class GongmangDetailCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${result.jiji}(地支)',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: theme.textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -452,13 +457,13 @@ class GongmangDetailCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               interpretation,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: theme.textSecondary,
                 fontSize: 13,
                 height: 1.6,
               ),
@@ -478,15 +483,16 @@ class GongmangSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final hasGongmang = result.hasGongmang;
     final mainColor = hasGongmang ? AppColors.error : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -500,10 +506,10 @@ class GongmangSummaryCard extends StatelessWidget {
                 color: mainColor,
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 '공망 요약',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -512,13 +518,13 @@ class GongmangSummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceHover,
+                  color: theme.surfaceHover,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '일주: ${result.dayGapja}',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: theme.textMuted,
                     fontSize: 11,
                   ),
                 ),
@@ -530,7 +536,7 @@ class GongmangSummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -538,18 +544,18 @@ class GongmangSummaryCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '소속 순(旬)',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: theme.textMuted,
                         fontSize: 11,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       result.sunInfo.sunName,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: theme.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -560,10 +566,10 @@ class GongmangSummaryCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
+                    Text(
                       '공망 지지',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: theme.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -630,7 +636,7 @@ class GongmangSummaryCard extends StatelessWidget {
           // 공망 궁성 목록
           if (hasGongmang) ...[
             const SizedBox(height: 12),
-            _buildGongmangPillars(),
+            _buildGongmangPillars(theme),
           ],
         ],
       ),
@@ -690,14 +696,14 @@ class GongmangSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildGongmangPillars() {
+  Widget _buildGongmangPillars(AppThemeExtension theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '공망 궁성',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: theme.textMuted,
             fontSize: 11,
           ),
         ),

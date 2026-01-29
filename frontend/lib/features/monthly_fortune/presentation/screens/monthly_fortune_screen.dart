@@ -120,11 +120,6 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
             '잠시만 기다려주세요...',
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '잠시만 기다려주세요',
-            style: TextStyle(color: theme.textMuted, fontSize: 14),
-          ),
         ],
       ),
     );

@@ -124,11 +124,6 @@ class NewYearFortuneScreen extends ConsumerWidget {
             '잠시만 기다려주세요...',
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '잠시만 기다려주세요',
-            style: TextStyle(color: theme.textMuted, fontSize: 14),
-          ),
         ],
       ),
     );
@@ -698,7 +693,11 @@ class NewYearFortuneScreen extends ConsumerWidget {
   }
 
   Widget _buildLuckyChip(AppThemeExtension theme, IconData icon, String label, String value) {
+    // 긴 텍스트인 경우 전체 너비 사용
+    final isLongValue = value.length > 20;
+
     return Container(
+      width: isLongValue ? double.infinity : null,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: theme.backgroundColor,
@@ -706,30 +705,32 @@ class NewYearFortuneScreen extends ConsumerWidget {
         border: Border.all(color: theme.textMuted.withValues(alpha: 0.15)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: isLongValue ? MainAxisSize.max : MainAxisSize.min,
         children: [
           Icon(icon, size: 18, color: theme.primaryColor),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.textMuted,
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: theme.textMuted,
+                  ),
                 ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textPrimary,
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
