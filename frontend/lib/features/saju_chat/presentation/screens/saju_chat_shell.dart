@@ -780,6 +780,10 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         .lastOrNull;
     final suggestedQuestions = lastAiMessage?.suggestedQuestions;
 
+    // 디버그: UI에서 사용되는 suggestedQuestions 확인
+    // print('[SajuChatShell] 마지막 AI 메시지 ID: ${lastAiMessage?.id}');
+    // print('[SajuChatShell] suggestedQuestions: $suggestedQuestions');
+
     // 가로 모드 체크 (화면 높이가 400 미만이면 가로 모드로 간주)
     final isLandscape = MediaQuery.of(context).size.height < 400;
 

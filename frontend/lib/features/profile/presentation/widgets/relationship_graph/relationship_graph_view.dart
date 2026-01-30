@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 import '../../../domain/entities/saju_profile.dart';
 import '../../../domain/entities/relationship_type.dart';
 import '../../../domain/entities/gender.dart';
@@ -115,32 +116,54 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   }
 
   // === 줌 컨트롤 ===
+  /// 줌 인 - 현재 pan 위치 유지하면서 화면 중심 기준 확대
   void _zoomIn() {
     if (_isDisposed || !mounted) return;
-    final currentScale = _transformController.value.getMaxScaleOnAxis();
+
+    final currentMatrix = _transformController.value.clone();
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
     final newScale = (currentScale * 1.3).clamp(0.1, 5.0);
-    final center = Offset(
-      MediaQuery.of(context).size.width / 2,
-      MediaQuery.of(context).size.height / 2,
-    );
+    final scaleFactor = newScale / currentScale;
+
+    // 화면 중심을 focal point로 사용
+    final size = MediaQuery.of(context).size;
+    final focalPoint = Offset(size.width / 2, size.height / 2);
+
+    // 현재 translation 가져오기
+    final translation = currentMatrix.getTranslation();
+
+    // focal point 기준으로 스케일 적용 (pan 위치 유지)
+    final newTx = focalPoint.dx - (focalPoint.dx - translation.x) * scaleFactor;
+    final newTy = focalPoint.dy - (focalPoint.dy - translation.y) * scaleFactor;
+
     _transformController.value = Matrix4.identity()
-      ..translate(center.dx, center.dy)
-      ..scale(newScale)
-      ..translate(-center.dx, -center.dy);
+      ..translate(newTx, newTy)
+      ..scale(newScale);
   }
 
+  /// 줌 아웃 - 현재 pan 위치 유지하면서 화면 중심 기준 축소
   void _zoomOut() {
     if (_isDisposed || !mounted) return;
-    final currentScale = _transformController.value.getMaxScaleOnAxis();
+
+    final currentMatrix = _transformController.value.clone();
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
     final newScale = (currentScale / 1.3).clamp(0.1, 5.0);
-    final center = Offset(
-      MediaQuery.of(context).size.width / 2,
-      MediaQuery.of(context).size.height / 2,
-    );
+    final scaleFactor = newScale / currentScale;
+
+    // 화면 중심을 focal point로 사용
+    final size = MediaQuery.of(context).size;
+    final focalPoint = Offset(size.width / 2, size.height / 2);
+
+    // 현재 translation 가져오기
+    final translation = currentMatrix.getTranslation();
+
+    // focal point 기준으로 스케일 적용 (pan 위치 유지)
+    final newTx = focalPoint.dx - (focalPoint.dx - translation.x) * scaleFactor;
+    final newTy = focalPoint.dy - (focalPoint.dy - translation.y) * scaleFactor;
+
     _transformController.value = Matrix4.identity()
-      ..translate(center.dx, center.dy)
-      ..scale(newScale)
-      ..translate(-center.dx, -center.dy);
+      ..translate(newTx, newTy)
+      ..scale(newScale);
   }
 
   // === 노드 탭 핸들러 ===
