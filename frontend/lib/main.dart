@@ -9,6 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'ad/ad.dart';
 import 'app.dart';
+import 'core/services/app_update_service.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
 import 'features/profile/data/datasources/profile_local_datasource.dart';
@@ -61,6 +62,11 @@ void main() async {
     } catch (e) {
       debugPrint('[AdService] 초기화 실패: $e');
     }
+  }
+
+  // Google Play In-App Update 체크 (Android만)
+  if (isMobile && Platform.isAndroid) {
+    AppUpdateService.instance.checkForUpdate();
   }
 
   runApp(

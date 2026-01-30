@@ -747,7 +747,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         final includesOwner = pendingIncludesOwner; // 캡처
         ref.read(chatSessionNotifierProvider.notifier).clearPendingMessage();
         ref.read(chatNotifierProvider(currentSessionId).notifier)
-            .sendMessage(msg, widget.chatType, targetProfileId: targetId, multiParticipantIds: participantIds, includesOwner: includesOwner);
+            .sendMessage(msg, widget.chatType, compatibilityParticipantIds: participantIds, targetProfileId: participantIds == null ? targetId : null);
 
         _isProcessingPendingMessage = false;
       });
