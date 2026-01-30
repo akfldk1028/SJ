@@ -44,16 +44,37 @@ class SajuAnalysisRepository {
 
   /// 프로필 ID로 분석 결과 조회
   Future<SajuAnalysis?> getByProfileId(String profileId) async {
-    if (_client == null) return null;
+    if (_client == null) {
+      print('[SajuAnalysisRepo] ❌ getByProfileId($profileId): _client is null');
+      return null;
+    }
 
-    final response = await _client
-        .from(_tableName)
-        .select()
-        .eq('profile_id', profileId)
-        .maybeSingle();
+    try {
+      final response = await _client
+          .from(_tableName)
+          .select()
+          .eq('profile_id', profileId)
+          .maybeSingle();
 
-    if (response == null) return null;
-    return _fromSupabaseMap(response);
+      if (response == null) {
+        print('[SajuAnalysisRepo] ⚠️ getByProfileId($profileId): 데이터 없음 (null)');
+        return null;
+      }
+
+      print('[SajuAnalysisRepo] ✅ getByProfileId($profileId): 데이터 발견');
+      print('   year_gan=${response['year_gan']}, year_ji=${response['year_ji']}');
+      print('   month_gan=${response['month_gan']}, month_ji=${response['month_ji']}');
+      print('   day_gan=${response['day_gan']}, day_ji=${response['day_ji']}');
+      print('   hour_gan=${response['hour_gan']}, hour_ji=${response['hour_ji']}');
+
+      final result = _fromSupabaseMap(response);
+      print('   파싱 완료: ${result.chart.yearPillar.gan}${result.chart.yearPillar.ji} ${result.chart.monthPillar.gan}${result.chart.monthPillar.ji} ${result.chart.dayPillar.gan}${result.chart.dayPillar.ji} ${result.chart.hourPillar?.gan ?? '?'}${result.chart.hourPillar?.ji ?? '?'}');
+      return result;
+    } catch (e, st) {
+      print('[SajuAnalysisRepo] ❌ getByProfileId($profileId) 오류: $e');
+      print('   스택: ${st.toString().split('\n').take(3).join('\n   ')}');
+      return null;
+    }
   }
 
   /// 분석 존재 여부 확인
@@ -484,17 +505,19 @@ class SajuAnalysisRepository {
     if (json == null) {
       return const OhengDistribution(mok: 0, hwa: 0, to: 0, geum: 0, su: 0);
     }
-    // DB에 저장된 키 형식: "금(金)", "목(木)", "수(水)", "토(土)", "화(火)"
-    // Flutter에서 기대하는 형식: "mok", "hwa", "to", "geum", "su"
-    int getOhengValue(String koreanKey, String englishKey) {
-      return json[koreanKey] as int? ?? json[englishKey] as int? ?? 0;
+    // DB에 저장된 키 형식 3가지:
+    // 1. 한자 포함: "금(金)", "목(木)", "수(水)", "토(土)", "화(火)"
+    // 2. 한글만: "금", "목", "수", "토", "화"
+    // 3. 영어: "mok", "hwa", "to", "geum", "su"
+    int getOhengValue(String hanjaKey, String koreanKey, String englishKey) {
+      return json[hanjaKey] as int? ?? json[koreanKey] as int? ?? json[englishKey] as int? ?? 0;
     }
     return OhengDistribution(
-      mok: getOhengValue('목(木)', 'mok'),
-      hwa: getOhengValue('화(火)', 'hwa'),
-      to: getOhengValue('토(土)', 'to'),
-      geum: getOhengValue('금(金)', 'geum'),
-      su: getOhengValue('수(水)', 'su'),
+      mok: getOhengValue('목(木)', '목', 'mok'),
+      hwa: getOhengValue('화(火)', '화', 'hwa'),
+      to: getOhengValue('토(土)', '토', 'to'),
+      geum: getOhengValue('금(金)', '금', 'geum'),
+      su: getOhengValue('수(水)', '수', 'su'),
     );
   }
 
@@ -780,15 +803,55 @@ class SajuAnalysisRepository {
   }
 
   SajuSipsinInfo _sipsinInfoFromJson(Map<String, dynamic>? json) {
-    // 십신 정보는 Flutter에서 다시 계산하는 것이 안전
-    // DB에서는 참고용으로만 저장
+    if (json == null) {
+      return SajuSipsinInfo(
+        yearGanSipsin: SipSin.bigyeon,
+        monthGanSipsin: SipSin.bigyeon,
+        yearJiSipsin: SipSin.bigyeon,
+        monthJiSipsin: SipSin.bigyeon,
+        dayJiSipsin: SipSin.bigyeon,
+      );
+    }
+
+    // DB 포맷 2가지 지원:
+    // 포맷1 (flat): {"yearGan":"정인(正印)", "monthGan":"겁재(劫財)", "yearJi":"정재(正財)", ...}
+    // 포맷2 (nested): {"year":{"gan":"식신(食神)","ji":"편재(偏財)"}, "month":{...}, ...}
+    final isNested = json.containsKey('year') && json['year'] is Map;
+
+    String? getVal(String flatKey, String pillar, String ganJi) {
+      if (isNested) {
+        final p = json[pillar] as Map<String, dynamic>?;
+        return p?[ganJi] as String?;
+      }
+      return json[flatKey] as String?;
+    }
+
     return SajuSipsinInfo(
-      yearGanSipsin: SipSin.bigyeon,
-      monthGanSipsin: SipSin.bigyeon,
-      yearJiSipsin: SipSin.bigyeon,
-      monthJiSipsin: SipSin.bigyeon,
-      dayJiSipsin: SipSin.bigyeon,
+      yearGanSipsin: _parseSipsin(getVal('yearGan', 'year', 'gan')),
+      monthGanSipsin: _parseSipsin(getVal('monthGan', 'month', 'gan')),
+      yearJiSipsin: _parseSipsin(getVal('yearJi', 'year', 'ji')),
+      monthJiSipsin: _parseSipsin(getVal('monthJi', 'month', 'ji')),
+      dayJiSipsin: _parseSipsin(getVal('dayJi', 'day', 'ji')),
+      hourGanSipsin: _parseSipsinNullable(getVal('hourGan', 'hour', 'gan')),
+      hourJiSipsin: _parseSipsinNullable(getVal('hourJi', 'hour', 'ji')),
     );
+  }
+
+  /// 십성 문자열 파싱: "정인(正印)" → SipSin.jeongin
+  SipSin _parseSipsin(String? value) {
+    if (value == null || value.isEmpty) return SipSin.bigyeon;
+    // "정인(正印)" → "정인" 추출
+    final korean = value.contains('(') ? value.split('(').first : value;
+    for (final s in SipSin.values) {
+      if (s.korean == korean) return s;
+    }
+    return SipSin.bigyeon;
+  }
+
+  /// nullable 십성 파싱
+  SipSin? _parseSipsinNullable(String? value) {
+    if (value == null || value.isEmpty) return null;
+    return _parseSipsin(value);
   }
 
   SajuJiJangGanInfo _jijangganInfoFromJson(Map<String, dynamic>? json) {

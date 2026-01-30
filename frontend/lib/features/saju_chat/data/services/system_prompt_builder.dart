@@ -270,14 +270,28 @@ class SystemPromptBuilder {
     // 오행 분포
     final oheng = sajuAnalysis.ohengDistribution;
     _buffer.writeln('### 오행 분포');
-    _buffer.writeln('- 목: ${oheng.mok}');
-    _buffer.writeln('- 화: ${oheng.hwa}');
-    _buffer.writeln('- 토: ${oheng.to}');
-    _buffer.writeln('- 금: ${oheng.geum}');
-    _buffer.writeln('- 수: ${oheng.su}');
+    _buffer.writeln('- 목(木): ${oheng.mok}');
+    _buffer.writeln('- 화(火): ${oheng.hwa}');
+    _buffer.writeln('- 토(土): ${oheng.to}');
+    _buffer.writeln('- 금(金): ${oheng.geum}');
+    _buffer.writeln('- 수(水): ${oheng.su}');
     if (oheng.missingOheng.isNotEmpty) {
       _buffer.writeln('- 부족: ${oheng.missingOheng.map((o) => o.korean).join(', ')}');
     }
+    _buffer.writeln();
+
+    // 각 글자별 오행 매핑 (AI가 두 사람의 오행을 정확히 비교할 수 있도록)
+    _buffer.writeln('### 글자별 오행');
+    _buffer.writeln('| 위치 | 글자 | 오행 |');
+    _buffer.writeln('|------|------|------|');
+    _buffer.writeln('| 년간 | $yearGan | ${cheonganOheng[yearGan] ?? '?'} |');
+    _buffer.writeln('| 년지 | $yearJi | ${jijiOheng[yearJi] ?? '?'} |');
+    _buffer.writeln('| 월간 | $monthGan | ${cheonganOheng[monthGan] ?? '?'} |');
+    _buffer.writeln('| 월지 | $monthJi | ${jijiOheng[monthJi] ?? '?'} |');
+    _buffer.writeln('| 일간 | $dayGan | ${cheonganOheng[dayGan] ?? '?'} |');
+    _buffer.writeln('| 일지 | $dayJi | ${jijiOheng[dayJi] ?? '?'} |');
+    _buffer.writeln('| 시간 | $hourGan | ${cheonganOheng[hourGan] ?? '?'} |');
+    _buffer.writeln('| 시지 | $hourJi | ${jijiOheng[hourJi] ?? '?'} |');
     _buffer.writeln();
 
     // 용신
@@ -370,17 +384,10 @@ class SystemPromptBuilder {
       _buffer.writeln('이 상담은 **궁합 분석** 모드입니다. 두 사람의 사주를 비교 분석해주세요.');
     }
     _buffer.writeln();
-    _buffer.writeln('### 분석 포인트');
-    _buffer.writeln('1. **일간 궁합**: 두 사람의 일간(日干) 오행 관계 분석');
-    _buffer.writeln('2. **지지 궁합**: 년지, 일지 등 지지 간의 합/충/형/파/해 관계');
-    _buffer.writeln('3. **오행 보완**: 서로 부족한 오행을 채워주는지');
-    _buffer.writeln('4. **용신 관계**: 상대방이 나의 용신을 강화하는지');
-    _buffer.writeln('5. **성격 궁합**: 십성 배치로 본 성격 조화');
-    _buffer.writeln();
-    _buffer.writeln('### 응답 형식');
-    _buffer.writeln('- 두 사람의 사주를 비교하며 설명');
-    _buffer.writeln('- 긍정적인 면과 주의할 점 균형 있게 제시');
-    _buffer.writeln('- 구체적인 조언과 함께 희망적인 메시지 포함');
+    _buffer.writeln('### 데이터 활용 지시');
+    _buffer.writeln('- 위에 제공된 두 사람의 **사주팔자 8글자, 오행 분포, 용신, 십성, 합충형해파** 데이터를 반드시 활용하세요.');
+    _buffer.writeln('- 두 사람의 일간(日干)을 비교하여 천간합 여부와 오행 관계를 먼저 분석하세요.');
+    _buffer.writeln('- 구체적인 글자를 인용하며 분석하세요 (예: "경금 일간과 을목 일간이 을경합을 이루어...").');
   }
 
   /// 마무리 지시문 추가
@@ -417,12 +424,38 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
 
-    // v3.7 (Phase 47): Gemini가 계산한 상대방 사주 추가
-    final sajuAnalysis = analysis['saju_analysis'] as Map<String, dynamic>?;
-    final targetCalculatedSaju = sajuAnalysis?['target_calculated_saju'] as Map<String, dynamic>?;
-    if (targetCalculatedSaju != null) {
-      _addTargetCalculatedSaju(targetCalculatedSaju);
+    // v7.1: 두 사람의 8글자 요약 (오행 비교 분석용)
+    final p1Chars = analysis['_person1_chars'] as Map<String, dynamic>?;
+    final p2Chars = analysis['_person2_chars'] as Map<String, dynamic>?;
+    if (p1Chars != null && p2Chars != null) {
+      _buffer.writeln('### 두 사람의 사주팔자 비교');
+      _buffer.writeln('| 위치 | ${isThirdPartyCompatibility ? (person1?.displayName ?? '첫 번째') : '나'} | ${isThirdPartyCompatibility ? (person2?.displayName ?? '두 번째') : '상대방'} |');
+      _buffer.writeln('|------|------|------|');
+      _buffer.writeln('| 년간 | ${p1Chars['year_gan'] ?? '?'} | ${p2Chars['year_gan'] ?? '?'} |');
+      _buffer.writeln('| 년지 | ${p1Chars['year_ji'] ?? '?'} | ${p2Chars['year_ji'] ?? '?'} |');
+      _buffer.writeln('| 월간 | ${p1Chars['month_gan'] ?? '?'} | ${p2Chars['month_gan'] ?? '?'} |');
+      _buffer.writeln('| 월지 | ${p1Chars['month_ji'] ?? '?'} | ${p2Chars['month_ji'] ?? '?'} |');
+      _buffer.writeln('| 일간 | ${p1Chars['day_gan'] ?? '?'} | ${p2Chars['day_gan'] ?? '?'} |');
+      _buffer.writeln('| 일지 | ${p1Chars['day_ji'] ?? '?'} | ${p2Chars['day_ji'] ?? '?'} |');
+      _buffer.writeln('| 시간 | ${p1Chars['hour_gan'] ?? '?'} | ${p2Chars['hour_gan'] ?? '?'} |');
+      _buffer.writeln('| 시지 | ${p1Chars['hour_ji'] ?? '?'} | ${p2Chars['hour_ji'] ?? '?'} |');
+      _buffer.writeln();
+
+      // 오행 비교 테이블
+      final p1Oheng = _computeOhengFromChars(p1Chars);
+      final p2Oheng = _computeOhengFromChars(p2Chars);
+      _buffer.writeln('### 두 사람의 오행 분포 비교');
+      _buffer.writeln('| 오행 | ${isThirdPartyCompatibility ? (person1?.displayName ?? '첫 번째') : '나'} | ${isThirdPartyCompatibility ? (person2?.displayName ?? '두 번째') : '상대방'} |');
+      _buffer.writeln('|------|------|------|');
+      for (final oh in ['목', '화', '토', '금', '수']) {
+        _buffer.writeln('| $oh | ${p1Oheng[oh] ?? 0} | ${p2Oheng[oh] ?? 0} |');
+      }
+      _buffer.writeln();
     }
+
+    // v3.7 레거시 target_calculated_saju 제거됨
+    // - 상대방 사주는 saju_analyses 테이블에서 직접 로드 (_addSajuAnalysis)
+    // - Gemini가 계산한 옛날 데이터가 정확한 DB 데이터와 충돌하는 문제 해결
 
     // 종합 점수
     final overallScore = analysis['overall_score'];
@@ -598,119 +631,8 @@ class SystemPromptBuilder {
     }
   }
 
-  /// v3.7 (Phase 47): Gemini가 계산한 상대방 사주 추가
-  ///
-  /// Phase 47에서 인연(to)의 saju_analyses 조회를 제거하고,
-  /// Gemini가 생년월일로 직접 계산한 사주 데이터를 프롬프트에 포함합니다.
-  void _addTargetCalculatedSaju(Map<String, dynamic> calculatedSaju) {
-    _buffer.writeln('### 상대방의 사주 (Gemini 계산)');
-    _buffer.writeln();
-
-    // 사주팔자
-    final saju = calculatedSaju['saju'] as Map<String, dynamic>?;
-    if (saju != null) {
-      _buffer.writeln('#### 사주팔자');
-      _buffer.writeln('| 구분 | 년주 | 월주 | 일주 | 시주 |');
-      _buffer.writeln('|------|------|------|------|------|');
-
-      final year = saju['year'] as Map<String, dynamic>? ?? {};
-      final month = saju['month'] as Map<String, dynamic>? ?? {};
-      final day = saju['day'] as Map<String, dynamic>? ?? {};
-      final hour = saju['hour'] as Map<String, dynamic>? ?? {};
-
-      final yearGan = year['gan'] ?? '?';
-      final yearJi = year['ji'] ?? '?';
-      final monthGan = month['gan'] ?? '?';
-      final monthJi = month['ji'] ?? '?';
-      final dayGan = day['gan'] ?? '?';
-      final dayJi = day['ji'] ?? '?';
-      final hourGan = hour['gan'] ?? '?';
-      final hourJi = hour['ji'] ?? '?';
-
-      _buffer.writeln('| 천간 | $yearGan | $monthGan | $dayGan | $hourGan |');
-      _buffer.writeln('| 지지 | $yearJi | $monthJi | $dayJi | $hourJi |');
-      _buffer.writeln();
-
-      // 일주 (상대방의 본질)
-      _buffer.writeln('#### 일주 (상대방의 본질)');
-      _buffer.writeln('- 일간: $dayGan');
-      _buffer.writeln('- 일지: $dayJi');
-      _buffer.writeln('- 일주: $dayGan$dayJi');
-      _buffer.writeln();
-    }
-
-    // 오행 분포
-    final oheng = calculatedSaju['oheng'] as Map<String, dynamic>?;
-    if (oheng != null) {
-      _buffer.writeln('#### 오행 분포');
-      _buffer.writeln('- 목(木): ${oheng['wood'] ?? 0}');
-      _buffer.writeln('- 화(火): ${oheng['fire'] ?? 0}');
-      _buffer.writeln('- 토(土): ${oheng['earth'] ?? 0}');
-      _buffer.writeln('- 금(金): ${oheng['metal'] ?? 0}');
-      _buffer.writeln('- 수(水): ${oheng['water'] ?? 0}');
-      _buffer.writeln();
-    }
-
-    // 일간 오행
-    final dayMaster = calculatedSaju['day_master'];
-    if (dayMaster != null) {
-      _buffer.writeln('#### 일간 오행');
-      _buffer.writeln('- 일간 오행: $dayMaster');
-      _buffer.writeln();
-    }
-
-    // 합충형해파
-    final hapchung = calculatedSaju['hapchung'] as Map<String, dynamic>?;
-    if (hapchung != null) {
-      _buffer.writeln('#### 합충형해파');
-      _addCalculatedHapchungSection(hapchung, 'cheongan_haps', '천간합');
-      _addCalculatedHapchungSection(hapchung, 'cheongan_chungs', '천간충');
-      _addCalculatedHapchungSection(hapchung, 'jiji_yukhaps', '지지육합');
-      _addCalculatedHapchungSection(hapchung, 'jiji_samhaps', '지지삼합');
-      _addCalculatedHapchungSection(hapchung, 'jiji_chungs', '지지충');
-      _addCalculatedHapchungSection(hapchung, 'jiji_hyungs', '지지형');
-      _addCalculatedHapchungSection(hapchung, 'jiji_pas', '지지파');
-      _addCalculatedHapchungSection(hapchung, 'jiji_haes', '지지해');
-      _buffer.writeln();
-    }
-
-    // 신살
-    final sinsal = calculatedSaju['sinsal'] as List?;
-    if (sinsal != null && sinsal.isNotEmpty) {
-      _buffer.writeln('#### 신살');
-      for (final s in sinsal) {
-        if (s is Map) {
-          final name = s['name'] ?? '?';
-          final type = s['type'] ?? '';
-          final pillar = s['pillar'] ?? '';
-          _buffer.writeln('- $pillar: $name ($type)');
-        }
-      }
-      _buffer.writeln();
-    }
-
-    // 12운성
-    final twelveUnsung = calculatedSaju['twelve_unsung'] as List?;
-    if (twelveUnsung != null && twelveUnsung.isNotEmpty) {
-      _buffer.writeln('#### 12운성');
-      for (final u in twelveUnsung) {
-        if (u is Map) {
-          final pillar = u['pillar'] ?? '?';
-          final unsung = u['unsung'] ?? '?';
-          _buffer.writeln('- $pillar: $unsung');
-        }
-      }
-      _buffer.writeln();
-    }
-  }
-
-  /// 계산된 합충형해파 섹션 헬퍼
-  void _addCalculatedHapchungSection(Map<String, dynamic> hapchung, String key, String label) {
-    final items = hapchung[key] as List?;
-    if (items != null && items.isNotEmpty) {
-      _buffer.writeln('**$label**: ${items.join(', ')}');
-    }
-  }
+  // v3.7 레거시 _addTargetCalculatedSaju / _addCalculatedHapchungSection 제거됨
+  // 상대방 사주는 saju_analyses 테이블에서 직접 로드하여 _addSajuAnalysis()로 주입
 
   // v5.0: 다중 궁합 관련 메서드 제거됨
   // _addMultiCompatibilityAnalysisResult, _addMultiCategoryScore, _addPairCompatibilityDetail
@@ -904,4 +826,29 @@ class SystemPromptBuilder {
       _buffer.writeln('```');
     }
   }
+
+  /// raw char map에서 오행 분포 계산 (궁합 비교용)
+  Map<String, int> _computeOhengFromChars(Map<String, dynamic> chars) {
+    final counts = <String, int>{'목': 0, '화': 0, '토': 0, '금': 0, '수': 0};
+
+    void addOheng(String? char, bool isCheongan) {
+      if (char == null) return;
+      final oheng = isCheongan ? cheonganOheng[char] : jijiOheng[char];
+      if (oheng != null && counts.containsKey(oheng)) {
+        counts[oheng] = counts[oheng]! + 1;
+      }
+    }
+
+    addOheng(chars['year_gan'] as String?, true);
+    addOheng(chars['year_ji'] as String?, false);
+    addOheng(chars['month_gan'] as String?, true);
+    addOheng(chars['month_ji'] as String?, false);
+    addOheng(chars['day_gan'] as String?, true);
+    addOheng(chars['day_ji'] as String?, false);
+    addOheng(chars['hour_gan'] as String?, true);
+    addOheng(chars['hour_ji'] as String?, false);
+
+    return counts;
+  }
+
 }

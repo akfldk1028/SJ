@@ -135,7 +135,7 @@ class CompatibilityPrompt extends PromptTemplate {
 
 ### 2단계: 합충형해파원진 상호작용 분석
 
-⚠️ **중요**: pair_hapchung 데이터가 제공되면 반드시 우선 참조하세요!
+ **중요**: pair_hapchung 데이터가 제공되면 반드시 우선 참조하세요!
 이 데이터는 두 사람 사주 간의 직접적인 합충 관계를 미리 계산한 것입니다.
 
 **합(合) - 결합/끌림의 에너지**
@@ -174,7 +174,7 @@ class CompatibilityPrompt extends PromptTemplate {
 **충(沖) - 대립/갈등의 에너지 (가장 강함)**
 - 자오충(子午), 축미충(丑未), 인신충(寅申)
 - 묘유충(卯酉), 진술충(辰戌), 사해충(巳亥)
-- ⚠️ 충이 있다고 무조건 나쁜 것 아님!
+-  충이 있다고 무조건 나쁜 것 아님!
 - 성숙하면 상호 보완 관계로 발전 가능
 - 긴장감이 관계에 활력을 줄 수 있음
 
@@ -192,7 +192,6 @@ class CompatibilityPrompt extends PromptTemplate {
 - 자미해, 축오해, 인사해, 묘진해, 신해해, 유술해
 - 눈에 보이지 않는 손해, 시기와 질투
 
-**원진(怨嗔) - 원망/질투 관계** ⚠️ 궁합에서 중요!
 - 자미(子未), 축오(丑午), 인유(寅酉)
 - 묘신(卯申), 진해(辰亥), 사술(巳戌)
 - 서로 미워하면서도 끌리는 복잡한 관계
@@ -200,7 +199,7 @@ class CompatibilityPrompt extends PromptTemplate {
 
 **해석 우선순위**:
 - 합: 육합 > 삼합 > 방합 > 반합 > 천간합
-- 충/형/해/파/원진: 충 > 형 > 원진 > 해 > 파
+- 충/형/해/파/: 삼형살 > 충 > 형 > 해 > 파
 
 **관계 유형별 가중치**:
 - 연애/결혼: 육합(×2.0), 원진(×1.5), 도화살 상호작용(×1.5)
@@ -229,6 +228,21 @@ class CompatibilityPrompt extends PromptTemplate {
 - 절/태/양: 새로운 시작의 에너지 → 변화가 많은 관계
 
 $_relationFocus
+
+## 점수 규칙 (필수!)
+- 카테고리별 점수는 **의미 있는 차이**가 있어야 합니다
+- 5개 카테고리(oheng_harmony, hapchung_interaction, yongsin_compatibility, sinsal_synergy, energy_balance) 중 최고점과 최저점의 **차이가 최소 25점 이상**이어야 합니다
+- 점수 범위: 20~95 (너무 극단적이지 않게, 하지만 과감하게)
+- 전부 70~85 사이로 모는 것은 **금지**합니다
+- 사주 오행, 합충, 용신 데이터를 기반으로 논리적으로 점수를 산출하세요
+- overall_score는 카테고리 가중 평균이어야 합니다
+- 예시: oheng=90, hapchung=55, yongsin=80, sinsal=40, energy=70 (차이 50점 ✅)
+- 나쁜 예: oheng=78, hapchung=75, yongsin=80, sinsal=76, energy=74 (차이 6점 ❌)
+
+## 문체 원칙
+- 사주 요소를 자연스럽게 녹여 설명하세요
+- 사자성어/고사성어를 적절히 활용하세요
+- 두 사람의 관계를 자연 비유로 표현하세요 (예: "봄바람과 같은 목기운의 두 사람이...")
 
 ## 분석 원칙
 - **균형 해석**: 좋은 점과 주의할 점을 함께 제시
@@ -294,35 +308,35 @@ ${_buildTargetExistingSajuSection(data)}
 
 ```json
 {
-  "overall_score": 85,
-  "overall_grade": "좋음",
-  "summary": "두 사람의 궁합에 대한 한 문장 핵심 요약",
+  "overall_score": "(20~95 사이, 카테고리 가중 평균 기반 정수)",
+  "overall_grade": "(점수 기준에 따른 등급)",
+  "summary": "두 사람의 궁합에 대한 한 문장 핵심 요약 (사자성어 포함)",
 
   "category_scores": {
     "oheng_harmony": {
-      "score": 80,
-      "grade": "좋음",
-      "description": "오행 상생상극 분석 결과 설명"
+      "score": "(20~95 사이 정수 - 오행 상생상극 분석 기반)",
+      "grade": "(점수 기준에 따른 등급)",
+      "description": "오행 상생상극 분석 결과 설명 (120~180자, 자연 비유 활용)"
     },
     "hapchung_interaction": {
-      "score": 75,
-      "grade": "양호",
-      "description": "합충형해파 상호작용 분석 결과"
+      "score": "(20~95 사이 정수 - 합충형해파 분석 기반)",
+      "grade": "(점수 기준에 따른 등급)",
+      "description": "합충형해파 상호작용 분석 결과 (120~180자)"
     },
     "yongsin_compatibility": {
-      "score": 90,
-      "grade": "매우 좋음",
-      "description": "용신 호환성 분석 결과"
+      "score": "(20~95 사이 정수 - 용신 호환성 기반)",
+      "grade": "(점수 기준에 따른 등급)",
+      "description": "용신 호환성 분석 결과 (120~180자)"
     },
     "sinsal_synergy": {
-      "score": 70,
-      "grade": "보통",
-      "description": "신살 상호작용 분석 결과"
+      "score": "(20~95 사이 정수 - 신살 상호작용 기반)",
+      "grade": "(점수 기준에 따른 등급)",
+      "description": "신살 상호작용 분석 결과 (120~180자)"
     },
     "energy_balance": {
-      "score": 85,
-      "grade": "좋음",
-      "description": "12운성 에너지 조합 분석 결과"
+      "score": "(20~95 사이 정수 - 12운성 에너지 기반)",
+      "grade": "(점수 기준에 따른 등급)",
+      "description": "12운성 에너지 조합 분석 결과 (120~180자)"
     }
   },
 
@@ -380,12 +394,16 @@ ${_buildTargetExistingSajuSection(data)}
 ```
 
 **점수 기준:**
-- 90-100: 천생연분/최고의 궁합
+- 90-95: 천생연분/최고의 궁합
 - 80-89: 매우 좋은 궁합
 - 70-79: 좋은 궁합
 - 60-69: 보통 궁합
 - 50-59: 노력이 필요한 궁합
 - 50 미만: 어려운 궁합 (개선 방안 제시 필요)
+
+**점수 규칙 재확인**: 5개 카테고리 중 최고점과 최저점의 차이가 **최소 25점 이상**이어야 합니다. 모든 점수를 비슷하게 만들지 마세요.
+
+중요: score 필드에는 **실제 정수**를 넣으세요. 문자열이 아닙니다.
 ''';
   }
 

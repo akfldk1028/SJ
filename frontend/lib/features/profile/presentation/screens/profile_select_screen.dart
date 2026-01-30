@@ -256,6 +256,17 @@ class _ProfileCard extends ConsumerWidget {
       return;
     }
 
+    // "나" 프로필만 활성 프로필로 변경 가능
+    if (profile.relationType != RelationshipType.me) {
+      ShadToaster.of(context).show(
+        ShadToast(
+          title: const Text('본인 프로필만 선택 가능'),
+          description: const Text('인연 프로필은 운세 조회 대상으로 선택할 수 없습니다'),
+        ),
+      );
+      return;
+    }
+
     // 활성 프로필 변경
     await ref.read(profileListProvider.notifier).setActiveProfile(profile.id);
     if (context.mounted) {

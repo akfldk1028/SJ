@@ -457,7 +457,9 @@ class ChatNotifier extends _$ChatNotifier {
   ///
   /// v7.1: 앱 백그라운드 → 포그라운드 복귀 시 사주 정보 포함
   /// - 프로필 + 사주 분석 + AI Summary 로드하여 완전한 프롬프트 생성
-  /// - 궁합 모드는 미지원 (일반 채팅만)
+  /// v7.2: 궁합 모드 지원 추가
+  /// - 세션의 targetProfileId로 상대방 프로필/사주 복원
+  /// - chat_mentions에서 participantIds 복원 → 궁합 분석 결과 로드
   Future<String> _buildRestoreSystemPrompt() async {
     try {
       // 1. 페르소나 프롬프트 (기본)
@@ -479,21 +481,143 @@ class ChatNotifier extends _$ChatNotifier {
       // 세션 복원 시 Edge Function 호출하면 비용 발생하므로 캐시만 확인
       final aiSummary = _cachedAiSummary;
 
-      // 5. 완전한 시스템 프롬프트 생성
+      // 5. 궁합 모드 확인 및 상대방 데이터 복원 (v7.2)
+      SajuProfile? person1Profile = activeProfile;
+      SajuAnalysis? person1SajuAnalysis = sajuAnalysis;
+      SajuProfile? targetProfile;
+      SajuAnalysis? targetSajuAnalysis;
+      Map<String, dynamic>? compatibilityAnalysis;
+      bool isThirdPartyCompatibility = false;
+
+      final sessionRepository = ref.read(chatSessionRepositoryProvider);
+      final currentSession = await sessionRepository.getSession(sessionId);
+      final targetProfileId = currentSession?.targetProfileId;
+
+      if (targetProfileId != null) {
+        // 궁합 세션! 상대방 데이터 복원
+        final profileRepo = SajuProfileRepository();
+        final analysisRepo = SajuAnalysisRepository();
+
+        targetProfile = await profileRepo.getById(targetProfileId);
+        if (targetProfile != null) {
+          targetSajuAnalysis = await analysisRepo.getByProfileId(targetProfileId);
+        }
+
+        // chat_mentions에서 참가자 ID 복원 → person1, person2 결정
+        String? person1Id;
+        String? person2Id;
+        try {
+          final mentions = await Supabase.instance.client
+              .from('chat_mentions')
+              .select('target_profile_id, mention_order')
+              .eq('session_id', sessionId)
+              .order('mention_order');
+
+          if (mentions is List && mentions.length >= 2) {
+            person1Id = mentions[0]['target_profile_id'] as String?;
+            person2Id = mentions[1]['target_profile_id'] as String?;
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('[ChatProvider] 세션 복원: chat_mentions 조회 실패: $e');
+          }
+        }
+
+        // fallback: person1 = activeProfile, person2 = targetProfile
+        person1Id ??= activeProfile.id;
+        person2Id ??= targetProfileId;
+
+        // "나 제외" 모드 판단
+        isThirdPartyCompatibility = activeProfile.id != person1Id;
+
+        // v7.2: 나 제외 모드에서는 person1의 프로필/사주를 별도 로드
+        if (isThirdPartyCompatibility && person1Id != null) {
+          person1Profile = await profileRepo.getById(person1Id);
+          if (person1Profile != null) {
+            person1SajuAnalysis = await analysisRepo.getByProfileId(person1Id);
+          }
+          // person2도 별도 로드 (targetProfileId와 다를 수 있음)
+          if (person2Id != null && person2Id != targetProfileId) {
+            targetProfile = await profileRepo.getById(person2Id);
+            if (targetProfile != null) {
+              targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
+            }
+          }
+        }
+
+        // 궁합 분석 결과 로드 (캐시)
+        if (person1Id != null && person2Id != null) {
+          try {
+            final compatService = CompatibilityAnalysisService();
+            final cached = await compatService.getAnalysisByProfiles(person1Id, person2Id);
+            if (cached != null) {
+              compatibilityAnalysis = Map<String, dynamic>.from(cached);
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('[ChatProvider] 세션 복원: 궁합 분석 로드 실패: $e');
+            }
+          }
+        }
+
+        // v7.1: 두 사람의 8글자를 궁합 분석 결과에 추가 (프롬프트용)
+        if (compatibilityAnalysis != null) {
+          if (person1SajuAnalysis != null) {
+            final c = person1SajuAnalysis.chart;
+            compatibilityAnalysis!['_person1_chars'] = {
+              'year_gan': c.yearPillar.gan, 'year_ji': c.yearPillar.ji,
+              'month_gan': c.monthPillar.gan, 'month_ji': c.monthPillar.ji,
+              'day_gan': c.dayPillar.gan, 'day_ji': c.dayPillar.ji,
+              'hour_gan': c.hourPillar?.gan, 'hour_ji': c.hourPillar?.ji,
+            };
+          }
+          if (targetSajuAnalysis != null) {
+            final c = targetSajuAnalysis.chart;
+            compatibilityAnalysis!['_person2_chars'] = {
+              'year_gan': c.yearPillar.gan, 'year_ji': c.yearPillar.ji,
+              'month_gan': c.monthPillar.gan, 'month_ji': c.monthPillar.ji,
+              'day_gan': c.dayPillar.gan, 'day_ji': c.dayPillar.ji,
+              'hour_gan': c.hourPillar?.gan, 'hour_ji': c.hourPillar?.ji,
+            };
+          }
+        }
+
+        if (kDebugMode) {
+          print('[ChatProvider] 세션 복원: 궁합 모드');
+          print('   상대방: ${targetProfile?.displayName ?? "?"}');
+          print('   상대방 사주: ${targetSajuAnalysis != null ? "있음" : "없음"}');
+          print('   궁합 분석: ${compatibilityAnalysis != null ? "있음" : "없음"}');
+          print('   나 제외 모드: $isThirdPartyCompatibility');
+        }
+      }
+
+      // 6. 완전한 시스템 프롬프트 생성 (궁합 데이터 포함)
+      // 궁합 모드면 compatibility.md 로드, 아니면 general.md
+      final restoreBasePrompt = targetProfile != null
+          ? await _loadSystemPrompt(ChatType.compatibility)
+          : await _loadSystemPrompt(ChatType.general);
       final fullPrompt = _buildFullSystemPrompt(
-        basePrompt: personaPrompt,
+        basePrompt: restoreBasePrompt,
         aiSummary: aiSummary,
-        sajuAnalysis: sajuAnalysis,
-        profile: activeProfile,
+        sajuAnalysis: person1SajuAnalysis,  // v7.2: 나 제외 모드 시 person1의 사주
+        profile: person1Profile,  // v7.2: 나 제외 모드 시 person1의 프로필
         personaPrompt: personaPrompt,
         isFirstMessage: true,  // 복원 후 첫 메시지로 취급
+        targetProfile: targetProfile,
+        targetSajuAnalysis: targetSajuAnalysis,
+        compatibilityAnalysis: compatibilityAnalysis,
+        isThirdPartyCompatibility: isThirdPartyCompatibility,
       );
 
       if (kDebugMode) {
-        print('[ChatProvider] 세션 복원: 사주 정보 포함 프롬프트 생성 완료');
-        print('   프로필: ${activeProfile.displayName}');
-        print('   사주: ${sajuAnalysis != null ? "있음" : "없음"}');
+        print('[ChatProvider] 세션 복원: 프롬프트 생성 완료');
+        print('   Person1 프로필: ${person1Profile?.displayName}');
+        print('   Person1 사주: ${person1SajuAnalysis != null ? "있음" : "없음"}');
+        print('   Person2 프로필: ${targetProfile?.displayName}');
+        print('   Person2 사주: ${targetSajuAnalysis != null ? "있음" : "없음"}');
         print('   AI Summary: ${aiSummary != null ? "있음" : "없음"}');
+        print('   궁합 모드: ${targetProfile != null}');
+        print('   나 제외 모드: $isThirdPartyCompatibility');
       }
 
       return fullPrompt;
@@ -605,7 +729,7 @@ class ChatNotifier extends _$ChatNotifier {
     final effectiveParticipantIds = compatibilityParticipantIds ?? multiParticipantIds;
 
     // 궁합 모드: 2명의 참가자가 있는 경우
-    final isCompatibilityMode = effectiveParticipantIds != null && effectiveParticipantIds.length >= 2;
+    var isCompatibilityMode = effectiveParticipantIds != null && effectiveParticipantIds.length >= 2;
 
     // 궁합 모드에서 참가자 ID 추출
     String? person1Id;  // 첫 번째 사람 (기존 activeProfile 역할)
@@ -618,13 +742,60 @@ class ChatNotifier extends _$ChatNotifier {
         print('   ✅ 궁합 모드 활성화: person1Id=$person1Id, person2Id=$person2Id');
       }
     } else if (targetProfileId != null) {
-      // 하위 호환: 단일 targetProfileId만 있는 경우 → owner + target 방식
+      // 하위 호환: 단일 targetProfileId만 있는 경우
+      // chat_mentions에서 실제 participantIds를 복원하여 정확한 person1/person2 결정
       person2Id = targetProfileId;
+      try {
+        final mentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+        if (mentions is List && mentions.length >= 2) {
+          person1Id = mentions[0]['target_profile_id'] as String?;
+          person2Id = mentions[1]['target_profile_id'] as String?;
+          if (kDebugMode) {
+            print('   ✅ chat_mentions에서 복원: person1=$person1Id, person2=$person2Id');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('   ⚠️ chat_mentions 조회 실패: $e');
+        }
+      }
+      // chat_mentions에서 person1Id를 복원했으면 궁합 모드로 전환
+      if (person1Id != null) {
+        isCompatibilityMode = true;
+      }
       if (kDebugMode) {
-        print('   ⚠️ 하위 호환 모드: targetProfileId=$targetProfileId');
+        print('   📌 하위 호환 모드: person1=$person1Id, person2=$person2Id, isCompatibilityMode=$isCompatibilityMode');
       }
     } else {
-      if (kDebugMode) {
+      // v8.0: 명시적 ID가 없어도 chat_mentions에서 궁합 복원 시도
+      // (두 번째 이후 메시지에서 UI가 participantIds를 전달하지 못하는 문제 대응)
+      try {
+        final mentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+        if (mentions is List && mentions.length >= 2) {
+          person1Id = mentions[0]['target_profile_id'] as String?;
+          person2Id = mentions[1]['target_profile_id'] as String?;
+          if (person1Id != null && person2Id != null) {
+            isCompatibilityMode = true;
+            if (kDebugMode) {
+              print('   ✅ chat_mentions에서 궁합 자동 복원: person1=$person1Id, person2=$person2Id');
+            }
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('   ⚠️ chat_mentions 자동 복원 실패: $e');
+        }
+      }
+
+      if (!isCompatibilityMode && kDebugMode) {
         print('   📝 일반 채팅 모드 (궁합 아님)');
         print('      effectiveParticipantIds: $effectiveParticipantIds');
         print('      compatibilityParticipantIds: $compatibilityParticipantIds');
@@ -714,7 +885,9 @@ class ChatNotifier extends _$ChatNotifier {
 
     try {
       // MD 파일에서 시스템 프롬프트 로드
-      final basePrompt = await _loadSystemPrompt(chatType);
+      // 궁합 모드면 compatibility.md 로드 (chatType이 general이어도)
+      final effectiveChatType = isCompatibilityMode ? ChatType.compatibility : chatType;
+      final basePrompt = await _loadSystemPrompt(effectiveChatType);
 
       // 현재 페르소나 가져오기
       final currentPersonaPrompt = ref.read(finalSystemPromptProvider);
@@ -976,9 +1149,30 @@ class ChatNotifier extends _$ChatNotifier {
             );
 
             if (result.success && result.data != null) {
-              compatibilityAnalysis = result.data;
+              compatibilityAnalysis = Map<String, dynamic>.from(result.data!);
+              // v7.1: 두 사람의 8글자를 궁합 분석 결과에 추가 (프롬프트용)
+              if (sajuAnalysis != null) {
+                final c = sajuAnalysis.chart;
+                compatibilityAnalysis!['_person1_chars'] = {
+                  'year_gan': c.yearPillar.gan, 'year_ji': c.yearPillar.ji,
+                  'month_gan': c.monthPillar.gan, 'month_ji': c.monthPillar.ji,
+                  'day_gan': c.dayPillar.gan, 'day_ji': c.dayPillar.ji,
+                  'hour_gan': c.hourPillar?.gan, 'hour_ji': c.hourPillar?.ji,
+                };
+              }
+              if (targetSajuAnalysis != null) {
+                final c = targetSajuAnalysis.chart;
+                compatibilityAnalysis!['_person2_chars'] = {
+                  'year_gan': c.yearPillar.gan, 'year_ji': c.yearPillar.ji,
+                  'month_gan': c.monthPillar.gan, 'month_ji': c.monthPillar.ji,
+                  'day_gan': c.dayPillar.gan, 'day_ji': c.dayPillar.ji,
+                  'hour_gan': c.hourPillar?.gan, 'hour_ji': c.hourPillar?.ji,
+                };
+              }
               if (kDebugMode) {
                 print('   ✅ 궁합 분석 완료: ${result.data?['overall_score']}점');
+                print('   ✅ person1 8글자: ${sajuAnalysis != null ? "포함" : "없음"}');
+                print('   ✅ person2 8글자: ${targetSajuAnalysis != null ? "포함" : "없음"}');
               }
             } else {
               if (kDebugMode) {

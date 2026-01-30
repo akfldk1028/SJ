@@ -724,8 +724,11 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         .firstOrNull;
     final effectiveTargetProfileId = currentSession?.targetProfileId ?? widget.targetProfileId;
 
-    if (kDebugMode && effectiveTargetProfileId != null) {
-      print('[_ChatContent] 궁합 채팅 모드: targetProfileId=$effectiveTargetProfileId');
+    // v8.0: 세션에 저장된 participantIds 복원 (궁합 연속 대화용)
+    // chat_mentions에서 복원하는 것은 chat_provider.dart에서 처리하지만,
+    // UI 레벨에서도 targetProfileId가 있으면 알 수 있도록 로그 출력
+    if (kDebugMode) {
+      print('[_ChatContent] build: session=${currentSession?.id?.substring(0, 8)}, targetProfileId=${currentSession?.targetProfileId}, widget.targetProfileId=${widget.targetProfileId}, effectiveTargetProfileId=$effectiveTargetProfileId');
     }
 
     // pendingMessage가 있으면 즉시 전송 (세션 생성 직후)
@@ -747,7 +750,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         final includesOwner = pendingIncludesOwner; // 캡처
         ref.read(chatSessionNotifierProvider.notifier).clearPendingMessage();
         ref.read(chatNotifierProvider(currentSessionId).notifier)
-            .sendMessage(msg, widget.chatType, targetProfileId: targetId, multiParticipantIds: participantIds, includesOwner: includesOwner);
+            .sendMessage(msg, widget.chatType, compatibilityParticipantIds: participantIds, targetProfileId: participantIds == null ? targetId : null);
 
         _isProcessingPendingMessage = false;
       });

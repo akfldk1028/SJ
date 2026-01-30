@@ -2,36 +2,30 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * AI Task 결과 조회 Edge Function (v28)
+ * AI Task 결과 조회 Edge Function (v29)
  *
  * OpenAI Responses API의 background task 결과 조회
  * task_id로 조회 → openai_response_id로 OpenAI polling
  *
- * v24 변경사항:
- * - OpenAI /v1/responses/{id} 직접 polling
- * - queued/in_progress → completed 상태 변환
- * - 결과를 ai_tasks에 캐싱
- *
- * v25 변경사항 (2026-01-14):
- * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규 필드)
- * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
- * - gpt_saju_analysis_count 증가 추가
- *
- * v26 변경사항 (2026-01-19):
- * - 'incomplete' 상태 처리 추가 (max_tokens 도달로 응답이 잘린 경우)
- * - 부분 콘텐츠 추출 후 completed로 반환 (finish_reason: incomplete)
- *
- * v27 변경사항 (2026-01-23):
- * - Phase 기반 Progressive Disclosure 지원
- * - 완료 시 total_phases=4, phase=4, partial_result에 Phase별 데이터 저장
- * - Flutter UI에서 Phase별 점진적 표시 가능
+ * v29 변경사항 (2026-01-30):
+ * - API Key 로드밸런싱 지원
+ * - ai_tasks.request_data.key_index로 ai-openai에서 사용한 동일 키로 polling
+ * - OPENAI_API_KEY, OPENAI_API_KEY_2, OPENAI_API_KEY_3 지원
  *
  * v28 변경사항 (2026-01-24):
  * - parseResultToPhases 필드명을 saju_base_prompt.dart 스키마와 일치시킴
- * - Phase 1: summary, my_saju_characters, personality, wonGuk_analysis
- * - Phase 2: wealth, love, marriage, health
- * - Phase 3: career, business, sipsung_analysis, hapchung_analysis
- * - Phase 4: daeun_detail, peak_years, life_cycles, sinsal_gilseong, lucky_elements
+ *
+ * v27 변경사항 (2026-01-23):
+ * - Phase 기반 Progressive Disclosure 지원
+ *
+ * v26 변경사항 (2026-01-19):
+ * - 'incomplete' 상태 처리 추가
+ *
+ * v25 변경사항 (2026-01-14):
+ * - gpt_saju_analysis_tokens 신규 필드
+ *
+ * v24 변경사항:
+ * - OpenAI /v1/responses/{id} 직접 polling
  *
  * 사용법:
  * POST /ai-openai-result
@@ -49,7 +43,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+// v29: API Key Load Balancing - ai-openai에서 사용한 동일 키로 polling
+const API_KEYS = [
+  Deno.env.get("OPENAI_API_KEY"),
+  Deno.env.get("OPENAI_API_KEY_2"),
+  Deno.env.get("OPENAI_API_KEY_3"),
+].filter(Boolean) as string[];
+
+function getApiKeyByIndex(idx: number): string {
+  if (API_KEYS.length === 0) throw new Error("No OPENAI_API_KEY configured");
+  return API_KEYS[idx % API_KEYS.length];
+}
+
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -112,7 +117,7 @@ function parseResultToPhases(content: string): Record<string, unknown> {
       completed_phases: 4,
     };
   } catch (e) {
-    console.error("[ai-openai-result v28] Failed to parse phases:", e);
+    console.error("[ai-openai-result v29] Failed to parse phases:", e);
     // 파싱 실패 시 원본 content를 phase1에 저장
     return {
       phase1: { raw_content: content },
@@ -139,17 +144,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[ai-openai-result v28] Checking task ${task_id}`);
+    console.log(`[ai-openai-result v29] Checking task ${task_id}`);
 
     // Task 조회 (openai_response_id 포함)
     const { data: task, error } = await supabase
       .from("ai_tasks")
-      .select("id, status, openai_response_id, result_data, error_message, user_id, model, created_at, started_at, completed_at")
+      .select("id, status, openai_response_id, result_data, error_message, user_id, model, created_at, started_at, completed_at, request_data")
       .eq("id", task_id)
       .single();
 
     if (error || !task) {
-      console.log(`[ai-openai-result v28] Task ${task_id} not found`);
+      console.log(`[ai-openai-result v29] Task ${task_id} not found`);
       return new Response(
         JSON.stringify({ success: false, error: "Task not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -158,7 +163,7 @@ Deno.serve(async (req) => {
 
     // 이미 완료된 경우 캐시된 결과 반환
     if (task.status === "completed" && task.result_data) {
-      console.log(`[ai-openai-result v28] Task ${task_id}: returning cached result`);
+      console.log(`[ai-openai-result v29] Task ${task_id}: returning cached result`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -174,7 +179,7 @@ Deno.serve(async (req) => {
 
     // 이미 실패한 경우
     if (task.status === "failed") {
-      console.log(`[ai-openai-result v28] Task ${task_id}: failed - ${task.error_message}`);
+      console.log(`[ai-openai-result v29] Task ${task_id}: failed - ${task.error_message}`);
       return new Response(
         JSON.stringify({
           success: false,
@@ -187,7 +192,7 @@ Deno.serve(async (req) => {
 
     // openai_response_id가 없는 경우 (레거시 또는 오류)
     if (!task.openai_response_id) {
-      console.log(`[ai-openai-result v28] Task ${task_id}: no openai_response_id`);
+      console.log(`[ai-openai-result v29] Task ${task_id}: no openai_response_id`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -199,22 +204,25 @@ Deno.serve(async (req) => {
     }
 
     // === OpenAI Responses API 폴링 ===
-    console.log(`[ai-openai-result v28] Polling OpenAI: ${task.openai_response_id}`);
+    // v29: ai-openai에서 사용한 동일 API 키로 polling (key_index from request_data)
+    const keyIdx = task.request_data?.key_index ?? 0;
+    const apiKey = getApiKeyByIndex(keyIdx);
+    console.log(`[ai-openai-result v29] Polling OpenAI: ${task.openai_response_id} (key_index: ${keyIdx})`);
 
     const openaiResponse = await fetch(`${OPENAI_RESPONSES_URL}/${task.openai_response_id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
       },
     });
 
     const responseData = await openaiResponse.json();
-    console.log(`[ai-openai-result v28] OpenAI status: ${openaiResponse.status}`);
-    console.log(`[ai-openai-result v28] OpenAI response status: ${responseData.status}`);
+    console.log(`[ai-openai-result v29] OpenAI status: ${openaiResponse.status}`);
+    console.log(`[ai-openai-result v29] OpenAI response status: ${responseData.status}`);
 
     if (!openaiResponse.ok) {
-      console.error("[ai-openai-result v28] OpenAI API Error:", responseData);
+      console.error("[ai-openai-result v29] OpenAI API Error:", responseData);
 
       // 에러 저장
       await supabase
@@ -243,7 +251,7 @@ Deno.serve(async (req) => {
       case "queued":
       case "in_progress":
         // 아직 처리 중
-        console.log(`[ai-openai-result v28] OpenAI task ${task.openai_response_id}: ${openaiStatus}`);
+        console.log(`[ai-openai-result v29] OpenAI task ${task.openai_response_id}: ${openaiStatus}`);
 
         // v27: 경과 시간 기반 예상 Phase 계산 (UI 진행 표시용)
         // GPT-5.2 평균 처리 시간: ~60-90초, Phase당 ~15-22초
@@ -281,8 +289,8 @@ Deno.serve(async (req) => {
 
       case "completed":
         // 완료! 결과 추출
-        console.log(`[ai-openai-result v28] OpenAI task completed!`);
-        console.log(`[ai-openai-result v28] Full response keys:`, Object.keys(responseData));
+        console.log(`[ai-openai-result v29] OpenAI task completed!`);
+        console.log(`[ai-openai-result v29] Full response keys:`, Object.keys(responseData));
 
         // v24 fix: OpenAI Responses API는 output 배열 구조
         // REST API: { output: [{ type: "message", content: [{ type: "output_text", text: "..." }] }] }
@@ -290,9 +298,9 @@ Deno.serve(async (req) => {
         let outputText = "";
 
         if (responseData.output && Array.isArray(responseData.output)) {
-          console.log(`[ai-openai-result v28] output is array with ${responseData.output.length} items`);
+          console.log(`[ai-openai-result v29] output is array with ${responseData.output.length} items`);
           for (const outputItem of responseData.output) {
-            console.log(`[ai-openai-result v28] output item type: ${outputItem.type}`);
+            console.log(`[ai-openai-result v29] output item type: ${outputItem.type}`);
 
             if (outputItem.type === "message" && outputItem.content) {
               // message 타입: content 배열에서 텍스트 추출
@@ -313,15 +321,15 @@ Deno.serve(async (req) => {
           outputText = responseData.output_text;
         }
 
-        console.log(`[ai-openai-result v28] Extracted outputText length: ${outputText.length}`);
+        console.log(`[ai-openai-result v29] Extracted outputText length: ${outputText.length}`);
 
         const usage = responseData.usage || {};
 
-        console.log(`[ai-openai-result v28] Output length: ${outputText.length}`);
+        console.log(`[ai-openai-result v29] Output length: ${outputText.length}`);
 
         // v27: Phase별 데이터 파싱
         const partialResult = parseResultToPhases(outputText);
-        console.log(`[ai-openai-result v28] Parsed ${partialResult.completed_phases} phases`);
+        console.log(`[ai-openai-result v29] Parsed ${partialResult.completed_phases} phases`);
 
         // ai_tasks 결과 저장 (캐싱) + Phase 정보
         await supabase
@@ -405,7 +413,7 @@ Deno.serve(async (req) => {
           partialText = responseData.output_text;
         }
 
-        console.log(`[ai-openai-result v28] Extracted partialText length: ${partialText.length}`);
+        console.log(`[ai-openai-result v29] Extracted partialText length: ${partialText.length}`);
 
         // 부분 콘텐츠가 있으면 성공으로 처리
         if (partialText.length > 0) {
@@ -413,7 +421,7 @@ Deno.serve(async (req) => {
 
           // v27: Phase별 데이터 파싱 (incomplete이어도 시도)
           const incompletePartialResult = parseResultToPhases(partialText);
-          console.log(`[ai-openai-result v28] Parsed ${incompletePartialResult.completed_phases} phases (incomplete)`);
+          console.log(`[ai-openai-result v29] Parsed ${incompletePartialResult.completed_phases} phases (incomplete)`);
 
           // ai_tasks 결과 저장 (부분 완료로 캐싱) + Phase 정보
           await supabase
@@ -494,7 +502,7 @@ Deno.serve(async (req) => {
       case "failed":
       case "cancelled":
         // 실패 또는 취소
-        console.log(`[ai-openai-result v28] OpenAI task ${openaiStatus}: ${responseData.error?.message}`);
+        console.log(`[ai-openai-result v29] OpenAI task ${openaiStatus}: ${responseData.error?.message}`);
 
         const errorMessage = responseData.error?.message || `Task ${openaiStatus}`;
 
@@ -517,7 +525,7 @@ Deno.serve(async (req) => {
         );
 
       default:
-        console.log(`[ai-openai-result v28] Unknown OpenAI status: ${openaiStatus}`);
+        console.log(`[ai-openai-result v29] Unknown OpenAI status: ${openaiStatus}`);
         return new Response(
           JSON.stringify({
             success: true,
@@ -528,7 +536,7 @@ Deno.serve(async (req) => {
         );
     }
   } catch (error) {
-    console.error("[ai-openai-result v28] Error:", error);
+    console.error("[ai-openai-result v29] Error:", error);
 
     return new Response(
       JSON.stringify({
