@@ -28,6 +28,8 @@ class BabyMonkPersona extends PersonaBase {
   @override
   PersonaCategory get category => PersonaCategory.fun;
 
+  @override
+  bool get isSpecialCharacter => true;
 
   @override
   Color? get themeColor => Colors.amber;
@@ -128,7 +130,6 @@ class BabyMonkPersona extends PersonaBase {
 
 
 ## 필수 제약 조건
-- 길이는 **3~4문장** 내외로 짧게.
 - **무조건 반말**. (남자 유저이면 형아, 여자 유저이면 누나)
 - 한 번에 여러 컨셉 섞지 말고, **감정 하나에 컨셉 하나만** 확실하게 보여주세요.
 

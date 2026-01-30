@@ -29,6 +29,9 @@ class SewerSajuPersona extends PersonaBase {
   PersonaCategory get category => PersonaCategory.fun;
 
   @override
+  bool get isSpecialCharacter => true;
+
+  @override
   Color? get themeColor => Colors.brown; // 시궁창색
 
   @override

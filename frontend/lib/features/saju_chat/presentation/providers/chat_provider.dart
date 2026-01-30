@@ -1167,18 +1167,34 @@ class ChatNotifier extends _$ChatNotifier {
       final cleanedContent = parseResult.cleanedContent;
       final suggestedQuestions = parseResult.suggestedQuestions;
 
-      // [6] 후속 질문 추출
+      // [6] 후속 질문 추출 - 디버그 강화
       if (kDebugMode) {
         print('');
-        print('┌──────────────────────────────────────────────────────────────┐');
-        print('│  💡 [6] SUGGESTED QUESTIONS                                  │');
-        print('└──────────────────────────────────────────────────────────────┘');
+        print('╔═══════════════════════════════════════════════════════════════╗');
+        print('║  💡 [6] SUGGESTED QUESTIONS 파싱 결과                         ║');
+        print('╚═══════════════════════════════════════════════════════════════╝');
+
+        // 원본 응답에서 태그 존재 여부 확인
+        final hasOpenTag = fullContent.contains('[SUGGESTED_QUESTIONS]');
+        final hasCloseTag = fullContent.contains('[/SUGGESTED_QUESTIONS]');
+        print('   🔍 태그 존재: 열림=$hasOpenTag, 닫힘=$hasCloseTag');
+
+        // 응답 마지막 500자 출력 (태그 확인용)
+        final lastPart = fullContent.length > 500
+            ? fullContent.substring(fullContent.length - 500)
+            : fullContent;
+        print('   📝 응답 마지막 500자:');
+        print('   ---');
+        print('   $lastPart');
+        print('   ---');
+
         if (suggestedQuestions != null && suggestedQuestions.isNotEmpty) {
+          print('   ✅ 파싱된 질문 ${suggestedQuestions.length}개:');
           for (int i = 0; i < suggestedQuestions.length; i++) {
-            print('   ${i + 1}. ${suggestedQuestions[i]}');
+            print('      ${i + 1}. ${suggestedQuestions[i]}');
           }
         } else {
-          print('   (없음)');
+          print('   ❌ 파싱된 질문 없음 (기본 질문 사용됨)');
         }
       }
 

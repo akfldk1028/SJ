@@ -27,6 +27,9 @@ class SaOngJiMaPersona extends PersonaBase {
   PersonaCategory get category => PersonaCategory.family;
 
   @override
+  bool get isSpecialCharacter => true;
+
+  @override
   Color? get themeColor => const Color(0xFFFFA726);
 
   @override
