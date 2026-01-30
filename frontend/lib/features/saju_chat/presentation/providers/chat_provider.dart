@@ -570,6 +570,25 @@ class ChatNotifier extends _$ChatNotifier {
     }
     _isSendingMessage = true;
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 토큰 이미 소진 상태 체크 (광고 모드 활성화)
+    // - 100% 소진이면 광고 모드 활성화 후 메시지 전송 중단
+    // ═══════════════════════════════════════════════════════════════════════════
+    final currentTokenUsage = _repository.getTokenUsageInfo();
+    if (currentTokenUsage.usageRate >= 1.0) {
+      final selectedPersona = ref.read(chatPersonaNotifierProvider);
+      ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
+        tokenUsage: currentTokenUsage,
+        messageCount: state.messages.length,
+        persona: _mapToAiPersona(selectedPersona),
+      );
+      _isSendingMessage = false;
+      if (kDebugMode) {
+        print('⚠️ [CHAT] 토큰 소진 - 광고 모드 활성화');
+      }
+      return;
+    }
+
     // Realtime 중복 방지 플래그 설정
     _isProcessingMessage = true;
 

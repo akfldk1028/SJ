@@ -22,6 +22,7 @@ abstract class Routes {
 
   // Fortune
   static const String dailyFortuneDetail = '/fortune/daily';
+  static const String categoryFortuneDetail = '/fortune/daily/category';
   static const String monthlyFortune = '/fortune/monthly';
   static const String newYearFortune = '/fortune/new-year';
   static const String yearly2025Fortune = '/fortune/yearly-2025';

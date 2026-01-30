@@ -17,14 +17,14 @@ import 'features/profile/data/repositories/profile_repository_impl.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 상태바/네비게이션바 색상을 기본 테마 배경색으로 설정
-  // 앱 실행 후 테마에 맞게 다시 설정됨 (app.dart의 _applySystemUiStyle)
-  const defaultBackgroundColor = Color(0xFF0A0A0F); // 기본 다크 테마 배경색
+  // Manual 모드: 상태바만 표시, 하단 네비게이션 바 숨김
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: [SystemUiOverlay.top],
+  );
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: defaultBackgroundColor,
+    statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: defaultBackgroundColor,
-    systemNavigationBarIconBrightness: Brightness.light,
   ));
 
   // 환경변수 로드

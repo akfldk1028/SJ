@@ -205,7 +205,8 @@ class PosstellerStyleTable extends StatelessWidget {
         if (r == null) return _buildEmptyCell(context);
         // 지장간 한글로 표시 (포스텔러 스타일)
         final jijangganStr = r.jijangganString;
-        return _buildTextCell(context, jijangganStr, AppColors.textSecondary);
+        final theme = context.appTheme;
+        return _buildTextCell(context, jijangganStr, theme.textSecondary);
       }).toList(),
     );
   }
@@ -359,7 +360,8 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 십성 셀
   Widget _buildSipsinCell(BuildContext context, String text, SipSin? sipsin) {
-    final color = sipsin != null ? _getSipsinColor(sipsin) : AppColors.textSecondary;
+    final theme = context.appTheme;
+    final color = sipsin != null ? _getSipsinColor(sipsin) : theme.textSecondary;
 
     return Expanded(
       child: Center(

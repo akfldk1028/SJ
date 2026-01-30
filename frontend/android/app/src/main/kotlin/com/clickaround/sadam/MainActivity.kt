@@ -1,4 +1,4 @@
-package com.example.frontend
+package com.clickaround.sadam
 
 import android.graphics.Color
 import android.os.Bundle
@@ -8,8 +8,8 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 상태바 색상을 앱 배경색과 동일하게 설정 (#0A0A0F)
-        window.statusBarColor = Color.parseColor("#0A0A0F")
-        window.navigationBarColor = Color.parseColor("#0A0A0F")
+        // Edge-to-Edge: 시스템 바 투명으로 설정
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
     }
 }

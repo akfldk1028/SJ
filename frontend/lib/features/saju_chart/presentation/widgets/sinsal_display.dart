@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/twelve_sinsal.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
 
@@ -18,7 +19,8 @@ class SinsalBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getSinsalColor(sinsal);
+    final theme = context.appTheme;
+    final color = _getSinsalColor(sinsal, theme);
     final fontSize = _getFontSize();
     final padding = _getPadding();
 
@@ -89,12 +91,12 @@ class SinsalBadge extends StatelessWidget {
   }
 
   /// 신살별 색상 (길흉 기반)
-  Color _getSinsalColor(TwelveSinsal sinsal) {
+  Color _getSinsalColor(TwelveSinsal sinsal, AppThemeExtension theme) {
     return switch (sinsal.fortuneType) {
       '길' => AppColors.success, // 녹색
       '길흉혼합' => AppColors.accent, // 파란색
       '흉' => AppColors.error, // 빨간색
-      _ => AppColors.textSecondary,
+      _ => theme.textSecondary,
     };
   }
 }
@@ -111,11 +113,13 @@ class SinsalTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -123,19 +127,19 @@ class SinsalTable extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceHover,
+              color: theme.surfaceHover,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(11),
               ),
             ),
             child: Row(
-              children: const [
+              children: [
                 Expanded(
                   flex: 2,
                   child: Text(
                     '궁성',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -146,7 +150,7 @@ class SinsalTable extends StatelessWidget {
                   child: Text(
                     '지지',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -158,7 +162,7 @@ class SinsalTable extends StatelessWidget {
                   child: Text(
                     '12신살',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -170,7 +174,7 @@ class SinsalTable extends StatelessWidget {
                   child: Text(
                     '길흉',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: theme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -181,22 +185,22 @@ class SinsalTable extends StatelessWidget {
             ),
           ),
           // 데이터 행
-          _buildRow(context, result.yearResult, isLast: false),
-          _buildDivider(),
-          _buildRow(context, result.monthResult, isLast: false),
-          _buildDivider(),
-          _buildRow(context, result.dayResult, isLast: result.hourResult == null),
+          _buildRow(context, theme, result.yearResult, isLast: false),
+          _buildDivider(theme),
+          _buildRow(context, theme, result.monthResult, isLast: false),
+          _buildDivider(theme),
+          _buildRow(context, theme, result.dayResult, isLast: result.hourResult == null),
           if (result.hourResult != null) ...[
-            _buildDivider(),
-            _buildRow(context, result.hourResult!, isLast: true),
+            _buildDivider(theme),
+            _buildRow(context, theme, result.hourResult!, isLast: true),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildRow(BuildContext context, TwelveSinsalResult item, {required bool isLast}) {
-    final color = _getSinsalColor(item.sinsal);
+  Widget _buildRow(BuildContext context, AppThemeExtension theme, TwelveSinsalResult item, {required bool isLast}) {
+    final color = _getSinsalColor(item.sinsal, theme);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -212,8 +216,8 @@ class SinsalTable extends StatelessWidget {
             flex: 2,
             child: Text(
               item.pillarName,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: theme.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -227,14 +231,14 @@ class SinsalTable extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceHover,
+                  color: theme.surfaceHover,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Center(
                   child: Text(
                     item.jiji,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: theme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -290,19 +294,19 @@ class SinsalTable extends StatelessWidget {
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(
+  Widget _buildDivider(AppThemeExtension theme) {
+    return Divider(
       height: 1,
-      color: AppColors.border,
+      color: theme.border,
     );
   }
 
-  Color _getSinsalColor(TwelveSinsal sinsal) {
+  Color _getSinsalColor(TwelveSinsal sinsal, AppThemeExtension theme) {
     return switch (sinsal.fortuneType) {
       '길' => AppColors.success,
       '길흉혼합' => AppColors.accent,
       '흉' => AppColors.error,
-      _ => AppColors.textSecondary,
+      _ => theme.textSecondary,
     };
   }
 }
@@ -315,6 +319,7 @@ class SinsalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final items = [
       result.hourResult,
       result.dayResult,
@@ -325,18 +330,18 @@ class SinsalRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 50,
             child: Text(
               '12신살',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: theme.textMuted,
                 fontSize: 10,
               ),
             ),
@@ -348,10 +353,10 @@ class SinsalRow extends StatelessWidget {
                           sinsal: item.sinsal,
                           size: SinsalBadgeSize.small,
                         )
-                      : const Text(
+                      : Text(
                           '-',
                           style: TextStyle(
-                            color: AppColors.textMuted,
+                            color: theme.textMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -371,15 +376,16 @@ class SinsalDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getSinsalColor(result.sinsal);
+    final theme = context.appTheme;
+    final color = _getSinsalColor(result.sinsal, theme);
     final interpretation = TwelveSinsalService.getDetailedInterpretation(result.sinsal);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,8 +411,8 @@ class SinsalDetailCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${result.jiji}(地支)',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: theme.textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -435,8 +441,8 @@ class SinsalDetailCard extends StatelessWidget {
           Center(
             child: Text(
               result.sinsal.meaning,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: theme.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -446,13 +452,13 @@ class SinsalDetailCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               interpretation,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: theme.textSecondary,
                 fontSize: 13,
                 height: 1.6,
               ),
@@ -520,12 +526,12 @@ class SinsalDetailCard extends StatelessWidget {
     );
   }
 
-  Color _getSinsalColor(TwelveSinsal sinsal) {
+  Color _getSinsalColor(TwelveSinsal sinsal, AppThemeExtension theme) {
     return switch (sinsal.fortuneType) {
       '길' => AppColors.success,
       '길흉혼합' => AppColors.accent,
       '흉' => AppColors.error,
-      _ => AppColors.textSecondary,
+      _ => theme.textSecondary,
     };
   }
 }
@@ -538,12 +544,14 @@ class SinsalSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,10 +561,10 @@ class SinsalSummaryCard extends StatelessWidget {
             children: [
               const Icon(Icons.auto_awesome, size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 '신살 요약',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -564,8 +572,8 @@ class SinsalSummaryCard extends StatelessWidget {
               const Spacer(),
               Text(
                 '기준: ${result.baseType}(${result.baseJi})',
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: theme.textMuted,
                   fontSize: 11,
                 ),
               ),
@@ -587,24 +595,24 @@ class SinsalSummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '주요 신살',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: theme.textMuted,
                     fontSize: 11,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   result.summary,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: theme.textPrimary,
                     fontSize: 13,
                     height: 1.5,
                   ),
