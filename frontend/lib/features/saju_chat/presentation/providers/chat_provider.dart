@@ -592,8 +592,12 @@ class ChatNotifier extends _$ChatNotifier {
       }
 
       // 6. 완전한 시스템 프롬프트 생성 (궁합 데이터 포함)
+      // 궁합 모드면 compatibility.md 로드, 아니면 general.md
+      final restoreBasePrompt = targetProfile != null
+          ? await _loadSystemPrompt(ChatType.compatibility)
+          : await _loadSystemPrompt(ChatType.general);
       final fullPrompt = _buildFullSystemPrompt(
-        basePrompt: personaPrompt,
+        basePrompt: restoreBasePrompt,
         aiSummary: aiSummary,
         sajuAnalysis: person1SajuAnalysis,  // v7.2: 나 제외 모드 시 person1의 사주
         profile: person1Profile,  // v7.2: 나 제외 모드 시 person1의 프로필
@@ -767,7 +771,31 @@ class ChatNotifier extends _$ChatNotifier {
         print('   📌 하위 호환 모드: person1=$person1Id, person2=$person2Id, isCompatibilityMode=$isCompatibilityMode');
       }
     } else {
-      if (kDebugMode) {
+      // v8.0: 명시적 ID가 없어도 chat_mentions에서 궁합 복원 시도
+      // (두 번째 이후 메시지에서 UI가 participantIds를 전달하지 못하는 문제 대응)
+      try {
+        final mentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+        if (mentions is List && mentions.length >= 2) {
+          person1Id = mentions[0]['target_profile_id'] as String?;
+          person2Id = mentions[1]['target_profile_id'] as String?;
+          if (person1Id != null && person2Id != null) {
+            isCompatibilityMode = true;
+            if (kDebugMode) {
+              print('   ✅ chat_mentions에서 궁합 자동 복원: person1=$person1Id, person2=$person2Id');
+            }
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('   ⚠️ chat_mentions 자동 복원 실패: $e');
+        }
+      }
+
+      if (!isCompatibilityMode && kDebugMode) {
         print('   📝 일반 채팅 모드 (궁합 아님)');
         print('      effectiveParticipantIds: $effectiveParticipantIds');
         print('      compatibilityParticipantIds: $compatibilityParticipantIds');
@@ -857,7 +885,9 @@ class ChatNotifier extends _$ChatNotifier {
 
     try {
       // MD 파일에서 시스템 프롬프트 로드
-      final basePrompt = await _loadSystemPrompt(chatType);
+      // 궁합 모드면 compatibility.md 로드 (chatType이 general이어도)
+      final effectiveChatType = isCompatibilityMode ? ChatType.compatibility : chatType;
+      final basePrompt = await _loadSystemPrompt(effectiveChatType);
 
       // 현재 페르소나 가져오기
       final currentPersonaPrompt = ref.read(finalSystemPromptProvider);

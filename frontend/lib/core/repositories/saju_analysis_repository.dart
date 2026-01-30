@@ -44,16 +44,37 @@ class SajuAnalysisRepository {
 
   /// 프로필 ID로 분석 결과 조회
   Future<SajuAnalysis?> getByProfileId(String profileId) async {
-    if (_client == null) return null;
+    if (_client == null) {
+      print('[SajuAnalysisRepo] ❌ getByProfileId($profileId): _client is null');
+      return null;
+    }
 
-    final response = await _client
-        .from(_tableName)
-        .select()
-        .eq('profile_id', profileId)
-        .maybeSingle();
+    try {
+      final response = await _client
+          .from(_tableName)
+          .select()
+          .eq('profile_id', profileId)
+          .maybeSingle();
 
-    if (response == null) return null;
-    return _fromSupabaseMap(response);
+      if (response == null) {
+        print('[SajuAnalysisRepo] ⚠️ getByProfileId($profileId): 데이터 없음 (null)');
+        return null;
+      }
+
+      print('[SajuAnalysisRepo] ✅ getByProfileId($profileId): 데이터 발견');
+      print('   year_gan=${response['year_gan']}, year_ji=${response['year_ji']}');
+      print('   month_gan=${response['month_gan']}, month_ji=${response['month_ji']}');
+      print('   day_gan=${response['day_gan']}, day_ji=${response['day_ji']}');
+      print('   hour_gan=${response['hour_gan']}, hour_ji=${response['hour_ji']}');
+
+      final result = _fromSupabaseMap(response);
+      print('   파싱 완료: ${result.chart.yearPillar.gan}${result.chart.yearPillar.ji} ${result.chart.monthPillar.gan}${result.chart.monthPillar.ji} ${result.chart.dayPillar.gan}${result.chart.dayPillar.ji} ${result.chart.hourPillar?.gan ?? '?'}${result.chart.hourPillar?.ji ?? '?'}');
+      return result;
+    } catch (e, st) {
+      print('[SajuAnalysisRepo] ❌ getByProfileId($profileId) 오류: $e');
+      print('   스택: ${st.toString().split('\n').take(3).join('\n   ')}');
+      return null;
+    }
   }
 
   /// 분석 존재 여부 확인
