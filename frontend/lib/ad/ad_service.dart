@@ -157,6 +157,8 @@ class AdService {
               ad.dispose();
               _interstitialAd = null;
               _isInterstitialLoaded = false;
+              // 표시 실패 시에도 재로드 → 다음 기회에 사용 가능
+              loadInterstitialAd();
             },
             onAdImpression: (ad) {
               debugPrint('[AdService] Interstitial impression');

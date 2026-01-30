@@ -44,6 +44,13 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
   NativeAd? _nativeAd;
   RewardedAd? _rewardedAd;
 
+  /// 토큰 경고 스킵 후 쿨다운 카운터 (0이면 쿨다운 아님)
+  /// 스킵할 때마다 tokenWarningCooldownMessages로 설정, 매 체크마다 1씩 감소
+  int _tokenWarningCooldown = 0;
+
+  /// 이번 대화에서 보여준 인터벌 광고 수 (대화 세션 동안 유지)
+  int _shownAdCount = 0;
+
   @override
   ConversationalAdModel build() {
     // Provider dispose 시 광고 정리
@@ -51,6 +58,10 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       _nativeAd?.dispose();
       _rewardedAd?.dispose();
     });
+
+    // 새 세션이면 카운터 리셋
+    _tokenWarningCooldown = 0;
+    _shownAdCount = 0;
 
     return const ConversationalAdModel();
   }
@@ -76,10 +87,17 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       return AdTriggerResult.none;
     }
 
-    // 트리거 체크
+    // 쿨다운 감소 (매 체크마다)
+    if (_tokenWarningCooldown > 0) {
+      _tokenWarningCooldown--;
+    }
+
+    // 트리거 체크 (쿨다운 상태 + 광고 카운터 전달)
     final trigger = AdTriggerService.checkTrigger(
       tokenUsage: tokenUsage,
       messageCount: messageCount,
+      tokenWarningOnCooldown: _tokenWarningCooldown > 0,
+      shownAdCount: _shownAdCount,
     );
 
     if (trigger == AdTriggerResult.none) {
@@ -145,8 +163,10 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
 
     state = state.copyWith(loadState: AdLoadState.loading);
 
-    // 토큰 소진 시 보상형 광고, 그 외 네이티브 광고
-    if (adType == AdMessageType.tokenDepleted) {
+    // 토큰 관련(소진/경고) → 보상형 광고 (높은 eCPM + 유저 동기 높음)
+    // 인터벌 → 네이티브 광고 (자연스러운 노출)
+    if (adType == AdMessageType.tokenDepleted ||
+        adType == AdMessageType.tokenNearLimit) {
       _loadRewardedAd();
     } else {
       _loadNativeAd();
@@ -173,22 +193,30 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
           }
           ad.dispose();
           _nativeAd = null;
-          state = state.copyWith(
-            loadState: AdLoadState.failed,
-            errorMessage: error.message,
-          );
+          // 로드 실패 시 광고 모드 자동 해제 → 다음 트리거에서 재시도 가능
+          state = const ConversationalAdModel();
+          if (kDebugMode) {
+            print('   🔄 [AD] Load failed → ad mode auto-dismissed');
+          }
         },
         onAdClicked: (ad) {
           if (kDebugMode) {
-            print('   👆 [AD] Native ad clicked');
+            print('   👆 [AD] Native ad clicked → token reward!');
           }
+          // 클릭 시에만 광고 시청 완료 처리 (수익 극대화)
+          // impression만으로는 토큰 미지급 → 클릭 유도
+          _onAdClicked();
         },
         onAdImpression: (ad) {
           if (kDebugMode) {
-            print('   👁️ [AD] Native ad impression');
+            print('   👁️ [AD] Native ad impression (no token reward)');
           }
-          // 인상 기록 시 광고 시청 완료 처리
-          _onAdImpression();
+          // impression만으로는 토큰 미지급
+          // 광고 카운터만 증가 (빈도 제어용)
+          _shownAdCount++;
+          if (kDebugMode) {
+            print('   📊 [AD] shownAdCount: $_shownAdCount');
+          }
         },
       ),
       nativeTemplateStyle: NativeTemplateStyle(
@@ -236,10 +264,11 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
           if (kDebugMode) {
             print('   ❌ [AD] Rewarded ad failed: ${error.message}');
           }
-          state = state.copyWith(
-            loadState: AdLoadState.failed,
-            errorMessage: error.message,
-          );
+          // 로드 실패 시 광고 모드 자동 해제 → stuck 방지
+          state = const ConversationalAdModel();
+          if (kDebugMode) {
+            print('   🔄 [AD] Rewarded load failed → ad mode auto-dismissed');
+          }
         },
       ),
     );
@@ -283,7 +312,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         await AdTrackingService.instance.trackRewarded(
           rewardAmount: reward.amount.toInt(),
           rewardType: reward.type,
-          screen: 'saju_chat_token_depleted',
+          screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
           purpose: AdPurpose.tokenBonus,
         );
 
@@ -294,11 +323,22 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     return completer.future;
   }
 
-  /// 광고 인상 처리
-  void _onAdImpression() {
-    // 필수 광고가 아니면 인상만으로 시청 완료
+  /// 광고 클릭 처리 (Native 광고 클릭 시 토큰 보상)
+  ///
+  /// impression이 아닌 클릭에만 토큰 지급
+  /// → CPC 수익 극대화 ($0.10~0.50/click vs $0.001~0.003/impression)
+  void _onAdClicked() {
     if (state.adType != AdMessageType.tokenDepleted) {
       state = state.copyWith(adWatched: true);
+
+      // Supabase에 클릭 이벤트 추적 (수익 분석용)
+      AdTrackingService.instance.trackNativeClick(
+        screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+      );
+
+      if (kDebugMode) {
+        print('   💰 [AD] Native ad CLICKED → adWatched=true, tokens earned!');
+      }
     }
   }
 
@@ -331,6 +371,16 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     // 필수 광고는 스킵 불가
     if (state.adType == AdMessageType.tokenDepleted) {
       return false;
+    }
+
+    // 토큰 경고 광고를 스킵한 경우 쿨다운 설정
+    // → 다음 N개 메시지 동안 토큰 경고 억제 → 인터벌 광고 기회
+    // → 쿨다운 끝나면 다시 토큰 경고 발동 (계속 압박)
+    if (state.adType == AdMessageType.tokenNearLimit) {
+      _tokenWarningCooldown = AdTriggerService.tokenWarningCooldownMessages;
+      if (kDebugMode) {
+        print('   ⏭️ [AD] Token warning skipped → cooldown ${_tokenWarningCooldown} messages');
+      }
     }
 
     dismissAd();
