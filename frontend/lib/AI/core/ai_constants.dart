@@ -550,7 +550,9 @@ abstract class PromptVersions {
   ///         Phase 3: 5000 → 10000
   ///         Phase 4: 4000 → 8000
   /// - V9.6 (2026-01-31): 전성기(peakYears) 광고 잠금 추가, AI 폴더 구조 정리
-  static const String sajuBase = 'V9.7';
+  /// - V9.8 (2026-02-01): 중년운/말년운/청년운 상세도 확장 (3-4문장 → 6-8문장)
+  ///         각 카테고리별 구체적 콘텐츠 가이드 추가 (광고 잠금 콘텐츠 보강)
+  static const String sajuBase = 'V9.8';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)
@@ -577,7 +579,9 @@ abstract class PromptVersions {
   /// - V5.0 (2026-01-24): 12개월 확장 - highlights(career/wealth/love), lucky, reading 6-8문장
   /// - V5.1 (2026-01-24): lucky 제거, business 추가, idiom(사자성어) 추가
   /// - V5.2 (2026-01-31): 카테고리 그리드 펼치기 UI 개선
-  static const String monthlyFortune = 'V5.3';
+  /// - V5.4 (2026-02-01): 비현재월 상세도 확장 (3-4문장 → 8-10문장)
+  ///         시스템 프롬프트와 JSON 스키마 문장 수 불일치 수정 (광고 잠금 콘텐츠 보강)
+  static const String monthlyFortune = 'V5.4';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 년운 (yearly_fortune)

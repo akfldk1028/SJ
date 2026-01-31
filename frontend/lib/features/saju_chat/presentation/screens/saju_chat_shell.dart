@@ -853,7 +853,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             }
             // 일반 에러
             if (chatState.error != null) {
-              return ErrorBanner(message: chatState.error!);
+              return ErrorBanner(
+                message: chatState.error!,
+                onDismiss: () {
+                  ref.read(chatNotifierProvider(currentSessionId!).notifier).clearError();
+                },
+              );
             }
             return const SizedBox.shrink();
           },

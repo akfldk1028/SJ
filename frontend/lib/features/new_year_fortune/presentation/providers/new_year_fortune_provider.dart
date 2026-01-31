@@ -505,21 +505,30 @@ class NewYearFortune extends _$NewYearFortune {
     return null;
   }
 
+  /// 폴링 시도 횟수
+  int _pollAttempts = 0;
+
+  /// 최대 폴링 횟수 (3초 × 100 = 5분)
+  static const int _maxPollAttempts = 100;
+
   /// DB 폴링 시작 (AI 분석 완료 감지)
   void _startPolling(String profileId) {
     if (_isPolling) return;
     _isPolling = true;
+    _pollAttempts = 0;
 
-    print('[NewYearFortune] 폴링 시작 - 3초마다 DB 확인');
+    print('[NewYearFortune] 폴링 시작 - 3초마다 DB 확인 (최대 ${_maxPollAttempts}회)');
     _pollForData(profileId);
   }
 
-  /// 주기적으로 DB 확인
+  /// 주기적으로 DB 확인 (최대 _maxPollAttempts 회)
   Future<void> _pollForData(String profileId) async {
     if (!_isPolling) return;
 
     await Future.delayed(const Duration(seconds: 3));
     if (!_isPolling) return;
+
+    _pollAttempts++;
 
     // 오프라인 모드 체크
     if (!SupabaseService.isConnected) {
@@ -531,13 +540,17 @@ class NewYearFortune extends _$NewYearFortune {
     final result = await queries.getCached(profileId);
 
     if (result != null && result['content'] != null) {
-      print('[NewYearFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신');
+      print('[NewYearFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
       _isPolling = false;
       _isAnalyzing = false;
       ref.invalidateSelf();
+    } else if (_pollAttempts >= _maxPollAttempts) {
+      print('[NewYearFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 중지');
+      _isPolling = false;
+      _isAnalyzing = false;
     } else {
       // 데이터 없으면 계속 폴링
-      print('[NewYearFortune] 폴링 중 - 데이터 아직 없음');
+      print('[NewYearFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
       _pollForData(profileId);
     }
   }

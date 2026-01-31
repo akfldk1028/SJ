@@ -9,6 +9,9 @@ class WindowedConversation {
   /// 제거된 메시지 수
   final int removedCount;
 
+  /// 제거된 원본 메시지 (요약 생성용)
+  final List<Map<String, dynamic>> removedMessages;
+
   /// 현재 총 토큰 수 (추정)
   final int estimatedTokens;
 
@@ -21,6 +24,7 @@ class WindowedConversation {
   const WindowedConversation({
     required this.messages,
     required this.removedCount,
+    required this.removedMessages,
     required this.estimatedTokens,
     required this.wasTrimmed,
     this.summarizedContext,
@@ -99,6 +103,7 @@ class ConversationWindowManager {
       return WindowedConversation(
         messages: messages,
         removedCount: 0,
+        removedMessages: const [],
         estimatedTokens: _systemPromptTokens + newMessageTokens,
         wasTrimmed: false,
       );
@@ -118,6 +123,7 @@ class ConversationWindowManager {
       return WindowedConversation(
         messages: [],
         removedCount: messages.length,
+        removedMessages: List.from(messages),
         estimatedTokens: _systemPromptTokens + newMessageTokens,
         wasTrimmed: true,
       );
@@ -153,6 +159,9 @@ class ConversationWindowManager {
 
     final removedCount = messages.length - resultMessages.length;
     final wasTrimmed = removedCount > 0;
+    final removedMessages = wasTrimmed
+        ? messages.sublist(0, removedCount)
+        : const <Map<String, dynamic>>[];
 
     if (kDebugMode && wasTrimmed) {
       print('[ConversationWindow] 트리밍: $removedCount개 메시지 제거');
@@ -162,6 +171,7 @@ class ConversationWindowManager {
     return WindowedConversation(
       messages: resultMessages,
       removedCount: removedCount,
+      removedMessages: removedMessages,
       estimatedTokens: currentTokens + _systemPromptTokens + newMessageTokens,
       wasTrimmed: wasTrimmed,
     );
