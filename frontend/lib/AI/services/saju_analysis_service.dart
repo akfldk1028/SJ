@@ -87,12 +87,12 @@ import '../data/queries.dart';
 import '../fortune/common/fortune_input_data.dart';
 import '../fortune/daily/daily_service.dart';
 import '../fortune/fortune_coordinator.dart';
-import '../prompts/prompt_template.dart';
-import '../prompts/saju_base_prompt.dart';
-import '../prompts/saju_base_phase1_prompt.dart';
-import '../prompts/saju_base_phase2_prompt.dart';
-import '../prompts/saju_base_phase3_prompt.dart';
-import '../prompts/saju_base_phase4_prompt.dart';
+import '../fortune/common/prompt_template.dart';
+import '../fortune/lifetime/lifetime_prompt.dart';
+import '../fortune/lifetime/lifetime_phase1_prompt.dart';
+import '../fortune/lifetime/lifetime_phase2_prompt.dart';
+import '../fortune/lifetime/lifetime_phase3_prompt.dart';
+import '../fortune/lifetime/lifetime_phase4_prompt.dart';
 import 'ai_api_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════

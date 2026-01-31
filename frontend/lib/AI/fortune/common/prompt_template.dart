@@ -4,7 +4,7 @@
 /// 모든 AI 프롬프트의 기본 인터페이스와 공통 데이터 모델을 정의합니다.
 ///
 /// ## 파일 위치
-/// `frontend/lib/AI/prompts/prompt_template.dart`
+/// `frontend/lib/AI/fortune/common/prompt_template.dart`
 ///
 /// ## 핵심 클래스
 /// - `PromptTemplate`: 프롬프트 템플릿 추상 클래스

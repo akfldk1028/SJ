@@ -18,9 +18,9 @@
 /// ## 병렬 실행
 /// Phase 2와 병렬 실행 가능 (둘 다 Phase 1에만 의존)
 
-import '../core/ai_constants.dart';
-import 'prompt_template.dart';
-import 'saju_base_prompt.dart';
+import '../../core/ai_constants.dart';
+import '../common/prompt_template.dart';
+import 'lifetime_prompt.dart';
 
 /// Phase 3: Special 프롬프트
 ///

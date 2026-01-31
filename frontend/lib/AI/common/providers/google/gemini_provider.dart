@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import '../../core/ai_config.dart';
-import '../../core/ai_logger.dart';
-import '../../core/base_provider.dart';
+import '../../../core/ai_config.dart';
+import '../../../core/ai_simple_logger.dart';
+import '../../../core/base_provider.dart';
 
 /// Gemini 3.0 추론 레벨 (thinking_level)
 enum ThinkingLevel { none, low, medium, high }

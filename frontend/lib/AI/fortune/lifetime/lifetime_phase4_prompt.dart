@@ -16,9 +16,9 @@
 /// ## 예상 시간
 /// 45-60초
 
-import '../core/ai_constants.dart';
-import 'prompt_template.dart';
-import 'saju_base_prompt.dart';
+import '../../core/ai_constants.dart';
+import '../common/prompt_template.dart';
+import 'lifetime_prompt.dart';
 
 /// Phase 4: Synthesis 프롬프트
 ///

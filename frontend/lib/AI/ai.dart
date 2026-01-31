@@ -2,17 +2,19 @@
 // GPT + Gemini + DALL-E + Imagen 통합 AI 시스템
 //
 // 폴더 구조:
-// - common/  : 공통 코드 (core, providers, pipelines, prompts)
+// - core/    : 설정, 로거, 캐시, 상수
+// - common/  : 공통 코드 (providers, pipelines, prompts)
+// - fortune/ : 운세 프롬프트 통합 (lifetime, daily, monthly, yearly)
 // - jh/      : JH 전용 개발 영역
 // - jina/    : Jina 전용 개발 영역
 
 // ═══════════════════════════════════════════════════════════════
-// Common - Core
+// Core - 설정, 로거, 캐시
 // ═══════════════════════════════════════════════════════════════
-export 'common/core/ai_config.dart';
-export 'common/core/ai_cache.dart';
-export 'common/core/ai_logger.dart';
-export 'common/core/base_provider.dart';
+export 'core/ai_config.dart';
+export 'core/ai_cache.dart';
+export 'core/ai_simple_logger.dart';
+export 'core/base_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // Common - LLM Providers
@@ -52,8 +54,8 @@ export 'jina/jina.dart';
 // AI Analysis - 프로필 저장 시 백그라운드 분석
 // ═══════════════════════════════════════════════════════════════
 export 'core/ai_constants.dart';
-export 'prompts/prompt_template.dart';
-export 'prompts/saju_base_prompt.dart';
+export 'fortune/common/prompt_template.dart';
+export 'fortune/lifetime/lifetime_prompt.dart';
 // daily_fortune_prompt.dart → fortune/daily/daily_prompt.dart로 이동됨 (v7.0)
 export 'data/queries.dart';
 export 'data/mutations.dart';
@@ -79,7 +81,3 @@ export 'fortune/yearly_2026/yearly_2026_service.dart';
 export 'services/compatibility_calculator.dart';
 export 'services/compatibility_analysis_service.dart';
 
-// Phase 50: 다중 궁합 - 제거됨 (궁합은 항상 2명만)
-// 사주 궁합은 1:1만 가능 (합충형해파는 두 사람 간의 관계)
-// export 'services/multi_compatibility_calculator.dart';      // DEPRECATED
-// export 'services/multi_compatibility_analysis_service.dart'; // DEPRECATED

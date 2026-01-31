@@ -19,7 +19,7 @@
 /// - 프롬프트 강화로 6-8문장 상세 응답 유도
 
 import '../../core/ai_constants.dart';
-import '../../prompts/prompt_template.dart';
+import '../common/prompt_template.dart';
 import '../common/fortune_input_data.dart';
 
 /// 2026 신년운세 프롬프트 템플릿

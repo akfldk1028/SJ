@@ -21,7 +21,7 @@
 /// GPT-5-mini ($0.25 input, $2.00 output per 1M tokens)
 
 import '../../core/ai_constants.dart';
-import '../../prompts/prompt_template.dart';
+import '../common/prompt_template.dart';
 import '../common/fortune_input_data.dart';
 
 /// 2025 회고 운세 프롬프트 템플릿

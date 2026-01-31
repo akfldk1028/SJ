@@ -84,20 +84,16 @@ class SystemPromptBuilder {
         ? '${targetProfile?.displayName ?? '두 번째 사람'}의 사주'
         : '상대방의 사주';
 
-    // 4. 프로필 정보 (첫 메시지만)
-    if (isFirstMessage && profile != null) {
+    // 4. 프로필 정보
+    // v8.0: 항상 포함 (Gemini는 stateless이므로 매 호출마다 필요)
+    if (profile != null) {
       _addProfileInfo(profile, person1Label);
     }
 
     // 5. 사주 원국 데이터 (saju_analyses 테이블 - 만세력 계산 결과)
-    if (isFirstMessage && sajuAnalysis != null) {
+    // v8.0: 항상 포함 (Gemini는 stateless이므로 매 호출마다 사주 데이터 필요)
+    if (sajuAnalysis != null) {
       _addSajuAnalysis(sajuAnalysis, person1SajuLabel);
-    } else if (!isFirstMessage) {
-      _buffer.writeln();
-      _buffer.writeln('---');
-      _buffer.writeln();
-      _buffer.writeln('## 사주 정보');
-      _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
     // 6. GPT-5.2 AI Summary 추가 (평생 운세 분석 - Intent Routing 적용)

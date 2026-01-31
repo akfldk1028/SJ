@@ -55,7 +55,7 @@ import '../../core/supabase/generated/saju_analyses.dart';
 import '../../core/supabase/generated/saju_profiles.dart';
 import '../../features/saju_chart/domain/services/hapchung_service.dart';
 import '../core/ai_constants.dart';
-import '../prompts/prompt_template.dart';
+import '../fortune/common/prompt_template.dart';
 
 /// AI 관련 쿼리
 ///

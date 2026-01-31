@@ -39,10 +39,18 @@ frontend/lib/AI/fortune/
 │   └── waitForSajuBase()        # @deprecated (v6.0)
 │
 ├── common/
+│   ├── prompt_template.dart       # 프롬프트 베이스 클래스 + SajuInputData
 │   ├── fortune_state.dart         # 상태 정의 (loading, ready, error)
 │   ├── fortune_input_data.dart    # 공통 입력 데이터 + getter
-│   ├── saju_analyses_queries.dart # ⭐ saju_analyses 조회 + 파싱 (NEW!)
+│   ├── saju_analyses_queries.dart # ⭐ saju_analyses 조회 + 파싱
 │   └── korea_date_utils.dart      # 한국 시간(KST) 유틸리티
+│
+├── lifetime/                    # 평생운세 (saju_base)
+│   ├── lifetime_prompt.dart       # SajuBasePrompt (GPT-5.2)
+│   ├── lifetime_phase1_prompt.dart
+│   ├── lifetime_phase2_prompt.dart
+│   ├── lifetime_phase3_prompt.dart
+│   └── lifetime_phase4_prompt.dart
 │
 ├── yearly_2026/                 # 2026 신년운세
 │   ├── yearly_2026_prompt.dart
@@ -248,7 +256,7 @@ final result = await yearly2026Service.analyze(
 | `AI/core/ai_constants.dart` | GPT-5-mini 모델/가격, SummaryType |
 | `AI/data/queries.dart` | saju_base 캐시 조회 (참조) |
 | `AI/services/ai_api_service.dart` | OpenAI API 호출 |
-| `AI/prompts/prompt_template.dart` | 프롬프트 베이스 클래스 |
+| `AI/fortune/common/prompt_template.dart` | 프롬프트 베이스 클래스 |
 | `sql/migrations/20260118_add_fortune_summary_types.sql` | Supabase 마이그레이션 |
 
 ---
@@ -339,7 +347,7 @@ WHERE profile_id = 'xxx'
 > **중요**: 모든 운세 분석의 기반이 되는 핵심 프롬프트!
 > 이 프롬프트 결과물이 yearly_2026, monthly, yearly_2025의 입력 데이터가 됩니다.
 
-**파일 경로**: `frontend/lib/AI/prompts/saju_base_prompt.dart`
+**파일 경로**: `frontend/lib/AI/fortune/lifetime/lifetime_prompt.dart`
 
 **모델**: GPT-5.2 (최고 성능, $1.75/$14.00 per 1M tokens)
 

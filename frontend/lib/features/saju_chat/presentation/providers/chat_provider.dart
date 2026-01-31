@@ -950,8 +950,10 @@ class ChatNotifier extends _$ChatNotifier {
       // - 일반 채팅: owner의 프로필/사주 사용
       // ═══════════════════════════════════════════════════════════════════════════
 
-      // 사주 로드 조건: 첫 메시지이거나, 궁합 모드일 때
-      final shouldLoadSaju = isFirstMessageInSession || isCompatibilityMode || person2Id != null;
+      // v8.0: 사주 데이터는 항상 로드 (Gemini는 stateless이므로 매 호출마다 필요)
+      // 궁합 분석(Gemini 호출)만 첫 메시지에서 실행
+      final shouldLoadSaju = true;
+      final shouldRunCompatibility = isFirstMessageInSession || isCompatibilityMode || person2Id != null;
 
       SajuProfile? activeProfile;    // 첫 번째 사람 (궁합) 또는 owner (일반)
       SajuAnalysis? sajuAnalysis;    // 첫 번째 사람의 사주
@@ -1105,7 +1107,7 @@ class ChatNotifier extends _$ChatNotifier {
       Map<String, dynamic>? compatibilityAnalysis;
 
       // 궁합 분석 조건: 두 사람의 프로필이 모두 있어야 함
-      final canDoCompatibility = shouldLoadSaju &&
+      final canDoCompatibility = shouldRunCompatibility &&
           activeProfile != null &&
           targetProfile != null &&
           person1Id != null &&

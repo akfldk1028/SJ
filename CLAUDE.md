@@ -122,15 +122,22 @@ Task 도구:
 ### AI 모듈 구조
 ```
 frontend/lib/AI/
-├── ai.dart             # 모듈 exports
+├── ai.dart             # 모듈 exports (barrel)
+├── core/               # 설정, 로거, 캐시 (통합)
+├── fortune/            # 운세 프롬프트 통합
+│   ├── common/         # prompt_template, input_data, state
+│   ├── lifetime/       # 평생운세 (saju_base)
+│   ├── daily/          # 오늘운세
+│   ├── monthly/        # 월별운세
+│   ├── yearly_2025/    # 2025 회고
+│   └── yearly_2026/    # 2026 신년
 ├── common/             # JH_AI + Jina 공동
-│   ├── core/           # 설정, 로거, 캐시
 │   ├── providers/
 │   │   ├── openai/     # GPT-5.2 (JH_AI 주담당)
 │   │   ├── google/     # Gemini 3.0 (Jina 주담당)
 │   │   └── image/      # DALL-E, Imagen
 │   ├── pipelines/      # 분석 파이프라인
-│   └── prompts/        # 프롬프트 템플릿
+│   └── prompts/        # 공통 프롬프트
 ├── jh/                 # JH_AI 전용
 └── jina/               # Jina 전용
 ```

@@ -5,7 +5,7 @@
 /// GPT-5.2 모델을 사용하여 가장 정확한 분석을 제공합니다.
 ///
 /// ## 파일 위치
-/// `frontend/lib/AI/prompts/saju_base_prompt.dart`
+/// `frontend/lib/AI/fortune/lifetime/lifetime_prompt.dart`
 ///
 /// ## 분석 내용
 /// - 타고난 성격과 기질
@@ -67,8 +67,8 @@
 /// - GPT-5.2: 입력 $1.75/1M, 출력 $14.00/1M, 캐시 90% 할인
 /// - 평균 분석 1회: 약 $0.02~0.05
 
-import '../core/ai_constants.dart';
-import 'prompt_template.dart';
+import '../../core/ai_constants.dart';
+import '../common/prompt_template.dart';
 
 /// 기본 사주 분석 프롬프트
 ///
