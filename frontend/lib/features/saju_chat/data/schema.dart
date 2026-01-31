@@ -17,8 +17,15 @@ abstract class ChatSessionColumns {
   static const String chatType = 'chat_type';
   static const String messageCount = 'message_count';
   static const String lastMessagePreview = 'last_message_preview';
+  static const String contextSummary = 'context_summary';
   static const String createdAt = 'created_at';
   static const String updatedAt = 'updated_at';
+  static const String targetProfileId = 'target_profile_id';
+  static const String totalTokensUsed = 'total_tokens_used';
+  static const String userMessageCount = 'user_message_count';
+  static const String assistantMessageCount = 'assistant_message_count';
+  static const String chatPersona = 'chat_persona';
+  static const String mbtiQuadrant = 'mbti_quadrant';
 }
 
 /// 세션 SELECT 컬럼
@@ -29,8 +36,15 @@ const String chatSessionSelectColumns = '''
   chat_type,
   message_count,
   last_message_preview,
+  context_summary,
   created_at,
-  updated_at
+  updated_at,
+  target_profile_id,
+  total_tokens_used,
+  user_message_count,
+  assistant_message_count,
+  chat_persona,
+  mbti_quadrant
 ''';
 
 /// 세션 리스트용 (간략)
@@ -40,7 +54,9 @@ const String chatSessionListColumns = '''
   chat_type,
   message_count,
   last_message_preview,
-  updated_at
+  updated_at,
+  chat_persona,
+  mbti_quadrant
 ''';
 
 // ============================================================================

@@ -28,6 +28,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
   final bool? isCached;
   final DateTime? expiresAt;
   final int? schemaVersion;
+  final String? promptVersion;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -56,6 +57,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
     this.isCached,
     this.expiresAt,
     this.schemaVersion,
+    this.promptVersion,
     this.createdAt,
     this.updatedAt,
   });
@@ -85,6 +87,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
   static String get c_isCached => 'is_cached';
   static String get c_expiresAt => 'expires_at';
   static String get c_schemaVersion => 'schema_version';
+  static String get c_promptVersion => 'prompt_version';
   static String get c_createdAt => 'created_at';
   static String get c_updatedAt => 'updated_at';
 
@@ -121,6 +124,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
     bool? isCached,
     DateTime? expiresAt,
     int? schemaVersion,
+    String? promptVersion,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -149,6 +153,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       if (isCached != null) 'is_cached': isCached,
       if (expiresAt != null) 'expires_at': expiresAt.toUtc().toIso8601String(),
       if (schemaVersion != null) 'schema_version': schemaVersion,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt.toUtc().toIso8601String(),
     };
@@ -179,6 +184,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
     bool? isCached,
     DateTime? expiresAt,
     int? schemaVersion,
+    String? promptVersion,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -207,6 +213,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       isCached: isCached,
       expiresAt: expiresAt,
       schemaVersion: schemaVersion,
+      promptVersion: promptVersion,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -237,6 +244,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
     bool? isCached,
     DateTime? expiresAt,
     int? schemaVersion,
+    String? promptVersion,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -265,6 +273,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       isCached: isCached,
       expiresAt: expiresAt,
       schemaVersion: schemaVersion,
+      promptVersion: promptVersion,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -336,6 +345,9 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       schemaVersion: jsonn['schema_version'] != null
           ? int.parse(jsonn['schema_version'].toString())
           : null,
+      promptVersion: jsonn['prompt_version'] != null
+          ? jsonn['prompt_version'].toString()
+          : null,
       createdAt: jsonn['created_at'] != null
           ? DateTime.parse(jsonn['created_at'].toString())
           : null,
@@ -370,6 +382,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
     bool? isCached,
     DateTime? expiresAt,
     int? schemaVersion,
+    String? promptVersion,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -398,6 +411,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       if (isCached != null) 'is_cached': isCached,
       if (expiresAt != null) 'expires_at': expiresAt,
       if (schemaVersion != null) 'schema_version': schemaVersion,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     };
@@ -429,6 +443,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       isCached: isCached,
       expiresAt: expiresAt,
       schemaVersion: schemaVersion,
+      promptVersion: promptVersion,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -460,6 +475,7 @@ class AiSummaries implements SupadartClass<AiSummaries> {
     Object? isCached = _unset,
     Object? expiresAt = _unset,
     Object? schemaVersion = _unset,
+    Object? promptVersion = _unset,
     Object? createdAt = _unset,
     Object? updatedAt = _unset,
   }) {
@@ -520,6 +536,9 @@ class AiSummaries implements SupadartClass<AiSummaries> {
       schemaVersion: schemaVersion == _unset
           ? this.schemaVersion
           : schemaVersion as int?,
+      promptVersion: promptVersion == _unset
+          ? this.promptVersion
+          : promptVersion as String?,
       createdAt: createdAt == _unset ? this.createdAt : createdAt as DateTime?,
       updatedAt: updatedAt == _unset ? this.updatedAt : updatedAt as DateTime?,
     );

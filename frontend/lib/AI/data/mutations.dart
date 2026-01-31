@@ -236,10 +236,8 @@ class AiMutations extends BaseMutations {
           totalCostUsd: totalCostUsd,
           processingTimeMs: processingTimeMs,
           status: 'completed',
+          promptVersion: kSajuBasePromptVersion,
         );
-
-        // prompt_version 추가 (generated 클래스에 없으므로 직접 추가)
-        data['prompt_version'] = kSajuBasePromptVersion; // saju_base 프롬프트 버전
 
         final response = await client
             .from(AiSummaries.table_name)

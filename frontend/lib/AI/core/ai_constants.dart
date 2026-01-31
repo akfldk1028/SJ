@@ -599,4 +599,44 @@ abstract class PromptVersions {
   /// - V1.0: 초기 버전
   /// - V3.1: 구조 확장
   static const String yearlyFortune2025 = 'V3.1';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 버전 해석기 (캐시 무효화용)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// summaryType → 현재 프롬프트 버전 해석기
+  ///
+  /// 캐시 조회 시 DB의 prompt_version과 비교하여
+  /// 불일치하면 캐시를 무효화(null 반환)합니다.
+  ///
+  /// ## 연동 파일 (이 메서드를 호출하는 곳)
+  /// 1. `AI/data/queries.dart` → `AiQueries.getCachedSummary()`
+  ///    - 모든 summary_type 캐시 조회 시 버전 비교 (fromJson 콜백)
+  /// 2. `core/services/ai_summary_service.dart` → `AiSummaryService.getCachedSummary()`
+  ///    - saju_base 전용 캐시 조회 시 버전 비교
+  ///
+  /// ## 버전업 절차
+  /// 1. 프롬프트 수정 후 위의 해당 상수 값 올리기 (예: V9.5 → V9.6)
+  /// 2. 앱 배포 → 기존 캐시 자동 무효화 → AI 재생성
+  ///
+  /// [summaryType] SummaryType 상수값
+  /// 반환: 해당 프롬프트 버전 문자열, 버전 체크 불필요한 타입은 null
+  static String? forSummaryType(String summaryType) {
+    switch (summaryType) {
+      case SummaryType.sajuBase:
+        return sajuBase;
+      case SummaryType.dailyFortune:
+        return dailyFortune;
+      case SummaryType.monthlyFortune:
+        return monthlyFortune;
+      case SummaryType.yearlyFortune:
+        return yearlyFortune;
+      case SummaryType.yearlyFortune2026:
+        return yearlyFortune2026;
+      case SummaryType.yearlyFortune2025:
+        return yearlyFortune2025;
+      default:
+        return null; // question_answer, compatibility 등은 버전 체크 불필요
+    }
+  }
 }

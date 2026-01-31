@@ -6,6 +6,7 @@ import 'quota_service.dart';
 import '../../features/saju_chart/domain/entities/saju_analysis.dart';
 import '../../features/saju_chart/data/constants/sipsin_relations.dart';
 import '../supabase/generated/ai_summaries.dart';
+import '../../AI/core/ai_constants.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Intent Routing - 토큰 최적화
@@ -251,6 +252,7 @@ class AiSummaryService {
         modelProvider: 'google',
         modelName: model,
         status: 'completed',
+        promptVersion: PromptVersions.forSummaryType(_summaryType),
       );
 
       // saju_base 타입은 profile_id만으로 unique (idx_ai_summaries_unique_base)
@@ -290,12 +292,22 @@ class AiSummaryService {
 
       final response = await client
           .from(AiSummaries.table_name)
-          .select('content, model_name')
+          .select('content, model_name, prompt_version')
           .eq('profile_id', profileId)
           .eq('summary_type', _summaryType)
           .maybeSingle();
 
       if (response == null || response['content'] == null) {
+        return null;
+      }
+
+      // prompt_version 비교 (캐시 무효화)
+      final cachedVersion = response['prompt_version'];
+      final expectedVersion = PromptVersions.forSummaryType(_summaryType);
+      if (expectedVersion != null && cachedVersion != expectedVersion) {
+        if (kDebugMode) {
+          print('[AiSummaryService] 프롬프트 버전 불일치: cached=$cachedVersion, expected=$expectedVersion');
+        }
         return null;
       }
 

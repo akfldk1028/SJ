@@ -102,6 +102,13 @@ class AiQueries extends BaseQueries {
             .eq(AiSummaries.c_summaryType, summaryType)
             .eq(AiSummaries.c_status, 'completed');
 
+        // prompt_version 필터 (캐시 무효화)
+        // 앱의 현재 프롬프트 버전과 일치하는 캐시만 반환
+        final expectedVersion = PromptVersions.forSummaryType(summaryType);
+        if (expectedVersion != null) {
+          query = query.eq('prompt_version', expectedVersion);
+        }
+
         // 날짜/기간 필터
         if (targetDate != null) {
           query = query.eq(
@@ -180,6 +187,12 @@ class AiQueries extends BaseQueries {
             .eq(AiSummaries.c_summaryType, SummaryType.sajuBase)
             .eq(AiSummaries.c_status, 'completed')
             .contains(AiSummaries.c_inputData, sajuFilter);
+
+        // prompt_version 필터 (구버전 캐시 재사용 방지)
+        final expectedVersion = PromptVersions.forSummaryType(SummaryType.sajuBase);
+        if (expectedVersion != null) {
+          query = query.eq('prompt_version', expectedVersion);
+        }
 
         // 현재 프로필 제외 (L1 캐시에서 이미 체크)
         if (excludeProfileId != null) {

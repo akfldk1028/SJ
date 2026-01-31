@@ -3,6 +3,8 @@ import '../services/supabase_service.dart';
 import '../../features/saju_chat/domain/entities/chat_session.dart';
 import '../../features/saju_chat/domain/entities/chat_message.dart';
 import '../../features/saju_chat/domain/models/chat_type.dart';
+import '../../features/saju_chat/domain/models/chat_persona.dart';
+import '../../features/saju_chat/domain/models/ai_persona.dart';
 
 /// Supabase chat_sessions + chat_messages 테이블 Repository
 class ChatRepository {
@@ -20,12 +22,16 @@ class ChatRepository {
   /// 새 채팅 세션 생성
   /// [id]: 로컬에서 생성한 UUID를 사용 (동기화를 위해)
   /// [targetProfileId]: 궁합 채팅 시 상대방 프로필 ID
+  /// [chatPersona]: 세션 페르소나 (추적용)
+  /// [mbtiQuadrant]: BasePerson 선택 시 MBTI 4분면
   Future<ChatSession?> createSession({
     String? id,
     required String profileId,
     required ChatType chatType,
     String? title,
     String? targetProfileId,
+    String? chatPersona,
+    String? mbtiQuadrant,
   }) async {
     if (_client == null) return null;
 
@@ -35,6 +41,8 @@ class ChatRepository {
       'chat_type': chatType.name,
       'title': title,
       if (targetProfileId != null) 'target_profile_id': targetProfileId,
+      if (chatPersona != null) 'chat_persona': chatPersona,
+      if (mbtiQuadrant != null) 'mbti_quadrant': mbtiQuadrant,
     };
 
     final response = await _client
@@ -106,6 +114,28 @@ class ChatRepository {
         .from('chat_sessions')
         .update({'title': title})
         .eq('id', sessionId);
+  }
+
+  /// 세션 페르소나 업데이트 (chat_persona가 NULL인 경우만 업데이트)
+  ///
+  /// 기존 세션이 persona 없이 생성된 경우, 대화 시점에 보정
+  Future<void> updateSessionPersona(
+    String sessionId, {
+    required String chatPersona,
+    String? mbtiQuadrant,
+  }) async {
+    if (_client == null) return;
+    final data = <String, dynamic>{
+      'chat_persona': chatPersona,
+    };
+    if (mbtiQuadrant != null) {
+      data['mbti_quadrant'] = mbtiQuadrant;
+    }
+    await _client
+        .from('chat_sessions')
+        .update(data)
+        .eq('id', sessionId)
+        .isFilter('chat_persona', null); // NULL인 경우만 업데이트
   }
 
   /// 세션 컨텍스트 요약 업데이트 (토큰 절약용)
@@ -259,11 +289,32 @@ class ChatRepository {
       chatType: ChatType.fromString(map['chat_type'] as String?),
       profileId: map['profile_id'] as String?,
       targetProfileId: map['target_profile_id'] as String?,
+      chatPersona: map['chat_persona'] != null
+          ? ChatPersona.fromString(map['chat_persona'] as String?)
+          : null,
+      mbtiQuadrant: map['mbti_quadrant'] != null
+          ? _mbtiQuadrantFromString(map['mbti_quadrant'] as String)
+          : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
       messageCount: map['message_count'] as int? ?? 0,
       lastMessagePreview: map['last_message_preview'] as String?,
     );
+  }
+
+  MbtiQuadrant _mbtiQuadrantFromString(String value) {
+    switch (value) {
+      case 'NF':
+        return MbtiQuadrant.NF;
+      case 'NT':
+        return MbtiQuadrant.NT;
+      case 'SF':
+        return MbtiQuadrant.SF;
+      case 'ST':
+        return MbtiQuadrant.ST;
+      default:
+        return MbtiQuadrant.NF;
+    }
   }
 
   ChatMessage _messageFromMap(Map<String, dynamic> map) {
