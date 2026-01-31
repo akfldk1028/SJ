@@ -357,6 +357,12 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
           style: TextStyle(color: appTheme.textPrimary),
         ),
         actions: [
+          // + 새 채팅 버튼 (페르소나 변경 안내 포함)
+          IconButton(
+            icon: Icon(Icons.add, color: appTheme.primaryColor),
+            onPressed: _handleNewChat,
+            tooltip: '새 채팅 (페르소나 변경 가능)',
+          ),
           // 궁합 버튼 (2명 선택)
           IconButton(
             icon: const Icon(Icons.group_add_outlined),
@@ -499,7 +505,13 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                           ),
                         ],
                       ),
-                      const SizedBox(width: 8),
+                      // + 새 채팅 버튼 (햄버거 옆)
+                      IconButton(
+                        icon: Icon(Icons.add, color: appTheme.primaryColor),
+                        onPressed: _handleNewChat,
+                        tooltip: '새 채팅 (페르소나 변경 가능)',
+                      ),
+                      const SizedBox(width: 4),
                       // 현재 세션 제목
                       Expanded(
                         child: Text(
@@ -1292,6 +1304,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     if (!_isExpanded) {
       return GestureDetector(
         onTap: () => setState(() => _isExpanded = true),
+        onLongPress: () => _showPersonaInfoDialog(context, currentPersona, quadrantColor),
         child: Container(
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1336,26 +1349,57 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
                   color: appTheme.textPrimary,
                 ),
               ),
+              // info 아이콘 (탭하면 설명 팝업)
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _showPersonaInfoDialog(context, currentPersona, quadrantColor),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  size: 18,
+                  color: appTheme.textMuted,
+                ),
+              ),
               const Spacer(),
+              // 잠금 상태: "새 채팅에서 변경 가능" 안내
+              if (isPersonaLocked)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      size: 14,
+                      color: appTheme.textMuted.withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+ 새 채팅에서 변경',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: appTheme.textMuted.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
               // 펼치기 힌트
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '페르소나 변경',
-                    style: TextStyle(
-                      fontSize: 12,
+              if (!isPersonaLocked)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '페르소나 변경',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: appTheme.textMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.expand_more,
+                      size: 20,
                       color: appTheme.textMuted,
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.expand_more,
-                    size: 20,
-                    color: appTheme.textMuted,
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -1488,6 +1532,89 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     );
   }
 
+  /// 페르소나 상세 설명 팝업
+  void _showPersonaInfoDialog(BuildContext context, ChatPersona persona, Color accentColor) {
+    final appTheme = context.appTheme;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: appTheme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 페르소나 아이콘
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accentColor.withOpacity(0.15),
+                border: Border.all(color: accentColor.withOpacity(0.4), width: 2),
+              ),
+              child: Center(
+                child: Icon(persona.icon, size: 32, color: accentColor),
+              ),
+            ),
+            const SizedBox(height: 14),
+            // 이름
+            Text(
+              persona.displayName,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: appTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // 짧은 설명 뱃지
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                persona.description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: accentColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 상세 설명
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: appTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                persona.detailedDescription,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: appTheme.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('닫기', style: TextStyle(color: accentColor, fontSize: 15)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPersonaCircle(
     BuildContext context,
     ChatPersona persona, {
@@ -1498,77 +1625,70 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     VoidCallback? onTapSelected,
   }) {
     final appTheme = context.appTheme;
-    final iconSize = (size * 0.5).clamp(18.0, 22.0); // 16-20 → 18-22
+    final iconSize = (size * 0.5).clamp(18.0, 22.0);
 
     final displayName = persona.shortName;
 
     // 잠금 상태: 선택된 페르소나만 활성화 표시, 나머지는 흐리게
     final isDisabled = isLocked && !isSelected;
-    final tooltipMessage = isLocked && !isSelected
-        ? '새 채팅에서 변경 가능'
-        : '${persona.displayName}\n${persona.description}';
 
-    return Tooltip(
-      message: tooltipMessage,
-      child: GestureDetector(
-        onTap: isLocked
-            ? null // 잠금 상태면 탭 무시
-            : () {
-                if (isSelected && onTapSelected != null) {
-                  // 이미 선택된 상태에서 탭하면 onTapSelected 콜백 호출
-                  onTapSelected();
-                } else {
-                  ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
-                  // 메시지 없는 세션이면 세션의 페르소나도 업데이트
-                  ref.read(chatSessionNotifierProvider.notifier)
-                      .updateCurrentSessionPersona(chatPersona: persona);
-                }
-              },
-        child: Opacity(
-          opacity: isDisabled ? 0.4 : 1.0,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: isLocked
+          ? null
+          : () {
+              if (isSelected && onTapSelected != null) {
+                onTapSelected();
+              } else {
+                ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+                ref.read(chatSessionNotifierProvider.notifier)
+                    .updateCurrentSessionPersona(chatPersona: persona);
+              }
+            },
+      onLongPress: () => _showPersonaInfoDialog(context, persona, accentColor),
+      child: Opacity(
+        opacity: isDisabled ? 0.4 : 1.0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? accentColor.withValues(alpha: 0.15)
+                    : appTheme.backgroundColor.withValues(alpha: 0.3),
+                border: Border.all(
                   color: isSelected
-                      ? accentColor.withValues(alpha: 0.15)
-                      : appTheme.backgroundColor.withValues(alpha: 0.3),
-                  border: Border.all(
-                    color: isSelected
-                        ? accentColor.withValues(alpha: 0.5)
-                        : appTheme.textMuted.withValues(alpha: 0.15),
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    persona.icon,
-                    size: iconSize,
-                    color: isSelected
-                        ? accentColor
-                        : appTheme.textMuted.withValues(alpha: 0.6),
-                  ),
+                      ? accentColor.withValues(alpha: 0.5)
+                      : appTheme.textMuted.withValues(alpha: 0.15),
+                  width: isSelected ? 1.5 : 1,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                displayName,
-                style: TextStyle(
-                  fontSize: 12, // 11 → 12
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              child: Center(
+                child: Icon(
+                  persona.icon,
+                  size: iconSize,
                   color: isSelected
                       ? accentColor
-                      : appTheme.textMuted.withValues(alpha: 0.8),
-                  letterSpacing: -0.3,
+                      : appTheme.textMuted.withValues(alpha: 0.6),
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              displayName,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected
+                    ? accentColor
+                    : appTheme.textMuted.withValues(alpha: 0.8),
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
         ),
       ),
     );

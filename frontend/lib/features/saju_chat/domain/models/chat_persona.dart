@@ -172,6 +172,22 @@ enum ChatPersona {
     }
   }
 
+  /// 상세 설명 (페르소나 설명 팝업용)
+  String get detailedDescription {
+    switch (this) {
+      case ChatPersona.basePerson:
+        return '기본 AI 상담사입니다. MBTI 4축(감성형·분석형·친근형·현실형)을 자유롭게 조절하여 원하는 스타일의 사주 상담을 받을 수 있습니다.\n\n성향 버튼을 터치하면 상담 스타일이 변경됩니다.';
+      case ChatPersona.babyMonk:
+        return '꼬마 도사 아기동자입니다. 반말로 거침없이 사주를 풀어주며, 핵심만 콕콕 짚어주는 팩폭 스타일입니다.\n\n가벼운 분위기에서 솔직한 사주 풀이를 원할 때 추천합니다.';
+      case ChatPersona.scenarioWriter:
+        return '사주를 하나의 이야기로 풀어내는 스토리텔러입니다. 당신의 사주를 마치 소설처럼 재미있게 해석해 줍니다.';
+      case ChatPersona.saOngJiMa:
+        return '새옹지마 할배는 어떤 사주든 긍정적으로 재해석해 주는 전문가입니다.\n\n나쁜 운도 좋게 해석하고, 힘든 시기에도 희망을 찾아줍니다. 위로가 필요할 때 추천합니다.';
+      case ChatPersona.sewerSaju:
+        return '시궁창 술사는 사주의 안 좋은 면을 거침없이 파헤치는 팩폭 장인입니다.\n\n독설과 사이다 발언으로 현실을 직시하게 해줍니다. 심장이 약하신 분은 주의!';
+    }
+  }
+
   /// 시스템 프롬프트 (SpecialCharacter용, BasePerson은 MBTI에 따라 동적)
   String? get fixedSystemPrompt {
     if (this == ChatPersona.basePerson) return null;
