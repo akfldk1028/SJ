@@ -45,7 +45,7 @@ class ChatPersonaNotifier extends _$ChatPersonaNotifier {
     } catch (e) {
       // 에러 시 기본값 반환
     }
-    return ChatPersona.basePerson;
+    return ChatPersona.nfSensitive;
   }
 
   Future<void> setPersona(ChatPersona persona) async {
@@ -134,33 +134,27 @@ bool canAdjustMbti(CanAdjustMbtiRef ref) {
 
 /// 최종 시스템 프롬프트 Provider
 ///
-/// - BasePerson: MBTI에 따른 동적 프롬프트
-/// - SpecialCharacter: 고정 프롬프트
+/// 모든 페르소나가 직접 personaId를 가지므로 단순화됨
+/// - MBTI 페르소나: personaId로 직접 프롬프트 로드
+/// - 특수 캐릭터: personaId로 직접 프롬프트 로드
+/// - 레거시 basePerson: MBTI 분면에 따른 동적 프롬프트 (하위 호환)
 @riverpod
 String finalSystemPrompt(FinalSystemPromptRef ref) {
   final persona = ref.watch(chatPersonaNotifierProvider);
-  final mbtiQuadrant = ref.watch(mbtiQuadrantNotifierProvider);
 
   if (persona.canAdjustMbti) {
-    // BasePerson: MBTI에 따른 동적 프롬프트
-    return _buildBasePersonPrompt(mbtiQuadrant);
-  } else {
-    // SpecialCharacter: 고정 프롬프트
-    return persona.fixedSystemPrompt ?? '';
+    // 레거시 basePerson: MBTI에 따른 동적 프롬프트
+    final mbtiQuadrant = ref.watch(mbtiQuadrantNotifierProvider);
+    final personaId = _getBasePersonaId(mbtiQuadrant);
+    final p = PersonaRegistry.getById(personaId);
+    return p?.buildFullSystemPrompt() ?? '';
   }
+
+  // MBTI 페르소나 및 특수 캐릭터: 직접 프롬프트 로드
+  return persona.fixedSystemPrompt ?? '';
 }
 
-/// BasePerson용 MBTI 기반 프롬프트 생성
-///
-/// PersonaRegistry에서 해당 MBTI 페르소나를 가져와 프롬프트 반환
-/// 프롬프트 수정은 `AI/jina/personas/base_*.dart` 파일에서!
-String _buildBasePersonPrompt(MbtiQuadrant quadrant) {
-  final personaId = _getBasePersonaId(quadrant);
-  final persona = PersonaRegistry.getById(personaId);
-  return persona?.buildFullSystemPrompt() ?? '';
-}
-
-/// MBTI 분면에 해당하는 BasePerson ID
+/// MBTI 분면에 해당하는 BasePerson ID (레거시 호환)
 String _getBasePersonaId(MbtiQuadrant quadrant) {
   switch (quadrant) {
     case MbtiQuadrant.NF:

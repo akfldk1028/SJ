@@ -328,6 +328,13 @@ class ChatNotifier extends _$ChatNotifier {
   AiPersona _mapToAiPersona(ChatPersona persona) {
     switch (persona) {
       case ChatPersona.basePerson:
+      case ChatPersona.nfSensitive:
+        return AiPersona.grandma;
+      case ChatPersona.ntAnalytic:
+        return AiPersona.master;
+      case ChatPersona.sfFriendly:
+        return AiPersona.cute;
+      case ChatPersona.stRealistic:
         return AiPersona.professional;
       case ChatPersona.babyMonk:
         return AiPersona.babyMonk;

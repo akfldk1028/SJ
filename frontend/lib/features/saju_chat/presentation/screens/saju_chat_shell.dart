@@ -602,6 +602,10 @@ class _ChatContent extends ConsumerStatefulWidget {
 AiPersona _mapChatPersonaToAiPersona(ChatPersona persona) {
   return switch (persona) {
     ChatPersona.basePerson => AiPersona.professional,
+    ChatPersona.nfSensitive => AiPersona.grandma,
+    ChatPersona.ntAnalytic => AiPersona.master,
+    ChatPersona.sfFriendly => AiPersona.cute,
+    ChatPersona.stRealistic => AiPersona.professional,
     ChatPersona.babyMonk => AiPersona.babyMonk,
     ChatPersona.scenarioWriter => AiPersona.scenarioWriter,
     ChatPersona.saOngJiMa => AiPersona.saOngJiMa,
@@ -1277,8 +1281,6 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
   @override
   Widget build(BuildContext context) {
     final currentPersona = ref.watch(chatPersonaNotifierProvider);
-    final currentQuadrant = ref.watch(mbtiQuadrantNotifierProvider);
-    final canAdjustMbti = ref.watch(canAdjustMbtiProvider);
     final appTheme = context.appTheme;
 
     // 현재 세션의 메시지 수 확인 (대화 시작 후 페르소나 잠금)
@@ -1291,8 +1293,8 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     // 페르소나 잠금 상태: 메시지가 있으면 변경 불가
     final isPersonaLocked = hasMessages;
 
-    // MBTI 분면별 색상 (BasePerson 선택 시)
-    final quadrantColor = canAdjustMbti ? _getQuadrantColor(currentQuadrant) : appTheme.primaryColor;
+    // 현재 페르소나의 색상
+    final quadrantColor = _getPersonaColor(currentPersona);
 
     // 페르소나 아이템 크기 계산용 상수
     const double circleSize = 44;
@@ -1411,74 +1413,50 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     // ═══════════════════════════════════════════════════════════════════════════
     return Container(
       height: 90,
-      padding: const EdgeInsets.symmetric(horizontal: containerPadding, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: appTheme.cardColor.withValues(alpha: 0.8),
       ),
       child: Row(
         children: [
-          // 왼쪽: MBTI 버튼 영역 (항상 같은 공간 차지)
-          SizedBox(
-            width: 56,
-            child: (canAdjustMbti && !isPersonaLocked)
-                ? Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildMbtiButton(
-                      context,
-                      quadrantColor: quadrantColor,
-                      currentQuadrant: currentQuadrant,
-                    ),
-                  )
-                : null,
-          ),
-          // 중앙: 페르소나 목록
+          // 페르소나 목록 (가로 스크롤)
           Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: ChatPersona.visibleValues.map((persona) {
-                    final isSelected = persona == currentPersona;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: _buildPersonaCircle(
-                        context,
-                        persona,
-                        isSelected: isSelected,
-                        accentColor: quadrantColor,
-                        size: circleSize,
-                        isLocked: isPersonaLocked,
-                        onTapSelected: (canAdjustMbti && isSelected && !isPersonaLocked)
-                            ? () => _showMbtiSelectorSheet(context, ref)
-                            : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: ChatPersona.visibleValues.map((persona) {
+                  final isSelected = persona == currentPersona;
+                  final personaColor = _getPersonaColor(persona);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: _buildPersonaCircle(
+                      context,
+                      persona,
+                      isSelected: isSelected,
+                      accentColor: isSelected ? personaColor : appTheme.primaryColor,
+                      size: circleSize,
+                      isLocked: isPersonaLocked,
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ),
-          // 오른쪽: 접기 버튼
-          SizedBox(
-            width: 56,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () => setState(() => _isExpanded = false),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: appTheme.textMuted.withValues(alpha: 0.1),
-                  ),
-                  child: Icon(
-                    Icons.expand_less,
-                    size: 20,
-                    color: appTheme.textMuted,
-                  ),
-                ),
+          // 접기 버튼
+          GestureDetector(
+            onTap: () => setState(() => _isExpanded = false),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: appTheme.textMuted.withValues(alpha: 0.1),
+              ),
+              child: Icon(
+                Icons.expand_less,
+                size: 20,
+                color: appTheme.textMuted,
               ),
             ),
           ),
@@ -1694,16 +1672,24 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     );
   }
 
-  Color _getQuadrantColor(MbtiQuadrant quadrant) {
-    switch (quadrant) {
-      case MbtiQuadrant.NF:
-        return const Color(0xFFE63946);
-      case MbtiQuadrant.NT:
+  Color _getPersonaColor(ChatPersona persona) {
+    switch (persona) {
+      case ChatPersona.nfSensitive:
+        return const Color(0xFFE63946); // 빨강 - 감성
+      case ChatPersona.ntAnalytic:
+        return const Color(0xFF457B9D); // 파랑 - 분석
+      case ChatPersona.sfFriendly:
+        return const Color(0xFF2A9D8F); // 초록 - 친근
+      case ChatPersona.stRealistic:
+        return const Color(0xFFF4A261); // 주황 - 현실
+      case ChatPersona.babyMonk:
+        return const Color(0xFFAB47BC); // 보라 - 아기동자
+      case ChatPersona.saOngJiMa:
+        return const Color(0xFF66BB6A); // 녹색 - 새옹지마
+      case ChatPersona.sewerSaju:
+        return const Color(0xFF78909C); // 회색 - 시궁창
+      default:
         return const Color(0xFF457B9D);
-      case MbtiQuadrant.SF:
-        return const Color(0xFF2A9D8F);
-      case MbtiQuadrant.ST:
-        return const Color(0xFFF4A261);
     }
   }
 }

@@ -176,9 +176,13 @@ class ChatSessionNotifier extends _$ChatSessionNotifier {
       ref.read(chatPersonaNotifierProvider.notifier).setPersona(session.chatPersona!);
     }
 
-    // BasePerson이고 MBTI가 저장되어 있으면 복원
+    // 레거시 BasePerson이고 MBTI가 저장되어 있으면 복원
     if (session.chatPersona == ChatPersona.basePerson && session.mbtiQuadrant != null) {
       ref.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(session.mbtiQuadrant!);
+    }
+    // MBTI 페르소나이면 해당 MBTI도 동기화
+    if (session.chatPersona?.mbtiQuadrant != null) {
+      ref.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(session.chatPersona!.mbtiQuadrant!);
     }
   }
 

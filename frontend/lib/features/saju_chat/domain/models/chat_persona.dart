@@ -4,50 +4,61 @@ import '../../../../AI/jina/personas/persona_base.dart';
 
 /// 채팅 페르소나 타입
 ///
-/// - basePerson: MBTI 4축 조절 가능한 기본 페르소나
-/// - specialCharacter: MBTI 조절 불가, 고정된 특수 캐릭터
+/// - mbtiPersona: MBTI 기반 기본 페르소나 (4종)
+/// - specialCharacter: 고정된 특수 캐릭터
 enum ChatPersonaType {
-  basePerson,
+  basePerson, // 레거시 호환
+  mbtiPersona,
   specialCharacter,
 }
 
 /// 채팅 페르소나 (통합)
 ///
-/// 오른쪽 대화창에서 선택하는 5개 페르소나:
-/// - BasePerson 1개 (MBTI 4축 조절 가능)
-/// - SpecialCharacter 4개 (MBTI 조절 불가, 고정 성격)
+/// 대화창에서 선택하는 7개 페르소나:
+/// - MBTI 4종: 감성형(NF), 분석형(NT), 친근형(SF), 현실형(ST)
+/// - 특수 캐릭터 3종: 아기동자, 새옹지마, 시궁창 술사
 ///
 /// ## 구조
 /// ```
-/// ┌─────────────────────────────────────────────┐
-/// │  사이드바              │      대화창         │
-/// │  ┌───────────────┐    │  ┌──────────────┐  │
-/// │  │ MBTI 4축      │    │  │ [Base] 👶🗣️👴😱│  │
-/// │  │ (BasePerson   │    │  │              │  │
-/// │  │  선택 시만    │    │  │ 5개 선택지   │  │
-/// │  │  활성화)      │    │  │              │  │
-/// │  └───────────────┘    │  └──────────────┘  │
-/// └─────────────────────────────────────────────┘
+/// ┌──────────────────────────────────────────────┐
+/// │  대화창 상단 페르소나 선택기                    │
+/// │  [감성형] [분석형] [친근형] [현실형]            │
+/// │  [아기동자] [새옹지마] [시궁창]                 │
+/// └──────────────────────────────────────────────┘
 /// ```
 enum ChatPersona {
-  /// BasePerson - MBTI 4축 조절 가능
+  /// [레거시] BasePerson - 기존 세션 호환용 (UI에서 숨김)
   basePerson,
 
-  /// 아기동자 - 반말과 팩폭, 꼬마도사 (MBTI 조절 불가)
+  /// 감성형 (NF) - 따뜻하고 공감적인 상담
+  nfSensitive,
+
+  /// 분석형 (NT) - 논리적이고 체계적인 분석
+  ntAnalytic,
+
+  /// 친근형 (SF) - 친근하고 유쾌한 대화
+  sfFriendly,
+
+  /// 현실형 (ST) - 직설적이고 현실적인 조언
+  stRealistic,
+
+  /// 아기동자 - 반말과 팩폭, 꼬마도사
   babyMonk,
 
-  /// 송작가 - 스토리텔링 전문 캐릭터 (MBTI 조절 불가)
+  /// 송작가 - 스토리텔링 전문 캐릭터 (숨김)
   scenarioWriter,
 
-  /// 새옹지마 - 긍정 재해석 전문가 (MBTI 조절 불가)
+  /// 새옹지마 - 긍정 재해석 전문가
   saOngJiMa,
 
-  /// 시궁창 술사 - 팩폭 장인 (MBTI 조절 불가)
+  /// 시궁창 술사 - 팩폭 장인
   sewerSaju;
 
   /// UI에서 숨길 페르소나 여부
   bool get isHidden {
     switch (this) {
+      case ChatPersona.basePerson:
+        return true; // 레거시 - UI에서 숨김
       case ChatPersona.scenarioWriter:
         return true; // 송작가 - 사용 안함
       default:
@@ -61,20 +72,68 @@ enum ChatPersona {
 
   /// 타입 확인
   ChatPersonaType get type {
-    if (this == ChatPersona.basePerson) {
-      return ChatPersonaType.basePerson;
+    switch (this) {
+      case ChatPersona.basePerson:
+        return ChatPersonaType.basePerson;
+      case ChatPersona.nfSensitive:
+      case ChatPersona.ntAnalytic:
+      case ChatPersona.sfFriendly:
+      case ChatPersona.stRealistic:
+        return ChatPersonaType.mbtiPersona;
+      default:
+        return ChatPersonaType.specialCharacter;
     }
-    return ChatPersonaType.specialCharacter;
   }
 
-  /// MBTI 조절 가능 여부
+  /// MBTI 페르소나 여부
+  bool get isMbtiPersona => type == ChatPersonaType.mbtiPersona;
+
+  /// MBTI 조절 가능 여부 (레거시 호환 - MBTI 페르소나는 이미 고정된 MBTI를 가짐)
   bool get canAdjustMbti => this == ChatPersona.basePerson;
+
+  /// MBTI 분면 매핑 (MBTI 페르소나용)
+  MbtiQuadrant? get mbtiQuadrant {
+    switch (this) {
+      case ChatPersona.nfSensitive:
+        return MbtiQuadrant.NF;
+      case ChatPersona.ntAnalytic:
+        return MbtiQuadrant.NT;
+      case ChatPersona.sfFriendly:
+        return MbtiQuadrant.SF;
+      case ChatPersona.stRealistic:
+        return MbtiQuadrant.ST;
+      default:
+        return null;
+    }
+  }
+
+  /// MbtiQuadrant에서 ChatPersona로 변환
+  static ChatPersona fromMbtiQuadrant(MbtiQuadrant quadrant) {
+    switch (quadrant) {
+      case MbtiQuadrant.NF:
+        return ChatPersona.nfSensitive;
+      case MbtiQuadrant.NT:
+        return ChatPersona.ntAnalytic;
+      case MbtiQuadrant.SF:
+        return ChatPersona.sfFriendly;
+      case MbtiQuadrant.ST:
+        return ChatPersona.stRealistic;
+    }
+  }
 
   /// PersonaRegistry ID 매핑
   String get personaId {
     switch (this) {
       case ChatPersona.basePerson:
-        return 'base_person'; // MBTI에 따라 동적으로 변경됨
+        return 'base_person';
+      case ChatPersona.nfSensitive:
+        return 'base_nf';
+      case ChatPersona.ntAnalytic:
+        return 'base_nt';
+      case ChatPersona.sfFriendly:
+        return 'base_sf';
+      case ChatPersona.stRealistic:
+        return 'base_st';
       case ChatPersona.babyMonk:
         return 'baby_monk';
       case ChatPersona.scenarioWriter:
@@ -86,17 +145,24 @@ enum ChatPersona {
     }
   }
 
-  /// PersonaBase 인스턴스 가져오기 (SpecialCharacter용)
+  /// PersonaBase 인스턴스 가져오기
   PersonaBase? get persona {
-    if (this == ChatPersona.basePerson) return null;
-    return PersonaRegistry.getByIdOrDefault(personaId);
+    return PersonaRegistry.getById(personaId);
   }
 
   /// 표시명
   String get displayName {
     switch (this) {
       case ChatPersona.basePerson:
-        return 'Base';
+        return '기본'; // 레거시
+      case ChatPersona.nfSensitive:
+        return '감성형';
+      case ChatPersona.ntAnalytic:
+        return '분석형';
+      case ChatPersona.sfFriendly:
+        return '친근형';
+      case ChatPersona.stRealistic:
+        return '현실형';
       case ChatPersona.babyMonk:
         return '아기동자';
       case ChatPersona.scenarioWriter:
@@ -108,11 +174,19 @@ enum ChatPersona {
     }
   }
 
-  /// 이모지 아이콘 (레거시, 호환성 유지)
+  /// 이모지 아이콘 (레거시)
   String get emoji {
     switch (this) {
       case ChatPersona.basePerson:
-        return '🎭'; // Base 페르소나 (MBTI 조절 가능)
+        return '🎭';
+      case ChatPersona.nfSensitive:
+        return '💗';
+      case ChatPersona.ntAnalytic:
+        return '🔬';
+      case ChatPersona.sfFriendly:
+        return '😊';
+      case ChatPersona.stRealistic:
+        return '💪';
       case ChatPersona.babyMonk:
         return '👶';
       case ChatPersona.scenarioWriter:
@@ -128,23 +202,39 @@ enum ChatPersona {
   IconData get icon {
     switch (this) {
       case ChatPersona.basePerson:
-        return Icons.person_outline_rounded; // 기본 사람
+        return Icons.person_outline_rounded;
+      case ChatPersona.nfSensitive:
+        return Icons.favorite_rounded; // 하트 - 감성
+      case ChatPersona.ntAnalytic:
+        return Icons.psychology_rounded; // 뇌 - 분석
+      case ChatPersona.sfFriendly:
+        return Icons.emoji_emotions_rounded; // 웃는 얼굴 - 친근
+      case ChatPersona.stRealistic:
+        return Icons.gavel_rounded; // 망치 - 현실/직설
       case ChatPersona.babyMonk:
-        return Icons.face_rounded; // 얼굴 (동자)
+        return Icons.face_rounded;
       case ChatPersona.scenarioWriter:
-        return Icons.edit_note_rounded; // 작가/글쓰기
+        return Icons.edit_note_rounded;
       case ChatPersona.saOngJiMa:
-        return Icons.spa_rounded; // 평화/긍정
+        return Icons.spa_rounded;
       case ChatPersona.sewerSaju:
-        return Icons.bolt_rounded; // 번개/팩폭
+        return Icons.bolt_rounded;
     }
   }
 
-  /// 짧은 이름 (UI 표시용, 2-3글자)
+  /// 짧은 이름 (UI 표시용)
   String get shortName {
     switch (this) {
       case ChatPersona.basePerson:
-        return 'MBTI';
+        return '기본';
+      case ChatPersona.nfSensitive:
+        return '감성형';
+      case ChatPersona.ntAnalytic:
+        return '분석형';
+      case ChatPersona.sfFriendly:
+        return '친근형';
+      case ChatPersona.stRealistic:
+        return '현실형';
       case ChatPersona.babyMonk:
         return '아기동자';
       case ChatPersona.scenarioWriter:
@@ -160,7 +250,15 @@ enum ChatPersona {
   String get description {
     switch (this) {
       case ChatPersona.basePerson:
-        return 'MBTI 성향 조절 가능';
+        return '기본 상담';
+      case ChatPersona.nfSensitive:
+        return '따뜻하고 공감적인 상담';
+      case ChatPersona.ntAnalytic:
+        return '논리적이고 체계적인 분석';
+      case ChatPersona.sfFriendly:
+        return '친근하고 유쾌한 대화';
+      case ChatPersona.stRealistic:
+        return '직설적이고 현실적인 조언';
       case ChatPersona.babyMonk:
         return '반말과 팩폭, 꼬마도사';
       case ChatPersona.scenarioWriter:
@@ -176,11 +274,19 @@ enum ChatPersona {
   String get detailedDescription {
     switch (this) {
       case ChatPersona.basePerson:
-        return '기본 AI 상담사입니다. MBTI 4축(감성형·분석형·친근형·현실형)을 자유롭게 조절하여 원하는 스타일의 사주 상담을 받을 수 있습니다.\n\n성향 버튼을 터치하면 상담 스타일이 변경됩니다.';
+        return '기본 AI 상담사입니다.';
+      case ChatPersona.nfSensitive:
+        return '따뜻하고 공감적인 감성형 상담사입니다.\n\n당신의 마음을 먼저 읽고, 사주 풀이에 따뜻한 감성을 담아 전달합니다. 위로와 공감이 필요할 때 추천합니다.';
+      case ChatPersona.ntAnalytic:
+        return '논리적이고 체계적인 분석형 상담사입니다.\n\n오행, 십성, 합충 등 사주 이론을 정확히 분석하여 근거 있는 해석을 제공합니다. 깊이 있는 사주 풀이를 원할 때 추천합니다.';
+      case ChatPersona.sfFriendly:
+        return '친근하고 유쾌한 친구 같은 상담사입니다.\n\n편하게 대화하며 사주를 쉽고 재미있게 풀어줍니다. 가볍게 사주를 알아보고 싶을 때 추천합니다.';
+      case ChatPersona.stRealistic:
+        return '직설적이고 현실적인 조언을 해주는 상담사입니다.\n\n돌려 말하지 않고 핵심만 짚어주며, 실용적인 관점에서 사주를 해석합니다. 명쾌한 답을 원할 때 추천합니다.';
       case ChatPersona.babyMonk:
         return '꼬마 도사 아기동자입니다. 반말로 거침없이 사주를 풀어주며, 핵심만 콕콕 짚어주는 팩폭 스타일입니다.\n\n가벼운 분위기에서 솔직한 사주 풀이를 원할 때 추천합니다.';
       case ChatPersona.scenarioWriter:
-        return '사주를 하나의 이야기로 풀어내는 스토리텔러입니다. 당신의 사주를 마치 소설처럼 재미있게 해석해 줍니다.';
+        return '사주를 하나의 이야기로 풀어내는 스토리텔러입니다.';
       case ChatPersona.saOngJiMa:
         return '새옹지마 할배는 어떤 사주든 긍정적으로 재해석해 주는 전문가입니다.\n\n나쁜 운도 좋게 해석하고, 힘든 시기에도 희망을 찾아줍니다. 위로가 필요할 때 추천합니다.';
       case ChatPersona.sewerSaju:
@@ -188,17 +294,25 @@ enum ChatPersona {
     }
   }
 
-  /// 시스템 프롬프트 (SpecialCharacter용, BasePerson은 MBTI에 따라 동적)
+  /// 시스템 프롬프트
   String? get fixedSystemPrompt {
-    if (this == ChatPersona.basePerson) return null;
-    return persona?.buildFullSystemPrompt();
+    final p = persona;
+    return p?.buildFullSystemPrompt();
   }
 
   /// 문자열에서 변환
   static ChatPersona fromString(String? value) {
     switch (value) {
       case 'basePerson':
-        return ChatPersona.basePerson;
+        return ChatPersona.nfSensitive; // 레거시 → 감성형으로 매핑
+      case 'nfSensitive':
+        return ChatPersona.nfSensitive;
+      case 'ntAnalytic':
+        return ChatPersona.ntAnalytic;
+      case 'sfFriendly':
+        return ChatPersona.sfFriendly;
+      case 'stRealistic':
+        return ChatPersona.stRealistic;
       case 'babyMonk':
         return ChatPersona.babyMonk;
       case 'scenarioWriter':
@@ -208,7 +322,7 @@ enum ChatPersona {
       case 'sewerSaju':
         return ChatPersona.sewerSaju;
       default:
-        return ChatPersona.basePerson;
+        return ChatPersona.nfSensitive;
     }
   }
 }
