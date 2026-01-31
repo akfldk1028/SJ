@@ -271,8 +271,17 @@ class LifetimeFortuneData {
     final lifeCyclesJson = parsedJson['life_cycles'] as Map<String, dynamic>? ?? {};
     final lifeCycles = LifeCyclesSection(
       youth: lifeCyclesJson['youth'] as String? ?? '',
+      youthDetail: LifeCycleDetail.fromJson(
+        lifeCyclesJson['youth_detail'] as Map<String, dynamic>?,
+      ),
       middleAge: lifeCyclesJson['middle_age'] as String? ?? '',
+      middleAgeDetail: LifeCycleDetail.fromJson(
+        lifeCyclesJson['middle_age_detail'] as Map<String, dynamic>?,
+      ),
       laterYears: lifeCyclesJson['later_years'] as String? ?? '',
+      laterYearsDetail: LifeCycleDetail.fromJson(
+        lifeCyclesJson['later_years_detail'] as Map<String, dynamic>?,
+      ),
       keyYears: _parseStringList(lifeCyclesJson['key_years']),
     );
 
@@ -693,17 +702,63 @@ class HealthSection {
   });
 }
 
+/// 인생 주기 상세 (v9.6)
+class LifeCycleDetail {
+  final String career;
+  final String wealth;
+  final String love;
+  final String health;
+  final String tip;
+  final String bestPeriod;
+  final String cautionPeriod;
+
+  const LifeCycleDetail({
+    this.career = '',
+    this.wealth = '',
+    this.love = '',
+    this.health = '',
+    this.tip = '',
+    this.bestPeriod = '',
+    this.cautionPeriod = '',
+  });
+
+  bool get hasContent =>
+      career.isNotEmpty ||
+      wealth.isNotEmpty ||
+      love.isNotEmpty ||
+      health.isNotEmpty;
+
+  static LifeCycleDetail fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const LifeCycleDetail();
+    return LifeCycleDetail(
+      career: json['career'] as String? ?? '',
+      wealth: json['wealth'] as String? ?? '',
+      love: json['love'] as String? ?? '',
+      health: json['health'] as String? ?? '',
+      tip: json['tip'] as String? ?? '',
+      bestPeriod: json['best_period'] as String? ?? '',
+      cautionPeriod: json['caution_period'] as String? ?? '',
+    );
+  }
+}
+
 /// 인생 주기 섹션
 class LifeCyclesSection {
   final String youth;
+  final LifeCycleDetail youthDetail;
   final String middleAge;
+  final LifeCycleDetail middleAgeDetail;
   final String laterYears;
+  final LifeCycleDetail laterYearsDetail;
   final List<String> keyYears;
 
   const LifeCyclesSection({
     required this.youth,
+    this.youthDetail = const LifeCycleDetail(),
     required this.middleAge,
+    this.middleAgeDetail = const LifeCycleDetail(),
     required this.laterYears,
+    this.laterYearsDetail = const LifeCycleDetail(),
     required this.keyYears,
   });
 }

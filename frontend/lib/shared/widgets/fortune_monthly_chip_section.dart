@@ -38,6 +38,19 @@ class MonthIdiomData {
   });
 }
 
+/// v5.3: 월별 행운 데이터
+class MonthLuckyData {
+  final String color;
+  final int number;
+
+  const MonthLuckyData({
+    required this.color,
+    required this.number,
+  });
+
+  bool get hasContent => color.isNotEmpty || number > 0;
+}
+
 /// 월별 데이터 인터페이스 (v5.0: highlights, idiom 포함)
 class MonthData {
   final String keyword;
@@ -50,6 +63,8 @@ class MonthData {
   final Map<String, MonthHighlightData>? highlights;
   /// v5.0: 사자성어 정보 - 광고 해금 전에도 표시
   final MonthIdiomData? idiom;
+  /// v5.3: 행운 요소 (색상, 숫자)
+  final MonthLuckyData? lucky;
   /// 상세 데이터 로딩 중 플래그
   final bool isLoading;
 
@@ -61,6 +76,7 @@ class MonthData {
     this.categories,
     this.highlights,
     this.idiom,
+    this.lucky,
     this.isLoading = false,
   });
 
@@ -73,6 +89,9 @@ class MonthData {
   /// v5.0: 사자성어 데이터가 있는지 확인
   bool get hasIdiom => idiom != null && idiom!.phrase.isNotEmpty;
 
+  /// v5.3: 행운 데이터가 있는지 확인
+  bool get hasLucky => lucky != null && lucky!.hasContent;
+
   /// 로딩 중 상태로 복사
   MonthData copyWithLoading(bool loading) {
     return MonthData(
@@ -83,6 +102,7 @@ class MonthData {
       categories: categories,
       highlights: highlights,
       idiom: idiom,
+      lucky: lucky,
       isLoading: loading,
     );
   }
@@ -97,6 +117,7 @@ class MonthData {
       categories: newCategories,
       highlights: highlights,
       idiom: idiom,
+      lucky: lucky,
       isLoading: false,
     );
   }
@@ -486,15 +507,39 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
             }),
           ],
 
+          // v5.3: 행운 요소
+          if (month.hasLucky) ...[
+            const SizedBox(height: 12),
+            _buildLuckyCard(theme, month.lucky!),
+          ],
+
           // 팁
           if (month.tip.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(
-              '💡 ${month.tip}',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textSecondary,
-                height: 1.6,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('💡', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      month.tip,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: theme.textPrimary,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -626,13 +671,16 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
     return names[key] ?? key;
   }
 
-  /// v5.0: 하이라이트 카드 아이콘 가져오기
+  /// v5.3: 하이라이트 카드 아이콘 가져오기 (7개 카테고리)
   IconData _getHighlightIcon(String key) {
     const icons = {
       'career': Icons.work_outline,
       'business': Icons.business_center_outlined,
       'wealth': Icons.account_balance_wallet_outlined,
       'love': Icons.favorite_outline,
+      'marriage': Icons.home_outlined,
+      'health': Icons.monitor_heart_outlined,
+      'study': Icons.school_outlined,
     };
     return icons[key] ?? Icons.star_outline;
   }
@@ -776,6 +824,68 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
               height: 1.6,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// v5.3: 행운 카드 빌드
+  Widget _buildLuckyCard(AppThemeExtension theme, MonthLuckyData lucky) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.purple.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome, size: 18, color: Colors.purple.shade300),
+          const SizedBox(width: 10),
+          Text(
+            '행운',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: theme.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 16),
+          if (lucky.color.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                lucky.color,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.purple.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (lucky.number > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${lucky.number}',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.purple.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
         ],
       ),
     );

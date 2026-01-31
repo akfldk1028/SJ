@@ -172,15 +172,19 @@ class CategorySection {
   });
 }
 
-/// 월별 요약 데이터 (v5.0: 12개월 확장 - highlights, idiom 포함)
+/// 월별 요약 데이터 (v5.3: 12개월 확장 - highlights 7개, tip, lucky 추가)
 class MonthSummary {
   final String keyword;
   final int score;
   final String reading;
-  /// v5.0: 카테고리별 하이라이트 (career, business, wealth, love)
+  /// v5.0: 카테고리별 하이라이트 (v5.3: 7개 카테고리)
   final MonthHighlights? highlights;
   /// v5.0: 사자성어
   final MonthIdiom? idiom;
+  /// v5.3: 핵심 조언
+  final String tip;
+  /// v5.3: 행운 요소
+  final MonthLucky? lucky;
 
   const MonthSummary({
     required this.keyword,
@@ -188,9 +192,11 @@ class MonthSummary {
     required this.reading,
     this.highlights,
     this.idiom,
+    this.tip = '',
+    this.lucky,
   });
 
-  /// JSON에서 파싱 (v5.0)
+  /// JSON에서 파싱 (v5.3)
   factory MonthSummary.fromJson(Map<String, dynamic> json) {
     return MonthSummary(
       keyword: json['keyword'] as String? ?? '',
@@ -202,6 +208,10 @@ class MonthSummary {
       idiom: json['idiom'] != null
           ? MonthIdiom.fromJson(json['idiom'] as Map<String, dynamic>)
           : null,
+      tip: json['tip'] as String? ?? '',
+      lucky: json['lucky'] != null
+          ? MonthLucky.fromJson(json['lucky'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -209,34 +219,37 @@ class MonthSummary {
   bool get hasCategories => highlights != null;
 }
 
-/// v5.0: 월별 카테고리 하이라이트 (career, business, wealth, love)
+/// v5.3: 월별 카테고리 하이라이트 (7개: career, business, wealth, love, marriage, health, study)
 class MonthHighlights {
   final MonthHighlightItem? career;
   final MonthHighlightItem? business;
   final MonthHighlightItem? wealth;
   final MonthHighlightItem? love;
+  final MonthHighlightItem? marriage;
+  final MonthHighlightItem? health;
+  final MonthHighlightItem? study;
 
   const MonthHighlights({
     this.career,
     this.business,
     this.wealth,
     this.love,
+    this.marriage,
+    this.health,
+    this.study,
   });
 
   factory MonthHighlights.fromJson(Map<String, dynamic> json) {
+    MonthHighlightItem? _parse(String key) =>
+        json[key] != null ? MonthHighlightItem.fromJson(json[key] as Map<String, dynamic>) : null;
     return MonthHighlights(
-      career: json['career'] != null
-          ? MonthHighlightItem.fromJson(json['career'] as Map<String, dynamic>)
-          : null,
-      business: json['business'] != null
-          ? MonthHighlightItem.fromJson(json['business'] as Map<String, dynamic>)
-          : null,
-      wealth: json['wealth'] != null
-          ? MonthHighlightItem.fromJson(json['wealth'] as Map<String, dynamic>)
-          : null,
-      love: json['love'] != null
-          ? MonthHighlightItem.fromJson(json['love'] as Map<String, dynamic>)
-          : null,
+      career: _parse('career'),
+      business: _parse('business'),
+      wealth: _parse('wealth'),
+      love: _parse('love'),
+      marriage: _parse('marriage'),
+      health: _parse('health'),
+      study: _parse('study'),
     );
   }
 }
@@ -273,6 +286,24 @@ class MonthIdiom {
     return MonthIdiom(
       phrase: json['phrase'] as String? ?? '',
       meaning: json['meaning'] as String? ?? '',
+    );
+  }
+}
+
+/// v5.3: 월별 행운 요소
+class MonthLucky {
+  final String color;
+  final int number;
+
+  const MonthLucky({
+    required this.color,
+    required this.number,
+  });
+
+  factory MonthLucky.fromJson(Map<String, dynamic> json) {
+    return MonthLucky(
+      color: json['color'] as String? ?? '',
+      number: (json['number'] as num?)?.toInt() ?? 0,
     );
   }
 }

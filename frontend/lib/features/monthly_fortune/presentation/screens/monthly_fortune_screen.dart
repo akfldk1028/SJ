@@ -245,77 +245,109 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
     );
   }
 
-  /// 분야별 운세 그리드
+  /// 펼쳐진 카테고리 키
+  String? _expandedCategoryKey;
+
+  /// 분야별 운세 리스트 (탭하여 펼치기)
   Widget _buildCategoryGrid(AppThemeExtension theme, Map<String, CategorySection> categories) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.4,
+    return Column(
       children: categories.entries.map((entry) {
         final cat = entry.value;
         final categoryName = _getCategoryName(entry.key);
         final icon = _getCategoryIcon(entry.key);
-        return _buildCategoryCard(theme, categoryName, cat.score, cat.reading, icon);
+        final isExpanded = _expandedCategoryKey == entry.key;
+        return _buildCategoryCard(theme, entry.key, categoryName, cat.score, cat.reading, icon, isExpanded);
       }).toList(),
     );
   }
 
-  Widget _buildCategoryCard(AppThemeExtension theme, String title, int score, String reading, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.textMuted.withValues(alpha: 0.15)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: theme.isDark ? 0.2 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  Widget _buildCategoryCard(AppThemeExtension theme, String key, String title, int score, String reading, IconData icon, bool isExpanded) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _expandedCategoryKey = isExpanded ? null : key;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isExpanded
+              ? theme.primaryColor.withValues(alpha: 0.06)
+              : theme.cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isExpanded
+                ? theme.primaryColor.withValues(alpha: 0.4)
+                : theme.textMuted.withValues(alpha: 0.15),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: theme.primaryColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: theme.textPrimary,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: theme.isDark ? 0.2 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: theme.primaryColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textPrimary,
+                    ),
                   ),
                 ),
-              ),
-              if (score > 0)
-                FortuneScoreGauge(
-                  score: score,
-                  size: 32,
-                  style: GaugeStyle.compact,
-                  showLabel: false,
+                if (score > 0)
+                  FortuneScoreGauge(
+                    score: score,
+                    size: 32,
+                    style: GaugeStyle.compact,
+                    showLabel: false,
+                  ),
+                const SizedBox(width: 4),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 20,
+                  color: theme.textSecondary,
                 ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            reading,
-            style: TextStyle(
-              fontSize: 12,
-              color: theme.textSecondary,
-              height: 1.4,
+              ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            if (!isExpanded) ...[
+              const SizedBox(height: 8),
+              Text(
+                reading,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.textSecondary,
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            if (isExpanded) ...[
+              const SizedBox(height: 12),
+              Text(
+                reading,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.textSecondary,
+                  height: 1.7,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -517,33 +549,26 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         debugPrint('[MonthlyScreen] $monthKey: monthSummary=${monthSummary != null ? "있음(keyword=${monthSummary.keyword}, highlights=$hasHighlights, idiom=$hasIdiom)" : "없음"}');
 
         if (monthSummary != null && monthSummary.keyword.isNotEmpty) {
-          // v5.0: highlights 변환 (career, business, wealth, love)
+          // v5.3: highlights 변환 (7개 카테고리)
           Map<String, MonthHighlightData>? highlights;
           if (monthSummary.highlights != null) {
             highlights = {};
-            if (monthSummary.highlights!.career != null) {
-              highlights['career'] = MonthHighlightData(
-                score: monthSummary.highlights!.career!.score,
-                summary: monthSummary.highlights!.career!.summary,
-              );
-            }
-            if (monthSummary.highlights!.business != null) {
-              highlights['business'] = MonthHighlightData(
-                score: monthSummary.highlights!.business!.score,
-                summary: monthSummary.highlights!.business!.summary,
-              );
-            }
-            if (monthSummary.highlights!.wealth != null) {
-              highlights['wealth'] = MonthHighlightData(
-                score: monthSummary.highlights!.wealth!.score,
-                summary: monthSummary.highlights!.wealth!.summary,
-              );
-            }
-            if (monthSummary.highlights!.love != null) {
-              highlights['love'] = MonthHighlightData(
-                score: monthSummary.highlights!.love!.score,
-                summary: monthSummary.highlights!.love!.summary,
-              );
+            final h = monthSummary.highlights!;
+            for (final entry in {
+              'career': h.career,
+              'business': h.business,
+              'wealth': h.wealth,
+              'love': h.love,
+              'marriage': h.marriage,
+              'health': h.health,
+              'study': h.study,
+            }.entries) {
+              if (entry.value != null) {
+                highlights[entry.key] = MonthHighlightData(
+                  score: entry.value!.score,
+                  summary: entry.value!.summary,
+                );
+              }
             }
           }
 
@@ -556,13 +581,23 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
             );
           }
 
+          // v5.3: lucky 변환
+          MonthLuckyData? luckyData;
+          if (monthSummary.lucky != null) {
+            luckyData = MonthLuckyData(
+              color: monthSummary.lucky!.color,
+              number: monthSummary.lucky!.number,
+            );
+          }
+
           months[monthKey] = MonthData(
             keyword: monthSummary.keyword,
             score: monthSummary.score,
             reading: monthSummary.reading,
-            tip: '',
+            tip: monthSummary.tip,
             highlights: highlights,
             idiom: idiom,
+            lucky: luckyData,
           );
         } else {
           months[monthKey] = MonthData(

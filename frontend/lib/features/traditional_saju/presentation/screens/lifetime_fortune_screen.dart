@@ -400,9 +400,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         ],
 
         // ========== 5단계: 시간축 ==========
-        // v8.1: 전성기 섹션
+        // v8.1: 전성기 섹션 (광고 잠금)
         if (fortune.peakYears != null && fortune.peakYears!.hasContent) ...[
-          _buildPeakYearsSection(theme, fortune.peakYears!),
+          _buildPeakYearsCard(theme, fortune.peakYears!),
           const SizedBox(height: 32),
         ],
 
@@ -413,6 +413,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             children: [
               if (fortune.lifeCycles.youth.isNotEmpty) ...[
                 _buildSubSection(theme, '청년기 (20-35세)', fortune.lifeCycles.youth),
+                if (fortune.lifeCycles.youthDetail.hasContent) ...[
+                  const SizedBox(height: 12),
+                  _buildLifeCycleDetailSection(theme, fortune.lifeCycles.youthDetail),
+                ],
                 const SizedBox(height: 12),
               ],
               if (fortune.lifeCycles.middleAge.isNotEmpty) ...[
@@ -422,6 +426,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   title: '중년기',
                   ageRange: '35-55세',
                   content: fortune.lifeCycles.middleAge,
+                  detail: fortune.lifeCycles.middleAgeDetail,
                 ),
                 const SizedBox(height: 12),
               ],
@@ -432,6 +437,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   title: '후년기',
                   ageRange: '55세 이후',
                   content: fortune.lifeCycles.laterYears,
+                  detail: fortune.lifeCycles.laterYearsDetail,
                 ),
               if (fortune.lifeCycles.keyYears.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -774,9 +780,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         ],
 
         // ========== 5단계: 시간축 (언제?) ==========
-        // v8.1: 전성기 섹션 (시간축 최상단에 배치)
+        // v8.1: 전성기 섹션 (시간축 최상단에 배치, 광고 잠금)
         if (fortune.peakYears != null && fortune.peakYears!.hasContent) ...[
-          _buildPeakYearsSection(theme, fortune.peakYears!),
+          _buildPeakYearsCard(theme, fortune.peakYears!),
           const SizedBox(height: 32),
         ],
 
@@ -788,6 +794,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               // 청년기 (항상 열림)
               if (fortune.lifeCycles.youth.isNotEmpty) ...[
                 _buildSubSection(theme, '청년기 (20-35세)', fortune.lifeCycles.youth),
+                if (fortune.lifeCycles.youthDetail.hasContent) ...[
+                  const SizedBox(height: 12),
+                  _buildLifeCycleDetailSection(theme, fortune.lifeCycles.youthDetail),
+                ],
                 const SizedBox(height: 12),
               ],
               // 중년기 (광고 필요)
@@ -798,6 +808,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   title: '중년기',
                   ageRange: '35-55세',
                   content: fortune.lifeCycles.middleAge,
+                  detail: fortune.lifeCycles.middleAgeDetail,
                 ),
                 const SizedBox(height: 12),
               ],
@@ -809,6 +820,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   title: '후년기',
                   ageRange: '55세 이후',
                   content: fortune.lifeCycles.laterYears,
+                  detail: fortune.lifeCycles.laterYearsDetail,
                 ),
               if (fortune.lifeCycles.keyYears.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -1435,6 +1447,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     required String title,
     required String ageRange,
     required String content,
+    LifeCycleDetail? detail,
   }) {
     final isUnlocked = _unlockedCycles.contains(cycleKey);
 
@@ -1525,7 +1538,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 14),
 
           // 내용 또는 잠금 UI
-          if (isUnlocked)
+          if (isUnlocked) ...[
             Text(
               content,
               style: TextStyle(
@@ -1533,9 +1546,138 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 color: theme.textSecondary,
                 height: 1.8,
               ),
-            )
-          else
+            ),
+            if (detail != null && detail.hasContent) ...[
+              const SizedBox(height: 16),
+              _buildLifeCycleDetailSection(theme, detail),
+            ],
+          ] else
             _buildLockedContent(theme, cycleKey, title),
+        ],
+      ),
+    );
+  }
+
+  /// 인생 주기 상세 카테고리 섹션 (v9.6)
+  Widget _buildLifeCycleDetailSection(AppThemeExtension theme, LifeCycleDetail detail) {
+    final categories = <MapEntry<String, String>>[];
+    if (detail.career.isNotEmpty) categories.add(MapEntry('💼 직업/활동', detail.career));
+    if (detail.wealth.isNotEmpty) categories.add(MapEntry('💰 재물/자산', detail.wealth));
+    if (detail.love.isNotEmpty) categories.add(MapEntry('💕 인간관계', detail.love));
+    if (detail.health.isNotEmpty) categories.add(MapEntry('🏥 건강', detail.health));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 카테고리별 상세
+        ...categories.map((entry) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.key,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                entry.value,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.textSecondary,
+                  height: 1.7,
+                ),
+              ),
+            ],
+          ),
+        )),
+        // 핵심 조언
+        if (detail.tip.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.textPrimary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('💡 ', style: TextStyle(fontSize: 14, color: theme.textPrimary)),
+                Expanded(
+                  child: Text(
+                    detail.tip,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textPrimary,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        // 시기 정보
+        if (detail.bestPeriod.isNotEmpty || detail.cautionPeriod.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (detail.bestPeriod.isNotEmpty)
+                Expanded(
+                  child: _buildPeriodChip(theme, '최적기', detail.bestPeriod, true),
+                ),
+              if (detail.bestPeriod.isNotEmpty && detail.cautionPeriod.isNotEmpty)
+                const SizedBox(width: 8),
+              if (detail.cautionPeriod.isNotEmpty)
+                Expanded(
+                  child: _buildPeriodChip(theme, '주의기', detail.cautionPeriod, false),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 시기 칩 위젯
+  Widget _buildPeriodChip(AppThemeExtension theme, String label, String period, bool isPositive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isPositive
+            ? Colors.green.withValues(alpha: 0.08)
+            : Colors.orange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isPositive
+              ? Colors.green.withValues(alpha: 0.2)
+              : Colors.orange.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isPositive ? Colors.green.shade700 : Colors.orange.shade700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            period,
+            style: TextStyle(
+              fontSize: 13,
+              color: theme.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -2063,7 +2205,150 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 전성기 섹션
+  /// 전성기 카드 (광고 잠금)
+  Widget _buildPeakYearsCard(AppThemeExtension theme, PeakYearsSection peakYears) {
+    final isUnlocked = _unlockedCycles.contains('peakYears');
+
+    // 잠금 해제 상태면 전체 내용 표시
+    if (isUnlocked) {
+      return _buildPeakYearsSection(theme, peakYears);
+    }
+
+    // 잠금 상태: 미리보기 + 광고 버튼
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFD700).withValues(alpha: 0.1),
+            const Color(0xFFFF8C00).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.star, color: Color(0xFFFFD700), size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '나의 전성기',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    if (peakYears.period.isNotEmpty)
+                      Text(
+                        peakYears.period,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFFFD700),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  '🔒 잠김',
+                  style: TextStyle(fontSize: 12, color: Color(0xFFFF8C00)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 미리보기 텍스트
+          Text(
+            '• 전성기가 오는 이유\n• 이 시기에 해야 할 것\n• 미리 준비할 것\n• 주의사항',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: theme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // 안내 + 광고 버튼
+          Row(
+            children: [
+              Icon(Icons.movie_outlined, size: 20, color: theme.textSecondary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '광고를 시청하면 나의 전성기 분석을 확인할 수 있습니다.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLoadingAd
+                  ? null
+                  : () => _showRewardedAdAndUnlock('peakYears', '나의 전성기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              icon: _isLoadingAd
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.play_circle_filled, size: 20),
+              label: Text(
+                _isLoadingAd ? '광고 로딩 중...' : '광고 보고 나의 전성기 확인',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 전성기 섹션 (잠금 해제 후 표시)
   Widget _buildPeakYearsSection(AppThemeExtension theme, PeakYearsSection peakYears) {
     return Container(
       padding: const EdgeInsets.all(20),
