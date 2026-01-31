@@ -24,6 +24,7 @@ import '../providers/conversational_ad_provider.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../domain/models/chat_persona.dart';
 import '../../domain/models/ai_persona.dart';
+import '../widgets/conversational_ad_widget.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/presentation/providers/relation_provider.dart';
 import '../../../profile/data/models/profile_relation_model.dart';
@@ -585,6 +586,17 @@ class _ChatContent extends ConsumerStatefulWidget {
   ConsumerState<_ChatContent> createState() => _ChatContentState();
 }
 
+/// ChatPersona → AiPersona 매핑 (광고 위젯용)
+AiPersona _mapChatPersonaToAiPersona(ChatPersona persona) {
+  return switch (persona) {
+    ChatPersona.basePerson => AiPersona.professional,
+    ChatPersona.babyMonk => AiPersona.babyMonk,
+    ChatPersona.scenarioWriter => AiPersona.scenarioWriter,
+    ChatPersona.saOngJiMa => AiPersona.saOngJiMa,
+    ChatPersona.sewerSaju => AiPersona.sewerSaju,
+  };
+}
+
 class _ChatContentState extends ConsumerState<_ChatContent> {
   /// pendingMessage 처리 중 플래그 (중복 전송 방지)
   bool _isProcessingPendingMessage = false;
@@ -823,20 +835,19 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             isLoading: chatState.isLoading,
           ),
         ),
-        // 토큰 소진 시 광고 안내 배너 (에러 배너 대신)
+        // 광고 모드 시 대화형 광고 표시 (모든 트리거 타입 처리)
         Builder(
           builder: (context) {
             final adState = ref.watch(conversationalAdNotifierProvider);
-            // 광고 모드 (토큰 소진) 시 광고 안내 표시
-            if (adState.isAdMode && adState.adType == AdMessageType.tokenDepleted) {
-              return _AdPromptBanner(
-                onWatchAd: () async {
-                  final success = await ref.read(conversationalAdNotifierProvider.notifier).showRewardedAd();
-                  if (success) {
-                    // 광고 시청 완료 → 토큰 충전 → 대화 재개
-                    ref.read(chatNotifierProvider(currentSessionId).notifier).addBonusTokens(10000);
-                    ref.read(conversationalAdNotifierProvider.notifier).dismissAd();
-                  }
+            // 광고 모드 활성화 시: tokenDepleted, tokenNearLimit, intervalAd 모두 처리
+            if (adState.isAdMode) {
+              final selectedPersona = ref.read(chatPersonaNotifierProvider);
+              final aiPersona = _mapChatPersonaToAiPersona(selectedPersona);
+              return ConversationalAdWidget(
+                persona: aiPersona,
+                sessionId: currentSessionId!,
+                onAdComplete: () {
+                  // ConversationalAdWidget 내부에서 토큰 충전 처리됨
                 },
               );
             }

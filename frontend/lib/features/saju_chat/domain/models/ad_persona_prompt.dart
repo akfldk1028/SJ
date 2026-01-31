@@ -179,6 +179,38 @@ $personaStyle
       };
     }
 
+    // 토큰 경고 (80%) - 보상형 광고 시청 유도
+    if (trigger == AdTriggerResult.tokenNearLimit) {
+      return switch (personaName) {
+        'doryeong' || 'dolyeong' =>
+          '광고를 보시면 AI와 더 대화할 수 있사옵니다!',
+        'seonyeo' || 'sunnyeo' =>
+          '잠시 광고를 보시면 저와 더 깊은 이야기를 나눌 수 있어요!',
+        'monk' || 'seunim' =>
+          '광고를 보시면 법문을 더 이어갈 수 있사옵니다.',
+        'grandmother' || 'halmeoni' =>
+          '이거 보면 얘기 더 해줄 수 있어!',
+        _ =>
+          '광고를 보면 AI와 더 대화할 수 있어요!',
+      };
+    }
+
+    // 인터벌 광고 - 중간중간 광고
+    if (trigger == AdTriggerResult.intervalAd) {
+      return switch (personaName) {
+        'doryeong' || 'dolyeong' =>
+          '광고를 누르시면 AI와 더 대화할 수 있사옵니다!',
+        'seonyeo' || 'sunnyeo' =>
+          '광고를 누르시면 저와 더 대화할 수 있어요!',
+        'monk' || 'seunim' =>
+          '광고를 누르시면 대화를 더 이어갈 수 있습니다.',
+        'grandmother' || 'halmeoni' =>
+          '이거 누르면 얘기 더 할 수 있어!',
+        _ =>
+          '광고를 누르면 AI와 더 대화할 수 있어요!',
+      };
+    }
+
     return '';
   }
 }
