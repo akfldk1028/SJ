@@ -61,7 +61,7 @@ class MainScaffold extends StatelessWidget {
     return 0; // Home
   }
 
-  void _onTap(BuildContext context, int index) {
+  void _onTap(BuildContext context, int index) async {
     switch (index) {
       case 0:
         context.go(Routes.home);
@@ -70,7 +70,11 @@ class MainScaffold extends StatelessWidget {
         context.go(Routes.relationshipList);
         break;
       case 2:
-        context.go(Routes.sajuChat);
+        // 전면광고 표시 후 AI 상담 페이지 이동
+        await AdService.instance.showInterstitialAd();
+        if (context.mounted) {
+          context.go(Routes.sajuChat);
+        }
         break;
     }
   }

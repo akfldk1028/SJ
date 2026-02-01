@@ -11,7 +11,7 @@ enum AdMode {
 }
 
 /// 현재 광고 모드 설정
-const AdMode currentAdMode = AdMode.production;
+const AdMode currentAdMode = AdMode.test;
 
 /// 테스트 광고 Unit ID (Google 공식 테스트 ID)
 /// 개발 중에는 반드시 이 ID를 사용해야 계정 정지 방지
@@ -133,7 +133,7 @@ class AdUnitId {
 /// 광고 설정값
 abstract class AdSettings {
   /// 전면 광고 사이 최소 간격 (초)
-  static const int interstitialMinInterval = 60;
+  static const int interstitialMinInterval = 30;
 
   /// 보상형 광고 재로드 대기 시간 (초)
   static const int rewardedReloadDelay = 3;

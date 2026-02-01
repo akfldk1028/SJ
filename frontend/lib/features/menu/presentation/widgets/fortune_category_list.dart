@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../ad/ad_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 
@@ -64,7 +65,13 @@ class FortuneCategoryList extends StatelessWidget {
     final fontSize = context.scaledFont(12);
 
     return GestureDetector(
-      onTap: () => context.push(route),
+      onTap: () async {
+        // 전면광고 표시 후 페이지 이동
+        await AdService.instance.showInterstitialAd();
+        if (context.mounted) {
+          context.push(route);
+        }
+      },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -76,10 +76,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
-                  SizedBox(height: context.scaledPadding(16)),
-                  // Native 광고 2 (내 사주 카드 아래) - 500ms 지연
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // 오늘의 한마디는 FortuneSummaryCard 내 시간대별 운세 아래에 배치됨
                 ],
               ),

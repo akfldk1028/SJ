@@ -35,10 +35,16 @@ abstract class AdTriggerService {
   static const double tokenDepletedThreshold = 1.0;
 
   /// 토큰 경고 시 제공되는 보상 토큰 (광고 시청 시)
-  static const int warningRewardTokens = 5000;
+  static const int warningRewardTokens = 21000;
 
-  /// 토큰 소진 시 제공되는 보상 토큰 (광고 시청 시)
-  static const int depletedRewardTokens = 10000;
+  /// 토큰 소진 시 보상형 영상 보상 토큰 (5왕복 = 35,000)
+  static const int depletedRewardTokensVideo = 35000;
+
+  /// 토큰 소진 시 네이티브 광고 보상 토큰 (3왕복 = 21,000)
+  static const int depletedRewardTokensNative = 21000;
+
+  /// 토큰 소진 시 제공되는 보상 토큰 (기본값 - 보상형 영상)
+  static const int depletedRewardTokens = 35000;
 
   /// 인터벌 광고 시 제공되는 보상 토큰 (광고 클릭 시)
   static const int intervalRewardTokens = 2000;
