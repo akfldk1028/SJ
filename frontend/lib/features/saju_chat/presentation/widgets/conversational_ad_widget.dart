@@ -322,7 +322,7 @@ class ConversationalAdWidget extends ConsumerWidget {
                       Icon(Icons.article_outlined, size: 18, color: theme.textSecondary),
                       const SizedBox(width: 8),
                       Text(
-                        '광고 클릭하고 조금 더 대화',
+                        '광고 확인하고 대화 이어가기',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,

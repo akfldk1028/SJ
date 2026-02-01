@@ -1897,7 +1897,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
 
 /// 광고 안내 배너 (토큰 소진 시)
 ///
-/// "광고를 클릭하면 좀 더 대화할 수 있어요!" 메시지 표시
+/// "광고를 확인하면 대화를 이어갈 수 있어요!" 메시지 표시
 class _AdPromptBanner extends StatelessWidget {
   final VoidCallback onWatchAd;
 
