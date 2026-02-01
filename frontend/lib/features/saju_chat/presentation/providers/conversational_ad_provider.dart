@@ -339,13 +339,18 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     return completer.future;
   }
 
-  /// 광고 클릭 처리 (Native 광고 클릭 시 토큰 보상)
+  /// 광고 클릭 처리 (Native 광고 클릭 시 추가 토큰 보상)
   ///
-  /// impression이 아닌 클릭에만 토큰 지급
-  /// → CPC 수익 극대화 ($0.10~0.50/click vs $0.001~0.003/impression)
+  /// impression(1,500) + 클릭 보너스(1,500) = 총 3,000 토큰
+  /// CPC 수입 $0.15~0.50 vs 추가 비용 $0.002 → 클릭할수록 이득
   void _onAdClicked() {
     if (state.adType != AdMessageType.tokenDepleted) {
-      state = state.copyWith(adWatched: true);
+      // 클릭 보너스: impression 보상 위에 추가
+      final clickBonus = AdTriggerService.impressionRewardTokens;
+      state = state.copyWith(
+        adWatched: true,
+        rewardedTokens: (state.rewardedTokens ?? 0) + clickBonus,
+      );
 
       // Supabase에 클릭 이벤트 추적 (수익 분석용)
       AdTrackingService.instance.trackNativeClick(
@@ -353,7 +358,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       );
 
       if (kDebugMode) {
-        print('   💰 [AD] Native ad CLICKED → adWatched=true, tokens earned!');
+        print('   💰 [AD] Native ad CLICKED → +$clickBonus bonus tokens (total: ${state.rewardedTokens})');
       }
     }
   }

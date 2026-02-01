@@ -63,9 +63,9 @@ abstract class AdStrategy {
   /// quota 20,000 기준 3회 채팅 → native 3회 노출
   static const int inlineAdMessageInterval = 2;
 
-  /// 인라인 광고 최대 개수 (대화 중 지속적으로 표시)
-  /// 20회 × 1,500토큰 = 30,000 추가 → 총 ~7회 채팅 가능
-  static const int inlineAdMaxCount = 20;
+  /// 인라인 광고 최대 개수 (무제한에 가깝게)
+  /// 광고 1회당 +$0.003 이익 → 많을수록 이득
+  static const int inlineAdMaxCount = 9999;
 
   /// 인라인 광고 최소 메시지 수 (이보다 적으면 광고 안 보임)
   /// 2 = 첫 번째 대화 후 바로 광고 가능

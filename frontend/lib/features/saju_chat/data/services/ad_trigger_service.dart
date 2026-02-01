@@ -73,19 +73,25 @@ abstract class AdTriggerService {
     int shownAdCount = 0,
     bool isAdFree = false,
   }) {
-    // 광고 제거 구매자 → 모든 광고 스킵
-    if (isAdFree) return AdTriggerResult.none;
-
     // 1. 토큰 기반 트리거 (우선순위 높음)
     final tokenTrigger = checkTokenTrigger(
       tokenUsage: tokenUsage,
       tokenWarningOnCooldown: tokenWarningOnCooldown,
     );
     if (tokenTrigger != AdTriggerResult.none) {
+      // 광고 제거 구매자: 토큰 소진(100%) 보상형 광고만 허용
+      // → 강제 광고 아님, 유저가 직접 선택해서 시청 → 토큰 충전
+      // 토큰 경고(80%)는 차단 (강제성 있는 광고이므로)
+      if (isAdFree && tokenTrigger != AdTriggerResult.tokenDepleted) {
+        return AdTriggerResult.none;
+      }
       return tokenTrigger;
     }
 
-    // 2. 메시지 간격 트리거
+    // 광고 제거 구매자 → 인터벌(강제) 광고 차단
+    if (isAdFree) return AdTriggerResult.none;
+
+    // 2. 메시지 간격 트리거 (무료 유저만)
     return checkIntervalTrigger(
       messageCount: messageCount,
       shownAdCount: shownAdCount,

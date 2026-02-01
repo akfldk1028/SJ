@@ -27,9 +27,15 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 
 ## 연동 포인트
 
-### 광고 시스템 연동
-- `ad_trigger_service.dart` → `isAdFree` 파라미터로 광고 스킵
+### 광고 시스템 연동 (isAdFree 분기 로직)
+- `ad_trigger_service.dart` → `isAdFree` 구매자 광고 정책:
+  - 인터벌(강제) 광고: **차단**
+  - 토큰 경고(80%) 광고: **차단**
+  - 토큰 소진(100%) 보상형 광고: **허용** ← 토큰 충전 수단
 - `conversational_ad_provider.dart` → `purchaseNotifierProvider`에서 isAdFree 체크
+
+> **핵심**: 광고 제거 = 강제 광고만 제거. 토큰 소진 시 보상형 광고는 유저가 직접 선택 가능.
+> 이렇게 해야 광고 제거 구매자도 토큰 충전 수단이 있음.
 
 ### Quota 시스템 연동
 - `chat_provider.dart` → `isAiPremium`이면 토큰 소진 체크 스킵
@@ -59,6 +65,51 @@ purchase/
     ├── premium_badge_widget.dart   # PRO/AD FREE 뱃지
     └── restore_button_widget.dart  # 구매 복원 (Apple 필수)
 ```
+
+## 모듈화 규칙
+
+### Import 규칙
+```
+✅ 외부 → purchase 모듈: barrel export만 사용
+   import 'purchase/purchase.dart';
+
+❌ 외부 → purchase 내부 파일 직접 참조 금지
+   import 'purchase/providers/purchase_provider.dart';  // WRONG
+   import 'purchase/purchase_config.dart';               // WRONG
+```
+
+- **외부 파일**은 반드시 `purchase/purchase.dart` 하나만 import
+- **모듈 내부** 파일 간에는 relative import 사용 (circular import 방지)
+- 폴더 구조 변경 시 `purchase.dart` barrel만 수정하면 외부 영향 없음
+
+### 의존성 방향 (단방향)
+```
+purchase_config.dart          ← 의존 없음 (상수만)
+    ↓
+purchase_service.dart         ← config + supabase_service
+purchase_mutations.dart       ← config + supabase
+purchase_queries.dart         ← supabase
+    ↓
+purchase_provider.dart        ← mutations + config
+    ↓
+paywall_screen.dart           ← provider
+premium_badge_widget.dart     ← provider + config
+restore_button_widget.dart    ← provider
+```
+
+### 외부 연동 파일 (4곳)
+| 파일 | import | 사용 |
+|------|--------|------|
+| `main.dart` | `purchase/purchase.dart` | `PurchaseService.instance.initialize()` |
+| `app_router.dart` | `purchase/purchase.dart` | `PaywallScreen` 라우트 |
+| `chat_provider.dart` | `purchase/purchase.dart` | `PurchaseConfig.entitlementAiPremium` 체크 |
+| `conversational_ad_provider.dart` | `purchase/purchase.dart` | `PurchaseConfig.entitlementAdFree` 체크 |
+
+### 상수 관리
+- 모든 Product ID, Entitlement ID는 `purchase_config.dart`에서 중앙 관리
+- hardcoded string 사용 금지 → `PurchaseConfig.entitlementAdFree` 등 사용
+
+---
 
 ## 초기화 순서 (main.dart)
 1. `WidgetsFlutterBinding.ensureInitialized()`
