@@ -14,6 +14,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../ad/ad_config.dart';
 import '../../../../ad/ad_tracking_service.dart';
+import '../../../../purchase/purchase.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../data/services/ad_trigger_service.dart';
 import '../../data/services/conversation_window_manager.dart' show TokenUsageInfo;
@@ -92,12 +93,18 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       _tokenWarningCooldown--;
     }
 
-    // 트리거 체크 (쿨다운 상태 + 광고 카운터 전달)
+    // 광고 제거 구매 여부 체크
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isAdFree = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementAdFree]?.isActive == true;
+
+    // 트리거 체크 (쿨다운 상태 + 광고 카운터 + 광고제거 전달)
     final trigger = AdTriggerService.checkTrigger(
       tokenUsage: tokenUsage,
       messageCount: messageCount,
       tokenWarningOnCooldown: _tokenWarningCooldown > 0,
       shownAdCount: _shownAdCount,
+      isAdFree: isAdFree,
     );
 
     if (trigger == AdTriggerResult.none) {
@@ -209,13 +216,22 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         },
         onAdImpression: (ad) {
           if (kDebugMode) {
-            print('   👁️ [AD] Native ad impression (no token reward)');
+            print('   👁️ [AD] Native ad impression → token reward');
           }
-          // impression만으로는 토큰 미지급
-          // 광고 카운터만 증가 (빈도 제어용)
+          // v26: 서버 추적 추가 (native_impressions 카운터 증가)
+          AdTrackingService.instance.trackNativeImpression(
+            screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+          );
+          // v23: impression에서도 보상 (impressionRewardTokens)
+          // 완전 무보상이면 사용자 불만 → impression만으로도 보상
+          state = state.copyWith(
+            adWatched: true,
+            rewardedTokens: AdTriggerService.impressionRewardTokens,
+          );
+          // 광고 카운터 증가 (빈도 제어용)
           _shownAdCount++;
           if (kDebugMode) {
-            print('   📊 [AD] shownAdCount: $_shownAdCount');
+            print('   📊 [AD] shownAdCount: $_shownAdCount, impression reward: ${AdTriggerService.impressionRewardTokens} tokens');
           }
         },
       ),

@@ -34,6 +34,7 @@ import '../features/compatibility/presentation/screens/compatibility_detail_scre
 import '../features/settings/presentation/screens/icon_generator_screen.dart';
 import '../features/monthly_fortune/presentation/screens/monthly_fortune_screen.dart';
 import '../features/yearly_2025_fortune/presentation/screens/yearly_2025_fortune_screen.dart';
+import '../purchase/purchase.dart';
 
 part 'app_router.g.dart';
 
@@ -139,6 +140,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.iconGenerator,
         name: 'iconGenerator',
         builder: (context, state) => const IconGeneratorScreen(),
+      ),
+      GoRoute(
+        path: Routes.settingsPremium,
+        name: 'settingsPremium',
+        builder: (context, state) => const PaywallScreen(),
       ),
       // Fortune 페이지
       GoRoute(

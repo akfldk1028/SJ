@@ -9,6 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'ad/ad.dart';
 import 'app.dart';
+import 'purchase/purchase.dart';
 import 'core/services/app_update_service.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
@@ -61,6 +62,15 @@ void main() async {
       await AdService.instance.loadRewardedAd();
     } catch (e) {
       debugPrint('[AdService] 초기화 실패: $e');
+    }
+  }
+
+  // RevenueCat IAP 초기화 (모바일만)
+  if (isMobile) {
+    try {
+      await PurchaseService.instance.initialize();
+    } catch (e) {
+      debugPrint('[PurchaseService] 초기화 실패: $e');
     }
   }
 

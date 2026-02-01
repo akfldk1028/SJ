@@ -2,18 +2,17 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v22)
+ * Gemini API 호출 Edge Function (v25)
  *
- * v22 변경사항 (2026-02-01):
- * - Quota 체크: total_tokens → chatting_tokens만 대상
- *   운세 토큰은 핵심 콘텐츠이므로 쿼터 면제
- *   채팅만 일일 쿼터 제한 적용
+ * v25 변경사항 (2026-02-01):
+ * - BUG FIX: 스트리밍 버퍼 미처리 → 루프 후 잔여 buffer 파싱 (usageMetadata 유실 방지)
+ * - BUG FIX: chatting_tokens 이중 기록 → recordTokenUsage에서 chatting_tokens 제거
+ *   (DB 트리거 update_daily_chat_tokens가 chat_messages INSERT 시 정확히 기록)
+ *   recordTokenUsage는 gemini_cost_usd만 기록
+ * - BUG FIX: 스트리밍 thought 파트 필터링 (Gemini 3.0 thinking 내용 제외)
  *
- * v21 변경사항 (2026-02-01):
- * - recordTokenUsage: gemini_cost_usd만 기록
- *
- * v20 변경사항 (2026-01-30):
- * - Intent Classification 모델: gemini-2.5-flash-lite
+ * v24 변경사항 (2026-02-01):
+ * - checkAndUpdateQuota: rewarded_tokens_earned 포함 (광고 보상 토큰 반영)
  *
  * === 모델 변경 금지 ===
  * 채팅용: gemini-3-flash-preview
@@ -30,7 +29,7 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 50000;
+const DAILY_QUOTA = 20000;
 const ADMIN_QUOTA = 1000000000;
 
 interface ChatMessage {
@@ -66,9 +65,10 @@ async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: st
 }
 
 /**
- * v22: Quota 확인 - chatting_tokens만 대상
+ * v24: Quota 확인 - chatting_tokens만 대상, bonus_tokens + rewarded_tokens_earned 포함
  * 운세 토큰(saju_analysis, monthly, yearly 등)은 핵심 콘텐츠이므로 쿼터 면제
  * 채팅만 일일 쿼터 제한 적용
+ * effective_quota = daily_quota + bonus_tokens + rewarded_tokens_earned
  */
 async function checkAndUpdateQuota(
   supabase: ReturnType<typeof createClient>,
@@ -79,15 +79,38 @@ async function checkAndUpdateQuota(
   const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
   const today = new Date().toISOString().split("T")[0];
   try {
+    // v26: IAP 구독 확인 - ai_premium 또는 combo 활성 구독이면 quota 면제
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("status, product_id, expires_at, is_lifetime")
+      .eq("user_id", userId)
+      .in("product_id", ["sadam_ai_premium", "sadam_combo"])
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (sub) {
+      // 만료 시간 체크 (is_lifetime이면 항상 유효)
+      const isValid = sub.is_lifetime ||
+        !sub.expires_at ||
+        new Date(sub.expires_at) > new Date();
+      if (isValid) {
+        console.log(`[ai-gemini v26] Premium subscriber: ${sub.product_id} → quota exempt`);
+        return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
+      }
+    }
+
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
-      .select("chatting_tokens, daily_quota")
+      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
-    // v22: chatting_tokens만 쿼터 대상 (운세 토큰 제외)
+    // v24: chatting_tokens만 쿼터 대상 (운세 토큰 제외), bonus_tokens + rewarded_tokens_earned 포함
     const currentChatUsage = usage?.chatting_tokens || 0;
-    const effectiveQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
+    const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
+    const bonusTokens = usage?.bonus_tokens || 0;
+    const rewardedTokens = usage?.rewarded_tokens_earned || 0;
+    const effectiveQuota = baseQuota + bonusTokens + rewardedTokens;
     const remaining = effectiveQuota - currentChatUsage;
     if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     if (currentChatUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
@@ -97,16 +120,19 @@ async function checkAndUpdateQuota(
   }
 }
 
-async function recordTokenUsage(
+/**
+ * v25: gemini_cost_usd만 기록
+ * chatting_tokens는 DB 트리거(update_daily_chat_tokens)가 chat_messages INSERT 시 정확히 기록
+ * → 이중 기록 방지 (이전 버전에서는 Edge Function + 트리거 둘 다 chatting_tokens 갱신하여 이중 카운트)
+ */
+async function recordGeminiCost(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   promptTokens: number,
   completionTokens: number,
-  cost: number,
-  isAdmin: boolean
+  cost: number
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
-  const totalTokens = promptTokens + completionTokens;
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
@@ -131,9 +157,9 @@ async function recordTokenUsage(
           gemini_cost_usd: cost,
         });
     }
-    console.log(`[ai-gemini v22] Recorded cost=$${cost.toFixed(6)} (${totalTokens} tokens) for user ${userId}`);
+    console.log(`[ai-gemini v25] Recorded gemini_cost=$${cost.toFixed(6)} (prompt=${promptTokens}, completion=${completionTokens}) for user ${userId}`);
   } catch (error) {
-    console.error("[ai-gemini v22] Failed to record token usage:", error);
+    console.error("[ai-gemini v25] Failed to record gemini cost:", error);
   }
 }
 
@@ -144,7 +170,7 @@ async function handleIntentClassification(
   userId: string | undefined,
   isAdmin: boolean
 ): Promise<Response> {
-  console.log(`[ai-gemini-intent v22] Classifying intent: ${userMessage.substring(0, 50)}...`);
+  console.log(`[ai-gemini-intent v23] Classifying intent: ${userMessage.substring(0, 50)}...`);
   const historyContext = chatHistory && chatHistory.length > 0
     ? `\n[최근 대화]\n${chatHistory.slice(-3).join('\n')}\n`
     : '';
@@ -161,7 +187,7 @@ async function handleIntentClassification(
     });
     const data = await response.json();
     if (data.error) {
-      console.error("[ai-gemini-intent v22] Gemini API Error:", data.error);
+      console.error("[ai-gemini-intent v23] Gemini API Error:", data.error);
       return new Response(JSON.stringify({ success: true, categories: ["GENERAL"], reason: "분류 실패로 전체 정보 제공" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -179,13 +205,14 @@ async function handleIntentClassification(
       const usageMetadata = data.usageMetadata || {};
       const promptTokens = usageMetadata.promptTokenCount || 0;
       const completionTokens = usageMetadata.candidatesTokenCount || 0;
-      const cost = (promptTokens * 0.075 / 1000000) + (completionTokens * 0.30 / 1000000);
-      await recordTokenUsage(supabase, userId, promptTokens, completionTokens, cost, isAdmin);
+      // Gemini 2.5 Flash Lite: $0.10/$0.40 (공식 가격 2026-02)
+      const cost = (promptTokens * 0.10 / 1000000) + (completionTokens * 0.40 / 1000000);
+      await recordGeminiCost(supabase, userId, promptTokens, completionTokens, cost);
     }
     return new Response(JSON.stringify({ success: true, categories, reason }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error("[ai-gemini-intent v22] Error:", error);
+    console.error("[ai-gemini-intent v23] Error:", error);
     return new Response(JSON.stringify({ success: true, categories: ["GENERAL"], reason: "오류 발생" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
@@ -206,7 +233,7 @@ async function handleStreamingRequest(
     parts: [{ text: m.content }],
   }));
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
-  console.log(`[ai-gemini-stream v22] Calling Gemini streaming API: model=${model}`);
+  console.log(`[ai-gemini-stream v23] Calling Gemini streaming API: model=${model}`);
   const geminiResponse = await fetch(geminiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -224,7 +251,7 @@ async function handleStreamingRequest(
   });
   if (!geminiResponse.ok) {
     const errorText = await geminiResponse.text();
-    console.error("[ai-gemini-stream v22] Gemini API error:", errorText);
+    console.error("[ai-gemini-stream v23] Gemini API error:", errorText);
     throw new Error(`Gemini API error: ${geminiResponse.status}`);
   }
   let totalPromptTokens = 0;
@@ -235,6 +262,45 @@ async function handleStreamingRequest(
       const reader = geminiResponse.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+
+      // v25: SSE 라인 파싱 헬퍼 (thought 필터링 포함)
+      function processSSELine(line: string) {
+        if (!line.startsWith("data: ")) return;
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr || jsonStr === "[DONE]") return;
+        try {
+          const data = JSON.parse(jsonStr);
+          const candidate = data.candidates?.[0];
+          const finishReason = candidate?.finishReason;
+          if (finishReason && finishReason !== "STOP") {
+            if (finishReason === "SAFETY") {
+              const safetyData = JSON.stringify({ text: "\n\n[안전 필터에 의해 응답이 차단되었습니다. 다른 질문을 해주세요.]", done: false, finish_reason: "SAFETY" });
+              controller.enqueue(encoder.encode(`data: ${safetyData}\n\n`));
+            }
+          }
+          // v25: thought 파트 필터링 (Gemini 3.0 thinking 내용 제외)
+          let text = "";
+          const parts = candidate?.content?.parts;
+          if (Array.isArray(parts)) {
+            for (const part of parts) {
+              if (part.thought === true) continue; // thinking 파트 스킵
+              if (part.text) text += part.text;
+            }
+          }
+          // v25: usageMetadata 캡처 (마지막 청크에 포함)
+          if (data.usageMetadata) {
+            totalPromptTokens = data.usageMetadata.promptTokenCount || 0;
+            totalCompletionTokens = data.usageMetadata.candidatesTokenCount || 0;
+          }
+          if (text) {
+            const sseData = JSON.stringify({ text, done: false, finish_reason: finishReason });
+            controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
+          }
+        } catch (parseError) {
+          console.error("[ai-gemini-stream v25] Parse error:", parseError);
+        }
+      }
+
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -243,42 +309,28 @@ async function handleStreamingRequest(
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const jsonStr = line.slice(6).trim();
-              if (!jsonStr || jsonStr === "[DONE]") continue;
-              try {
-                const data = JSON.parse(jsonStr);
-                const candidate = data.candidates?.[0];
-                const finishReason = candidate?.finishReason;
-                if (finishReason && finishReason !== "STOP") {
-                  if (finishReason === "SAFETY") {
-                    const safetyData = JSON.stringify({ text: "\n\n[안전 필터에 의해 응답이 차단되었습니다. 다른 질문을 해주세요.]", done: false, finish_reason: "SAFETY" });
-                    controller.enqueue(encoder.encode(`data: ${safetyData}\n\n`));
-                  }
-                }
-                const text = candidate?.content?.parts?.[0]?.text || "";
-                if (data.usageMetadata) {
-                  totalPromptTokens = data.usageMetadata.promptTokenCount || 0;
-                  totalCompletionTokens = data.usageMetadata.candidatesTokenCount || 0;
-                }
-                if (text) {
-                  const sseData = JSON.stringify({ text, done: false, finish_reason: finishReason });
-                  controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
-                }
-              } catch (parseError) {
-                console.error("[ai-gemini-stream v22] Parse error:", parseError);
-              }
-            }
+            processSSELine(line);
           }
         }
+        // v25 BUG FIX: 잔여 버퍼 처리 (usageMetadata가 마지막 청크에 있음)
+        // decoder flush (stream: false로 잔여 바이트 방출)
+        buffer += decoder.decode(new Uint8Array(), { stream: false });
+        if (buffer.trim()) {
+          const remainingLines = buffer.split("\n");
+          for (const line of remainingLines) {
+            processSSELine(line);
+          }
+        }
+        console.log(`[ai-gemini-stream v25] Stream done. prompt=${totalPromptTokens}, completion=${totalCompletionTokens}`);
         const doneData = JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, total_tokens: totalPromptTokens + totalCompletionTokens } });
         controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
+        // v25: gemini_cost_usd만 기록 (chatting_tokens는 DB 트리거가 처리)
         if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
-          const cost = (totalPromptTokens * 0.075 / 1000000) + (totalCompletionTokens * 0.30 / 1000000);
-          await recordTokenUsage(supabase, userId, totalPromptTokens, totalCompletionTokens, cost, isAdmin);
+          const cost = (totalPromptTokens * 0.50 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
+          await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
         }
       } catch (error) {
-        console.error("[ai-gemini-stream v22] Stream error:", error);
+        console.error("[ai-gemini-stream v25] Stream error:", error);
         const errorData = JSON.stringify({ error: "Stream error", done: true });
         controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
       } finally {
@@ -312,12 +364,12 @@ Deno.serve(async (req) => {
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-gemini v22] User ${user_id} isAdmin: ${isAdmin}`);
+      console.log(`[ai-gemini v23] User ${user_id} isAdmin: ${isAdmin}`);
       if (!isAdmin) {
         // v22: chatting_tokens만 쿼터 대상 (운세 토큰 제외)
         const quota = await checkAndUpdateQuota(supabase, user_id, 0, isAdmin);
         if (!quota.allowed) {
-          console.log(`[ai-gemini v22] Chat quota exceeded for user ${user_id} (chatting_tokens only)`);
+          console.log(`[ai-gemini v23] Chat quota exceeded for user ${user_id} (chatting_tokens only)`);
           return new Response(
             JSON.stringify({
               success: false, error: "QUOTA_EXCEEDED",
@@ -332,10 +384,10 @@ Deno.serve(async (req) => {
       }
     }
     if (stream) {
-      console.log(`[ai-gemini v22] Streaming mode: model=${model}`);
+      console.log(`[ai-gemini v23] Streaming mode: model=${model}`);
       return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin);
     }
-    console.log(`[ai-gemini v22] Non-streaming: model=${model}, isAdmin=${isAdmin}`);
+    console.log(`[ai-gemini v23] Non-streaming: model=${model}, isAdmin=${isAdmin}`);
     const systemInstruction = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");
     const contents = messages.filter((m) => m.role !== "system").map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
@@ -359,27 +411,36 @@ Deno.serve(async (req) => {
     });
     const data = await response.json();
     if (data.error) {
-      console.error("[ai-gemini v22] Gemini API Error:", data.error);
+      console.error("[ai-gemini v23] Gemini API Error:", data.error);
       return new Response(JSON.stringify({ success: false, error: data.error.message || "Gemini API error" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const candidate = data.candidates?.[0];
     if (!candidate) throw new Error("No response from Gemini");
     if (candidate.finishReason === "SAFETY") throw new Error("Response blocked due to safety settings");
-    const content = candidate.content?.parts?.[0]?.text || "";
+    // v25: thought 파트 필터링 (스트리밍과 동일하게)
+    let content = "";
+    const parts = candidate.content?.parts;
+    if (Array.isArray(parts)) {
+      for (const part of parts) {
+        if (part.thought === true) continue;
+        if (part.text) content += part.text;
+      }
+    }
     const usageMetadata = data.usageMetadata || {};
     const promptTokens = usageMetadata.promptTokenCount || 0;
     const completionTokens = usageMetadata.candidatesTokenCount || 0;
     const totalTokens = usageMetadata.totalTokenCount || 0;
-    const cost = (promptTokens * 0.075 / 1000000) + (completionTokens * 0.30 / 1000000);
-    if (user_id) await recordTokenUsage(supabase, userId, promptTokens, completionTokens, cost, isAdmin);
-    console.log(`[ai-gemini v22] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`);
+    // Gemini 3.0 Flash: $0.50/$3.00
+    const cost = (promptTokens * 0.50 / 1000000) + (completionTokens * 3.00 / 1000000);
+    if (user_id) await recordGeminiCost(supabase, user_id, promptTokens, completionTokens, cost);
+    console.log(`[ai-gemini v25] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`);
     return new Response(
       JSON.stringify({ success: true, content, usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens }, model, finish_reason: candidate.finishReason, is_admin: isAdmin }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("[ai-gemini v22] Error:", error);
+    console.error("[ai-gemini v23] Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

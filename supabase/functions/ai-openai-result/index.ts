@@ -128,7 +128,7 @@ async function recordTokenUsage(
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
   const totalTokens = promptTokens + completionTokens;
-  const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
+  const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
   const tokenColumn = getTokenColumnForTaskType(taskType);
 
   console.log(`[ai-openai-result v32] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);

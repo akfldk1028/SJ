@@ -25,7 +25,7 @@ class TokenCounter {
   static const int safetyMargin = 18000;
 
   /// 기본 최대 입력 토큰 (일일 quota와 동일)
-  static const int defaultMaxInputTokens = 50000;
+  static const int defaultMaxInputTokens = 20000;
 
   /// 텍스트의 토큰 수 추정
   ///

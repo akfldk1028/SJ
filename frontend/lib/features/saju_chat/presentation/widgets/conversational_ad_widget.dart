@@ -168,17 +168,26 @@ class ConversationalAdWidget extends ConsumerWidget {
   ///
   /// Rewarded 광고를 끝까지 봤을 때만 토큰 충전
   /// (adWatched: true이고 rewardedTokens가 있는 경우)
+  ///
+  /// v26: isRewardedAd 전달 → 이중 기록 방지
+  /// - Rewarded ad: trackRewarded()가 rewarded_tokens_earned를 이미 기록
+  ///   → addBonusTokens(isRewardedAd: true) → client-side만 확장, RPC 스킵
+  /// - Native ad: addBonusTokens(isRewardedAd: false) → add_ad_bonus_tokens RPC 호출
   void _handleAdComplete(WidgetRef ref) {
     final adState = ref.read(conversationalAdNotifierProvider);
     final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
 
-    // Rewarded 광고를 끝까지 봤으면 토큰 충전
+    // 광고를 끝까지 봤으면 토큰 충전
     if (adState.adWatched &&
         adState.rewardedTokens != null &&
         adState.rewardedTokens! > 0) {
+      // Rewarded ad 여부 판별 (tokenDepleted, tokenNearLimit)
+      final isRewardedAd = adState.adType == AdMessageType.tokenDepleted ||
+          adState.adType == AdMessageType.tokenNearLimit;
+
       // ChatNotifier에 보너스 토큰 추가
       ref.read(chatNotifierProvider(sessionId).notifier)
-          .addBonusTokens(adState.rewardedTokens!);
+          .addBonusTokens(adState.rewardedTokens!, isRewardedAd: isRewardedAd);
     }
 
     adNotifier.dismissAd();

@@ -34,14 +34,19 @@ abstract class AdTriggerService {
   /// 토큰 소진 임계값 (100%)
   static const double tokenDepletedThreshold = 1.0;
 
-  /// 토큰 경고 시 제공되는 보상 토큰 (광고 시청 시)
-  static const int warningRewardTokens = 5000;
+  /// 토큰 경고 시 제공되는 보상 토큰 (80% warning 비활성화)
+  static const int warningRewardTokens = 0;
 
   /// 토큰 소진 시 제공되는 보상 토큰 (광고 시청 시)
-  static const int depletedRewardTokens = 10000;
+  static const int depletedRewardTokens = 3000;
 
   /// 인터벌 광고 시 제공되는 보상 토큰 (광고 클릭 시)
-  static const int intervalRewardTokens = 2000;
+  static const int intervalRewardTokens = 500;
+
+  /// Native 광고 impression 시 보상 토큰
+  /// 메시지 1회(~7,500 토큰) 대비 20% = 1,500
+  /// AdMob native eCPM $0.15~$2.00 기준 적절한 보상
+  static const int impressionRewardTokens = 1500;
 
   /// 토큰 경고 스킵 후 쿨다운 (메시지 수)
   /// 스킵하면 이 횟수만큼 메시지 동안 토큰 경고 억제
@@ -66,7 +71,11 @@ abstract class AdTriggerService {
     required int messageCount,
     bool tokenWarningOnCooldown = false,
     int shownAdCount = 0,
+    bool isAdFree = false,
   }) {
+    // 광고 제거 구매자 → 모든 광고 스킵
+    if (isAdFree) return AdTriggerResult.none;
+
     // 1. 토큰 기반 트리거 (우선순위 높음)
     final tokenTrigger = checkTokenTrigger(
       tokenUsage: tokenUsage,
@@ -99,9 +108,12 @@ abstract class AdTriggerService {
     }
 
     // 토큰 80% 이상 사용 (선제적)
-    // 스킵 후 쿨다운 중이면 억제 → 쿨다운 동안 인터벌 광고 기회
-    // 쿨다운 끝나면 다시 발동 → 광고 보라고 계속 압박
+    // warningRewardTokens = 0이면 80% 경고 완전 비활성화
+    // → 보상 없는 rewarded ad 표시는 UX 저하 + AdMob 정책 위험
     if (tokenUsage.usageRate >= tokenWarningThreshold) {
+      if (warningRewardTokens <= 0) {
+        return AdTriggerResult.none;
+      }
       if (tokenWarningOnCooldown) {
         return AdTriggerResult.none;
       }

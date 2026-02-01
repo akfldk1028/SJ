@@ -24,6 +24,7 @@ import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
 import '../../data/models/conversational_ad_model.dart' show AdTriggerResult;
 import '../../data/services/system_prompt_builder.dart';
+import '../../../../purchase/purchase.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/models/ai_persona.dart';
 import '../../domain/models/chat_type.dart';
@@ -738,11 +739,19 @@ class ChatNotifier extends _$ChatNotifier {
     _isSendingMessage = true;
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // AI 프리미엄 구독자: quota 체크 스킵
+    // ═══════════════════════════════════════════════════════════════════════════
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isAiPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementAiPremium]?.isActive == true;
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // 토큰 이미 소진 상태 체크 (광고 모드 활성화)
     // - 100% 소진이면 광고 모드 활성화 후 메시지 전송 중단
+    // - AI 프리미엄 구독자는 스킵
     // ═══════════════════════════════════════════════════════════════════════════
     final currentTokenUsage = _repository.getTokenUsageInfo();
-    if (currentTokenUsage.usageRate >= 1.0) {
+    if (!isAiPremium && currentTokenUsage.usageRate >= 1.0) {
       final selectedPersona = ref.read(chatPersonaNotifierProvider);
       ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
         tokenUsage: currentTokenUsage,
@@ -1537,13 +1546,14 @@ class ChatNotifier extends _$ChatNotifier {
       final errorMsg = e.toString();
 
       // QUOTA_EXCEEDED: 서버에서 일일 토큰 한도 초과 → 광고 모드 활성화
+      // AI 프리미엄 구독자는 서버에서 면제되므로 여기까지 오지 않음
       if (errorMsg.contains('QUOTA_EXCEEDED')) {
         print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
         final selectedPersona = ref.read(chatPersonaNotifierProvider);
         ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
           tokenUsage: const TokenUsageInfo(
-            totalUsed: 50000, // Quota 초과된 상태
-            maxTokens: 50000,
+            totalUsed: 20000, // Quota 초과된 상태
+            maxTokens: 20000,
             systemPromptTokens: 0,
             historyTokens: 0,
             remaining: 0,
@@ -1661,7 +1671,15 @@ class ChatNotifier extends _$ChatNotifier {
   ///
   /// 광고를 보면 토큰 한도가 증가하여 이전 대화를 유지하면서 더 대화 가능
   /// [tokens]: 추가할 토큰 수
-  void addBonusTokens(int tokens) {
+  /// [isRewardedAd]: true이면 보상형 광고 (trackRewarded()가 이미 rewarded_tokens_earned를 증가시킴)
+  ///   → add_ad_bonus_tokens RPC 호출 스킵 (bonus_tokens 이중 기록 방지)
+  ///   → is_quota_exceeded 공식: chatting_tokens >= (daily_quota + bonus_tokens + rewarded_tokens_earned)
+  ///   → 두 컬럼 모두 증가하면 쿼터가 2배로 늘어나는 버그
+  ///
+  /// v26: isRewardedAd 파라미터 추가 (이중 기록 방지)
+  /// v23: 서버에도 bonus_tokens 반영 (RPC 호출)
+  Future<void> addBonusTokens(int tokens, {bool isRewardedAd = false}) async {
+    // 1. Client-side: ConversationWindowManager에 보너스 추가 (항상)
     _repository.addBonusTokens(tokens);
 
     // 토큰 사용량 정보 업데이트
@@ -1672,8 +1690,39 @@ class ChatNotifier extends _$ChatNotifier {
     );
 
     if (kDebugMode) {
-      print('[ChatProvider] 보너스 토큰 추가: +$tokens');
+      print('[ChatProvider] 보너스 토큰 추가: +$tokens (isRewardedAd: $isRewardedAd)');
       print('[ChatProvider] 새 토큰 상태: $tokenUsage');
+    }
+
+    // 2. Server-side: Supabase RPC
+    // - Rewarded ad: trackRewarded()가 이미 rewarded_tokens_earned를 증가시킴
+    //   → bonus_tokens까지 증가하면 쿼터 2배 증가 (이중 기록 버그)
+    //   → RPC 호출 스킵
+    // - Native ad: 서버에 bonus_tokens 반영 필요
+    //   → add_ad_bonus_tokens RPC (bonus_tokens + ads_watched 동시 증가)
+    if (isRewardedAd) {
+      if (kDebugMode) {
+        print('[ChatProvider] Rewarded ad → 서버 RPC 스킵 (rewarded_tokens_earned이 이미 기록됨)');
+      }
+      return;
+    }
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) {
+        await Supabase.instance.client.rpc('add_ad_bonus_tokens', params: {
+          'p_user_id': userId,
+          'p_bonus_tokens': tokens,
+        });
+        if (kDebugMode) {
+          print('[ChatProvider] 서버 bonus_tokens + ads_watched 반영 완료: +$tokens');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatProvider] 서버 bonus_tokens 반영 실패: $e');
+      }
+      // 실패해도 client-side는 이미 반영됨
     }
   }
 

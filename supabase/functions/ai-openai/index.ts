@@ -4,6 +4,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v40 변경사항 (2026-02-01):
+ * - checkQuota: rewarded_tokens_earned 포함 (광고 보상 토큰 반영)
+ * - recordTokenUsage: daily_quota 덮어쓰기 제거 (광고 보상 증가값 보존)
+ *
  * v39 변경사항 (2026-02-01):
  * - 운세 분석(fortune) task_type은 쿼터 체크 면제
  *   (saju_analysis, monthly_fortune, yearly_2025, yearly_2026 등)
@@ -70,7 +74,7 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 50000;
+const DAILY_QUOTA = 20000;
 const ADMIN_QUOTA = 1000000000;
 
 // v39: 쿼터 면제 task_type 목록
@@ -137,12 +141,16 @@ async function checkQuota(
   try {
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
-      .select("total_tokens, daily_quota")
+      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
-    const currentUsage = usage?.total_tokens || 0;
-    const effectiveQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
+    // v41: chatting_tokens만 쿼터 대상 (DB GENERATED is_quota_exceeded와 일치)
+    const currentUsage = usage?.chatting_tokens || 0;
+    const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
+    const bonusTokens = usage?.bonus_tokens || 0;
+    const rewardedTokens = usage?.rewarded_tokens_earned || 0;
+    const effectiveQuota = baseQuota + bonusTokens + rewardedTokens;
     const remaining = effectiveQuota - currentUsage;
     if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     if (currentUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
@@ -182,7 +190,7 @@ async function recordTokenUsage(
     if (existing) {
       const updateData: Record<string, unknown> = {
         gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
-        daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+        // daily_quota는 덮어쓰지 않음 (광고 보상으로 증가된 값 보존)
         updated_at: new Date().toISOString(),
       };
       updateData[tokenColumn] = (existing[tokenColumn] || 0) + totalTokens;
@@ -273,7 +281,7 @@ async function processInBackground(
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
     const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
-    const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
+    const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
     if (userId && promptTokens > 0) {
       await recordTokenUsage(supabase, userId, promptTokens, completionTokens, cost, isAdmin, taskType);
     }
@@ -536,7 +544,7 @@ Deno.serve(async (req) => {
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
     const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
-    const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
+    const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
     if (user_id && promptTokens > 0) {
       await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin, task_type);
     }
