@@ -298,12 +298,19 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
   NativeAd? get nativeAd => _nativeAd;
 
   /// 보상형 광고 표시
-  Future<bool> showRewardedAd() async {
+  /// [rewardTokens]: 지급할 토큰 수 (null이면 기본값 사용)
+  Future<bool> showRewardedAd({int? rewardTokens}) async {
     if (_rewardedAd == null) {
-      return false;
+      // 광고 로드 안 됐으면 로드 시도
+      _loadRewardedAd();
+      await Future.delayed(const Duration(seconds: 2)); // 로드 대기
+      if (_rewardedAd == null) {
+        return false;
+      }
     }
 
     final completer = Completer<bool>();
+    final tokens = rewardTokens ?? state.rewardedTokens ?? AdTriggerService.depletedRewardTokens;
 
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
@@ -321,18 +328,18 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) async {
         if (kDebugMode) {
-          print('   🎁 [AD] Reward earned: ${reward.amount} ${reward.type}');
+          print('   🎁 [AD] Reward earned: $tokens tokens');
         }
 
         // 광고 이벤트 추적 (ad_events 테이블에 purpose: token_bonus로 기록)
         await AdTrackingService.instance.trackRewarded(
-          rewardAmount: reward.amount.toInt(),
-          rewardType: reward.type,
+          rewardAmount: tokens,
+          rewardType: 'token',
           screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
           purpose: AdPurpose.tokenBonus,
         );
 
-        _onRewardEarned();
+        _onRewardEarned(rewardTokens: tokens);
       },
     );
 
@@ -364,13 +371,27 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
   }
 
   /// 보상 획득 처리
-  void _onRewardEarned() {
-    state = state.copyWith(adWatched: true);
+  void _onRewardEarned({int? rewardTokens}) {
+    state = state.copyWith(
+      adWatched: true,
+      rewardedTokens: rewardTokens ?? state.rewardedTokens,
+    );
   }
 
   /// 광고 시청 완료 (수동 호출)
-  void onAdWatched() {
-    state = state.copyWith(adWatched: true);
+  /// [rewardTokens]: 지급할 토큰 수 (null이면 기존 값 유지)
+  void onAdWatched({int? rewardTokens}) {
+    state = state.copyWith(
+      adWatched: true,
+      rewardedTokens: rewardTokens ?? state.rewardedTokens,
+    );
+  }
+
+  /// 네이티브 광고 로드 (외부 호출용)
+  Future<void> loadNativeAd() async {
+    _loadNativeAd();
+    // 로드 대기
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   /// 광고 모드 종료 & 대화 재개

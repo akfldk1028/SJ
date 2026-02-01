@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/conversational_ad_model.dart';
+import '../../data/services/ad_trigger_service.dart';
 import '../../domain/models/ai_persona.dart';
 import '../providers/conversational_ad_provider.dart';
 import '../providers/chat_provider.dart';
@@ -55,17 +56,22 @@ class ConversationalAdWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    // 토큰 소진 시 2가지 선택지 제공
+    final isTokenDepleted = adState.adType == AdMessageType.tokenDepleted;
     // 보상형 광고: tokenDepleted (필수) + tokenNearLimit (스킵 가능)
     // 네이티브 광고: intervalAd (클릭 시 토큰)
-    final isRewardedAd = adState.adType == AdMessageType.tokenDepleted ||
+    final isRewardedAd = isTokenDepleted ||
         adState.adType == AdMessageType.tokenNearLimit;
-    final isRequired = adState.adType == AdMessageType.tokenDepleted;
+    final isRequired = isTokenDepleted;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. 페르소나 전환 메시지
-        if (adState.transitionText != null)
+        // 1. 토큰 소진 시 - 2개 버튼 선택 UI
+        if (isTokenDepleted && !adState.adWatched)
+          _buildTokenDepletedChoice(context, ref)
+        // 2. 기타 광고 - 기존 전환 메시지
+        else if (adState.transitionText != null && !adState.adWatched)
           AdTransitionBubble(
             message: isRewardedAd
                 ? _createAdMessage(adState)
@@ -78,7 +84,7 @@ class ConversationalAdWidget extends ConsumerWidget {
 
         const SizedBox(height: 8),
 
-        // 2. 네이티브 광고 (인터벌 광고만 - 보상형은 전체화면 영상)
+        // 3. 네이티브 광고 (인터벌 광고만 - 보상형은 전체화면 영상)
         if (!isRewardedAd &&
             (adState.loadState == AdLoadState.loaded ||
                 adState.loadState == AdLoadState.loading))
@@ -89,7 +95,7 @@ class ConversationalAdWidget extends ConsumerWidget {
             personaEmoji: '📢',
           ),
 
-        // 3. 광고 시청 완료 시 대화 재개 버튼
+        // 4. 광고 시청 완료 시 대화 재개 버튼
         if (adState.adWatched) ...[
           const SizedBox(height: 12),
           _buildResumeButton(context, ref),
@@ -192,6 +198,140 @@ class ConversationalAdWidget extends ConsumerWidget {
 
     adNotifier.dismissAd();
     onAdComplete?.call();
+  }
+
+  /// 토큰 소진 시 2개 버튼 선택 UI
+  Widget _buildTokenDepletedChoice(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // AI 메시지
+          Row(
+            children: [
+              Text(
+                persona.emoji,
+                style: TextStyle(
+                  fontSize: 16,
+                  shadows: [
+                    Shadow(
+                      color: theme.primaryColor.withValues(alpha: 0.5),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                persona.displayName,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 메시지 버블
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: theme.isDark
+                    ? [const Color(0xFF2A3540), const Color(0xFF1E2830)]
+                    : [const Color(0xFFF8F9FA), const Color(0xFFF0F2F5)],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(18),
+                bottomLeft: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+              ),
+              border: Border.all(
+                color: theme.isDark
+                    ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
+                    : const Color(0xFFD4AF37).withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              '대화가 즐거웠어요!\n토큰이 부족해서 잠시 쉬어야 할 것 같아요.',
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                color: theme.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // 2개 버튼
+          Column(
+            children: [
+              // 영상 광고 버튼 (추천)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _handleVideoAdPressed(ref),
+                  icon: const Icon(Icons.play_circle_outline, size: 20),
+                  label: const Text('🎬 영상 보고 5번 대화'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 네이티브 광고 버튼
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _handleNativeAdPressed(ref),
+                  icon: const Icon(Icons.article_outlined, size: 20),
+                  label: const Text('📋 광고 보고 3번 대화'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.textSecondary,
+                    side: BorderSide(color: theme.textSecondary.withValues(alpha: 0.3)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 영상 광고 선택 (5왕복 = 35,000 토큰)
+  void _handleVideoAdPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    // 보상형 영상 광고 표시
+    final success = await notifier.showRewardedAd(
+      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+    );
+    if (success) {
+      notifier.onAdWatched(rewardTokens: AdTriggerService.depletedRewardTokensVideo);
+    }
+  }
+
+  /// 네이티브 광고 선택 (3왕복 = 21,000 토큰)
+  void _handleNativeAdPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    // 네이티브 광고 로드 및 표시
+    await notifier.loadNativeAd();
+    notifier.onAdWatched(rewardTokens: AdTriggerService.depletedRewardTokensNative);
   }
 
   /// 대화 재개 버튼
