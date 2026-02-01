@@ -274,35 +274,64 @@ class ConversationalAdWidget extends ConsumerWidget {
               // 영상 광고 버튼 (추천)
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                child: ElevatedButton(
                   onPressed: () => _handleVideoAdPressed(ref),
-                  icon: const Icon(Icons.play_circle_outline, size: 20),
-                  label: const Text('🎬 영상 보고 5번 대화'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
+                    backgroundColor: theme.primaryColor,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.play_circle_fill_rounded, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        '영상 보고 대화 계속하기',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               // 네이티브 광고 버튼
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: OutlinedButton(
                   onPressed: () => _handleNativeAdPressed(ref),
-                  icon: const Icon(Icons.article_outlined, size: 20),
-                  label: const Text('📋 광고 보고 3번 대화'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.textSecondary,
-                    side: BorderSide(color: theme.textSecondary.withValues(alpha: 0.3)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: theme.textSecondary.withValues(alpha: 0.15),
                     ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.article_outlined, size: 18, color: theme.textSecondary),
+                      const SizedBox(width: 8),
+                      Text(
+                        '간단히 보고 조금 더 대화',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: theme.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -313,7 +342,7 @@ class ConversationalAdWidget extends ConsumerWidget {
     );
   }
 
-  /// 영상 광고 선택 (5왕복 = 35,000 토큰)
+  /// 영상 광고 선택 (1왕복 = 10,000 토큰)
   void _handleVideoAdPressed(WidgetRef ref) async {
     final notifier = ref.read(conversationalAdNotifierProvider.notifier);
     // 보상형 영상 광고 표시
@@ -325,7 +354,7 @@ class ConversationalAdWidget extends ConsumerWidget {
     }
   }
 
-  /// 네이티브 광고 선택 (3왕복 = 21,000 토큰)
+  /// 네이티브 광고 선택 (0.3왕복 = 3,000 토큰)
   void _handleNativeAdPressed(WidgetRef ref) async {
     final notifier = ref.read(conversationalAdNotifierProvider.notifier);
     // 네이티브 광고 로드 및 표시

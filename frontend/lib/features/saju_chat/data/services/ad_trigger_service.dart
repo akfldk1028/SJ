@@ -40,13 +40,16 @@ abstract class AdTriggerService {
   /// 토큰 소진 시 제공되는 보상 토큰 (기본값, 하위 호환)
   static const int depletedRewardTokens = 3000;
 
-  /// 토큰 소진 - 영상 광고 보상 (5왕복 = 35,000 토큰)
-  /// Rewarded video eCPM $10~50 → 충분히 수익성 있음
-  static const int depletedRewardTokensVideo = 35000;
+  /// 토큰 소진 - 영상 광고 보상 (약 1왕복 = 10,000 토큰)
+  /// Rewarded video eCPM $10~50 → 1회 수익 $0.01~0.05
+  /// 1왕복 비용 ~$0.033 → eCPM $33 이상이면 흑자
+  /// 광고 빈도 ↑ = 수익 ↑ (빨리 소진 → 빨리 다시 광고)
+  static const int depletedRewardTokensVideo = 10000;
 
-  /// 토큰 소진 - 네이티브 광고 보상 (3왕복 = 21,000 토큰)
-  /// Native ad eCPM $3~15 → 영상보다 낮지만 마찰 적음
-  static const int depletedRewardTokensNative = 21000;
+  /// 토큰 소진 - 네이티브 광고 보상 (3,000 토큰 = 0.3왕복)
+  /// Native ad eCPM $0.50 → 수익 ~$0.0005
+  /// 1메시지 정도만 가능 → 금방 다시 소진 → Rewarded Video 유도
+  static const int depletedRewardTokensNative = 3000;
 
   /// 인터벌 광고 시 제공되는 보상 토큰 (광고 클릭 시)
   static const int intervalRewardTokens = 500;

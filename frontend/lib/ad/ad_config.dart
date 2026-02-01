@@ -11,7 +11,7 @@ enum AdMode {
 }
 
 /// 현재 광고 모드 설정
-const AdMode currentAdMode = AdMode.test;
+const AdMode currentAdMode = AdMode.production;
 
 /// 테스트 광고 Unit ID (Google 공식 테스트 ID)
 /// 개발 중에는 반드시 이 ID를 사용해야 계정 정지 방지
