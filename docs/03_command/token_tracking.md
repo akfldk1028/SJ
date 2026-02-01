@@ -173,18 +173,18 @@ ai-openai 호출 시:
 
 | 항목 | 가격 (USD) |
 |------|-----------|
-| Input tokens | $2.00 / 1M tokens |
-| Output tokens | $8.00 / 1M tokens |
+| Input tokens | $3.00 / 1M tokens |
+| Output tokens | $12.00 / 1M tokens |
 
 - 기록 컬럼: `gpt_cost_usd`
 - 기록 시점: ai-openai-result에서 completed 감지 시
 
-### Gemini 3.0 Flash (Google)
+### Gemini 3.0 Flash Preview (Google)
 
 | 항목 | 가격 (USD) |
 |------|-----------|
-| Input tokens | $0.10 / 1M tokens |
-| Output tokens | $0.40 / 1M tokens |
+| Input tokens | $0.075 / 1M tokens |
+| Output tokens | $0.30 / 1M tokens |
 
 - 기록 컬럼: `gemini_cost_usd`
 - 채팅: ai-gemini Edge Function에서 기록
@@ -226,9 +226,51 @@ key_index = hash(task_type) % 3
 
 ---
 
+## Edge Function 버전 (배포 기준)
+
+| 함수명 | 배포 버전 | 주요 변경 |
+|--------|----------|----------|
+| **ai-openai** | **v39** | 쿼터 면제 + 완료 태스크 재사용 + Background dedup |
+| **ai-openai-result** | **v32** | task_type별 토큰 컬럼 라우팅 (`getTokenColumnForTaskType`) |
+| **ai-gemini** | **v22** | 쿼터 체크 `chatting_tokens`만 확인 |
+
+---
+
+## Supabase MCP 검증 결과 (2026-02-01)
+
+### DB 스키마 검증
+
+- `user_daily_token_usage` 테이블: 6개 토큰 컬럼 + 4개 generated 컬럼 확인
+- `is_quota_exceeded`: `COALESCE(chatting_tokens, 0) >= daily_quota` 정상 동작 확인
+- `my_fortune_tokens`: 5개 운세 컬럼 합산 정상
+- `total_tokens`: `my_fortune_tokens + chatting_tokens` 정상
+
+### 트리거 검증
+
+- `trg_update_token_usage_on_ai_summaries`: `summary_type = 'daily_fortune'` 조건 확인
+- `trg_update_daily_chat_tokens`: `role = 'assistant'` 조건 + session_count 로직 확인
+- 두 트리거 모두 UPSERT 패턴 정상
+
+### 실제 데이터 검증
+
+- 운세 토큰(monthly_fortune_tokens, yearly_fortune_2025_tokens 등)이 각각 올바른 컬럼에 기록됨
+- 50,000+ fortune tokens를 가진 사용자가 `is_quota_exceeded = false`로 정상 (채팅 토큰만 판단)
+- `chatting_tokens`가 `daily_quota` 미만인 경우 쿼터 미초과 정상
+
+### 로컬 ↔ 배포 동기화
+
+- `ai-openai/index.ts`: 로컬 → v39 동기화 완료
+- `ai-openai-result/index.ts`: 로컬 → v32 동기화 완료 (v31에서 `getTokenColumnForTaskType` 누락 수정)
+- `ai-gemini/index.ts`: 로컬 → v22 동기화 완료
+
+---
+
 ## 2026-02-01 수정 기록
 
 1. **쿼터 기준 변경**: `total_tokens` → `chatting_tokens` (운세 토큰 면제)
 2. **ai-openai v39**: 쿼터 면제 + 완료 태스크 재사용
-3. **ai-gemini v22**: 쿼터 체크 `chatting_tokens`만 확인
-4. **DB migration**: `is_quota_exceeded` = `chatting_tokens >= daily_quota`
+3. **ai-openai-result v32**: task_type별 토큰 컬럼 라우팅 (v31에서는 모두 saju_analysis_tokens에 기록)
+4. **ai-gemini v22**: 쿼터 체크 `chatting_tokens`만 확인
+5. **DB migration**: `is_quota_exceeded` = `chatting_tokens >= daily_quota`
+6. **GPT-5.2 가격 수정**: $3.00/$12.00 per 1M tokens (입력/출력)
+7. **Gemini 가격 수정**: $0.075/$0.30 per 1M tokens (입력/출력)

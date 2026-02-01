@@ -11,16 +11,16 @@
 
 | 함수명 | 용도 | 모델 | 배포 버전 | 비고 |
 |--------|------|------|-----------|------|
-| **ai-openai** | GPT-5.2 사주 분석 | `gpt-5.2` | **v37** | Responses API Background Mode |
-| **ai-openai-result** | GPT 결과 폴링 | - | **v15** | ai-openai와 연동 |
-| **ai-gemini** | Gemini 채팅/일운 | `gemini-3-flash-preview` | v15 | SSE 스트리밍 |
+| **ai-openai** | GPT-5.2 사주 분석 | `gpt-5.2` | **v39** | Responses API Background Mode + 쿼터 면제 + 태스크 재사용 |
+| **ai-openai-result** | GPT 결과 폴링 | - | **v32** | task_type별 토큰 컬럼 라우팅 |
+| **ai-gemini** | Gemini 채팅 | `gemini-3-flash-preview` | **v22** | SSE 스트리밍 + chatting_tokens 쿼터 |
 | **generate-ai-summary** | Legacy AI Summary | `gemini-2.0-flash` | v4 | 레거시 (신규 사용 X) |
 
 ---
 
-## 1. ai-openai (v37)
+## 1. ai-openai (v39)
 
-**GPT-5.2 Responses API - 평생 사주 분석 (Background Mode)**
+**GPT-5.2 Responses API - 평생 사주 분석 (Background Mode + 쿼터 면제 + 태스크 재사용)**
 
 ### 핵심 설정
 ```typescript
@@ -62,6 +62,19 @@ SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
+### 쿼터 면제 (v39)
+운세 분석(saju_base, monthly_fortune, yearly_2025, yearly_2026)은 쿼터 면제 대상:
+```typescript
+const QUOTA_EXEMPT_TASK_TYPES = new Set([
+  'saju_analysis', 'saju_base',
+  'saju_base_phase1', 'saju_base_phase2', 'saju_base_phase3', 'saju_base_phase4',
+  'monthly_fortune', 'yearly_2025', 'yearly_2026',
+]);
+```
+
+### 완료 태스크 재사용 (v39)
+당일 완료된 동일 task_type 태스크를 재사용하여 중복 API 호출 방지.
+
 ### 토큰 기록 (user_daily_token_usage)
 | Edge Function 컬럼 | DB 실제 컬럼 | 비고 |
 |---------------------|-------------|------|
@@ -72,16 +85,17 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 ### 관리자 판별 (isAdminUser)
 ```typescript
-// v37: profile_type 사용 (is_primary가 아님!)
+// profile_type 사용 (is_primary가 아님!)
 .from("saju_profiles")
-.select("id")
+.select("relation_type")
 .eq("user_id", userId)
 .eq("profile_type", "primary")  // ← DB 실제 컬럼
+// relation_type === "admin" → 관리자
 ```
 
 > **주의**: `saju_profiles.is_primary` 컬럼은 DB에 존재하지 않음. 실제 컬럼은 `profile_type` (text: 'primary'/'other'). v37에서 수정 완료.
 
-### Reasoning 필터링 (v37 추가)
+### Reasoning 필터링
 - `collectStreamResponse()`: `delta.reasoning_content` 무시 (GPT thinking 내용 제외)
 - 사용자에게 GPT의 내부 추론 과정이 노출되지 않도록 필터링
 
@@ -104,9 +118,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 ---
 
-## 2. ai-openai-result (v15)
+## 2. ai-openai-result (v32)
 
-**OpenAI Background Task 결과 폴링**
+**OpenAI Background Task 결과 폴링 + task_type별 토큰 컬럼 라우팅**
 
 ### 핵심 로직
 ```
@@ -124,7 +138,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 5. 완료 시 ai_tasks에 결과 캐싱
 ```
 
-### Reasoning 필터링 (v15 추가)
+### Reasoning 필터링
 ```typescript
 // output 배열에서 reasoning 타입 제외
 if (outputItem.type === "reasoning") continue;
@@ -133,9 +147,17 @@ if (outputItem.type === "reasoning") continue;
 if (contentItem.type === "reasoning") continue;
 ```
 
-### 토큰 기록
-- ai-openai와 동일: `saju_analysis_tokens`, `gpt_cost_usd` 사용
-- `gpt_saju_analysis_tokens`, `gpt_saju_analysis_count`는 DB에 없음 (v15에서 수정)
+### 토큰 기록 (v32: task_type별 라우팅)
+```typescript
+function getTokenColumnForTaskType(taskType: string): string {
+  if (taskType === 'monthly_fortune') return 'monthly_fortune_tokens';
+  if (taskType === 'yearly_2025') return 'yearly_fortune_2025_tokens';
+  if (taskType === 'yearly_2026') return 'yearly_fortune_2026_tokens';
+  return 'saju_analysis_tokens'; // default
+}
+```
+- v31 이전: 모든 task_type이 `saju_analysis_tokens`에만 기록됨
+- v32: task_type에 따라 올바른 컬럼에 기록
 
 ### 응답 형식
 ```typescript
@@ -164,15 +186,19 @@ static const Duration _pollingInterval = Duration(seconds: 2);  // 2초 간격
 
 ---
 
-## 3. ai-gemini (v15)
+## 3. ai-gemini (v22)
 
-**Gemini 3.0 Flash - 채팅/일운 분석 (SSE 스트리밍)**
+**Gemini 3.0 Flash Preview - 채팅 (SSE 스트리밍) + chatting_tokens 쿼터**
 
 ### 핵심 설정
 ```typescript
+// 채팅
 model = "gemini-3-flash-preview"  // 변경 금지
-max_tokens = 4096                  // 변경 금지 - 짤림 방지
+max_tokens = 16384                 // v22
 temperature = 0.8
+
+// Intent Classification
+intent_model = "gemini-2.5-flash-lite"
 ```
 
 ### 환경변수
@@ -180,12 +206,16 @@ temperature = 0.8
 GEMINI_API_KEY=AI...
 ```
 
-### 알려진 이슈
-> **토큰 기록 컬럼명 불일치 (미수정)**
-> - 코드: `gemini_chat_tokens`, `gemini_chat_message_count`
-> - DB 실제 컬럼: `chatting_tokens`, `chatting_message_count`
-> - 토큰 기록이 실패하지만 채팅 기능 자체에는 영향 없음
-> - 수정 시 Edge Function 재배포 필요
+### 쿼터 체크 (v22)
+```
+v22: chatting_tokens만 쿼터 대상 (운세 토큰 제외)
+- chatting_tokens >= daily_quota → 429 QUOTA_EXCEEDED
+- 운세 토큰(saju_analysis, monthly, yearly)은 면제
+```
+
+### 토큰 기록 (v22)
+- `gemini_cost_usd`만 기록 (chatting_tokens는 PostgreSQL trigger가 처리)
+- 이전 이슈(컬럼명 불일치)는 v22에서 해결됨
 
 ### 메시지 형식 변환
 OpenAI 형식 → Gemini 형식 자동 변환:
@@ -268,13 +298,13 @@ mcp__supabase__deploy_edge_function 사용
 
 ### Supabase CLI
 ```bash
-# ai-openai v37
+# ai-openai v39
 cd e:/SJ && npx supabase functions deploy ai-openai --project-ref kfciluyxkomskyxjaeat
 
-# ai-openai-result v15
+# ai-openai-result v32
 cd e:/SJ && npx supabase functions deploy ai-openai-result --project-ref kfciluyxkomskyxjaeat
 
-# ai-gemini v15
+# ai-gemini v22
 cd e:/SJ && npx supabase functions deploy ai-gemini --project-ref kfciluyxkomskyxjaeat
 ```
 
@@ -298,9 +328,9 @@ cd e:/SJ && npx supabase functions deploy ai-gemini --project-ref kfciluyxkomsky
 - `frontend/lib/AI/data/mutations.dart` - DB upsert 로직
 
 ### Edge Function 소스
-- `supabase/functions/ai-openai/index.ts` - v37 (현재 배포)
-- `supabase/functions/ai-openai-result/index.ts` - v15 (현재 배포)
-- `supabase/functions/ai-gemini/index.ts` - v15 (현재 배포)
+- `supabase/functions/ai-openai/index.ts` - v39 (현재 배포)
+- `supabase/functions/ai-openai-result/index.ts` - v32 (현재 배포)
+- `supabase/functions/ai-gemini/index.ts` - v22 (현재 배포)
 
 ### 문서
 - `EdgeFunction_task.md` - 배포 관리 + 수정 규칙
@@ -316,13 +346,16 @@ cd e:/SJ && npx supabase functions deploy ai-gemini --project-ref kfciluyxkomsky
 | v1~v2 | 초기 (GPT-4o → GPT-5.2) |
 | v10 | GPT-5.2-thinking, max_tokens 10000 |
 | v24 | Responses API background 모드 (DK) |
-| **v37** | **DB 컬럼명 수정 (profile_type, saju_analysis_tokens) + reasoning 필터 + 3키 로드밸런싱 (DK)** |
+| v37 | DB 컬럼명 수정 (profile_type, saju_analysis_tokens) + reasoning 필터 + 3키 로드밸런싱 (DK) |
+| **v39** | **쿼터 면제 (QUOTA_EXEMPT_TASK_TYPES) + 완료 태스크 재사용 + Background dedup (DK)** |
 
 ### ai-openai-result
 | 버전 | 변경 사유 |
 |------|----------|
 | v4 | 초기 폴링 엔드포인트 (DK) |
-| **v15** | **DB 컬럼명 수정 + reasoning 타입 필터링 (DK)** |
+| v15 | DB 컬럼명 수정 + reasoning 타입 필터링 (DK) |
+| v31 | gpt_saju_analysis_tokens → saju_analysis_tokens (DK) |
+| **v32** | **task_type별 토큰 컬럼 라우팅 - getTokenColumnForTaskType() (DK)** |
 
 ### ai-gemini
 | 버전 | 변경 사유 |
@@ -330,3 +363,5 @@ cd e:/SJ && npx supabase functions deploy ai-gemini --project-ref kfciluyxkomsky
 | v1 | 초기 (gemini-2.0-flash) |
 | v11 | gemini-3-flash-preview 모델 변경 |
 | v15 | max_tokens 4096 (짤림 방지) |
+| v21 | gemini_cost_usd만 기록 (chatting_tokens는 trigger 처리) |
+| **v22** | **쿼터 체크 chatting_tokens만 대상 (운세 토큰 면제) (DK)** |
