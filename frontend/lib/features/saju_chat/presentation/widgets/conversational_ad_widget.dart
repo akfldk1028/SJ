@@ -175,11 +175,9 @@ class ConversationalAdWidget extends ConsumerWidget {
   /// Rewarded 광고를 끝까지 봤을 때만 토큰 충전
   /// (adWatched: true이고 rewardedTokens가 있는 경우)
   ///
-  /// v26: isRewardedAd 전달 → 이중 기록 방지
-  /// - Rewarded ad: trackRewarded()가 rewarded_tokens_earned를 이미 기록
-  ///   → addBonusTokens(isRewardedAd: true) → client-side만 확장, RPC 스킵
-  /// - Native ad: addBonusTokens(isRewardedAd: false) → add_ad_bonus_tokens RPC 호출
-  /// v27: 서버 저장은 provider의 impression/click 콜백에서 즉시 처리
+  /// v27: 서버 저장은 provider에서 즉시 처리됨
+  /// - Rewarded ad: trackRewarded() → rewarded_tokens_earned
+  /// - Native ad: _saveNativeBonusToServer() → native_tokens_earned
   /// 여기서는 client-side(ConversationWindowManager) 보너스만 추가
   /// → isRewardedAd: true로 고정하여 RPC 중복 호출 방지
   void _handleAdComplete(WidgetRef ref) {

@@ -274,8 +274,8 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
             adWatched: true,
             rewardedTokens: impressionTokens,
           );
-          // v27: 즉시 서버 저장 ("대화 재개" 버튼 의존 제거)
-          _saveBonusToServer(impressionTokens);
+          // v27: 즉시 서버 저장 → native_tokens_earned 컬럼에 분리 기록
+          _saveNativeBonusToServer(impressionTokens);
           // 광고 카운터 증가 (빈도 제어용)
           _shownAdCount++;
           if (kDebugMode) {
@@ -412,8 +412,8 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
       );
 
-      // v27: 클릭 보너스도 즉시 서버 저장
-      _saveBonusToServer(clickBonus);
+      // v27: 클릭 보너스도 즉시 서버 저장 → native_tokens_earned에 분리 기록
+      _saveNativeBonusToServer(clickBonus);
 
       if (kDebugMode) {
         print('   💰 [AD] Native ad CLICKED → +$clickBonus bonus tokens (total: ${state.rewardedTokens}, saved to server)');
@@ -459,10 +459,8 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     }
   }
 
-  /// 보너스 토큰 즉시 서버 저장 (impression/click 시점)
-  ///
-  /// 위젯의 "대화 재개" 버튼 의존 제거 → 즉시 DB 반영
-  /// bonus_tokens + ads_watched 동시 증가
+  /// Rewarded Ad 보너스 토큰 서버 저장
+  /// → bonus_tokens 컬럼에 기록
   Future<void> _saveBonusToServer(int tokens) async {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -472,11 +470,31 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         'p_bonus_tokens': tokens,
       });
       if (kDebugMode) {
-        print('   💾 [AD] Server bonus saved: +$tokens tokens');
+        print('   💾 [AD] Server bonus saved (rewarded): +$tokens tokens → bonus_tokens');
       }
     } catch (e) {
       if (kDebugMode) {
         print('   ⚠️ [AD] Server bonus save failed: $e');
+      }
+    }
+  }
+
+  /// Native Ad 보너스 토큰 서버 저장
+  /// → native_tokens_earned 컬럼에 분리 기록
+  Future<void> _saveNativeBonusToServer(int tokens) async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      await Supabase.instance.client.rpc('add_native_bonus_tokens', params: {
+        'p_user_id': userId,
+        'p_bonus_tokens': tokens,
+      });
+      if (kDebugMode) {
+        print('   💾 [AD] Server bonus saved (native): +$tokens tokens → native_tokens_earned');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('   ⚠️ [AD] Server native bonus save failed: $e');
       }
     }
   }

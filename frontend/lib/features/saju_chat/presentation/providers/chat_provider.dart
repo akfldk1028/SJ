@@ -1768,13 +1768,13 @@ class ChatNotifier extends _$ChatNotifier {
   ///
   /// 광고를 보면 토큰 한도가 증가하여 이전 대화를 유지하면서 더 대화 가능
   /// [tokens]: 추가할 토큰 수
-  /// [isRewardedAd]: true이면 보상형 광고 (trackRewarded()가 이미 rewarded_tokens_earned를 증가시킴)
-  ///   → add_ad_bonus_tokens RPC 호출 스킵 (bonus_tokens 이중 기록 방지)
-  ///   → is_quota_exceeded 공식: chatting_tokens >= (daily_quota + bonus_tokens + rewarded_tokens_earned)
-  ///   → 두 컬럼 모두 증가하면 쿼터가 2배로 늘어나는 버그
+  /// [isRewardedAd]: true이면 서버 RPC 스킵 (provider에서 이미 저장됨)
+  ///   - Rewarded ad: trackRewarded() → rewarded_tokens_earned
+  ///   - Native ad: _saveNativeBonusToServer() → native_tokens_earned
+  ///   → 위젯에서 항상 isRewardedAd: true로 호출 (서버 이중 기록 방지)
   ///
-  /// v26: isRewardedAd 파라미터 추가 (이중 기록 방지)
-  /// v23: 서버에도 bonus_tokens 반영 (RPC 호출)
+  /// v27: 서버 저장은 conversational_ad_provider에서 즉시 처리
+  /// → 이 메서드는 client-side(ConversationWindowManager) 보너스만 추가
   Future<void> addBonusTokens(int tokens, {bool isRewardedAd = false}) async {
     // 1. Client-side: ConversationWindowManager에 보너스 추가 (항상)
     _repository.addBonusTokens(tokens);
@@ -1791,19 +1791,18 @@ class ChatNotifier extends _$ChatNotifier {
       print('[ChatProvider] 새 토큰 상태: $tokenUsage');
     }
 
-    // 2. Server-side: Supabase RPC
-    // - Rewarded ad: trackRewarded()가 이미 rewarded_tokens_earned를 증가시킴
-    //   → bonus_tokens까지 증가하면 쿼터 2배 증가 (이중 기록 버그)
-    //   → RPC 호출 스킵
-    // - Native ad: 서버에 bonus_tokens 반영 필요
-    //   → add_ad_bonus_tokens RPC (bonus_tokens + ads_watched 동시 증가)
+    // 2. Server-side: conversational_ad_provider에서 이미 처리됨
+    // - Rewarded ad: trackRewarded() → rewarded_tokens_earned
+    // - Native ad: _saveNativeBonusToServer() → native_tokens_earned
+    // → 여기서는 추가 RPC 호출 불필요 (isRewardedAd는 항상 true로 전달됨)
     if (isRewardedAd) {
       if (kDebugMode) {
-        print('[ChatProvider] Rewarded ad → 서버 RPC 스킵 (rewarded_tokens_earned이 이미 기록됨)');
+        print('[ChatProvider] 서버 RPC 스킵 (provider에서 이미 저장됨)');
       }
       return;
     }
 
+    // Legacy fallback: isRewardedAd=false로 호출되는 경우 (현재 미사용)
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId != null) {
@@ -1812,14 +1811,13 @@ class ChatNotifier extends _$ChatNotifier {
           'p_bonus_tokens': tokens,
         });
         if (kDebugMode) {
-          print('[ChatProvider] 서버 bonus_tokens + ads_watched 반영 완료: +$tokens');
+          print('[ChatProvider] 서버 bonus_tokens 반영 완료: +$tokens');
         }
       }
     } catch (e) {
       if (kDebugMode) {
         print('[ChatProvider] 서버 bonus_tokens 반영 실패: $e');
       }
-      // 실패해도 client-side는 이미 반영됨
     }
   }
 
