@@ -32,6 +32,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const DAILY_QUOTA = 20000;
 const ADMIN_QUOTA = 1000000000;
 
+/** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
+function getTodayKST(): string {
+  return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).split(" ")[0];
+}
+
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -77,7 +82,7 @@ async function checkAndUpdateQuota(
   isAdmin: boolean
 ): Promise<{ allowed: boolean; remaining: number; quotaLimit: number }> {
   const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayKST();
   try {
     // v26: IAP 구독 확인 - ai_premium 또는 combo 활성 구독이면 quota 면제
     const { data: sub } = await supabase
@@ -133,7 +138,7 @@ async function recordGeminiCost(
   completionTokens: number,
   cost: number
 ): Promise<void> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayKST();
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")

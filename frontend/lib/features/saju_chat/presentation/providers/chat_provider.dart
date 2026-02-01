@@ -1654,19 +1654,11 @@ class ChatNotifier extends _$ChatNotifier {
       final isPremiumUser = ref.read(purchaseNotifierProvider).valueOrNull
               ?.entitlements.all[PurchaseConfig.entitlementAiPremium]?.isActive == true;
 
-      if (isRetryableError && !isPremiumUser) {
-        if (kDebugMode) {
-          print('[CHAT] 일시적 에러 → 보상형 광고 트리거');
-        }
-        final selectedPersona = ref.read(chatPersonaNotifierProvider);
-        ref.read(conversationalAdNotifierProvider.notifier).activateRetryAd(
-          messageCount: state.messages.length,
-          persona: _mapToAiPersona(selectedPersona),
-        );
+      if (isRetryableError) {
         state = state.copyWith(
           isLoading: false,
           streamingContent: null,
-          error: '연결이 불안정해요. 광고를 보시면 다시 시도할 수 있어요!',
+          error: '일시적인 오류가 발생했어요. 다시 시도해주세요.',
         );
         return;
       }

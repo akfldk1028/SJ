@@ -59,17 +59,14 @@ abstract class AdStrategy {
   static const ChatAdType chatAdType = ChatAdType.nativeMedium;
 
   /// 인라인 광고 표시 간격 (메시지 수)
-  /// 2 = 매 대화(유저+AI)마다 광고 1회 (impression 극대화)
-  /// quota 20,000 기준 3회 채팅 → native 3회 노출
-  static const int inlineAdMessageInterval = 2;
+  /// 4 = 2번째 대화 후 광고 1회 (유저+AI = 2메시지 × 2 = 4)
+  static const int inlineAdMessageInterval = 4;
 
-  /// 인라인 광고 최대 개수 (무제한에 가깝게)
-  /// 광고 1회당 +$0.003 이익 → 많을수록 이득
+  /// 인라인 광고 최대 개수 (세션당) 이건그냥 많은게좋음
   static const int inlineAdMaxCount = 9999;
-
   /// 인라인 광고 최소 메시지 수 (이보다 적으면 광고 안 보임)
-  /// 2 = 첫 번째 대화 후 바로 광고 가능
-  static const int inlineAdMinMessages = 2;
+  /// 4 = 2번째 대화 후부터 광고 시작
+  static const int inlineAdMinMessages = 4;
 
   // ==================== 전면 광고 ====================
 

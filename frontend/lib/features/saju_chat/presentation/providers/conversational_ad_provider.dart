@@ -262,24 +262,17 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         },
         onAdImpression: (ad) {
           if (kDebugMode) {
-            print('   👁️ [AD] Native ad impression → token reward');
+            print('   👁️ [AD] Native ad impression');
           }
-          // v26: 서버 추적 추가 (native_impressions 카운터 증가)
+          // 서버 추적 (native_impressions 카운터 증가)
           AdTrackingService.instance.trackNativeImpression(
             screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
           );
-          // v23: impression에서도 보상 (impressionRewardTokens)
-          final impressionTokens = AdTriggerService.impressionRewardTokens;
-          state = state.copyWith(
-            adWatched: true,
-            rewardedTokens: impressionTokens,
-          );
-          // v27: 즉시 서버 저장 → native_tokens_earned 컬럼에 분리 기록
-          _saveNativeBonusToServer(impressionTokens);
-          // 광고 카운터 증가 (빈도 제어용)
+          // impression에서는 토큰 미지급 (0)
+          // 소진/인터벌 모두 클릭해야 토큰 지급
           _shownAdCount++;
           if (kDebugMode) {
-            print('   📊 [AD] shownAdCount: $_shownAdCount, impression reward: $impressionTokens tokens (saved to server)');
+            print('   📊 [AD] shownAdCount: $_shownAdCount, impression → no tokens (click required)');
           }
         },
       ),
@@ -394,30 +387,40 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     return completer.future;
   }
 
-  /// 광고 클릭 처리 (Native 광고 클릭 시 추가 토큰 보상)
+  /// 광고 클릭 처리 (Native 광고 클릭 시 토큰 보상)
   ///
-  /// impression(1,500) + 클릭 보너스(1,500) = 총 3,000 토큰
-  /// CPC 수입 $0.15~0.50 vs 추가 비용 $0.002 → 클릭할수록 이득
+  /// 소진 광고: 클릭해야 7,000 토큰 지급 (impression에서는 미지급)
+  /// 인터벌 광고: impression(1,500) + 클릭 보너스(1,500) = 총 3,000 토큰
   void _onAdClicked() {
-    if (state.adType != AdMessageType.tokenDepleted) {
-      // 클릭 보너스: impression 보상 위에 추가
-      final clickBonus = AdTriggerService.impressionRewardTokens;
+    // 클릭 이벤트 추적 (CPC 수익 분석용, 항상 기록)
+    AdTrackingService.instance.trackNativeClick(
+      screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+    );
+
+    if (state.adType == AdMessageType.tokenDepleted) {
+      // 소진 광고: 클릭 시에만 전액 지급 (7,000 토큰)
+      final depletedTokens = AdTriggerService.depletedRewardTokensNative;
       state = state.copyWith(
         adWatched: true,
-        rewardedTokens: (state.rewardedTokens ?? 0) + clickBonus,
+        rewardedTokens: depletedTokens,
       );
-
-      // Supabase에 클릭 이벤트 추적 (수익 분석용)
-      AdTrackingService.instance.trackNativeClick(
-        screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
-      );
-
-      // v27: 클릭 보너스도 즉시 서버 저장 → native_tokens_earned에 분리 기록
-      _saveNativeBonusToServer(clickBonus);
-
+      _saveNativeBonusToServer(depletedTokens);
       if (kDebugMode) {
-        print('   💰 [AD] Native ad CLICKED → +$clickBonus bonus tokens (total: ${state.rewardedTokens}, saved to server)');
+        print('   💰 [AD] Native ad CLICKED (depleted) → +$depletedTokens tokens (saved to server)');
       }
+      return;
+    }
+
+    // 인터벌 광고: 클릭 시 7,000 토큰 지급 (impression 0 + click 7,000)
+    final clickTokens = AdTriggerService.intervalClickRewardTokens;
+    state = state.copyWith(
+      adWatched: true,
+      rewardedTokens: clickTokens,
+    );
+    _saveNativeBonusToServer(clickTokens);
+
+    if (kDebugMode) {
+      print('   💰 [AD] Native ad CLICKED (interval) → +$clickTokens tokens (total: ${state.rewardedTokens}, saved to server)');
     }
   }
 

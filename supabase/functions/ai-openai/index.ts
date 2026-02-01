@@ -77,6 +77,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const DAILY_QUOTA = 20000;
 const ADMIN_QUOTA = 1000000000;
 
+/** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
+function getTodayKST(): string {
+  return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).split(" ")[0];
+}
+
 // v39: 쿼터 면제 task_type 목록
 // 운세 분석은 핵심 콘텐츠 (1회성 캐시) → 쿼터로 차단하면 안 됨
 const QUOTA_EXEMPT_TASK_TYPES = new Set([
@@ -137,7 +142,7 @@ async function checkQuota(
   isAdmin: boolean
 ): Promise<{ allowed: boolean; remaining: number; quotaLimit: number }> {
   const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayKST();
   try {
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
@@ -177,7 +182,7 @@ async function recordTokenUsage(
   isAdmin: boolean,
   taskType: string = 'saju_analysis'
 ): Promise<void> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayKST();
   const totalTokens = promptTokens + completionTokens;
   const tokenColumn = getTokenColumnForTaskType(taskType);
   console.log(`[ai-openai v39] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
@@ -391,7 +396,7 @@ Deno.serve(async (req) => {
         // 2단계: 오늘 완료된 task 체크 (v39 신규)
         // 앱이 결과 저장 실패해서 반복 호출해도 기존 completed 결과 재사용
         // → 토큰 중복 차감 완전 방지
-        const today = new Date().toISOString().split("T")[0];
+        const today = getTodayKST();
         const { data: completedTask } = await supabase
           .from("ai_tasks")
           .select("id, status, openai_response_id, result_data, completed_at")

@@ -40,24 +40,24 @@ abstract class AdTriggerService {
   /// 토큰 소진 시 제공되는 보상 토큰 (기본값, 하위 호환)
   static const int depletedRewardTokens = 3000;
 
-  /// 토큰 소진 - 영상 광고 보상 (약 1왕복 = 10,000 토큰)
+  /// 토큰 소진 - 영상 광고 보상 (약 3교환 = 20,000 토큰)
   /// Rewarded video eCPM $10~50 → 1회 수익 $0.01~0.05
-  /// 1왕복 비용 ~$0.033 → eCPM $33 이상이면 흑자
-  /// 광고 빈도 ↑ = 수익 ↑ (빨리 소진 → 빨리 다시 광고)
-  static const int depletedRewardTokensVideo = 10000;
+  /// 3교환 Gemini 비용 ~$0.003 → 확실한 흑자
+  static const int depletedRewardTokensVideo = 20000;
 
-  /// 토큰 소진 - 네이티브 광고 보상 (3,000 토큰 = 0.3왕복)
+  /// 토큰 소진 - 네이티브 광고 보상 (7,000 토큰 ≈ 1교환)
   /// Native ad eCPM $0.50 → 수익 ~$0.0005
-  /// 1메시지 정도만 가능 → 금방 다시 소진 → Rewarded Video 유도
-  static const int depletedRewardTokensNative = 3000;
+  /// 2메시지(1교환) 가능 → 자연스럽게 소진 → Rewarded Video 유도
+  static const int depletedRewardTokensNative = 7000;
 
-  /// 인터벌 광고 시 제공되는 보상 토큰 (광고 클릭 시)
-  static const int intervalRewardTokens = 500;
+  /// 인터벌 광고 클릭 시 보상 토큰
+  /// 클릭해야만 7,000 토큰 지급 (≈1교환)
+  /// Native CPC 수익 > impression 수익이므로 클릭에만 보상
+  static const int intervalClickRewardTokens = 7000;
 
   /// Native 광고 impression 시 보상 토큰
-  /// 메시지 1회(~7,500 토큰) 대비 20% = 1,500
-  /// AdMob native eCPM $0.15~$2.00 기준 적절한 보상
-  static const int impressionRewardTokens = 1500;
+  /// 노출만으로는 토큰 미지급 (0) → 클릭 유도
+  static const int impressionRewardTokens = 0;
 
   /// 토큰 경고 스킵 후 쿨다운 (메시지 수)
   /// 스킵하면 이 횟수만큼 메시지 동안 토큰 경고 억제
@@ -185,7 +185,7 @@ abstract class AdTriggerService {
     return switch (trigger) {
       AdTriggerResult.tokenNearLimit => warningRewardTokens,
       AdTriggerResult.tokenDepleted => depletedRewardTokens,
-      AdTriggerResult.intervalAd => intervalRewardTokens,
+      AdTriggerResult.intervalAd => impressionRewardTokens,
       AdTriggerResult.none => 0,
     };
   }
