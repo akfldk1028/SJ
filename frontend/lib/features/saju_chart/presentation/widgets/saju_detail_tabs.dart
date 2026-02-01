@@ -662,7 +662,7 @@ class _SipSungTab extends StatelessWidget {
               '천간',
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ),
@@ -677,7 +677,7 @@ class _SipSungTab extends StatelessWidget {
                           '-',
                           style: TextStyle(
                             color: theme.textMuted,
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -844,7 +844,7 @@ class _UnsungTab extends StatelessWidget {
             name,
             style: TextStyle(
               color: color,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -854,7 +854,7 @@ class _UnsungTab extends StatelessWidget {
           desc,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 9,
+            fontSize: 13,
           ),
         ),
       ],
@@ -950,7 +950,7 @@ class _UnsungTab extends StatelessWidget {
             pillar,
             style: TextStyle(
               color: tealColor,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -968,7 +968,7 @@ class _UnsungTab extends StatelessWidget {
             palace,
             style: TextStyle(
               color: theme.textPrimary,
-              fontSize: 10,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -980,7 +980,7 @@ class _UnsungTab extends StatelessWidget {
             meaning,
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
         ),
@@ -1015,7 +1015,7 @@ class _UnsungTab extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -1216,7 +1216,7 @@ class _UnsungTab extends StatelessWidget {
                         item.unsung.hanja,
                         style: TextStyle(
                           color: theme.textSecondary,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1252,7 +1252,7 @@ class _UnsungTab extends StatelessWidget {
                           UnsungService.getDetailedInterpretation(item.unsung),
                           style: TextStyle(
                             color: theme.textSecondary,
-                            fontSize: 12,
+                            fontSize: 13,
                             height: 1.5,
                           ),
                         ),
@@ -1457,7 +1457,7 @@ class _SinsalTab extends StatelessWidget {
           label,
           style: TextStyle(
             color: theme.textSecondary,
-            fontSize: 11,
+            fontSize: 13,
           ),
         ),
       ],
@@ -1491,7 +1491,7 @@ class _SinsalTab extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -1587,7 +1587,7 @@ class _SinsalTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1714,7 +1714,7 @@ class _SinsalTab extends StatelessWidget {
                         fortuneType,
                         style: TextStyle(
                           color: fortuneColor,
-                          fontSize: 10,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1730,7 +1730,7 @@ class _SinsalTab extends StatelessWidget {
                         pillarName,
                         style: TextStyle(
                           color: theme.textSecondary,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1742,7 +1742,7 @@ class _SinsalTab extends StatelessWidget {
                   description,
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                     height: 1.4,
                   ),
                 ),
@@ -1874,7 +1874,7 @@ class _SinsalTab extends StatelessWidget {
                     fortuneType == '길' ? '길(吉)' : fortuneType == '흉' ? '흉(凶)' : '혼합',
                     style: TextStyle(
                       color: fortuneColor,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1902,7 +1902,7 @@ class _SinsalTab extends StatelessWidget {
                   TwelveSinsalService.getDetailedInterpretation(item.sinsal),
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                     height: 1.5,
                   ),
                 ),
@@ -2012,7 +2012,7 @@ class _GongmangTab extends StatelessWidget {
                     '공망은 반드시 나쁜 것만은 아닙니다. 흉한 것이 공망이면 오히려 흉함이 줄어들기도 합니다.',
                     style: TextStyle(
                       color: theme.textSecondary,
-                      fontSize: 11,
+                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -2052,7 +2052,7 @@ class _GongmangTab extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -2097,7 +2097,7 @@ class _GongmangTab extends StatelessWidget {
                       '일주: ${result.dayGapja}',
                       style: TextStyle(
                         color: theme.primaryColor,
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2115,7 +2115,7 @@ class _GongmangTab extends StatelessWidget {
                   '${result.sunInfo.sunName} 소속',
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -2259,7 +2259,7 @@ class _GongmangTab extends StatelessWidget {
                               '${r.pillarName} (${r.jiji})',
                               style: TextStyle(
                                 color: AppColors.error,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -2297,7 +2297,7 @@ class _GongmangTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -2455,7 +2455,7 @@ class _GongmangTab extends StatelessWidget {
                             GongmangService.getDetailedInterpretation(item),
                             style: TextStyle(
                               color: theme.textSecondary,
-                              fontSize: 12,
+                              fontSize: 13,
                               height: 1.5,
                             ),
                           ),

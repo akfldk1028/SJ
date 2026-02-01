@@ -66,8 +66,8 @@ class UnsungBadge extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      UnsungBadgeSize.small => 10.0,
-      UnsungBadgeSize.medium => 12.0,
+      UnsungBadgeSize.small => 12.0,
+      UnsungBadgeSize.medium => 13.0,
       UnsungBadgeSize.large => 14.0,
     };
   }
@@ -138,7 +138,7 @@ class UnsungTable extends StatelessWidget {
                     '궁성',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -149,7 +149,7 @@ class UnsungTable extends StatelessWidget {
                     '지지',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -161,7 +161,7 @@ class UnsungTable extends StatelessWidget {
                     '12운성',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -173,7 +173,7 @@ class UnsungTable extends StatelessWidget {
                     '강도',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -284,7 +284,7 @@ class UnsungTable extends StatelessWidget {
           '$strength',
           style: TextStyle(
             color: color,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -338,7 +338,7 @@ class UnsungRow extends StatelessWidget {
               '12운성',
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ),
@@ -353,7 +353,7 @@ class UnsungRow extends StatelessWidget {
                           '-',
                           style: TextStyle(
                             color: theme.textMuted,
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -399,7 +399,7 @@ class UnsungDetailCard extends StatelessWidget {
                   result.pillarName,
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

@@ -106,8 +106,8 @@ class GongmangBadge extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      GongmangBadgeSize.small => 10.0,
-      GongmangBadgeSize.medium => 12.0,
+      GongmangBadgeSize.small => 12.0,
+      GongmangBadgeSize.medium => 13.0,
       GongmangBadgeSize.large => 14.0,
     };
   }
@@ -159,7 +159,7 @@ class GongmangTable extends StatelessWidget {
                     '궁성',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -170,7 +170,7 @@ class GongmangTable extends StatelessWidget {
                     '지지',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -182,7 +182,7 @@ class GongmangTable extends StatelessWidget {
                     '상태',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -194,7 +194,7 @@ class GongmangTable extends StatelessWidget {
                     '해석',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -289,7 +289,7 @@ class GongmangTable extends StatelessWidget {
                 color: item.isGongmang
                     ? AppColors.error
                     : theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -339,7 +339,7 @@ class GongmangRow extends StatelessWidget {
               '공망',
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ),
@@ -354,7 +354,7 @@ class GongmangRow extends StatelessWidget {
                           '-',
                           style: TextStyle(
                             color: theme.textMuted,
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -400,7 +400,7 @@ class GongmangDetailCard extends StatelessWidget {
                   result.pillarName,
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -525,7 +525,7 @@ class GongmangSummaryCard extends StatelessWidget {
                   '일주: ${result.dayGapja}',
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 11,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -548,7 +548,7 @@ class GongmangSummaryCard extends StatelessWidget {
                       '소속 순(旬)',
                       style: TextStyle(
                         color: theme.textMuted,
-                        fontSize: 11,
+                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -570,7 +570,7 @@ class GongmangSummaryCard extends StatelessWidget {
                       '공망 지지',
                       style: TextStyle(
                         color: theme.textMuted,
-                        fontSize: 11,
+                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -625,7 +625,7 @@ class GongmangSummaryCard extends StatelessWidget {
                     result.summary,
                     style: TextStyle(
                       color: mainColor,
-                      fontSize: 12,
+                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -687,7 +687,7 @@ class GongmangSummaryCard extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -704,7 +704,7 @@ class GongmangSummaryCard extends StatelessWidget {
           '공망 궁성',
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 11,
+            fontSize: 13,
           ),
         ),
         const SizedBox(height: 8),
@@ -733,7 +733,7 @@ class GongmangSummaryCard extends StatelessWidget {
                           '${r.pillarName}(${r.jiji})',
                           style: const TextStyle(
                             color: AppColors.error,
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -771,7 +771,7 @@ class GongmangTypeBadge extends StatelessWidget {
             type.korean,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -780,7 +780,7 @@ class GongmangTypeBadge extends StatelessWidget {
             '(${type.hanja})',
             style: TextStyle(
               color: color.withOpacity(0.7),
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
         ],

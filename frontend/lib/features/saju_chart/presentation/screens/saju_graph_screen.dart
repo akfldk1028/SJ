@@ -328,7 +328,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
             style: TextStyle(
               color: isMe ? Colors.white : Colors.grey[700],
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
@@ -371,14 +371,14 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
             data['label'] as String,
             style: TextStyle(
               color: isMe ? Colors.white.withOpacity(0.8) : Colors.grey[600],
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
           Text(
             isGan ? '천간' : '지지',
             style: TextStyle(
               color: isMe ? Colors.white.withOpacity(0.6) : Colors.grey[400],
-              fontSize: 8,
+              fontSize: 13,
             ),
           ),
         ],
@@ -443,7 +443,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             color: Colors.grey[600],
           ),
         ),

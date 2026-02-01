@@ -66,7 +66,7 @@ class SajuMiniCard extends ConsumerWidget {
                         child: Text(
                           '${sajuChart.isLunarCalendar ? '음력' : '양력'} ${sajuChart.birthDateTime.year}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
                             color: theme.primaryColor,
                           ),
                         ),
@@ -137,7 +137,7 @@ class SajuMiniCard extends ConsumerWidget {
                             Text(
                               '오행 분포',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: theme.textSecondary,
                               ),

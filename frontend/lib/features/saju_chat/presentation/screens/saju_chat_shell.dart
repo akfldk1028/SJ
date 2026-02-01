@@ -361,7 +361,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
           IconButton(
             icon: Icon(Icons.add, color: appTheme.primaryColor),
             onPressed: _handleNewChat,
-            tooltip: '새 채팅 (페르소나 변경 가능)',
+            tooltip: '새 채팅 시작 (페르소나 변경)',
           ),
           // 궁합 버튼 (2명 선택)
           IconButton(
@@ -509,7 +509,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
                       IconButton(
                         icon: Icon(Icons.add, color: appTheme.primaryColor),
                         onPressed: _handleNewChat,
-                        tooltip: '새 채팅 (페르소나 변경 가능)',
+                        tooltip: '새 채팅 시작 (페르소나 변경)',
                       ),
                       const SizedBox(width: 4),
                       // 현재 세션 제목
@@ -1157,127 +1157,6 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
 
-  /// MBTI 4축 선택기 BottomSheet 표시
-  void _showMbtiSelectorSheet(BuildContext context, WidgetRef ref) {
-    final appTheme = context.appTheme;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: appTheme.cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (sheetContext) => Consumer(
-        builder: (consumerContext, consumerRef, _) {
-          final currentQuadrant = consumerRef.watch(mbtiQuadrantNotifierProvider);
-          final quadrantColor = _getQuadrantColor(currentQuadrant);
-
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 핸들바
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: appTheme.textMuted.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // 제목
-                  Text(
-                    'AI 성향 선택 (MBTI)',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: appTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '터치하거나 드래그해서 성향을 선택하세요',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: appTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // MBTI 4축 선택기
-                  MbtiAxisSelector(
-                    selectedQuadrant: currentQuadrant,
-                    onQuadrantSelected: (quadrant) {
-                      consumerRef.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(quadrant);
-                      // 메시지 없는 세션이면 세션의 MBTI도 업데이트
-                      consumerRef.read(chatSessionNotifierProvider.notifier)
-                          .updateCurrentSessionPersona(mbtiQuadrant: quadrant);
-                    },
-                    size: 300,
-                  ),
-                  const SizedBox(height: 24),
-                  // 선택된 분면 표시 (실시간 업데이트)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: quadrantColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: quadrantColor.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: quadrantColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              currentQuadrant.displayName,
-                              style: TextStyle(
-                                color: quadrantColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              currentQuadrant.description,
-                              style: TextStyle(
-                                color: quadrantColor.withValues(alpha: 0.8),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentPersona = ref.watch(chatPersonaNotifierProvider);
@@ -1362,25 +1241,61 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
                 ),
               ),
               const Spacer(),
-              // 잠금 상태: "새 채팅에서 변경 가능" 안내
+              // 잠금 상태: "새 채팅을 눌러야 페르소나를 바꿀 수 있어요!" 안내
               if (isPersonaLocked)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.lock_outline_rounded,
-                      size: 14,
-                      color: appTheme.textMuted.withOpacity(0.6),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '+ 새 채팅에서 변경',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: appTheme.textMuted.withOpacity(0.6),
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.info_outline, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                '상단의 + 버튼을 눌러 새 채팅을 시작하면\n페르소나를 변경할 수 있어요!',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: appTheme.primaryColor,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: appTheme.primaryColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: appTheme.primaryColor.withOpacity(0.2),
+                        width: 1,
                       ),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          size: 14,
+                          color: appTheme.primaryColor.withOpacity(0.7),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+ 새 채팅에서 변경 가능',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: appTheme.primaryColor.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               // 펼치기 힌트
               if (!isPersonaLocked)
@@ -1407,6 +1322,17 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
         ),
       );
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // [TODO] XY축 MBTI 선택기 연동 (향후 구현)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 펼친 상태에서 MbtiAxisSelector를 표시하고, XY 좌표에 따라
+    // 16개 MBTI 타입을 계산 → ChatPersona 자동 선택.
+    // 구현 시 MbtiAxisSelector에 onPositionChanged 콜백을 추가하고
+    // ChatPersona.fromXYPosition(x, y) 호출.
+    // 참고: chat_persona.dart에 상세 설계 주석 참조
+    // 참고: mbti_axis_selector.dart에 기존 XY축 위젯 구현 존재
+    // ═══════════════════════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════════════════════
     // 펼친 상태: 전체 페르소나 목록 (기존 UI)
@@ -1461,51 +1387,6 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// MBTI 버튼 빌드 (왼쪽 고정 위치)
-  Widget _buildMbtiButton(
-    BuildContext context, {
-    required Color quadrantColor,
-    required MbtiQuadrant currentQuadrant,
-  }) {
-    return GestureDetector(
-      onTap: () => _showMbtiSelectorSheet(context, ref),
-      child: Tooltip(
-        message: 'AI 성향 변경 (${currentQuadrant.displayName})',
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: quadrantColor.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: quadrantColor.withValues(alpha: 0.4),
-              width: 1.5,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.tune_rounded,
-                size: 18,
-                color: quadrantColor,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                currentQuadrant.name,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: quadrantColor,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

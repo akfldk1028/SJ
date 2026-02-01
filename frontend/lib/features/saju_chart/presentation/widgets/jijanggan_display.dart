@@ -91,7 +91,7 @@ class JiJangGanDisplay extends StatelessWidget {
                 typeLabel,
                 style: TextStyle(
                   color: theme.textMuted,
-                  fontSize: 9,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -121,7 +121,7 @@ class JiJangGanDisplay extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      JiJangGanSize.small => 12.0,
+      JiJangGanSize.small => 13.0,
       JiJangGanSize.medium => 16.0,
       JiJangGanSize.large => 20.0,
     };
@@ -183,7 +183,7 @@ class JiJangGanRow extends StatelessWidget {
             '지장간',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: theme.textMuted,
-                  fontSize: 10,
+                  fontSize: 13,
                 ),
           ),
         ),
@@ -195,7 +195,7 @@ class JiJangGanRow extends StatelessWidget {
                   '-',
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -210,7 +210,7 @@ class JiJangGanRow extends StatelessWidget {
                   result.jijangganHanjaString,
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -275,7 +275,7 @@ class JiJangGanDetailCard extends StatelessWidget {
                   result.pillarName,
                   style: TextStyle(
                     color: AppColors.accent,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -317,7 +317,7 @@ class JiJangGanDetailCard extends StatelessWidget {
               jjg.type.korean,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 10,
+                fontSize: 13,
               ),
               textAlign: TextAlign.center,
             ),
@@ -368,7 +368,7 @@ class JiJangGanDetailCard extends StatelessWidget {
                       jjg.oheng,
                       style: TextStyle(
                         color: color,
-                        fontSize: 9,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -378,7 +378,7 @@ class JiJangGanDetailCard extends StatelessWidget {
                     '${jjg.strength}일 ($strengthPercent%)',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 10,
+                      fontSize: 13,
                     ),
                   ),
                 ],

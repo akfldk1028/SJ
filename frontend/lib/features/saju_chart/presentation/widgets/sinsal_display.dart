@@ -67,8 +67,8 @@ class SinsalBadge extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      SinsalBadgeSize.small => 10.0,
-      SinsalBadgeSize.medium => 12.0,
+      SinsalBadgeSize.small => 12.0,
+      SinsalBadgeSize.medium => 13.0,
       SinsalBadgeSize.large => 14.0,
     };
   }
@@ -140,7 +140,7 @@ class SinsalTable extends StatelessWidget {
                     '궁성',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -151,7 +151,7 @@ class SinsalTable extends StatelessWidget {
                     '지지',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -163,7 +163,7 @@ class SinsalTable extends StatelessWidget {
                     '12신살',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -175,7 +175,7 @@ class SinsalTable extends StatelessWidget {
                     '길흉',
                     style: TextStyle(
                       color: theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -287,7 +287,7 @@ class SinsalTable extends StatelessWidget {
         label,
         style: TextStyle(
           color: color,
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -342,7 +342,7 @@ class SinsalRow extends StatelessWidget {
               '12신살',
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ),
@@ -357,7 +357,7 @@ class SinsalRow extends StatelessWidget {
                           '-',
                           style: TextStyle(
                             color: theme.textMuted,
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -403,7 +403,7 @@ class SinsalDetailCard extends StatelessWidget {
                   result.pillarName,
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -493,7 +493,7 @@ class SinsalDetailCard extends StatelessWidget {
                 '특수 신살',
                 style: TextStyle(
                   color: AppColors.warning,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -514,7 +514,7 @@ class SinsalDetailCard extends StatelessWidget {
                   '${special.korean} (${special.hanja})',
                   style: const TextStyle(
                     color: AppColors.warning,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -574,7 +574,7 @@ class SinsalSummaryCard extends StatelessWidget {
                 '기준: ${result.baseType}(${result.baseJi})',
                 style: TextStyle(
                   color: theme.textMuted,
-                  fontSize: 11,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -605,7 +605,7 @@ class SinsalSummaryCard extends StatelessWidget {
                   '주요 신살',
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 11,
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -655,7 +655,7 @@ class SinsalSummaryCard extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -729,7 +729,7 @@ class SinsalSummaryCard extends StatelessWidget {
             '$name($pillar)',
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),

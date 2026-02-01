@@ -297,7 +297,7 @@ class PosstellerStyleTable extends StatelessWidget {
         text,
         style: TextStyle(
           color: isHeader ? theme.textMuted : theme.textSecondary,
-          fontSize: compact ? 11 : 12,
+          fontSize: compact ? 12 : 13,
           fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
         ),
       ),
@@ -313,7 +313,7 @@ class PosstellerStyleTable extends StatelessWidget {
           text,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: compact ? 11 : 12,
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -348,7 +348,7 @@ class PosstellerStyleTable extends StatelessWidget {
               showHanja ? hangul : '$hangul($hanja)',
               style: TextStyle(
                 color: color.withOpacity(showHanja ? 0.8 : 1.0),
-                fontSize: compact ? 10 : 12,
+                fontSize: compact ? 12 : 13,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -379,7 +379,7 @@ class PosstellerStyleTable extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: compact ? 10 : 11,
+              fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -396,7 +396,7 @@ class PosstellerStyleTable extends StatelessWidget {
           text,
           style: TextStyle(
             color: color,
-            fontSize: compact ? 10 : 11,
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
@@ -423,7 +423,7 @@ class PosstellerStyleTable extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: compact ? 10 : 11,
+              fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -441,7 +441,7 @@ class PosstellerStyleTable extends StatelessWidget {
           '-',
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: compact ? 10 : 12,
+            fontSize: compact ? 12 : 13,
           ),
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../AI/jina/personas/persona_registry.dart';
 import '../../../../AI/jina/personas/persona_base.dart';
+import 'ai_persona.dart' show MbtiQuadrant;
 
 /// 채팅 페르소나 타입
 ///
@@ -120,6 +121,92 @@ enum ChatPersona {
         return ChatPersona.stRealistic;
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // [TODO] XY축 기반 MBTI 16타입 → 페르소나 자동 선택 (향후 구현)
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // MbtiAxisSelector의 XY좌표(-1~1)를 16개 MBTI 타입으로 세분화하고,
+  // 각 타입에 맞는 ChatPersona를 자동 선택하는 기능.
+  //
+  // ## 구조
+  // ```
+  //        N (직관)
+  //        │
+  //   INFP  INFJ │ INTJ  INTP
+  //   ENFP  ENFJ │ ENTJ  ENTP
+  // F ───────────●─────────── T
+  //   ESFP  ESFJ │ ESTJ  ESTP
+  //   ISFP  ISFJ │ ISTJ  ISTP
+  //        │
+  //        S (감각)
+  // ```
+  //
+  // ## XY좌표 → 16타입 매핑 로직
+  // - X축: F(-1) ↔ T(+1) (감정 vs 사고)
+  // - Y축: N(-1) ↔ S(+1) (직관 vs 감각)
+  // - 각 분면을 4등분 → 16개 영역
+  //   - E/I: |x| 기준 (중심 가까우면 I, 멀면 E)
+  //   - J/P: |y| 기준 (중심 가까우면 P, 멀면 J)
+  //
+  // ## 16타입 → ChatPersona 매핑 (예시)
+  // ```dart
+  // static ChatPersona fromMbti16Type(String mbtiType) {
+  //   // NF 그룹 → 감성형
+  //   if (['INFP', 'INFJ', 'ENFP', 'ENFJ'].contains(mbtiType)) {
+  //     return ChatPersona.nfSensitive;
+  //   }
+  //   // NT 그룹 → 분석형
+  //   if (['INTP', 'INTJ', 'ENTP', 'ENTJ'].contains(mbtiType)) {
+  //     return ChatPersona.ntAnalytic;
+  //   }
+  //   // SF 그룹 → 친근형
+  //   if (['ISFP', 'ISFJ', 'ESFP', 'ESFJ'].contains(mbtiType)) {
+  //     return ChatPersona.sfFriendly;
+  //   }
+  //   // ST 그룹 → 현실형
+  //   if (['ISTP', 'ISTJ', 'ESTP', 'ESTJ'].contains(mbtiType)) {
+  //     return ChatPersona.stRealistic;
+  //   }
+  //   return ChatPersona.nfSensitive;
+  // }
+  //
+  // /// XY좌표(-1~1)로부터 16타입 MBTI 문자열 반환
+  // static String getMbti16TypeFromPosition(double x, double y) {
+  //   // 1) N vs S (y축: 음수=N, 양수=S)
+  //   final ns = y < 0 ? 'N' : 'S';
+  //   // 2) F vs T (x축: 음수=F, 양수=T)
+  //   final ft = x < 0 ? 'F' : 'T';
+  //   // 3) E vs I (중심에서의 거리: 가까우면 I, 멀면 E)
+  //   final ei = x.abs() > 0.5 ? 'E' : 'I';
+  //   // 4) J vs P (중심에서의 거리: 가까우면 P, 멀면 J)
+  //   final jp = y.abs() > 0.5 ? 'J' : 'P';
+  //   return '$ei$ns$ft$jp'; // e.g. "INFP", "ESTJ"
+  // }
+  //
+  // /// XY좌표로부터 ChatPersona 자동 선택
+  // static ChatPersona fromXYPosition(double x, double y) {
+  //   final mbtiType = getMbti16TypeFromPosition(x, y);
+  //   return fromMbti16Type(mbtiType);
+  // }
+  // ```
+  //
+  // ## 사용법 (MbtiAxisSelector 연동)
+  // ```dart
+  // MbtiAxisSelector(
+  //   onQuadrantSelected: (quadrant) {
+  //     // 기존: 4분면만 선택
+  //   },
+  //   // 향후: onPositionChanged 콜백 추가
+  //   // onPositionChanged: (x, y) {
+  //   //   final mbtiType = ChatPersona.getMbti16TypeFromPosition(x, y);
+  //   //   final persona = ChatPersona.fromMbti16Type(mbtiType);
+  //   //   ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+  //   //   // UI에 현재 MBTI 타입 표시: "INFP - 감성형"
+  //   // },
+  // )
+  // ```
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /// PersonaRegistry ID 매핑
   String get personaId {
