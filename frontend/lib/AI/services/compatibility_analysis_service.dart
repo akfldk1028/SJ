@@ -356,7 +356,7 @@ class CompatibilityAnalysisService {
       'challenges': calculationResult.challenges,
       'advice': null, // v4.0: 조언은 채팅에서 생성
       'model_provider': 'dart', // v4.0: Dart 계산
-      'model_name': 'compatibility_calculator_v5',
+      'model_name': 'compatibility_calculator_v6_myeongrihak',
       'tokens_used': 0, // Dart 계산은 토큰 사용 없음
       'processing_time_ms': processingTimeMs,
       // 인연 사주 개별 필드

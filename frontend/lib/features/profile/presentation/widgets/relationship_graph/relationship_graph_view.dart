@@ -187,8 +187,8 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: profile,
       onChatPressed: () {
         Navigator.pop(context);
-        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필)
-        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}');
+        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필, autoMention으로 자동 멘션)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}&autoMention=true');
       },
       onDetailPressed: () {
         Navigator.pop(context);
@@ -529,8 +529,8 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: sajuProfile,
       onChatPressed: () {
         Navigator.pop(context);
-        // 궁합 채팅으로 이동
-        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}');
+        // 궁합 채팅으로 이동 (autoMention으로 자동 멘션)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}&autoMention=true');
       },
       onDetailPressed: () {
         Navigator.pop(context);

@@ -84,6 +84,7 @@ class ChatMessageList extends StatelessWidget {
         return MessageBubble(
           key: ValueKey(message.id),
           message: message,
+          isStreamingActive: isLoading,
         );
       },
     );

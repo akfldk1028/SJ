@@ -47,10 +47,14 @@ class SajuChatShell extends ConsumerStatefulWidget {
   /// - 값이 있으면 해당 프로필 기준 상담 (궁합도 가능)
   final String? targetProfileId;
 
+  /// 인연 관계도에서 진입 시 자동 멘션 삽입 여부
+  final bool autoMention;
+
   const SajuChatShell({
     super.key,
     this.chatType,
     this.targetProfileId,
+    this.autoMention = false,
   });
 
   @override
@@ -66,17 +70,40 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// Desktop 사이드바 표시 여부
   bool _isSidebarVisible = true;
 
+  /// 사용자가 위로 스크롤한 상태 (자동 스크롤 억제)
+  bool _isUserScrolling = false;
+
+
   /// 채팅 입력 필드 컨트롤러 (멘션 하이라이트 지원)
   late final MentionTextEditingController _inputController;
 
   /// 선택된 인연의 targetProfileId (멘션 전송 시 사용)
   String? _pendingTargetProfileId;
 
+  /// 현재 페르소나에 맞는 정확한 mbtiQuadrant 반환
+  ///
+  /// - MBTI 페르소나 (nfSensitive, ntAnalytic 등): persona 자체의 mbtiQuadrant 사용
+  /// - 특수 캐릭터 (babyMonk, sewerSaju 등): null (MBTI 무관)
+  /// - 레거시 basePerson: mbtiQuadrantNotifierProvider에서 읽기
+  MbtiQuadrant? _resolveCurrentMbtiQuadrant() {
+    final currentPersona = ref.read(chatPersonaNotifierProvider);
+    if (currentPersona.isMbtiPersona) {
+      // MBTI 페르소나는 자체 mbtiQuadrant 사용 (절대 stale 안 됨)
+      return currentPersona.mbtiQuadrant;
+    } else if (currentPersona.canAdjustMbti) {
+      // 레거시 basePerson만 Provider에서 읽기
+      return ref.read(mbtiQuadrantNotifierProvider);
+    }
+    // 특수 캐릭터는 MBTI 없음
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
     _chatType = ChatType.fromString(widget.chatType);
     _scrollController = ScrollController();
+    _scrollController.addListener(_onScrollChanged);
     _inputController = MentionTextEditingController();
     _initializeSession();
   }
@@ -95,6 +122,17 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
     if (!mounted) return;
 
+    // autoMention 모드: 세션 생성을 _autoInsertMention()에서 처리
+    // 실패 시 아래 일반 세션 생성 로직으로 fallback
+    if (widget.autoMention && widget.targetProfileId != null) {
+      final success = await _autoInsertMention();
+      if (success) return;
+      // fallback: 일반 세션 생성으로 진행
+      if (kDebugMode) {
+        print('[SajuChatShell] autoMention 실패 → 일반 세션으로 fallback');
+      }
+    }
+
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final sessionState = ref.read(chatSessionNotifierProvider);
 
@@ -105,31 +143,113 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     // 세션이 없으면 기본 세션 생성 (현재 페르소나 저장)
     if (sessionState.sessions.isEmpty) {
       final currentPersona = ref.read(chatPersonaNotifierProvider);
-      final currentMbti = ref.read(mbtiQuadrantNotifierProvider);
       await sessionNotifier.createSession(
         _chatType,
         profileId,
         chatPersona: currentPersona,
-        mbtiQuadrant: currentMbti,
+        mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
       );
     } else if (sessionState.currentSessionId == null) {
       // 세션이 있지만 선택되지 않았으면 첫 번째 세션 선택
       sessionNotifier.selectSession(sessionState.sessions.first.id);
+    } else if (_chatType != ChatType.general) {
+      // 특정 chatType으로 진입했는데 현재 세션 타입이 다르면 새 세션 생성
+      final currentSession = sessionState.sessions
+          .where((s) => s.id == sessionState.currentSessionId)
+          .firstOrNull;
+      if (currentSession != null && currentSession.chatType != _chatType) {
+        // 같은 타입의 기존 세션이 있으면 그걸 선택, 없으면 새로 생성
+        final matchingSession = sessionState.sessions
+            .where((s) => s.chatType == _chatType)
+            .firstOrNull;
+        if (matchingSession != null) {
+          sessionNotifier.selectSession(matchingSession.id);
+        } else {
+          final currentPersona = ref.read(chatPersonaNotifierProvider);
+          await sessionNotifier.createSession(
+            _chatType,
+            profileId,
+            chatPersona: currentPersona,
+            mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
+          );
+        }
+      }
     }
   }
 
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
+  /// 인연 관계도에서 진입 시 멘션을 입력 필드에 삽입 (자동 전송 X)
+  ///
+  /// targetProfileId로 인연 정보를 찾아 [나 포함] @나/이름 @카테고리/이름 형태로
+  /// 입력 필드에 삽입합니다. 사용자가 직접 질문을 추가해서 전송합니다.
+  Future<bool> _autoInsertMention() async {
+    final activeProfile = await ref.read(activeProfileProvider.future);
+    if (activeProfile == null || !mounted) return false;
+
+    try {
+      // 인연 목록에서 해당 프로필 찾기
+      final relations = await ref.read(relationListProvider(activeProfile.id).future);
+      final relation = relations
+          .where((r) => r.toProfileId == widget.targetProfileId)
+          .firstOrNull;
+      if (relation == null || !mounted) return false;
+
+      // 멘션 텍스트 생성 (나 + 상대방)
+      final ownerMention = '@나/${activeProfile.displayName}';
+      final categoryLabel = relation.categoryLabel;
+      final displayName = relation.effectiveDisplayName;
+      final targetMention = '@$categoryLabel/$displayName';
+      final fullMentionText = '[나 포함] $ownerMention $targetMention ';
+
+      // 새 세션 생성 (initialMessage 없이 - 자동 전송 안 함)
+      final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
+      final currentPersona = ref.read(chatPersonaNotifierProvider);
+      await sessionNotifier.createSession(
+        _chatType,
+        activeProfile.id,
+        targetProfileId: widget.targetProfileId,
+        chatPersona: currentPersona,
+        mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
+      );
+      if (!mounted) return false;
+
+      // 입력 필드에 멘션 삽입 (사용자가 질문 추가 후 직접 전송)
+      setState(() {
+        _inputController.text = fullMentionText;
+        _inputController.selection = TextSelection.collapsed(
+          offset: fullMentionText.length,
+        );
+        _pendingTargetProfileId = widget.targetProfileId;
       });
+
+      if (kDebugMode) {
+        print('[SajuChatShell] 멘션 입력 필드 삽입: $fullMentionText');
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('[SajuChatShell] 멘션 삽입 실패: $e');
+      }
+      return false;
     }
+  }
+
+  /// 사용자 스크롤 위치 감지: 맨 아래 근처면 자동 스크롤 허용
+  void _onScrollChanged() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final atBottom = position.pixels >= position.maxScrollExtent - 50;
+    _isUserScrolling = !atBottom;
+  }
+
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients || _isUserScrolling) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && !_isUserScrolling) {
+        _scrollController.jumpTo(
+          _scrollController.position.maxScrollExtent,
+        );
+      }
+    });
   }
 
   /// 새 채팅 시작
@@ -143,12 +263,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     final activeProfile = await ref.read(activeProfileProvider.future);
     // 현재 선택된 페르소나를 새 세션에 저장
     final currentPersona = ref.read(chatPersonaNotifierProvider);
-    final currentMbti = ref.read(mbtiQuadrantNotifierProvider);
     await sessionNotifier.createSession(
       _chatType,
       activeProfile?.id,
       chatPersona: currentPersona,
-      mbtiQuadrant: currentMbti,
+      mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
     );
   }
 
@@ -208,14 +327,31 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     if (selection == null || !mounted) return;
 
     if (kDebugMode) {
-      print('[SajuChatShell] 🎯 궁합 인연 선택됨 (2명)');
+      print('[SajuChatShell] 🎯 인연 선택됨');
+      print('   - singlePersonMode: ${selection.isSinglePersonMode}');
       print('   - 선택된 인연: ${selection.relations.length}명');
       print('   - 나 포함: ${selection.includesOwner}');
       print('   - 참가자 IDs: ${selection.participantIds}');
       print('   - 멘션: ${selection.combinedMentionText}');
     }
 
-    // 멘션 텍스트를 입력 필드에 삽입
+    // 개인 사주 모드: 1명만 선택 → 멘션만 입력 필드에 삽입
+    if (selection.isSinglePersonMode && selection.relations.isNotEmpty) {
+      final relation = selection.relations.first;
+      final mentionText = selection.mentionTexts.first;
+
+      setState(() {
+        _inputController.text = '$mentionText ';
+        _inputController.selection = TextSelection.collapsed(
+          offset: _inputController.text.length,
+        );
+        _pendingTargetProfileId = relation.toProfileId;
+        _pendingCompatibilitySelection = null;
+      });
+      return;
+    }
+
+    // 궁합 모드: 2명 선택 → 멘션만 입력 필드에 삽입
     setState(() {
       final mentionText = selection.combinedMentionText;
       final prefix = selection.includesOwner ? '[나 포함] ' : '[나 제외] ';
@@ -617,6 +753,9 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
   /// pendingMessage 처리 중 플래그 (중복 전송 방지)
   bool _isProcessingPendingMessage = false;
 
+  /// 스트리밍 스크롤 throttle용 타임스탬프
+  DateTime _lastScrollTime = DateTime(0);
+
   @override
   Widget build(BuildContext context) {
     final sessionState = ref.watch(chatSessionNotifierProvider);
@@ -718,7 +857,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
               final activeProfile = await ref.read(activeProfileProvider.future);
               // 현재 선택된 페르소나를 세션에 저장
               final currentPersona = ref.read(chatPersonaNotifierProvider);
-              final currentMbti = ref.read(mbtiQuadrantNotifierProvider);
+              // persona에서 정확한 mbtiQuadrant 파생
+              final resolvedMbti = currentPersona.isMbtiPersona
+                  ? currentPersona.mbtiQuadrant
+                  : currentPersona.canAdjustMbti
+                      ? ref.read(mbtiQuadrantNotifierProvider)
+                      : null;
               ref.read(chatSessionNotifierProvider.notifier)
                   .createSession(
                     widget.chatType,
@@ -728,7 +872,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                     participantIds: participantIds,
                     includesOwner: includesOwner,
                     chatPersona: currentPersona,
-                    mbtiQuadrant: currentMbti,
+                    mbtiQuadrant: resolvedMbti,
                   );
 
               // 멘션 전송 완료 시 콜백 호출
@@ -785,12 +929,20 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     }
 
     // 메시지가 추가되면 스크롤 + 광고 체크
+    // 스트리밍 중에는 300ms throttle로 스크롤 빈도 제한
     ref.listen(
       chatNotifierProvider(currentSessionId),
       (previous, next) {
-        if (previous?.messages.length != next.messages.length ||
-            previous?.streamingContent != next.streamingContent) {
+        if (previous?.messages.length != next.messages.length) {
+          // 새 메시지 추가 시 항상 스크롤
           widget.onScroll();
+        } else if (previous?.streamingContent != next.streamingContent) {
+          // 스트리밍 중 스크롤: 300ms throttle로 빈도 제한
+          final now = DateTime.now();
+          if (now.difference(_lastScrollTime).inMilliseconds >= 300) {
+            _lastScrollTime = now;
+            widget.onScroll();
+          }
         }
 
         // AI 응답 완료 시 광고 체크 (메시지 수 증가 & 로딩 완료)
@@ -1623,8 +1775,19 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
                 onTapSelected();
               } else {
                 ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
+                // MBTI 페르소나면 mbtiQuadrant도 동기화
+                if (persona.mbtiQuadrant != null) {
+                  ref.read(mbtiQuadrantNotifierProvider.notifier).setQuadrant(persona.mbtiQuadrant!);
+                }
                 ref.read(chatSessionNotifierProvider.notifier)
-                    .updateCurrentSessionPersona(chatPersona: persona);
+                    .updateCurrentSessionPersona(
+                      chatPersona: persona,
+                      mbtiQuadrant: persona.isMbtiPersona
+                          ? persona.mbtiQuadrant
+                          : persona.canAdjustMbti
+                              ? ref.read(mbtiQuadrantNotifierProvider)
+                              : null,
+                    );
               }
             },
       onLongPress: () => _showPersonaInfoDialog(context, persona, accentColor),

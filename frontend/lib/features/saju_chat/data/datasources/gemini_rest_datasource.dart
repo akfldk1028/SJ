@@ -125,7 +125,14 @@ class GeminiRestDatasource {
 
       final content = candidates[0]['content'] as Map<String, dynamic>;
       final parts = content['parts'] as List;
-      final text = parts[0]['text'] as String;
+      // thought 파트 필터링 (Gemini 3.0 thinking 내용 제외)
+      final buffer = StringBuffer();
+      for (final p in parts) {
+        if (p is Map && p['thought'] == true) continue;
+        final t = (p is Map) ? p['text'] as String? : null;
+        if (t != null) buffer.write(t);
+      }
+      final text = buffer.toString();
 
       // usageMetadata 파싱
       final usageMetadata = responseData['usageMetadata'] as Map<String, dynamic>?;
@@ -274,11 +281,16 @@ class GeminiRestDatasource {
                 if (content != null) {
                   final parts = content['parts'] as List?;
                   if (parts != null && parts.isNotEmpty) {
-                    final text = parts[0]['text'] as String?;
-                    if (text != null) {
-                      accumulated += text;
-                      yield accumulated;
+                    for (final part in parts) {
+                      if (part is! Map) continue;
+                      // thought 파트 필터링 (Gemini 3.0 thinking 내용 제외)
+                      if (part['thought'] == true) continue;
+                      final text = part['text'] as String?;
+                      if (text != null) {
+                        accumulated += text;
+                      }
                     }
+                    yield accumulated;
                   }
                 }
               }

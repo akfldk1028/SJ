@@ -226,9 +226,12 @@ GoRouter appRouter(Ref ref) {
             builder: (context, state) {
               final chatType = state.uri.queryParameters['type'];
               final profileId = state.uri.queryParameters['profileId'];
+              final autoMention = state.uri.queryParameters['autoMention'] == 'true';
               return SajuChatShell(
+                key: ValueKey('$chatType-$profileId-$autoMention'),
                 chatType: chatType,
                 targetProfileId: profileId,
+                autoMention: autoMention,
               );
             },
           ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,9 +22,12 @@ class RelationSelection {
   });
 }
 
-/// 궁합 선택 결과 (v5.0: 항상 2명만 - 합충형해파는 1:1 관계)
+/// 궁합/개인사주 선택 결과
+///
+/// - 2명 선택: 궁합 분석 (합충형해파 1:1)
+/// - 1명 선택 (나 제외): 해당 인연의 개인 사주 상담
 class CompatibilitySelection {
-  /// 선택된 관계 모델 (1명만 - 나 포함 시 상대방 1명)
+  /// 선택된 관계 모델 (나 제외한 인연들)
   final List<ProfileRelationModel> relations;
 
   /// 표시할 멘션 문자열 목록
@@ -35,11 +39,15 @@ class CompatibilitySelection {
   /// "나"의 프로필 ID (includesOwner=true인 경우)
   final String? ownerProfileId;
 
+  /// 개인 사주 모드 (1명만 선택, 나 아닌 다른 사람의 사주)
+  final bool isSinglePersonMode;
+
   const CompatibilitySelection({
     required this.relations,
     required this.mentionTexts,
     required this.includesOwner,
     this.ownerProfileId,
+    this.isSinglePersonMode = false,
   });
 
   /// 참가자 프로필 ID 목록 (항상 2명)
@@ -337,7 +345,7 @@ class _CompatibilitySelectorSheetState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '궁합을 볼 2명을 선택하세요 (선택: ${_selectedProfileIds.length}/2명)',
+                        '1명: 개인 사주 · 2명: 궁합 분석 (선택: ${_selectedProfileIds.length}명)',
                         style: TextStyle(
                           fontSize: 13,
                           color: appTheme.textSecondary,
@@ -414,7 +422,19 @@ class _CompatibilitySelectorSheetState
 
   /// 확인 버튼
   Widget _buildConfirmButton(AppThemeExtension appTheme) {
-    final isValid = _selectedProfileIds.length == 2;
+    final count = _selectedProfileIds.length;
+    // 1명(나 제외한 인연 1명만) → 개인 사주, 2명 → 궁합
+    final isSinglePerson = count == 1 && !_isOwnerSelected;
+    final isCompatibility = count == 2;
+    final isValid = isSinglePerson || isCompatibility;
+
+    final buttonText = switch (count) {
+      0 => '인연을 선택해주세요',
+      1 when _isOwnerSelected => '상대방을 선택해주세요',
+      1 => '이 사람의 사주 보기',
+      2 => '2명 궁합 분석 시작',
+      _ => '2명을 선택해주세요',
+    };
 
     return SafeArea(
       child: Padding(
@@ -432,7 +452,7 @@ class _CompatibilitySelectorSheetState
               ),
             ),
             child: Text(
-              isValid ? '2명 궁합 분석 시작' : '2명을 선택해주세요',
+              buttonText,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -449,6 +469,9 @@ class _CompatibilitySelectorSheetState
     final selectedRelations = <ProfileRelationModel>[];
     final mentionTexts = <String>[];
     bool includesOwner = false;
+
+    // 1명만 선택 (나 제외) → 개인 사주 모드
+    final isSinglePersonMode = _selectedProfileIds.length == 1 && !_isOwnerSelected;
 
     for (final profileId in _selectedProfileIds) {
       if (profileId == _ownerProfileId) {
@@ -471,15 +494,18 @@ class _CompatibilitySelectorSheetState
       mentionTexts: mentionTexts,
       includesOwner: includesOwner,
       ownerProfileId: _ownerProfileId,
+      isSinglePersonMode: isSinglePersonMode,
     );
 
-    // Debug: 선택 결과 로그
-    print('[RelationSelector] 선택 완료:');
-    print('  - includesOwner: $includesOwner');
-    print('  - ownerProfileId: $_ownerProfileId');
-    print('  - selectedRelations: ${selectedRelations.map((r) => "${r.displayName}(${r.toProfileId})").toList()}');
-    print('  - participantIds: ${result.participantIds}');
-    print('  - targetProfileId: ${result.targetProfileId}');
+    if (kDebugMode) {
+      print('[RelationSelector] 선택 완료:');
+      print('  - isSinglePersonMode: $isSinglePersonMode');
+      print('  - includesOwner: $includesOwner');
+      print('  - ownerProfileId: $_ownerProfileId');
+      print('  - selectedRelations: ${selectedRelations.map((r) => "${r.displayName}(${r.toProfileId})").toList()}');
+      print('  - participantIds: ${result.participantIds}');
+      print('  - targetProfileId: ${result.targetProfileId}');
+    }
 
     Navigator.of(context).pop(result);
   }
