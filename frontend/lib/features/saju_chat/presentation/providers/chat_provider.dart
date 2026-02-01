@@ -846,6 +846,19 @@ class ChatNotifier extends _$ChatNotifier {
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // v9.0: 단일 멘션 처리 (@친구/종환 이사람사주머게)
+    // - participantIds에 1명만 있으면 해당 인물의 사주 데이터 로드 필요
+    // - person2Id를 설정하여 "하위 호환: owner + target" 분기로 진입
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (!isCompatibilityMode && person2Id == null &&
+        effectiveParticipantIds != null && effectiveParticipantIds.length == 1) {
+      person2Id = effectiveParticipantIds[0];
+      if (kDebugMode) {
+        print('   📌 단일 멘션 모드: target=$person2Id (상대방 사주 데이터 로드)');
+      }
+    }
+
     if (kDebugMode) {
       print('');
       print('╔══════════════════════════════════════════════════════════════╗');
@@ -1127,6 +1140,28 @@ class ChatNotifier extends _$ChatNotifier {
                 if (kDebugMode) {
                   print('   ❌ 상대방 사주 분석 생성 중 오류: $e');
                 }
+              }
+            }
+          }
+
+          // v9.0: 단일 멘션 시 세션에 target_profile_id 저장 (앱 재시작 복원용)
+          if (targetProfile != null) {
+            try {
+              await Supabase.instance.client
+                  .from('chat_sessions')
+                  .update({'target_profile_id': person2Id})
+                  .eq('id', currentSessionId);
+              // chat_mentions에도 저장 (owner + target)
+              final ownerId = (await ref.read(activeProfileProvider.future))?.id;
+              if (ownerId != null) {
+                await _saveChatMentions(currentSessionId, [ownerId, person2Id!]);
+              }
+              if (kDebugMode) {
+                print('   ✅ 세션에 target_profile_id 저장: $person2Id');
+              }
+            } catch (e) {
+              if (kDebugMode) {
+                print('   ⚠️ 세션 target_profile_id 저장 실패: $e');
               }
             }
           }

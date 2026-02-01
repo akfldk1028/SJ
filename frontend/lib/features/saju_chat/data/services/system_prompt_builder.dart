@@ -103,8 +103,9 @@ class SystemPromptBuilder {
       _addAiSummary(aiSummary, intentClassification);
     }
 
-    // 7. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
-    if (isFirstMessage && targetProfile != null) {
+    // 7. 상대방 정보 추가 (궁합 또는 단일 멘션 모드) - Phase 44
+    // v9.0: isFirstMessage 조건 제거 (Gemini는 stateless이므로 매 호출마다 필요)
+    if (targetProfile != null) {
       if (isThirdPartyCompatibility) {
         // v6.0: 나 제외 모드 - 커스텀 라벨 사용
         _addProfileInfo(targetProfile, person2Label);
