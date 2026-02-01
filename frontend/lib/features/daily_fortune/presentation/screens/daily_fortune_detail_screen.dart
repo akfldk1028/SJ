@@ -39,14 +39,56 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         child: SafeArea(
           child: fortuneAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => _buildContent(context, theme, _getSampleData()),
-            data: (fortune) => _buildContent(context, theme, fortune ?? _getSampleData()),
+            error: (error, stack) {
+              print('[DailyFortuneDetail] ❌ 에러: $error');
+              print('[DailyFortuneDetail] ❌ 스택: $stack');
+              return _buildAnalyzingState(theme);
+            },
+            data: (fortune) {
+              if (fortune == null) {
+                return _buildAnalyzingState(theme);
+              }
+              return _buildContent(context, theme, fortune);
+            },
           ),
         ),
       ),
     );
   }
 
+  Widget _buildAnalyzingState(AppThemeExtension theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'AI가 오늘의 운세를 분석하고 있어요',
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '잠시만 기다려주세요...',
+            style: TextStyle(
+              color: theme.textMuted,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
   DailyFortuneData _getSampleData() {
     return DailyFortuneData(
       overallScore: 85,

@@ -9,6 +9,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'monthly_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 월별 운세 데이터 모델 (v5.0: 12개월 확장)
 ///
 /// ## v5.0 변경사항 (2026-01-24)
@@ -48,7 +55,7 @@ class MonthlyFortuneData {
     final overviewJson = currentJson['overview'] as Map<String, dynamic>? ?? json['overview'] as Map<String, dynamic>? ?? {};
 
     final overview = OverviewSection(
-      score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(overviewJson['score']),
       keyword: overviewJson['keyword'] as String? ?? '',
       // v4.0: opening, monthEnergy 등이 reading으로 통합됨
       opening: overviewJson['reading'] as String? ?? overviewJson['opening'] as String? ?? '',
@@ -64,7 +71,7 @@ class MonthlyFortuneData {
       // v4.0 구조 또는 기존 구조 모두 지원
       final catJson = categoriesJson[key] as Map<String, dynamic>? ?? json[key] as Map<String, dynamic>? ?? {};
       categories[key] = CategorySection(
-        score: (catJson['score'] as num?)?.toInt() ?? 0,
+        score: _safeInt(catJson['score']),
         title: catJson['title'] as String? ?? '',
         reading: catJson['reading'] as String? ?? '',
       );
@@ -106,8 +113,8 @@ class MonthlyFortuneData {
         (json['closing'] as Map<String, dynamic>?)?['message'] as String? ?? '';
 
     return MonthlyFortuneData(
-      year: (json['year'] as num?)?.toInt() ?? KoreaDateUtils.currentYear,
-      month: (json['currentMonth'] as num?)?.toInt() ?? (json['month'] as num?)?.toInt() ?? KoreaDateUtils.currentMonth,
+      year: _safeInt(json['year'], KoreaDateUtils.currentYear),
+      month: _safeInt(json['currentMonth'], _safeInt(json['month'], KoreaDateUtils.currentMonth)),
       monthGanji: currentJson['monthGanji'] as String? ?? json['monthGanji'] as String? ?? '',
       overview: overview,
       categories: categories,
@@ -126,7 +133,7 @@ class MonthlyFortuneData {
 
   static List<int> _parseIntList(dynamic value) {
     if (value is List) {
-      return value.map((e) => (e as num).toInt()).toList();
+      return value.map((e) => _safeInt(e)).toList();
     }
     return [];
   }
@@ -200,7 +207,7 @@ class MonthSummary {
   factory MonthSummary.fromJson(Map<String, dynamic> json) {
     return MonthSummary(
       keyword: json['keyword'] as String? ?? '',
-      score: (json['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(json['score']),
       reading: json['reading'] as String? ?? '',
       highlights: json['highlights'] != null
           ? MonthHighlights.fromJson(json['highlights'] as Map<String, dynamic>)
@@ -266,7 +273,7 @@ class MonthHighlightItem {
 
   factory MonthHighlightItem.fromJson(Map<String, dynamic> json) {
     return MonthHighlightItem(
-      score: (json['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(json['score']),
       summary: json['summary'] as String? ?? '',
     );
   }
@@ -303,7 +310,7 @@ class MonthLucky {
   factory MonthLucky.fromJson(Map<String, dynamic> json) {
     return MonthLucky(
       color: json['color'] as String? ?? '',
-      number: (json['number'] as num?)?.toInt() ?? 0,
+      number: _safeInt(json['number']),
     );
   }
 }

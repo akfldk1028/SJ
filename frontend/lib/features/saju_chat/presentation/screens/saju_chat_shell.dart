@@ -1176,7 +1176,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<_PersonaHorizontalSe
       builder: (sheetContext) => Consumer(
         builder: (consumerContext, consumerRef, _) {
           final currentQuadrant = consumerRef.watch(mbtiQuadrantNotifierProvider);
-          final quadrantColor = _getQuadrantColor(currentQuadrant);
+          final quadrantColor = _getPersonaColor(ChatPersona.fromMbtiQuadrant(currentQuadrant));
 
           return SafeArea(
             child: Padding(

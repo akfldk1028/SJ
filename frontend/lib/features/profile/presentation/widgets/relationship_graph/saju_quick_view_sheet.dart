@@ -19,11 +19,13 @@ class SajuQuickViewSheet extends ConsumerStatefulWidget {
     required this.profile,
     this.onChatPressed,
     this.onDetailPressed,
+    this.onCompatibilityPressed,
   });
 
   final SajuProfile profile;
   final VoidCallback? onChatPressed;
   final VoidCallback? onDetailPressed;
+  final VoidCallback? onCompatibilityPressed;
 
   @override
   ConsumerState<SajuQuickViewSheet> createState() => _SajuQuickViewSheetState();
@@ -554,9 +556,12 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
+        // 첫 줄: 사주 상담 (풀 너비)
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: widget.onChatPressed,
             icon: const Icon(Icons.chat_bubble_outline, size: 18),
@@ -566,13 +571,34 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        OutlinedButton(
-          onPressed: widget.onDetailPressed,
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          ),
-          child: const Text('상세보기'),
+        const SizedBox(height: 8),
+        // 둘째 줄: 사주 상세 + 궁합 보기
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: widget.onDetailPressed,
+                icon: const Icon(Icons.analytics_outlined, size: 18),
+                label: const Text('사주 상세'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: widget.onCompatibilityPressed,
+                icon: const Icon(Icons.favorite_outline, size: 18),
+                label: const Text('궁합 보기'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  foregroundColor: const Color(0xFFEC4899),
+                  side: const BorderSide(color: Color(0xFFEC4899)),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -629,6 +655,7 @@ void showSajuQuickView(
   required SajuProfile profile,
   VoidCallback? onChatPressed,
   VoidCallback? onDetailPressed,
+  VoidCallback? onCompatibilityPressed,
 }) {
   showModalBottomSheet(
     context: context,
@@ -638,6 +665,7 @@ void showSajuQuickView(
       profile: profile,
       onChatPressed: onChatPressed,
       onDetailPressed: onDetailPressed,
+      onCompatibilityPressed: onCompatibilityPressed,
     ),
   );
 }

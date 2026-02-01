@@ -52,7 +52,11 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
       ),
       body: fortuneAsync.when(
         loading: () => const FortuneShimmerLoading(),
-        error: (error, stack) => _buildError(context, theme),
+        error: (error, stack) {
+          print('[MonthlyFortuneScreen] ❌ 에러: $error');
+          print('[MonthlyFortuneScreen] ❌ 스택: $stack');
+          return _buildError(context, theme);
+        },
         data: (fortune) {
           if (fortune == null) {
             return _buildAnalyzing(theme);

@@ -8,6 +8,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'yearly_2025_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 2025년 운세 데이터 모델 (AI 프롬프트 JSON 구조 일치)
 class Yearly2025FortuneData {
   final int year;
@@ -52,7 +59,7 @@ class Yearly2025FortuneData {
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
-      score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(overviewJson['score']),
       opening: overviewJson['opening'] as String? ?? '',
       // DB 필드 (신규)
       ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
@@ -91,7 +98,7 @@ class Yearly2025FortuneData {
         categories[key] = CategorySection(
           title: catJson['title'] as String? ?? '',
           icon: catJson['icon'] as String? ?? '',
-          score: (catJson['score'] as num?)?.toInt() ?? 0,
+          score: _safeInt(catJson['score']),
           reading: catJson['reading'] as String? ?? '',
         );
       }
@@ -128,7 +135,7 @@ class Yearly2025FortuneData {
     final closingMessage = closingJson['message'] as String? ?? '';
 
     return Yearly2025FortuneData(
-      year: (json['year'] as num?)?.toInt() ?? 2025,
+      year: _safeInt(json['year'], 2025),
       yearGanji: json['yearGanji'] as String? ?? '을사(乙巳)',
       mySajuIntro: mySajuIntro,
       overview: overview,

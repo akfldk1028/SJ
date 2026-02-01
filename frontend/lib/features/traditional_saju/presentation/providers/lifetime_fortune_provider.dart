@@ -10,6 +10,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'lifetime_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 평생운세 데이터 모델 (saju_base AI 응답 JSON 구조)
 class LifetimeFortuneData {
   final MySajuIntroSection? mySajuIntro;  // v7.0: 나의 사주 소개 추가
@@ -469,7 +476,7 @@ class LifetimeFortuneData {
 
   static List<int> _parseIntList(dynamic value) {
     if (value is List) {
-      return value.map((e) => (e as num).toInt()).toList();
+      return value.map((e) => _safeInt(e)).toList();
     }
     return [];
   }
@@ -478,7 +485,7 @@ class LifetimeFortuneData {
   static int _calculateScore(Map<String, dynamic> section) {
     // AI 응답에 score가 있으면 사용
     if (section['score'] != null) {
-      return (section['score'] as num).toInt();
+      return _safeInt(section['score']);
     }
     // 없으면 기본값 70 (양호)
     return 70;

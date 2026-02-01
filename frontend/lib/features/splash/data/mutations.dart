@@ -42,14 +42,14 @@ class SplashMutations extends BaseMutations {
         // 1. 기존 Primary 해제
         await client
             .from(profile_schema.profilesTable)
-            .update({profile_schema.ProfileColumns.isPrimary: false})
+            .update({profile_schema.ProfileColumns.profileType: 'other'})
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true);
+            .eq(profile_schema.ProfileColumns.profileType, 'primary');
 
         // 2. 새 Primary 설정
         await client
             .from(profile_schema.profilesTable)
-            .update({profile_schema.ProfileColumns.isPrimary: true})
+            .update({profile_schema.ProfileColumns.profileType: 'primary'})
             .eq(profile_schema.ProfileColumns.id, profileId);
       },
       errorPrefix: 'Primary 프로필 설정 실패',
@@ -73,7 +73,7 @@ class SplashMutations extends BaseMutations {
           // 첫 번째 프로필이면 Primary 설정
           await client
               .from(profile_schema.profilesTable)
-              .update({profile_schema.ProfileColumns.isPrimary: true})
+              .update({profile_schema.ProfileColumns.profileType: 'primary'})
               .eq(profile_schema.ProfileColumns.userId, userId);
           return true;
         }

@@ -8,6 +8,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'new_year_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 2026년 신년운세 데이터 모델 (AI 프롬프트 JSON 구조 일치)
 class NewYearFortuneData {
   final int year;
@@ -82,7 +89,7 @@ class NewYearFortuneData {
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
-      score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(overviewJson['score']),
       opening: overviewJson['opening'] as String? ?? '',
       ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
       sinsalAnalysis: overviewJson['sinsalAnalysis'] as String? ?? '',
@@ -103,7 +110,7 @@ class NewYearFortuneData {
         categories[key] = CategorySection(
           title: catJson['title'] as String? ?? '',
           icon: catJson['icon'] as String? ?? '',
-          score: (catJson['score'] as num?)?.toInt() ?? 0,
+          score: _safeInt(catJson['score']),
           summary: catJson['summary'] as String? ?? '',
           reading: catJson['reading'] as String? ?? '',
           bestMonths: _parseIntList(catJson['bestMonths']),
@@ -185,7 +192,7 @@ class NewYearFortuneData {
     }
 
     return NewYearFortuneData(
-      year: (json['year'] as num?)?.toInt() ?? 2026,
+      year: _safeInt(json['year'], 2026),
       yearGanji: json['yearGanji'] as String? ?? '병오(丙午)',
       mySajuIntro: mySajuIntro,
       yearInfo: yearInfo,
@@ -207,7 +214,7 @@ class NewYearFortuneData {
       return QuarterSection(
         period: value['period'] as String? ?? '',
         theme: value['theme'] as String? ?? '',
-        score: (value['score'] as num?)?.toInt() ?? 0,
+        score: _safeInt(value['score']),
         reading: value['reading'] as String? ?? '',
       );
     }
@@ -223,7 +230,7 @@ class NewYearFortuneData {
 
   static List<int> _parseIntList(dynamic value) {
     if (value is List) {
-      return value.map((e) => (e as num).toInt()).toList();
+      return value.map((e) => _safeInt(e)).toList();
     }
     return [];
   }

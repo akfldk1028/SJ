@@ -599,7 +599,8 @@ abstract class PromptVersions {
   /// - V1.0: 초기 버전
   /// - V5.1: 구조 확장
   /// - V5.2 (2026-01-31): AI 폴더 구조 정리 반영
-  static const String yearlyFortune2026 = 'V5.3';
+  /// - V5.4 (2026-02-01): 캐시 강제 무효화 + 전체 재생성
+  static const String yearlyFortune2026 = 'V5.4';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2025 회고
@@ -610,7 +611,8 @@ abstract class PromptVersions {
   /// - V1.0: 초기 버전
   /// - V3.1: 구조 확장
   /// - V3.2 (2026-01-31): AI 폴더 구조 정리 반영
-  static const String yearlyFortune2025 = 'V3.3';
+  /// - V3.4 (2026-02-01): 캐시 강제 무효화 + 전체 재생성
+  static const String yearlyFortune2025 = 'V3.4';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 버전 해석기 (캐시 무효화용)

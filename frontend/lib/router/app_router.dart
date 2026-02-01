@@ -245,7 +245,10 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: Routes.sajuDetail,
             name: 'sajuDetail',
-            builder: (context, state) => const SajuDetailScreen(),
+            builder: (context, state) {
+              final profileId = state.uri.queryParameters['profileId'];
+              return SajuDetailScreen(profileId: profileId);
+            },
           ),
         ],
       ),

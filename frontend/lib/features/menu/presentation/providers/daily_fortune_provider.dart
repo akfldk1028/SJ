@@ -10,6 +10,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'daily_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 오늘의 운세 데이터 모델
 class DailyFortuneData {
   final int overallScore;
@@ -43,7 +50,7 @@ class DailyFortuneData {
     categoriesJson.forEach((key, value) {
       if (value is Map<String, dynamic>) {
         categories[key] = CategoryScore(
-          score: (value['score'] as num?)?.toInt() ?? 0,
+          score: _safeInt(value['score']),
           message: value['message'] as String? ?? '',
           tip: value['tip'] as String? ?? '',
         );
@@ -55,7 +62,7 @@ class DailyFortuneData {
     final lucky = LuckyInfo(
       time: luckyJson['time'] as String? ?? '',
       color: luckyJson['color'] as String? ?? '',
-      number: (luckyJson['number'] as num?)?.toInt() ?? 0,
+      number: _safeInt(luckyJson['number']),
       direction: luckyJson['direction'] as String? ?? '',
     );
 
@@ -69,7 +76,7 @@ class DailyFortuneData {
     );
 
     return DailyFortuneData(
-      overallScore: (json['overall_score'] as num?)?.toInt() ?? 0,
+      overallScore: _safeInt(json['overall_score']),
       overallMessage: json['overall_message'] as String? ?? '',
       overallMessageShort: json['overall_message_short'] as String? ?? '',
       date: json['date'] as String? ?? '',
@@ -215,7 +222,9 @@ class DailyFortune extends _$DailyFortune {
 
     // v6.1 전역 중복 체크 (FortuneCoordinator에서 이미 분석 중인지)
     if (FortuneCoordinator.isAnalyzing(profileId)) {
-      print('[DailyFortune] ⏭️ FortuneCoordinator에서 이미 분석 중 - 스킵');
+      print('[DailyFortune] ⏭️ FortuneCoordinator에서 이미 분석 중 - 완료 대기');
+      // FortuneCoordinator가 완료될 때까지 폴링하여 UI 갱신
+      _waitForCoordinatorCompletion(profileId);
       return;
     }
 
@@ -248,6 +257,33 @@ class DailyFortune extends _$DailyFortune {
       print('[DailyFortune] ❌ Fortune 분석 오류: $e');
       _isAnalyzing = false;
       ref.invalidateSelf();
+    });
+  }
+
+  /// Daily Fortune DB 데이터가 생길 때까지 폴링 후 provider 갱신
+  /// FortuneCoordinator 전체 완료를 기다리지 않고, daily만 완료되면 즉시 UI 갱신
+  void _waitForCoordinatorCompletion(String profileId) {
+    final today = KoreaDateUtils.today;
+    int attempts = 0;
+    const maxAttempts = 60; // 3초 × 60 = 3분
+
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 3));
+      attempts++;
+
+      // DB에서 직접 daily fortune 확인
+      final result = await aiQueries.getDailyFortune(profileId, today);
+      if (result.isSuccess && result.data != null && result.data!.content != null) {
+        print('[DailyFortune] ✅ Daily Fortune DB 데이터 감지 ($attempts회) - UI 갱신');
+        ref.invalidateSelf();
+        return false; // stop polling
+      }
+
+      if (attempts >= maxAttempts) {
+        print('[DailyFortune] ⚠️ 폴링 타임아웃 ($maxAttempts회)');
+        return false; // stop polling
+      }
+      return true; // continue polling
     });
   }
 

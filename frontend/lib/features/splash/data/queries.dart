@@ -33,7 +33,7 @@ class SplashQueries extends BaseQueries {
             .from(profile_schema.profilesTable)
             .select(primaryProfileColumns)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true);
+            .eq(profile_schema.ProfileColumns.profileType, 'primary');
 
         // 프로덕션에서만 admin 제외 (Debug 모드에서는 admin 포함)
         if (!kDebugMode) {
@@ -79,7 +79,7 @@ class SplashQueries extends BaseQueries {
             .from(profile_schema.profilesTable)
             .select(primaryProfileColumns)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true);
+            .eq(profile_schema.ProfileColumns.profileType, 'primary');
 
         if (!kDebugMode) {
           query = query.neq(profile_schema.ProfileColumns.relationType, 'admin');
@@ -157,7 +157,7 @@ class SplashQueries extends BaseQueries {
             .from(profile_schema.profilesTable)
             .select(profile_schema.ProfileColumns.id)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true);
+            .eq(profile_schema.ProfileColumns.profileType, 'primary');
 
         if (!kDebugMode) {
           query = query.neq(profile_schema.ProfileColumns.relationType, 'admin');
@@ -199,7 +199,7 @@ class SplashQueries extends BaseQueries {
             .from(profile_schema.profilesTable)
             .select(profile_schema.ProfileColumns.id)
             .eq(profile_schema.ProfileColumns.userId, userId)
-            .eq(profile_schema.ProfileColumns.isPrimary, true);
+            .eq(profile_schema.ProfileColumns.profileType, 'primary');
 
         if (!kDebugMode) {
           profileQuery = profileQuery.neq(profile_schema.ProfileColumns.relationType, 'admin');

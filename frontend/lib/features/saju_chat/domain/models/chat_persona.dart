@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../AI/jina/personas/persona_registry.dart';
 import '../../../../AI/jina/personas/persona_base.dart';
+import 'ai_persona.dart' show MbtiQuadrant;
 
 /// 채팅 페르소나 타입
 ///
