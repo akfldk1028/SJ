@@ -37,8 +37,16 @@ abstract class AdTriggerService {
   /// 토큰 경고 시 제공되는 보상 토큰 (80% warning 비활성화)
   static const int warningRewardTokens = 0;
 
-  /// 토큰 소진 시 제공되는 보상 토큰 (광고 시청 시)
+  /// 토큰 소진 시 제공되는 보상 토큰 (기본값, 하위 호환)
   static const int depletedRewardTokens = 3000;
+
+  /// 토큰 소진 - 영상 광고 보상 (5왕복 = 35,000 토큰)
+  /// Rewarded video eCPM $10~50 → 충분히 수익성 있음
+  static const int depletedRewardTokensVideo = 35000;
+
+  /// 토큰 소진 - 네이티브 광고 보상 (3왕복 = 21,000 토큰)
+  /// Native ad eCPM $3~15 → 영상보다 낮지만 마찰 적음
+  static const int depletedRewardTokensNative = 21000;
 
   /// 인터벌 광고 시 제공되는 보상 토큰 (광고 클릭 시)
   static const int intervalRewardTokens = 500;

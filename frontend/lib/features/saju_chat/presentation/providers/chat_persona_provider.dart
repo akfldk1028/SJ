@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,22 +13,17 @@ const String _chatPersonaBoxName = 'chat_persona_settings';
 const String _chatPersonaKey = 'current_chat_persona';
 const String _mbtiQuadrantKey = 'current_mbti_quadrant';
 
-/// 채팅 페르소나 상태 관리 Provider
+/// Hive Box 싱글턴 (앱 시작 시 한 번만 열기)
 ///
-/// 5개 페르소나 중 선택:
-/// - BasePerson (MBTI 조절 가능)
-/// - SpecialCharacter 4개 (MBTI 조절 불가)
-@riverpod
-class ChatPersonaNotifier extends _$ChatPersonaNotifier {
-  Box<String>? _box;
+/// 기존 문제: build()에서 _initBox()를 await 없이 호출 → box가 안 열린 상태에서
+/// _loadFromHive() 실행 → 항상 기본값 반환 (페르소나 초기화 버그)
+///
+/// 해결: main.dart에서 앱 시작 시 ensureBoxOpen()을 호출하여 box를 미리 열어둠
+class ChatPersonaBox {
+  static Box<String>? _box;
 
-  @override
-  ChatPersona build() {
-    _initBox();
-    return _loadFromHive();
-  }
-
-  Future<void> _initBox() async {
+  /// 앱 시작 시 호출 (main.dart에서)
+  static Future<void> ensureBoxOpen() async {
     if (!Hive.isBoxOpen(_chatPersonaBoxName)) {
       _box = await Hive.openBox<String>(_chatPersonaBoxName);
     } else {
@@ -35,15 +31,45 @@ class ChatPersonaNotifier extends _$ChatPersonaNotifier {
     }
   }
 
+  static Box<String>? get box {
+    if (_box != null && _box!.isOpen) return _box;
+    if (Hive.isBoxOpen(_chatPersonaBoxName)) {
+      _box = Hive.box<String>(_chatPersonaBoxName);
+      return _box;
+    }
+    return null;
+  }
+}
+
+/// 채팅 페르소나 상태 관리 Provider
+///
+/// 5개 페르소나 중 선택:
+/// - BasePerson (MBTI 조절 가능)
+/// - SpecialCharacter 4개 (MBTI 조절 불가)
+@riverpod
+class ChatPersonaNotifier extends _$ChatPersonaNotifier {
+  @override
+  ChatPersona build() {
+    return _loadFromHive();
+  }
+
   ChatPersona _loadFromHive() {
     try {
-      if (Hive.isBoxOpen(_chatPersonaBoxName)) {
-        final box = Hive.box<String>(_chatPersonaBoxName);
+      final box = ChatPersonaBox.box;
+      if (box != null) {
         final value = box.get(_chatPersonaKey);
+        if (kDebugMode) {
+          print('[ChatPersona] Hive에서 로드: $value');
+        }
         return ChatPersona.fromString(value);
       }
     } catch (e) {
-      // 에러 시 기본값 반환
+      if (kDebugMode) {
+        print('[ChatPersona] Hive 로드 실패: $e');
+      }
+    }
+    if (kDebugMode) {
+      print('[ChatPersona] Hive box 미열림 → 기본값 nfSensitive');
     }
     return ChatPersona.nfSensitive;
   }
@@ -52,12 +78,15 @@ class ChatPersonaNotifier extends _$ChatPersonaNotifier {
     state = persona;
 
     try {
-      if (_box == null || !_box!.isOpen) {
-        await _initBox();
+      await ChatPersonaBox.ensureBoxOpen();
+      await ChatPersonaBox.box?.put(_chatPersonaKey, persona.name);
+      if (kDebugMode) {
+        print('[ChatPersona] Hive 저장 완료: ${persona.name}');
       }
-      await _box?.put(_chatPersonaKey, persona.name);
     } catch (e) {
-      // 저장 실패해도 state는 변경됨
+      if (kDebugMode) {
+        print('[ChatPersona] Hive 저장 실패: $e');
+      }
     }
   }
 }
@@ -67,26 +96,15 @@ class ChatPersonaNotifier extends _$ChatPersonaNotifier {
 /// BasePerson 선택 시에만 활성화
 @riverpod
 class MbtiQuadrantNotifier extends _$MbtiQuadrantNotifier {
-  Box<String>? _box;
-
   @override
   MbtiQuadrant build() {
-    _initBox();
     return _loadFromHive();
-  }
-
-  Future<void> _initBox() async {
-    if (!Hive.isBoxOpen(_chatPersonaBoxName)) {
-      _box = await Hive.openBox<String>(_chatPersonaBoxName);
-    } else {
-      _box = Hive.box<String>(_chatPersonaBoxName);
-    }
   }
 
   MbtiQuadrant _loadFromHive() {
     try {
-      if (Hive.isBoxOpen(_chatPersonaBoxName)) {
-        final box = Hive.box<String>(_chatPersonaBoxName);
+      final box = ChatPersonaBox.box;
+      if (box != null) {
         final value = box.get(_mbtiQuadrantKey);
         return _fromString(value);
       }
@@ -115,10 +133,8 @@ class MbtiQuadrantNotifier extends _$MbtiQuadrantNotifier {
     state = quadrant;
 
     try {
-      if (_box == null || !_box!.isOpen) {
-        await _initBox();
-      }
-      await _box?.put(_mbtiQuadrantKey, quadrant.name);
+      await ChatPersonaBox.ensureBoxOpen();
+      await ChatPersonaBox.box?.put(_mbtiQuadrantKey, quadrant.name);
     } catch (e) {
       // 저장 실패해도 state는 변경됨
     }

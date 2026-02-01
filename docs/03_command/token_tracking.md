@@ -27,13 +27,21 @@
 | `my_fortune_tokens` | `saju_analysis + daily_fortune + monthly + yearly_2025 + yearly_2026` | 운세 토큰 합계 |
 | `total_tokens` | `my_fortune_tokens + chatting_tokens` | 전체 토큰 합계 |
 | `total_cost_usd` | `gpt_cost_usd + gemini_cost_usd` | 전체 비용 합계 |
-| `is_quota_exceeded` | `chatting_tokens >= daily_quota` | 쿼터 초과 여부 |
+| `is_quota_exceeded` | `chatting_tokens >= (daily_quota + bonus_tokens + rewarded_tokens_earned)` | 쿼터 초과 여부 (v27: 보상 토큰 포함) |
+
+### 광고 보상 컬럼 (v27 추가)
+
+| 컬럼 | 기록 주체 | 설명 |
+|------|----------|------|
+| `bonus_tokens` | `add_ad_bonus_tokens` RPC | Native impression/click 보상 (즉시 서버 저장) |
+| `rewarded_tokens_earned` | `trackRewarded()` → `increment_ad_counter` | 보상형 영상 시청 보상 |
+| `ads_watched` | `add_ad_bonus_tokens` RPC | 광고 시청 횟수 |
 
 ### 쿼터 설정
 
 | 사용자 유형 | `daily_quota` | 비고 |
 |------------|--------------|------|
-| 일반 사용자 | 50,000 | 채팅 토큰만 차감 |
+| 일반 사용자 | **20,000** | 채팅 토큰만 차감 |
 | 관리자 (admin) | 1,000,000,000 | 실질적 무제한 |
 
 ---
@@ -144,11 +152,17 @@ const QUOTA_EXEMPT_TASK_TYPES = new Set([
     → NO: Gemini API 호출 진행
 ```
 
-### DB 레벨 (`is_quota_exceeded`)
+### DB 레벨 (`is_quota_exceeded`) - v27 업데이트
 
 ```sql
-is_quota_exceeded = COALESCE(chatting_tokens, 0) >= daily_quota
+is_quota_exceeded = COALESCE(chatting_tokens, 0) >= (
+  COALESCE(daily_quota, 20000)
+  + COALESCE(bonus_tokens, 0)        -- Native impression/click 보상
+  + COALESCE(rewarded_tokens_earned, 0) -- 보상형 영상 시청 보상
+)
 -- 운세 토큰(my_fortune_tokens)은 포함되지 않음
+-- bonus_tokens: Native 광고 impression(1,500) + click(1,500) 즉시 서버 저장
+-- rewarded_tokens_earned: 영상 광고(35,000) / 네이티브 선택(21,000)
 ```
 
 ---
@@ -169,22 +183,22 @@ ai-openai 호출 시:
 
 ## 비용 계산
 
-### GPT-5.2 (OpenAI)
+### GPT-5.2 (OpenAI) - 2026-02 기준
 
 | 항목 | 가격 (USD) |
 |------|-----------|
-| Input tokens | $3.00 / 1M tokens |
-| Output tokens | $12.00 / 1M tokens |
+| Input tokens | $1.75 / 1M tokens |
+| Output tokens | $14.00 / 1M tokens |
 
 - 기록 컬럼: `gpt_cost_usd`
 - 기록 시점: ai-openai-result에서 completed 감지 시
 
-### Gemini 3.0 Flash Preview (Google)
+### Gemini 3.0 Flash (Google) - 2026-02 기준
 
 | 항목 | 가격 (USD) |
 |------|-----------|
-| Input tokens | $0.075 / 1M tokens |
-| Output tokens | $0.30 / 1M tokens |
+| Input tokens | $0.50 / 1M tokens |
+| Output tokens | $3.00 / 1M tokens |
 
 - 기록 컬럼: `gemini_cost_usd`
 - 채팅: ai-gemini Edge Function에서 기록
@@ -265,12 +279,17 @@ key_index = hash(task_type) % 3
 
 ---
 
-## 2026-02-01 수정 기록
+## 수정 기록
 
-1. **쿼터 기준 변경**: `total_tokens` → `chatting_tokens` (운세 토큰 면제)
-2. **ai-openai v39**: 쿼터 면제 + 완료 태스크 재사용
-3. **ai-openai-result v32**: task_type별 토큰 컬럼 라우팅 (v31에서는 모두 saju_analysis_tokens에 기록)
-4. **ai-gemini v22**: 쿼터 체크 `chatting_tokens`만 확인
-5. **DB migration**: `is_quota_exceeded` = `chatting_tokens >= daily_quota`
-6. **GPT-5.2 가격 수정**: $3.00/$12.00 per 1M tokens (입력/출력)
-7. **Gemini 가격 수정**: $0.075/$0.30 per 1M tokens (입력/출력)
+### 2026-02-01 (v27)
+
+1. **bonus_tokens 즉시 서버 저장**: `_saveBonusToServer()` → impression/click 시점에 `add_ad_bonus_tokens` RPC 즉시 호출
+2. **is_quota_exceeded 재정의**: `chatting_tokens >= (daily_quota + bonus_tokens + rewarded_tokens_earned)`
+3. **daily_quota**: 50,000 → **20,000**
+4. **GPT-5.2 가격**: $1.75/$14.00 per 1M tokens
+5. **Gemini 3.0 Flash 가격**: $0.50/$3.00 per 1M tokens
+6. **보상 토큰 추가**: `depletedRewardTokensVideo`(35,000), `depletedRewardTokensNative`(21,000)
+7. **쿼터 기준 변경**: `total_tokens` → `chatting_tokens` (운세 토큰 면제)
+8. **ai-openai v39**: 쿼터 면제 + 완료 태스크 재사용
+9. **ai-openai-result v32**: task_type별 토큰 컬럼 라우팅
+10. **ai-gemini v22**: 쿼터 체크 `chatting_tokens`만 확인

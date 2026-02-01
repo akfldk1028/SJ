@@ -39,6 +39,9 @@ class SystemPromptBuilder {
   /// [isThirdPartyCompatibility] - v6.0 (Phase 57): "나 제외" 궁합 모드 여부
   ///   - true: 두 사람 모두 제3자 (예: 신선우 ↔ 박재현)
   ///   - false: 상담 요청자 본인 + 상대방 (예: 나 ↔ 엄마)
+  /// [additionalParticipants] - v10.0: 3번째 이후 추가 참가자 목록
+  ///   - 궁합은 여전히 person1 vs person2 1:1 (합충형해파)
+  ///   - 추가 참가자는 프로필+사주 데이터만 시스템 프롬프트에 포함
   String build({
     required String basePrompt,
     AiSummary? aiSummary,
@@ -52,6 +55,7 @@ class SystemPromptBuilder {
     CompatibilityAnalysis? compatibilityAnalysis,
     bool isThirdPartyCompatibility = false,
     String? relationType,  // v8.1: 관계 유형 (family_parent, romantic_partner 등)
+    List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})>? additionalParticipants,
   }) {
     _buffer.clear();
 
@@ -115,6 +119,18 @@ class SystemPromptBuilder {
       }
       if (targetSajuAnalysis != null) {
         _addSajuAnalysis(targetSajuAnalysis, person2SajuLabel);
+      }
+    }
+
+    // 7-1. 추가 참가자 정보 (3번째 이후) - v10.0
+    if (additionalParticipants != null && additionalParticipants.isNotEmpty) {
+      for (int i = 0; i < additionalParticipants.length; i++) {
+        final p = additionalParticipants[i];
+        final personNum = i + 3;
+        _addProfileInfo(p.profile, '$personNum번째 사람 (${p.profile.displayName})');
+        if (p.sajuAnalysis != null) {
+          _addSajuAnalysis(p.sajuAnalysis!, '${p.profile.displayName}의 사주');
+        }
       }
     }
 

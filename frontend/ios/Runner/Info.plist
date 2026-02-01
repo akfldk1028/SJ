@@ -36,10 +36,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<!-- AdMob App ID (테스트용) -->
-	<!-- TODO: 프로덕션 배포 전 실제 App ID로 교체 -->
+	<!-- AdMob App ID (Production - Android와 동일) -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-7140787344231420~3931921704</string>
 	<!-- SKAdNetwork 지원 -->
 	<key>SKAdNetworkItems</key>
 	<array>

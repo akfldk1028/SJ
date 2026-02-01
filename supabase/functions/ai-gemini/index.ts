@@ -101,16 +101,17 @@ async function checkAndUpdateQuota(
 
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
-      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned")
+      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned, native_tokens_earned")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
-    // v24: chatting_tokens만 쿼터 대상 (운세 토큰 제외), bonus_tokens + rewarded_tokens_earned 포함
+    // v27: chatting_tokens만 쿼터 대상, bonus_tokens + rewarded_tokens_earned + native_tokens_earned 포함
     const currentChatUsage = usage?.chatting_tokens || 0;
     const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
     const bonusTokens = usage?.bonus_tokens || 0;
     const rewardedTokens = usage?.rewarded_tokens_earned || 0;
-    const effectiveQuota = baseQuota + bonusTokens + rewardedTokens;
+    const nativeTokens = usage?.native_tokens_earned || 0;
+    const effectiveQuota = baseQuota + bonusTokens + rewardedTokens + nativeTokens;
     const remaining = effectiveQuota - currentChatUsage;
     if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     if (currentChatUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };

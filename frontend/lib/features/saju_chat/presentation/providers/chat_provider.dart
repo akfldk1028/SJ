@@ -518,6 +518,7 @@ class ChatNotifier extends _$ChatNotifier {
       Map<String, dynamic>? compatibilityAnalysis;
       bool isThirdPartyCompatibility = false;
       String? relationType;  // v8.1: 관계 유형
+      List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})> additionalParticipants = [];  // v10.0
 
       final sessionRepository = ref.read(chatSessionRepositoryProvider);
       final currentSession = await sessionRepository.getSession(sessionId);
@@ -533,9 +534,10 @@ class ChatNotifier extends _$ChatNotifier {
           targetSajuAnalysis = await analysisRepo.getByProfileId(targetProfileId);
         }
 
-        // chat_mentions에서 참가자 ID 복원 → person1, person2 결정
+        // chat_mentions에서 참가자 ID 복원 → person1, person2, 추가 참가자 결정
         String? person1Id;
         String? person2Id;
+        List<String> extraParticipantIds = [];  // v10.0: 3번째 이후 ID
         try {
           final mentions = await Supabase.instance.client
               .from('chat_mentions')
@@ -546,6 +548,11 @@ class ChatNotifier extends _$ChatNotifier {
           if (mentions is List && mentions.length >= 2) {
             person1Id = mentions[0]['target_profile_id'] as String?;
             person2Id = mentions[1]['target_profile_id'] as String?;
+            // v10.0: 3번째 이후 참가자 ID 수집
+            for (int i = 2; i < mentions.length; i++) {
+              final pid = mentions[i]['target_profile_id'] as String?;
+              if (pid != null) extraParticipantIds.add(pid);
+            }
           }
         } catch (e) {
           if (kDebugMode) {
@@ -572,6 +579,20 @@ class ChatNotifier extends _$ChatNotifier {
             if (targetProfile != null) {
               targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
             }
+          }
+        }
+
+        // v10.0: 추가 참가자 프로필/사주 로드 (3번째 이후)
+        if (extraParticipantIds.isNotEmpty) {
+          for (final pid in extraParticipantIds) {
+            final p = await profileRepo.getById(pid);
+            if (p != null) {
+              final saju = await analysisRepo.getByProfileId(pid);
+              additionalParticipants.add((profile: p, sajuAnalysis: saju));
+            }
+          }
+          if (kDebugMode) {
+            print('[ChatProvider] 세션 복원: 추가 참가자 ${additionalParticipants.length}명 로드');
           }
         }
 
@@ -649,6 +670,7 @@ class ChatNotifier extends _$ChatNotifier {
         compatibilityAnalysis: compatibilityAnalysis,
         isThirdPartyCompatibility: isThirdPartyCompatibility,
         relationType: relationType,  // v8.1: 관계 유형
+        additionalParticipants: additionalParticipants.isNotEmpty ? additionalParticipants : null,  // v10.0
       );
 
       if (kDebugMode) {
@@ -660,6 +682,9 @@ class ChatNotifier extends _$ChatNotifier {
         print('   AI Summary: ${aiSummary != null ? "있음" : "없음"}');
         print('   궁합 모드: ${targetProfile != null}');
         print('   나 제외 모드: $isThirdPartyCompatibility');
+        if (additionalParticipants.isNotEmpty) {
+          print('   추가 참가자: ${additionalParticipants.length}명');
+        }
       }
 
       return fullPrompt;
@@ -690,6 +715,7 @@ class ChatNotifier extends _$ChatNotifier {
     Map<String, dynamic>? compatibilityAnalysis,
     bool isThirdPartyCompatibility = false,  // v6.0 (Phase 57): 나 제외 모드
     String? relationType,  // v8.1: 관계 유형 (family_parent, romantic_partner 등)
+    List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})>? additionalParticipants,  // v10.0: 3번째 이후 참가자
   }) {
     final builder = SystemPromptBuilder();
     return builder.build(
@@ -705,6 +731,7 @@ class ChatNotifier extends _$ChatNotifier {
       compatibilityAnalysis: compatibilityAnalysis,
       isThirdPartyCompatibility: isThirdPartyCompatibility,  // v6.0
       relationType: relationType,  // v8.1: 관계 유형
+      additionalParticipants: additionalParticipants,  // v10.0: 3번째 이후 참가자
     );
   }
 
@@ -786,6 +813,7 @@ class ChatNotifier extends _$ChatNotifier {
     // 궁합 모드에서 참가자 ID 추출
     String? person1Id;  // 첫 번째 사람 (기존 activeProfile 역할)
     String? person2Id;  // 두 번째 사람 (기존 targetProfile 역할)
+    List<String> extraMentionIds = [];  // v10.0: chat_mentions에서 복원된 3번째 이후 참가자 ID
 
     if (isCompatibilityMode) {
       person1Id = effectiveParticipantIds[0];
@@ -806,8 +834,13 @@ class ChatNotifier extends _$ChatNotifier {
         if (mentions is List && mentions.length >= 2) {
           person1Id = mentions[0]['target_profile_id'] as String?;
           person2Id = mentions[1]['target_profile_id'] as String?;
+          // v10.0: 3번째 이후 참가자 ID 수집
+          for (int i = 2; i < mentions.length; i++) {
+            final pid = mentions[i]['target_profile_id'] as String?;
+            if (pid != null) extraMentionIds.add(pid);
+          }
           if (kDebugMode) {
-            print('   ✅ chat_mentions에서 복원: person1=$person1Id, person2=$person2Id');
+            print('   ✅ chat_mentions에서 복원: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명');
           }
         }
       } catch (e) {
@@ -836,8 +869,13 @@ class ChatNotifier extends _$ChatNotifier {
           person2Id = mentions[1]['target_profile_id'] as String?;
           if (person1Id != null && person2Id != null) {
             isCompatibilityMode = true;
+            // v10.0: 3번째 이후 참가자 ID 수집
+            for (int i = 2; i < mentions.length; i++) {
+              final pid = mentions[i]['target_profile_id'] as String?;
+              if (pid != null) extraMentionIds.add(pid);
+            }
             if (kDebugMode) {
-              print('   ✅ chat_mentions에서 궁합 자동 복원: person1=$person1Id, person2=$person2Id');
+              print('   ✅ chat_mentions에서 궁합 자동 복원: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명');
             }
           }
         }
@@ -1024,6 +1062,7 @@ class ChatNotifier extends _$ChatNotifier {
       SajuAnalysis? sajuAnalysis;    // 첫 번째 사람의 사주
       SajuProfile? targetProfile;    // 두 번째 사람 (궁합 시에만)
       SajuAnalysis? targetSajuAnalysis;  // 두 번째 사람의 사주
+      List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})> additionalParticipants = [];  // v10.0: 3번째 이후
 
       final profileRepo = SajuProfileRepository();
       final analysisRepo = SajuAnalysisRepository();
@@ -1111,6 +1150,39 @@ class ChatNotifier extends _$ChatNotifier {
               if (kDebugMode) {
                 print('   ✅ Person2 프로필: ${targetProfile.displayName}');
                 print('   ✅ Person2 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
+              }
+            }
+          }
+
+          // v10.0: 추가 참가자 로드 (3번째 이후)
+          // effectiveParticipantIds에서 또는 chat_mentions 복원된 extraMentionIds에서 로드
+          final extraIds = (effectiveParticipantIds != null && effectiveParticipantIds.length > 2)
+              ? effectiveParticipantIds.sublist(2)
+              : extraMentionIds;
+          if (extraIds.isNotEmpty) {
+            for (int i = 0; i < extraIds.length; i++) {
+              final pid = extraIds[i];
+              final p = await profileRepo.getById(pid);
+              if (p != null) {
+                var saju = await analysisRepo.getByProfileId(pid);
+                // 사주 없으면 자동 생성
+                if (saju == null && userId != null) {
+                  try {
+                    final aiService = ai_saju.SajuAnalysisService();
+                    final result = await aiService.ensureSajuBaseAnalysis(
+                      userId: userId,
+                      profileId: pid,
+                      runInBackground: false,
+                    );
+                    if (result.success) {
+                      saju = await analysisRepo.getByProfileId(pid);
+                    }
+                  } catch (_) {}
+                }
+                additionalParticipants.add((profile: p, sajuAnalysis: saju));
+                if (kDebugMode) {
+                  print('   ✅ Person${i + 3} 프로필: ${p.displayName}, 사주: ${saju != null ? '있음' : '없음'}');
+                }
               }
             }
           }
@@ -1295,6 +1367,7 @@ class ChatNotifier extends _$ChatNotifier {
         compatibilityAnalysis: compatibilityAnalysis,  // v3.6: Gemini 궁합 분석 결과
         isThirdPartyCompatibility: isThirdPartyCompatibility,  // v6.0: 나 제외 모드
         relationType: isCompatibilityMode ? relationType : null,  // v8.1: 관계 유형
+        additionalParticipants: additionalParticipants.isNotEmpty ? additionalParticipants : null,  // v10.0: 3번째 이후 참가자
       );
 
       // [4] 시스템 프롬프트 구성
@@ -1570,14 +1643,38 @@ class ChatNotifier extends _$ChatNotifier {
         return;
       }
 
+      // 일시적 에러(SSE, 타임아웃) → 광고 보여주고 재시도 유도
+      // AI가 대답 안 하는 순간이 이탈 포인트 → 광고로 리텐션 + 수익
+      final isRetryableError = errorMsg.contains('SSE 연결 오류') ||
+          errorMsg.contains('SSE') ||
+          errorMsg.contains('timeout') ||
+          errorMsg.contains('Timeout') ||
+          errorMsg.contains('네트워크');
+
+      final isPremiumUser = ref.read(purchaseNotifierProvider).valueOrNull
+              ?.entitlements.all[PurchaseConfig.entitlementAiPremium]?.isActive == true;
+
+      if (isRetryableError && !isPremiumUser) {
+        if (kDebugMode) {
+          print('[CHAT] 일시적 에러 → 보상형 광고 트리거');
+        }
+        final selectedPersona = ref.read(chatPersonaNotifierProvider);
+        ref.read(conversationalAdNotifierProvider.notifier).activateRetryAd(
+          messageCount: state.messages.length,
+          persona: _mapToAiPersona(selectedPersona),
+        );
+        state = state.copyWith(
+          isLoading: false,
+          streamingContent: null,
+          error: '연결이 불안정해요. 광고를 보시면 다시 시도할 수 있어요!',
+        );
+        return;
+      }
+
       // 사용자에게 구체적 에러 메시지 제공
       final userMessage = errorMsg.contains('AUTH_EXPIRED')
           ? '인증이 만료되었습니다. 앱을 재시작해주세요.'
-          : errorMsg.contains('SSE 연결 오류')
-              ? '서버 연결에 실패했습니다. 네트워크를 확인해주세요.'
-              : errorMsg.contains('timeout') || errorMsg.contains('Timeout')
-                  ? '응답 시간이 초과되었습니다. 다시 시도해주세요.'
-                  : '메시지 전송 중 오류가 발생했습니다.';
+          : '메시지 전송 중 오류가 발생했습니다.';
 
       state = state.copyWith(
         isLoading: false,

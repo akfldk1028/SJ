@@ -928,6 +928,37 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       });
     }
 
+    // 에러 발생 시 팝업 다이얼로그 표시
+    ref.listen(
+      chatNotifierProvider(currentSessionId).select((s) => s.error),
+      (previous, next) {
+        if (next != null && previous != next && context.mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Color(0xFFD4AF37), size: 24),
+                  SizedBox(width: 8),
+                  Text('알림', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: Text(next, style: const TextStyle(fontSize: 14)),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    ref.read(chatNotifierProvider(currentSessionId).notifier).clearError();
+                  },
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+          );
+        }
+      },
+    );
+
     // 메시지가 추가되면 스크롤 + 광고 체크
     // 스트리밍 중에는 300ms throttle로 스크롤 빈도 제한
     ref.listen(

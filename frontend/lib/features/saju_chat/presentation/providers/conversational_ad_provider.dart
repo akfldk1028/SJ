@@ -12,6 +12,8 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../../ad/ad_config.dart';
 import '../../../../ad/ad_tracking_service.dart';
 import '../../../../purchase/purchase.dart';
@@ -156,6 +158,50 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     _loadAd(adType);
   }
 
+  /// 에러 발생 시 보상형 광고 활성화 (SSE, 타임아웃 등)
+  ///
+  /// AI가 응답 실패한 순간 = 유저 이탈 포인트
+  /// → 보상형 광고로 리텐션 + 수익 확보
+  /// → 광고 시청 후 재시도 유도
+  void activateRetryAd({
+    required int messageCount,
+    required AiPersona persona,
+  }) {
+    final transitionText = switch (persona.name.toLowerCase()) {
+      'doryeong' || 'dolyeong' =>
+        '허허, 잠시 통신이 불안하구려. 이것을 보시는 동안 다시 준비하겠소.',
+      'seonyeo' || 'sunnyeo' =>
+        '후후, 잠깐 인연의 끈이 흔들렸어요. 이것을 보시면 다시 연결해드릴게요.',
+      'monk' || 'seunim' =>
+        '아미타불, 잠시 기운이 흐트러졌습니다. 이것을 보시는 동안 기를 모으겠습니다.',
+      'grandmother' || 'halmeoni' =>
+        '아이고, 잠깐 끊겼네. 이거 보는 동안 다시 해볼게.',
+      _ =>
+        '연결이 잠시 끊겼어요. 광고를 보시면 다시 시도할 수 있어요!',
+    };
+
+    state = state.copyWith(
+      isAdMode: true,
+      tokenUsageRate: 0.5, // 에러 상황이므로 중간값
+      adType: AdMessageType.tokenDepleted, // 보상형 광고 로드
+      transitionText: transitionText,
+      ctaText: '광고를 보시면 다시 대화할 수 있어요!',
+      rewardedTokens: AdTriggerService.depletedRewardTokensVideo,
+      loadState: AdLoadState.idle,
+    );
+
+    if (kDebugMode) {
+      print('');
+      print('┌──────────────────────────────────────────────────────────────┐');
+      print('│  🔄 [AD] RETRY AD TRIGGERED (error recovery)                │');
+      print('└──────────────────────────────────────────────────────────────┘');
+      print('   🎭 Persona: ${persona.displayName}');
+      print('   🎁 Reward: ${AdTriggerService.depletedRewardTokensVideo} tokens');
+    }
+
+    _loadRewardedAd();
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // 광고 로드
   // ═══════════════════════════════════════════════════════════════════════════
@@ -223,15 +269,17 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
             screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
           );
           // v23: impression에서도 보상 (impressionRewardTokens)
-          // 완전 무보상이면 사용자 불만 → impression만으로도 보상
+          final impressionTokens = AdTriggerService.impressionRewardTokens;
           state = state.copyWith(
             adWatched: true,
-            rewardedTokens: AdTriggerService.impressionRewardTokens,
+            rewardedTokens: impressionTokens,
           );
+          // v27: 즉시 서버 저장 ("대화 재개" 버튼 의존 제거)
+          _saveBonusToServer(impressionTokens);
           // 광고 카운터 증가 (빈도 제어용)
           _shownAdCount++;
           if (kDebugMode) {
-            print('   📊 [AD] shownAdCount: $_shownAdCount, impression reward: ${AdTriggerService.impressionRewardTokens} tokens');
+            print('   📊 [AD] shownAdCount: $_shownAdCount, impression reward: $impressionTokens tokens (saved to server)');
           }
         },
       ),
@@ -364,8 +412,11 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
       );
 
+      // v27: 클릭 보너스도 즉시 서버 저장
+      _saveBonusToServer(clickBonus);
+
       if (kDebugMode) {
-        print('   💰 [AD] Native ad CLICKED → +$clickBonus bonus tokens (total: ${state.rewardedTokens})');
+        print('   💰 [AD] Native ad CLICKED → +$clickBonus bonus tokens (total: ${state.rewardedTokens}, saved to server)');
       }
     }
   }
@@ -405,6 +456,28 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
 
     if (kDebugMode) {
       print('   🔄 [AD] Ad dismissed, conversation resumed');
+    }
+  }
+
+  /// 보너스 토큰 즉시 서버 저장 (impression/click 시점)
+  ///
+  /// 위젯의 "대화 재개" 버튼 의존 제거 → 즉시 DB 반영
+  /// bonus_tokens + ads_watched 동시 증가
+  Future<void> _saveBonusToServer(int tokens) async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      await Supabase.instance.client.rpc('add_ad_bonus_tokens', params: {
+        'p_user_id': userId,
+        'p_bonus_tokens': tokens,
+      });
+      if (kDebugMode) {
+        print('   💾 [AD] Server bonus saved: +$tokens tokens');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('   ⚠️ [AD] Server bonus save failed: $e');
+      }
     }
   }
 

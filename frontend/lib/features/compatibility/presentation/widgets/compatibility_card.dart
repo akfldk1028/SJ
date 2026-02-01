@@ -31,14 +31,14 @@ class CompatibilityCard extends StatelessWidget {
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: scoreColor.withOpacity(0.3),
+            color: scoreColor.withValues(alpha:0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
               color: theme.isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.black.withValues(alpha:0.3)
+                  : Colors.black.withValues(alpha:0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -82,7 +82,7 @@ class CompatibilityCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: scoreColor.withOpacity(0.1),
+                    color: scoreColor.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -141,11 +141,11 @@ class CompatibilityCard extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+          colors: [color.withValues(alpha:0.2), color.withValues(alpha:0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: color.withOpacity(0.5), width: 2),
+        border: Border.all(color: color.withValues(alpha:0.5), width: 2),
       ),
       child: Center(
         child: Text(
@@ -168,7 +168,7 @@ class CompatibilityCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.pink.withOpacity(0.1),
+              color: Colors.pink.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -194,7 +194,7 @@ class CompatibilityCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -314,7 +314,7 @@ class CompatibilityScoreBadge extends StatelessWidget {
         color: color,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha:0.4),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

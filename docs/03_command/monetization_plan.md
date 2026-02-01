@@ -513,18 +513,29 @@ const cost = (promptTokens * 0.50 / 1000000) + (completionTokens * 3.00 / 100000
 | Gemini 3.0 Flash | $0.50 | $3.00 | 채팅 대화 (스트리밍) |
 | Gemini 2.5 Flash Lite | $0.10 | $0.40 | 의도 분류 |
 
-### 10.3 실제 적용된 Quota/광고 설정
+### 10.3 실제 적용된 Quota/광고 설정 (v27 최종)
 
-| 설정 | 값 |
-|------|-----|
-| daily_quota | 20,000 |
-| inlineAdMessageInterval | 3 |
-| inlineAdMinMessages | 2 |
-| inlineAdMaxCount | 10 |
-| depletedRewardTokens | 3,000 |
-| warningRewardTokens | 0 (비활성화) |
-| intervalRewardTokens | 500 |
-| impressionRewardTokens | 1,500 |
+| 설정 | 값 | 비고 |
+|------|-----|------|
+| daily_quota | **20,000** | 무료 ~3회 채팅 |
+| inlineAdMessageInterval | **2** | 2메시지마다 광고 |
+| inlineAdMinMessages | **2** | 2번째부터 가능 |
+| inlineAdMaxCount | **9999** | 무제한 |
+| depletedRewardTokens | 3,000 | 기본값 |
+| depletedRewardTokensVideo | **35,000** | 영상 광고 (5왕복) |
+| depletedRewardTokensNative | **21,000** | 네이티브 선택 (3왕복) |
+| warningRewardTokens | 0 (비활성화) | 80% 경고 없음 |
+| intervalRewardTokens | 500 | |
+| impressionRewardTokens | **1,500** | 자동 보상 |
+| 클릭 보너스 | **+1,500** | impression 위에 추가 |
+
+### 10.4 v27 추가 수정 (보너스 미기록 버그)
+
+| 수정 | 내용 |
+|------|------|
+| `_saveBonusToServer()` | impression/click 시 즉시 `add_ad_bonus_tokens` RPC 호출 |
+| `_handleAdComplete` | `isRewardedAd: true` 고정 → RPC 중복 방지 |
+| `depletedRewardTokensVideo/Native` | ad_trigger_service.dart에 상수 추가 |
 
 ---
 

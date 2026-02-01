@@ -15,6 +15,7 @@ import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
 import 'features/profile/data/datasources/profile_local_datasource.dart';
 import 'features/profile/data/repositories/profile_repository_impl.dart';
+import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,11 @@ void main() async {
   await _openHiveBoxSafely('chat_sessions');   // 채팅 세션
   await _openHiveBoxSafely('chat_messages');   // 채팅 메시지
   await _openHiveBoxSafely('saju_analyses');   // 사주 분석 결과 캐시
+  await _openHiveBoxSafely('saju_sync');       // 사주 분석 동기화 대기 목록
   await _openHiveBoxSafely('message_queue');   // 메시지 큐 (오프라인 재전송용)
+
+  // 페르소나 설정 Hive Box 열기 (앱 재시작 시 페르소나 복원용)
+  await ChatPersonaBox.ensureBoxOpen();
 
   // AI 로그 서비스 초기화
   await AiLogger.init();
