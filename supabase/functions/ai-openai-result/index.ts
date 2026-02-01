@@ -2,10 +2,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * AI Task 결과 조회 Edge Function (v30)
+ * AI Task 결과 조회 Edge Function (v31)
  *
  * OpenAI Responses API의 background task 결과 조회
  * task_id로 조회 → openai_response_id로 OpenAI polling
+ *
+ * v31 변경사항 (2026-02-01):
+ * - recordTokenUsage: gpt_saju_analysis_tokens → saju_analysis_tokens (실제 DB 컬럼)
+ * - recordTokenUsage: gpt_saju_analysis_count 제거 (DB에 없는 컬럼)
  *
  * v30 변경사항 (2026-02-01):
  * - output 배열에서 reasoning 타입 명시적 필터링 추가
@@ -27,7 +31,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - 'incomplete' 상태 처리 추가
  *
  * v25 변경사항 (2026-01-14):
- * - gpt_saju_analysis_tokens 신규 필드
+ * - saju_analysis_tokens 사용 (v31에서 컬럼명 수정)
  *
  * v24 변경사항:
  * - OpenAI /v1/responses/{id} 직접 polling
@@ -551,7 +555,7 @@ async function recordTokenUsage(
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, gpt_saju_analysis_tokens, gpt_saju_analysis_count, gpt_cost_usd")
+      .select("id, saju_analysis_tokens, gpt_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
@@ -560,8 +564,7 @@ async function recordTokenUsage(
       await supabase
         .from("user_daily_token_usage")
         .update({
-          gpt_saju_analysis_tokens: (existing.gpt_saju_analysis_tokens || 0) + totalTokens,
-          gpt_saju_analysis_count: (existing.gpt_saju_analysis_count || 0) + 1,
+          saju_analysis_tokens: (existing.saju_analysis_tokens || 0) + totalTokens,
           gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
           updated_at: new Date().toISOString(),
         })
@@ -572,8 +575,7 @@ async function recordTokenUsage(
         .insert({
           user_id: userId,
           usage_date: today,
-          gpt_saju_analysis_tokens: totalTokens,
-          gpt_saju_analysis_count: 1,
+          saju_analysis_tokens: totalTokens,
           gpt_cost_usd: cost,
         });
     }

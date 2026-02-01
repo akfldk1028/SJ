@@ -4,6 +4,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v37 변경사항 (2026-02-01):
+ * - isAdminUser: is_primary → profile_type = 'primary' (실제 DB 컬럼)
+ * - recordTokenUsage: gpt_saju_analysis_tokens → saju_analysis_tokens
+ * - recordTokenUsage: gpt_saju_analysis_count 제거 (DB에 없는 컬럼)
+ *
  * v36 변경사항 (2026-02-01):
  * - collectStreamResponse에서 reasoning_content 필터링 추가
  * - GPT-5.2 thinking 토큰(delta.reasoning_content)은 수집하지 않고 무시
@@ -27,11 +32,6 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - background: true 모드로 Supabase 150초 walltime 제한 완전 회피
  * - OpenAI 클라우드에서 비동기 처리 (시간 제한 없음)
  * - response.id 반환 → 클라이언트가 ai-openai-result로 폴링
- *
- * v25 변경사항 (2026-01-14):
- * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규 필드)
- * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
- * - gpt_saju_analysis_count 증가 추가
  *
  * v27 변경사항 (2026-01-23):
  * - Phase 기반 Progressive Disclosure 지원
@@ -127,7 +127,7 @@ async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: st
       .from("saju_profiles")
       .select("relation_type")
       .eq("user_id", userId)
-      .eq("is_primary", true)
+      .eq("profile_type", "primary")
       .single();
 
     if (error || !data) return false;
@@ -177,10 +177,8 @@ async function checkQuota(
 /**
  * 토큰 사용량 기록
  *
- * v25 변경사항 (2026-01-14):
- * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규)
- * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
- * - gpt_saju_analysis_count 증가 추가
+ * v37: saju_analysis_tokens 사용 (실제 DB 컬럼명)
+ * - total_tokens, is_quota_exceeded는 GENERATED 컬럼 (직접 UPDATE 불가)
  */
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
@@ -196,7 +194,7 @@ async function recordTokenUsage(
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, gpt_saju_analysis_tokens, gpt_saju_analysis_count, gpt_cost_usd")
+      .select("id, saju_analysis_tokens, gpt_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
@@ -206,8 +204,7 @@ async function recordTokenUsage(
       await supabase
         .from("user_daily_token_usage")
         .update({
-          gpt_saju_analysis_tokens: (existing.gpt_saju_analysis_tokens || 0) + totalTokens,
-          gpt_saju_analysis_count: (existing.gpt_saju_analysis_count || 0) + 1,
+          saju_analysis_tokens: (existing.saju_analysis_tokens || 0) + totalTokens,
           gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
           daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
           updated_at: new Date().toISOString(),
@@ -220,8 +217,7 @@ async function recordTokenUsage(
         .insert({
           user_id: userId,
           usage_date: today,
-          gpt_saju_analysis_tokens: totalTokens,
-          gpt_saju_analysis_count: 1,
+          saju_analysis_tokens: totalTokens,
           gpt_cost_usd: cost,
           daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
         });
