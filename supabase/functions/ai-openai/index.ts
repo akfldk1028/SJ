@@ -175,10 +175,23 @@ async function checkQuota(
 }
 
 /**
+ * v38: task_type별 올바른 토큰 컬럼 결정
+ */
+function getTokenColumnForTaskType(taskType: string): string {
+  if (taskType === 'monthly_fortune') return 'monthly_fortune_tokens';
+  if (taskType === 'yearly_2025') return 'yearly_fortune_2025_tokens';
+  if (taskType === 'yearly_2026') return 'yearly_fortune_2026_tokens';
+  return 'saju_analysis_tokens';
+}
+
+/**
  * 토큰 사용량 기록
  *
- * v37: saju_analysis_tokens 사용 (실제 DB 컬럼명)
- * - total_tokens, is_quota_exceeded는 GENERATED 컬럼 (직접 UPDATE 불가)
+ * v38: task_type별 올바른 컬럼에 토큰 기록
+ * - saju_analysis/saju_base → saju_analysis_tokens
+ * - monthly_fortune → monthly_fortune_tokens
+ * - yearly_2025 → yearly_fortune_2025_tokens
+ * - yearly_2026 → yearly_fortune_2026_tokens
  */
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
@@ -186,44 +199,50 @@ async function recordTokenUsage(
   promptTokens: number,
   completionTokens: number,
   cost: number,
-  isAdmin: boolean
+  isAdmin: boolean,
+  taskType: string = 'saju_analysis'
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
   const totalTokens = promptTokens + completionTokens;
+  const tokenColumn = getTokenColumnForTaskType(taskType);
+
+  console.log(`[ai-openai v38] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
 
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, saju_analysis_tokens, gpt_cost_usd")
+      .select(`id, ${tokenColumn}, gpt_cost_usd`)
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
-      // UPDATE: 개별 필드만 업데이트 (total_tokens, is_quota_exceeded는 GENERATED 컬럼)
+      const updateData: Record<string, unknown> = {
+        gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
+        daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+        updated_at: new Date().toISOString(),
+      };
+      updateData[tokenColumn] = (existing[tokenColumn] || 0) + totalTokens;
+
       await supabase
         .from("user_daily_token_usage")
-        .update({
-          saju_analysis_tokens: (existing.saju_analysis_tokens || 0) + totalTokens,
-          gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
-          daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", existing.id);
     } else {
-      // INSERT: 새 레코드 생성 (total_tokens, is_quota_exceeded는 자동 계산)
+      const insertData: Record<string, unknown> = {
+        user_id: userId,
+        usage_date: today,
+        gpt_cost_usd: cost,
+        daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+      };
+      insertData[tokenColumn] = totalTokens;
+
       await supabase
         .from("user_daily_token_usage")
-        .insert({
-          user_id: userId,
-          usage_date: today,
-          saju_analysis_tokens: totalTokens,
-          gpt_cost_usd: cost,
-          daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
-        });
+        .insert(insertData);
     }
   } catch (error) {
-    console.error("[ai-openai] Failed to record token usage:", error);
+    console.error("[ai-openai v38] Failed to record token usage:", error);
   }
 }
 
@@ -285,7 +304,8 @@ async function processInBackground(
   temperature: number,
   responseFormat: { type: string } | undefined,
   userId: string | undefined,
-  isAdmin: boolean
+  isAdmin: boolean,
+  taskType: string = 'saju_analysis'
 ): Promise<void> {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -370,7 +390,7 @@ async function processInBackground(
     // 비용 계산 및 기록
     const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
     if (userId && promptTokens > 0) {
-      await recordTokenUsage(supabase, userId, promptTokens, completionTokens, cost, isAdmin);
+      await recordTokenUsage(supabase, userId, promptTokens, completionTokens, cost, isAdmin, taskType);
     }
 
     // 결과 저장
@@ -720,7 +740,7 @@ Deno.serve(async (req) => {
 
     const cost = (promptTokens * 3.00 / 1000000) + (completionTokens * 12.00 / 1000000);
     if (user_id && promptTokens > 0) {
-      await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin);
+      await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin, task_type);
     }
 
     return new Response(
