@@ -10,6 +10,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'daily_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 오늘의 운세 데이터 모델
 class DailyFortuneData {
   final int overallScore;
@@ -43,7 +50,7 @@ class DailyFortuneData {
     categoriesJson.forEach((key, value) {
       if (value is Map<String, dynamic>) {
         categories[key] = CategoryScore(
-          score: (value['score'] as num?)?.toInt() ?? 0,
+          score: _safeInt(value['score']),
           message: value['message'] as String? ?? '',
           tip: value['tip'] as String? ?? '',
         );
@@ -55,7 +62,7 @@ class DailyFortuneData {
     final lucky = LuckyInfo(
       time: luckyJson['time'] as String? ?? '',
       color: luckyJson['color'] as String? ?? '',
-      number: (luckyJson['number'] as num?)?.toInt() ?? 0,
+      number: _safeInt(luckyJson['number']),
       direction: luckyJson['direction'] as String? ?? '',
     );
 
@@ -69,7 +76,7 @@ class DailyFortuneData {
     );
 
     return DailyFortuneData(
-      overallScore: (json['overall_score'] as num?)?.toInt() ?? 0,
+      overallScore: _safeInt(json['overall_score']),
       overallMessage: json['overall_message'] as String? ?? '',
       overallMessageShort: json['overall_message_short'] as String? ?? '',
       date: json['date'] as String? ?? '',
@@ -203,11 +210,21 @@ class DailyFortune extends _$DailyFortune {
 
   /// AI 분석 트리거 (중복 호출 방지)
   ///
-  /// FortuneCoordinator.analyzeDailyOnly()를 직접 호출하여
-  /// 일운 분석 완료를 확실히 감지합니다.
+  /// v7.2: analyzeDailyOnly → analyzeFortuneOnly로 변경
+  /// 홈 화면에서 일운 캐시 미스 시 전체 운세(daily + monthly + yearly)를 함께 분석.
+  /// 각 서비스는 내부적으로 캐시를 체크하므로 이미 캐시된 운세는 API 호출 없이 스킵.
+  /// → 기존 사용자가 앱 재진입 시 프롬프트 버전 변경된 운세도 자동 재생성!
   Future<void> _triggerAnalysisIfNeeded(String profileId) async {
     if (_isAnalyzing) {
       print('[DailyFortune] 이미 분석 중 - 스킵');
+      return;
+    }
+
+    // v6.1 전역 중복 체크 (FortuneCoordinator에서 이미 분석 중인지)
+    if (FortuneCoordinator.isAnalyzing(profileId)) {
+      print('[DailyFortune] ⏭️ FortuneCoordinator에서 이미 분석 중 - 완료 대기');
+      // FortuneCoordinator가 완료될 때까지 폴링하여 UI 갱신
+      _waitForCoordinatorCompletion(profileId);
       return;
     }
 
@@ -218,23 +235,55 @@ class DailyFortune extends _$DailyFortune {
     }
 
     _isAnalyzing = true;
-    print('[DailyFortune] 🚀 일운 분석 시작 (FortuneCoordinator 직접 호출)');
+    print('[DailyFortune] 🚀 v7.2 전체 Fortune 분석 시작 (daily + monthly + yearly)');
 
-    // FortuneCoordinator를 통해 일운만 분석 (sajuAnalysisService 우회)
-    // 이렇게 하면 분석 완료를 확실히 감지할 수 있음
-    fortuneCoordinator.analyzeDailyOnly(
+    // v7.2: 전체 Fortune 분석 (각 서비스가 내부 캐시 체크)
+    // - 캐시 히트 시 즉시 반환 (API 호출 없음)
+    // - 프롬프트 버전 변경 시 자동 재생성
+    fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
     ).then((result) {
-      print('[DailyFortune] 📌 일운 분석 완료: success=${result.success}');
+      print('[DailyFortune] 📌 전체 Fortune 분석 완료:');
+      print('  - daily: ${result.daily != null ? "성공" : "실패"}');
+      print('  - monthly: ${result.monthly != null ? "성공" : "실패"}');
+      print('  - yearly2025: ${result.yearly2025 != null ? "성공" : "실패"}');
+      print('  - yearly2026: ${result.yearly2026 != null ? "성공" : "실패"}');
       _isAnalyzing = false;
 
       // Provider 무효화하여 UI 갱신
       ref.invalidateSelf();
     }).catchError((e) {
-      print('[DailyFortune] ❌ 일운 분석 오류: $e');
+      print('[DailyFortune] ❌ Fortune 분석 오류: $e');
       _isAnalyzing = false;
       ref.invalidateSelf();
+    });
+  }
+
+  /// Daily Fortune DB 데이터가 생길 때까지 폴링 후 provider 갱신
+  /// FortuneCoordinator 전체 완료를 기다리지 않고, daily만 완료되면 즉시 UI 갱신
+  void _waitForCoordinatorCompletion(String profileId) {
+    final today = KoreaDateUtils.today;
+    int attempts = 0;
+    const maxAttempts = 60; // 3초 × 60 = 3분
+
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 3));
+      attempts++;
+
+      // DB에서 직접 daily fortune 확인
+      final result = await aiQueries.getDailyFortune(profileId, today);
+      if (result.isSuccess && result.data != null && result.data!.content != null) {
+        print('[DailyFortune] ✅ Daily Fortune DB 데이터 감지 ($attempts회) - UI 갱신');
+        ref.invalidateSelf();
+        return false; // stop polling
+      }
+
+      if (attempts >= maxAttempts) {
+        print('[DailyFortune] ⚠️ 폴링 타임아웃 ($maxAttempts회)');
+        return false; // stop polling
+      }
+      return true; // continue polling
     });
   }
 

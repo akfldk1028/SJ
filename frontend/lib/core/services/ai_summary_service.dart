@@ -255,11 +255,17 @@ class AiSummaryService {
         promptVersion: PromptVersions.forSummaryType(_summaryType),
       );
 
-      // saju_base 타입은 profile_id만으로 unique (idx_ai_summaries_unique_base)
-      // partial index: UNIQUE (profile_id) WHERE (summary_type = 'saju_base')
+      // saju_base: partial index는 PostgREST upsert에서 동작 안 함
+      // delete + insert 패턴 사용
       await client
           .from(AiSummaries.table_name)
-          .upsert(data, onConflict: 'profile_id')
+          .delete()
+          .eq('profile_id', profileId)
+          .eq('summary_type', _summaryType);
+
+      await client
+          .from(AiSummaries.table_name)
+          .insert(data)
           .select()
           .single();
 

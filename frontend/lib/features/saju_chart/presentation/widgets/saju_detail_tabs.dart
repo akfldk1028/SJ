@@ -31,8 +31,9 @@ import '../../domain/services/gilseong_service.dart';
 /// 여러 분석 탭(궁성, 합충, 십성, 운성, 신살, 공망)을 제공
 class SajuDetailTabs extends ConsumerStatefulWidget {
   final bool isFullPage;
+  final String? profileId;
 
-  const SajuDetailTabs({super.key, this.isFullPage = false});
+  const SajuDetailTabs({super.key, this.isFullPage = false, this.profileId});
 
   @override
   ConsumerState<SajuDetailTabs> createState() => _SajuDetailTabsState();
@@ -154,7 +155,9 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
+    final sajuAnalysisAsync = widget.profileId != null
+        ? ref.watch(sajuAnalysisForProfileProvider(widget.profileId!))
+        : ref.watch(currentSajuAnalysisProvider);
     final isFullPage = widget.isFullPage;
 
     return Container(

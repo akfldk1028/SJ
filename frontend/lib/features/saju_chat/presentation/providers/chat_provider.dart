@@ -8,6 +8,7 @@ import '../../../../AI/services/saju_analysis_service.dart' as ai_saju;
 import '../../../../AI/services/compatibility_analysis_service.dart';
 // Phase 50 다중 궁합 제거됨 - 궁합은 항상 2명만
 // import '../../../../AI/services/multi_compatibility_analysis_service.dart';
+import '../../../../core/services/error_logging_service.dart';
 import '../../../../core/services/prompt_loader.dart';
 import '../../../../core/services/ai_summary_service.dart';
 import '../../../../core/services/intent_classifier_service.dart';
@@ -116,6 +117,26 @@ class ChatNotifier extends _$ChatNotifier {
 
   /// 메시지 전송 중 플래그 (더블클릭 방지)
   bool _isSendingMessage = false;
+
+  /// 양방향 관계 유형 조회 헬퍼
+  /// profile_relations에서 from→to, to→from 양방향으로 검색
+  Future<String?> _findRelationType(String profileId1, String profileId2) async {
+    var result = await Supabase.instance.client
+        .from('profile_relations')
+        .select('relation_type')
+        .eq('from_profile_id', profileId1)
+        .eq('to_profile_id', profileId2)
+        .maybeSingle();
+
+    result ??= await Supabase.instance.client
+        .from('profile_relations')
+        .select('relation_type')
+        .eq('from_profile_id', profileId2)
+        .eq('to_profile_id', profileId1)
+        .maybeSingle();
+
+    return result?['relation_type'] as String?;
+  }
 
   @override
   ChatState build(String sessionId) {
@@ -495,6 +516,7 @@ class ChatNotifier extends _$ChatNotifier {
       SajuAnalysis? targetSajuAnalysis;
       Map<String, dynamic>? compatibilityAnalysis;
       bool isThirdPartyCompatibility = false;
+      String? relationType;  // v8.1: 관계 유형
 
       final sessionRepository = ref.read(chatSessionRepositoryProvider);
       final currentSession = await sessionRepository.getSession(sessionId);
@@ -548,6 +570,17 @@ class ChatNotifier extends _$ChatNotifier {
             targetProfile = await profileRepo.getById(person2Id);
             if (targetProfile != null) {
               targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
+            }
+          }
+        }
+
+        // v8.1: 관계 유형 조회 (양방향 검색)
+        if (person1Id != null && person2Id != null) {
+          try {
+            relationType = await _findRelationType(person1Id, person2Id);
+          } catch (e) {
+            if (kDebugMode) {
+              print('[ChatProvider] 세션 복원: 관계 유형 조회 실패: $e');
             }
           }
         }
@@ -614,6 +647,7 @@ class ChatNotifier extends _$ChatNotifier {
         targetSajuAnalysis: targetSajuAnalysis,
         compatibilityAnalysis: compatibilityAnalysis,
         isThirdPartyCompatibility: isThirdPartyCompatibility,
+        relationType: relationType,  // v8.1: 관계 유형
       );
 
       if (kDebugMode) {
@@ -654,6 +688,7 @@ class ChatNotifier extends _$ChatNotifier {
     SajuAnalysis? targetSajuAnalysis,
     Map<String, dynamic>? compatibilityAnalysis,
     bool isThirdPartyCompatibility = false,  // v6.0 (Phase 57): 나 제외 모드
+    String? relationType,  // v8.1: 관계 유형 (family_parent, romantic_partner 등)
   }) {
     final builder = SystemPromptBuilder();
     return builder.build(
@@ -668,6 +703,7 @@ class ChatNotifier extends _$ChatNotifier {
       targetSajuAnalysis: targetSajuAnalysis,
       compatibilityAnalysis: compatibilityAnalysis,
       isThirdPartyCompatibility: isThirdPartyCompatibility,  // v6.0
+      relationType: relationType,  // v8.1: 관계 유형
     );
   }
 
@@ -1112,6 +1148,7 @@ class ChatNotifier extends _$ChatNotifier {
       // 궁합 분석 실행 (v6.0: 단순화)
       // ═══════════════════════════════════════════════════════════════════════════
       Map<String, dynamic>? compatibilityAnalysis;
+      String? relationType;  // v8.1: 관계 유형 (궁합 분석 시 DB에서 조회)
 
       // 궁합 분석 조건: 두 사람의 프로필이 모두 있어야 함
       final canDoCompatibility = shouldRunCompatibility &&
@@ -1128,22 +1165,7 @@ class ChatNotifier extends _$ChatNotifier {
         try {
           if (userId != null) {
             // profile_relations에서 관계 유형 조회 (양방향 검색)
-            var relationResult = await Supabase.instance.client
-                .from('profile_relations')
-                .select('relation_type')
-                .eq('from_profile_id', person1Id)
-                .eq('to_profile_id', person2Id)
-                .maybeSingle();
-
-            // 못 찾으면 반대 방향도 검색
-            relationResult ??= await Supabase.instance.client
-                .from('profile_relations')
-                .select('relation_type')
-                .eq('from_profile_id', person2Id)
-                .eq('to_profile_id', person1Id)
-                .maybeSingle();
-
-            final relationType = relationResult?['relation_type'] as String? ?? 'other';
+            relationType = await _findRelationType(person1Id, person2Id) ?? 'other';
 
             if (kDebugMode) {
               print('   📌 궁합 참가자: person1=$person1Id, person2=$person2Id');
@@ -1228,6 +1250,7 @@ class ChatNotifier extends _$ChatNotifier {
         targetSajuAnalysis: targetSajuAnalysis,  // v3.4: 궁합 상대방 사주
         compatibilityAnalysis: compatibilityAnalysis,  // v3.6: Gemini 궁합 분석 결과
         isThirdPartyCompatibility: isThirdPartyCompatibility,  // v6.0: 나 제외 모드
+        relationType: isCompatibilityMode ? relationType : null,  // v8.1: 관계 유형
       );
 
       // [4] 시스템 프롬프트 구성
@@ -1454,24 +1477,67 @@ class ChatNotifier extends _$ChatNotifier {
       // 플래그 해제
       _isProcessingMessage = false;
       _isSendingMessage = false;
-    } catch (e) {
+    } catch (e, stackTrace) {
       // [ERROR]
-      if (kDebugMode) {
-        print('');
-        print('╔══════════════════════════════════════════════════════════════╗');
-        print('║  ❌ [ERROR] CHAT FAILED                                      ║');
-        print('╚══════════════════════════════════════════════════════════════╝');
-        print('   💥 $e');
-        print('');
-      }
+      print('');
+      print('╔══════════════════════════════════════════════════════════════╗');
+      print('║  ❌ [ERROR] CHAT FAILED                                      ║');
+      print('╚══════════════════════════════════════════════════════════════╝');
+      print('   💥 $e');
+      print('');
+
+      // 에러 로깅 (비동기, 실패 무시)
+      ErrorLoggingService.logError(
+        operation: 'send_message',
+        errorMessage: e.toString(),
+        sessionId: currentSessionId,
+        sourceFile: 'chat_provider.dart',
+        stackTrace: stackTrace.toString(),
+      );
+
       // 에러 시에도 플래그 해제
       _isProcessingMessage = false;
       _isSendingMessage = false;
 
+      final errorMsg = e.toString();
+
+      // QUOTA_EXCEEDED: 서버에서 일일 토큰 한도 초과 → 광고 모드 활성화
+      if (errorMsg.contains('QUOTA_EXCEEDED')) {
+        print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
+        final selectedPersona = ref.read(chatPersonaNotifierProvider);
+        ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
+          tokenUsage: const TokenUsageInfo(
+            totalUsed: 50000, // Quota 초과된 상태
+            maxTokens: 50000,
+            systemPromptTokens: 0,
+            historyTokens: 0,
+            remaining: 0,
+            usagePercent: 100,
+          ),
+          messageCount: state.messages.length,
+          persona: _mapToAiPersona(selectedPersona),
+        );
+        state = state.copyWith(
+          isLoading: false,
+          streamingContent: null,
+          error: '일일 토큰 한도를 초과했습니다. 광고를 시청하면 추가 대화가 가능합니다.',
+        );
+        return;
+      }
+
+      // 사용자에게 구체적 에러 메시지 제공
+      final userMessage = errorMsg.contains('AUTH_EXPIRED')
+          ? '인증이 만료되었습니다. 앱을 재시작해주세요.'
+          : errorMsg.contains('SSE 연결 오류')
+              ? '서버 연결에 실패했습니다. 네트워크를 확인해주세요.'
+              : errorMsg.contains('timeout') || errorMsg.contains('Timeout')
+                  ? '응답 시간이 초과되었습니다. 다시 시도해주세요.'
+                  : '메시지 전송 중 오류가 발생했습니다.';
+
       state = state.copyWith(
         isLoading: false,
         streamingContent: null,
-        error: '메시지 전송 중 오류가 발생했습니다.',
+        error: userMessage,
       );
     }
   }
@@ -1546,6 +1612,13 @@ class ChatNotifier extends _$ChatNotifier {
       await sessionNotifier.loadSessions();
     } catch (e) {
       // 메타데이터 업데이트 실패해도 무시
+    }
+  }
+
+  /// 에러 상태 클리어
+  void clearError() {
+    if (state.error != null) {
+      state = state.copyWith(error: null);
     }
   }
 

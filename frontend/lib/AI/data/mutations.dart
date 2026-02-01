@@ -150,7 +150,7 @@ class AiMutations extends BaseMutations {
             .from(AiSummaries.table_name)
             .upsert(
               data,
-              onConflict: 'profile_id,target_date,summary_type',
+              onConflict: 'profile_id,summary_type,target_year,target_month',
             )
             .select()
             .single();

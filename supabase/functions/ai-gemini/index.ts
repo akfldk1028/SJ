@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v17)
+ * Gemini API 호출 Edge Function (v24)
  *
  * 채팅/일운 분석 전용
  * API 키는 서버에만 저장 (보안)
@@ -10,6 +10,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * Quota 시스템:
  * - 일반 사용자: 일일 50,000 토큰 제한
  * - Admin 사용자: 무제한 (relation_type = 'admin')
+ *
+ * v24 변경사항 (2026-02-01):
+ * - token_category 파라미터 추가: "chat" (채팅) / "fortune" (운세 생성)
+ * - fortune 카테고리: gemini_fortune_tokens, gemini_fortune_count에 기록
+ * - chat 카테고리 (기본): gemini_chat_tokens, gemini_chat_message_count에 기록
  *
  * v17 변경사항 (2026-01-14):
  * - chat_tokens (legacy) → gemini_chat_tokens (신규 필드)
@@ -58,6 +63,7 @@ interface GeminiRequest {
   temperature?: number;
   user_id?: string; // Quota 체크용
   stream?: boolean; // v16: 스트리밍 모드
+  token_category?: "chat" | "fortune"; // v24: 토큰 카테고리 (채팅/운세)
 }
 
 /**
@@ -124,6 +130,11 @@ async function checkAndUpdateQuota(
 /**
  * 토큰 사용량 기록
  *
+ * v24 변경사항 (2026-02-01):
+ * - token_category 파라미터 추가: "chat" (채팅) / "fortune" (운세 생성)
+ * - fortune 카테고리: gemini_fortune_tokens, gemini_fortune_count에 기록
+ * - chat 카테고리 (기본): gemini_chat_tokens, gemini_chat_message_count에 기록
+ *
  * v17 변경사항 (2026-01-14):
  * - chat_tokens (legacy) → gemini_chat_tokens (신규)
  * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
@@ -135,30 +146,37 @@ async function recordTokenUsage(
   promptTokens: number,
   completionTokens: number,
   cost: number,
-  isAdmin: boolean
+  isAdmin: boolean,
+  tokenCategory: "chat" | "fortune" = "chat"
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
   const totalTokens = promptTokens + completionTokens;
+
+  // 카테고리별 컬럼 매핑
+  const tokenCol = tokenCategory === "fortune" ? "gemini_fortune_tokens" : "gemini_chat_tokens";
+  const countCol = tokenCategory === "fortune" ? "gemini_fortune_count" : "gemini_chat_message_count";
 
   try {
     // UPSERT: 오늘 기록이 있으면 업데이트, 없으면 생성
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, gemini_chat_tokens, gemini_chat_message_count, gemini_cost_usd")
+      .select(`id, ${tokenCol}, ${countCol}, gemini_cost_usd`)
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
       // UPDATE: 개별 필드만 업데이트 (total_tokens, is_quota_exceeded는 GENERATED 컬럼)
+      const updateData: Record<string, unknown> = {
+        [tokenCol]: (existing[tokenCol] || 0) + totalTokens,
+        [countCol]: (existing[countCol] || 0) + 1,
+        gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
+        updated_at: new Date().toISOString(),
+      };
+
       await supabase
         .from("user_daily_token_usage")
-        .update({
-          gemini_chat_tokens: (existing.gemini_chat_tokens || 0) + totalTokens,
-          gemini_chat_message_count: (existing.gemini_chat_message_count || 0) + 1,
-          gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", existing.id);
     } else {
       // INSERT: 새 레코드 생성 (total_tokens, is_quota_exceeded는 자동 계산)
@@ -167,14 +185,14 @@ async function recordTokenUsage(
         .insert({
           user_id: userId,
           usage_date: today,
-          gemini_chat_tokens: totalTokens,
-          gemini_chat_message_count: 1,
+          [tokenCol]: totalTokens,
+          [countCol]: 1,
           gemini_cost_usd: cost,
         });
     }
-    console.log(`[ai-gemini v17] Recorded ${totalTokens} tokens for user ${userId}`);
+    console.log(`[ai-gemini v24] Recorded ${totalTokens} ${tokenCategory} tokens for user ${userId}`);
   } catch (error) {
-    console.error("[ai-gemini v17] Failed to record token usage:", error);
+    console.error("[ai-gemini v24] Failed to record token usage:", error);
   }
 }
 
@@ -189,7 +207,8 @@ async function handleStreamingRequest(
   maxTokens: number,
   temperature: number,
   userId: string | undefined,
-  isAdmin: boolean
+  isAdmin: boolean,
+  tokenCategory: "chat" | "fortune" = "chat"
 ): Promise<Response> {
   // messages를 Gemini 형식으로 변환
   const systemInstruction = messages
@@ -327,8 +346,8 @@ async function handleStreamingRequest(
         // 토큰 사용량 기록 (스트림 완료 후)
         if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
           const cost = (totalPromptTokens * 0.075 / 1000000) + (totalCompletionTokens * 0.30 / 1000000);
-          await recordTokenUsage(supabase, userId, totalPromptTokens, totalCompletionTokens, cost, isAdmin);
-          console.log(`[ai-gemini-stream] Token usage recorded: prompt=${totalPromptTokens}, completion=${totalCompletionTokens}`);
+          await recordTokenUsage(supabase, userId, totalPromptTokens, totalCompletionTokens, cost, isAdmin, tokenCategory);
+          console.log(`[ai-gemini-stream] Token usage recorded: prompt=${totalPromptTokens}, completion=${totalCompletionTokens}, category=${tokenCategory}`);
         }
 
       } catch (error) {
@@ -377,6 +396,7 @@ Deno.serve(async (req) => {
       temperature = 0.8,
       user_id,
       stream = false, // v16: 스트리밍 모드 (기본값 false로 하위 호환)
+      token_category = "chat", // v24: 토큰 카테고리 (chat/fortune)
     } = requestData;
 
     // 필수 파라미터 검증
@@ -388,13 +408,13 @@ Deno.serve(async (req) => {
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-gemini v17] User ${user_id} isAdmin: ${isAdmin}`);
+      console.log(`[ai-gemini v24] User ${user_id} isAdmin: ${isAdmin}`);
 
       // Quota 확인 (Admin은 스킵)
       if (!isAdmin) {
         const quota = await checkAndUpdateQuota(supabase, user_id, 0, isAdmin);
         if (!quota.allowed) {
-          console.log(`[ai-gemini v17] Quota exceeded for user ${user_id}`);
+          console.log(`[ai-gemini v24] Quota exceeded for user ${user_id}`);
           return new Response(
             JSON.stringify({
               success: false,
@@ -415,7 +435,7 @@ Deno.serve(async (req) => {
 
     // v16: 스트리밍 모드 분기
     if (stream) {
-      console.log(`[ai-gemini v17] Streaming mode enabled: model=${model}`);
+      console.log(`[ai-gemini v24] Streaming mode enabled: model=${model}, category=${token_category}`);
       return await handleStreamingRequest(
         supabase,
         messages,
@@ -423,12 +443,13 @@ Deno.serve(async (req) => {
         max_tokens,
         temperature,
         user_id,
-        isAdmin
+        isAdmin,
+        token_category as "chat" | "fortune"
       );
     }
 
     // ===== 기존 비스트리밍 로직 =====
-    console.log(`[ai-gemini v17] Calling Gemini: model=${model}, isAdmin=${isAdmin}`);
+    console.log(`[ai-gemini v24] Calling Gemini: model=${model}, isAdmin=${isAdmin}, category=${token_category}`);
 
     // messages를 Gemini 형식으로 변환
     const systemInstruction = messages
@@ -483,7 +504,7 @@ Deno.serve(async (req) => {
 
     // 오류 처리
     if (data.error) {
-      console.error("[ai-gemini v17] Gemini API Error:", data.error);
+      console.error("[ai-gemini v24] Gemini API Error:", data.error);
       return new Response(
         JSON.stringify({
           success: false,
@@ -520,11 +541,11 @@ Deno.serve(async (req) => {
 
     // 토큰 사용량 기록
     if (user_id) {
-      await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin);
+      await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin, token_category as "chat" | "fortune");
     }
 
     console.log(
-      `[ai-gemini v17] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`
+      `[ai-gemini v24] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}, category=${token_category}`
     );
 
     return new Response(
@@ -545,7 +566,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("[ai-gemini v17] Error:", error);
+    console.error("[ai-gemini v24] Error:", error);
 
     return new Response(
       JSON.stringify({

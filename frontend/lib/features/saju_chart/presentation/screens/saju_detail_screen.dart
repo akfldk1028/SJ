@@ -8,13 +8,22 @@ import '../widgets/saju_detail_tabs.dart';
 
 /// 사주 상세 분석 페이지 - 전체 화면으로 탭 컨텐츠 표시
 /// ShellRoute 내에서 네비게이션 바가 자동으로 표시됨
+///
+/// [profileId] 가 null이면 현재 활성 프로필(나)의 사주,
+/// 값이 있으면 해당 프로필의 사주를 표시
 class SajuDetailScreen extends ConsumerWidget {
-  const SajuDetailScreen({super.key});
+  final String? profileId;
+
+  const SajuDetailScreen({super.key, this.profileId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.appTheme;
-    final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
+
+    // profileId가 있으면 해당 프로필, 없으면 활성 프로필
+    final sajuAnalysisAsync = profileId != null
+        ? ref.watch(sajuAnalysisForProfileProvider(profileId!))
+        : ref.watch(currentSajuAnalysisProvider);
 
     return MysticBackground(
       child: Column(
@@ -59,7 +68,10 @@ class SajuDetailScreen extends ConsumerWidget {
                   );
                 }
 
-                return const SajuDetailTabs(isFullPage: true);
+                return SajuDetailTabs(
+                  isFullPage: true,
+                  profileId: profileId,
+                );
               },
               loading: () => Center(
                 child: CircularProgressIndicator(color: theme.primaryColor),

@@ -2,10 +2,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * AI Task 결과 조회 Edge Function (v29)
+ * AI Task 결과 조회 Edge Function (v31)
  *
  * OpenAI Responses API의 background task 결과 조회
  * task_id로 조회 → openai_response_id로 OpenAI polling
+ *
+ * v31 변경사항 (2026-02-01):
+ * - recordTokenUsage: gpt_saju_analysis_tokens → saju_analysis_tokens (실제 DB 컬럼)
+ * - recordTokenUsage: gpt_saju_analysis_count 제거 (DB에 없는 컬럼)
+ *
+ * v30 변경사항 (2026-02-01):
+ * - output 배열에서 reasoning 타입 명시적 필터링 추가
+ * - GPT-5.2 thinking 내용(type: "reasoning")은 사용자에게 노출하지 않음
+ * - completed 및 incomplete 케이스 모두 적용
  *
  * v29 변경사항 (2026-01-30):
  * - API Key 로드밸런싱 지원
@@ -22,7 +31,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * - 'incomplete' 상태 처리 추가
  *
  * v25 변경사항 (2026-01-14):
- * - gpt_saju_analysis_tokens 신규 필드
+ * - saju_analysis_tokens 사용 (v31에서 컬럼명 수정)
  *
  * v24 변경사항:
  * - OpenAI /v1/responses/{id} 직접 polling
@@ -117,13 +126,49 @@ function parseResultToPhases(content: string): Record<string, unknown> {
       completed_phases: 4,
     };
   } catch (e) {
-    console.error("[ai-openai-result v29] Failed to parse phases:", e);
+    console.error("[ai-openai-result v30] Failed to parse phases:", e);
     // 파싱 실패 시 원본 content를 phase1에 저장
     return {
       phase1: { raw_content: content },
       completed_phases: 1,
     };
   }
+}
+
+/**
+ * v30: OpenAI output 배열에서 텍스트 추출 (reasoning 타입 필터링)
+ * GPT-5.2 thinking 내용(type: "reasoning")은 제외하고 실제 응답만 추출
+ */
+function extractOutputText(responseData: Record<string, unknown>): string {
+  let outputText = "";
+
+  if (responseData.output && Array.isArray(responseData.output)) {
+    for (const outputItem of responseData.output) {
+      // reasoning 타입은 GPT thinking 내용이므로 제외
+      if (outputItem.type === "reasoning") {
+        console.log(`[ai-openai-result v30] Skipping reasoning output item`);
+        continue;
+      }
+
+      if (outputItem.type === "message" && outputItem.content) {
+        for (const contentItem of outputItem.content) {
+          // reasoning 타입 content도 제외
+          if (contentItem.type === "reasoning") continue;
+          if (contentItem.type === "output_text" && contentItem.text) {
+            outputText += contentItem.text;
+          } else if (contentItem.type === "text" && contentItem.text) {
+            outputText += contentItem.text;
+          }
+        }
+      } else if (outputItem.type === "text" && outputItem.text) {
+        outputText += outputItem.text;
+      }
+    }
+  } else if (typeof responseData.output_text === "string") {
+    outputText = responseData.output_text;
+  }
+
+  return outputText;
 }
 
 Deno.serve(async (req) => {
@@ -144,7 +189,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[ai-openai-result v29] Checking task ${task_id}`);
+    console.log(`[ai-openai-result v30] Checking task ${task_id}`);
 
     // Task 조회 (openai_response_id 포함)
     const { data: task, error } = await supabase
@@ -154,7 +199,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (error || !task) {
-      console.log(`[ai-openai-result v29] Task ${task_id} not found`);
+      console.log(`[ai-openai-result v30] Task ${task_id} not found`);
       return new Response(
         JSON.stringify({ success: false, error: "Task not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -163,7 +208,7 @@ Deno.serve(async (req) => {
 
     // 이미 완료된 경우 캐시된 결과 반환
     if (task.status === "completed" && task.result_data) {
-      console.log(`[ai-openai-result v29] Task ${task_id}: returning cached result`);
+      console.log(`[ai-openai-result v30] Task ${task_id}: returning cached result`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -179,7 +224,7 @@ Deno.serve(async (req) => {
 
     // 이미 실패한 경우
     if (task.status === "failed") {
-      console.log(`[ai-openai-result v29] Task ${task_id}: failed - ${task.error_message}`);
+      console.log(`[ai-openai-result v30] Task ${task_id}: failed - ${task.error_message}`);
       return new Response(
         JSON.stringify({
           success: false,
@@ -192,7 +237,7 @@ Deno.serve(async (req) => {
 
     // openai_response_id가 없는 경우 (레거시 또는 오류)
     if (!task.openai_response_id) {
-      console.log(`[ai-openai-result v29] Task ${task_id}: no openai_response_id`);
+      console.log(`[ai-openai-result v30] Task ${task_id}: no openai_response_id`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -207,7 +252,7 @@ Deno.serve(async (req) => {
     // v29: ai-openai에서 사용한 동일 API 키로 polling (key_index from request_data)
     const keyIdx = task.request_data?.key_index ?? 0;
     const apiKey = getApiKeyByIndex(keyIdx);
-    console.log(`[ai-openai-result v29] Polling OpenAI: ${task.openai_response_id} (key_index: ${keyIdx})`);
+    console.log(`[ai-openai-result v30] Polling OpenAI: ${task.openai_response_id} (key_index: ${keyIdx})`);
 
     const openaiResponse = await fetch(`${OPENAI_RESPONSES_URL}/${task.openai_response_id}`, {
       method: "GET",
@@ -218,11 +263,11 @@ Deno.serve(async (req) => {
     });
 
     const responseData = await openaiResponse.json();
-    console.log(`[ai-openai-result v29] OpenAI status: ${openaiResponse.status}`);
-    console.log(`[ai-openai-result v29] OpenAI response status: ${responseData.status}`);
+    console.log(`[ai-openai-result v30] OpenAI status: ${openaiResponse.status}`);
+    console.log(`[ai-openai-result v30] OpenAI response status: ${responseData.status}`);
 
     if (!openaiResponse.ok) {
-      console.error("[ai-openai-result v29] OpenAI API Error:", responseData);
+      console.error("[ai-openai-result v30] OpenAI API Error:", responseData);
 
       // 에러 저장
       await supabase
@@ -251,7 +296,7 @@ Deno.serve(async (req) => {
       case "queued":
       case "in_progress":
         // 아직 처리 중
-        console.log(`[ai-openai-result v29] OpenAI task ${task.openai_response_id}: ${openaiStatus}`);
+        console.log(`[ai-openai-result v30] OpenAI task ${task.openai_response_id}: ${openaiStatus}`);
 
         // v27: 경과 시간 기반 예상 Phase 계산 (UI 진행 표시용)
         // GPT-5.2 평균 처리 시간: ~60-90초, Phase당 ~15-22초
@@ -289,56 +334,27 @@ Deno.serve(async (req) => {
 
       case "completed":
         // 완료! 결과 추출
-        console.log(`[ai-openai-result v29] OpenAI task completed!`);
-        console.log(`[ai-openai-result v29] Full response keys:`, Object.keys(responseData));
+        console.log(`[ai-openai-result v30] OpenAI task completed!`);
+        console.log(`[ai-openai-result v30] Full response keys:`, Object.keys(responseData));
 
-        // v24 fix: OpenAI Responses API는 output 배열 구조
-        // REST API: { output: [{ type: "message", content: [{ type: "output_text", text: "..." }] }] }
-        // 또는: { output: [{ type: "text", text: "..." }] }
-        let outputText = "";
-
-        if (responseData.output && Array.isArray(responseData.output)) {
-          console.log(`[ai-openai-result v29] output is array with ${responseData.output.length} items`);
-          for (const outputItem of responseData.output) {
-            console.log(`[ai-openai-result v29] output item type: ${outputItem.type}`);
-
-            if (outputItem.type === "message" && outputItem.content) {
-              // message 타입: content 배열에서 텍스트 추출
-              for (const contentItem of outputItem.content) {
-                if (contentItem.type === "output_text" && contentItem.text) {
-                  outputText += contentItem.text;
-                } else if (contentItem.type === "text" && contentItem.text) {
-                  outputText += contentItem.text;
-                }
-              }
-            } else if (outputItem.type === "text" && outputItem.text) {
-              // text 타입: 직접 text 필드
-              outputText += outputItem.text;
-            }
-          }
-        } else if (responseData.output_text) {
-          // 레거시 호환: output_text 직접 존재하는 경우
-          outputText = responseData.output_text;
-        }
-
-        console.log(`[ai-openai-result v29] Extracted outputText length: ${outputText.length}`);
+        // v30: extractOutputText 사용 (reasoning 필터링 포함)
+        const outputText = extractOutputText(responseData);
+        console.log(`[ai-openai-result v30] Extracted outputText length: ${outputText.length}`);
 
         const usage = responseData.usage || {};
 
-        console.log(`[ai-openai-result v29] Output length: ${outputText.length}`);
-
         // v27: Phase별 데이터 파싱
         const partialResult = parseResultToPhases(outputText);
-        console.log(`[ai-openai-result v29] Parsed ${partialResult.completed_phases} phases`);
+        console.log(`[ai-openai-result v30] Parsed ${partialResult.completed_phases} phases`);
 
         // ai_tasks 결과 저장 (캐싱) + Phase 정보
         await supabase
           .from("ai_tasks")
           .update({
             status: "completed",
-            phase: 4,               // v27: 모든 Phase 완료
-            total_phases: 4,        // v27: 총 4개 Phase
-            partial_result: partialResult, // v27: Phase별 결과
+            phase: 4,
+            total_phases: 4,
+            partial_result: partialResult,
             result_data: {
               success: true,
               content: outputText,
@@ -369,9 +385,9 @@ Deno.serve(async (req) => {
           JSON.stringify({
             success: true,
             status: "completed",
-            phase: 4,               // v27: 모든 Phase 완료
-            total_phases: 4,        // v27: 총 4개 Phase
-            partial_result: partialResult, // v27: Phase별 결과
+            phase: 4,
+            total_phases: 4,
+            partial_result: partialResult,
             content: outputText,
             usage: {
               prompt_tokens: usage.input_tokens || 0,
@@ -385,52 +401,26 @@ Deno.serve(async (req) => {
 
       case "incomplete":
         // v26: incomplete 상태 처리 (max_tokens 도달로 응답이 잘림)
-        // 부분 콘텐츠가 있을 수 있으므로 추출 시도
-        console.log(`[ai-openai-result v26] OpenAI task incomplete - extracting partial content`);
-        console.log(`[ai-openai-result v26] Full response keys:`, Object.keys(responseData));
+        console.log(`[ai-openai-result v30] OpenAI task incomplete - extracting partial content`);
+        console.log(`[ai-openai-result v30] Full response keys:`, Object.keys(responseData));
 
-        // completed와 동일한 방식으로 부분 콘텐츠 추출
-        let partialText = "";
+        // v30: extractOutputText 사용 (reasoning 필터링 포함)
+        const partialText = extractOutputText(responseData);
+        console.log(`[ai-openai-result v30] Extracted partialText length: ${partialText.length}`);
 
-        if (responseData.output && Array.isArray(responseData.output)) {
-          console.log(`[ai-openai-result v26] output is array with ${responseData.output.length} items`);
-          for (const outputItem of responseData.output) {
-            console.log(`[ai-openai-result v26] output item type: ${outputItem.type}`);
-
-            if (outputItem.type === "message" && outputItem.content) {
-              for (const contentItem of outputItem.content) {
-                if (contentItem.type === "output_text" && contentItem.text) {
-                  partialText += contentItem.text;
-                } else if (contentItem.type === "text" && contentItem.text) {
-                  partialText += contentItem.text;
-                }
-              }
-            } else if (outputItem.type === "text" && outputItem.text) {
-              partialText += outputItem.text;
-            }
-          }
-        } else if (responseData.output_text) {
-          partialText = responseData.output_text;
-        }
-
-        console.log(`[ai-openai-result v29] Extracted partialText length: ${partialText.length}`);
-
-        // 부분 콘텐츠가 있으면 성공으로 처리
         if (partialText.length > 0) {
           const partialUsage = responseData.usage || {};
 
-          // v27: Phase별 데이터 파싱 (incomplete이어도 시도)
           const incompletePartialResult = parseResultToPhases(partialText);
-          console.log(`[ai-openai-result v29] Parsed ${incompletePartialResult.completed_phases} phases (incomplete)`);
+          console.log(`[ai-openai-result v30] Parsed ${incompletePartialResult.completed_phases} phases (incomplete)`);
 
-          // ai_tasks 결과 저장 (부분 완료로 캐싱) + Phase 정보
           await supabase
             .from("ai_tasks")
             .update({
-              status: "completed", // incomplete → completed로 변환 (부분 완료)
-              phase: 4,              // v27: Phase 완료로 표시
-              total_phases: 4,       // v27: 총 4개 Phase
-              partial_result: incompletePartialResult, // v27: Phase별 결과
+              status: "completed",
+              phase: 4,
+              total_phases: 4,
+              partial_result: incompletePartialResult,
               result_data: {
                 success: true,
                 content: partialText,
@@ -440,13 +430,12 @@ Deno.serve(async (req) => {
                   total_tokens: (partialUsage.input_tokens || 0) + (partialUsage.output_tokens || 0),
                 },
                 model: responseData.model || task.model,
-                finish_reason: "incomplete", // 원래 상태 기록
+                finish_reason: "incomplete",
               },
               completed_at: new Date().toISOString(),
             })
             .eq("id", task_id);
 
-          // 토큰 사용량 기록
           if (task.user_id && partialUsage.input_tokens) {
             await recordTokenUsage(
               supabase,
@@ -460,10 +449,10 @@ Deno.serve(async (req) => {
           return new Response(
             JSON.stringify({
               success: true,
-              status: "completed", // 클라이언트에서 처리 가능하도록 completed 반환
-              phase: 4,              // v27: Phase 완료
-              total_phases: 4,       // v27: 총 4개 Phase
-              partial_result: incompletePartialResult, // v27: Phase별 결과
+              status: "completed",
+              phase: 4,
+              total_phases: 4,
+              partial_result: incompletePartialResult,
               content: partialText,
               usage: {
                 prompt_tokens: partialUsage.input_tokens || 0,
@@ -471,14 +460,14 @@ Deno.serve(async (req) => {
                 total_tokens: (partialUsage.input_tokens || 0) + (partialUsage.output_tokens || 0),
               },
               model: responseData.model || task.model,
-              finish_reason: "incomplete", // 원래 상태도 함께 전달
+              finish_reason: "incomplete",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
         // 부분 콘텐츠도 없으면 실패 처리
-        console.log(`[ai-openai-result v26] No partial content available, treating as failed`);
+        console.log(`[ai-openai-result v30] No partial content available, treating as failed`);
         const incompleteError = "Task incomplete: no content available";
 
         await supabase
@@ -501,8 +490,7 @@ Deno.serve(async (req) => {
 
       case "failed":
       case "cancelled":
-        // 실패 또는 취소
-        console.log(`[ai-openai-result v29] OpenAI task ${openaiStatus}: ${responseData.error?.message}`);
+        console.log(`[ai-openai-result v30] OpenAI task ${openaiStatus}: ${responseData.error?.message}`);
 
         const errorMessage = responseData.error?.message || `Task ${openaiStatus}`;
 
@@ -525,7 +513,7 @@ Deno.serve(async (req) => {
         );
 
       default:
-        console.log(`[ai-openai-result v29] Unknown OpenAI status: ${openaiStatus}`);
+        console.log(`[ai-openai-result v30] Unknown OpenAI status: ${openaiStatus}`);
         return new Response(
           JSON.stringify({
             success: true,
@@ -536,7 +524,7 @@ Deno.serve(async (req) => {
         );
     }
   } catch (error) {
-    console.error("[ai-openai-result v29] Error:", error);
+    console.error("[ai-openai-result v30] Error:", error);
 
     return new Response(
       JSON.stringify({
@@ -550,11 +538,6 @@ Deno.serve(async (req) => {
 
 /**
  * 토큰 사용량 기록
- *
- * v25 변경사항 (2026-01-14):
- * - ai_analysis_tokens (legacy) → gpt_saju_analysis_tokens (신규)
- * - total_tokens, is_quota_exceeded 직접 UPDATE 제거 (GENERATED 컬럼)
- * - gpt_saju_analysis_count 증가 추가
  */
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
@@ -572,36 +555,32 @@ async function recordTokenUsage(
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
-      .select("id, gpt_saju_analysis_tokens, gpt_saju_analysis_count, gpt_cost_usd")
+      .select("id, saju_analysis_tokens, gpt_cost_usd")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
 
     if (existing) {
-      // UPDATE: 개별 필드만 업데이트 (total_tokens, is_quota_exceeded는 GENERATED 컬럼)
       await supabase
         .from("user_daily_token_usage")
         .update({
-          gpt_saju_analysis_tokens: (existing.gpt_saju_analysis_tokens || 0) + totalTokens,
-          gpt_saju_analysis_count: (existing.gpt_saju_analysis_count || 0) + 1,
+          saju_analysis_tokens: (existing.saju_analysis_tokens || 0) + totalTokens,
           gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id);
     } else {
-      // INSERT: 새 레코드 생성 (total_tokens, is_quota_exceeded는 자동 계산)
       await supabase
         .from("user_daily_token_usage")
         .insert({
           user_id: userId,
           usage_date: today,
-          gpt_saju_analysis_tokens: totalTokens,
-          gpt_saju_analysis_count: 1,
+          saju_analysis_tokens: totalTokens,
           gpt_cost_usd: cost,
         });
     }
-    console.log(`[ai-openai-result v25] Recorded ${totalTokens} tokens for user ${userId}`);
+    console.log(`[ai-openai-result v30] Recorded ${totalTokens} tokens for user ${userId}`);
   } catch (error) {
-    console.error("[ai-openai-result v25] Failed to record token usage:", error);
+    console.error("[ai-openai-result v30] Failed to record token usage:", error);
   }
 }

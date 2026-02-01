@@ -111,7 +111,10 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   @override
   void dispose() {
     _isDisposed = true;
-    _transformController.dispose();
+    // GraphView 애니메이션이 끝나기 전 dispose 방지 - 지연 dispose
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _transformController.dispose();
+    });
     super.dispose();
   }
 
@@ -184,11 +187,18 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: profile,
       onChatPressed: () {
         Navigator.pop(context);
-        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필)
-        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}');
+        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필, autoMention으로 자동 멘션)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}&autoMention=true');
       },
       onDetailPressed: () {
         Navigator.pop(context);
+        // 사주 상세 화면으로 이동
+        context.push('${Routes.sajuDetail}?profileId=${profile.id}');
+      },
+      onCompatibilityPressed: () {
+        Navigator.pop(context);
+        // 궁합 분석 목록 화면으로 이동
+        context.push('${Routes.compatibilityList}?profileId=${profile.id}');
       },
     );
   }
@@ -519,17 +529,21 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: sajuProfile,
       onChatPressed: () {
         Navigator.pop(context);
-        // 궁합 채팅으로 이동
-        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}');
+        // 궁합 채팅으로 이동 (autoMention으로 자동 멘션)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}&autoMention=true');
       },
       onDetailPressed: () {
         Navigator.pop(context);
-        // 궁합 분석이 있으면 상세 화면으로, 없으면 사주 상세로 이동
+        // 사주 상세 화면으로 이동
+        context.push('${Routes.sajuDetail}?profileId=${relation.toProfileId}');
+      },
+      onCompatibilityPressed: () {
+        Navigator.pop(context);
+        // 궁합 분석이 있으면 상세 화면, 없으면 궁합 목록 화면으로 이동
         if (relation.compatibilityAnalysisId != null) {
           context.push('${Routes.compatibilityDetail}?analysisId=${relation.compatibilityAnalysisId}');
         } else {
-          // 사주 상세 화면으로 이동 (profileId 전달)
-          context.push('${Routes.sajuDetail}?profileId=${relation.toProfileId}');
+          context.push('${Routes.compatibilityList}?profileId=${relation.toProfileId}');
         }
       },
     );

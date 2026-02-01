@@ -13,11 +13,13 @@ import '../../domain/entities/chat_message.dart';
 class MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool showAvatar;
+  final bool isStreamingActive;
 
   const MessageBubble({
     super.key,
     required this.message,
     this.showAvatar = true,
+    this.isStreamingActive = false,
   });
 
   @override
@@ -131,6 +133,12 @@ class MessageBubble extends StatelessWidget {
       color: appTheme.textPrimary,
     );
 
+    // 스트리밍 중에는 SelectableText 비활성화 (rebuild 충돌 방지)
+    if (isStreamingActive) {
+      return Text.rich(
+        _parseMarkdownBold(_cleanContent(message.content), aiStyle),
+      );
+    }
     return SelectableText.rich(
       _parseMarkdownBold(_cleanContent(message.content), aiStyle),
     );

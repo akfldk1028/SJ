@@ -234,4 +234,7 @@ class ChatRepositoryImpl implements ChatRepository {
   WindowedConversation? getLastWindowResult() {
     return _datasource.lastWindowResult;
   }
+
+  /// 현재 대화 요약 (맥락 유지용)
+  String? get conversationSummary => _datasource.conversationSummary;
 }

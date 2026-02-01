@@ -67,6 +67,7 @@ class BaseNtPersona extends PersonaBase {
   @override
   List<String> get keywords => ['분석', '논리', '전략', '체계', 'NT'];
 
+
   @override
   String get systemPrompt => '''
 [Base Persona: NT 분석형 전략가]
@@ -98,5 +99,8 @@ class BaseNtPersona extends PersonaBase {
 - 십성의 의미를 기능적 관점에서 해석
 - "A이기 때문에 B가 발생한다" 식의 인과 설명
 - 필요시 번호나 불릿으로 구조화
+
+## 추천 질문 스타일
+- 원인과 결과를 파고드는 분석적이고 전략적인 질문을 던져라
 ''';
 }

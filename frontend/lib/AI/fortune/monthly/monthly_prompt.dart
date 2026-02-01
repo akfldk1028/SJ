@@ -147,7 +147,8 @@ class MonthlyPrompt extends PromptTemplate {
 
 ## 응답 구조 (중요!)
 1. **현재 월($targetMonth월)**: 7개 카테고리별 상세 분석 (각 12-15문장)
-2. **나머지 11개월**: 요약 버전 (키워드 + 점수 + 3-4문장)
+2. **나머지 11개월**: 상세 버전! (키워드 + 점수 + 8-10문장 reading + 7개 카테고리 highlights + tip + idiom + lucky)
+   - 광고 해금 후 사용자가 읽을 핵심 콘텐츠이므로 절대 짧게 쓰지 마세요!
 
 ---
 

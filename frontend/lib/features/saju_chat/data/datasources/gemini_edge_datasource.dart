@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../AI/core/ai_logger.dart';
 import '../../../../AI/core/ai_constants.dart';
+import '../../../../AI/jina/context/chat_history_manager.dart';
 import '../services/conversation_window_manager.dart';
 import '../services/token_counter.dart';
 import '../services/sse_stream_client.dart';
@@ -45,6 +46,12 @@ class GeminiEdgeDatasource {
 
   /// 대화 윈도우 관리자 (토큰 제한)
   final ConversationWindowManager _windowManager = ConversationWindowManager();
+
+  /// 대화 요약 관리자 (맥락 유지)
+  final ChatHistoryManager _historyManager = ChatHistoryManager();
+
+  /// 마지막으로 요약을 생성한 시점의 제거 메시지 수 (중복 요약 방지)
+  int _lastSummarizedRemovedCount = 0;
 
   /// 마지막 트리밍 정보
   WindowedConversation? _lastWindowResult;
@@ -111,6 +118,8 @@ class GeminiEdgeDatasource {
     _conversationHistory.clear();
     _systemPrompt = systemPrompt;
     _windowManager.setSystemPrompt(systemPrompt);
+    _historyManager.reset();
+    _lastSummarizedRemovedCount = 0;
     _lastWindowResult = null;
     _isNewSession = true; // 새 세션 플래그 설정
 
@@ -134,6 +143,10 @@ class GeminiEdgeDatasource {
     if (messages != null && messages.isNotEmpty) {
       _conversationHistory.clear();
       _conversationHistory.addAll(messages);
+
+      // 복원 메시지가 많으면 미리 요약 생성
+      _historyManager.preGenerateSummaryIfNeeded(messages);
+
       if (kDebugMode) {
         print('[GeminiEdge] 대화 히스토리 복원: ${messages.length}개 메시지');
       }
@@ -614,6 +627,36 @@ class GeminiEdgeDatasource {
   }) async* {
     _rollbackUserMessage();
 
+    // 429 Quota 초과 에러 감지
+    if (originalError is DioException && originalError.response?.statusCode == 429) {
+      final responseData = originalError.response?.data;
+      String quotaMessage = '일일 토큰 한도를 초과했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.';
+      if (responseData is Map && responseData['message'] != null) {
+        quotaMessage = responseData['message'] as String;
+      }
+      print('[GeminiEdge] 429 Quota 초과: $quotaMessage');
+      throw Exception('QUOTA_EXCEEDED: $quotaMessage');
+    }
+
+    // 401 인증 에러 감지
+    if (originalError is DioException && originalError.response?.statusCode == 401) {
+      print('[GeminiEdge] 401 인증 실패');
+      throw Exception('AUTH_EXPIRED: 인증이 만료되었습니다. 앱을 재시작해주세요.');
+    }
+
+    // SseException에서 DioException 추출하여 상태 코드 확인
+    if (originalError is SseException && originalError.original is DioException) {
+      final dioError = originalError.original as DioException;
+      if (dioError.response?.statusCode == 429) {
+        print('[GeminiEdge] 429 Quota 초과 (SSE)');
+        throw Exception('QUOTA_EXCEEDED: 일일 토큰 한도를 초과했습니다.');
+      }
+      if (dioError.response?.statusCode == 401) {
+        print('[GeminiEdge] 401 인증 실패 (SSE)');
+        throw Exception('AUTH_EXPIRED: 인증이 만료되었습니다. 앱을 재시작해주세요.');
+      }
+    }
+
     // 이미 콘텐츠가 전송된 경우 폴백 불가
     if (hasYieldedContent) {
       if (kDebugMode) {
@@ -672,14 +715,30 @@ class GeminiEdgeDatasource {
       print('[GeminiEdge] 현재 토큰: ${_lastWindowResult!.estimatedTokens}');
     }
 
+    // 트리밍된 메시지가 있고, 새로 제거된 메시지가 있을 때만 요약 생성 (중복 방지)
+    final currentRemovedCount = _lastWindowResult!.removedCount;
+    if (_lastWindowResult!.wasTrimmed &&
+        currentRemovedCount > _lastSummarizedRemovedCount &&
+        _lastWindowResult!.removedMessages.isNotEmpty) {
+      // 이전에 요약한 이후 새로 제거된 메시지만 요약
+      final newlyRemoved = _lastSummarizedRemovedCount > 0
+          ? _lastWindowResult!.removedMessages.sublist(_lastSummarizedRemovedCount)
+          : _lastWindowResult!.removedMessages;
+      if (newlyRemoved.isNotEmpty) {
+        _historyManager.generateSummary(newlyRemoved);
+      }
+      _lastSummarizedRemovedCount = currentRemovedCount;
+    }
+
     final windowedMessages = _lastWindowResult!.messages;
     final messages = <Map<String, dynamic>>[];
 
-    // 시스템 프롬프트 추가
+    // 시스템 프롬프트 추가 (요약 주입 포함)
     if (_systemPrompt != null && _systemPrompt!.isNotEmpty) {
+      final prompt = _injectSummaryIntoPrompt(_systemPrompt!);
       messages.add({
         'role': 'system',
-        'content': _systemPrompt,
+        'content': prompt,
       });
     }
 
@@ -694,6 +753,38 @@ class GeminiEdgeDatasource {
     }
 
     return messages;
+  }
+
+  /// 시스템 프롬프트에 대화 요약 주입
+  String _injectSummaryIntoPrompt(String prompt) {
+    if (!_historyManager.hasSummary) return prompt;
+
+    final summary = _historyManager.currentSummary!;
+    const summarySection = '\n\n---\n\n'
+        '## 이전 대화 요약\n'
+        '아래는 이전 대화의 핵심 내용입니다. 이 맥락을 참고하여 답변하세요:\n\n';
+    const sectionEnd = '\n\n---';
+
+    // "위 사용자 정보를 참고하여" 마커 앞에 삽입
+    const marker = '위 사용자 정보를 참고하여';
+    final markerIndex = prompt.indexOf(marker);
+
+    if (markerIndex != -1) {
+      final before = prompt.substring(0, markerIndex);
+      final after = prompt.substring(markerIndex);
+      final result = '$before$summarySection$summary$sectionEnd\n\n$after';
+
+      if (kDebugMode) {
+        print('[GeminiEdge] 대화 요약 주입됨 (${summary.length}자)');
+      }
+      return result;
+    }
+
+    // 마커를 못 찾으면 프롬프트 끝에 추가
+    if (kDebugMode) {
+      print('[GeminiEdge] 대화 요약 주입됨 - 프롬프트 끝 (${summary.length}자)');
+    }
+    return '$prompt$summarySection$summary$sectionEnd';
   }
 
   /// 현재 토큰 사용량 정보 조회
@@ -755,10 +846,15 @@ class GeminiEdgeDatasource {
 - 기타 질문''';
   }
 
+  /// 현재 대화 요약 (외부 노출용)
+  String? get conversationSummary => _historyManager.currentSummary;
+
   /// 리소스 정리
   void dispose() {
     _conversationHistory.clear();
     _systemPrompt = null;
+    _historyManager.reset();
+    _lastSummarizedRemovedCount = 0;
   }
 
   /// Gemini 비용 계산 (USD)
