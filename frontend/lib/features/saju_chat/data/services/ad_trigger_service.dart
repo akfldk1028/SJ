@@ -45,15 +45,15 @@ abstract class AdTriggerService {
   /// 3교환 Gemini 비용 ~$0.003 → 확실한 흑자
   static const int depletedRewardTokensVideo = 20000;
 
-  /// 토큰 소진 - 네이티브 광고 보상 (7,000 토큰 ≈ 1교환)
-  /// Native ad eCPM $0.50 → 수익 ~$0.0005
-  /// 2메시지(1교환) 가능 → 자연스럽게 소진 → Rewarded Video 유도
-  static const int depletedRewardTokensNative = 7000;
+  /// 토큰 소진 - 네이티브 광고 보상 (30,000 토큰 ≈ 4.2교환)
+  /// Native CPC $0.10~$0.50 → 비용 $0.0057 → 마진 94~98%
+  /// Rewarded Video(20,000)와 비슷한 수준 → 유저 선택지 의미 있음
+  static const int depletedRewardTokensNative = 30000;
 
   /// 인터벌 광고 클릭 시 보상 토큰
-  /// 클릭해야만 7,000 토큰 지급 (≈1교환)
-  /// Native CPC 수익 > impression 수익이므로 클릭에만 보상
-  static const int intervalClickRewardTokens = 7000;
+  /// 클릭해야만 30,000 토큰 지급 (≈4.2교환)
+  /// Native CPC $0.10~$0.50 → 비용 $0.0057 → 마진 94~98%
+  static const int intervalClickRewardTokens = 30000;
 
   /// Native 광고 impression 시 보상 토큰
   /// 노출만으로는 토큰 미지급 (0) → 클릭 유도
