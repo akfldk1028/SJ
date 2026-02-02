@@ -84,11 +84,10 @@ abstract class AdTriggerService {
     // 광고 제거 구매자 → 인터벌(강제) 광고 차단
     if (isAdFree) return AdTriggerResult.none;
 
-    // 2. 메시지 간격 트리거 (무료 유저만)
-    return checkIntervalTrigger(
-      messageCount: messageCount,
-      shownAdCount: shownAdCount,
-    );
+    // 2. 인터벌 광고 비활성화 (v28)
+    // 인라인 ChatAdWidget이 4메시지마다 표시되므로 인터벌 AdNativeBubble 불필요.
+    // 토큰 소진 시에만 AdNativeBubble 사용.
+    return AdTriggerResult.none;
   }
 
   /// 토큰 기반 트리거 체크

@@ -843,6 +843,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             print('  participantIds: ${params.participantIds}');
             print('  targetId: ${params.targetProfileId}');
             print('  includesOwner: ${params.includesOwner}');
+            // 인터벌 광고 활성 시 메시지 전송 전에 dismiss (AdWidget 중복 방지)
+            final adState = ref.read(conversationalAdNotifierProvider);
+            if (adState.isAdMode && adState.adType == AdMessageType.inlineInterval) {
+              ref.read(conversationalAdNotifierProvider.notifier).dismissAd();
+            }
+
             ref
                 .read(chatNotifierProvider(currentSessionId).notifier)
                 .sendMessage(

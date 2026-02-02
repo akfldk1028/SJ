@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ad_config.dart';
+import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
+import '../token_reward_service.dart';
 
 /// 모바일 플랫폼 체크
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -73,8 +75,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
           AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
-          debugPrint('[NativeAdWidget] Ad clicked');
+          debugPrint('[NativeAdWidget] Ad clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
           AdTrackingService.instance.trackNativeClick();
+          TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
       ),
       // Medium 템플릿 스타일 (채팅에 적합)
@@ -296,6 +299,15 @@ class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
         onAdFailedToLoad: (ad, error) {
           debugPrint('[CompactNativeAdWidget] Failed: ${error.message}');
           ad.dispose();
+        },
+        onAdImpression: (ad) {
+          debugPrint('[CompactNativeAdWidget] Ad impression');
+          AdTrackingService.instance.trackNativeImpression();
+        },
+        onAdClicked: (ad) {
+          debugPrint('[CompactNativeAdWidget] Ad clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
+          AdTrackingService.instance.trackNativeClick();
+          TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
       ),
       // Small 템플릿 (컴팩트)

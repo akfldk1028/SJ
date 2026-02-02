@@ -95,10 +95,10 @@ abstract class AdStrategy {
 
   /// 토큰 소진 → 네이티브 광고 보상 토큰 (클릭 시에만 지급)
   /// Native eCPM $3~7 → 클릭 시 CPC $0.10~0.50
-  static const int depletedRewardTokensNative = 30000;
+  static const int depletedRewardTokensNative = 7000;
 
   /// 인터벌(대화 중) 네이티브 광고 클릭 시 보상 토큰
-  static const int intervalClickRewardTokens = 30000;
+  static const int intervalClickRewardTokens = 7000;
 
   // ==================== 프리미엄 기능 ====================
 

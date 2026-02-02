@@ -1,8 +1,8 @@
-# 만톡 v27→v28 광고 비즈니스 로직 정리
+# 만톡 v28 광고 비즈니스 로직 정리
 
 **작성일**: 2026-02-01
 **최종 업데이트**: 2026-02-02
-**버전**: v28 (청운도사 제거 + 토큰 보상 정리)
+**버전**: v28 (청운도사 제거 + 인터벌 광고 제거 + 인라인 클릭 보상)
 
 ---
 
@@ -12,24 +12,22 @@
 
 | 설정 | 값 | 설명 |
 |------|-----|------|
-| `inlineAdMessageInterval` | **6** | 6메시지(=3교환)마다 인라인 광고 1회 |
+| `inlineAdMessageInterval` | **4** | 4메시지(=2교환)마다 인라인 광고 1회 |
 | `inlineAdMaxCount` | **9999** | 세션당 무제한 |
-| `inlineAdMinMessages` | **6** | 3교환 후부터 광고 가능 |
+| `inlineAdMinMessages` | **4** | 2교환 후부터 광고 가능 |
 | `chatAdType` | `nativeMedium` | 채팅 버블 스타일 Native 광고 |
-| `interstitialCooldownSeconds` | **0** | 쿨다운 없음 |
-| `interstitialDailyLimit` | **9999** | 무제한 |
 | `depletedRewardTokensVideo` | **20,000** | 영상 광고 보상 (≈3교환) |
 | `depletedRewardTokensNative` | **30,000** | 네이티브 클릭 보상 (≈4교환) |
-| `intervalClickRewardTokens` | **30,000** | 인터벌 광고 클릭 보상 |
+| `intervalClickRewardTokens` | **30,000** | 인라인 광고 클릭 보상 (모든 Native 공통) |
 
-### ad_trigger_service.dart (AdStrategy에 위임)
+### ad_trigger_service.dart
 
 | 상수 | 값 | 용도 |
 |------|-----|------|
 | `impressionRewardTokens` | **0** | 노출만으로는 토큰 미지급 |
 | `warningRewardTokens` | **0** | 80% 경고 비활성화 |
-| `tokenWarningThreshold` | 80% | 비활성 (warningRewardTokens=0) |
 | `tokenDepletedThreshold` | 100% | 토큰 소진 임계값 |
+| `intervalAd` 트리거 | **비활성화** | 인라인 ChatAdWidget이 대체 |
 
 ### DB: user_daily_token_usage
 
@@ -43,65 +41,35 @@
 
 ---
 
-## 2. 광고 흐름 (3가지 경로)
+## 2. 광고 흐름 (2가지 경로)
 
 ### 경로 A: 인라인 Native 광고 (정적 삽입, `ChatAdWidget`)
 
-채팅 리스트에 정적으로 삽입되는 Native 광고. 광고 노출 자체는 토큰 보상 없음.
+채팅 리스트에 정적으로 삽입되는 Native 광고. 대화 중 유일한 광고.
 
 ```
-메시지 6개(=3교환) 이후
+메시지 4개(=2교환) 이후
     ↓
 ChatMessageList._calculateItemsWithAds()
   → AI 응답 뒤에만 광고 삽입 (유저↔AI 대화쌍 사이 금지)
   → ChatAdWidget 렌더링 (정적, 스크롤 중 자연스럽게 노출)
+  → 안내 문구: "관심 있는 광고를 살펴보시면 대화가 더 많아져요"
     ↓
 ┌─────────────────────────────────────────────┐
-│ 노출만: 토큰 0 (eCPM 수익만 발생)             │
-│ 클릭 시: 토큰 0 (CPC 수익만 발생)             │
-│ → 순수 광고 수익 (유저 보상 없음)              │
+│ 노출만: 토큰 0 (eCPM 수익만 발생, 100% 마진)  │
+│ 클릭 시: +30,000 토큰                         │
+│   → AdTrackingService.trackNativeClick()      │
+│   → TokenRewardService.grantNativeAdTokens()  │
+│   → add_native_bonus_tokens RPC               │
+│   → native_tokens_earned += 30,000            │
 └─────────────────────────────────────────────┘
 ```
 
 **수익 계산:**
 - 노출: eCPM $3~7 → 1회 $0.003~0.007 (순수 수익, 토큰 비용 $0)
-- 클릭: CPC 수익 추가 (순수 수익)
+- 클릭: 토큰 30,000 비용 $0.0057, eCPM $5 기준 수익 $0.005 → 손익분기 근접
 
-### 경로 B: 인터벌 대화형 Native 광고 (`AdNativeBubble` trailingWidget)
-
-`conversationalAdNotifierProvider`가 트리거하는 대화형 광고. 채팅 리스트 끝에 표시.
-
-```
-메시지 6개(=3교환)마다
-    ↓
-checkAndTrigger() → intervalAd
-    ↓
-Native 광고 로드 & 채팅 리스트 끝에 AdNativeBubble 표시
-안내 문구: "관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요"
-    ↓
-┌─────────────────────────────────────────────┐
-│ [노출] onAdImpression 발동                    │
-│   → trackNativeImpression() (DB 카운터)       │
-│   → 토큰 0 (impressionRewardTokens = 0)      │
-└─────────────────────────────────────────────┘
-    ↓ (유저가 광고 클릭 시)
-┌─────────────────────────────────────────────┐
-│ [클릭] _onAdClicked 발동                      │
-│   → trackNativeClick() (DB 카운터)            │
-│   → _saveNativeBonusToServer(30,000)         │
-│     → add_native_bonus_tokens RPC            │
-│     → native_tokens_earned += 30,000         │
-│   → addBonusTokens(30,000) client-side       │
-│   → dismissAd() → 채팅 자동 재개              │
-└─────────────────────────────────────────────┘
-```
-
-**수익 계산:**
-- 노출만: eCPM 수익 $0.003~0.007, 토큰 비용 $0 → **100% 마진**
-- 클릭 시: 토큰 30,000 비용 $0.0057, eCPM $5 기준 수익 $0.005 → **손익분기 근접**
-- 클릭 시 (높은 CTR, eCPM $10+): 수익 $0.010+ → **43%+ 마진**
-
-### 경로 C: 토큰 소진 - 2버튼 선택 (`TokenDepletedBanner`)
+### 경로 B: 토큰 소진 - 2버튼 선택 (`TokenDepletedBanner`)
 
 토큰 100% 소진 시 채팅 입력 필드 위에 배너로 표시.
 
@@ -156,40 +124,91 @@ AdNativeBubble 표시 (채팅 리스트 끝)
 
 ---
 
-## 3. v28 변경사항 (2026-02-02)
+## 3. 순차 흐름 (유저 시점)
 
-### 3-1. 청운도사 페르소나 제거
+```
+[앱 시작] daily_quota = 20,000
 
-| 항목 | Before (v27) | After (v28) |
-|------|-------------|-------------|
-| 광고 UI | `ConversationalAdWidget` (청운도사 헤더 + 전환 메시지 + CTA) | `TokenDepletedBanner` (간결한 2버튼) + `AdNativeBubble` (trailingWidget) |
-| 페르소나 | 청운도사 캐릭터 헤더 + AI 전환 문구 | 없음 (깔끔한 배너) |
-| 위치 | 채팅 리스트 끝 (trailing) | 토큰 소진: 입력 필드 위 배너 / 인터벌: 채팅 끝 trailing |
+메시지 1~3 (교환 1~1.5): 광고 없음
+    ↓
+메시지 4 (교환 2): 첫 인라인 광고 (ChatAdWidget)
+  → "관심 있는 광고를 살펴보시면 대화가 더 많아져요"
+  → 클릭 시 +30,000 토큰 / 노출만은 0
+    ↓
+메시지 5~8 (교환 3~4): 메시지 8에서 또 인라인 광고
+    ↓
+... 계속 4메시지마다 인라인 광고 반복 ...
+    ↓
+토큰 소진 (chatting_tokens >= effective_quota)
+  → 메시지 전송 차단
+  → TokenDepletedBanner 표시 (입력 필드 위)
+    ↓
+[영상 선택] → 시청 완료 → +20,000 토큰 → 대화 재개
+[네이티브 선택] → AdNativeBubble 표시
+  → "관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요"
+  → 클릭 시 +30,000 토큰 → 대화 재개
+    ↓
+다시 위로 반복 (무한 루프)
+```
 
-### 3-2. 토큰 보상 정리
+### 안내 문구 분기
 
-| 항목 | Before (v27) | After (v28) |
-|------|-------------|-------------|
-| `impressionRewardTokens` | 1,500 | **0** (노출만으로는 토큰 미지급) |
-| `depletedRewardTokensVideo` | 35,000 (5교환) | **20,000** (≈3교환) |
-| `depletedRewardTokensNative` | 21,000 (3교환) | **30,000** (≈4교환, 클릭 시에만) |
-| `intervalClickRewardTokens` | 1,500 (클릭 보너스) | **30,000** (클릭 시에만) |
-| `inlineAdMessageInterval` | 2 | **6** (3교환마다) |
-| `inlineAdMinMessages` | 2 | **6** (3교환 후 시작) |
-
-### 3-3. 인라인 광고 배치 수정
-
-- AI 응답 뒤에만 삽입 (유저↔AI 대화쌍 사이에 광고 삽입 금지)
-- `_calculateItemsWithAds`에서 `messages[i].isAi` 체크 추가
-
-### 3-4. 네이티브 광고 안내 문구
-
-- 광고 아래 안내: "관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요"
-- AdMob 정책 준수: "클릭하세요" 직접 유도 금지, 보상 연계 안내는 허용
+| 상황 | 문구 | 위치 |
+|------|------|------|
+| 토큰 있음 (인라인 광고) | "관심 있는 광고를 살펴보시면 대화가 **더 많아져요**" | `chat_ad_factory.dart` |
+| 토큰 소진 (네이티브 선택) | "관심 있는 광고를 살펴보시면 대화를 **이어갈 수 있어요**" | `saju_chat_shell.dart` |
 
 ---
 
-## 4. 서버 추적 흐름 (v28)
+## 4. v28 변경사항 (2026-02-02)
+
+### 4-1. 청운도사 페르소나 제거
+
+| 항목 | Before (v27) | After (v28) |
+|------|-------------|-------------|
+| 광고 UI | `ConversationalAdWidget` (청운도사 헤더 + 전환 메시지 + CTA) | `TokenDepletedBanner` (간결한 2버튼) |
+| 페르소나 | 청운도사 캐릭터 헤더 + AI 전환 문구 | 없음 (깔끔한 배너) |
+
+### 4-2. 인터벌 광고 제거
+
+| 항목 | Before (v27) | After (v28) |
+|------|-------------|-------------|
+| 대화 중 광고 | 인터벌 `AdNativeBubble` trailing + 인라인 `ChatAdWidget` (겹침) | **인라인 `ChatAdWidget`만** |
+| 인터벌 트리거 | `checkIntervalTrigger()` → `intervalAd` | **비활성화** (`return AdTriggerResult.none`) |
+| `AdNativeBubble` 사용처 | 인터벌 + 토큰 소진 | **토큰 소진 시에만** |
+
+### 4-3. 인라인 광고 클릭 시 토큰 보상 추가
+
+| 항목 | Before (v27) | After (v28) |
+|------|-------------|-------------|
+| 인라인 광고 클릭 | DB 추적만 (`native_clicks += 1`) | DB 추적 + **토큰 30,000 지급** |
+| 처리 코드 | `AdTrackingService.trackNativeClick()` | + `TokenRewardService.grantNativeAdTokens(30,000)` |
+| 적용 위젯 | - | `NativeAdWidget`, `CompactNativeAdWidget` |
+
+### 4-4. 토큰 보상 정리
+
+| 항목 | v27 | v28 |
+|------|-----|-----|
+| `impressionRewardTokens` | 1,500 | **0** |
+| `depletedRewardTokensVideo` | 35,000 | **20,000** |
+| `depletedRewardTokensNative` | 21,000 | **30,000** |
+| `intervalClickRewardTokens` | 1,500 | **30,000** |
+| `inlineAdMessageInterval` | 2 | **4** |
+| `inlineAdMinMessages` | 2 | **4** |
+
+### 4-5. 안내 문구 분기
+
+- 인라인 (토큰 있을 때): "대화가 더 **많아져요**"
+- 소진 (토큰 없을 때): "대화를 **이어갈 수 있어요**"
+
+### 4-6. AdWidget 에러 수정
+
+- `AdNativeBubble` → `StatefulWidget`으로 변경, `AdWidget` 인스턴스 캐싱
+- 인터벌 광고 비활성화로 "AdWidget is already in the Widget tree" 에러 근본 해결
+
+---
+
+## 5. 서버 추적 흐름 (v28)
 
 ```
 [Flutter App]                              [Supabase DB]
@@ -198,16 +217,20 @@ AdNativeBubble 표시 (채팅 리스트 끝)
     ├─── insert_chat RPC ───────────────────────► chatting_tokens += N
     │                                           │ (DB Trigger 자동)
     │                                           │
-    │  Native 광고 impression (인라인/인터벌)      │
+    │  인라인 Native 광고 impression              │
     ├─── trackNativeImpression ─────────────────► native_impressions += 1
     │    (토큰 보상 없음, 추적만)                  │
     │                                           │
-    │  Native 광고 클릭 (인터벌/소진)              │
+    │  인라인 Native 광고 클릭                     │
     ├─── trackNativeClick ──────────────────────► native_clicks += 1
-    ├─── _saveNativeBonusToServer(30,000) ──────► native_tokens_earned += 30,000
+    ├─── grantNativeAdTokens(30,000) ───────────► native_tokens_earned += 30,000
+    │    (TokenRewardService 직접 호출)            │ ads_watched += 1
+    │                                           │
+    │  토큰 소진 → 네이티브 선택 → 클릭            │
+    ├─── _onAdClicked → _saveNativeBonusToServer ► native_tokens_earned += 30,000
     │                                           │ ads_watched += 1
     │                                           │
-    │  Rewarded Video 완료 (소진 시)              │
+    │  토큰 소진 → 영상 선택 → 시청 완료           │
     ├─── trackRewarded(20,000) ─────────────────► rewarded_tokens_earned += 20,000
     │                                           │ rewarded_completes += 1
     │                                           │
@@ -221,48 +244,20 @@ AdNativeBubble 표시 (채팅 리스트 끝)
 
 ---
 
-## 5. 무한 채팅 수익 구조
-
-### 핵심 원리
-
-```
-유저가 더 채팅할수록 → 더 많은 광고 노출 → 더 많은 수입
-
-무료 3교환: 적자 (-$0.003 Gemini 비용)
-인라인 광고 1회 노출: +$0.003~0.007 (순수 수익, 토큰 비용 $0)
-인터벌 광고 클릭: +$0.003~0.007 - 토큰 비용 $0.0057 = 손익분기 근접
-
-유저 1명이 하루 10교환 시:
-- Gemini 비용: 10 × $0.001 = $0.010
-- 인라인 Native 노출 ~1회: $0.003~0.007
-- 인터벌 Native 노출 ~1회: $0.003~0.007
-- Native 클릭 1회: 토큰 비용 $0.0057
-- Rewarded Video 1회: 수익 $0.015, 토큰 비용 $0.0038
-- 총 수입: ~$0.02~0.03
-- 총 비용: ~$0.020
-- 순이익: +$0.000~0.010/일
-```
-
-### Rewarded Video가 핵심 수익원
-
-- **Rewarded Video (eCPM $15~30)**: 1회 수익 $0.015~0.030, 마진 75%
-- **Native 클릭**: 손익분기 근접, 유저 리텐션 목적
-- **Native 노출**: 100% 마진 (토큰 비용 $0)
-
----
-
 ## 6. 코드 위치 참조
 
 | 역할 | 파일 |
 |------|------|
 | 광고 전략 설정 + 토큰 보상 상수 | `ad/ad_strategy.dart` |
-| 토큰 트리거 로직 | `saju_chat/data/services/ad_trigger_service.dart` |
+| 토큰 트리거 로직 (인터벌 비활성화) | `saju_chat/data/services/ad_trigger_service.dart` |
 | 광고 상태 관리 | `saju_chat/presentation/providers/conversational_ad_provider.dart` |
 | 채팅 토큰 관리 | `saju_chat/presentation/providers/chat_provider.dart` |
 | 토큰 소진 2버튼 배너 | `saju_chat/presentation/widgets/token_depleted_banner.dart` |
-| 네이티브 광고 버블 | `saju_chat/presentation/widgets/ad_native_bubble.dart` |
-| 인라인 광고 (정적) | `ad/widgets/chat_ad_widget.dart` |
-| 채팅 쉘 (배너 + trailingWidget) | `saju_chat/presentation/screens/saju_chat_shell.dart` |
+| 소진→네이티브 광고 버블 | `saju_chat/presentation/widgets/ad_native_bubble.dart` |
+| 인라인 광고 팩토리 + 힌트 | `ad/widgets/chat_ad_factory.dart` |
+| 인라인 네이티브 위젯 (클릭 보상) | `ad/widgets/native_ad_widget.dart` |
+| 토큰 보상 서비스 | `ad/token_reward_service.dart` |
+| 채팅 쉘 (배너 + trailing) | `saju_chat/presentation/screens/saju_chat_shell.dart` |
 | 인라인 광고 위치 계산 | `saju_chat/presentation/widgets/chat_message_list.dart` |
 
 ---

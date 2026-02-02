@@ -84,7 +84,7 @@ class ChatAdWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 56, top: 4, bottom: 8),
           child: Text(
-            '관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요',
+            '관심 있는 광고를 살펴보시면 대화가 더 많아져요',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               fontSize: 12,

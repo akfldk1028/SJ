@@ -28,7 +28,7 @@ is_quota_exceeded = chatting_tokens >= (daily_quota + bonus_tokens + rewarded_to
 | `daily_quota` | 일일 무료 할당 (20,000) | Edge Function (레코드 생성 시) |
 | `bonus_tokens` | 관리자 수동 지급 | admin RPC |
 | `rewarded_tokens_earned` | Rewarded Video 광고 보상 | `trackRewarded()` → `incrementDailyCounter` |
-| `native_tokens_earned` | Native 광고 **클릭** 보상 | `_onAdClicked()` → `add_native_bonus_tokens` RPC |
+| `native_tokens_earned` | Native 광고 **클릭** 보상 (인라인/인터벌/소진 모두) | `_onAdClicked()` 또는 `TokenRewardService.grantNativeAdTokens()` → `add_native_bonus_tokens` RPC |
 
 ### 핵심 원칙: Native 광고는 클릭해야만 토큰 지급
 - **노출(impression)**: 토큰 0 → 광고 수익만 발생 (비용 $0)
@@ -52,7 +52,7 @@ is_quota_exceeded = chatting_tokens >= (daily_quota + bonus_tokens + rewarded_to
 │  교환 1: 유저 질문 → AI 응답 (~7,200 토큰 소비)                     │
 │  교환 2: 유저 질문 → AI 응답 (~7,200 토큰 소비)                     │
 │  교환 3: 유저 질문 → AI 응답 (~7,200 토큰 소비)                     │
-│  ── 6메시지 도달 → 인터벌 Native 광고 (1회) ──                     │
+│  ── 4메시지 도달 → 인라인/인터벌 Native 광고 ──                    │
 │    → 노출만: 토큰 0, 스킵 가능 (CPM 수익만)                        │
 │    → 클릭 시: +30,000 토큰 (≈4교환 추가, CPC $0.10~$0.50)         │
 │                                                                 │
@@ -101,15 +101,16 @@ is_quota_exceeded = chatting_tokens >= (daily_quota + bonus_tokens + rewarded_to
 
 ---
 
-## 3. 인터벌 광고 (대화 중 Native Ad)
+## 3. 인라인 광고 (대화 중 ChatAdWidget)
 
-대화 중간에 자연스럽게 삽입되는 Native 광고.
+채팅 메시지 사이에 정적으로 삽입되는 Native 광고. **대화 중 유일한 광고.**
 
-### 트리거 조건
-- `messageCount >= 6` (3번째 교환 후부터)
-- `messageCount % 6 == 0` (매 3교환마다)
-- 토큰 소진 트리거보다 **우선순위 낮음** (토큰 체크 먼저)
-- 유저가 **스킵 가능** (토큰 없이 대화 계속)
+> ~~인터벌 AdNativeBubble~~ → v28에서 비활성화. 인라인 ChatAdWidget이 대체.
+
+### 삽입 조건
+- `messageCount >= 4` (2번째 교환 후부터)
+- AI 응답 뒤에만 삽입 (유저↔AI 대화쌍 사이 금지)
+- `ChatMessageList._calculateItemsWithAds()`에서 계산
 
 ### 토큰 보상 (클릭 시에만)
 | 이벤트 | 토큰 | DB 컬럼 |
@@ -117,11 +118,15 @@ is_quota_exceeded = chatting_tokens >= (daily_quota + bonus_tokens + rewarded_to
 | Impression (노출) | **0** (미지급) | - |
 | Click (클릭) | **+30,000** | `native_tokens_earned` |
 
+### 안내 문구
+- "관심 있는 광고를 살펴보시면 대화가 더 많아져요" (토큰 있을 때)
+
 ### 설정값 (`ad_strategy.dart`)
 ```
-inlineAdMessageInterval = 6   (매 3교환마다)
-inlineAdMinMessages = 6        (3교환 후 시작)
+inlineAdMessageInterval = 4   (매 2교환마다)
+inlineAdMinMessages = 4        (2교환 후 시작)
 inlineAdMaxCount = 9999        (세션당 제한 없음)
+intervalClickRewardTokens = 30000  (클릭 시 보상)
 ```
 
 ---
@@ -461,13 +466,15 @@ Native Ad:
 
 | 역할 | 파일 | 핵심 상수/메서드 |
 |------|------|----------------|
-| 광고 전략 설정 + 토큰 보상 상수 | `ad/ad_strategy.dart` | `inlineAdMessageInterval=6`, `depletedRewardTokensVideo=20000`, `depletedRewardTokensNative=30000`, `intervalClickRewardTokens=30000` |
+| 광고 전략 설정 + 토큰 보상 상수 | `ad/ad_strategy.dart` | `inlineAdMessageInterval=4`, `depletedRewardTokensVideo=20000`, `depletedRewardTokensNative=30000`, `intervalClickRewardTokens=30000` |
 | 토큰 트리거 로직 | `saju_chat/data/services/ad_trigger_service.dart` | `checkTrigger()` (AdStrategy에 위임) |
 | 광고 상태 관리 | `saju_chat/presentation/providers/conversational_ad_provider.dart` | `_onAdClicked()`, `_saveNativeBonusToServer()`, `switchToNativeAd()` |
 | 채팅 토큰 관리 | `saju_chat/presentation/providers/chat_provider.dart` | `addBonusTokens()` |
 | 토큰 소진 2버튼 배너 | `saju_chat/presentation/widgets/token_depleted_banner.dart` | 영상/네이티브 선택 UI |
 | 네이티브 광고 버블 | `saju_chat/presentation/widgets/ad_native_bubble.dart` | 채팅 버블 스타일 광고 |
-| 인라인 정적 광고 | `ad/widgets/chat_ad_widget.dart` | ChatAdWidget (ChatMessageList에 삽입) |
+| 인라인 정적 광고 | `ad/widgets/chat_ad_factory.dart` | ChatAdWidget (ChatMessageList에 삽입, 안내 문구 포함) |
+| 인라인 네이티브 위젯 | `ad/widgets/native_ad_widget.dart` | NativeAdWidget, CompactNativeAdWidget (클릭 시 토큰 보상) |
+| 토큰 보상 서비스 | `ad/token_reward_service.dart` | `grantNativeAdTokens()`, `grantRewardedAdTokens()` |
 | 인라인 광고 위치 계산 | `saju_chat/presentation/widgets/chat_message_list.dart` | `_calculateItemsWithAds()` (AI 응답 뒤에만 삽입) |
 | 채팅 쉘 (배너+trailing) | `saju_chat/presentation/screens/saju_chat_shell.dart` | `_buildChatListWithAd()`, `_TokenDepletedBanner` |
 | Gemini quota 체크 | `supabase/functions/ai-gemini/index.ts` | `checkAndUpdateQuota()`, `getTodayKST()` |
@@ -486,8 +493,8 @@ Native Ad:
 | `depletedRewardTokensNative` | 30,000 (클릭 시에만) | `ad_strategy.dart` |
 | `intervalClickRewardTokens` | 30,000 (클릭 시에만) | `ad_strategy.dart` |
 | `impressionRewardTokens` | 0 (노출 보상 없음) | `ad_trigger_service.dart` |
-| `inlineAdMessageInterval` | 6 (매 3교환마다) | `ad_strategy.dart` |
-| `inlineAdMinMessages` | 6 (3교환 후 시작) | `ad_strategy.dart` |
+| `inlineAdMessageInterval` | 4 (매 2교환마다) | `ad_strategy.dart` |
+| `inlineAdMinMessages` | 4 (2교환 후 시작) | `ad_strategy.dart` |
 | `inlineAdMaxCount` | 9999 (무제한) | `ad_strategy.dart` |
 | `tokenWarningThreshold` | 0.8 (비활성, warningRewardTokens=0) | `ad_trigger_service.dart` |
 | `tokenDepletedThreshold` | 1.0 | `ad_trigger_service.dart` |
