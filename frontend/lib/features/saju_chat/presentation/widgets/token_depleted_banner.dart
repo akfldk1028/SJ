@@ -1,8 +1,7 @@
-/// 토큰 소진 시 2버튼 배너 (ChatInputField 바로 위)
+/// 토큰 소진 시 광고 배너 (ChatInputField 바로 위)
 ///
-/// 청운도사 페르소나 헤더/전환 메시지 없이 깔끔한 2버튼만 표시.
-/// - 영상 보고 5번 대화 (Rewarded Video)
-/// - 광고 보고 3번 대화 (Native Ad → 채팅창 안에 표시)
+/// v2: 클릭 광고만 사용 (영상 제거)
+/// - 광고 보고 2번 더 대화하기 (Native Ad → 채팅창 안에 표시)
 library;
 
 import 'package:flutter/material.dart';
@@ -14,9 +13,10 @@ import '../../data/services/ad_trigger_service.dart';
 import '../providers/conversational_ad_provider.dart';
 import '../providers/chat_provider.dart';
 
-/// 토큰 소진 시 2버튼 배너
+/// 토큰 소진 시 광고 배너
 ///
-/// tokenDepleted 상태에서만 2버튼을 표시.
+/// v2: 클릭 광고만 사용 (영상 제거)
+/// tokenDepleted 상태에서만 버튼 1개 표시.
 /// 네이티브 광고는 채팅 메시지 리스트 안에 trailingWidget으로 표시됨.
 class TokenDepletedBanner extends ConsumerWidget {
   final String sessionId;
@@ -27,17 +27,17 @@ class TokenDepletedBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final adState = ref.watch(conversationalAdNotifierProvider);
 
-    // tokenDepleted: 2버튼 배너만 표시
+    // tokenDepleted: 광고 배너 표시
     // 나머지 상태(inlineInterval, adWatched)는 채팅 리스트 안에서 처리
     if (!adState.isAdMode || adState.adType != AdMessageType.tokenDepleted) {
       return const SizedBox.shrink();
     }
 
-    return _buildTwoButtonBanner(context, ref);
+    return _buildAdBanner(context, ref);
   }
 
-  /// 2버튼 배너 (영상 광고 / 네이티브 광고)
-  Widget _buildTwoButtonBanner(BuildContext context, WidgetRef ref) {
+  /// 광고 배너 (클릭 광고만)
+  Widget _buildAdBanner(BuildContext context, WidgetRef ref) {
     final appTheme = context.appTheme;
 
     return Container(
@@ -72,50 +72,21 @@ class TokenDepletedBanner extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          // 2버튼 행
-          Row(
-            children: [
-              // 영상 광고 버튼
-              Expanded(
-                child: AdChoiceButton(
-                  label: '🎬 영상 보고 5번 대화',
-                  isPrimary: true,
-                  onPressed: () => _handleVideoAd(ref),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // 네이티브 광고 버튼
-              Expanded(
-                child: AdChoiceButton(
-                  label: '📋 광고 보고 3번 대화',
-                  isPrimary: false,
-                  onPressed: () => _handleNativeAd(ref),
-                ),
-              ),
-            ],
+          // 클릭 광고 버튼 (1개만)
+          SizedBox(
+            width: double.infinity,
+            child: AdChoiceButton(
+              label: '📋 광고 보고 2번 더 대화하기',
+              isPrimary: true,
+              onPressed: () => _handleNativeAd(ref),
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 영상 광고 선택 (Rewarded Video → 5번 대화)
-  /// 영상 완료 후 자동으로 토큰 충전 + 대화 재개 (버튼 없이 바로)
-  void _handleVideoAd(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    final success = await notifier.showRewardedAd(
-      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-    );
-    if (success) {
-      notifier.onAdWatched(
-        rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-      );
-      // 영상 완료 → 바로 토큰 충전 + 광고 모드 해제
-      _handleAdComplete(ref);
-    }
-  }
-
-  /// 네이티브 광고 선택 → 채팅 리스트 안에 광고 표시
+  /// 네이티브 광고 선택 → 채팅 리스트 안에 광고 표시 (15,000 토큰)
   void _handleNativeAd(WidgetRef ref) {
     final notifier = ref.read(conversationalAdNotifierProvider.notifier);
     notifier.switchToNativeAd(
@@ -140,7 +111,7 @@ class TokenDepletedBanner extends ConsumerWidget {
   }
 }
 
-/// 광고 선택 버튼 (2버튼 배너용)
+/// 광고 버튼
 class AdChoiceButton extends StatelessWidget {
   final String label;
   final bool isPrimary;

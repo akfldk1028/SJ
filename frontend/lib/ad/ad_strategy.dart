@@ -91,11 +91,13 @@ abstract class AdStrategy {
 
   /// 토큰 소진 → 영상 광고(Rewarded Video) 보상 토큰
   /// eCPM $15~30 → 1회 수익 $0.015~0.030
-  static const int depletedRewardTokensVideo = 20000;
+  /// v2: 영상 광고 제거 (클릭 광고만 사용)
+  static const int depletedRewardTokensVideo = 0;
 
   /// 토큰 소진 → 네이티브 광고 보상 토큰 (클릭 시에만 지급)
-  /// Native eCPM $3~7 → 클릭 시 CPC $0.10~0.50
-  static const int depletedRewardTokensNative = 7000;
+  /// Native CPC $0.10~0.50 → 클릭 시 웹 방문
+  /// v2: 15,000 토큰 (2교환) - 클릭 1번으로 즉시 흑자
+  static const int depletedRewardTokensNative = 15000;
 
   /// 인터벌(대화 중) 네이티브 광고 클릭 시 보상 토큰
   static const int intervalClickRewardTokens = 7000;
