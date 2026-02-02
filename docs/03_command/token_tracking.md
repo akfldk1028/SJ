@@ -15,9 +15,9 @@
 |------|----------|------|
 | `saju_analysis_tokens` | ai-openai-result (Edge Function) | GPT-5.2 사주 분석 (saju_base) |
 | `daily_fortune_tokens` | PostgreSQL trigger (`trg_update_token_usage_on_ai_summaries`) | Gemini 일운 분석 |
-| `monthly_fortune_tokens` | ai-openai-result (Edge Function) | GPT-5.2 월운 분석 |
-| `yearly_fortune_2025_tokens` | ai-openai-result (Edge Function) | GPT-5.2 2025 회고 |
-| `yearly_fortune_2026_tokens` | ai-openai-result (Edge Function) | GPT-5.2 2026 신년운 |
+| `monthly_fortune_tokens` | ai-openai-result (Edge Function) | GPT-5-mini 월운 분석 |
+| `yearly_fortune_2025_tokens` | ai-openai-result (Edge Function) | GPT-5-mini 2025 회고 |
+| `yearly_fortune_2026_tokens` | ai-openai-result (Edge Function) | GPT-5-mini 2026 신년운 |
 | `chatting_tokens` | PostgreSQL trigger (`trg_update_daily_chat_tokens`) | Gemini 채팅 대화 |
 
 ### Generated 컬럼 (자동 계산)

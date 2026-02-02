@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../purchase_config.dart';
 import '../providers/purchase_provider.dart';
 
-/// 프리미엄/광고제거 뱃지
+/// 프리미엄 뱃지
 ///
-/// 사용자의 구매 상태에 따라 적절한 뱃지 표시
-/// - AI 프리미엄: 보라색 뱃지
-/// - 광고 제거: 금색 뱃지
+/// 사용자의 구매 상태에 따라 뱃지 표시
+/// - 프리미엄: 보라색 PRO 뱃지
 /// - 무료: 표시 안 함
 class PremiumBadgeWidget extends ConsumerWidget {
   const PremiumBadgeWidget({super.key});
@@ -21,15 +20,10 @@ class PremiumBadgeWidget extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (info) {
-        final isAiPremium = info.entitlements.all[PurchaseConfig.entitlementAiPremium]?.isActive == true;
-        final isAdFree = info.entitlements.all[PurchaseConfig.entitlementAdFree]?.isActive == true;
+        final isPremium = info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true;
 
-        if (isAiPremium) {
+        if (isPremium) {
           return const BadgeLabel(label: 'PRO', color: Color(0xFF8B7FFF));
-        }
-
-        if (isAdFree) {
-          return const BadgeLabel(label: 'AD FREE', color: Color(0xFFD4AF37));
         }
 
         return const SizedBox.shrink();

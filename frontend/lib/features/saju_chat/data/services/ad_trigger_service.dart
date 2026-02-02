@@ -64,7 +64,7 @@ abstract class AdTriggerService {
     required int messageCount,
     bool tokenWarningOnCooldown = false,
     int shownAdCount = 0,
-    bool isAdFree = false,
+    bool isPremium = false,
   }) {
     // 1. 토큰 기반 트리거 (우선순위 높음)
     final tokenTrigger = checkTokenTrigger(
@@ -75,14 +75,14 @@ abstract class AdTriggerService {
       // 광고 제거 구매자: 토큰 소진(100%) 보상형 광고만 허용
       // → 강제 광고 아님, 유저가 직접 선택해서 시청 → 토큰 충전
       // 토큰 경고(80%)는 차단 (강제성 있는 광고이므로)
-      if (isAdFree && tokenTrigger != AdTriggerResult.tokenDepleted) {
+      if (isPremium && tokenTrigger != AdTriggerResult.tokenDepleted) {
         return AdTriggerResult.none;
       }
       return tokenTrigger;
     }
 
     // 광고 제거 구매자 → 인터벌(강제) 광고 차단
-    if (isAdFree) return AdTriggerResult.none;
+    if (isPremium) return AdTriggerResult.none;
 
     // 2. 인터벌 광고 비활성화 (v28)
     // 인라인 ChatAdWidget이 4메시지마다 표시되므로 인터벌 AdNativeBubble 불필요.

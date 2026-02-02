@@ -8,13 +8,18 @@ abstract class PurchaseConfig {
   static const String revenueCatApiKeyIos = 'appl_xxx'; // TODO: 실제 키로 교체
 
   // ── Entitlements ──
-  static const String entitlementAdFree = 'ad_free';
-  static const String entitlementAiPremium = 'ai_premium';
+  /// 단일 통합 entitlement: 프리미엄 (광고 제거 + AI 무제한)
+  static const String entitlementPremium = 'premium';
 
   // ── Product IDs ──
-  static const String productAdRemoval = 'sadam_ad_removal';
-  static const String productAiPremium = 'sadam_ai_premium';
-  static const String productCombo = 'sadam_combo';
+  /// 1일 이용권 (비소모성, 24시간)
+  static const String productDayPass = 'sadam_day_pass';
+
+  /// 1주일 이용권 (비소모성, 7일)
+  static const String productWeekPass = 'sadam_week_pass';
+
+  /// 월간 구독 (자동 갱신)
+  static const String productMonthly = 'sadam_monthly';
 
   // ── Quota ──
   static const int premiumDailyQuota = 1000000000; // 무제한

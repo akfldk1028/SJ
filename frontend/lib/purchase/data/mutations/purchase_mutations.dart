@@ -18,27 +18,16 @@ abstract class PurchaseMutations {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
 
-      // 활성 entitlements 확인 후 기록
-      final adFree =
-          customerInfo.entitlements.all[PurchaseConfig.entitlementAdFree];
-      final aiPremium =
-          customerInfo.entitlements.all[PurchaseConfig.entitlementAiPremium];
+      // 활성 entitlement 확인 후 기록
+      final premium =
+          customerInfo.entitlements.all[PurchaseConfig.entitlementPremium];
 
-      if (adFree?.isActive == true) {
+      if (premium?.isActive == true) {
         await _upsertSubscription(
           userId: userId,
-          productId: adFree!.productIdentifier,
-          isLifetime: adFree.productIdentifier == PurchaseConfig.productAdRemoval,
-          expiresAt: adFree.expirationDate,
-        );
-      }
-
-      if (aiPremium?.isActive == true) {
-        await _upsertSubscription(
-          userId: userId,
-          productId: aiPremium!.productIdentifier,
+          productId: premium!.productIdentifier,
           isLifetime: false,
-          expiresAt: aiPremium.expirationDate,
+          expiresAt: premium.expirationDate,
         );
       }
     } catch (e) {

@@ -131,7 +131,7 @@ effective_quota 구성:
 ├─────────────────┤
 │ rewarded_tokens  │  Rewarded Video 시청 완료 (+20,000/회)
 ├─────────────────┤
-│ native_tokens    │  Native Ad **클릭** 보상 (+30,000/회, 노출만으로는 0)
+│ native_tokens    │  Native Ad **클릭** 보상 (+7,000/회, 노출만으로는 0)
 └─────────────────┘
 ```
 
@@ -143,8 +143,8 @@ effective_quota 구성:
 1. 기본 20,000 토큰 → 약 3교환
 2. 토큰 소진 → 2버튼 UI (Rewarded Video / Native Ad)
 3. Rewarded Video 시청 → rewarded_tokens_earned +20,000 → 약 3교환 추가
-4. Native Ad 클릭 → native_tokens_earned +30,000 → 약 4교환 추가
+4. Native Ad 클릭 → native_tokens_earned +7,000 → 약 1교환 추가
 5. 다시 소진 → 2번으로 돌아감 (무한 반복)
-6. 인터벌 광고 클릭 시 → native_tokens_earned +30,000 추가
+6. 인라인 광고 클릭 시 → native_tokens_earned +7,000 추가
 7. 인터벌/인라인 노출만 → 토큰 0 (순수 eCPM 수익)
 ```

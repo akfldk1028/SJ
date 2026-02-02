@@ -95,7 +95,7 @@ class AdController extends _$AdController {
 
     // 인앱구매 광고 제거 체크
     final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
-    if (purchaseNotifier.isAdFree) {
+    if (purchaseNotifier.isPremium) {
       return const AdCheckResult.skip('광고 제거 구매');
     }
 
@@ -137,7 +137,7 @@ class AdController extends _$AdController {
 
     // 인앱구매 광고 제거 체크
     final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
-    if (purchaseNotifier.isAdFree) {
+    if (purchaseNotifier.isPremium) {
       debugPrint('[AdController] 광고 제거 구매자 - 스킵');
       return false;
     }
@@ -163,7 +163,7 @@ class AdController extends _$AdController {
 
     // 인앱구매 광고 제거 체크
     final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
-    if (purchaseNotifier.isAdFree) {
+    if (purchaseNotifier.isPremium) {
       debugPrint('[AdController] 광고 제거 구매자 - 스킵');
       return false;
     }

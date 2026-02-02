@@ -96,16 +96,16 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
 
     // 광고 제거 구매 여부 체크
     final purchaseState = ref.read(purchaseNotifierProvider);
-    final isAdFree = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementAdFree]?.isActive == true;
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive == true;
 
-    // 트리거 체크 (쿨다운 상태 + 광고 카운터 + 광고제거 전달)
+    // 트리거 체크 (쿨다운 상태 + 광고 카운터 + 프리미엄 전달)
     final trigger = AdTriggerService.checkTrigger(
       tokenUsage: tokenUsage,
       messageCount: messageCount,
       tokenWarningOnCooldown: _tokenWarningCooldown > 0,
       shownAdCount: _shownAdCount,
-      isAdFree: isAdFree,
+      isPremium: isPremium,
     );
 
     if (trigger == AdTriggerResult.none) {

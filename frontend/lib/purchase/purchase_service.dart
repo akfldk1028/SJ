@@ -40,30 +40,15 @@ class PurchaseService {
     }
   }
 
-  /// 광고 제거 여부 (ad_removal 또는 combo 구매)
-  Future<bool> get isAdFree async {
+  /// 프리미엄 여부 (day_pass, week_pass, monthly 중 하나 활성)
+  Future<bool> get isPremium async {
     try {
       final info = await Purchases.getCustomerInfo();
-      return info.entitlements.all[PurchaseConfig.entitlementAdFree]?.isActive ==
+      return info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive ==
           true;
     } catch (e) {
       if (kDebugMode) {
-        print('[PurchaseService] isAdFree 체크 실패: $e');
-      }
-      return false;
-    }
-  }
-
-  /// AI 프리미엄 여부 (ai_premium 또는 combo 구독)
-  Future<bool> get isAiPremium async {
-    try {
-      final info = await Purchases.getCustomerInfo();
-      return info.entitlements
-              .all[PurchaseConfig.entitlementAiPremium]?.isActive ==
-          true;
-    } catch (e) {
-      if (kDebugMode) {
-        print('[PurchaseService] isAiPremium 체크 실패: $e');
+        print('[PurchaseService] isPremium 체크 실패: $e');
       }
       return false;
     }

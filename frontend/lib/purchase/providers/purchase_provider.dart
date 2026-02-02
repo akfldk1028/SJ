@@ -21,25 +21,19 @@ class PurchaseNotifier extends _$PurchaseNotifier {
 
   // ── Entitlement 체크 ──
 
-  bool get isAdFree {
+  bool get isPremium {
     return state.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementAdFree]?.isActive ==
-        true;
-  }
-
-  bool get isAiPremium {
-    return state.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementAiPremium]?.isActive ==
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
         true;
   }
 
   // ── 파생 상태 ──
 
-  int get dailyQuota => isAiPremium
+  int get dailyQuota => isPremium
       ? PurchaseConfig.premiumDailyQuota
       : PurchaseConfig.freeDailyQuota;
 
-  bool get showAds => !isAdFree;
+  bool get showAds => !isPremium;
 
   // ── 액션 ──
 

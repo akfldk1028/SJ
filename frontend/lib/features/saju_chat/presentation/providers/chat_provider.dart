@@ -539,8 +539,8 @@ class ChatNotifier extends _$ChatNotifier {
     // AI 프리미엄 구독자: quota 체크 스킵
     // ═══════════════════════════════════════════════════════════════════════════
     final purchaseState = ref.read(purchaseNotifierProvider);
-    final isAiPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementAiPremium]?.isActive == true;
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive == true;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // 토큰 이미 소진 상태 체크 (광고 모드 활성화)
@@ -548,7 +548,7 @@ class ChatNotifier extends _$ChatNotifier {
     // - AI 프리미엄 구독자는 스킵
     // ═══════════════════════════════════════════════════════════════════════════
     final currentTokenUsage = _repository.getTokenUsageInfo();
-    if (!isAiPremium && currentTokenUsage.usageRate >= 1.0) {
+    if (!isPremium && currentTokenUsage.usageRate >= 1.0) {
       final selectedPersona = ref.read(chatPersonaNotifierProvider);
       ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
         tokenUsage: currentTokenUsage,
@@ -1150,7 +1150,7 @@ class ChatNotifier extends _$ChatNotifier {
           errorMsg.contains('네트워크');
 
       final isPremiumUser = ref.read(purchaseNotifierProvider).valueOrNull
-              ?.entitlements.all[PurchaseConfig.entitlementAiPremium]?.isActive == true;
+              ?.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true;
 
       if (isRetryableError) {
         state = state.copyWith(
