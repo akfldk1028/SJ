@@ -96,15 +96,21 @@ is_quota_exceeded = chatting_tokens >= effective_quota
 
 ## RPC 함수
 
+### `increment_ad_counter(p_user_id, p_usage_date, p_column_name, p_increment)`
+- 광고 이벤트 카운터 범용 증가 (v29: TEXT/DATE 두 버전 동기화됨)
+- 허용 컬럼: `banner_impressions`, `banner_clicks`, `interstitial_shows/completes/clicks`, `rewarded_shows/completes/clicks/tokens_earned`, `native_impressions`, `native_clicks`, `native_tokens_earned`, `ads_watched`, `bonus_tokens_earned`
+- UPSERT 패턴: 레코드 없으면 생성 후 해당 컬럼만 증가
+
 ### `add_ad_bonus_tokens(p_user_id, p_bonus_tokens)`
-- Rewarded Ad 시청 완료 시 호출
+- Rewarded Ad 시청 완료 시 호출 (`TokenRewardService.grantRewardedAdTokens`)
 - `bonus_tokens += p_bonus_tokens`, `ads_watched += 1`
 - 반환: `{ success, new_quota, new_remaining }`
 
 ### `add_native_bonus_tokens(p_user_id, p_bonus_tokens)`
-- Native Ad impression/click 시 호출
+- Native Ad **클릭** 시 호출 (`TokenRewardService.grantNativeAdTokens`)
 - `native_tokens_earned += p_bonus_tokens`, `ads_watched += 1`
 - 반환: `{ success, new_quota, new_remaining }`
+- **주의**: `increment_ad_counter('native_tokens_earned')`와 중복 호출 금지 (이중 카운팅)
 
 ---
 

@@ -1,8 +1,8 @@
-# 만톡 v28 광고 비즈니스 로직 정리
+# 만톡 v29 광고 비즈니스 로직 정리
 
 **작성일**: 2026-02-01
 **최종 업데이트**: 2026-02-02
-**버전**: v28 (청운도사 제거 + 인터벌 광고 제거 + 인라인 클릭 보상)
+**버전**: v29 (v28 + Native Click 추적 수정 + iOS 가드 + AI Summary Lock)
 
 ---
 
@@ -209,7 +209,7 @@ AdNativeBubble 표시 (채팅 리스트 끝)
 
 ---
 
-## 5. 서버 추적 흐름 (v28)
+## 5. 서버 추적 흐름 (v29)
 
 ```
 [Flutter App]                              [Supabase DB]
@@ -218,18 +218,21 @@ AdNativeBubble 표시 (채팅 리스트 끝)
     ├─── insert_chat RPC ───────────────────────► chatting_tokens += N
     │                                           │ (DB Trigger 자동)
     │                                           │
-    │  인라인 Native 광고 impression              │
-    ├─── trackNativeImpression ─────────────────► native_impressions += 1
-    │    (토큰 보상 없음, 추적만)                  │
+    │  Native 광고 impression (모든 위젯 공통)     │
+    ├─── trackNativeImpression ─────────────────► ad_events INSERT
+    │    (토큰 보상 없음, 추적만)                  │ native_impressions += 1
     │                                           │
-    │  인라인 Native 광고 클릭                     │
-    ├─── trackNativeClick ──────────────────────► native_clicks += 1
+    │  Native 광고 클릭 (4개 호출부 모두 동일 패턴) │
+    │  ① CardNativeAdWidget (메뉴 카드)  ← v29 수정 │
+    │  ② NativeAdWidget (채팅 버블)               │
+    │  ③ CompactNativeAdWidget (컴팩트)           │
+    │  ④ ConversationalAdProvider (대화형)         │
+    ├─── trackNativeClick(rewardTokens: 7000) ──► ad_events INSERT (reward_amount: 7000)
+    │    │                                      │ native_clicks += 1
+    │    │  (native_tokens_earned는 여기서 증가 안 함 — 이중 카운팅 방지)
+    │    │                                      │
     ├─── grantNativeAdTokens(7,000) ────────────► native_tokens_earned += 7,000
-    │    (TokenRewardService 직접 호출)            │ ads_watched += 1
-    │                                           │
-    │  토큰 소진 → 네이티브 선택 → 클릭            │
-    ├─── _onAdClicked → _saveNativeBonusToServer ► native_tokens_earned += 7,000
-    │                                           │ ads_watched += 1
+    │    (add_native_bonus_tokens RPC)           │ ads_watched += 1
     │                                           │
     │  토큰 소진 → 영상 선택 → 시청 완료           │
     ├─── trackRewarded(20,000) ─────────────────► rewarded_tokens_earned += 20,000
@@ -242,6 +245,18 @@ AdNativeBubble 표시 (채팅 리스트 끝)
     │                   + rewarded_tokens_earned   │
     │                   + native_tokens_earned     │
 ```
+
+### 이중 카운팅 방지 원칙 (v29)
+
+| DB 컬럼 | 증가 경로 | 호출 횟수/클릭 |
+|---------|----------|--------------|
+| `ad_events` row | `trackNativeClick` → `_trackEvent` | 1 |
+| `native_clicks` | `trackNativeClick` → `increment_ad_counter` | 1 |
+| `native_tokens_earned` | `grantNativeAdTokens` → `add_native_bonus_tokens` **만** | 1 |
+| `ads_watched` | `add_native_bonus_tokens` **만** | 1 |
+
+> `trackNativeClick()`에서 `native_tokens_earned`를 증가시키면 `add_native_bonus_tokens`와 **이중 카운팅** 발생.
+> 따라서 `trackNativeClick`은 `native_clicks`만 증가, 토큰은 별도 RPC에서만 처리.
 
 ---
 
@@ -257,9 +272,53 @@ AdNativeBubble 표시 (채팅 리스트 끝)
 | 소진→네이티브 광고 버블 | `saju_chat/presentation/widgets/ad_native_bubble.dart` |
 | 인라인 광고 팩토리 + 힌트 | `ad/widgets/chat_ad_factory.dart` |
 | 인라인 네이티브 위젯 (클릭 보상) | `ad/widgets/native_ad_widget.dart` |
+| **메뉴 카드 네이티브 위젯** (v29 수정) | `ad/widgets/card_native_ad_widget.dart` |
 | 토큰 보상 서비스 | `ad/token_reward_service.dart` |
+| **광고 추적 서비스** (rewardTokens 추가) | `ad/ad_tracking_service.dart` |
+| **광고 ID 설정** (iOS assert 가드) | `ad/ad_config.dart` |
 | 채팅 쉘 (배너 + trailing) | `saju_chat/presentation/screens/saju_chat_shell.dart` |
 | 인라인 광고 위치 계산 | `saju_chat/presentation/widgets/chat_message_list.dart` |
+
+---
+
+## 7. v29 변경사항 (2026-02-02)
+
+### 7-1. CardNativeAdWidget 토큰 지급 버그 수정
+
+| 항목 | Before | After |
+|------|--------|-------|
+| 메뉴 카드 광고 클릭 | `trackNativeClick()` 만 → 토큰 0 | + `grantNativeAdTokens(7000)` → 토큰 7,000 |
+| `ad_events.reward_amount` | 항상 `null` | `7000` 기록 |
+
+### 7-2. `trackNativeClick()` rewardTokens 파라미터
+
+- 4개 호출부 모두 `rewardTokens: 7000` 전달
+- `ad_events` 테이블에 `reward_amount` 기록 (분석 가능)
+- `native_tokens_earned` 증가는 `add_native_bonus_tokens` RPC에서만 (이중 카운팅 방지)
+
+### 7-3. `increment_ad_counter` RPC 동기화
+
+- TEXT 버전 + DATE 버전 **모두** `native_tokens_earned` 허용 추가
+- DATE 버전에 누락된 `ads_watched`, `bonus_tokens_earned`도 추가
+
+### 7-4. iOS Ad Unit ID assert 가드
+
+- `ad_config.dart`의 `banner/interstitial/rewarded/native` getter
+- debug 모드에서 `YOUR_*_IOS_ID` placeholder 사용 시 assert 에러
+
+### 7-5. `_ensureAiSummary()` Completer Lock
+
+- `Completer<AiSummary?>` 패턴으로 진행 중인 Future 재사용
+- 빠른 연속 메시지 시 Edge Function 중복 호출 방지
+- `clearSession()` 시 리셋
+
+### 7-6. DB 비정상 데이터 원인
+
+| 날짜 | 현상 | 원인 |
+|------|------|------|
+| 2/1 | 모든 유저 `native_tokens_earned = 0` | CardNativeAdWidget 미지급 버그 |
+| 2/2 | 일부 유저 30,000/click | 이전 APK(`62f829c`, 상수 30,000) 사용자 |
+| 2/2 | `271121f6` 만 7,000/click | 새 APK(`adfdd7d`, 상수 7,000) 사용자 |
 
 ---
 

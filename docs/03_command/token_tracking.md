@@ -29,13 +29,14 @@
 | `total_cost_usd` | `gpt_cost_usd + gemini_cost_usd` | 전체 비용 합계 |
 | `is_quota_exceeded` | `chatting_tokens >= (daily_quota + bonus_tokens + rewarded_tokens_earned)` | 쿼터 초과 여부 (v27: 보상 토큰 포함) |
 
-### 광고 보상 컬럼 (v27 추가)
+### 광고 보상 컬럼 (v27 추가, v29 수정)
 
 | 컬럼 | 기록 주체 | 설명 |
 |------|----------|------|
-| `bonus_tokens` | `add_ad_bonus_tokens` RPC | Native impression/click 보상 (즉시 서버 저장) |
+| `bonus_tokens` | `add_ad_bonus_tokens` RPC | Rewarded Ad(보상형 광고) 보상 |
 | `rewarded_tokens_earned` | `trackRewarded()` → `increment_ad_counter` | 보상형 영상 시청 보상 |
-| `ads_watched` | `add_ad_bonus_tokens` RPC | 광고 시청 횟수 |
+| `native_tokens_earned` | `add_native_bonus_tokens` RPC | Native 광고 **클릭** 보상 (+7,000/회). 노출만으로는 0 |
+| `ads_watched` | `add_ad_bonus_tokens` + `add_native_bonus_tokens` RPC | 광고 보상 지급 횟수 합산 |
 
 ### 쿼터 설정
 
@@ -280,6 +281,43 @@ key_index = hash(task_type) % 3
 ---
 
 ## 수정 기록
+
+### 2026-02-02 (v29 — Native Click 추적 수정)
+
+> 근본 원인: CardNativeAdWidget에서 토큰 미지급 + ad_events에 reward_amount 누락 + `_ensureAiSummary` race condition
+
+**1. CardNativeAdWidget 토큰 지급 버그 수정** (`card_native_ad_widget.dart`)
+- **Before**: `trackNativeClick()` 만 호출 → `native_clicks +1` BUT `native_tokens_earned +0`
+- **After**: `trackNativeClick(rewardTokens: 7000)` + `grantNativeAdTokens(7000)` 추가
+- 메뉴 화면 카드 광고 클릭 시 토큰 미지급 문제 해결
+
+**2. `trackNativeClick()` — `rewardTokens` 파라미터 추가** (`ad_tracking_service.dart`)
+- `ad_events` 테이블에 `reward_amount` 기록 (기존: 항상 `null`)
+- `native_tokens_earned` 증가는 `add_native_bonus_tokens` RPC에서만 처리 (이중 카운팅 방지)
+- 4개 호출부 모두 `rewardTokens: 7000` 전달
+
+**3. `conversational_ad_provider._onAdClicked()` 리팩토링**
+- 토큰 금액 결정 → 추적 → 지급 순서를 명확화
+- `trackNativeClick(rewardTokens:)` 에 금액 전달
+
+**4. `increment_ad_counter` RPC 업데이트** (Supabase)
+- TEXT 버전 + DATE 버전 **모두** `native_tokens_earned` 허용 컬럼 추가
+- DATE 버전에 누락된 `ads_watched`, `bonus_tokens_earned`도 추가
+
+**5. iOS Ad Unit ID assert 가드** (`ad_config.dart`)
+- production 모드에서 `YOUR_*_IOS_ID` placeholder 사용 시 debug assert 에러
+- `banner`, `interstitial`, `rewarded`, `native` 4개 getter 모두 적용
+
+**6. `_ensureAiSummary()` Completer lock** (`chat_provider.dart`)
+- 빠른 연속 메시지 전송 시 Edge Function 중복 호출 방지
+- `Completer<AiSummary?>` 패턴으로 진행 중인 Future 재사용
+- `clearSession()` 시 `_aiSummaryCompleter = null` 리셋
+
+**7. DB 데이터 비정상 원인 확인**
+- 2/2 일부 유저 `tokens_per_click = 30,000` (기대값 7,000)
+- **원인**: `adfdd7d` 커밋에서 30000→7000 변경. 이전 APK 사용자가 30000 기준으로 토큰 수령
+- `271121f6` (1click=7000) 만 새 APK 사용자
+- 2/1 데이터: 모든 유저 `native_tokens_earned = 0` → CardNativeAdWidget 버그 확인
 
 ### 2026-02-01 (v27)
 

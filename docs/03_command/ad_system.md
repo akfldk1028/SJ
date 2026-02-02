@@ -165,6 +165,57 @@ Native 클릭: 토큰 7,000 → Gemini 비용 $0.0105 (손익분기 근접)
 
 ## 6. 변경 이력
 
+### 2026-02-02: v29 Native Click 추적 수정 + iOS 가드 + AI Summary Lock
+
+**1. CardNativeAdWidget 토큰 지급 버그 수정 (핵심)**
+
+| 항목 | Before | After |
+|------|--------|-------|
+| 메뉴 카드 광고 클릭 시 | `native_clicks +1`, `native_tokens_earned +0` | `native_clicks +1`, `native_tokens_earned +7000` |
+| `ad_events.reward_amount` | 항상 `null` | 클릭 시 `7000` 기록 |
+| `increment_ad_counter` 허용 컬럼 | `native_clicks`까지만 | `native_tokens_earned` 추가 (TEXT+DATE 양쪽) |
+
+**2. Native Click → DB 추적 플로우 (수정 후)**
+
+```
+onAdClicked (4개 호출부 모두 동일)
+  ├─ trackNativeClick(rewardTokens: 7000)
+  │    ├─ ad_events INSERT (reward_amount: 7000)
+  │    └─ increment_ad_counter('native_clicks', +1)
+  └─ grantNativeAdTokens(7000)
+       └─ add_native_bonus_tokens(7000)
+            ├─ native_tokens_earned += 7000
+            └─ ads_watched += 1
+```
+
+- `native_tokens_earned`는 오직 `add_native_bonus_tokens` RPC에서만 증가
+- `trackNativeClick`에서는 `native_clicks`만 증가 (이중 카운팅 방지)
+
+**3. iOS Ad Unit ID assert 가드**
+- `ad_config.dart`: `banner/interstitial/rewarded/native` getter에 `assert(!id.startsWith('YOUR_'))` 추가
+- debug 모드 iOS 빌드에서 placeholder ID 사용 시 즉시 에러
+
+**4. `_ensureAiSummary()` Completer Lock**
+- 빠른 연속 메시지 시 Edge Function 중복 호출 방지
+- `Completer<AiSummary?>` 패턴으로 진행 중인 Future 재사용
+
+**5. DB 데이터 비정상 원인 분석**
+- 2/1: 모든 유저 `native_tokens_earned = 0` → CardNativeAdWidget 미지급 버그 확인
+- 2/2: 일부 유저 30,000/click → 이전 APK(`62f829c`, 상수 30,000) 사용자
+
+**수정 파일 7개:**
+| # | 파일 | 변경 |
+|---|------|------|
+| 1 | `ad/ad_tracking_service.dart` | `trackNativeClick(rewardTokens:)` 파라미터 추가 |
+| 2 | `ad/widgets/card_native_ad_widget.dart` | `grantNativeAdTokens()` + `rewardTokens` 추가 |
+| 3 | `ad/widgets/native_ad_widget.dart` | `rewardTokens` 전달 (NativeAd + Compact) |
+| 4 | `saju_chat/.../conversational_ad_provider.dart` | `_onAdClicked()` 리팩토링 |
+| 5 | `ad/ad_config.dart` | iOS placeholder assert 가드 |
+| 6 | `saju_chat/.../chat_provider.dart` | `_aiSummaryCompleter` lock 추가 |
+| 7 | Supabase RPC | `increment_ad_counter` TEXT+DATE 양쪽 업데이트 |
+
+---
+
 ### 2026-02-02: v28 청운도사 제거 + 토큰 보상 정리
 
 **1. UI 변경**
