@@ -31,7 +31,10 @@ class Yearly2025Queries {
   /// 반환: 캐시된 데이터 또는 null
   ///
   /// 참고: 2025 회고는 무기한 캐시 (과거는 변하지 않음)
-  Future<Map<String, dynamic>?> getCached(String profileId) async {
+  Future<Map<String, dynamic>?> getCached(
+    String profileId, {
+    bool includeStale = false,
+  }) async {
     try {
       // target_year 필드로 직접 필터링
       final response = await _supabase
@@ -47,10 +50,13 @@ class Yearly2025Queries {
       // 2025 회고는 만료 체크 안 함 (무기한)
       if (response == null) return null;
 
-      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      // 프롬프트 버전 체크
       final cachedVersion = response['prompt_version'];
       if (cachedVersion != kYearly2025FortunePromptVersion) {
-        print('[Yearly2025Queries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kYearly2025FortunePromptVersion');
+        if (includeStale) {
+          print('[Yearly2025Queries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kYearly2025FortunePromptVersion → stale 데이터 반환');
+          return {...response, '_isStale': true};
+        }
         return null;
       }
 

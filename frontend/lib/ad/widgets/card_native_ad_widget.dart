@@ -36,6 +36,7 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
   bool _loadStarted = false;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -69,6 +70,9 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
           debugPrint('[CardNativeAd] Failed: ${error.message}');
           ad.dispose();
           _nativeAd = null;
+          if (mounted) {
+            setState(() => _loadFailed = true);
+          }
         },
         onAdImpression: (ad) {
           debugPrint('[CardNativeAd] Impression');
@@ -119,13 +123,13 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 로딩 실패 시 공간 차지 안 함
-    if (!_isLoaded || _nativeAd == null) {
-      return const SizedBox.shrink();
-    }
-
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    // 로딩 중이거나 실패 시 placeholder 표시
+    if (!_isLoaded || _nativeAd == null) {
+      return _buildPlaceholder(context, isDark);
+    }
 
     // ⚡ RepaintBoundary로 광고 영역 분리 (스크롤 시 불필요한 리페인트 방지)
     return RepaintBoundary(
@@ -189,6 +193,27 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context, bool isDark) {
+    // 로드 실패 → 공간 차지 안 함 (원래 동작)
+    if (_loadFailed) {
+      return const SizedBox.shrink();
+    }
+
+    // 로딩 중 → skeleton으로 자리 확보 (갑자기 튀어나옴 방지)
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF2D2D3A).withValues(alpha: 0.5)
+              : Colors.grey.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
     );

@@ -348,13 +348,20 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     }
 
     final queries = Yearly2025Queries(SupabaseService.client!);
-    final result = await queries.getCached(activeProfile.id);
+    final result = await queries.getCached(activeProfile.id, includeStale: true);
 
     // 캐시가 있으면 바로 반환
     if (result != null) {
       final content = result['content'];
+      final isStale = result['_isStale'] == true;
       if (content is Map<String, dynamic>) {
-        print('[Yearly2025Fortune] 캐시 히트 - 2025 운세 로드');
+        if (isStale) {
+          print('[Yearly2025Fortune] stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
+          _triggerAnalysisIfNeeded(activeProfile.id);
+          _startStalePolling(activeProfile.id);
+        } else {
+          print('[Yearly2025Fortune] 캐시 히트 - 2025 운세 로드');
+        }
         _isPolling = false;
         return Yearly2025FortuneData.fromJson(content);
       }
@@ -474,9 +481,51 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     });
   }
 
+  /// stale 데이터 폴링 (백그라운드 재생성 완료 감지)
+  bool _isStalePolling = false;
+  int _stalePollAttempts = 0;
+  static const int _maxStalePollAttempts = 60;
+
+  void _startStalePolling(String profileId) {
+    if (_isStalePolling) return;
+    _isStalePolling = true;
+    _stalePollAttempts = 0;
+    print('[Yearly2025Fortune] stale 폴링 시작 - 5초마다 fresh 데이터 확인');
+    _pollForFreshData(profileId);
+  }
+
+  Future<void> _pollForFreshData(String profileId) async {
+    if (!_isStalePolling) return;
+
+    await Future.delayed(const Duration(seconds: 5));
+    if (!_isStalePolling) return;
+
+    _stalePollAttempts++;
+
+    if (!SupabaseService.isConnected) {
+      _isStalePolling = false;
+      return;
+    }
+
+    final queries = Yearly2025Queries(SupabaseService.client!);
+    final result = await queries.getCached(profileId);
+
+    if (result != null && result['content'] != null) {
+      print('[Yearly2025Fortune] fresh 데이터 발견! UI 자동 갱신 ($_stalePollAttempts회)');
+      _isStalePolling = false;
+      ref.invalidateSelf();
+    } else if (_stalePollAttempts >= _maxStalePollAttempts) {
+      print('[Yearly2025Fortune] stale 폴링 타임아웃 - 중지');
+      _isStalePolling = false;
+    } else {
+      _pollForFreshData(profileId);
+    }
+  }
+
   /// 운세 새로고침 (캐시 무효화)
   Future<void> refresh() async {
     _isPolling = false;
+    _isStalePolling = false;
     _isAnalyzing = false;
     ref.invalidateSelf();
   }

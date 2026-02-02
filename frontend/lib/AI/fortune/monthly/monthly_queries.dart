@@ -33,6 +33,7 @@ class MonthlyQueries {
     String profileId, {
     required int year,
     required int month,
+    bool includeStale = false,
   }) async {
     try {
       // target_year, target_month 필드로 직접 필터링
@@ -59,10 +60,13 @@ class MonthlyQueries {
         }
       }
 
-      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      // 프롬프트 버전 체크
       final cachedVersion = response['prompt_version'];
       if (cachedVersion != kMonthlyFortunePromptVersion) {
-        print('[MonthlyQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kMonthlyFortunePromptVersion');
+        if (includeStale) {
+          print('[MonthlyQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kMonthlyFortunePromptVersion → stale 데이터 반환');
+          return {...response, '_isStale': true};
+        }
         return null;
       }
 

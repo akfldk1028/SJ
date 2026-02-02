@@ -491,88 +491,59 @@ class LifetimeFortuneData {
     return 70;
   }
 
+  /// v9.8: 서술형 내러티브 필드만 사용하여 reading 생성
+  ///
+  /// 중복 방지 원칙:
+  /// - advice → 위젯 "조언" 카드에서 별도 표시 → reading 제외
+  /// - timing → 위젯 "타이밍" 섹션 → reading 제외
+  /// - strengths/weaknesses → 위젯 리스트 → reading 제외
+  /// - cautions → 위젯 "주의사항" 카드 → reading 제외
+  /// - suitableFields/unsuitableFields → 위젯 리스트 → reading 제외
+  ///
+  /// reading에는 서술형 분석 텍스트만 포함
+  /// (v9.4 개별 필드로도 표시되지만, reading은 내러티브 맥락으로 제공)
   static String _buildCareerReading(CareerSection career) {
-    final buffer = StringBuffer();
-    if (career.workStyle.isNotEmpty) {
-      buffer.writeln(career.workStyle);
-    }
-    if (career.suitableFields.isNotEmpty) {
-      buffer.writeln('\n적합한 분야: ${career.suitableFields.join(', ')}');
-    }
-    if (career.advice.isNotEmpty) {
-      buffer.writeln('\n${career.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (career.workStyle.isNotEmpty) parts.add(career.workStyle);
+    if (career.leadershipPotential.isNotEmpty) parts.add(career.leadershipPotential);
+    return parts.join('\n\n');
   }
 
   static String _buildBusinessReading(BusinessSection business) {
-    final buffer = StringBuffer();
-    if (business.entrepreneurshipAptitude.isNotEmpty) {
-      buffer.writeln(business.entrepreneurshipAptitude);
-    }
-    if (business.suitableBusinessTypes.isNotEmpty) {
-      buffer.writeln('\n적합한 사업: ${business.suitableBusinessTypes.join(', ')}');
-    }
-    if (business.advice.isNotEmpty) {
-      buffer.writeln('\n${business.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (business.entrepreneurshipAptitude.isNotEmpty) parts.add(business.entrepreneurshipAptitude);
+    if (business.businessPartnerTraits.isNotEmpty) parts.add(business.businessPartnerTraits);
+    return parts.join('\n\n');
   }
 
   static String _buildWealthReading(WealthSection wealth) {
-    final buffer = StringBuffer();
-    if (wealth.overallTendency.isNotEmpty) {
-      buffer.writeln(wealth.overallTendency);
-    }
-    if (wealth.earningStyle.isNotEmpty) {
-      buffer.writeln('\n돈 버는 방식: ${wealth.earningStyle}');
-    }
-    if (wealth.advice.isNotEmpty) {
-      buffer.writeln('\n${wealth.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (wealth.overallTendency.isNotEmpty) parts.add(wealth.overallTendency);
+    if (wealth.earningStyle.isNotEmpty) parts.add(wealth.earningStyle);
+    if (wealth.spendingTendency.isNotEmpty) parts.add(wealth.spendingTendency);
+    if (wealth.investmentAptitude.isNotEmpty) parts.add(wealth.investmentAptitude);
+    return parts.join('\n\n');
   }
 
   static String _buildLoveReading(LoveSection love) {
-    final buffer = StringBuffer();
-    if (love.datingPattern.isNotEmpty) {
-      buffer.writeln(love.datingPattern);
-    }
-    if (love.attractionStyle.isNotEmpty) {
-      buffer.writeln('\n끌리는 유형: ${love.attractionStyle}');
-    }
-    if (love.advice.isNotEmpty) {
-      buffer.writeln('\n${love.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (love.datingPattern.isNotEmpty) parts.add(love.datingPattern);
+    if (love.attractionStyle.isNotEmpty) parts.add(love.attractionStyle);
+    return parts.join('\n\n');
   }
 
   static String _buildMarriageReading(MarriageSection marriage) {
-    final buffer = StringBuffer();
-    if (marriage.spousePalaceAnalysis.isNotEmpty) {
-      buffer.writeln(marriage.spousePalaceAnalysis);
-    }
-    if (marriage.marriedLifeTendency.isNotEmpty) {
-      buffer.writeln('\n${marriage.marriedLifeTendency}');
-    }
-    if (marriage.advice.isNotEmpty) {
-      buffer.writeln('\n${marriage.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (marriage.spousePalaceAnalysis.isNotEmpty) parts.add(marriage.spousePalaceAnalysis);
+    if (marriage.spouseCharacteristics.isNotEmpty) parts.add(marriage.spouseCharacteristics);
+    if (marriage.marriedLifeTendency.isNotEmpty) parts.add(marriage.marriedLifeTendency);
+    return parts.join('\n\n');
   }
 
   static String _buildHealthReading(HealthSection health) {
-    final buffer = StringBuffer();
-    if (health.vulnerableOrgans.isNotEmpty) {
-      buffer.writeln('취약 부위: ${health.vulnerableOrgans.join(', ')}');
-    }
-    if (health.mentalHealth.isNotEmpty) {
-      buffer.writeln('\n정신 건강: ${health.mentalHealth}');
-    }
-    if (health.lifestyleAdvice.isNotEmpty) {
-      buffer.writeln('\n생활 습관: ${health.lifestyleAdvice.join(', ')}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (health.mentalHealth.isNotEmpty) parts.add(health.mentalHealth);
+    return parts.join('\n\n');
   }
 }
 
@@ -1344,13 +1315,22 @@ class LifetimeFortune extends _$LifetimeFortune {
     final queries = LifetimeQueries(Supabase.instance.client);
 
     try {
-      final result = await queries.getCached(activeProfile.id);
+      final result = await queries.getCached(activeProfile.id, includeStale: true);
 
-      // 캐시가 있으면 바로 반환
+      // 캐시가 있으면 반환
       if (result != null) {
         final content = result['content'];
+        final isStale = result['_isStale'] == true;
+
         if (content is Map<String, dynamic>) {
-          print('[LifetimeFortune] ✅ 캐시 히트 - 평생운세 로드');
+          if (isStale) {
+            // v9.8: 버전 불일치 → 기존 데이터 즉시 표시 + 백그라운드 재생성
+            print('[LifetimeFortune] ⚠️ stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
+            _triggerAnalysisIfNeeded(activeProfile.id);
+            _startStalePolling(activeProfile.id);
+          } else {
+            print('[LifetimeFortune] ✅ 캐시 히트 - 평생운세 로드');
+          }
           return LifetimeFortuneData.fromJson(content);
         }
       }
@@ -1443,6 +1423,51 @@ class LifetimeFortune extends _$LifetimeFortune {
         // 폴링이 데이터를 감지하고 UI를 갱신할 것임
       },
     );
+  }
+
+  /// stale 데이터 백그라운드 갱신용 폴링
+  /// 기존 데이터를 보여주면서 백그라운드에서 새 데이터 생성 완료 시 자동 갱신
+  void _startStalePolling(String profileId) {
+    if (_isPolling) return;
+    _isPolling = true;
+    _pollingAttempts = 0;
+
+    print('[LifetimeFortune] stale 폴링 시작 - 백그라운드 갱신 감지');
+    _pollForFreshData(profileId);
+  }
+
+  /// 새 버전 데이터가 생성될 때까지 폴링
+  Future<void> _pollForFreshData(String profileId) async {
+    if (!_isPolling) return;
+
+    _pollingAttempts++;
+    if (_pollingAttempts > _maxPollingAttempts) {
+      print('[LifetimeFortune] ⏰ stale 폴링 타임아웃');
+      _isPolling = false;
+      _isAnalyzing = false;
+      return;
+    }
+
+    await Future.delayed(const Duration(seconds: 5));
+    if (!_isPolling) return;
+
+    try {
+      final queries = LifetimeQueries(Supabase.instance.client);
+      final result = await queries.getCached(profileId);
+
+      // _isStale가 아닌 새 버전 데이터가 존재하면 갱신
+      if (result != null && result['_isStale'] != true && result['content'] != null) {
+        print('[LifetimeFortune] ✅ 새 버전 데이터 감지 - UI 자동 갱신');
+        _isPolling = false;
+        _isAnalyzing = false;
+        ref.invalidateSelf();
+      } else {
+        _pollForFreshData(profileId);
+      }
+    } catch (e) {
+      print('[LifetimeFortune] ⚠️ stale 폴링 오류: $e');
+      _pollForFreshData(profileId);
+    }
   }
 
   /// 운세 새로고침 (캐시 무효화)
