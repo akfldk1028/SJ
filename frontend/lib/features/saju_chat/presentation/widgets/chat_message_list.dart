@@ -24,12 +24,16 @@ class ChatMessageList extends StatelessWidget {
   final ScrollController? scrollController;
   final bool isLoading;
 
+  /// 리스트 끝에 표시할 위젯 (광고 등 채팅 플로우에 포함)
+  final Widget? trailingWidget;
+
   const ChatMessageList({
     super.key,
     required this.messages,
     this.streamingContent,
     this.scrollController,
     this.isLoading = false,
+    this.trailingWidget,
   });
 
   @override
@@ -37,11 +41,14 @@ class ChatMessageList extends StatelessWidget {
     // 로딩 중(스트리밍 시작 전)이거나 스트리밍 중이면 추가 버블 표시
     final showLoadingBubble = isLoading && streamingContent == null;
     final showStreamingBubble = streamingContent != null;
-    final extraItemCount = (showLoadingBubble || showStreamingBubble) ? 1 : 0;
+    final hasTrailing = trailingWidget != null;
+    final extraItemCount = (showLoadingBubble || showStreamingBubble ? 1 : 0)
+        + (hasTrailing ? 1 : 0);
 
     // 인라인 광고 위치 계산 (Web 제외)
+    // 광고는 반드시 AI 응답 뒤에만 삽입 (유저↔AI 대화쌍 사이 금지)
     final (totalCount, adIndices) = _calculateItemsWithAds(
-      messageCount: messages.length,
+      messages: messages,
       extraItems: extraItemCount,
     );
 
@@ -61,16 +68,31 @@ class ChatMessageList extends StatelessWidget {
         // 실제 메시지 인덱스 계산 (광고 위치 제외)
         final messageIndex = _toMessageIndex(index, adIndices);
 
-        // 마지막 아이템: 로딩 또는 스트리밍 버블
+        // 마지막 아이템들: 로딩/스트리밍 버블 + trailing 위젯
         if (messageIndex >= messages.length) {
-          if (showStreamingBubble) {
-            return StreamingMessageBubble(
-              content: streamingContent!,
-            );
+          // 로딩/스트리밍이 먼저, trailing은 그 뒤
+          final extraIndex = messageIndex - messages.length;
+          final hasLoadingOrStreaming = showLoadingBubble || showStreamingBubble;
+
+          if (hasLoadingOrStreaming && extraIndex == 0) {
+            if (showStreamingBubble) {
+              return StreamingMessageBubble(
+                content: streamingContent!,
+              );
+            }
+            if (showLoadingBubble) {
+              return const ThinkingBubble();
+            }
           }
-          if (showLoadingBubble) {
-            return const ThinkingBubble();
+
+          // trailing 위젯 (광고 등)
+          if (hasTrailing) {
+            final trailingIndex = hasLoadingOrStreaming ? 1 : 0;
+            if (extraIndex == trailingIndex) {
+              return trailingWidget!;
+            }
           }
+
           return const SizedBox.shrink();
         }
 
@@ -92,11 +114,16 @@ class ChatMessageList extends StatelessWidget {
 
   /// 광고 포함 아이템 계산
   ///
+  /// 광고는 반드시 AI 응답(assistant) 뒤에만 삽입.
+  /// 유저 메시지 → AI 응답 대화쌍 사이에는 절대 광고가 끼어들지 않음.
+  ///
   /// Returns: (총 아이템 수, 광고 인덱스 Set)
   (int, Set<int>) _calculateItemsWithAds({
-    required int messageCount,
+    required List<ChatMessage> messages,
     required int extraItems,
   }) {
+    final messageCount = messages.length;
+
     // Web이거나 메시지가 최소 개수 미만이면 광고 없음
     if (kIsWeb || messageCount < AdStrategy.inlineAdMinMessages) {
       return (messageCount + extraItems, {});
@@ -107,12 +134,27 @@ class ChatMessageList extends StatelessWidget {
     final Set<int> adIndices = {};
     int adCount = 0;
 
-    // interval번째 메시지 뒤에 광고 삽입
+    // interval번째 메시지 뒤에 광고 삽입 (단, AI 응답 뒤에만)
     for (int i = interval; i <= messageCount && adCount < maxAds; i += interval) {
-      // 광고 위치 = 메시지 인덱스 + 이미 삽입된 광고 수
-      final adIndex = i + adCount;
-      adIndices.add(adIndex);
-      adCount++;
+      // 광고가 들어갈 위치: 메시지 인덱스 i-1 (0-based)
+      // 이 메시지가 AI 응답인지 확인
+      int adAfterMsgIndex = i - 1;
+
+      // AI 응답이 아니면 그 이전 AI 응답을 찾아서 삽입
+      // (유저 메시지 뒤에 광고가 가면 → 유저↔AI 사이에 끼어듦)
+      while (adAfterMsgIndex >= 0 && !messages[adAfterMsgIndex].isAi) {
+        adAfterMsgIndex--;
+      }
+
+      // 적절한 AI 응답을 찾았으면 그 뒤에 광고 삽입
+      if (adAfterMsgIndex >= 0) {
+        final adIndex = adAfterMsgIndex + 1 + adCount;
+        // 중복 방지
+        if (!adIndices.contains(adIndex)) {
+          adIndices.add(adIndex);
+          adCount++;
+        }
+      }
     }
 
     return (messageCount + adCount + extraItems, adIndices);

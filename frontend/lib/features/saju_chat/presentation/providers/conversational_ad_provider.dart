@@ -448,6 +448,30 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     await Future.delayed(const Duration(seconds: 1));
   }
 
+  /// tokenDepleted → 네이티브 광고 모드 전환
+  ///
+  /// 유저가 "📋 광고 보고 3번 대화"를 선택했을 때 호출.
+  /// adType을 inlineInterval로 변경하여 네이티브 광고 위젯이 표시되도록 함.
+  void switchToNativeAd({required int rewardTokens}) {
+    // Rewarded ad 정리 (더 이상 필요 없음)
+    _rewardedAd?.dispose();
+    _rewardedAd = null;
+
+    // adType 전환 + 네이티브 광고 로드
+    // transitionText를 null로 → 전환 버블 숨김 (이미 유저가 선택했으므로)
+    state = state.copyWith(
+      adType: AdMessageType.inlineInterval,
+      rewardedTokens: rewardTokens,
+      transitionText: null,
+      loadState: AdLoadState.loading,
+    );
+    _loadNativeAd();
+
+    if (kDebugMode) {
+      print('   🔄 [AD] Switched to native ad mode (depleted → native, reward: $rewardTokens)');
+    }
+  }
+
   /// 광고 모드 종료 & 대화 재개
   void dismissAd() {
     _nativeAd?.dispose();

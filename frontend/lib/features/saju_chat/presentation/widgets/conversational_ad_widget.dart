@@ -56,35 +56,45 @@ class ConversationalAdWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    // 토큰 소진 시 2가지 선택지 제공
-    final isTokenDepleted = adState.adType == AdMessageType.tokenDepleted;
     // 보상형 광고: tokenDepleted (필수) + tokenNearLimit (스킵 가능)
     // 네이티브 광고: intervalAd (클릭 시 토큰)
+    // 네이티브 선택: tokenDepleted에서 "광고 보고 3번 대화" 선택 시
+    final isTokenDepleted = adState.adType == AdMessageType.tokenDepleted;
     final isRewardedAd = isTokenDepleted ||
         adState.adType == AdMessageType.tokenNearLimit;
     final isRequired = isTokenDepleted;
 
+    // 참고: tokenDepleted에서 유저가 "네이티브 광고" 선택 시
+    // _handleNativeAdPressed()에서 adType을 inlineInterval로 전환
+    // → isRewardedAd = false로 변경되어 네이티브 광고 위젯이 표시됨
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. 토큰 소진 시 - 2개 버튼 선택 UI
-        if (isTokenDepleted && !adState.adWatched)
-          _buildTokenDepletedChoice(context, ref)
-        // 2. 기타 광고 - 기존 전환 메시지
-        else if (adState.transitionText != null && !adState.adWatched)
+        // 1. 페르소나 전환 메시지
+        if (adState.transitionText != null && !adState.adWatched)
           AdTransitionBubble(
-            message: isRewardedAd
-                ? _createAdMessage(adState)
-                : _createAdMessageWithoutCta(adState),
+            message: isRequired
+                ? _createTokenDepletedMessage(adState) // 2버튼용 CTA 텍스트
+                : isRewardedAd
+                    ? _createAdMessage(adState)
+                    : _createAdMessageWithoutCta(adState),
             personaEmoji: persona.emoji,
             personaName: persona.displayName,
-            onCtaPressed: isRewardedAd ? () => _handleCtaPressed(ref) : null,
+            onCtaPressed: isRewardedAd
+                ? isRequired
+                    ? () => _handleVideoAdPressed(ref)
+                    : () => _handleRewardedCtaPressed(ref)
+                : null,
             onSkipPressed: !isRequired ? () => _handleSkip(ref) : null,
+            // 토큰 소진 시 2가지 선택지 (영상 vs 네이티브)
+            secondaryCtaText: isRequired ? '📋 광고 보고 3번 대화' : null,
+            onSecondaryCtaPressed: isRequired ? () => _handleNativeAdPressed(ref) : null,
           ),
 
         const SizedBox(height: 8),
 
-        // 3. 네이티브 광고 (인터벌 광고만 - 보상형은 전체화면 영상)
+        // 3. 네이티브 광고 (인터벌 또는 tokenDepleted→네이티브 선택 후)
         if (!isRewardedAd &&
             (adState.loadState == AdLoadState.loaded ||
                 adState.loadState == AdLoadState.loading))
@@ -143,24 +153,54 @@ class ConversationalAdWidget extends ConsumerWidget {
     );
   }
 
-  /// CTA 버튼 클릭 처리
-  ///
-  /// - tokenDepleted: 보상형 광고 표시
-  /// - 그 외: 네이티브 광고 클릭을 유도하는 안내
-  ///   (실제 토큰은 Native 광고 onAdClicked 콜백에서 지급)
-  void _handleCtaPressed(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    final adState = ref.read(conversationalAdNotifierProvider);
+  /// 토큰 소진 시 메시지 생성 (2버튼용 CTA 텍스트)
+  AdChatMessage _createTokenDepletedMessage(ConversationalAdModel adState) {
+    return AdChatMessage(
+      id: 'ad_${DateTime.now().millisecondsSinceEpoch}',
+      sessionId: sessionId,
+      content: adState.transitionText ?? '',
+      role: MessageRole.assistant,
+      createdAt: DateTime.now(),
+      adType: AdMessageType.tokenDepleted,
+      transitionText: adState.transitionText,
+      ctaText: '🎬 영상 보고 5번 대화',
+      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+    );
+  }
 
-    // 토큰 소진 시 보상형 광고
-    if (adState.adType == AdMessageType.tokenDepleted) {
-      final success = await notifier.showRewardedAd();
-      if (success) {
-        notifier.onAdWatched();
-      }
+  /// 보상형 광고 CTA (tokenNearLimit용 - 현재 비활성화)
+  void _handleRewardedCtaPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    final success = await notifier.showRewardedAd();
+    if (success) {
+      notifier.onAdWatched();
     }
-    // Native 광고: CTA 버튼은 광고 영역으로 스크롤/주목 유도
-    // 실제 토큰 보상은 광고 자체를 클릭해야 지급됨 (onAdClicked)
+  }
+
+  /// 영상 광고 선택 (보상형 영상 → 5왕복)
+  void _handleVideoAdPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    final success = await notifier.showRewardedAd(
+      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+    );
+    if (success) {
+      notifier.onAdWatched(
+        rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+      );
+    }
+  }
+
+  /// 네이티브 광고 선택 (네이티브 광고 → 3왕복)
+  ///
+  /// adType을 inlineInterval로 전환하여 네이티브 광고 위젯이 표시되도록 함.
+  /// 토큰 지급은 광고 클릭 시 provider의 _onAdClicked()에서 처리됨.
+  void _handleNativeAdPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    // adType 전환: tokenDepleted → inlineInterval (네이티브 광고 표시 활성화)
+    // rewardedTokens 설정: 클릭 시 지급될 토큰 (provider._onAdClicked에서 사용)
+    notifier.switchToNativeAd(
+      rewardTokens: AdTriggerService.depletedRewardTokensNative,
+    );
   }
 
   /// 스킵 처리
@@ -195,169 +235,6 @@ class ConversationalAdWidget extends ConsumerWidget {
 
     adNotifier.dismissAd();
     onAdComplete?.call();
-  }
-
-  /// 토큰 소진 시 2개 버튼 선택 UI
-  Widget _buildTokenDepletedChoice(BuildContext context, WidgetRef ref) {
-    final theme = context.appTheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // AI 메시지
-          Row(
-            children: [
-              Text(
-                persona.emoji,
-                style: TextStyle(
-                  fontSize: 16,
-                  shadows: [
-                    Shadow(
-                      color: theme.primaryColor.withValues(alpha: 0.5),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                persona.displayName,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: theme.primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // 메시지 버블
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: theme.isDark
-                    ? [const Color(0xFF2A3540), const Color(0xFF1E2830)]
-                    : [const Color(0xFFF8F9FA), const Color(0xFFF0F2F5)],
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(18),
-                bottomLeft: Radius.circular(18),
-                bottomRight: Radius.circular(18),
-              ),
-              border: Border.all(
-                color: theme.isDark
-                    ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
-                    : const Color(0xFFD4AF37).withValues(alpha: 0.3),
-              ),
-            ),
-            child: Text(
-              '대화가 즐거웠어요!\n토큰이 부족해서 잠시 쉬어야 할 것 같아요.',
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.6,
-                color: theme.textPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // 2개 버튼
-          Column(
-            children: [
-              // 영상 광고 버튼 (추천)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _handleVideoAdPressed(ref),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.play_circle_fill_rounded, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        '영상 보고 대화 계속하기',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              // 네이티브 광고 버튼
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _handleNativeAdPressed(ref),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.textSecondary,
-                    side: BorderSide(
-                      color: theme.textSecondary.withValues(alpha: 0.15),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.article_outlined, size: 18, color: theme.textSecondary),
-                      const SizedBox(width: 8),
-                      Text(
-                        '광고 확인하고 대화 이어가기',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: theme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 영상 광고 선택 (1왕복 = 10,000 토큰)
-  void _handleVideoAdPressed(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    // 보상형 영상 광고 표시
-    final success = await notifier.showRewardedAd(
-      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-    );
-    if (success) {
-      notifier.onAdWatched(rewardTokens: AdTriggerService.depletedRewardTokensVideo);
-    }
-  }
-
-  /// 네이티브 광고 선택 (0.3왕복 = 3,000 토큰)
-  void _handleNativeAdPressed(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    // 네이티브 광고 로드 및 표시
-    await notifier.loadNativeAd();
-    notifier.onAdWatched(rewardTokens: AdTriggerService.depletedRewardTokensNative);
   }
 
   /// 대화 재개 버튼

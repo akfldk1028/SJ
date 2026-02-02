@@ -25,45 +25,27 @@ abstract class AdTriggerService {
   AdTriggerService._();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 토큰 기반 트리거 설정
+  // 토큰 보상 → AdStrategy에서 관리 (ad_strategy.dart에서 값 조정)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// 토큰 경고 임계값 (80%)
-  static const double tokenWarningThreshold = 0.8;
+  static int get depletedRewardTokensVideo => AdStrategy.depletedRewardTokensVideo;
+  static int get depletedRewardTokensNative => AdStrategy.depletedRewardTokensNative;
+  static int get intervalClickRewardTokens => AdStrategy.intervalClickRewardTokens;
 
-  /// 토큰 소진 임계값 (100%)
+  /// 토큰 소진 시 기본 보상 토큰 (하위 호환)
+  static int get depletedRewardTokens => AdStrategy.depletedRewardTokensVideo;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 트리거 설정 (내부용 - 변경 불필요)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 토큰 소진 임계값 (100% = 소진)
   static const double tokenDepletedThreshold = 1.0;
 
-  /// 토큰 경고 시 제공되는 보상 토큰 (80% warning 비활성화)
+  /// 80% 경고 비활성화 (warningRewardTokens = 0)
+  static const double tokenWarningThreshold = 0.8;
   static const int warningRewardTokens = 0;
-
-  /// 토큰 소진 시 제공되는 보상 토큰 (기본값, 하위 호환)
-  static const int depletedRewardTokens = 3000;
-
-  /// 토큰 소진 - 영상 광고 보상 (약 3교환 = 20,000 토큰)
-  /// Rewarded video eCPM $10~50 → 1회 수익 $0.01~0.05
-  /// 3교환 Gemini 비용 ~$0.003 → 확실한 흑자
-  static const int depletedRewardTokensVideo = 20000;
-
-  /// 토큰 소진 - 네이티브 광고 보상 (30,000 토큰 ≈ 4.2교환)
-  /// Native CPC $0.10~$0.50 → 비용 $0.0057 → 마진 94~98%
-  /// Rewarded Video(20,000)와 비슷한 수준 → 유저 선택지 의미 있음
-  static const int depletedRewardTokensNative = 30000;
-
-  /// 인터벌 광고 클릭 시 보상 토큰
-  /// 클릭해야만 30,000 토큰 지급 (≈4.2교환)
-  /// Native CPC $0.10~$0.50 → 비용 $0.0057 → 마진 94~98%
-  static const int intervalClickRewardTokens = 30000;
-
-  /// Native 광고 impression 시 보상 토큰
-  /// 노출만으로는 토큰 미지급 (0) → 클릭 유도
   static const int impressionRewardTokens = 0;
-
-  /// 토큰 경고 스킵 후 쿨다운 (메시지 수)
-  /// 스킵하면 이 횟수만큼 메시지 동안 토큰 경고 억제
-  /// → 쿨다운 동안 인터벌 광고가 나올 수 있음
-  /// → 쿨다운 끝나면 다시 토큰 경고 발동 (계속 압박)
-  /// AdMob 정책: 매 메시지마다 같은 광고를 반복하면 invalid impression 위험
   static const int tokenWarningCooldownMessages = 3;
 
   // ═══════════════════════════════════════════════════════════════════════════
