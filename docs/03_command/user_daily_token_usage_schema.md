@@ -46,8 +46,8 @@ is_quota_exceeded = chatting_tokens >= effective_quota
 |------|------|--------|------|
 | `daily_quota` | INT | 20,000 | 일일 기본 할당량. 무과금 유저 20,000 / 프리미엄 구독자는 Edge Function에서 면제 |
 | `bonus_tokens` | INT | 0 | **Rewarded Ad(보상형 광고)** 시청으로 획득한 토큰. RPC: `add_ad_bonus_tokens` |
-| `rewarded_tokens_earned` | INT | 0 | (미사용, 향후 Rewarded Ad 전용 분리 예정) |
-| `native_tokens_earned` | INT | 0 | **Native Ad(네이티브 광고)** impression/click으로 획득한 토큰. RPC: `add_native_bonus_tokens` |
+| `rewarded_tokens_earned` | INT | 0 | Rewarded Video 시청 완료로 획득한 토큰. `trackRewarded()` → `incrementDailyCounter` |
+| `native_tokens_earned` | INT | 0 | **Native Ad(네이티브 광고) 클릭**으로 획득한 토큰. 노출만으로는 0. RPC: `add_native_bonus_tokens` |
 | `is_quota_exceeded` | BOOL | GENERATED | `chatting_tokens >= (daily_quota + bonus_tokens + rewarded_tokens_earned + native_tokens_earned)` 자동 계산 |
 
 ### 광고 추적 - 카운터
@@ -120,18 +120,18 @@ is_quota_exceeded = chatting_tokens >= effective_quota
 
 ---
 
-## 토큰 출처별 분리 (v27)
+## 토큰 출처별 분리 (v28)
 
 ```
 effective_quota 구성:
 ┌─────────────────┐
 │ daily_quota      │  기본 20,000 (매일 리셋)
 ├─────────────────┤
-│ bonus_tokens     │  Rewarded Ad 보상 (+35,000/회)
+│ bonus_tokens     │  Rewarded Ad 보상 (add_ad_bonus_tokens RPC)
 ├─────────────────┤
-│ rewarded_tokens  │  (미사용, 0)
+│ rewarded_tokens  │  Rewarded Video 시청 완료 (+20,000/회)
 ├─────────────────┤
-│ native_tokens    │  Native Ad 보상 (impression +1,500 / click +1,500)
+│ native_tokens    │  Native Ad **클릭** 보상 (+30,000/회, 노출만으로는 0)
 └─────────────────┘
 ```
 
@@ -140,9 +140,11 @@ effective_quota 구성:
 ## 무한 채팅 사이클
 
 ```
-1. 기본 20,000 토큰 → 약 3왕복
-2. 토큰 소진 → 2버튼 UI (Rewarded Ad / Native Ad)
-3. Rewarded Ad 시청 → bonus_tokens +35,000 → 약 5왕복 추가
-4. 다시 소진 → 2번으로 돌아감 (무한 반복)
-5. Native Ad impression → native_tokens_earned +1,500 (2메시지마다)
+1. 기본 20,000 토큰 → 약 3교환
+2. 토큰 소진 → 2버튼 UI (Rewarded Video / Native Ad)
+3. Rewarded Video 시청 → rewarded_tokens_earned +20,000 → 약 3교환 추가
+4. Native Ad 클릭 → native_tokens_earned +30,000 → 약 4교환 추가
+5. 다시 소진 → 2번으로 돌아감 (무한 반복)
+6. 인터벌 광고 클릭 시 → native_tokens_earned +30,000 추가
+7. 인터벌/인라인 노출만 → 토큰 0 (순수 eCPM 수익)
 ```

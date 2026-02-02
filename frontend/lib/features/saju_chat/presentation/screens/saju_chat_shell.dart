@@ -7,18 +7,15 @@ import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../domain/models/chat_type.dart';
-import '../../domain/services/mention_parser.dart';
+// mention_parser is now used via MentionSendHandler
 import '../providers/chat_provider.dart';
 import '../providers/chat_session_provider.dart';
-import '../widgets/chat_history_sidebar/chat_history_sidebar.dart';
 import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_list.dart';
 // import '../widgets/disclaimer_banner.dart'; // 주석처리: 사주상담 참고용 안내 배너
 // import '../widgets/error_banner.dart'; // 에러 배너 제거
 import '../widgets/relation_selector_sheet.dart';
 import '../widgets/suggested_questions.dart';
-import '../widgets/persona_selector/persona_selector.dart';
-import '../providers/persona_provider.dart';
 import '../providers/chat_persona_provider.dart';
 import '../providers/conversational_ad_provider.dart';
 import '../../data/models/conversational_ad_model.dart';
@@ -31,7 +28,10 @@ import '../widgets/ad_native_bubble.dart';
 // import '../widgets/conversational_ad_widget.dart'; // 대화형 광고 위젯 제거
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/presentation/providers/relation_provider.dart';
-import '../../../profile/data/models/profile_relation_model.dart';
+// profile_relation_model is now used via MentionSendHandler
+import '../widgets/mention_send_handler.dart';
+import '../widgets/chat_mobile_layout.dart';
+import '../widgets/chat_desktop_layout.dart';
 
 /// 사주 채팅 Shell - 반응형 레이아웃 래퍼
 ///
@@ -260,7 +260,7 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   Future<void> _handleNewChat() async {
     // 새 세션 광고 표시 (Web 제외)
     if (!kIsWeb) {
-      await ref.read(adControllerProvider.notifier).onNewSession();
+      await ref.read(adControllerProvider.notifier).onNewSessionRewarded();
     }
 
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
@@ -458,6 +458,24 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     );
   }
 
+  /// 공통 _ChatContent 위젯 생성
+  Widget _buildChatContent() {
+    return _ChatContent(
+      chatType: _chatType,
+      scrollController: _scrollController,
+      onScroll: _scrollToBottom,
+      onCreateSession: _handleNewChat,
+      targetProfileId: widget.targetProfileId,
+      inputController: _inputController,
+      pendingTargetProfileId: _pendingTargetProfileId,
+      pendingCompatibilitySelection: _pendingCompatibilitySelection,
+      onMentionSent: () => setState(() {
+        _pendingTargetProfileId = null;
+        _pendingCompatibilitySelection = null;
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -465,235 +483,32 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         final isMobile = constraints.maxWidth < _breakpoint;
 
         if (isMobile) {
-          return _buildMobileLayout();
+          return ChatMobileLayout(
+            chatType: _chatType,
+            scaffoldKey: _scaffoldKey,
+            onNewChat: _handleNewChat,
+            onSessionSelected: _handleSessionSelected,
+            onSessionDeleted: _handleSessionDeleted,
+            onSessionRenamed: _handleSessionRenamed,
+            onCompatibilityChat: _handleCompatibilityChat,
+            chatContent: _buildChatContent(),
+          );
         } else {
-          return _buildDesktopLayout();
+          return ChatDesktopLayout(
+            chatType: _chatType,
+            isSidebarVisible: _isSidebarVisible,
+            onToggleSidebar: () => setState(() {
+              _isSidebarVisible = !_isSidebarVisible;
+            }),
+            onNewChat: _handleNewChat,
+            onSessionSelected: _handleSessionSelected,
+            onSessionDeleted: _handleSessionDeleted,
+            onSessionRenamed: _handleSessionRenamed,
+            onCompatibilityChat: _handleCompatibilityChat,
+            chatContent: _buildChatContent(),
+          );
         }
       },
-    );
-  }
-
-  /// Mobile 레이아웃: Scaffold + Drawer
-  Widget _buildMobileLayout() {
-    final sessionState = ref.watch(chatSessionNotifierProvider);
-    final appTheme = context.appTheme;
-    final currentSession = sessionState.sessions
-        .where((s) => s.id == sessionState.currentSessionId)
-        .firstOrNull;
-
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: appTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: appTheme.backgroundColor,
-        foregroundColor: appTheme.textPrimary,
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-          tooltip: '메뉴',
-        ),
-        title: Text(
-          currentSession?.title ?? _chatType.title,
-          style: TextStyle(color: appTheme.textPrimary),
-        ),
-        actions: [
-          // + 새 채팅 버튼 (페르소나 변경 안내 포함)
-          IconButton(
-            icon: Icon(Icons.add, color: appTheme.primaryColor),
-            onPressed: _handleNewChat,
-            tooltip: '새 채팅 시작 (페르소나 변경)',
-          ),
-          // 궁합 버튼 (2명 선택)
-          IconButton(
-            icon: const Icon(Icons.group_add_outlined),
-            onPressed: _handleCompatibilityChat,
-            tooltip: '궁합 보기',
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        backgroundColor: appTheme.cardColor,
-        child: ChatHistorySidebar(
-          onNewChat: _handleNewChat,
-          onSessionSelected: _handleSessionSelected,
-          onSessionDeleted: _handleSessionDeleted,
-          onSessionRenamed: _handleSessionRenamed,
-          onDeleteCurrentSession: _handleSessionDeleted,
-        ),
-      ),
-      body: _ChatContent(
-        chatType: _chatType,
-        scrollController: _scrollController,
-        onScroll: _scrollToBottom,
-        onCreateSession: _handleNewChat,
-        targetProfileId: widget.targetProfileId,
-        inputController: _inputController,
-        pendingTargetProfileId: _pendingTargetProfileId,
-        pendingCompatibilitySelection: _pendingCompatibilitySelection,
-        onMentionSent: () => setState(() {
-          _pendingTargetProfileId = null;
-          _pendingCompatibilitySelection = null;
-        }),
-      ),
-    );
-  }
-
-  /// Desktop 레이아웃: Row [Sidebar | Content]
-  Widget _buildDesktopLayout() {
-    final sessionState = ref.watch(chatSessionNotifierProvider);
-    final appTheme = context.appTheme;
-    final currentSession = sessionState.sessions
-        .where((s) => s.id == sessionState.currentSessionId)
-        .firstOrNull;
-
-    return Scaffold(
-      backgroundColor: appTheme.backgroundColor,
-      body: SafeArea(
-        child: Row(
-          children: [
-            // 사이드바 (토글 가능)
-            if (_isSidebarVisible) ...[
-              ChatHistorySidebar(
-                onNewChat: _handleNewChat,
-                onSessionSelected: _handleSessionSelected,
-                onSessionDeleted: _handleSessionDeleted,
-                onSessionRenamed: _handleSessionRenamed,
-                onDeleteCurrentSession: _handleSessionDeleted,
-              ),
-              VerticalDivider(
-                width: 1,
-                color: appTheme.primaryColor.withOpacity(0.1),
-              ),
-            ],
-            // 채팅 영역
-            Expanded(
-              child: Column(
-                children: [
-                  // Desktop AppBar (사이드바 토글 + 제목)
-                  Container(
-                    height: 56,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: appTheme.backgroundColor,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: appTheme.primaryColor.withOpacity(0.1),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // 햄버거 메뉴 (새 채팅, 메인으로 이동, 사이드바 토글)
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.menu, color: appTheme.textPrimary),
-                        tooltip: '메뉴',
-                        color: appTheme.cardColor,
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'new_chat':
-                              _handleNewChat();
-                              break;
-                            case 'go_main':
-                              context.go(Routes.menu);
-                              break;
-                            case 'toggle_sidebar':
-                              setState(() {
-                                _isSidebarVisible = !_isSidebarVisible;
-                              });
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'new_chat',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_comment_outlined, color: appTheme.textPrimary, size: 20),
-                                const SizedBox(width: 12),
-                                Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'go_main',
-                            child: Row(
-                              children: [
-                                Icon(Icons.home_outlined, color: appTheme.textPrimary, size: 20),
-                                const SizedBox(width: 12),
-                                Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem(
-                            value: 'toggle_sidebar',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  _isSidebarVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: appTheme.textPrimary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _isSidebarVisible ? '사이드바 숨기기' : '사이드바 보기',
-                                  style: TextStyle(color: appTheme.textPrimary),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      // + 새 채팅 버튼 (햄버거 옆)
-                      IconButton(
-                        icon: Icon(Icons.add, color: appTheme.primaryColor),
-                        onPressed: _handleNewChat,
-                        tooltip: '새 채팅 시작 (페르소나 변경)',
-                      ),
-                      const SizedBox(width: 4),
-                      // 현재 세션 제목
-                      Expanded(
-                        child: Text(
-                          currentSession?.title ?? _chatType.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: appTheme.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // 궁합 버튼 (2명 선택)
-                      IconButton(
-                        icon: Icon(Icons.group_add_outlined, color: appTheme.textPrimary),
-                        onPressed: _handleCompatibilityChat,
-                        tooltip: '궁합 보기',
-                      ),
-                    ],
-                  ),
-                ),
-                // 채팅 컨텐츠
-                Expanded(
-                  child: _ChatContent(
-                    chatType: _chatType,
-                    scrollController: _scrollController,
-                    onScroll: _scrollToBottom,
-                    onCreateSession: _handleNewChat,
-                    targetProfileId: widget.targetProfileId,
-                    inputController: _inputController,
-                    pendingTargetProfileId: _pendingTargetProfileId,
-                    pendingCompatibilitySelection: _pendingCompatibilitySelection,
-                    onMentionSent: () => setState(() {
-                      _pendingTargetProfileId = null;
-                      _pendingCompatibilitySelection = null;
-                    }),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        ),
-      ),
     );
   }
 }
@@ -787,61 +602,18 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           ChatInputField(
             controller: widget.inputController,
             onSend: (text) async {
-              // 멘션 패턴 감지: @카테고리/이름
-              final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
-              final hasMention = mentionPattern.hasMatch(text);
+              final hasMention = MentionSendHandler.hasMention(text);
 
-              // targetProfileId 및 participantIds 결정
-              String? targetId;
-              List<String>? participantIds;
-              bool includesOwner = true; // 기본값: "나 포함"
+              // 공통 멘션 파싱 로직
+              final params = await MentionSendHandler.resolveMentionParams(
+                text: text,
+                ref: ref,
+                pendingCompatibilitySelection: widget.pendingCompatibilitySelection,
+                pendingTargetProfileId: widget.pendingTargetProfileId,
+                fallbackTargetProfileId: widget.targetProfileId,
+              );
 
-              // 1. UI 선택으로 pendingCompatibilitySelection이 있으면 우선 사용
-              if (widget.pendingCompatibilitySelection != null) {
-                final selection = widget.pendingCompatibilitySelection!;
-                // targetProfileId: 항상 상대방 ID
-                // - 나 포함: relations의 첫 번째 = 상대방
-                // - 나 제외: relations의 두 번째 = 상대방 (첫 번째는 기준 인물)
-                targetId = selection.targetProfileId;
-                participantIds = selection.participantIds;
-                includesOwner = selection.includesOwner;
-                print('[_ChatContent] UI 선택 궁합 모드: participantIds=$participantIds, targetId=$targetId, includesOwner=$includesOwner');
-              }
-              // 2. UI 선택 없이 직접 타이핑한 멘션이 있으면 파싱
-              else if (hasMention) {
-                final activeProfile = await ref.read(activeProfileProvider.future);
-                if (activeProfile != null) {
-                  // 인연 목록 가져오기
-                  final relationsAsync = await ref.read(relationListProvider(activeProfile.id).future);
-
-                  // 멘션 파싱
-                  final parser = MentionParser(
-                    ownerProfileId: activeProfile.id,
-                    ownerName: activeProfile.displayName,
-                    relations: relationsAsync,
-                  );
-                  final parseResult = parser.parse(text);
-
-                  print('[_ChatContent] 멘션 파싱 결과: mentions=${parseResult.mentions.length}, includesOwner=${parseResult.includesOwner}, targetId=${parseResult.targetProfileId}');
-
-                  // 파싱된 targetProfileId 사용
-                  targetId = parseResult.targetProfileId;
-                  participantIds = parseResult.participantIds;
-                  includesOwner = parseResult.includesOwner;
-
-                  // 파싱 실패 시 UI 선택된 값 사용
-                  if (targetId == null && widget.pendingTargetProfileId != null) {
-                    targetId = widget.pendingTargetProfileId;
-                    print('[_ChatContent] 파싱 실패, UI 선택 값 사용: $targetId');
-                  }
-                }
-              }
-              // 3. 기본값
-              else {
-                targetId = widget.targetProfileId;
-              }
-
-              print('[_ChatContent] 세션 생성 요청: text=$text, hasMention=$hasMention, targetProfileId=$targetId, participantIds=$participantIds, includesOwner=$includesOwner');
+              print('[_ChatContent] 세션 생성 요청: text=$text, hasMention=$hasMention, targetProfileId=${params.targetProfileId}, participantIds=${params.participantIds}, includesOwner=${params.includesOwner}');
 
               final activeProfile = await ref.read(activeProfileProvider.future);
               // 현재 선택된 페르소나를 세션에 저장
@@ -857,9 +629,9 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                     widget.chatType,
                     activeProfile?.id,
                     initialMessage: text,
-                    targetProfileId: targetId,
-                    participantIds: participantIds,
-                    includesOwner: includesOwner,
+                    targetProfileId: params.targetProfileId,
+                    participantIds: params.participantIds,
+                    includesOwner: params.includesOwner,
                     chatPersona: currentPersona,
                     mbtiQuadrant: resolvedMbti,
                   );
@@ -924,6 +696,16 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         if (next != null && previous != next) {
           // 토큰 소진 에러는 배너에서 처리하므로 즉시 소거
           ref.read(chatNotifierProvider(currentSessionId).notifier).clearError();
+        }
+      },
+    );
+
+    // 네이티브 광고 로드 완료 시 스크롤 (안내 문구가 보이도록)
+    ref.listen(
+      conversationalAdNotifierProvider.select((s) => s.loadState),
+      (previous, next) {
+        if (next == AdLoadState.loaded) {
+          widget.onScroll();
         }
       },
     );
@@ -1036,145 +818,16 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         ChatInputField(
           controller: widget.inputController,
           onSend: (text) async {
-            // 멘션 패턴 감지: @카테고리/이름
-            final mentionPattern = RegExp(r'@[^\s/]+/[^\s]+');
-            final hasMention = mentionPattern.hasMatch(text);
+            final hasMention = MentionSendHandler.hasMention(text);
 
-            // targetProfileId 및 participantIds 결정
-            String? targetId;
-            List<String>? participantIds;
-            bool includesOwner = true; // 기본값: "나 포함"
-
-            // 1. UI 선택으로 pendingCompatibilitySelection이 있으면 우선 사용
-            if (widget.pendingCompatibilitySelection != null) {
-              final selection = widget.pendingCompatibilitySelection!;
-              // targetProfileId: 항상 상대방 ID (나 제외)
-              targetId = selection.targetProfileId;
-              participantIds = selection.participantIds;
-              includesOwner = selection.includesOwner;
-              print('[_ChatContent] UI 선택 궁합 메시지 전송: targetId=$targetId, participantIds=$participantIds, includesOwner=$includesOwner');
-            }
-            // 2. UI 선택 없이 직접 타이핑한 멘션이 있으면 파싱
-            else if (hasMention) {
-              final activeProfile = await ref.read(activeProfileProvider.future);
-              if (activeProfile != null) {
-                // Phase 56-57: 향상된 멘션 파싱 로직
-                // "[나 제외]" 패턴 또는 두 멘션 모두 "나"가 아닌 경우 감지
-                final isExcludeOwnerMode = text.contains('[나 제외]') || text.contains('나 제외');
-
-                // 모든 멘션 추출
-                final allMentions = RegExp(r'@([^\s/]+)/([^\s@]+)').allMatches(text).toList();
-                final hasOwnerMention = allMentions.any((m) => m.group(1) == '나');
-
-                // "나 제외" 모드: 두 멘션 모두 "나"가 아니거나, 명시적으로 [나 제외] 포함
-                final isThirdPartyMode = isExcludeOwnerMode ||
-                    (allMentions.length >= 2 && !hasOwnerMention);
-
-                print('[_ChatContent] Phase 57: isThirdPartyMode=$isThirdPartyMode, isExcludeOwnerMode=$isExcludeOwnerMode, hasOwnerMention=$hasOwnerMention, mentionCount=${allMentions.length}');
-
-                if (isThirdPartyMode && allMentions.length >= 2) {
-                  // "나 제외" 모드: 두 사람 모두 관계 목록에서 ID 찾기
-                  final relations = await ref.read(relationListProvider(activeProfile.id).future);
-
-                  final List<String> foundIds = [];
-                  for (final match in allMentions) {
-                    final category = match.group(1) ?? '';
-                    final name = match.group(2) ?? '';
-
-                    // 이름으로 관계에서 프로필 ID 찾기
-                    String? profileId;
-                    for (final relation in relations) {
-                      final displayName = relation.displayName ?? relation.toProfile?.displayName ?? '';
-                      if (displayName == name || displayName.contains(name) || name.contains(displayName)) {
-                        profileId = relation.toProfileId;
-                        break;
-                      }
-                    }
-
-                    if (profileId != null) {
-                      foundIds.add(profileId);
-                      print('[_ChatContent] Phase 57: @$category/$name → profileId=$profileId');
-                    } else {
-                      print('[_ChatContent] Phase 57: @$category/$name → 찾기 실패');
-                    }
-                  }
-
-                  if (foundIds.length >= 2) {
-                    participantIds = foundIds.take(2).toList();
-                    targetId = participantIds.first;
-                    includesOwner = false;
-                    print('[_ChatContent] Phase 57: 나 제외 궁합 - participantIds=$participantIds');
-                  } else {
-                    print('[_ChatContent] Phase 57: 나 제외 모드이지만 2명 찾기 실패 (found=${foundIds.length})');
-                  }
-                } else {
-                  // 기존 로직: "나 포함" 모드 또는 단일 멘션
-                  // Phase 56: 2단계 파싱 로직
-                  // 1단계: 첫 번째 멘션 추출하여 "기준 인물" 파악
-                  final firstMention = MentionParser.extractFirstMention(text);
-
-                  String ownerProfileId = activeProfile.id;
-                  String ownerName = activeProfile.displayName;
-                  List<ProfileRelationModel> relations = await ref.read(relationListProvider(activeProfile.id).future);
-
-                  // 2단계: @나/XXX 형태이고 XXX가 로그인 사용자와 다르면
-                  // → XXX의 관계 목록으로 재조회
-                  if (firstMention.isOwnerCategory &&
-                      firstMention.name != null &&
-                      firstMention.name != activeProfile.displayName) {
-
-                    print('[_ChatContent] Phase 56: 기준 인물 변경 감지 - ${firstMention.name}');
-
-                    // 로그인 사용자의 관계 목록에서 기준 인물(예: 박재현) 프로필 ID 찾기
-                    final tempParser = MentionParser(
-                      ownerProfileId: activeProfile.id,
-                      ownerName: activeProfile.displayName,
-                      relations: relations,
-                    );
-                    final baseProfileId = tempParser.findProfileIdByName(firstMention.name!);
-
-                    if (baseProfileId != null) {
-                      // 기준 인물의 관계 목록 재조회
-                      final baseRelations = await ref.read(relationListProvider(baseProfileId).future);
-
-                      print('[_ChatContent] Phase 56: 기준 인물 관계 재조회 - ${firstMention.name} (${baseRelations.length}명)');
-
-                      // 기준 인물 정보로 교체
-                      ownerProfileId = baseProfileId;
-                      ownerName = firstMention.name!;
-                      relations = baseRelations;
-                    } else {
-                      print('[_ChatContent] Phase 56: 기준 인물 프로필 ID 찾기 실패 - ${firstMention.name}');
-                    }
-                  }
-
-                  // 멘션 파싱 (기준 인물 기준)
-                  final parser = MentionParser(
-                    ownerProfileId: ownerProfileId,
-                    ownerName: ownerName,
-                    relations: relations,
-                  );
-                  final parseResult = parser.parse(text);
-
-                  print('[_ChatContent] 멘션 파싱 결과: mentions=${parseResult.mentions.length}, targetId=${parseResult.targetProfileId}, includesOwner=${parseResult.includesOwner}');
-
-                  // 파싱된 targetProfileId 및 participantIds 사용
-                  targetId = parseResult.targetProfileId;
-                  participantIds = parseResult.participantIds;
-                  includesOwner = parseResult.includesOwner;
-                }
-
-                // 파싱 실패 시 UI 선택된 값 또는 세션 값 사용
-                if (targetId == null) {
-                  targetId = widget.pendingTargetProfileId ?? effectiveTargetProfileId;
-                  print('[_ChatContent] 파싱 실패, fallback 값 사용: $targetId');
-                }
-              }
-            }
-            // 3. 기본값 (세션에 저장된 targetProfileId)
-            else {
-              targetId = effectiveTargetProfileId;
-            }
+            // 공통 멘션 파싱 로직
+            final params = await MentionSendHandler.resolveMentionParams(
+              text: text,
+              ref: ref,
+              pendingCompatibilitySelection: widget.pendingCompatibilitySelection,
+              pendingTargetProfileId: widget.pendingTargetProfileId,
+              fallbackTargetProfileId: effectiveTargetProfileId,
+            );
 
             // v6.0 (Phase 57): 단순화된 파라미터 전달
             // - 궁합 모드: compatibilityParticipantIds로 2명의 ID 전달
@@ -1187,17 +840,17 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             print('  text: $text');
             print('  hasMention: $hasMention');
             print('  pendingCompatibilitySelection: ${widget.pendingCompatibilitySelection != null}');
-            print('  participantIds: $participantIds');
-            print('  targetId: $targetId');
-            print('  includesOwner: $includesOwner');
+            print('  participantIds: ${params.participantIds}');
+            print('  targetId: ${params.targetProfileId}');
+            print('  includesOwner: ${params.includesOwner}');
             ref
                 .read(chatNotifierProvider(currentSessionId).notifier)
                 .sendMessage(
                   text,
                   widget.chatType,
-                  compatibilityParticipantIds: participantIds,
+                  compatibilityParticipantIds: params.participantIds,
                   // 하위 호환: participantIds가 없을 때만 targetId 사용
-                  targetProfileId: participantIds == null ? targetId : null,
+                  targetProfileId: params.participantIds == null ? params.targetProfileId : null,
                 );
 
             // 멘션 전송 완료 시 콜백 호출
@@ -1254,6 +907,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       scrollController: widget.scrollController,
       isLoading: chatState.isLoading,
       trailingWidget: trailingWidget,
+      hideInlineAds: adState.isAdMode,
     );
   }
 }

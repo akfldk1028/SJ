@@ -27,6 +27,9 @@ class ChatMessageList extends StatelessWidget {
   /// 리스트 끝에 표시할 위젯 (광고 등 채팅 플로우에 포함)
   final Widget? trailingWidget;
 
+  /// 인터벌/소진 광고 활성 시 인라인 광고 숨김 (겹침 방지)
+  final bool hideInlineAds;
+
   const ChatMessageList({
     super.key,
     required this.messages,
@@ -34,6 +37,7 @@ class ChatMessageList extends StatelessWidget {
     this.scrollController,
     this.isLoading = false,
     this.trailingWidget,
+    this.hideInlineAds = false,
   });
 
   @override
@@ -124,8 +128,8 @@ class ChatMessageList extends StatelessWidget {
   }) {
     final messageCount = messages.length;
 
-    // Web이거나 메시지가 최소 개수 미만이면 광고 없음
-    if (kIsWeb || messageCount < AdStrategy.inlineAdMinMessages) {
+    // Web이거나 메시지가 최소 개수 미만이거나 인터벌 광고 활성 시 인라인 광고 숨김
+    if (kIsWeb || hideInlineAds || messageCount < AdStrategy.inlineAdMinMessages) {
       return (messageCount + extraItems, {});
     }
 

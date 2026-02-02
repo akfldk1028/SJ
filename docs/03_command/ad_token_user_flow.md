@@ -461,12 +461,15 @@ Native Ad:
 
 | 역할 | 파일 | 핵심 상수/메서드 |
 |------|------|----------------|
-| 광고 전략 설정 | `ad/ad_strategy.dart` | `inlineAdMessageInterval=6`, `inlineAdMaxCount` |
-| 토큰 트리거 로직 | `saju_chat/data/services/ad_trigger_service.dart` | `checkTrigger()`, `depletedRewardTokensVideo/Native`, `intervalClickRewardTokens` |
-| 광고 상태 관리 | `saju_chat/presentation/providers/conversational_ad_provider.dart` | `_onAdClicked()`, `_saveNativeBonusToServer()` |
+| 광고 전략 설정 + 토큰 보상 상수 | `ad/ad_strategy.dart` | `inlineAdMessageInterval=6`, `depletedRewardTokensVideo=20000`, `depletedRewardTokensNative=30000`, `intervalClickRewardTokens=30000` |
+| 토큰 트리거 로직 | `saju_chat/data/services/ad_trigger_service.dart` | `checkTrigger()` (AdStrategy에 위임) |
+| 광고 상태 관리 | `saju_chat/presentation/providers/conversational_ad_provider.dart` | `_onAdClicked()`, `_saveNativeBonusToServer()`, `switchToNativeAd()` |
 | 채팅 토큰 관리 | `saju_chat/presentation/providers/chat_provider.dart` | `addBonusTokens()` |
-| 광고 UI | `saju_chat/presentation/widgets/conversational_ad_widget.dart` | `_buildTokenDepletedChoice()` |
-| AI 전환 문구 | `saju_chat/domain/models/ad_persona_prompt.dart` | `getDefaultTransitionText()`, `getCtaText()` |
+| 토큰 소진 2버튼 배너 | `saju_chat/presentation/widgets/token_depleted_banner.dart` | 영상/네이티브 선택 UI |
+| 네이티브 광고 버블 | `saju_chat/presentation/widgets/ad_native_bubble.dart` | 채팅 버블 스타일 광고 |
+| 인라인 정적 광고 | `ad/widgets/chat_ad_widget.dart` | ChatAdWidget (ChatMessageList에 삽입) |
+| 인라인 광고 위치 계산 | `saju_chat/presentation/widgets/chat_message_list.dart` | `_calculateItemsWithAds()` (AI 응답 뒤에만 삽입) |
+| 채팅 쉘 (배너+trailing) | `saju_chat/presentation/screens/saju_chat_shell.dart` | `_buildChatListWithAd()`, `_TokenDepletedBanner` |
 | Gemini quota 체크 | `supabase/functions/ai-gemini/index.ts` | `checkAndUpdateQuota()`, `getTodayKST()` |
 | OpenAI quota 체크 | `supabase/functions/ai-openai/index.ts` | `checkQuota()`, `getTodayKST()` |
 | 광고 설정값 | `ad/ad_config.dart` | `AdUnitId`, `AdMode` |
@@ -474,14 +477,14 @@ Native Ad:
 
 ---
 
-## 11. 설정값 요약 (현재 v0.1.0+15)
+## 11. 설정값 요약 (v28, 2026-02-02)
 
 | 상수 | 값 | 위치 |
 |------|-----|------|
 | `daily_quota` | 20,000 | Edge Function + DB default |
-| `depletedRewardTokensVideo` | 20,000 (영상 시청) | `ad_trigger_service.dart` |
-| `depletedRewardTokensNative` | 30,000 (클릭 시에만) | `ad_trigger_service.dart` |
-| `intervalClickRewardTokens` | 30,000 (클릭 시에만) | `ad_trigger_service.dart` |
+| `depletedRewardTokensVideo` | 20,000 (영상 시청) | `ad_strategy.dart` |
+| `depletedRewardTokensNative` | 30,000 (클릭 시에만) | `ad_strategy.dart` |
+| `intervalClickRewardTokens` | 30,000 (클릭 시에만) | `ad_strategy.dart` |
 | `impressionRewardTokens` | 0 (노출 보상 없음) | `ad_trigger_service.dart` |
 | `inlineAdMessageInterval` | 6 (매 3교환마다) | `ad_strategy.dart` |
 | `inlineAdMinMessages` | 6 (3교환 후 시작) | `ad_strategy.dart` |

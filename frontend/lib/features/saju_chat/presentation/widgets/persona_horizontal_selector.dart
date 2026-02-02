@@ -18,7 +18,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/models/chat_persona.dart';
 import '../providers/chat_persona_provider.dart';
-import '../providers/persona_provider.dart';
 import '../providers/chat_session_provider.dart';
 import '../providers/chat_provider.dart';
 import 'persona_selector/persona_selector.dart';

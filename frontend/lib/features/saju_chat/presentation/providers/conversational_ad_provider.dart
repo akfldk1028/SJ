@@ -12,10 +12,9 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../../ad/ad_config.dart';
 import '../../../../ad/ad_tracking_service.dart';
+import '../../../../ad/token_reward_service.dart';
 import '../../../../purchase/purchase.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../data/services/ad_trigger_service.dart';
@@ -404,7 +403,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         adWatched: true,
         rewardedTokens: depletedTokens,
       );
-      _saveNativeBonusToServer(depletedTokens);
+      TokenRewardService.grantNativeAdTokens(depletedTokens);
       if (kDebugMode) {
         print('   💰 [AD] Native ad CLICKED (depleted) → +$depletedTokens tokens (saved to server)');
       }
@@ -417,7 +416,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       adWatched: true,
       rewardedTokens: clickTokens,
     );
-    _saveNativeBonusToServer(clickTokens);
+    TokenRewardService.grantNativeAdTokens(clickTokens);
 
     if (kDebugMode) {
       print('   💰 [AD] Native ad CLICKED (interval) → +$clickTokens tokens (total: ${state.rewardedTokens}, saved to server)');
@@ -483,46 +482,6 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
 
     if (kDebugMode) {
       print('   🔄 [AD] Ad dismissed, conversation resumed');
-    }
-  }
-
-  /// Rewarded Ad 보너스 토큰 서버 저장
-  /// → bonus_tokens 컬럼에 기록
-  Future<void> _saveBonusToServer(int tokens) async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
-      await Supabase.instance.client.rpc('add_ad_bonus_tokens', params: {
-        'p_user_id': userId,
-        'p_bonus_tokens': tokens,
-      });
-      if (kDebugMode) {
-        print('   💾 [AD] Server bonus saved (rewarded): +$tokens tokens → bonus_tokens');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('   ⚠️ [AD] Server bonus save failed: $e');
-      }
-    }
-  }
-
-  /// Native Ad 보너스 토큰 서버 저장
-  /// → native_tokens_earned 컬럼에 분리 기록
-  Future<void> _saveNativeBonusToServer(int tokens) async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
-      await Supabase.instance.client.rpc('add_native_bonus_tokens', params: {
-        'p_user_id': userId,
-        'p_bonus_tokens': tokens,
-      });
-      if (kDebugMode) {
-        print('   💾 [AD] Server bonus saved (native): +$tokens tokens → native_tokens_earned');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('   ⚠️ [AD] Server native bonus save failed: $e');
-      }
     }
   }
 

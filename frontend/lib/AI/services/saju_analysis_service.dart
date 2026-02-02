@@ -78,6 +78,7 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/services/error_logging_service.dart';
 import '../../core/supabase/generated/saju_analyses.dart';
 import '../../core/supabase/generated/saju_profiles.dart';
 import '../core/ai_constants.dart';
@@ -318,10 +319,17 @@ class SajuAnalysisService {
       if (onComplete != null) {
         onComplete(result);
       }
-    }).catchError((e) {
+    }).catchError((e, stackTrace) {
       // 에러 시에도 Set에서 제거
       _analyzingProfiles.remove(profileId);
       print('[SajuAnalysisService] 백그라운드 분석 오류: $e');
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runBothAnalysesInBackground', 'profileId': profileId},
+      );
     });
   }
 
@@ -376,6 +384,13 @@ class SajuAnalysisService {
     }).catchError((e, stackTrace) {
       print('[SajuAnalysisService] ❌ Fortune 분석 오류: $e');
       print('[SajuAnalysisService] StackTrace: $stackTrace');
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': 'analyzeAllFortunes', 'profileId': profileId},
+      );
     });
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -589,7 +604,7 @@ class SajuAnalysisService {
       } else {
         throw Exception(saveResult.errorMessage ?? '저장 실패');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       stopwatch.stop();
 
       // 에러 로그 출력
@@ -603,6 +618,14 @@ class SajuAnalysisService {
         success: false,
         error: e.toString(),
         processingTimeMs: stopwatch.elapsedMilliseconds,
+      );
+
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runSajuBaseAnalysis', 'profileId': profileId},
       );
 
       return AnalysisResult.failure(e.toString());
@@ -667,7 +690,7 @@ class SajuAnalysisService {
       } else {
         throw Exception(result.errorMessage ?? '일운 분석 실패');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       stopwatch.stop();
 
       // 에러 로그 출력
@@ -681,6 +704,14 @@ class SajuAnalysisService {
         success: false,
         error: e.toString(),
         processingTimeMs: stopwatch.elapsedMilliseconds,
+      );
+
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runDailyFortuneAnalysis', 'profileId': profileId},
       );
 
       return AnalysisResult.failure(e.toString());
@@ -1243,9 +1274,16 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
           totalProcessingTimeMs: totalStopwatch.elapsedMilliseconds,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       totalStopwatch.stop();
       print('[SajuAnalysisService] ❌ Phase 분할 분석 오류: $e');
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': 'runSajuBaseAnalysisWithPhases', 'profileId': profileId},
+      );
       return PhasedAnalysisResult(
         overall: AnalysisResult.failure(e.toString()),
         phases: phases,
@@ -1290,8 +1328,15 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       stopwatch.stop();
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runPhase1'},
+      );
       return PhaseAnalysisResult.failure(
         phase: 1,
         error: e.toString(),
@@ -1341,8 +1386,15 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       stopwatch.stop();
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runPhase2'},
+      );
       return PhaseAnalysisResult.failure(
         phase: 2,
         error: e.toString(),
@@ -1392,8 +1444,15 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       stopwatch.stop();
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runPhase3'},
+      );
       return PhaseAnalysisResult.failure(
         phase: 3,
         error: e.toString(),
@@ -1450,8 +1509,15 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       stopwatch.stop();
+      ErrorLoggingService.logError(
+        operation: 'saju_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runPhase4'},
+      );
       return PhaseAnalysisResult.failure(
         phase: 4,
         error: e.toString(),

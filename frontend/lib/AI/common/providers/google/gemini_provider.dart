@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/ai_config.dart';
 import '../../../core/ai_simple_logger.dart';
 import '../../../core/base_provider.dart';
+import '../../../../core/services/error_logging_service.dart';
 
 /// Gemini 3.0 추론 레벨 (thinking_level)
 enum ThinkingLevel { none, low, medium, high }
@@ -78,8 +79,15 @@ class GeminiProvider extends BaseLLMProvider {
       final content = response.data['candidates'][0]['content']['parts'][0]['text'];
       AILogger.response(name);
       return content;
-    } catch (e) {
+    } catch (e, stackTrace) {
       AILogger.error(name, e);
+      ErrorLoggingService.logError(
+        operation: 'gemini_send_message',
+        errorMessage: e.toString(),
+        sourceFile: 'gemini_provider.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'model': _model},
+      );
       return '[Gemini Error: $e]';
     }
   }
@@ -116,8 +124,15 @@ class GeminiProvider extends BaseLLMProvider {
       final content = response.data['candidates'][0]['content']['parts'][0]['text'];
       AILogger.response(name);
       return jsonDecode(content);
-    } catch (e) {
+    } catch (e, stackTrace) {
       AILogger.error(name, e);
+      ErrorLoggingService.logError(
+        operation: 'gemini_send_structured',
+        errorMessage: e.toString(),
+        sourceFile: 'gemini_provider.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'model': _model},
+      );
       return {'error': e.toString()};
     }
   }
@@ -164,7 +179,14 @@ class GeminiProvider extends BaseLLMProvider {
           }
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorLoggingService.logError(
+        operation: 'gemini_send_message_stream',
+        errorMessage: e.toString(),
+        sourceFile: 'gemini_provider.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'model': _model},
+      );
       yield '[Gemini Stream Error: $e]';
     }
   }

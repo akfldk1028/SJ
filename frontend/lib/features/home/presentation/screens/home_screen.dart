@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../ad/widgets/banner_ad_widget.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -172,6 +174,15 @@ class HomeScreen extends ConsumerWidget {
 
                 // Advice Card
                 _buildAdviceCard(theme, dailyFortuneAsync, horizontalPadding),
+
+                SizedBox(height: isSmall ? 16 : 20),
+
+                // 배너 광고 (Web 제외)
+                if (!kIsWeb)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: const BannerAdWidget(),
+                  ),
 
                 const SizedBox(height: 100), // Bottom nav spacing
               ],

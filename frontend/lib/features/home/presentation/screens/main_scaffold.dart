@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,8 +19,6 @@ class MainScaffold extends StatelessWidget {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 배너 광고 (Web 제외)
-          if (!kIsWeb) const BannerAdWidget(),
           // 하단 네비게이션 바
           BottomNavigationBar(
             currentIndex: _calculateSelectedIndex(context),

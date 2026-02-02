@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/services/error_logging_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../AI/core/ai_logger.dart';
 import '../../../../AI/core/ai_constants.dart';
@@ -450,28 +451,49 @@ class GeminiEdgeDatasource {
         finishReason: lastFinishReason,
       );
 
-    } on SseException catch (e) {
+    } on SseException catch (e, stackTrace) {
       if (kDebugMode) {
         print('[GeminiEdge] SSE 에러: ${e.message}');
       }
+      ErrorLoggingService.logError(
+        operation: 'gemini_edge_send_message_stream',
+        errorMessage: e.toString(),
+        sourceFile: 'gemini_edge_datasource.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'errorType': 'SseException'},
+      );
       yield* _handleStreamError(
         originalError: e,
         message: message,
         hasYieldedContent: hasYieldedContent,
       );
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
       if (kDebugMode) {
         print('[GeminiEdge] Dio 에러: ${e.message}');
       }
+      ErrorLoggingService.logError(
+        operation: 'gemini_edge_send_message_stream',
+        errorMessage: e.toString(),
+        sourceFile: 'gemini_edge_datasource.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'errorType': 'DioException', 'statusCode': e.response?.statusCode},
+      );
       yield* _handleStreamError(
         originalError: e,
         message: message,
         hasYieldedContent: hasYieldedContent,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('[GeminiEdge] 알 수 없는 에러: $e');
       }
+      ErrorLoggingService.logError(
+        operation: 'gemini_edge_send_message_stream',
+        errorMessage: e.toString(),
+        sourceFile: 'gemini_edge_datasource.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'errorType': 'unknown'},
+      );
       _rollbackUserMessage();
       throw Exception('AI 스트리밍 오류: $e');
     }

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/ai_config.dart';
 import '../../../core/ai_simple_logger.dart';
 import '../../../core/base_provider.dart';
+import '../../../../core/services/error_logging_service.dart';
 
 /// GPT-5.2 추론 레벨
 enum ReasoningEffort { none, low, medium, high, xhigh }
@@ -71,8 +72,15 @@ class GPTProvider extends BaseLLMProvider {
       final output = _parseResponseOutput(response.data);
       AILogger.response(name);
       return output;
-    } catch (e) {
+    } catch (e, stackTrace) {
       AILogger.error(name, e);
+      ErrorLoggingService.logError(
+        operation: 'gpt_send_message',
+        errorMessage: e.toString(),
+        sourceFile: 'gpt_provider.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'model': _model},
+      );
       return '[GPT Error: $e]';
     }
   }
@@ -102,8 +110,15 @@ class GPTProvider extends BaseLLMProvider {
       final output = _parseResponseOutput(response.data);
       AILogger.response(name);
       return jsonDecode(output);
-    } catch (e) {
+    } catch (e, stackTrace) {
       AILogger.error(name, e);
+      ErrorLoggingService.logError(
+        operation: 'gpt_send_structured',
+        errorMessage: e.toString(),
+        sourceFile: 'gpt_provider.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'model': _model},
+      );
       return {'error': e.toString()};
     }
   }
@@ -148,7 +163,14 @@ class GPTProvider extends BaseLLMProvider {
           }
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorLoggingService.logError(
+        operation: 'gpt_send_message_stream',
+        errorMessage: e.toString(),
+        sourceFile: 'gpt_provider.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'model': _model},
+      );
       yield '[GPT Stream Error: $e]';
     }
   }

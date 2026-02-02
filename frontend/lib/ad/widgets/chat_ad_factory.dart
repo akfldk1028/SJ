@@ -70,12 +70,28 @@ class ChatAdWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      child: ChatAdFactory.create(
-        index: index,
-        type: type,
-      ),
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: ChatAdFactory.create(
+            index: index,
+            type: type,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 56, top: 4, bottom: 8),
+          child: Text(
+            '관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

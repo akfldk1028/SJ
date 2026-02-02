@@ -60,13 +60,13 @@ abstract class AdStrategy {
 
   /// 인라인 광고 표시 간격 (메시지 수)
   /// 6 = 3번째 대화 후 광고 1회 (유저+AI = 2메시지 × 3 = 6)
-  static const int inlineAdMessageInterval = 6;
+  static const int inlineAdMessageInterval = 4;
 
   /// 인라인 광고 최대 개수 (세션당) 이건그냥 많은게좋음
   static const int inlineAdMaxCount = 9999;
   /// 인라인 광고 최소 메시지 수 (이보다 적으면 광고 안 보임)
   /// 6 = 3번째 대화 후부터 광고 시작
-  static const int inlineAdMinMessages = 6;
+  static const int inlineAdMinMessages = 4;
 
   // ==================== 전면 광고 ====================
 

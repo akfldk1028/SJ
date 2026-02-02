@@ -4,7 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../AI/services/saju_analysis_service.dart' as ai_saju;
 import '../../../../AI/services/compatibility_analysis_service.dart';
 // Phase 50 다중 궁합 제거됨 - 궁합은 항상 2명만
 // import '../../../../AI/services/multi_compatibility_analysis_service.dart';
@@ -17,12 +16,13 @@ import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/domain/entities/saju_analysis.dart';
 import '../../../saju_chart/presentation/providers/saju_chart_provider.dart';
-import '../../../../core/repositories/saju_profile_repository.dart';
-import '../../../../core/repositories/saju_analysis_repository.dart';
 import '../../data/datasources/gemini_edge_datasource.dart';
 import '../../data/repositories/chat_repository_impl.dart';
 import '../../data/services/chat_realtime_service.dart';
 import '../../data/models/conversational_ad_model.dart' show AdTriggerResult;
+import '../../data/services/compatibility_data_loader.dart';
+import '../../data/services/participant_resolver.dart';
+import '../../data/services/session_restore_service.dart';
 import '../../data/services/system_prompt_builder.dart';
 import '../../../../purchase/purchase.dart';
 import '../../domain/entities/chat_message.dart';
@@ -118,26 +118,6 @@ class ChatNotifier extends _$ChatNotifier {
 
   /// 메시지 전송 중 플래그 (더블클릭 방지)
   bool _isSendingMessage = false;
-
-  /// 양방향 관계 유형 조회 헬퍼
-  /// profile_relations에서 from→to, to→from 양방향으로 검색
-  Future<String?> _findRelationType(String profileId1, String profileId2) async {
-    var result = await Supabase.instance.client
-        .from('profile_relations')
-        .select('relation_type')
-        .eq('from_profile_id', profileId1)
-        .eq('to_profile_id', profileId2)
-        .maybeSingle();
-
-    result ??= await Supabase.instance.client
-        .from('profile_relations')
-        .select('relation_type')
-        .eq('from_profile_id', profileId2)
-        .eq('to_profile_id', profileId1)
-        .maybeSingle();
-
-    return result?['relation_type'] as String?;
-  }
 
   @override
   ChatState build(String sessionId) {
@@ -259,7 +239,11 @@ class ChatNotifier extends _$ChatNotifier {
         // ═══════════════════════════════════════════════════════════════════
         if (messages.isNotEmpty) {
           // v7.1: 사주 정보 포함한 완전한 시스템 프롬프트 생성
-          final fullSystemPrompt = await _buildRestoreSystemPrompt();
+          final fullSystemPrompt = await SessionRestoreService.buildRestoreSystemPrompt(
+            ref: ref,
+            sessionId: sessionId,
+            cachedAiSummary: _cachedAiSummary,
+          );
           _repository.restoreExistingSession(fullSystemPrompt, messages: messages);
           if (kDebugMode) {
             print('[ChatProvider] 기존 세션 복원 완료 (${messages.length}개 메시지, 사주 정보 포함)');
@@ -482,220 +466,6 @@ class ChatNotifier extends _$ChatNotifier {
     }
   }
 
-  /// 세션 복원용 시스템 프롬프트 빌드
-  ///
-  /// v7.1: 앱 백그라운드 → 포그라운드 복귀 시 사주 정보 포함
-  /// - 프로필 + 사주 분석 + AI Summary 로드하여 완전한 프롬프트 생성
-  /// v7.2: 궁합 모드 지원 추가
-  /// - 세션의 targetProfileId로 상대방 프로필/사주 복원
-  /// - chat_mentions에서 participantIds 복원 → 궁합 분석 결과 로드
-  Future<String> _buildRestoreSystemPrompt() async {
-    try {
-      // 1. 페르소나 프롬프트 (기본)
-      final personaPrompt = ref.read(finalSystemPromptProvider);
-
-      // 2. 프로필 로드
-      final activeProfile = await ref.read(activeProfileProvider.future);
-      if (activeProfile == null) {
-        if (kDebugMode) {
-          print('[ChatProvider] 세션 복원: 프로필 없음 - 페르소나 프롬프트만 사용');
-        }
-        return personaPrompt;
-      }
-
-      // 3. 사주 분석 로드
-      final sajuAnalysis = await ref.read(currentSajuAnalysisProvider.future);
-
-      // 4. AI Summary (캐시된 것만 사용 - 새로 생성하지 않음!)
-      // 세션 복원 시 Edge Function 호출하면 비용 발생하므로 캐시만 확인
-      final aiSummary = _cachedAiSummary;
-
-      // 5. 궁합 모드 확인 및 상대방 데이터 복원 (v7.2)
-      SajuProfile? person1Profile = activeProfile;
-      SajuAnalysis? person1SajuAnalysis = sajuAnalysis;
-      SajuProfile? targetProfile;
-      SajuAnalysis? targetSajuAnalysis;
-      Map<String, dynamic>? compatibilityAnalysis;
-      bool isThirdPartyCompatibility = false;
-      String? relationType;  // v8.1: 관계 유형
-      List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})> additionalParticipants = [];  // v10.0
-
-      final sessionRepository = ref.read(chatSessionRepositoryProvider);
-      final currentSession = await sessionRepository.getSession(sessionId);
-      final targetProfileId = currentSession?.targetProfileId;
-
-      if (targetProfileId != null) {
-        // 궁합 세션! 상대방 데이터 복원
-        final profileRepo = SajuProfileRepository();
-        final analysisRepo = SajuAnalysisRepository();
-
-        targetProfile = await profileRepo.getById(targetProfileId);
-        if (targetProfile != null) {
-          targetSajuAnalysis = await analysisRepo.getByProfileId(targetProfileId);
-        }
-
-        // chat_mentions에서 참가자 ID 복원 → person1, person2, 추가 참가자 결정
-        String? person1Id;
-        String? person2Id;
-        List<String> extraParticipantIds = [];  // v10.0: 3번째 이후 ID
-        try {
-          final mentions = await Supabase.instance.client
-              .from('chat_mentions')
-              .select('target_profile_id, mention_order')
-              .eq('session_id', sessionId)
-              .order('mention_order');
-
-          if (mentions is List && mentions.length >= 2) {
-            person1Id = mentions[0]['target_profile_id'] as String?;
-            person2Id = mentions[1]['target_profile_id'] as String?;
-            // v10.0: 3번째 이후 참가자 ID 수집
-            for (int i = 2; i < mentions.length; i++) {
-              final pid = mentions[i]['target_profile_id'] as String?;
-              if (pid != null) extraParticipantIds.add(pid);
-            }
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            print('[ChatProvider] 세션 복원: chat_mentions 조회 실패: $e');
-          }
-        }
-
-        // fallback: person1 = activeProfile, person2 = targetProfile
-        person1Id ??= activeProfile.id;
-        person2Id ??= targetProfileId;
-
-        // "나 제외" 모드 판단
-        isThirdPartyCompatibility = activeProfile.id != person1Id;
-
-        // v7.2: 나 제외 모드에서는 person1의 프로필/사주를 별도 로드
-        if (isThirdPartyCompatibility && person1Id != null) {
-          person1Profile = await profileRepo.getById(person1Id);
-          if (person1Profile != null) {
-            person1SajuAnalysis = await analysisRepo.getByProfileId(person1Id);
-          }
-          // person2도 별도 로드 (targetProfileId와 다를 수 있음)
-          if (person2Id != null && person2Id != targetProfileId) {
-            targetProfile = await profileRepo.getById(person2Id);
-            if (targetProfile != null) {
-              targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
-            }
-          }
-        }
-
-        // v10.0: 추가 참가자 프로필/사주 로드 (3번째 이후)
-        if (extraParticipantIds.isNotEmpty) {
-          for (final pid in extraParticipantIds) {
-            final p = await profileRepo.getById(pid);
-            if (p != null) {
-              final saju = await analysisRepo.getByProfileId(pid);
-              additionalParticipants.add((profile: p, sajuAnalysis: saju));
-            }
-          }
-          if (kDebugMode) {
-            print('[ChatProvider] 세션 복원: 추가 참가자 ${additionalParticipants.length}명 로드');
-          }
-        }
-
-        // v8.1: 관계 유형 조회 (양방향 검색)
-        if (person1Id != null && person2Id != null) {
-          try {
-            relationType = await _findRelationType(person1Id, person2Id);
-          } catch (e) {
-            if (kDebugMode) {
-              print('[ChatProvider] 세션 복원: 관계 유형 조회 실패: $e');
-            }
-          }
-        }
-
-        // 궁합 분석 결과 로드 (캐시)
-        if (person1Id != null && person2Id != null) {
-          try {
-            final compatService = CompatibilityAnalysisService();
-            final cached = await compatService.getAnalysisByProfiles(person1Id, person2Id);
-            if (cached != null) {
-              compatibilityAnalysis = Map<String, dynamic>.from(cached);
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              print('[ChatProvider] 세션 복원: 궁합 분석 로드 실패: $e');
-            }
-          }
-        }
-
-        // v7.1: 두 사람의 8글자를 궁합 분석 결과에 추가 (프롬프트용)
-        if (compatibilityAnalysis != null) {
-          if (person1SajuAnalysis != null) {
-            final c = person1SajuAnalysis.chart;
-            compatibilityAnalysis!['_person1_chars'] = {
-              'year_gan': c.yearPillar.gan, 'year_ji': c.yearPillar.ji,
-              'month_gan': c.monthPillar.gan, 'month_ji': c.monthPillar.ji,
-              'day_gan': c.dayPillar.gan, 'day_ji': c.dayPillar.ji,
-              'hour_gan': c.hourPillar?.gan, 'hour_ji': c.hourPillar?.ji,
-            };
-          }
-          if (targetSajuAnalysis != null) {
-            final c = targetSajuAnalysis.chart;
-            compatibilityAnalysis!['_person2_chars'] = {
-              'year_gan': c.yearPillar.gan, 'year_ji': c.yearPillar.ji,
-              'month_gan': c.monthPillar.gan, 'month_ji': c.monthPillar.ji,
-              'day_gan': c.dayPillar.gan, 'day_ji': c.dayPillar.ji,
-              'hour_gan': c.hourPillar?.gan, 'hour_ji': c.hourPillar?.ji,
-            };
-          }
-        }
-
-        if (kDebugMode) {
-          print('[ChatProvider] 세션 복원: 궁합 모드');
-          print('   상대방: ${targetProfile?.displayName ?? "?"}');
-          print('   상대방 사주: ${targetSajuAnalysis != null ? "있음" : "없음"}');
-          print('   궁합 분석: ${compatibilityAnalysis != null ? "있음" : "없음"}');
-          print('   나 제외 모드: $isThirdPartyCompatibility');
-        }
-      }
-
-      // 6. 완전한 시스템 프롬프트 생성 (궁합 데이터 포함)
-      // 궁합 모드면 compatibility.md 로드, 아니면 general.md
-      final restoreBasePrompt = targetProfile != null
-          ? await _loadSystemPrompt(ChatType.compatibility)
-          : await _loadSystemPrompt(ChatType.general);
-      final fullPrompt = _buildFullSystemPrompt(
-        basePrompt: restoreBasePrompt,
-        aiSummary: aiSummary,
-        sajuAnalysis: person1SajuAnalysis,  // v7.2: 나 제외 모드 시 person1의 사주
-        profile: person1Profile,  // v7.2: 나 제외 모드 시 person1의 프로필
-        personaPrompt: personaPrompt,
-        isFirstMessage: true,  // 복원 후 첫 메시지로 취급
-        targetProfile: targetProfile,
-        targetSajuAnalysis: targetSajuAnalysis,
-        compatibilityAnalysis: compatibilityAnalysis,
-        isThirdPartyCompatibility: isThirdPartyCompatibility,
-        relationType: relationType,  // v8.1: 관계 유형
-        additionalParticipants: additionalParticipants.isNotEmpty ? additionalParticipants : null,  // v10.0
-      );
-
-      if (kDebugMode) {
-        print('[ChatProvider] 세션 복원: 프롬프트 생성 완료');
-        print('   Person1 프로필: ${person1Profile?.displayName}');
-        print('   Person1 사주: ${person1SajuAnalysis != null ? "있음" : "없음"}');
-        print('   Person2 프로필: ${targetProfile?.displayName}');
-        print('   Person2 사주: ${targetSajuAnalysis != null ? "있음" : "없음"}');
-        print('   AI Summary: ${aiSummary != null ? "있음" : "없음"}');
-        print('   궁합 모드: ${targetProfile != null}');
-        print('   나 제외 모드: $isThirdPartyCompatibility');
-        if (additionalParticipants.isNotEmpty) {
-          print('   추가 참가자: ${additionalParticipants.length}명');
-        }
-      }
-
-      return fullPrompt;
-    } catch (e) {
-      if (kDebugMode) {
-        print('[ChatProvider] 세션 복원 프롬프트 오류: $e - 페르소나 프롬프트만 사용');
-      }
-      return ref.read(finalSystemPromptProvider);
-    }
-  }
-
   /// 시스템 프롬프트 빌드
   ///
   /// v3.4: SystemPromptBuilder 클래스로 분리 (모듈화)
@@ -802,109 +572,21 @@ class ChatNotifier extends _$ChatNotifier {
     // v6.0 (Phase 57): 궁합 로직 단순화
     // - 궁합 = 그냥 2명의 profileId
     // - "나 포함/제외" 구분 제거 → 선택된 2명 그대로 사용
+    // v11.0: ParticipantResolver로 분리 (participant_resolver.dart)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // 궁합 참가자 결정 (우선순위: compatibilityParticipantIds > multiParticipantIds)
     final effectiveParticipantIds = compatibilityParticipantIds ?? multiParticipantIds;
 
-    // 궁합 모드: 2명의 참가자가 있는 경우
-    var isCompatibilityMode = effectiveParticipantIds != null && effectiveParticipantIds.length >= 2;
-
-    // 궁합 모드에서 참가자 ID 추출
-    String? person1Id;  // 첫 번째 사람 (기존 activeProfile 역할)
-    String? person2Id;  // 두 번째 사람 (기존 targetProfile 역할)
-    List<String> extraMentionIds = [];  // v10.0: chat_mentions에서 복원된 3번째 이후 참가자 ID
-
-    if (isCompatibilityMode) {
-      person1Id = effectiveParticipantIds[0];
-      person2Id = effectiveParticipantIds[1];
-      if (kDebugMode) {
-        print('   ✅ 궁합 모드 활성화: person1Id=$person1Id, person2Id=$person2Id');
-      }
-    } else if (targetProfileId != null) {
-      // 하위 호환: 단일 targetProfileId만 있는 경우
-      // chat_mentions에서 실제 participantIds를 복원하여 정확한 person1/person2 결정
-      person2Id = targetProfileId;
-      try {
-        final mentions = await Supabase.instance.client
-            .from('chat_mentions')
-            .select('target_profile_id, mention_order')
-            .eq('session_id', sessionId)
-            .order('mention_order');
-        if (mentions is List && mentions.length >= 2) {
-          person1Id = mentions[0]['target_profile_id'] as String?;
-          person2Id = mentions[1]['target_profile_id'] as String?;
-          // v10.0: 3번째 이후 참가자 ID 수집
-          for (int i = 2; i < mentions.length; i++) {
-            final pid = mentions[i]['target_profile_id'] as String?;
-            if (pid != null) extraMentionIds.add(pid);
-          }
-          if (kDebugMode) {
-            print('   ✅ chat_mentions에서 복원: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명');
-          }
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print('   ⚠️ chat_mentions 조회 실패: $e');
-        }
-      }
-      // chat_mentions에서 person1Id를 복원했으면 궁합 모드로 전환
-      if (person1Id != null) {
-        isCompatibilityMode = true;
-      }
-      if (kDebugMode) {
-        print('   📌 하위 호환 모드: person1=$person1Id, person2=$person2Id, isCompatibilityMode=$isCompatibilityMode');
-      }
-    } else {
-      // v8.0: 명시적 ID가 없어도 chat_mentions에서 궁합 복원 시도
-      // (두 번째 이후 메시지에서 UI가 participantIds를 전달하지 못하는 문제 대응)
-      try {
-        final mentions = await Supabase.instance.client
-            .from('chat_mentions')
-            .select('target_profile_id, mention_order')
-            .eq('session_id', sessionId)
-            .order('mention_order');
-        if (mentions is List && mentions.length >= 2) {
-          person1Id = mentions[0]['target_profile_id'] as String?;
-          person2Id = mentions[1]['target_profile_id'] as String?;
-          if (person1Id != null && person2Id != null) {
-            isCompatibilityMode = true;
-            // v10.0: 3번째 이후 참가자 ID 수집
-            for (int i = 2; i < mentions.length; i++) {
-              final pid = mentions[i]['target_profile_id'] as String?;
-              if (pid != null) extraMentionIds.add(pid);
-            }
-            if (kDebugMode) {
-              print('   ✅ chat_mentions에서 궁합 자동 복원: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명');
-            }
-          }
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print('   ⚠️ chat_mentions 자동 복원 실패: $e');
-        }
-      }
-
-      if (!isCompatibilityMode && kDebugMode) {
-        print('   📝 일반 채팅 모드 (궁합 아님)');
-        print('      effectiveParticipantIds: $effectiveParticipantIds');
-        print('      compatibilityParticipantIds: $compatibilityParticipantIds');
-        print('      multiParticipantIds: $multiParticipantIds');
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // v9.0: 단일 멘션 처리 (@친구/종환 이사람사주머게)
-    // - participantIds에 1명만 있으면 해당 인물의 사주 데이터 로드 필요
-    // - person2Id를 설정하여 "하위 호환: owner + target" 분기로 진입
-    // ═══════════════════════════════════════════════════════════════════════════
-    if (!isCompatibilityMode && person2Id == null &&
-        effectiveParticipantIds != null && effectiveParticipantIds.length == 1) {
-      person2Id = effectiveParticipantIds[0];
-      if (kDebugMode) {
-        print('   📌 단일 멘션 모드: target=$person2Id (상대방 사주 데이터 로드)');
-      }
-    }
+    final resolution = await ParticipantResolver.resolve(
+      sessionId: sessionId,
+      compatibilityParticipantIds: compatibilityParticipantIds,
+      multiParticipantIds: multiParticipantIds,
+      targetProfileId: targetProfileId,
+    );
+    var isCompatibilityMode = resolution.isCompatibilityMode;
+    String? person1Id = resolution.person1Id;
+    String? person2Id = resolution.person2Id;
+    List<String> extraMentionIds = resolution.extraMentionIds;
 
     if (kDebugMode) {
       print('');
@@ -1058,207 +740,34 @@ class ChatNotifier extends _$ChatNotifier {
       final shouldLoadSaju = true;
       final shouldRunCompatibility = isFirstMessageInSession || isCompatibilityMode || person2Id != null;
 
-      SajuProfile? activeProfile;    // 첫 번째 사람 (궁합) 또는 owner (일반)
-      SajuAnalysis? sajuAnalysis;    // 첫 번째 사람의 사주
-      SajuProfile? targetProfile;    // 두 번째 사람 (궁합 시에만)
-      SajuAnalysis? targetSajuAnalysis;  // 두 번째 사람의 사주
-      List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})> additionalParticipants = [];  // v10.0: 3번째 이후
-
-      final profileRepo = SajuProfileRepository();
-      final analysisRepo = SajuAnalysisRepository();
+      // ═══════════════════════════════════════════════════════════════════════════
+      // 프로필/사주 로드 (CompatibilityDataLoader로 분리)
+      // ═══════════════════════════════════════════════════════════════════════════
+      CompatibilityData compatData = const CompatibilityData();
 
       if (shouldLoadSaju) {
         if (kDebugMode) {
           print('   📍 사주 로드: isFirstMessage=$isFirstMessageInSession, isCompatibilityMode=$isCompatibilityMode');
         }
 
-        if (isCompatibilityMode && person1Id != null) {
-          // ═══════════════════════════════════════════════════════════════════
-          // 궁합 모드: person1, person2 둘 다 프로필/사주 로드
-          // ═══════════════════════════════════════════════════════════════════
-          if (kDebugMode) {
-            print('   🎯 궁합 모드: 두 사람 프로필/사주 조회...');
-          }
-
-          // Person 1 로드
-          activeProfile = await profileRepo.getById(person1Id);
-          if (activeProfile != null) {
-            sajuAnalysis = await analysisRepo.getByProfileId(person1Id);
-
-            // v6.0: 첫 번째 사람도 사주 자동생성
-            if (sajuAnalysis == null && userId != null) {
-              if (kDebugMode) {
-                print('   ⚠️ Person1 사주 분석 없음 → GPT-5.2 자동 분석 시작');
-              }
-              try {
-                final aiAnalysisService = ai_saju.SajuAnalysisService();
-                final result = await aiAnalysisService.ensureSajuBaseAnalysis(
-                  userId: userId,
-                  profileId: person1Id,
-                  runInBackground: false,
-                );
-                if (result.success) {
-                  sajuAnalysis = await analysisRepo.getByProfileId(person1Id);
-                  if (kDebugMode) {
-                    print('   ✅ Person1 사주 분석 자동 생성 완료');
-                  }
-                }
-              } catch (e) {
-                if (kDebugMode) {
-                  print('   ❌ Person1 사주 분석 생성 중 오류: $e');
-                }
-              }
-            }
-
-            if (kDebugMode) {
-              print('   ✅ Person1 프로필: ${activeProfile.displayName}');
-              print('   ✅ Person1 사주: ${sajuAnalysis != null ? '있음' : '없음'}');
-            }
-          }
-
-          // Person 2 로드
-          if (person2Id != null) {
-            targetProfile = await profileRepo.getById(person2Id);
-            if (targetProfile != null) {
-              targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
-
-              // v6.0: 두 번째 사람도 사주 자동생성
-              if (targetSajuAnalysis == null && userId != null) {
-                if (kDebugMode) {
-                  print('   ⚠️ Person2 사주 분석 없음 → GPT-5.2 자동 분석 시작');
-                }
-                try {
-                  final aiAnalysisService = ai_saju.SajuAnalysisService();
-                  final result = await aiAnalysisService.ensureSajuBaseAnalysis(
-                    userId: userId,
-                    profileId: person2Id,
-                    runInBackground: false,
-                  );
-                  if (result.success) {
-                    targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
-                    if (kDebugMode) {
-                      print('   ✅ Person2 사주 분석 자동 생성 완료');
-                    }
-                  }
-                } catch (e) {
-                  if (kDebugMode) {
-                    print('   ❌ Person2 사주 분석 생성 중 오류: $e');
-                  }
-                }
-              }
-
-              if (kDebugMode) {
-                print('   ✅ Person2 프로필: ${targetProfile.displayName}');
-                print('   ✅ Person2 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
-              }
-            }
-          }
-
-          // v10.0: 추가 참가자 로드 (3번째 이후)
-          // effectiveParticipantIds에서 또는 chat_mentions 복원된 extraMentionIds에서 로드
-          final extraIds = (effectiveParticipantIds != null && effectiveParticipantIds.length > 2)
-              ? effectiveParticipantIds.sublist(2)
-              : extraMentionIds;
-          if (extraIds.isNotEmpty) {
-            for (int i = 0; i < extraIds.length; i++) {
-              final pid = extraIds[i];
-              final p = await profileRepo.getById(pid);
-              if (p != null) {
-                var saju = await analysisRepo.getByProfileId(pid);
-                // 사주 없으면 자동 생성
-                if (saju == null && userId != null) {
-                  try {
-                    final aiService = ai_saju.SajuAnalysisService();
-                    final result = await aiService.ensureSajuBaseAnalysis(
-                      userId: userId,
-                      profileId: pid,
-                      runInBackground: false,
-                    );
-                    if (result.success) {
-                      saju = await analysisRepo.getByProfileId(pid);
-                    }
-                  } catch (_) {}
-                }
-                additionalParticipants.add((profile: p, sajuAnalysis: saju));
-                if (kDebugMode) {
-                  print('   ✅ Person${i + 3} 프로필: ${p.displayName}, 사주: ${saju != null ? '있음' : '없음'}');
-                }
-              }
-            }
-          }
-        } else if (person2Id != null) {
-          // ═══════════════════════════════════════════════════════════════════
-          // 하위 호환: owner + target 방식 (단일 targetProfileId만 있는 경우)
-          // ═══════════════════════════════════════════════════════════════════
-          if (kDebugMode) {
-            print('   🎯 하위 호환 모드: owner + target');
-          }
-
-          // Owner (나) 로드
-          sajuAnalysis = await ref.read(currentSajuAnalysisProvider.future);
-          activeProfile = await ref.read(activeProfileProvider.future);
-
-          // Target 로드
-          targetProfile = await profileRepo.getById(person2Id);
-          if (targetProfile != null) {
-            targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
-
-            if (targetSajuAnalysis == null && userId != null) {
-              if (kDebugMode) {
-                print('   ⚠️ 상대방 사주 분석 없음 → GPT-5.2 자동 분석 시작');
-              }
-              try {
-                final aiAnalysisService = ai_saju.SajuAnalysisService();
-                final result = await aiAnalysisService.ensureSajuBaseAnalysis(
-                  userId: userId,
-                  profileId: person2Id,
-                  runInBackground: false,
-                );
-                if (result.success) {
-                  targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
-                }
-              } catch (e) {
-                if (kDebugMode) {
-                  print('   ❌ 상대방 사주 분석 생성 중 오류: $e');
-                }
-              }
-            }
-          }
-
-          // v9.0: 단일 멘션 시 세션에 target_profile_id 저장 (앱 재시작 복원용)
-          if (targetProfile != null) {
-            try {
-              await Supabase.instance.client
-                  .from('chat_sessions')
-                  .update({'target_profile_id': person2Id})
-                  .eq('id', currentSessionId);
-              // chat_mentions에도 저장 (owner + target)
-              final ownerId = (await ref.read(activeProfileProvider.future))?.id;
-              if (ownerId != null) {
-                await _saveChatMentions(currentSessionId, [ownerId, person2Id!]);
-              }
-              if (kDebugMode) {
-                print('   ✅ 세션에 target_profile_id 저장: $person2Id');
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                print('   ⚠️ 세션 target_profile_id 저장 실패: $e');
-              }
-            }
-          }
-        } else {
-          // ═══════════════════════════════════════════════════════════════════
-          // 일반 채팅: owner의 프로필/사주 사용
-          // ═══════════════════════════════════════════════════════════════════
-          sajuAnalysis = await ref.read(currentSajuAnalysisProvider.future);
-          activeProfile = await ref.read(activeProfileProvider.future);
-          if (kDebugMode) {
-            print('   🎯 일반 채팅 모드: owner 프로필/사주 사용');
-            print('   ✅ 프로필: ${activeProfile?.displayName}');
-            print('   ✅ 사주: ${sajuAnalysis != null ? '있음' : '없음'}');
-          }
-        }
+        compatData = await CompatibilityDataLoader.loadProfiles(
+          ref: ref,
+          sessionId: currentSessionId,
+          person1Id: person1Id,
+          person2Id: person2Id,
+          extraMentionIds: extraMentionIds,
+          effectiveParticipantIds: effectiveParticipantIds,
+          userId: userId,
+          isCompatibilityMode: isCompatibilityMode,
+        );
       }
+
+      final activeProfile = compatData.activeProfile;
+      final sajuAnalysis = compatData.sajuAnalysis;
+      final targetProfile = compatData.targetProfile;
+      final targetSajuAnalysis = compatData.targetSajuAnalysis;
+      final additionalParticipants = compatData.additionalParticipants;
+      final isThirdPartyCompatibility = compatData.isThirdPartyCompatibility;
 
       // ═══════════════════════════════════════════════════════════════════════════
       // 궁합 분석 실행 (v6.0: 단순화)
@@ -1281,7 +790,7 @@ class ChatNotifier extends _$ChatNotifier {
         try {
           if (userId != null) {
             // profile_relations에서 관계 유형 조회 (양방향 검색)
-            relationType = await _findRelationType(person1Id, person2Id) ?? 'other';
+            relationType = await SessionRestoreService.findRelationType(person1Id, person2Id) ?? 'other';
 
             if (kDebugMode) {
               print('   📌 궁합 참가자: person1=$person1Id, person2=$person2Id');
@@ -1342,17 +851,6 @@ class ChatNotifier extends _$ChatNotifier {
       // v5.2 (Phase 54): 연속 궁합 채팅에서도 사주 정보 포함
       // isFirstMessage → isFirstMessageInSession (기존 로깅용)
       // 궁합 모드에서는 항상 사주 정보 포함 (shouldLoadSaju)
-
-      // v6.0 (Phase 57): "나 제외" 모드 판단
-      // - 궁합 모드에서 person1이 로그인 사용자의 primary profile이 아니면 "나 제외"
-      bool isThirdPartyCompatibility = false;
-      if (isCompatibilityMode && person1Id != null) {
-        final ownerProfile = await ref.read(activeProfileProvider.future);
-        isThirdPartyCompatibility = ownerProfile?.id != person1Id;
-        if (kDebugMode && isThirdPartyCompatibility) {
-          print('   📌 나 제외 모드: 로그인사용자=${ownerProfile?.displayName}, person1=${activeProfile?.displayName}, person2=${targetProfile?.displayName}');
-        }
-      }
 
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
@@ -1783,34 +1281,9 @@ class ChatNotifier extends _$ChatNotifier {
       print('[ChatProvider] 새 토큰 상태: $tokenUsage');
     }
 
-    // 2. Server-side: conversational_ad_provider에서 이미 처리됨
-    // - Rewarded ad: trackRewarded() → rewarded_tokens_earned
-    // - Native ad: _saveNativeBonusToServer() → native_tokens_earned
-    // → 여기서는 추가 RPC 호출 불필요 (isRewardedAd는 항상 true로 전달됨)
-    if (isRewardedAd) {
-      if (kDebugMode) {
-        print('[ChatProvider] 서버 RPC 스킵 (provider에서 이미 저장됨)');
-      }
-      return;
-    }
-
-    // Legacy fallback: isRewardedAd=false로 호출되는 경우 (현재 미사용)
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        await Supabase.instance.client.rpc('add_ad_bonus_tokens', params: {
-          'p_user_id': userId,
-          'p_bonus_tokens': tokens,
-        });
-        if (kDebugMode) {
-          print('[ChatProvider] 서버 bonus_tokens 반영 완료: +$tokens');
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('[ChatProvider] 서버 bonus_tokens 반영 실패: $e');
-      }
-    }
+    // Server-side: TokenRewardService에서 처리됨
+    // - Rewarded ad: AdTrackingService.trackRewarded() → rewarded_tokens_earned
+    // - Native ad: TokenRewardService.grantNativeAdTokens() → native_tokens_earned
   }
 
 }
