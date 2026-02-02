@@ -22,6 +22,7 @@ UI widgets for the saju chat screen. Chat bubbles, ad integration, input control
 | `persona_selector_sheet.dart` | Bottom sheet for persona selection. |
 | `relation_selector_sheet.dart` | Bottom sheet for selecting relationship target (compatibility chat). |
 | `suggested_questions.dart` | Pre-built question chips for new conversations. |
+| `token_depleted_banner.dart` | 토큰 소진 시 2버튼 배너 (영상광고/네이티브광고). v30: 텍스트 "📋 바로 대화 계속하기" (AdMob 정책 준수) |
 | `disclaimer_banner.dart` | Legal disclaimer for fortune-telling content. |
 | `error_banner.dart` | Error display banner for failed API calls. |
 

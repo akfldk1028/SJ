@@ -73,6 +73,7 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/services/error_logging_service.dart';
 import '../core/ai_constants.dart';
 import '../core/ai_logger.dart';
 
@@ -143,9 +144,16 @@ class AiApiResponse {
         totalCostUsd: totalCostUsd,
       );
 
-  factory AiApiResponse.failure(String error) => AiApiResponse(
+  factory AiApiResponse.failure(
+    String error, {
+    int? promptTokens,
+    int? completionTokens,
+  }) =>
+      AiApiResponse(
         success: false,
         error: error,
+        promptTokens: promptTokens,
+        completionTokens: completionTokens,
       );
 }
 
@@ -271,6 +279,24 @@ class AiApiService {
       final completionTokens = usage?['completion_tokens'] as int?;
       final cachedTokens = usage?['cached_tokens'] as int? ?? 0;
 
+      // v41: JSON 파싱 실패 감지 → failure 반환
+      if (content.containsKey('_parse_failed')) {
+        final syncParseError = 'JSON parse failed: ${content['_parse_error']}';
+        print('[AiApiService v41] Sync 모드 JSON 파싱 실패 → failure 반환');
+        ErrorLoggingService.logError(
+          operation: 'ai_api_parse',
+          errorMessage: syncParseError,
+          errorType: 'json_parse',
+          sourceFile: 'ai_api_service.dart',
+          extraData: {'model': model, 'logType': logType, 'mode': 'sync'},
+        );
+        return AiApiResponse.failure(
+          syncParseError,
+          promptTokens: promptTokens,
+          completionTokens: completionTokens,
+        );
+      }
+
       // 비용 계산
       final totalCostUsd = _calculateOpenAICost(
         model: model,
@@ -376,6 +402,32 @@ class AiApiService {
             final completionTokens = usage?['completion_tokens'] as int?;
             final cachedTokens = usage?['cached_tokens'] as int? ?? 0;
 
+            // v41: JSON 파싱 실패 감지 → failure 반환
+            if (content.containsKey('_parse_failed')) {
+              print('[AiApiService v41] JSON 파싱 실패 → failure 반환');
+              final parseError = 'JSON parse failed: ${content['_parse_error']}';
+              await AiLogger.log(
+                provider: 'openai',
+                model: model,
+                type: logType,
+                request: {'task_id': taskId},
+                success: false,
+                error: parseError,
+              );
+              ErrorLoggingService.logError(
+                operation: 'ai_api_parse',
+                errorMessage: parseError,
+                errorType: 'json_parse',
+                sourceFile: 'ai_api_service.dart',
+                extraData: {'task_id': taskId, 'model': model, 'logType': logType},
+              );
+              return AiApiResponse.failure(
+                parseError,
+                promptTokens: promptTokens,
+                completionTokens: completionTokens,
+              );
+            }
+
             // 비용 계산
             final totalCostUsd = _calculateOpenAICost(
               model: model,
@@ -416,64 +468,41 @@ class AiApiService {
             );
 
           case 'incomplete':
-            // v25: incomplete 상태에서 content가 있으면 성공으로 처리
-            // max_tokens 도달로 응답이 잘렸지만 부분 콘텐츠 사용 가능
-            final incompleteContent = data['content'] as String?;
-            if (incompleteContent != null && incompleteContent.isNotEmpty) {
-              print('[AiApiService v25] incomplete but has content (${incompleteContent.length} chars)');
+            // v41: incomplete = 응답 잘림 (max_tokens 초과) → 항상 failure
+            final incUsage = data['usage'] as Map<String, dynamic>?;
+            final incPromptTokens = incUsage?['prompt_tokens'] as int?;
+            final incCompletionTokens = incUsage?['completion_tokens'] as int?;
 
-              final parsedContent = _parseJsonContent(incompleteContent);
-              final incUsage = data['usage'] as Map<String, dynamic>?;
-              final incPromptTokens = incUsage?['prompt_tokens'] as int?;
-              final incCompletionTokens = incUsage?['completion_tokens'] as int?;
-              final incCachedTokens = incUsage?['cached_tokens'] as int? ?? 0;
-
-              final incTotalCost = _calculateOpenAICost(
-                model: model,
-                promptTokens: incPromptTokens ?? 0,
-                completionTokens: incCompletionTokens ?? 0,
-                cachedTokens: incCachedTokens,
-              );
-
-              print('[AiApiService v25] incomplete 부분 완료: prompt=$incPromptTokens, completion=$incCompletionTokens');
-
-              await AiLogger.log(
-                provider: 'openai',
-                model: model,
-                type: logType,
-                request: {'task_id': taskId, 'finish_reason': 'incomplete'},
-                response: parsedContent,
-                tokens: {
-                  'prompt': incPromptTokens,
-                  'completion': incCompletionTokens,
-                  'cached': incCachedTokens,
-                },
-                costUsd: incTotalCost,
-                success: true,
-              );
-
-              return AiApiResponse.success(
-                content: parsedContent,
-                promptTokens: incPromptTokens,
-                completionTokens: incCompletionTokens,
-                cachedTokens: incCachedTokens,
-                totalCostUsd: incTotalCost,
-              );
-            }
-            // content 없으면 아래 failed/cancelled와 같이 실패 처리
-            final incError = data['error'] ?? 'Task incomplete: no content';
-            print('[AiApiService v25] Task incomplete without content');
+            print('[AiApiService v41] 응답 잘림 (incomplete/max_tokens 초과) - 실패 처리');
 
             await AiLogger.log(
               provider: 'openai',
               model: model,
               type: logType,
-              request: {'task_id': taskId},
+              request: {'task_id': taskId, 'finish_reason': 'incomplete'},
               success: false,
-              error: incError.toString(),
+              error: 'Response truncated (max_tokens reached)',
             );
 
-            return AiApiResponse.failure(incError.toString());
+            ErrorLoggingService.logError(
+              operation: 'ai_api_incomplete',
+              errorMessage: 'Response truncated (max_tokens reached)',
+              errorType: 'truncation',
+              sourceFile: 'ai_api_service.dart',
+              extraData: {
+                'task_id': taskId,
+                'model': model,
+                'logType': logType,
+                'prompt_tokens': incPromptTokens,
+                'completion_tokens': incCompletionTokens,
+              },
+            );
+
+            return AiApiResponse.failure(
+              'Response truncated (max_tokens reached)',
+              promptTokens: incPromptTokens,
+              completionTokens: incCompletionTokens,
+            );
 
           case 'failed':
           case 'cancelled':
@@ -710,7 +739,7 @@ class AiApiService {
     } catch (e) {
       print('[AiApiService v26] JSON 파싱 실패: $e');
       print('[AiApiService v26] 원본 content (처음 200자): ${content.substring(0, content.length > 200 ? 200 : content.length)}');
-      return {'raw': content, '_parse_error': e.toString()};
+      return {'raw': content, '_parse_failed': true, '_parse_error': e.toString()};
     }
   }
 

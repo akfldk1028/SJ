@@ -216,12 +216,13 @@ async function recordTokenUsage(
   }
 }
 
-async function collectStreamResponse(response: Response): Promise<{ content: string; usage: UsageInfo | null }> {
+async function collectStreamResponse(response: Response): Promise<{ content: string; usage: UsageInfo | null; finishReason: string | null }> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("No response body");
   const decoder = new TextDecoder();
   let content = "";
   let usage: UsageInfo | null = null;
+  let finishReason: string | null = null;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -237,12 +238,16 @@ async function collectStreamResponse(response: Response): Promise<{ content: str
           if (delta) {
             if (delta.content) content += delta.content;
           }
+          // v41: capture actual finish_reason
+          if (parsed.choices?.[0]?.finish_reason) {
+            finishReason = parsed.choices[0].finish_reason;
+          }
           if (parsed.usage) usage = parsed.usage;
         } catch { /* ignore */ }
       }
     }
   }
-  return { content, usage };
+  return { content, usage, finishReason };
 }
 
 async function processInBackground(
@@ -281,22 +286,28 @@ async function processInBackground(
     }
     if (!response) throw new Error("All API keys exhausted");
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error?.message || "OpenAI API error"); }
-    const { content, usage } = await collectStreamResponse(response);
+    const { content, usage, finishReason } = await collectStreamResponse(response);
     const elapsed = Date.now() - startTime;
     if (!content) throw new Error("No response from OpenAI");
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
     const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
     const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
+
+    // v41: warn on truncated responses
+    if (finishReason === "length") {
+      console.warn(`[ai-openai] WARNING: Response truncated (max_tokens reached) for task ${taskId}`);
+    }
+
     if (userId && promptTokens > 0) {
       await recordTokenUsage(supabase, userId, promptTokens, completionTokens, cost, isAdmin, taskType);
     }
     await supabase.from("ai_tasks").update({
       status: "completed",
-      result_data: { success: true, content, usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens, cached_tokens: cachedTokens }, model, finish_reason: "stop", is_admin: isAdmin, elapsed_ms: elapsed },
+      result_data: { success: true, content, usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens, cached_tokens: cachedTokens }, model, finish_reason: finishReason || "stop", is_admin: isAdmin, elapsed_ms: elapsed },
       completed_at: new Date().toISOString(),
     }).eq("id", taskId);
-    console.log(`[ai-openai] Background task ${taskId}: Completed successfully`);
+    console.log(`[ai-openai] Background task ${taskId}: Completed successfully (finish_reason: ${finishReason || "stop"})`);
   } catch (error) {
     console.error(`[ai-openai] Background task ${taskId}: Error:`, error);
     await supabase.from("ai_tasks").update({
@@ -543,9 +554,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { content, usage } = await collectStreamResponse(response);
+    const { content, usage, finishReason } = await collectStreamResponse(response);
     const elapsed = Date.now() - startTime;
     if (!content) throw new Error("No response from OpenAI");
+
+    // v41: warn on truncated responses
+    if (finishReason === "length") {
+      console.warn(`[ai-openai] WARNING: Sync response truncated (max_tokens reached)`);
+    }
 
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
@@ -559,7 +575,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true, content,
         usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens, cached_tokens: cachedTokens },
-        model, finish_reason: "stop", is_admin: isAdmin,
+        model, finish_reason: finishReason || "stop", is_admin: isAdmin,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

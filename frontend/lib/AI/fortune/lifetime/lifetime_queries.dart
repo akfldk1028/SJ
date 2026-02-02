@@ -72,6 +72,20 @@ class LifetimeQueries {
     return cached != null;
   }
 
+  /// v41: 무효 캐시 삭제 (raw/parse_failed content 감지 시)
+  Future<void> deleteCached(String profileId) async {
+    try {
+      await _supabase
+          .from('ai_summaries')
+          .delete()
+          .eq('profile_id', profileId)
+          .eq('summary_type', SummaryType.sajuBase);
+      print('[LifetimeQueries] saju_base 캐시 삭제 완료: $profileId');
+    } catch (e) {
+      print('[LifetimeQueries] saju_base 캐시 삭제 오류: $e');
+    }
+  }
+
   /// 평생운세 content만 조회
   Future<Map<String, dynamic>?> getContent(String profileId) async {
     final cached = await getCached(profileId);

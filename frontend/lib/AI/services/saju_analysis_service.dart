@@ -1232,6 +1232,27 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         );
       }
 
+      // v41: 저장 전 최종 검증 - 유효한 분석 결과인지 확인
+      if (mergedContent.isEmpty || mergedContent.containsKey('raw') || mergedContent.containsKey('_parse_failed')) {
+        print('[SajuAnalysisService] 유효한 분석 결과 없음 - 저장 스킵');
+        ErrorLoggingService.logError(
+          operation: 'saju_base_validation',
+          errorMessage: '분석 결과 유효성 검증 실패 (empty=${mergedContent.isEmpty}, raw=${mergedContent.containsKey('raw')}, parse_failed=${mergedContent.containsKey('_parse_failed')})',
+          errorType: 'validation',
+          sourceFile: 'saju_analysis_service.dart',
+          extraData: {
+            'method': 'runSajuBaseAnalysisWithPhases',
+            'profileId': profileId,
+            'phase_results': phases.map((p) => {'phase': p.phase, 'success': p.success, 'error': p.error}).toList(),
+          },
+        );
+        return PhasedAnalysisResult(
+          overall: AnalysisResult.failure('분석 결과 유효성 검증 실패'),
+          phases: phases,
+          totalProcessingTimeMs: totalStopwatch.elapsedMilliseconds,
+        );
+      }
+
       // ai_summaries에 저장
       final saveResult = await aiMutations.saveSajuBaseSummary(
         userId: userId,
@@ -1316,9 +1337,36 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       stopwatch.stop();
 
       if (response.success && response.content != null) {
+        final content = response.content as Map<String, dynamic>;
+
+        // v41: raw fallback / parse_failed 체크
+        if (content.containsKey('_parse_failed') || content.containsKey('raw')) {
+          ErrorLoggingService.logError(
+            operation: 'saju_base_phase1',
+            errorMessage: 'Phase 1 JSON 파싱 실패',
+            errorType: 'json_parse',
+            sourceFile: 'saju_analysis_service.dart',
+            extraData: {'parse_error': content['_parse_error']},
+          );
+          return PhaseAnalysisResult.failure(
+            phase: 1,
+            error: 'Phase 1 JSON 파싱 실패',
+            processingTimeMs: stopwatch.elapsedMilliseconds,
+          );
+        }
+
+        // 필수 키 검증 (로그만 - 부분 성공 허용)
+        const requiredKeys = ['personality', 'lucky_elements'];
+        final missingKeys = requiredKeys
+            .where((key) => !content.containsKey(key) || content[key] == null)
+            .toList();
+        if (missingKeys.isNotEmpty) {
+          print('[SajuAnalysis] Phase 1 필수 키 누락: $missingKeys');
+        }
+
         return PhaseAnalysisResult.success(
           phase: 1,
-          content: response.content as Map<String, dynamic>,
+          content: content,
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       } else {
@@ -1374,9 +1422,27 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       stopwatch.stop();
 
       if (response.success && response.content != null) {
+        final content = response.content as Map<String, dynamic>;
+
+        // v41: raw fallback / parse_failed 체크
+        if (content.containsKey('_parse_failed') || content.containsKey('raw')) {
+          ErrorLoggingService.logError(
+            operation: 'saju_base_phase2',
+            errorMessage: 'Phase 2 JSON 파싱 실패',
+            errorType: 'json_parse',
+            sourceFile: 'saju_analysis_service.dart',
+            extraData: {'parse_error': content['_parse_error']},
+          );
+          return PhaseAnalysisResult.failure(
+            phase: 2,
+            error: 'Phase 2 JSON 파싱 실패',
+            processingTimeMs: stopwatch.elapsedMilliseconds,
+          );
+        }
+
         return PhaseAnalysisResult.success(
           phase: 2,
-          content: response.content as Map<String, dynamic>,
+          content: content,
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       } else {
@@ -1432,9 +1498,27 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       stopwatch.stop();
 
       if (response.success && response.content != null) {
+        final content = response.content as Map<String, dynamic>;
+
+        // v41: raw fallback / parse_failed 체크
+        if (content.containsKey('_parse_failed') || content.containsKey('raw')) {
+          ErrorLoggingService.logError(
+            operation: 'saju_base_phase3',
+            errorMessage: 'Phase 3 JSON 파싱 실패',
+            errorType: 'json_parse',
+            sourceFile: 'saju_analysis_service.dart',
+            extraData: {'parse_error': content['_parse_error']},
+          );
+          return PhaseAnalysisResult.failure(
+            phase: 3,
+            error: 'Phase 3 JSON 파싱 실패',
+            processingTimeMs: stopwatch.elapsedMilliseconds,
+          );
+        }
+
         return PhaseAnalysisResult.success(
           phase: 3,
-          content: response.content as Map<String, dynamic>,
+          content: content,
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       } else {
@@ -1497,9 +1581,27 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       stopwatch.stop();
 
       if (response.success && response.content != null) {
+        final content = response.content as Map<String, dynamic>;
+
+        // v41: raw fallback / parse_failed 체크
+        if (content.containsKey('_parse_failed') || content.containsKey('raw')) {
+          ErrorLoggingService.logError(
+            operation: 'saju_base_phase4',
+            errorMessage: 'Phase 4 JSON 파싱 실패',
+            errorType: 'json_parse',
+            sourceFile: 'saju_analysis_service.dart',
+            extraData: {'parse_error': content['_parse_error']},
+          );
+          return PhaseAnalysisResult.failure(
+            phase: 4,
+            error: 'Phase 4 JSON 파싱 실패',
+            processingTimeMs: stopwatch.elapsedMilliseconds,
+          );
+        }
+
         return PhaseAnalysisResult.success(
           phase: 4,
-          content: response.content as Map<String, dynamic>,
+          content: content,
           processingTimeMs: stopwatch.elapsedMilliseconds,
         );
       } else {
@@ -1529,13 +1631,27 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
   /// Phase 결과 병합
   ///
   /// 4개의 Phase 결과를 기존 saju_base JSON 스키마와 동일한 구조로 병합
+  /// v41: raw/parse_failed Phase는 건너뜀, 최소 필수 키 검증
   Map<String, dynamic> _mergePhaseResults(List<PhaseAnalysisResult> phases) {
     final merged = <String, dynamic>{};
 
     for (final phase in phases) {
       if (phase.success && phase.content != null) {
-        merged.addAll(phase.content!);
+        final content = phase.content!;
+
+        // raw/parse_failed 키가 있는 phase는 건너뜀
+        if (content.containsKey('raw') || content.containsKey('_parse_failed')) {
+          print('[SajuAnalysis] Phase ${phase.phase} raw fallback 감지 → 스킵');
+          continue;
+        }
+
+        merged.addAll(content);
       }
+    }
+
+    // 최소 필수 키 존재 확인
+    if (!merged.containsKey('personality') && !merged.containsKey('summary')) {
+      print('[SajuAnalysis] 병합 결과에 핵심 키 없음 (personality/summary 모두 부재)');
     }
 
     return merged;

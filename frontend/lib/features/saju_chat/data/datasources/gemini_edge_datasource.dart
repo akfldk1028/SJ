@@ -60,6 +60,9 @@ class GeminiEdgeDatasource {
   /// 새 세션 플래그 (첫 메시지에만 true)
   bool _isNewSession = false;
 
+  /// v27: Context Caching용 세션 ID
+  String? _sessionId;
+
   /// Edge Function URL
   String get _edgeFunctionUrl {
     final baseUrl = SupabaseService.supabaseUrl ?? '';
@@ -115,9 +118,11 @@ class GeminiEdgeDatasource {
   }
 
   /// 새 채팅 세션 시작
-  void startNewSession(String systemPrompt) {
+  /// [sessionId]: Context Caching용 세션 ID (v27)
+  void startNewSession(String systemPrompt, {String? sessionId}) {
     _conversationHistory.clear();
     _systemPrompt = systemPrompt;
+    _sessionId = sessionId;
     _windowManager.setSystemPrompt(systemPrompt);
     _historyManager.reset();
     _lastSummarizedRemovedCount = 0;
@@ -135,8 +140,9 @@ class GeminiEdgeDatasource {
   /// - 시스템 프롬프트 재설정
   /// - 대화 기록 복원 (Gemini 히스토리 동기화)
   /// - _isNewSession = true로 설정하여 첫 메시지에 사주 정보 포함
-  void restoreSession(String systemPrompt, {List<Map<String, dynamic>>? messages}) {
+  void restoreSession(String systemPrompt, {List<Map<String, dynamic>>? messages, String? sessionId}) {
     _systemPrompt = systemPrompt;
+    _sessionId = sessionId;
     _windowManager.setSystemPrompt(systemPrompt);
     _isNewSession = true; // 복원 후 첫 메시지에 사주 정보 포함!
 
@@ -231,6 +237,7 @@ class GeminiEdgeDatasource {
           'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
+          if (_sessionId != null) 'session_id': _sessionId,
           'is_new_session': isNewSessionFlag, // 새 세션 플래그
         },
         options: Options(
@@ -364,6 +371,7 @@ class GeminiEdgeDatasource {
           'temperature': 0.8,
           'stream': true,
           if (userId != null) 'user_id': userId,
+          if (_sessionId != null) 'session_id': _sessionId,
           'is_new_session': isNewSessionFlag, // 새 세션 플래그
         },
         headers: {

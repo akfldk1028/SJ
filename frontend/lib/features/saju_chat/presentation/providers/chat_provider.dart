@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../AI/services/compatibility_analysis_service.dart';
+import '../../../../AI/services/saju_analysis_service.dart';
 // Phase 50 다중 궁합 제거됨 - 궁합은 항상 2명만
 // import '../../../../AI/services/multi_compatibility_analysis_service.dart';
 import '../../../../core/services/error_logging_service.dart';
@@ -125,7 +126,7 @@ class ChatNotifier extends _$ChatNotifier {
     // 2025-12-30: Edge Function 전환 - API 키 보안 강화
     _repository = ChatRepositoryImpl(
       datasource: GeminiEdgeDatasource(),
-    );
+    )..sessionId = sessionId;
 
     // Provider dispose 시 정리
     ref.onDispose(() {
@@ -484,6 +485,42 @@ class ChatNotifier extends _$ChatNotifier {
     }
   }
 
+  /// GPT-5.2 saju_base 분석이 없으면 백그라운드로 트리거
+  ///
+  /// v30: lazy generation - 프로필 저장 시 트리거 제거, 첫 채팅 시 트리거
+  /// 이미 캐시가 있으면 즉시 반환 (비용 발생 없음)
+  void _ensureSajuBase(String profileId) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      // SajuAnalysisService가 내부적으로 캐시 확인 + 중복 분석 방지
+      final service = SajuAnalysisService();
+      service.analyzeOnProfileSave(
+        userId: user.id,
+        profileId: profileId,
+        runInBackground: true,
+        onComplete: (result) {
+          if (kDebugMode) {
+            print('[ChatNotifier] saju_base 백그라운드 완료: '
+                'success=${result.sajuBase?.success ?? false}');
+          }
+        },
+      );
+    } catch (e, st) {
+      ErrorLoggingService.logError(
+        operation: 'chat_provider._ensureSajuBase',
+        errorMessage: e.toString(),
+        errorType: 'saju_base_trigger',
+        sourceFile: 'saju_chat/presentation/providers/chat_provider.dart',
+        stackTrace: st.toString(),
+      );
+      if (kDebugMode) {
+        print('[ChatNotifier] saju_base 트리거 오류: $e');
+      }
+    }
+  }
+
   /// 시스템 프롬프트 빌드
   ///
   /// v3.4: SystemPromptBuilder 클래스로 분리 (모듈화)
@@ -652,6 +689,15 @@ class ChatNotifier extends _$ChatNotifier {
       });
     } else if (_cachedAiSummary != null && kDebugMode) {
       print('   ✅ 캐시된 AI Summary 사용');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // [2-1] GPT-5.2 saju_base lazy trigger (v30)
+    // - 프로필 저장 시 제거 → 첫 채팅 시 백그라운드 트리거
+    // - 캐시 있으면 즉시 스킵, 없으면 비동기 생성
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (state.messages.isEmpty && profileId != null) {
+      _ensureSajuBase(profileId);
     }
 
     // 사용자 메시지 추가 (sessionId 포함)

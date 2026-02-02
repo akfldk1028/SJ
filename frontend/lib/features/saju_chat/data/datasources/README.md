@@ -40,6 +40,18 @@ ai_pipeline_manager.dart orchestrates:
 | Production | `openai_edge_datasource` -> Edge Function | `gemini_edge_datasource` -> Edge Function |
 | Local Dev | `openai_datasource` -> Direct API | `gemini_rest_datasource` -> Direct API |
 
+## v27 Context Caching (gemini_edge_datasource)
+
+```
+session_id 흐름:
+  chat_provider → repository.sessionId → datasource._sessionId
+    → HTTP body { 'session_id': _sessionId }
+      → Edge Function: chat_sessions.gemini_cache_name 조회/생성
+        → 캐시 히트: input $0.05/1M (90% 할인)
+        → 캐시 미스: 표준 요청 ($0.50/1M)
+        → 캐시 에러: fallback 재시도 (v27)
+```
+
 ## Connections
 
 - **Upstream**: `presentation/providers/chat_provider.dart` calls `ai_pipeline_manager`

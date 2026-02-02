@@ -2,7 +2,18 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v25)
+ * Gemini API 호출 Edge Function (v27)
+ *
+ * v27 변경사항 (2026-02-02):
+ * - BUG FIX: cachedTokens → totalCachedTokens 변수명 오타 수정 (ReferenceError 방지)
+ * - BUG FIX: createGeminiCache()에서 불필요한 contents 필드 제거 (API 에러 방지)
+ * - BUG FIX: 캐시 만료 시 캐시 없이 표준 요청으로 fallback 재시도
+ *
+ * v26 변경사항 (2026-02-02):
+ * - BUG FIX: usageMetadata 누락 시 fallback 비용 추산 (응답 텍스트 길이 기반)
+ *   → 19% 레코드의 gemini_cost_usd=0 누락 해소
+ * - Context Caching 지원 (cachedContent 파라미터)
+ *   → system prompt + saju 데이터 캐싱으로 input 비용 90% 절감
  *
  * v25 변경사항 (2026-02-01):
  * - BUG FIX: 스트리밍 버퍼 미처리 → 루프 후 잔여 buffer 파싱 (usageMetadata 유실 방지)
@@ -52,6 +63,7 @@ interface GeminiRequest {
   temperature?: number;
   user_id?: string;
   stream?: boolean;
+  session_id?: string;
 }
 
 async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: string): Promise<boolean> {
@@ -84,12 +96,12 @@ async function checkAndUpdateQuota(
   const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
   const today = getTodayKST();
   try {
-    // v26: IAP 구독 확인 - ai_premium 또는 combo 활성 구독이면 quota 면제
+    // v26: IAP 구독 확인 - day_pass/week_pass/monthly 활성 구독이면 quota 면제
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("status, product_id, expires_at, is_lifetime")
       .eq("user_id", userId)
-      .in("product_id", ["sadam_ai_premium", "sadam_combo"])
+      .in("product_id", ["sadam_day_pass", "sadam_week_pass", "sadam_monthly"])
       .eq("status", "active")
       .maybeSingle();
 
@@ -224,6 +236,51 @@ async function handleIntentClassification(
   }
 }
 
+/**
+ * v26: Gemini Context Caching — 세션별 system prompt + saju 데이터 캐싱
+ * 캐시된 토큰은 $0.05/1M (표준 $0.50의 90% 할인)
+ * 최소 1,024 토큰 필요 (system prompt + saju 데이터 = 4~6K → 충족)
+ */
+async function createGeminiCache(
+  systemContent: string,
+  model: string,
+  ttlSeconds: number = 3600
+): Promise<string | null> {
+  try {
+    const cacheUrl = `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${GEMINI_API_KEY}`;
+    const response = await fetch(cacheUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: `models/${model}`,
+        systemInstruction: { parts: [{ text: systemContent }] },
+        ttl: `${ttlSeconds}s`,
+      }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[ai-gemini v26] Cache creation failed: ${response.status}`, errorText);
+      return null;
+    }
+    const data = await response.json();
+    console.log(`[ai-gemini v26] Cache created: ${data.name}, expireTime=${data.expireTime}`);
+    return data.name;
+  } catch (error) {
+    console.error("[ai-gemini v26] Cache creation error:", error);
+    return null;
+  }
+}
+
+async function deleteGeminiCache(cacheName: string): Promise<void> {
+  try {
+    const deleteUrl = `https://generativelanguage.googleapis.com/v1beta/${cacheName}?key=${GEMINI_API_KEY}`;
+    await fetch(deleteUrl, { method: "DELETE" });
+    console.log(`[ai-gemini v26] Cache deleted: ${cacheName}`);
+  } catch (error) {
+    console.error("[ai-gemini v26] Cache deletion error:", error);
+  }
+}
+
 async function handleStreamingRequest(
   supabase: ReturnType<typeof createClient>,
   messages: ChatMessage[],
@@ -231,19 +288,70 @@ async function handleStreamingRequest(
   maxTokens: number,
   temperature: number,
   userId: string | undefined,
-  isAdmin: boolean
+  isAdmin: boolean,
+  sessionId?: string
 ): Promise<Response> {
   const systemInstruction = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");
   const contents = messages.filter((m) => m.role !== "system").map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
-  console.log(`[ai-gemini-stream v23] Calling Gemini streaming API: model=${model}`);
-  const geminiResponse = await fetch(geminiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+
+  // v30: 빈 contents 방어 — user 메시지 없으면 Gemini 400 에러 방지
+  if (contents.length === 0) {
+    console.error("[ai-gemini v30] Empty contents — no user/assistant messages. Returning error.");
+    return new Response(
+      JSON.stringify({ error: "No user message provided", code: "EMPTY_CONTENTS" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // v26: Context Caching — 세션에 캐시가 있으면 사용, 없으면 생성
+  let cacheName: string | null = null;
+  if (sessionId && systemInstruction.length > 500) {
+    // 세션에 기존 캐시가 있는지 확인
+    const { data: session } = await supabase
+      .from("chat_sessions")
+      .select("gemini_cache_name")
+      .eq("id", sessionId)
+      .single();
+
+    if (session?.gemini_cache_name) {
+      cacheName = session.gemini_cache_name;
+      console.log(`[ai-gemini v26] Using existing cache: ${cacheName}`);
+    } else {
+      // 캐시 생성 (system prompt가 충분히 길 때만 — 1024 tokens ≈ 400자 이상)
+      cacheName = await createGeminiCache(systemInstruction, model);
+      if (cacheName) {
+        await supabase
+          .from("chat_sessions")
+          .update({ gemini_cache_name: cacheName })
+          .eq("id", sessionId);
+      }
+    }
+  }
+
+  // 캐시 사용 시 다른 엔드포인트 (cachedContent 참조)
+  let geminiUrl: string;
+  let requestBody: Record<string, unknown>;
+
+  if (cacheName) {
+    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+    requestBody = {
+      cachedContent: cacheName,
+      contents,
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
+      ],
+    };
+    console.log(`[ai-gemini-stream v26] Using cached content: ${cacheName}`);
+  } else {
+    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+    requestBody = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
       generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
@@ -253,15 +361,49 @@ async function handleStreamingRequest(
         { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
       ],
-    }),
+    };
+    console.log(`[ai-gemini-stream v26] No cache, standard request: model=${model}`);
+  }
+  let geminiResponse = await fetch(geminiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
   });
+  // v27: 캐시 에러 시 캐시 삭제 + 캐시 없이 재시도 (fallback)
+  if (!geminiResponse.ok && cacheName) {
+    const errorText = await geminiResponse.text();
+    console.warn(`[ai-gemini v27] Cache request failed (${geminiResponse.status}), falling back to standard request. Error: ${errorText}`);
+    if (sessionId) {
+      await supabase.from("chat_sessions").update({ gemini_cache_name: null }).eq("id", sessionId);
+    }
+    cacheName = null;
+    // 캐시 없이 표준 요청으로 재시도
+    const fallbackBody = {
+      contents,
+      systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
+      ],
+    };
+    console.log(`[ai-gemini v27] [FALLBACK] Retrying without cache: model=${model}`);
+    geminiResponse = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fallbackBody),
+    });
+  }
   if (!geminiResponse.ok) {
     const errorText = await geminiResponse.text();
-    console.error("[ai-gemini-stream v23] Gemini API error:", errorText);
+    console.error("[ai-gemini-stream v27] Gemini API error:", errorText);
     throw new Error(`Gemini API error: ${geminiResponse.status}`);
   }
   let totalPromptTokens = 0;
   let totalCompletionTokens = 0;
+  let totalCachedTokens = 0;
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
@@ -293,10 +435,11 @@ async function handleStreamingRequest(
               if (part.text) text += part.text;
             }
           }
-          // v25: usageMetadata 캡처 (마지막 청크에 포함)
+          // v26: usageMetadata 캡처 (마지막 청크에 포함, cachedContentTokenCount 추가)
           if (data.usageMetadata) {
             totalPromptTokens = data.usageMetadata.promptTokenCount || 0;
             totalCompletionTokens = data.usageMetadata.candidatesTokenCount || 0;
+            totalCachedTokens = data.usageMetadata.cachedContentTokenCount || 0;
           }
           if (text) {
             const sseData = JSON.stringify({ text, done: false, finish_reason: finishReason });
@@ -327,16 +470,32 @@ async function handleStreamingRequest(
             processSSELine(line);
           }
         }
-        console.log(`[ai-gemini-stream v25] Stream done. prompt=${totalPromptTokens}, completion=${totalCompletionTokens}`);
-        const doneData = JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, total_tokens: totalPromptTokens + totalCompletionTokens } });
+        console.log(`[ai-gemini-stream v26] Stream done. prompt=${totalPromptTokens}, completion=${totalCompletionTokens}, cached=${totalCachedTokens}`);
+        const doneData = JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, total_tokens: totalPromptTokens + totalCompletionTokens, cached_tokens: totalCachedTokens } });
         controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
-        // v25: gemini_cost_usd만 기록 (chatting_tokens는 DB 트리거가 처리)
-        if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
-          const cost = (totalPromptTokens * 0.50 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
-          await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
+        // v26: gemini_cost_usd 기록 (fallback + context caching 할인 포함)
+        if (userId) {
+          if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
+            // v26: cachedContentTokenCount가 있으면 캐시 할인 적용 ($0.05/1M vs $0.50/1M)
+            const nonCachedPrompt = totalPromptTokens - totalCachedTokens;
+            const cost = (nonCachedPrompt * 0.50 / 1000000) + (totalCachedTokens * 0.05 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
+            await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
+          } else {
+            // v26 FALLBACK: usageMetadata 누락 시 응답 텍스트 길이 기반 추산
+            // 수집된 SSE 텍스트로 completion tokens 추산, system prompt로 prompt tokens 추산
+            const systemPromptLength = messages.filter((m) => m.role === "system").reduce((sum, m) => sum + m.content.length, 0);
+            const chatHistoryLength = messages.filter((m) => m.role !== "system").reduce((sum, m) => sum + m.content.length, 0);
+            // 한글 기준: 1자 ≈ 2~3 tokens, 보수적으로 2.5 적용
+            const estPromptTokens = Math.round((systemPromptLength + chatHistoryLength) * 2.5);
+            // completion은 클라이언트에서 tokens_used로 정확히 잡히므로 여기선 평균값 사용
+            const estCompletionTokens = Math.round(1500); // 평균 응답 길이 기반
+            const estCost = (estPromptTokens * 0.50 / 1000000) + (estCompletionTokens * 3.00 / 1000000);
+            console.log(`[ai-gemini v26] [FALLBACK] usageMetadata missing. Estimated prompt=${estPromptTokens}, completion=${estCompletionTokens}, cost=$${estCost.toFixed(6)}`);
+            await recordGeminiCost(supabase, userId, estPromptTokens, estCompletionTokens, estCost);
+          }
         }
       } catch (error) {
-        console.error("[ai-gemini-stream v25] Stream error:", error);
+        console.error("[ai-gemini-stream v26] Stream error:", error);
         const errorData = JSON.stringify({ error: "Stream error", done: true });
         controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
       } finally {
@@ -365,7 +524,7 @@ Deno.serve(async (req) => {
       if (user_id) isAdmin = await isAdminUser(supabase, user_id);
       return await handleIntentClassification(supabase, user_message, chat_history, user_id, isAdmin);
     }
-    const { messages, model = "gemini-3-flash-preview", max_tokens = 16384, temperature = 0.8, user_id, stream = false } = requestData;
+    const { messages, model = "gemini-3-flash-preview", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
     if (!messages || messages.length === 0) throw new Error("messages is required");
     let isAdmin = false;
     if (user_id) {
@@ -390,8 +549,8 @@ Deno.serve(async (req) => {
       }
     }
     if (stream) {
-      console.log(`[ai-gemini v23] Streaming mode: model=${model}`);
-      return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin);
+      console.log(`[ai-gemini v26] Streaming mode: model=${model}, session_id=${session_id || 'none'}`);
+      return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin, session_id);
     }
     console.log(`[ai-gemini v23] Non-streaming: model=${model}, isAdmin=${isAdmin}`);
     const systemInstruction = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");

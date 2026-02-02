@@ -64,6 +64,15 @@ class _InlineAdWidgetState extends State<InlineAdWidget> {
           debugPrint('[InlineAdWidget] Clicked');
           AdTrackingService.instance.trackBannerClick();
         },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          debugPrint('[InlineAdWidget] Paid: $valueMicros micros ($currencyCode)');
+          AdTrackingService.instance.trackAdRevenue(
+            adType: AdType.banner,
+            valueMicros: valueMicros,
+            precision: precision.name,
+            currencyCode: currencyCode,
+          );
+        },
       ),
     );
 

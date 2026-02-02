@@ -75,8 +75,8 @@ function parseResultToPhases(content: string): Record<string, unknown> {
     };
     return { phase1, phase2, phase3, phase4, completed_phases: 4 };
   } catch (e) {
-    console.error("[ai-openai-result v32] Failed to parse phases:", e);
-    return { phase1: { raw_content: content }, completed_phases: 1 };
+    console.error("[ai-openai-result v41] Failed to parse phases:", e);
+    return { error: "JSON_PARSE_FAILED", raw_length: content.length, completed_phases: 0 };
   }
 }
 
@@ -277,12 +277,17 @@ Deno.serve(async (req) => {
         const usage = responseData.usage || {};
         const partialResult = parseResultToPhases(outputText);
 
+        // v41: parseResultToPhases 실패 시 로그
+        if (partialResult.error === "JSON_PARSE_FAILED") {
+          console.warn(`[ai-openai-result v41] Phase parsing failed for task ${task_id}, raw_length: ${partialResult.raw_length}`);
+        }
+
         await supabase.from("ai_tasks").update({
           status: "completed", phase: 4, total_phases: 4, partial_result: partialResult,
           result_data: {
             success: true, content: outputText,
             usage: { prompt_tokens: usage.input_tokens || 0, completion_tokens: usage.output_tokens || 0, total_tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0) },
-            model: responseData.model || task.model, finish_reason: "stop",
+            model: responseData.model || task.model, finish_reason: responseData.status || "stop",
           },
           completed_at: new Date().toISOString(),
         }).eq("id", task_id);
@@ -303,17 +308,23 @@ Deno.serve(async (req) => {
       }
 
       case "incomplete": {
+        // v41: incomplete = 응답 잘림 (max_tokens 초과)
+        // "completed"로 위장하지 않고 "incomplete" 상태를 정직하게 전달
         const partialText = extractOutputText(responseData);
+        const partialUsage = responseData.usage || {};
+
         if (partialText.length > 0) {
-          const partialUsage = responseData.usage || {};
-          const incompletePartialResult = parseResultToPhases(partialText);
+          console.warn(`[ai-openai-result v41] Response truncated (incomplete) for task ${task_id}, content: ${partialText.length} chars`);
 
           await supabase.from("ai_tasks").update({
-            status: "completed", phase: 4, total_phases: 4, partial_result: incompletePartialResult,
+            status: "incomplete",  // v41: "completed" → "incomplete"
             result_data: {
-              success: true, content: partialText,
+              success: false,  // v41: true → false
+              content: partialText,
               usage: { prompt_tokens: partialUsage.input_tokens || 0, completion_tokens: partialUsage.output_tokens || 0, total_tokens: (partialUsage.input_tokens || 0) + (partialUsage.output_tokens || 0) },
-              model: responseData.model || task.model, finish_reason: "incomplete",
+              model: responseData.model || task.model,
+              finish_reason: "incomplete",
+              truncated: true,
             },
             completed_at: new Date().toISOString(),
           }).eq("id", task_id);
@@ -324,10 +335,13 @@ Deno.serve(async (req) => {
 
           return new Response(
             JSON.stringify({
-              success: true, status: "completed", phase: 4, total_phases: 4,
-              partial_result: incompletePartialResult, content: partialText,
+              success: true,
+              status: "incomplete",  // v41: 클라이언트에게도 incomplete 전달
+              content: partialText,
+              finish_reason: "incomplete",
+              truncated: true,
               usage: { prompt_tokens: partialUsage.input_tokens || 0, completion_tokens: partialUsage.output_tokens || 0, total_tokens: (partialUsage.input_tokens || 0) + (partialUsage.output_tokens || 0) },
-              model: responseData.model || task.model, finish_reason: "incomplete",
+              model: responseData.model || task.model,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );

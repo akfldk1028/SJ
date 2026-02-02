@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../ad/ad.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../router/routes.dart';
 
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends ConsumerWidget {
   final Widget child;
 
   const MainScaffold({
@@ -13,7 +15,7 @@ class MainScaffold extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: child,
       bottomNavigationBar: Column(
@@ -22,7 +24,7 @@ class MainScaffold extends StatelessWidget {
           // 하단 네비게이션 바
           BottomNavigationBar(
             currentIndex: _calculateSelectedIndex(context),
-            onTap: (index) => _onTap(context, index),
+            onTap: (index) => _onTap(context, ref, index),
             type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(
@@ -58,7 +60,7 @@ class MainScaffold extends StatelessWidget {
     return 0; // Home
   }
 
-  void _onTap(BuildContext context, int index) async {
+  void _onTap(BuildContext context, WidgetRef ref, int index) async {
     switch (index) {
       case 0:
         context.go(Routes.home);
@@ -67,8 +69,11 @@ class MainScaffold extends StatelessWidget {
         context.go(Routes.relationshipList);
         break;
       case 2:
-        // 전면광고 표시 후 AI 상담 페이지 이동
-        await AdService.instance.showInterstitialAd();
+        // 프리미엄 유저는 광고 스킵
+        final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+        if (!isPremium) {
+          await AdService.instance.showInterstitialAd();
+        }
         if (context.mounted) {
           context.go(Routes.sajuChat);
         }

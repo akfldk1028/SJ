@@ -59,6 +59,10 @@ class AdTrackingService {
   SupabaseClient? get _client => SupabaseService.client;
   String? get _userId => SupabaseService.currentUserId;
 
+  /// 현재 활성 프로필 ID (외부에서 설정)
+  /// 프로필 변경 시 업데이트해야 함
+  String? currentProfileId;
+
   // 디바이스 정보 캐시
   Map<String, dynamic>? _deviceInfoCache;
 
@@ -192,6 +196,43 @@ class AdTrackingService {
     );
     await _incrementDailyCounter('rewarded_tokens_earned', increment: rewardAmount);
     return adEventId;
+  }
+
+  /// 광고 수익 추적 (onPaidEvent 콜백)
+  ///
+  /// Google Mobile Ads SDK의 onPaidEvent에서 수신한 impression-level revenue 기록
+  /// [adType] 광고 유형
+  /// [valueMicros] 수익 (마이크로 단위, 1,000,000 = $1.00)
+  /// [precision] 수익 정밀도 (ESTIMATED, PUBLISHER_PROVIDED, PRECISE, UNKNOWN)
+  /// [currencyCode] ISO 4217 통화코드 (보통 USD)
+  Future<void> trackAdRevenue({
+    required AdType adType,
+    required double valueMicros,
+    required String precision,
+    required String currencyCode,
+    String? screen,
+  }) async {
+    if (_client == null || _userId == null) return;
+
+    try {
+      final deviceInfo = await _getDeviceInfo();
+
+      await _client!.from('ad_events').insert({
+        'user_id': _userId,
+        'ad_type': adType.name,
+        'event_type': 'paid',
+        'revenue_micros': valueMicros.toInt(),
+        'revenue_currency': currencyCode,
+        'revenue_precision': precision,
+        'screen': screen,
+        'device_info': deviceInfo,
+        'profile_id': currentProfileId,
+      });
+
+      debugPrint('[AdTracking] Revenue: ${adType.name} ${valueMicros.toInt()} micros ($currencyCode, $precision)');
+    } catch (e) {
+      debugPrint('[AdTracking] Failed to track revenue: $e');
+    }
   }
 
   /// 네이티브 광고 노출 추적

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../AI/data/queries.dart';
 import '../../../../AI/fortune/lifetime/lifetime_queries.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../core/services/error_logging_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'lifetime_fortune_provider.g.dart';
@@ -69,6 +70,11 @@ class LifetimeFortuneData {
 
   /// AI 응답 JSON에서 파싱
   factory LifetimeFortuneData.fromJson(Map<String, dynamic> json) {
+    // v41: _parse_failed 플래그가 있으면 즉시 예외 (무효 데이터)
+    if (json.containsKey('_parse_failed')) {
+      throw const FormatException('Invalid data: _parse_failed flag present');
+    }
+
     // v9.0: raw 필드 파싱 (AI 응답이 raw 문자열로 저장된 경우)
     Map<String, dynamic> parsedJson = json;
     if (json.containsKey('raw') && json['raw'] is String) {
@@ -79,12 +85,26 @@ class LifetimeFortuneData {
             _parseJsonSafely(rawString) :
             {}) as Map
         );
+        if (rawParsed.isEmpty) {
+          // v41: raw 파싱 실패 → 유효하지 않은 데이터
+          print('[LifetimeFortuneData] raw 파싱 결과 비어있음 → 예외');
+          throw const FormatException('Invalid raw content: empty parse result');
+        }
         // raw에서 파싱한 데이터와 기존 json 병합 (raw 내용 우선)
         parsedJson = {...json, ...rawParsed};
         print('[LifetimeFortuneData] raw 필드 파싱 성공: ${rawParsed.keys.take(5)}...');
       } catch (e) {
         print('[LifetimeFortuneData] raw 파싱 실패: $e');
+        rethrow;  // v41: 호출자에서 catch → 재분석 트리거
       }
+    }
+
+    // v41: 필수 데이터 존재 확인
+    final hasMinimumData = parsedJson.containsKey('personality') ||
+                            parsedJson.containsKey('career') ||
+                            parsedJson.containsKey('summary');
+    if (!hasMinimumData) {
+      throw const FormatException('No valid fortune data found (personality/career/summary all missing)');
     }
 
     // v7.0: mySajuIntro 파싱
@@ -1323,15 +1343,45 @@ class LifetimeFortune extends _$LifetimeFortune {
         final isStale = result['_isStale'] == true;
 
         if (content is Map<String, dynamic>) {
-          if (isStale) {
-            // v9.8: 버전 불일치 → 기존 데이터 즉시 표시 + 백그라운드 재생성
-            print('[LifetimeFortune] ⚠️ stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
-            _triggerAnalysisIfNeeded(activeProfile.id);
-            _startStalePolling(activeProfile.id);
+          // v41: raw/_parse_failed content는 무효 → 캐시 삭제 후 재분석
+          if (content.containsKey('raw') || content.containsKey('_parse_failed')) {
+            print('[LifetimeFortune] 무효 content (raw/_parse_failed) 감지 → 캐시 삭제 후 재분석');
+            ErrorLoggingService.logError(
+              operation: 'lifetime_fortune_cache',
+              errorMessage: '무효 content 감지 (raw/_parse_failed) → 캐시 삭제',
+              errorType: 'invalid_cache',
+              sourceFile: 'lifetime_fortune_provider.dart',
+              extraData: {'profileId': activeProfile.id, 'has_raw': content.containsKey('raw')},
+            );
+            final queries = LifetimeQueries(Supabase.instance.client);
+            await queries.deleteCached(activeProfile.id);
+            // 아래 "캐시 없음" 분기로 진행
           } else {
-            print('[LifetimeFortune] ✅ 캐시 히트 - 평생운세 로드');
+            try {
+              if (isStale) {
+                // v9.8: 버전 불일치 → 기존 데이터 즉시 표시 + 백그라운드 재생성
+                print('[LifetimeFortune] stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
+                _triggerAnalysisIfNeeded(activeProfile.id);
+                _startStalePolling(activeProfile.id);
+              } else {
+                print('[LifetimeFortune] 캐시 히트 - 평생운세 로드');
+              }
+              return LifetimeFortuneData.fromJson(content);
+            } catch (e) {
+              // v41: 파싱 실패 → 캐시 삭제 후 재분석 트리거
+              print('[LifetimeFortune] content 파싱 실패: $e → 캐시 삭제 후 재분석');
+              ErrorLoggingService.logError(
+                operation: 'lifetime_fortune_parse',
+                errorMessage: 'content 파싱 실패: $e',
+                errorType: 'json_parse',
+                sourceFile: 'lifetime_fortune_provider.dart',
+                extraData: {'profileId': activeProfile.id},
+              );
+              final queriesForDelete = LifetimeQueries(Supabase.instance.client);
+              await queriesForDelete.deleteCached(activeProfile.id);
+              // 아래 "캐시 없음" 분기로 진행
+            }
           }
-          return LifetimeFortuneData.fromJson(content);
         }
       }
     } catch (e) {

@@ -4,7 +4,7 @@
 /// 상품/Entitlement ID 정의
 abstract class PurchaseConfig {
   // ── RevenueCat API Keys (대시보드에서 발급) ──
-  static const String revenueCatApiKeyAndroid = 'goog_xxx'; // TODO: 실제 키로 교체
+  static const String revenueCatApiKeyAndroid = 'goog_DfwxpejDQNZHDxDNdLVPSWZVDvR';
   static const String revenueCatApiKeyIos = 'appl_xxx'; // TODO: 실제 키로 교체
 
   // ── Entitlements ──

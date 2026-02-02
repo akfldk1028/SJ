@@ -81,6 +81,15 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
           );
           TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          debugPrint('[NativeAdWidget] Paid: $valueMicros micros ($currencyCode, $precision)');
+          AdTrackingService.instance.trackAdRevenue(
+            adType: AdType.native,
+            valueMicros: valueMicros,
+            precision: precision.name,
+            currencyCode: currencyCode,
+          );
+        },
       ),
       // Medium 템플릿 스타일 (채팅에 적합)
       nativeTemplateStyle: NativeTemplateStyle(
@@ -312,6 +321,15 @@ class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
             rewardTokens: AdStrategy.intervalClickRewardTokens,
           );
           TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
+        },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          debugPrint('[CompactNativeAd] Paid: $valueMicros micros ($currencyCode, $precision)');
+          AdTrackingService.instance.trackAdRevenue(
+            adType: AdType.native,
+            valueMicros: valueMicros,
+            precision: precision.name,
+            currencyCode: currencyCode,
+          );
         },
       ),
       // Small 템플릿 (컴팩트)

@@ -64,7 +64,7 @@ final profileListProvider =
     );
 
 typedef _$ProfileList = AutoDisposeAsyncNotifier<List<SajuProfile>>;
-String _$activeProfileHash() => r'd0c96c96a40ba0f507dcd1f22b91486afbfdf1d9';
+String _$activeProfileHash() => r'236ea6599fd10c4468128855651898672c81e12e';
 
 /// 현재 활성 프로필 Provider
 ///
@@ -82,7 +82,7 @@ final activeProfileProvider =
     );
 
 typedef _$ActiveProfile = AutoDisposeAsyncNotifier<SajuProfile?>;
-String _$profileFormHash() => r'cb0b349516c551370ac02582a34e20c13fd95263';
+String _$profileFormHash() => r'ad167edc87a9a30211d48b6f32a39350c936803f';
 
 /// 프로필 폼 Provider
 ///

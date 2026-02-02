@@ -1,6 +1,6 @@
 /// In-App Purchase Module
 ///
-/// RevenueCat 기반 IAP: 광고 제거, AI 프리미엄, 콤보 구독
+/// RevenueCat 기반 IAP: 프리미엄 이용권 (광고 제거 + AI 무제한)
 library;
 
 export 'purchase_config.dart';

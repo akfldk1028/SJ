@@ -87,6 +87,15 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
           );
           TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          debugPrint('[CardNativeAd] Paid: $valueMicros micros ($currencyCode, $precision)');
+          AdTrackingService.instance.trackAdRevenue(
+            adType: AdType.native,
+            valueMicros: valueMicros,
+            precision: precision.name,
+            currencyCode: currencyCode,
+          );
+        },
       ),
       // Medium 템플릿 - 카드에 적합
       nativeTemplateStyle: NativeTemplateStyle(
