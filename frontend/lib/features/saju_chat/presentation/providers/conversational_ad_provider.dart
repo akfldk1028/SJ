@@ -391,35 +391,26 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
   /// 소진 광고: 클릭해야 7,000 토큰 지급 (impression에서는 미지급)
   /// 인터벌 광고: impression(1,500) + 클릭 보너스(1,500) = 총 3,000 토큰
   void _onAdClicked() {
-    // 클릭 이벤트 추적 (CPC 수익 분석용, 항상 기록)
+    // 보상 토큰 수 결정 (추적과 지급에 동일 값 사용)
+    final rewardTokens = state.adType == AdMessageType.tokenDepleted
+        ? AdTriggerService.depletedRewardTokensNative
+        : AdTriggerService.intervalClickRewardTokens;
+
+    // 클릭 이벤트 추적 + native_tokens_earned 카운터 동시 증가
     AdTrackingService.instance.trackNativeClick(
       screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+      rewardTokens: rewardTokens,
     );
 
-    if (state.adType == AdMessageType.tokenDepleted) {
-      // 소진 광고: 클릭 시에만 전액 지급 (7,000 토큰)
-      final depletedTokens = AdTriggerService.depletedRewardTokensNative;
-      state = state.copyWith(
-        adWatched: true,
-        rewardedTokens: depletedTokens,
-      );
-      TokenRewardService.grantNativeAdTokens(depletedTokens);
-      if (kDebugMode) {
-        print('   💰 [AD] Native ad CLICKED (depleted) → +$depletedTokens tokens (saved to server)');
-      }
-      return;
-    }
-
-    // 인터벌 광고: 클릭 시 7,000 토큰 지급 (impression 0 + click 7,000)
-    final clickTokens = AdTriggerService.intervalClickRewardTokens;
     state = state.copyWith(
       adWatched: true,
-      rewardedTokens: clickTokens,
+      rewardedTokens: rewardTokens,
     );
-    TokenRewardService.grantNativeAdTokens(clickTokens);
+    TokenRewardService.grantNativeAdTokens(rewardTokens);
 
     if (kDebugMode) {
-      print('   💰 [AD] Native ad CLICKED (interval) → +$clickTokens tokens (total: ${state.rewardedTokens}, saved to server)');
+      final adTypeLabel = state.adType == AdMessageType.tokenDepleted ? 'depleted' : 'interval';
+      print('   💰 [AD] Native ad CLICKED ($adTypeLabel) → +$rewardTokens tokens (saved to server)');
     }
   }
 

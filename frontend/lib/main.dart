@@ -46,6 +46,9 @@ void main() async {
   await _openHiveBoxSafely('saju_sync');       // 사주 분석 동기화 대기 목록
   await _openHiveBoxSafely('message_queue');   // 메시지 큐 (오프라인 재전송용)
 
+  // 테마 설정 Hive Box 열기 (앱 재시작 시 테마 복원용)
+  await _openHiveBoxStringSafely('theme_settings');
+
   // 페르소나 설정 Hive Box 열기 (앱 재시작 시 페르소나 복원용)
   await ChatPersonaBox.ensureBoxOpen();
 
@@ -106,6 +109,19 @@ Future<void> _syncProfilesFromCloud() async {
       print('[Main] 프로필 클라우드 동기화 실패 (오프라인 모드 계속): $e');
     }
     // 동기화 실패해도 앱은 계속 동작 (오프라인 모드)
+  }
+}
+
+/// Hive Box<String> 안전하게 열기 (테마 설정 등 String 타입 Box용)
+Future<void> _openHiveBoxStringSafely(String boxName) async {
+  try {
+    await Hive.openBox<String>(boxName);
+  } catch (e) {
+    if (kDebugMode) {
+      print('[Hive] String Box 열기 실패 ($boxName): $e, 데이터 초기화 시도');
+    }
+    await Hive.deleteBoxFromDisk(boxName);
+    await Hive.openBox<String>(boxName);
   }
 }
 

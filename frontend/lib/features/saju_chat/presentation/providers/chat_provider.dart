@@ -327,6 +327,7 @@ class ChatNotifier extends _$ChatNotifier {
   /// 세션 초기화 (새 세션으로 전환)
   void clearSession() {
     _cachedAiSummary = null; // AI Summary 캐시 초기화
+    _aiSummaryCompleter = null; // Completer lock 리셋
     state = const ChatState();
   }
 
@@ -376,15 +377,24 @@ class ChatNotifier extends _$ChatNotifier {
   /// AI Summary 캐시 (세션별로 한 번만 로드)
   AiSummary? _cachedAiSummary;
 
+  /// AI Summary 생성 중복 방지 Completer
+  Completer<AiSummary?>? _aiSummaryCompleter;
+
   /// AI Summary 확인 및 생성 (첫 메시지 시)
   ///
   /// 1. 캐시에 있으면 반환
-  /// 2. DB에서 기존 요약 조회
-  /// 3. 없으면 Edge Function 호출하여 새로 생성
+  /// 2. 이미 진행 중이면 기존 Future 재사용 (Completer lock)
+  /// 3. DB에서 기존 요약 조회
+  /// 4. 없으면 Edge Function 호출하여 새로 생성
   Future<AiSummary?> _ensureAiSummary(String? profileId) async {
     // 캐시에 있으면 반환
     if (_cachedAiSummary != null) {
       return _cachedAiSummary;
+    }
+
+    // 이미 진행 중이면 기존 Future 재사용 (중복 호출 방지)
+    if (_aiSummaryCompleter != null && !_aiSummaryCompleter!.isCompleted) {
+      return _aiSummaryCompleter!.future;
     }
 
     // profileId 없으면 스킵
@@ -395,6 +405,8 @@ class ChatNotifier extends _$ChatNotifier {
       return null;
     }
 
+    _aiSummaryCompleter = Completer<AiSummary?>();
+
     try {
       // 1. 먼저 DB에서 캐시된 요약 확인
       final cachedSummary = await AiSummaryService.getCachedSummary(profileId);
@@ -404,6 +416,7 @@ class ChatNotifier extends _$ChatNotifier {
         }
 
         _cachedAiSummary = cachedSummary;
+        _aiSummaryCompleter!.complete(cachedSummary);
         return cachedSummary;
       }
 
@@ -418,6 +431,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (kDebugMode) {
           print('   ⚠️ 프로필 불일치 - 스킵');
         }
+        _aiSummaryCompleter!.complete(null);
         return null;
       }
 
@@ -427,6 +441,7 @@ class ChatNotifier extends _$ChatNotifier {
         if (kDebugMode) {
           print('   ⚠️ 사주 분석 없음 - 스킵');
         }
+        _aiSummaryCompleter!.complete(null);
         return null;
       }
 
@@ -451,17 +466,20 @@ class ChatNotifier extends _$ChatNotifier {
         if (kDebugMode) {
           print('   ✅ 생성 완료 (cached: ${result.cached})');
         }
+        _aiSummaryCompleter!.complete(result.summary);
         return result.summary;
       } else {
         if (kDebugMode) {
           print('   ❌ 생성 실패: ${result.error}');
         }
+        _aiSummaryCompleter!.complete(null);
         return null;
       }
     } catch (e) {
       if (kDebugMode) {
         print('   💥 오류: $e');
       }
+      _aiSummaryCompleter!.complete(null);
       return null;
     }
   }

@@ -206,12 +206,21 @@ class AdTrackingService {
   }
 
   /// 네이티브 광고 클릭 추적
-  Future<void> trackNativeClick({String? screen, String? sessionId}) async {
+  ///
+  /// [rewardTokens] 지급될 토큰 수 (ad_events에 reward_amount로 기록)
+  /// 실제 native_tokens_earned 증가는 TokenRewardService.grantNativeAdTokens()에서
+  /// add_native_bonus_tokens RPC를 통해 처리 (이중 카운팅 방지)
+  Future<void> trackNativeClick({
+    String? screen,
+    String? sessionId,
+    int rewardTokens = 0,
+  }) async {
     await _trackEvent(
       adType: AdType.native,
       eventType: AdEventType.click,
       screen: screen,
       sessionId: sessionId,
+      rewardAmount: rewardTokens > 0 ? rewardTokens : null,
     );
     await _incrementDailyCounter('native_clicks');
   }

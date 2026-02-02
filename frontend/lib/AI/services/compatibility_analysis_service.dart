@@ -93,6 +93,10 @@ class CompatibilityAnalysisResult {
 class CompatibilityAnalysisService {
   final SupabaseClient _client = Supabase.instance.client;
 
+  /// 현재 궁합 계산 모델 버전
+  /// 점수 로직 변경 시 버전을 올리면 기존 캐시가 자동 무효화되어 재계산됨
+  static const _currentModelVersion = 'compatibility_calculator_v8_individual_filter';
+
   /// 궁합 분석 실행 (캐시 확인 → 없으면 새로 분석)
   ///
   /// ## 파라미터
@@ -233,6 +237,21 @@ class CompatibilityAnalysisService {
 
       if (response == null) return null;
 
+      // 버전 체크: 구버전 분석은 캐시 무효화 → 자동 재계산
+      final modelName = response['model_name'] as String?;
+      if (modelName != _currentModelVersion) {
+        print('[CompatibilityService] ♻️ 구버전 분석 감지 ($modelName) → 재계산');
+        try {
+          await _client
+              .from('compatibility_analyses')
+              .delete()
+              .eq('id', response['id']);
+        } catch (e) {
+          print('[CompatibilityService] 구버전 삭제 오류: $e');
+        }
+        return null; // null 반환 → 새로 계산
+      }
+
       // Phase 53: 순서 확인 - profile1_id가 fromProfileId와 일치하는지
       final isSwapped = response['profile1_id'] != fromProfileId;
 
@@ -349,7 +368,7 @@ class CompatibilityAnalysisService {
       'challenges': calculationResult.challenges,
       'advice': null, // v4.0: 조언은 채팅에서 생성
       'model_provider': 'dart', // v4.0: Dart 계산
-      'model_name': 'compatibility_calculator_v6_myeongrihak',
+      'model_name': _currentModelVersion,
       'tokens_used': 0, // Dart 계산은 토큰 사용 없음
       'processing_time_ms': processingTimeMs,
       // 인연 사주 개별 필드

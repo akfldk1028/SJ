@@ -76,7 +76,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
         },
         onAdClicked: (ad) {
           debugPrint('[NativeAdWidget] Ad clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
-          AdTrackingService.instance.trackNativeClick();
+          AdTrackingService.instance.trackNativeClick(
+            rewardTokens: AdStrategy.intervalClickRewardTokens,
+          );
           TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
       ),
@@ -306,7 +308,9 @@ class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
         },
         onAdClicked: (ad) {
           debugPrint('[CompactNativeAdWidget] Ad clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
-          AdTrackingService.instance.trackNativeClick();
+          AdTrackingService.instance.trackNativeClick(
+            rewardTokens: AdStrategy.intervalClickRewardTokens,
+          );
           TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
       ),

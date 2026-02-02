@@ -417,18 +417,34 @@ class JijiHyung {
   }
 
   /// 두 지지가 형인지 확인
+  /// 삼형살은 3개가 모두 모여야만 성립 → checkCompleteSamhyung 사용
   static String? checkHyung(Jiji a, Jiji b) {
     // 자묘형 - String key 비교
     if (_makeKey(a, b) == _jaMyoKey) return '자묘형 (무례지형)';
     // 자형
     if (a == b && jaHyungJiji.contains(a)) return '${a.korean}${a.korean}자형';
-    // 삼형살의 2개 - contains 사용 (개별 요소 비교라 정상 작동)
+    // 삼형살은 2개만으로 성립하지 않음 (3개 완전 조합만 인정)
+    return null;
+  }
+
+  /// 완전 삼형살 체크 (3개 지지가 모두 있는 경우만)
+  ///
+  /// 두 사람의 지지를 합쳐서 인사신/축술미 완전 삼형살 확인
+  /// 삼형살이 완전히 성립하면 매우 강한 흉력
+  /// ⚠️ 한 사람의 사주에서만 3개가 모이는 경우는 개인 삼형살이므로 궁합에서 제외
+  static List<String> checkCompleteSamhyung(Set<Jiji> myJijis, Set<Jiji> targetJijis) {
+    final allJijis = {...myJijis, ...targetJijis};
+    final results = <String>[];
     for (final entry in _samhyungList) {
-      if (entry.$1.contains(a) && entry.$1.contains(b) && a != b) {
-        return '${entry.$2.split(' ').first} 형 (삼형살 일부)';
+      if (entry.$1.every((j) => allJijis.contains(j))) {
+        // 한 사람에게서만 모두 나오면 개인 삼형살 → 궁합 제외
+        final allInMy = entry.$1.every((j) => myJijis.contains(j));
+        final allInTarget = entry.$1.every((j) => targetJijis.contains(j));
+        if (allInMy || allInTarget) continue;
+        results.add(entry.$2);
       }
     }
-    return null;
+    return results;
   }
 }
 
@@ -1043,22 +1059,28 @@ class CompatibilityCalculator {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 삼합 체크 (3개 완전 조합) - 두 사람 지지 합쳐서 확인
+    // 삼합/방합/삼형살 체크 - 두 사람 지지 합쳐서 확인
+    // ⚠️ 개인 합충형해파 필터링: 한 사람에게서만 나오는 3원소 조합은 제외
     // ═══════════════════════════════════════════════════════════════════════
-    final allJis = <Jiji>[];
+    final allJisWithOwner = <(Jiji, bool)>[]; // (jiji, isMine=true/false)
     for (final ji in myJis) {
-      if (ji != null) allJis.add(ji);
+      if (ji != null) allJisWithOwner.add((ji, true));
     }
     for (final ji in targetJis) {
-      if (ji != null) allJis.add(ji);
+      if (ji != null) allJisWithOwner.add((ji, false));
     }
 
     // 삼합 체크 (중복 제거를 위해 Set 사용)
     final foundSamhap = <String>{};
-    for (int i = 0; i < allJis.length; i++) {
-      for (int j = i + 1; j < allJis.length; j++) {
-        for (int k = j + 1; k < allJis.length; k++) {
-          final result = JijiSamhap.checkSamhap(allJis[i], allJis[j], allJis[k]);
+    for (int i = 0; i < allJisWithOwner.length; i++) {
+      for (int j = i + 1; j < allJisWithOwner.length; j++) {
+        for (int k = j + 1; k < allJisWithOwner.length; k++) {
+          // 개인 필터: 최소 양쪽 각 1개씩 포함되어야 커플 삼합
+          final owners = {allJisWithOwner[i].$2, allJisWithOwner[j].$2, allJisWithOwner[k].$2};
+          if (owners.length < 2) continue;
+          final result = JijiSamhap.checkSamhap(
+            allJisWithOwner[i].$1, allJisWithOwner[j].$1, allJisWithOwner[k].$1,
+          );
           if (result != null && !foundSamhap.contains(result.$1)) {
             foundSamhap.add(result.$1);
             samhap.add('${result.$1} (${result.$2.korean}국)');
@@ -1068,21 +1090,32 @@ class CompatibilityCalculator {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 방합 체크 (3개 완전 조합) - 두 사람 지지 합쳐서 확인
+    // 방합 체크 (3개 완전 조합) - 개인 필터 적용
     // ═══════════════════════════════════════════════════════════════════════
     final foundBanghap = <String>{};
-    for (int i = 0; i < allJis.length; i++) {
-      for (int j = i + 1; j < allJis.length; j++) {
-        for (int k = j + 1; k < allJis.length; k++) {
-          final result = JijiBanghap.checkBanghap(allJis[i], allJis[j], allJis[k]);
+    for (int i = 0; i < allJisWithOwner.length; i++) {
+      for (int j = i + 1; j < allJisWithOwner.length; j++) {
+        for (int k = j + 1; k < allJisWithOwner.length; k++) {
+          final owners = {allJisWithOwner[i].$2, allJisWithOwner[j].$2, allJisWithOwner[k].$2};
+          if (owners.length < 2) continue;
+          final result = JijiBanghap.checkBanghap(
+            allJisWithOwner[i].$1, allJisWithOwner[j].$1, allJisWithOwner[k].$1,
+          );
           if (result != null && !foundBanghap.contains(result.$1)) {
             foundBanghap.add(result.$1);
-            // 완전한 방합은 앞에 추가 (일부보다 우선)
             banghap.insert(0, '${result.$1} (${result.$2.korean}방)');
           }
         }
       }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 완전 삼형살 체크 - 개인 삼형살 제외 (한 사람에게서만 3개 모이면 궁합 제외)
+    // ═══════════════════════════════════════════════════════════════════════
+    final myJisSet = myJis.whereType<Jiji>().toSet();
+    final targetJisSet = targetJis.whereType<Jiji>().toSet();
+    final completeSamhyung = JijiHyung.checkCompleteSamhyung(myJisSet, targetJisSet);
+    hyung.addAll(completeSamhyung);
 
     return HapchungAnalysis(
       cheonganHap: cheonganHap,
@@ -1180,14 +1213,16 @@ class CompatibilityCalculator {
     return result;
   }
 
-  /// 점수 계산 (명리학 기반 가중치 v2)
+  /// 점수 계산 (명리학 기반 가중치 v4)
   ///
-  /// ## 명리학 원칙
-  /// - 합력 순서: 방합(완전) ≫ 삼합(완전) ≫ 천간합 ≈ 육합 ≫ 반합
-  /// - 흉력 순서: 충(가장 강함) > 형 > 원진 > 해 > 파(가장 약함)
-  /// - 일주(일간/일지) 관련 합충이 가장 중요
-  /// - 충은 반드시 흉이 아님: 연인 관계에서 도화충(자오/묘유)은 끌림·열정
-  /// - 기본 55점, 합 보너스/충 감점 후 20~95점 범위
+  /// ## v4 변경사항
+  /// - 기본 65점 (넉넉한 기본 점수)
+  /// - 개인 합충형해파 필터링 적용
+  /// - 위치별 가중치: 일주 x2.0, 월주 x1.5, 년주 x1.0, 시주 x0.7
+  /// - 합거충(合去沖): 합이 강하면 충/형/해/파 감점 최대 50% 줄임
+  /// - 삼형살: 개인 삼형살 제외, 커플 삼형살만 별도 감점
+  /// - 모든 관계에서 합 보너스 상향
+  /// - 기본 65점, 합 보너스/충 감점 후 30~97점 범위
   Map<String, int> _calculateScores({
     required HapchungAnalysis hapchungAnalysis,
     required Map<String, dynamic> ohengAnalysis,
@@ -1197,108 +1232,148 @@ class CompatibilityCalculator {
     final isRomantic = relationType.startsWith('romantic_');
 
     // ═══════════════════════════════════════════════════════════════
-    // 기본 점수 55점 (대부분의 궁합은 "보통 이상"이 자연스러움)
+    // 기본 점수 65점 (넉넉한 기본)
     // ═══════════════════════════════════════════════════════════════
-    const baseScore = 55;
+    const baseScore = 65;
 
     // ═══════════════════════════════════════════════════════════════
-    // 합 보너스 (긍정적) - 명리학 합력 순서 적용
+    // 합 보너스 (위치 가중치 적용)
+    // 합력 순서: 방합(완전) ≫ 삼합(완전) ≫ 천간합 ≈ 육합 ≫ 반합
     // ═══════════════════════════════════════════════════════════════
 
-    // 방합 (方合) - 같은 계절/방위 완전 합, 가장 강한 합력
-    int banghapScore = 0;
+    // 방합 (方合) - 같은 계절/방위, 가장 강한 합력 ★★★
+    // 방합은 3개 지지가 같은 계절이므로 팡팡 줌
+    double banghapScore = 0;
     for (final b in hapchungAnalysis.banghap) {
-      if (!b.contains('일부')) {
-        banghapScore += 14; // 완전 방합 (강화)
-      } else {
-        banghapScore += 5; // 방합 일부
-      }
+      final w = _getPositionWeight(b);
+      banghapScore += b.contains('일부') ? 6 * w : 20 * w;
     }
-    banghapScore = banghapScore.clamp(0, 22);
+    banghapScore = banghapScore.clamp(0, 32);
 
-    // 삼합 (三合) - 3개 완전 조합
-    int samhapScore = hapchungAnalysis.samhap.length * 12;
-    samhapScore = samhapScore.clamp(0, 22);
+    // 삼합 (三合) - 3개 완전 조합 ★★
+    double samhapScore = 0;
+    for (final s in hapchungAnalysis.samhap) {
+      samhapScore += 16 * _getPositionWeight(s);
+    }
+    samhapScore = samhapScore.clamp(0, 30);
 
     // 천간합 (天干合) - 정신적 교감
-    int cheonganHapScore = hapchungAnalysis.cheonganHap.length * 8;
-    cheonganHapScore = cheonganHapScore.clamp(0, 20);
+    double cheonganHapScore = 0;
+    for (final h in hapchungAnalysis.cheonganHap) {
+      cheonganHapScore += 9 * _getPositionWeight(h);
+    }
+    cheonganHapScore = cheonganHapScore.clamp(0, 25);
 
     // 육합 (六合) - 실생활 조화
-    int yukhapScore = hapchungAnalysis.yukhap.length * 9;
-    yukhapScore = yukhapScore.clamp(0, 20);
+    double yukhapScore = 0;
+    for (final y in hapchungAnalysis.yukhap) {
+      yukhapScore += 10 * _getPositionWeight(y);
+    }
+    yukhapScore = yukhapScore.clamp(0, 25);
 
     // 반합 (半合) - 삼합의 일부
-    int banhapScore = hapchungAnalysis.banhap.length * 5;
-    banhapScore = banhapScore.clamp(0, 14);
+    double banhapScore = 0;
+    for (final b in hapchungAnalysis.banhap) {
+      banhapScore += 6 * _getPositionWeight(b);
+    }
+    banhapScore = banhapScore.clamp(0, 18);
 
-    int totalHapScore = banghapScore + samhapScore + cheonganHapScore + yukhapScore + banhapScore;
-    totalHapScore = totalHapScore.clamp(0, 50); // 합 보너스 최대 50점 (기존 40)
+    double totalHapScore = banghapScore + samhapScore + cheonganHapScore + yukhapScore + banhapScore;
+    totalHapScore = totalHapScore.clamp(0, 60);
 
     // ═══════════════════════════════════════════════════════════════
-    // 충/형/해/파/원진 감점 (부정적)
+    // 감점 (위치 가중치 적용)
     //
-    // 명리학 현대 해석:
-    // - 충(沖)은 단순 흉이 아닌 "변화·자극·에너지"
-    // - 연인 관계에서 자오충·묘유충(도화충)은 끌림·열정의 상징
-    // - 형/해/파는 실질적 영향이 충보다 훨씬 작음
+    // 흉력 순서: 충 > 원진 > 형 > 해 > 파
+    // 도화충(자오/묘유)은 모든 관계에서 끌림 요소 → 약감점
     // ═══════════════════════════════════════════════════════════════
 
-    // 천간충 (天干沖) - 사상의 차이 (가벼운 감점)
-    int cheonganChungPenalty = hapchungAnalysis.cheonganChung.length * 3;
-    cheonganChungPenalty = cheonganChungPenalty.clamp(0, 8);
+    // 천간충 (天干沖) - 사상의 차이 (약한 감점)
+    double cheonganChungPenalty = 0;
+    for (final c in hapchungAnalysis.cheonganChung) {
+      cheonganChungPenalty += 2.5 * _getPositionWeight(c);
+    }
+    cheonganChungPenalty = cheonganChungPenalty.clamp(0, 6);
 
-    // 지지충 (沖) - 강한 에너지 충돌
-    int chungPenalty = 0;
+    // 지지충 (沖) - 에너지 충돌
+    double chungPenalty = 0;
     for (final c in hapchungAnalysis.chung) {
-      // 자오충/묘유충: 도화충 - 연인이면 끌림, 그 외는 마찰
+      final w = _getPositionWeight(c);
+      // 도화충(자오/묘유): 끌림과 자극의 요소 → 약한 감점
       if (c.contains('자오충') || c.contains('묘유충')) {
-        chungPenalty += isRomantic ? 3 : 7; // 연인: 약감점 (끌림 요소)
+        chungPenalty += 3 * w;
       }
-      // 인신충: 역마충 - 바쁜 관계
-      else if (c.contains('인신충')) {
-        chungPenalty += 6;
-      }
-      // 사해충: 화수 충돌
-      else if (c.contains('사해충')) {
-        chungPenalty += 6;
+      // 인신충/사해충: 변화의 에너지
+      else if (c.contains('인신충') || c.contains('사해충')) {
+        chungPenalty += 4 * w;
       }
       // 축미충/진술충: 토토 충돌 - 가장 약한 충
       else {
-        chungPenalty += 4;
+        chungPenalty += 2.5 * w;
       }
     }
-    chungPenalty = chungPenalty.clamp(0, 18);
+    chungPenalty = chungPenalty.clamp(0, 14);
 
-    // 형 (刑) - 마찰 (감점 완화)
-    int hyungPenalty = 0;
+    // 형 (刑) - 자묘형/자형만 (삼형살은 별도 처리)
+    double hyungPenalty = 0;
+    double samhyungsalPenalty = 0; // 완전 삼형살 별도
     for (final h in hapchungAnalysis.hyung) {
+      final w = _getPositionWeight(h);
       if (h.contains('삼형살')) {
-        hyungPenalty += 6;
+        // 완전 삼형살: 별도 강한 감점 (합거충 적용 제한)
+        samhyungsalPenalty += 14;
       } else if (h.contains('자묘형')) {
-        hyungPenalty += 4;
+        hyungPenalty += 3 * w;
       } else if (h.contains('자형')) {
-        hyungPenalty += 2;
+        hyungPenalty += 1.5 * w;
       } else {
-        hyungPenalty += 3;
+        hyungPenalty += 2.5 * w;
       }
     }
-    hyungPenalty = hyungPenalty.clamp(0, 12);
+    hyungPenalty = hyungPenalty.clamp(0, 8);
+    samhyungsalPenalty = samhyungsalPenalty.clamp(0, 20);
 
     // 원진 (怨嗔) - 서로 꺼리는 관계
-    int wonjinPenalty = hapchungAnalysis.wonjin.length * 4;
-    wonjinPenalty = wonjinPenalty.clamp(0, 10);
+    double wonjinPenalty = 0;
+    for (final w in hapchungAnalysis.wonjin) {
+      wonjinPenalty += 3 * _getPositionWeight(w);
+    }
+    wonjinPenalty = wonjinPenalty.clamp(0, 8);
 
-    // 해 (害) - 가까운 사이의 갈등 (약한 영향)
-    int haePenalty = hapchungAnalysis.hae.length * 3;
-    haePenalty = haePenalty.clamp(0, 8);
+    // 해 (害) - 가까운 사이의 갈등
+    double haePenalty = 0;
+    for (final h in hapchungAnalysis.hae) {
+      haePenalty += 2.5 * _getPositionWeight(h);
+    }
+    haePenalty = haePenalty.clamp(0, 6);
 
-    // 파 (破) - 가장 약한 흉력 (거의 무시)
-    int paPenalty = hapchungAnalysis.pa.length * 2;
-    paPenalty = paPenalty.clamp(0, 5);
+    // 파 (破) - 가장 약한 흉력
+    double paPenalty = 0;
+    for (final p in hapchungAnalysis.pa) {
+      paPenalty += 1.5 * _getPositionWeight(p);
+    }
+    paPenalty = paPenalty.clamp(0, 4);
 
-    int totalPenalty = cheonganChungPenalty + chungPenalty + hyungPenalty + wonjinPenalty + haePenalty + paPenalty;
-    totalPenalty = totalPenalty.clamp(0, 30); // 감점 최대 30점 (기존 45 → 대폭 완화)
+    // 일반 감점 합계 (삼형살 제외)
+    double regularPenalty = cheonganChungPenalty + chungPenalty + hyungPenalty + wonjinPenalty + haePenalty + paPenalty;
+    regularPenalty = regularPenalty.clamp(0, 22);
+
+    // ═══════════════════════════════════════════════════════════════
+    // 합거충(合去沖) - 합이 강하면 일반 감점 줄임
+    // 명리학: 합이 충을 해소하는 원칙
+    // v4: 합거충 효과 강화 (최대 50% 감소)
+    // 완전 삼형살은 합거충 적용 제한 (최대 25% 감소)
+    // ═══════════════════════════════════════════════════════════════
+    if (totalHapScore > 10) {
+      final reduction = ((totalHapScore - 10) / 40).clamp(0.0, 0.5);
+      regularPenalty *= (1.0 - reduction);
+    }
+    // 완전 삼형살: 합이 아무리 많아도 최대 25%만 감소
+    if (totalHapScore > 20 && samhyungsalPenalty > 0) {
+      samhyungsalPenalty *= 0.75;
+    }
+
+    double totalPenalty = regularPenalty + samhyungsalPenalty;
 
     // ═══════════════════════════════════════════════════════════════
     // 오행 상생상극 (일간 기준)
@@ -1306,12 +1381,12 @@ class CompatibilityCalculator {
     int ohengScore = 0;
     if (ohengAnalysis['compatible'] == true) {
       if (ohengAnalysis['type'] == 'sangsaeng') {
-        ohengScore = 10; // 상생 (기존 8)
+        ohengScore = 10;
       } else if (ohengAnalysis['type'] == 'same') {
-        ohengScore = 6; // 동일 오행 (기존 4)
+        ohengScore = 6;
       }
     } else if (ohengAnalysis['compatible'] == false) {
-      ohengScore = -4; // 상극 (기존 -6, 완화)
+      ohengScore = -4;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1319,43 +1394,64 @@ class CompatibilityCalculator {
     // ═══════════════════════════════════════════════════════════════
     int iljuBonus = 0;
     if (iljuAnalysis['ssanghap'] == true) {
-      iljuBonus = 20; // 일주 쌍합 (기존 18)
+      iljuBonus = 20; // 일주 쌍합: 최고
     } else if (iljuAnalysis.containsKey('day_gan_hap')) {
-      iljuBonus = 12; // 일간합 (기존 10)
+      iljuBonus = 12; // 일간합
     } else if (iljuAnalysis.containsKey('day_ji_hap')) {
-      iljuBonus = 12; // 일지합 (기존 10)
+      iljuBonus = 12; // 일지합
     }
     if (iljuAnalysis.containsKey('day_ji_chung')) {
-      iljuBonus -= isRomantic ? 5 : 8; // 일지충 완화 (기존 -12)
+      iljuBonus -= 6; // 일지충
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 관계 유형별 가중치 (합에만 적용, 감점에는 미적용)
-    // → 합이 많을수록 연인 관계가 유리 (명리학 원칙)
+    // 관계 가중치 (모든 관계에서 합 보너스 증폭)
     // ═══════════════════════════════════════════════════════════════
-    double hapWeight = 1.0;
+    double hapWeight = 1.15; // 기본: 모든 관계 1.15배
     if (isRomantic) {
-      hapWeight = 1.2; // 연인: 합 보너스 증폭
+      hapWeight = 1.3; // 연인: 1.3배
     } else if (relationType.startsWith('family_')) {
-      hapWeight = 1.1;
+      hapWeight = 1.2; // 가족: 1.2배
     }
 
     // ═══════════════════════════════════════════════════════════════
     // 최종 점수 계산
-    // 합 보너스에만 관계 가중치 적용 (감점에는 미적용)
     // ═══════════════════════════════════════════════════════════════
     int totalScore = baseScore +
         (totalHapScore * hapWeight).round() +
         ohengScore +
         iljuBonus -
-        totalPenalty;
+        totalPenalty.round();
 
-    // 점수 범위 제한 (20-95)
-    totalScore = totalScore.clamp(20, 95);
+    // 점수 범위 제한 (30-97)
+    totalScore = totalScore.clamp(30, 97);
 
     return {
       'overall': totalScore,
     };
+  }
+
+  /// 위치 가중치 계산
+  ///
+  /// 일주(일간/일지) 관련 합충이 가장 중요 → 높은 가중치
+  /// "년간↔월지: 자축합토" 같은 포맷에서 위치 추출
+  double _getPositionWeight(String entry) {
+    final match = RegExp(r'(년|월|일|시)(간|지)↔(년|월|일|시)(간|지)').firstMatch(entry);
+    if (match == null) return 1.0; // 위치 정보 없으면 기본 1.0
+    final pos1 = match.group(1)!;
+    final pos2 = match.group(3)!;
+    return (_posValue(pos1) + _posValue(pos2)) / 2;
+  }
+
+  /// 주(柱)별 중요도 값
+  double _posValue(String pos) {
+    switch (pos) {
+      case '일': return 2.0;  // 일주: 궁합의 핵심
+      case '월': return 1.5;  // 월주: 사회적 관계
+      case '년': return 1.0;  // 년주: 초년/외적 관계
+      case '시': return 0.7;  // 시주: 말년/내적 관계
+      default: return 1.0;
+    }
   }
 
   /// 강점 추출
@@ -1481,13 +1577,13 @@ class CompatibilityCalculator {
       relationName = '인연';
     }
 
-    if (overallScore >= 80) {
+    if (overallScore >= 85) {
       return '아주 좋은 $relationName 궁합입니다. 서로에게 긍정적인 영향을 주는 인연으로, 함께할수록 발전합니다.';
-    } else if (overallScore >= 65) {
+    } else if (overallScore >= 70) {
       return '좋은 $relationName 궁합입니다. 서로 잘 맞는 부분이 많아 편안한 관계를 유지할 수 있습니다.';
-    } else if (overallScore >= 50) {
+    } else if (overallScore >= 55) {
       return '보통의 $relationName 궁합입니다. 서로의 다름을 인정하고 노력하면 좋은 관계가 됩니다.';
-    } else if (overallScore >= 35) {
+    } else if (overallScore >= 40) {
       return '노력이 필요한 $relationName 궁합입니다. 서로 이해하고 배려하는 마음이 중요합니다.';
     } else {
       return '도전적인 $relationName 궁합입니다. 인내심을 갖고 소통하면 성장의 기회가 됩니다.';

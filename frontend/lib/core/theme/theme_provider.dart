@@ -10,23 +10,14 @@ const String _themeBoxName = 'theme_settings';
 const String _themeTypeKey = 'selected_theme';
 
 /// 테마 Provider - 사용자 선택 테마 관리
+///
+/// main.dart에서 theme_settings Box<String>을 미리 열어둬야 정상 동작
 @riverpod
 class AppThemeNotifier extends _$AppThemeNotifier {
-  late Box<String> _box;
-
   @override
   AppThemeType build() {
-    _initHive();
+    // main.dart에서 이미 Box<String>('theme_settings')을 열어둔 상태
     return _loadSavedTheme();
-  }
-
-  /// Hive 박스 초기화
-  Future<void> _initHive() async {
-    if (!Hive.isBoxOpen(_themeBoxName)) {
-      _box = await Hive.openBox<String>(_themeBoxName);
-    } else {
-      _box = Hive.box<String>(_themeBoxName);
-    }
   }
 
   /// 저장된 테마 불러오기
@@ -45,7 +36,6 @@ class AppThemeNotifier extends _$AppThemeNotifier {
     } catch (e) {
       debugPrint('테마 로드 오류: $e');
     }
-    // 기본 테마를 가로등불로 설정
     return AppThemeType.streetLamp;
   }
 
@@ -58,9 +48,6 @@ class AppThemeNotifier extends _$AppThemeNotifier {
   /// 테마 저장
   Future<void> _saveTheme(AppThemeType themeType) async {
     try {
-      if (!Hive.isBoxOpen(_themeBoxName)) {
-        await Hive.openBox<String>(_themeBoxName);
-      }
       final box = Hive.box<String>(_themeBoxName);
       await box.put(_themeTypeKey, themeType.name);
     } catch (e) {

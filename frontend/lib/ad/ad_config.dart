@@ -79,9 +79,11 @@ class AdUnitId {
           ? TestAdUnitIds.bannerAndroid
           : TestAdUnitIds.bannerIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.bannerAndroid
         : ProductionAdUnitIds.bannerIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get interstitial {
@@ -90,9 +92,11 @@ class AdUnitId {
           ? TestAdUnitIds.interstitialAndroid
           : TestAdUnitIds.interstitialIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.interstitialAndroid
         : ProductionAdUnitIds.interstitialIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get rewarded {
@@ -101,9 +105,11 @@ class AdUnitId {
           ? TestAdUnitIds.rewardedAndroid
           : TestAdUnitIds.rewardedIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.rewardedAndroid
         : ProductionAdUnitIds.rewardedIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get rewardedInterstitial {
@@ -118,9 +124,11 @@ class AdUnitId {
           ? TestAdUnitIds.nativeAndroid
           : TestAdUnitIds.nativeIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.nativeAndroid
         : ProductionAdUnitIds.nativeIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get appOpen {

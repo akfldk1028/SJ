@@ -18,8 +18,8 @@ class CompatibilityDetailScreen extends ConsumerWidget {
     required this.analysisId,
   });
 
-  static const _primaryColor = Color(0xFFEC4899);
-  static const _secondaryColor = Color(0xFFF472B6);
+  static const _primaryColor = Color(0xFFD4637B);
+  static const _secondaryColor = Color(0xFFE08E9D);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -357,7 +357,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // 합/충 요약
+          // 合/沖 요약 - 한자 포함
           if (analysis.positiveCount > 0 || analysis.negativeCount > 0) ...[
             const SizedBox(height: 16),
             Row(
@@ -365,19 +365,19 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               children: [
                 if (analysis.positiveCount > 0)
                   _buildCountBadge(
-                    icon: Icons.favorite,
+                    icon: Icons.brightness_5_rounded,
                     count: analysis.positiveCount,
-                    label: '합',
-                    color: Colors.pink,
+                    label: '合',
+                    color: const Color(0xFFD4637B),
                   ),
                 if (analysis.positiveCount > 0 && analysis.negativeCount > 0)
                   const SizedBox(width: 16),
                 if (analysis.negativeCount > 0)
                   _buildCountBadge(
-                    icon: Icons.warning_amber_rounded,
+                    icon: Icons.contrast_rounded,
                     count: analysis.negativeCount,
-                    label: '충돌',
-                    color: Colors.blue,
+                    label: '沖',
+                    color: const Color(0xFF6B7F99),
                   ),
               ],
             ),
@@ -474,33 +474,35 @@ class CompatibilityDetailScreen extends ConsumerWidget {
     final positiveWidgets = <Widget>[];
     final negativeWidgets = <Widget>[];
 
-    // 긍정적 관계 (합)
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '삼합 (三合)',
-        _toStringList(ph['samhap']), const Color(0xFFEC4899), Icons.auto_awesome);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '육합 (六合)',
-        _toStringList(ph['yukhap']), const Color(0xFFF472B6), Icons.handshake);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '반합 (半合)',
-        _toStringList(ph['banhap']), const Color(0xFFA855F7), Icons.join_inner);
-    // 방합: "일부" 제외, 세 글자 완전 방합만
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '방합 (方合)',
+    // 긍정적 관계 (합) - 합력 순: 방합 > 삼합 > 육합 > 천간합 > 반합
+    // 통일된 accent color 사용 (모던/미니멀)
+    const hapColor = Color(0xFFD4637B); // 따뜻한 로즈
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '方合 방합',
         _filterFullBanghap(_toStringList(ph['banghap'])),
-        const Color(0xFF8B5CF6), Icons.explore);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '천간합 (天干合)',
-        _toStringList(ph['cheongan_hap']), const Color(0xFF6366F1), Icons.link);
+        hapColor, Icons.panorama_fish_eye);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '三合 삼합',
+        _toStringList(ph['samhap']), hapColor, Icons.change_history_rounded);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '六合 육합',
+        _toStringList(ph['yukhap']), hapColor, Icons.link_rounded);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '天干合 천간합',
+        _toStringList(ph['cheongan_hap']), hapColor, Icons.sync_alt_rounded);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '半合 반합',
+        _toStringList(ph['banhap']), hapColor, Icons.pie_chart_outline_rounded);
 
-    // 부정적 관계
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '천간충 (天干沖)',
-        _toStringList(ph['cheongan_chung']), const Color(0xFFDC2626), Icons.bolt_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '지지충 (地支沖)',
-        _toStringList(ph['chung']), const Color(0xFFEF4444), Icons.flash_on_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '형 (刑)',
-        _toStringList(ph['hyung']), const Color(0xFFF97316), Icons.gavel_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '해 (害)',
-        _toStringList(ph['hae']), const Color(0xFFEAB308), Icons.heart_broken_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '파 (破)',
-        _toStringList(ph['pa']), const Color(0xFF06B6D4), Icons.broken_image_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '원진 (怨嗔)',
-        _toStringList(ph['wonjin']), const Color(0xFF6366F1), Icons.do_not_disturb_rounded);
+    // 부정적 관계 - 통일된 색상
+    const chungColor = Color(0xFF6B7F99); // 차분한 슬레이트
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '天干沖 천간충',
+        _toStringList(ph['cheongan_chung']), chungColor, Icons.compare_arrows_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '地支沖 지지충',
+        _toStringList(ph['chung']), chungColor, Icons.swap_horiz_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '刑 형',
+        _toStringList(ph['hyung']), chungColor, Icons.gavel_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '害 해',
+        _toStringList(ph['hae']), chungColor, Icons.remove_circle_outline_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '破 파',
+        _toStringList(ph['pa']), chungColor, Icons.radio_button_unchecked);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '怨嗔 원진',
+        _toStringList(ph['wonjin']), chungColor, Icons.block_rounded);
 
     // Fallback: sub-categories 없으면 hap/chung 필드 사용
     if (positiveWidgets.isEmpty) {
@@ -521,10 +523,10 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (positiveWidgets.isNotEmpty)
           _buildGroupCard(
             theme,
-            title: '조화의 기운',
-            subtitle: '합 (合)',
-            icon: Icons.favorite_rounded,
-            accentColor: const Color(0xFFEC4899),
+            title: '合 조화',
+            subtitle: '방합 · 삼합 · 육합 · 천간합 · 반합',
+            icon: Icons.brightness_5_rounded,
+            accentColor: const Color(0xFFD4637B),
             children: positiveWidgets,
           ),
         if (positiveWidgets.isNotEmpty && negativeWidgets.isNotEmpty)
@@ -532,10 +534,10 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (negativeWidgets.isNotEmpty)
           _buildGroupCard(
             theme,
-            title: '긴장의 기운',
+            title: '沖 긴장',
             subtitle: '충 · 형 · 해 · 파 · 원진',
-            icon: Icons.flash_on_rounded,
-            accentColor: const Color(0xFF3B82F6),
+            icon: Icons.contrast_rounded,
+            accentColor: const Color(0xFF6B7F99),
             children: negativeWidgets,
           ),
       ],
@@ -958,9 +960,9 @@ class CompatibilityDetailScreen extends ConsumerWidget {
   }
 
   Color _getScoreColor(int score) {
-    if (score >= 80) return const Color(0xFFEC4899);
-    if (score >= 60) return const Color(0xFF3B82F6);
-    if (score >= 40) return const Color(0xFFF59E0B);
-    return const Color(0xFF6B7280);
+    if (score >= 80) return const Color(0xFFD4637B); // 로즈
+    if (score >= 60) return const Color(0xFF6B7F99); // 슬레이트
+    if (score >= 40) return const Color(0xFF9CA3AF); // 그레이
+    return const Color(0xFF6B7280); // 다크 그레이
   }
 }
