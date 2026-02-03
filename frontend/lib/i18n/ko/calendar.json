@@ -1,0 +1,10 @@
+{
+  "title": "캘린더",
+  "today": "오늘",
+  "selectedDate": "선택한 날짜",
+  "noEvents": "일정이 없습니다",
+  "luckyDay": "길일",
+  "cautionDay": "주의일",
+  "monthView": "월간 보기",
+  "weekView": "주간 보기"
+}

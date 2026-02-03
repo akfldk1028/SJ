@@ -1,0 +1,12 @@
+{
+  "title": "四柱相談",
+  "inputHint": "気になることを聞いてみてください...",
+  "send": "送信",
+  "loading": "回答を生成中...",
+  "error": "エラーが発生しました",
+  "retry": "再試行",
+  "suggestedQuestion1": "今年の運勢はどうですか？",
+  "suggestedQuestion2": "金運はどうですか？",
+  "suggestedQuestion3": "恋愛運が気になります",
+  "suggestedQuestion4": "仕事運はどうですか？"
+}

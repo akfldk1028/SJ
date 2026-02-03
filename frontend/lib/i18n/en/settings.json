@@ -1,0 +1,16 @@
+{
+  "title": "Settings",
+  "profile": "Manage Profile",
+  "notification": "Notifications",
+  "language": "Language",
+  "languageKo": "한국어",
+  "languageEn": "English",
+  "languageJa": "日本語",
+  "terms": "Terms of Service",
+  "privacy": "Privacy Policy",
+  "disclaimer": "Disclaimer",
+  "version": "Version",
+  "theme": "Theme",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode"
+}

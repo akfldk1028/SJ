@@ -1,0 +1,8 @@
+{
+  "loading": "Loading data...",
+  "ready": "Ready!",
+  "newJourney": "Starting a new journey",
+  "analyzing": "Preparing fortune analysis...",
+  "offline": "Offline mode",
+  "connectionError": "Connection error"
+}

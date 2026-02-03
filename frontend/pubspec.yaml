@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -97,6 +99,9 @@ dependencies:
   # In-App Purchase - RevenueCat
   purchases_flutter: ^9.10.8
 
+  # i18n - Multi-language support
+  easy_localization: ^3.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -123,7 +128,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -135,6 +139,9 @@ flutter:
     - assets/prompts/
     - assets/data/
     - assets/data/rules/
+    - lib/i18n/ko/
+    - lib/i18n/en/
+    - lib/i18n/ja/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+import '../../purchase/providers/purchase_provider.dart';
+import '../../purchase/purchase_config.dart';
 
 /// 카테고리별 운세 데이터
 class CategoryData {
@@ -129,7 +132,7 @@ class MonthData {
 /// - 잠긴 월은 광고를 봐야 해제
 /// - 현재 달(currentMonth)은 처음부터 잠금 해제 상태
 /// - v5.0: 광고 해금 시 상세 운세 API 호출 콜백 지원
-class FortuneMonthlyChipSection extends StatefulWidget {
+class FortuneMonthlyChipSection extends ConsumerStatefulWidget {
   /// 운세 타입 (monthly_fortune)
   final String fortuneType;
 
@@ -157,11 +160,11 @@ class FortuneMonthlyChipSection extends StatefulWidget {
   });
 
   @override
-  State<FortuneMonthlyChipSection> createState() =>
+  ConsumerState<FortuneMonthlyChipSection> createState() =>
       _FortuneMonthlyChipSectionState();
 }
 
-class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
+class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSection> {
   /// 현재 펼쳐진 월
   String? _expandedMonth;
 
@@ -910,10 +913,33 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
   Future<void> _showRewardedAdAndUnlock(String monthKey) async {
     if (_isLoadingAd) return;
 
-    setState(() => _isLoadingAd = true);
-
     final monthNum = monthKey.replaceAll('month', '');
     final monthName = '$monthNum월';
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) {
+      await _unlockMonthAndFetchDetails(monthKey);
+      if (mounted) {
+        setState(() {
+          _expandedMonth = monthKey;
+        });
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$monthName 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
+
+    setState(() => _isLoadingAd = true);
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {

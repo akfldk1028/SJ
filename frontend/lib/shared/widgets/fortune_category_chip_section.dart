@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
 import '../../ad/feature_unlock_service.dart';
 import '../../AI/fortune/common/korea_date_utils.dart';
+import '../../purchase/providers/purchase_provider.dart';
+import '../../purchase/purchase_config.dart';
 
 /// 공통 카테고리 데이터 인터페이스
 /// v8.2: 평생운세용 상세 필드 추가
@@ -97,7 +100,7 @@ class CategoryData {
 /// - 카테고리가 칩으로 표시되고 탭하면 펼쳐짐
 /// - 잠긴 카테고리는 광고를 봐야 해제
 /// - fortuneType으로 운세 종류 구분
-class FortuneCategoryChipSection extends StatefulWidget {
+class FortuneCategoryChipSection extends ConsumerStatefulWidget {
   /// 운세 타입 (lifetime, yearly_2025, yearly_2026, monthly)
   final String fortuneType;
 
@@ -123,12 +126,12 @@ class FortuneCategoryChipSection extends StatefulWidget {
   });
 
   @override
-  State<FortuneCategoryChipSection> createState() =>
+  ConsumerState<FortuneCategoryChipSection> createState() =>
       _FortuneCategoryChipSectionState();
 }
 
 class _FortuneCategoryChipSectionState
-    extends State<FortuneCategoryChipSection> {
+    extends ConsumerState<FortuneCategoryChipSection> {
   /// 현재 펼쳐진 카테고리
   String? _expandedCategory;
 
@@ -851,9 +854,33 @@ class _FortuneCategoryChipSectionState
   Future<void> _showRewardedAdAndUnlock(String categoryKey) async {
     if (_isLoadingAd) return;
 
+    final categoryName = _getCategoryName(categoryKey);
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) {
+      _unlockCategory(categoryKey);
+      if (mounted) {
+        setState(() {
+          _expandedCategory = categoryKey;
+        });
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$categoryName 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
+
     setState(() => _isLoadingAd = true);
 
-    final categoryName = _getCategoryName(categoryKey);
     final unlockInfo = _parseFortuneType();
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)

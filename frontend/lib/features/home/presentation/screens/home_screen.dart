@@ -12,6 +12,7 @@ import '../../../../router/routes.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/widgets/saju_mini_card.dart';
+import '../../../../purchase/widgets/premium_badge_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -61,22 +62,19 @@ class HomeScreen extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                Text(
-                                  today,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: theme.textPrimary,
+                                Flexible(
+                                  child: Text(
+                                    today,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: theme.textPrimary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                // const SizedBox(width: 8),
-                                // Text(
-                                //   '◀ ▶',
-                                //   style: TextStyle(
-                                //     fontSize: 10,
-                                //     color: theme.textMuted,
-                                //   ),
-                                // ),
+                                const SizedBox(width: 8),
+                                const PremiumBadgeWidget(),
                               ],
                             ),
                           ],

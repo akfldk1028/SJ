@@ -96,11 +96,11 @@ abstract class AdStrategy {
 
   /// 토큰 소진 → 네이티브 광고 보상 토큰 (클릭 시에만 지급)
   /// Native CPC $0.10~0.50 → 클릭 시 웹 방문
-  /// v2: 15,000 토큰 (2교환) - 클릭 1번으로 즉시 흑자
+  /// v3: 12,000 토큰 - 클릭 1번으로 흑자
   static const int depletedRewardTokensNative = 15000;
 
   /// 인터벌(대화 중) 네이티브 광고 클릭 시 보상 토큰
-  static const int intervalClickRewardTokens = 7000;
+  static const int intervalClickRewardTokens = 10000;
 
   // ==================== 프리미엄 기능 ====================
 

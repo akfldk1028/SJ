@@ -3,8 +3,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../purchase/providers/purchase_provider.dart';
+import '../../purchase/purchase_config.dart';
 import '../ad_config.dart';
 import '../ad_tracking_service.dart';
 
@@ -12,7 +15,7 @@ import '../ad_tracking_service.dart';
 ///
 /// ListView 내에서 메시지 사이에 삽입되는 광고
 /// Inline Adaptive Banner 사용 (Google 권장)
-class InlineAdWidget extends StatefulWidget {
+class InlineAdWidget extends ConsumerStatefulWidget {
   /// 위젯 인덱스 (광고 재사용 방지용 고유 키)
   final int index;
 
@@ -22,10 +25,10 @@ class InlineAdWidget extends StatefulWidget {
   });
 
   @override
-  State<InlineAdWidget> createState() => _InlineAdWidgetState();
+  ConsumerState<InlineAdWidget> createState() => _InlineAdWidgetState();
 }
 
-class _InlineAdWidgetState extends State<InlineAdWidget> {
+class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
@@ -38,6 +41,13 @@ class _InlineAdWidgetState extends State<InlineAdWidget> {
   }
 
   void _loadAd() {
+    // 프리미엄 유저는 광고 로드 자체를 스킵
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return;
+
     final width = MediaQuery.of(context).size.width.truncate();
 
     _bannerAd = BannerAd(
@@ -87,6 +97,13 @@ class _InlineAdWidgetState extends State<InlineAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 프리미엄 유저는 인라인 광고 숨김
+    final purchaseState = ref.watch(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return const SizedBox.shrink();
+
     if (!_isLoaded || _bannerAd == null) {
       // 로딩 중 placeholder (높이 유지)
       return const SizedBox(height: 60);

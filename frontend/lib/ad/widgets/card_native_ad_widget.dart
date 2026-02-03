@@ -6,8 +6,11 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../purchase/providers/purchase_provider.dart';
+import '../../purchase/purchase_config.dart';
 import '../ad_config.dart';
 import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
@@ -20,7 +23,7 @@ bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 ///
 /// - loadDelay: 광고 로드 지연 시간 (밀리초)
 /// - 화면에 보일 때만 로드하여 프레임 드롭 방지
-class CardNativeAdWidget extends StatefulWidget {
+class CardNativeAdWidget extends ConsumerStatefulWidget {
   /// 광고 로드 지연 시간 (밀리초)
   /// 여러 광고가 동시에 로드되는 것을 방지
   final int loadDelayMs;
@@ -31,10 +34,10 @@ class CardNativeAdWidget extends StatefulWidget {
   });
 
   @override
-  State<CardNativeAdWidget> createState() => _CardNativeAdWidgetState();
+  ConsumerState<CardNativeAdWidget> createState() => _CardNativeAdWidgetState();
 }
 
-class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
+class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
   bool _loadStarted = false;
@@ -57,6 +60,14 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
 
   void _loadAd() {
     if (!_isMobile || _loadStarted || !mounted) return;
+
+    // 프리미엄 유저는 광고 로드 자체를 스킵
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return;
+
     _loadStarted = true;
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
@@ -137,6 +148,13 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 프리미엄 유저는 네이티브 광고 숨김
+    final purchaseState = ref.watch(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return const SizedBox.shrink();
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

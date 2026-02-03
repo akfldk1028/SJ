@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'ad/ad.dart';
 import 'app.dart';
+import 'i18n/multi_file_asset_loader.dart';
 import 'purchase/purchase.dart';
 import 'core/services/app_update_service.dart';
 import 'core/services/supabase_service.dart';
@@ -19,6 +21,7 @@ import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
 
   // Manual 모드: 상태바만 표시, 하단 네비게이션 바 숨김
   SystemChrome.setEnabledSystemUIMode(
@@ -88,8 +91,18 @@ void main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: MantokApp(),
+    EasyLocalization(
+      supportedLocales: const [
+        Locale('ko'),
+        Locale('en'),
+        Locale('ja'),
+      ],
+      path: 'lib/i18n',
+      fallbackLocale: const Locale('ko'),
+      assetLoader: MultiFileAssetLoader(),
+      child: const ProviderScope(
+        child: MantokApp(),
+      ),
     ),
   );
 }

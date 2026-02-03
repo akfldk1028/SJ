@@ -21,6 +21,8 @@ class PaywallScreen extends ConsumerWidget {
       badge: null,
       highlight: false,
       periodLabel: '/1일',
+      accentColor: Color(0xFFFF6B6B),
+      dailyPrice: null,
       features: ['광고 제거', 'AI 무제한 대화', '24시간 이용'],
     ),
     PurchaseConfig.productWeekPass: _ProductMeta(
@@ -28,6 +30,8 @@ class PaywallScreen extends ConsumerWidget {
       badge: '인기',
       highlight: true,
       periodLabel: '/1주',
+      accentColor: Color(0xFFD4AF37),
+      dailyPrice: '일 ₩700',
       features: ['광고 제거', 'AI 무제한 대화', '7일 이용', '일일 패스 대비 할인'],
     ),
     PurchaseConfig.productMonthly: _ProductMeta(
@@ -35,6 +39,8 @@ class PaywallScreen extends ConsumerWidget {
       badge: 'BEST',
       highlight: false,
       periodLabel: '/월',
+      accentColor: Color(0xFF7C4DFF),
+      dailyPrice: '일 ₩297',
       features: ['광고 제거', 'AI 무제한 대화', '자동 갱신', '가장 저렴한 일일 단가'],
     ),
   };
@@ -102,12 +108,25 @@ class PaywallScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 헤더 아이콘
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFFD4AF37), Color(0xFF7C4DFF)],
+                  ).createShader(bounds),
+                  child: const Icon(
+                    Icons.workspace_premium,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 // 헤더
                 const Text(
                   '프리미엄 이용권',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
@@ -117,6 +136,36 @@ class PaywallScreen extends ConsumerWidget {
                   '광고 제거 + AI 무제한 대화',
                   style: TextStyle(color: Colors.white60, fontSize: 14),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+
+                // 구매 즉시 적용 Chip
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.flash_on, color: Color(0xFFD4AF37), size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          '구매 즉시 적용',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
 
@@ -131,6 +180,8 @@ class PaywallScreen extends ConsumerWidget {
                               badge: null,
                               highlight: false,
                               periodLabel: '',
+                              accentColor: Color(0xFF8B7FFF),
+                              dailyPrice: null,
                               features: [],
                             ),
                         isLoading: isLoading,
@@ -172,6 +223,8 @@ class _ProductMeta {
   final String? badge;
   final bool highlight;
   final String periodLabel;
+  final Color accentColor;
+  final String? dailyPrice;
   final List<String> features;
 
   const _ProductMeta({
@@ -179,6 +232,8 @@ class _ProductMeta {
     required this.badge,
     required this.highlight,
     required this.periodLabel,
+    required this.accentColor,
+    this.dailyPrice,
     required this.features,
   });
 }
@@ -200,9 +255,7 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final product = package.storeProduct;
-    final accentColor = meta.highlight
-        ? const Color(0xFFD4AF37)
-        : const Color(0xFF8B7FFF);
+    final color = meta.accentColor;
 
     return Stack(
       children: [
@@ -213,98 +266,152 @@ class _ProductCard extends StatelessWidget {
                 : const Color(0xFF151520),
             border: Border.all(
               color: meta.highlight
-                  ? const Color(0xFFD4AF37)
+                  ? color
                   : Colors.white.withValues(alpha: 0.1),
               width: meta.highlight ? 2 : 1,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 아이콘 + 상품 제목
-              Row(
-                children: [
-                  Icon(meta.icon, color: accentColor, size: 22),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      product.title.replaceAll(RegExp(r'\s*\(.*\)'), ''),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              // 상단 accentColor 바
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withValues(alpha: 0.8),
+                      color,
+                      color.withValues(alpha: 0.8),
+                    ],
                   ),
-                ],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    topRight: Radius.circular(14),
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
 
-              // 가격
-              Row(
-                children: [
-                  Text(
-                    product.priceString,
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    meta.periodLabel,
-                    style: const TextStyle(color: Colors.white54, fontSize: 14),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // 기능 목록
-              ...meta.features.map((f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
+              Padding(
+                padding: EdgeInsets.all(meta.highlight ? 24 : 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 아이콘 + 상품 제목
+                    Row(
                       children: [
-                        Icon(Icons.check, color: accentColor, size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          f,
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 13,
+                        Icon(meta.icon, color: color, size: 28),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            product.title.replaceAll(RegExp(r'\s*\(.*\)'), ''),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  )),
+                    const SizedBox(height: 12),
 
-              const SizedBox(height: 16),
-
-              // 구매 버튼
-              SizedBox(
-                width: double.infinity,
-                child: ShadButton(
-                  onPressed: isLoading ? null : onPurchase,
-                  backgroundColor: accentColor,
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          package.packageType == PackageType.monthly
-                              ? '구독하기'
-                              : '구매하기',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                    // 가격 (대형)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          product.priceString,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
+                        const SizedBox(width: 4),
+                        Text(
+                          meta.periodLabel,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (meta.dailyPrice != null) ...[
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              meta.dailyPrice!,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // 기능 목록
+                    ...meta.features.map((f) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              Icon(Icons.check, color: color, size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                f,
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+
+                    const SizedBox(height: 18),
+
+                    // 구매 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ShadButton(
+                        onPressed: isLoading ? null : onPurchase,
+                        backgroundColor: color,
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                package.packageType == PackageType.monthly
+                                    ? '구독하기'
+                                    : '구매하기',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -317,9 +424,9 @@ class _ProductCard extends StatelessWidget {
             top: 0,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: accentColor,
+                color: color,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(8),
                   bottomRight: Radius.circular(8),
@@ -328,8 +435,8 @@ class _ProductCard extends StatelessWidget {
               child: Text(
                 meta.badge!,
                 style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 11,
+                  color: Colors.white,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),

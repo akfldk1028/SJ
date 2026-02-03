@@ -152,8 +152,17 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 | `ad_provider` (onNewSessionRewarded) | `ad/providers/ad_provider.dart:164` | isPremium이면 스킵 | OK |
 | `chat_provider` (sendMessage quota) | `saju_chat/.../chat_provider.dart:596` | isPremium이면 토큰 소진 체크 스킵 | OK |
 | `BannerAdWidget` | `ad/widgets/banner_ad_widget.dart` | `ref.watch(purchaseNotifierProvider)` → premium이면 숨김 | OK |
+| `CardNativeAdWidget` | `ad/widgets/card_native_ad_widget.dart` | `ConsumerStatefulWidget` + premium이면 로드 스킵 + 숨김 | OK |
+| `NativeAdWidget` | `ad/widgets/native_ad_widget.dart` | `ConsumerStatefulWidget` + premium이면 로드 스킵 + 숨김 | OK |
+| `CompactNativeAdWidget` | `ad/widgets/native_ad_widget.dart` | `ConsumerStatefulWidget` + premium이면 로드 스킵 + 숨김 | OK |
+| `InlineAdWidget` | `ad/widgets/inline_ad_widget.dart` | `ConsumerStatefulWidget` + premium이면 로드 스킵 + 숨김 | OK |
 | `MainScaffold _onTap` | `home/.../main_scaffold.dart:61` | `isPremium`이면 `showInterstitialAd()` 스킵 | OK |
 | `fortune_category_list` | `menu/.../fortune_category_list.dart:74` | `isPremium`이면 `showInterstitialAd()` 스킵 | OK |
+| `lifetime_fortune 보상형` | `traditional_saju/.../lifetime_fortune_screen.dart` | premium이면 광고 없이 즉시 해제 | OK |
+| `FortuneMonthlyChipSection` | `shared/widgets/fortune_monthly_chip_section.dart` | `ConsumerStatefulWidget` + premium이면 광고 없이 즉시 해제 | OK |
+| `FortuneCategoryChipSection` | `shared/widgets/fortune_category_chip_section.dart` | `ConsumerStatefulWidget` + premium이면 광고 없이 즉시 해제 | OK |
+| `FortuneWeeklyChipSection` | `shared/widgets/fortune_weekly_chip_section.dart` | `ConsumerStatefulWidget` + premium이면 광고 없이 즉시 해제 | OK |
+| `FortuneMonthlyStepSection` | `shared/widgets/fortune_monthly_step_section.dart` | `ConsumerStatefulWidget` + premium이면 월/스텝 광고 없이 즉시 해제 | OK |
 
 - **premium 광고 정책**: 강제 광고(인터벌, 토큰 80% 경고) = 차단 / 보상형 광고(토큰 100% 소진) = 허용 (유저 선택)
 - **서버 측**: `ai-gemini`에서 `subscriptions` 테이블의 active 상태 확인 → premium이면 quota 면제
@@ -385,3 +394,8 @@ ORDER BY created_at DESC LIMIT 5;
 | 2026-02-03 | MainScaffold → ConsumerWidget 전환 + 전면광고 premium 스킵 |
 | 2026-02-03 | fortune_category_list 전면광고 premium 스킵 추가 |
 | 2026-02-03 | 토큰 소진 배너: 영상 광고 → 프리미엄 구매 버튼으로 교체 |
+| 2026-02-03 | CardNativeAdWidget/NativeAdWidget/CompactNativeAdWidget/InlineAdWidget → ConsumerStatefulWidget + premium 체크 |
+| 2026-02-03 | lifetime_fortune_screen 보상형 광고 → premium이면 즉시 해제 |
+| 2026-02-03 | quota_service.dart dailyQuota 50000 → 20000 (서버 일치) |
+| 2026-02-03 | FortuneMonthlyChipSection/FortuneCategoryChipSection → ConsumerStatefulWidget + premium 즉시 해제 |
+| 2026-02-03 | FortuneWeeklyChipSection/FortuneMonthlyStepSection → ConsumerStatefulWidget + premium 즉시 해제 |

@@ -9,6 +9,8 @@ import '../../../../shared/widgets/fortune_section_card.dart';
 import '../../../../shared/widgets/fortune_title_header.dart';
 import '../../../../ad/ad_service.dart';
 import '../../../../animation/saju_loading_animation.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
+import '../../../../purchase/purchase_config.dart';
 import '../providers/lifetime_fortune_provider.dart';
 
 /// 평생운세 상세 화면 - 책처럼 읽기 쉬운 레이아웃
@@ -1764,6 +1766,26 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   /// 광고 보고 잠금 해제 (기존 FortuneCategoryChipSection 패턴 참고)
   Future<void> _showRewardedAdAndUnlock(String cycleKey, String title) async {
     if (_isLoadingAd) return;
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) {
+      setState(() {
+        _unlockedCycles.add(cycleKey);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$title 운세가 해제되었습니다!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _isLoadingAd = true);
 

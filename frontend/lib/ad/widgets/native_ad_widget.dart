@@ -5,8 +5,11 @@ library;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../purchase/providers/purchase_provider.dart';
+import '../../purchase/purchase_config.dart';
 import '../ad_config.dart';
 import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
@@ -19,7 +22,7 @@ bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 ///
 /// AI 메시지처럼 보이는 자연스러운 광고 형태
 /// eCPM: $3~15 (Inline Banner보다 높음)
-class NativeAdWidget extends StatefulWidget {
+class NativeAdWidget extends ConsumerStatefulWidget {
   /// 위젯 인덱스 (고유 키용)
   final int index;
 
@@ -29,10 +32,10 @@ class NativeAdWidget extends StatefulWidget {
   });
 
   @override
-  State<NativeAdWidget> createState() => _NativeAdWidgetState();
+  ConsumerState<NativeAdWidget> createState() => _NativeAdWidgetState();
 }
 
-class _NativeAdWidgetState extends State<NativeAdWidget> {
+class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
 
@@ -46,6 +49,13 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   void _loadAd() {
     if (!_isMobile) return;
+
+    // 프리미엄 유저는 광고 로드 자체를 스킵
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return;
 
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
@@ -131,6 +141,13 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 프리미엄 유저는 네이티브 광고 숨김
+    final purchaseState = ref.watch(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return const SizedBox.shrink();
+
     if (!_isLoaded || _nativeAd == null) {
       // 로딩 중 placeholder
       return _buildPlaceholder(context);
@@ -271,7 +288,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 /// 컴팩트 Native 광고 (Small 템플릿)
 ///
 /// 더 작은 공간에 표시되는 네이티브 광고
-class CompactNativeAdWidget extends StatefulWidget {
+class CompactNativeAdWidget extends ConsumerStatefulWidget {
   final int index;
 
   const CompactNativeAdWidget({
@@ -280,10 +297,10 @@ class CompactNativeAdWidget extends StatefulWidget {
   });
 
   @override
-  State<CompactNativeAdWidget> createState() => _CompactNativeAdWidgetState();
+  ConsumerState<CompactNativeAdWidget> createState() => _CompactNativeAdWidgetState();
 }
 
-class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
+class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
 
@@ -297,6 +314,13 @@ class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
 
   void _loadAd() {
     if (!_isMobile) return;
+
+    // 프리미엄 유저는 광고 로드 자체를 스킵
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return;
 
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
@@ -367,6 +391,13 @@ class _CompactNativeAdWidgetState extends State<CompactNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 프리미엄 유저는 컴팩트 네이티브 광고 숨김
+    final purchaseState = ref.watch(purchaseNotifierProvider);
+    final isPremium = purchaseState.valueOrNull?.entitlements
+            .all[PurchaseConfig.entitlementPremium]?.isActive ==
+        true;
+    if (isPremium) return const SizedBox.shrink();
+
     if (!_isLoaded || _nativeAd == null) {
       return const SizedBox(height: 80);
     }

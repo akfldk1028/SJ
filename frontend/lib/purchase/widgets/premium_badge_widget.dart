@@ -7,7 +7,7 @@ import '../providers/purchase_provider.dart';
 /// 프리미엄 뱃지
 ///
 /// 사용자의 구매 상태에 따라 뱃지 표시
-/// - 프리미엄: 보라색 PRO 뱃지
+/// - 프리미엄: 그라데이션 PRO 뱃지 + 아이콘
 /// - 무료: 표시 안 함
 class PremiumBadgeWidget extends ConsumerWidget {
   const PremiumBadgeWidget({super.key});
@@ -23,7 +23,11 @@ class PremiumBadgeWidget extends ConsumerWidget {
         final isPremium = info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true;
 
         if (isPremium) {
-          return const BadgeLabel(label: 'PRO', color: Color(0xFF8B7FFF));
+          return const BadgeLabel(
+            label: 'PRO',
+            icon: Icons.workspace_premium,
+            gradientColors: [Color(0xFF7C4DFF), Color(0xFFD4AF37)],
+          );
         }
 
         return const SizedBox.shrink();
@@ -34,26 +38,59 @@ class PremiumBadgeWidget extends ConsumerWidget {
 
 class BadgeLabel extends StatelessWidget {
   final String label;
-  final Color color;
+  final Color? color;
+  final IconData? icon;
+  final List<Color>? gradientColors;
 
-  const BadgeLabel({super.key, required this.label, required this.color});
+  const BadgeLabel({
+    super.key,
+    required this.label,
+    this.color,
+    this.icon,
+    this.gradientColors,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final baseColor = color ?? const Color(0xFF8B7FFF);
+    final hasGradient = gradientColors != null && gradientColors!.length >= 2;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+        gradient: hasGradient
+            ? LinearGradient(
+                colors: gradientColors!.map((c) => c.withValues(alpha: 0.25)).toList(),
+              )
+            : null,
+        color: hasGradient ? null : baseColor.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasGradient
+              ? gradientColors!.first.withValues(alpha: 0.5)
+              : baseColor.withValues(alpha: 0.5),
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 12,
+              color: hasGradient ? gradientColors!.first : baseColor,
+            ),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: hasGradient ? gradientColors!.first : baseColor,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
