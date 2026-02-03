@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/services/error_logging_service.dart';
 import '../data/mutations/purchase_mutations.dart';
 import '../purchase_config.dart';
 
@@ -20,17 +21,24 @@ class PurchaseNotifier extends _$PurchaseNotifier {
 
   @override
   Future<CustomerInfo> build() async {
-    final info = await Purchases.getCustomerInfo();
-    if (kDebugMode) {
-      print('[PurchaseNotifier] build() 초기 로드');
-      print('[PurchaseNotifier] entitlements: ${info.entitlements.all.keys.toList()}');
-      for (final entry in info.entitlements.all.entries) {
-        print('[PurchaseNotifier] "${entry.key}": isActive=${entry.value.isActive}');
+    try {
+      final info = await Purchases.getCustomerInfo();
+      if (kDebugMode) {
+        print('[PurchaseNotifier] build() 초기 로드');
+        print('[PurchaseNotifier] entitlements: ${info.entitlements.all.keys.toList()}');
+        for (final entry in info.entitlements.all.entries) {
+          print('[PurchaseNotifier] "${entry.key}": isActive=${entry.value.isActive}');
+        }
+        print('[PurchaseNotifier] activeSubscriptions: ${info.activeSubscriptions}');
+        print('[PurchaseNotifier] allPurchasedProductIds: ${info.allPurchasedProductIdentifiers}');
       }
-      print('[PurchaseNotifier] activeSubscriptions: ${info.activeSubscriptions}');
-      print('[PurchaseNotifier] allPurchasedProductIds: ${info.allPurchasedProductIdentifiers}');
+      return info;
+    } catch (e) {
+      if (kDebugMode) {
+        print('[PurchaseNotifier] build() 실패: $e');
+      }
+      rethrow; // AsyncError 상태로 전환
     }
-    return info;
   }
 
   // ── Entitlement 체크 ──
@@ -124,28 +132,65 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       state = AsyncData(info);
       await PurchaseMutations.recordPurchase(info);
 
-      // 구매 직후 entitlement가 반영 안 된 경우 재시도
+      // 구매 직후 entitlement가 반영 안 된 경우 재시도 (최대 3회)
       if (info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive != true) {
-        if (kDebugMode) {
-          print('[PurchaseNotifier] entitlement 미반영 → 1초 후 재조회...');
-        }
-        await Future.delayed(const Duration(seconds: 1));
-        final refreshed = await Purchases.getCustomerInfo();
-        if (kDebugMode) {
-          print('[PurchaseNotifier] 재조회 entitlements: ${refreshed.entitlements.all.keys.toList()}');
-          for (final entry in refreshed.entitlements.all.entries) {
-            print('[PurchaseNotifier] 재조회 "${entry.key}": isActive=${entry.value.isActive}');
+        CustomerInfo? latestInfo;
+        for (int i = 1; i <= 3; i++) {
+          if (kDebugMode) {
+            print('[PurchaseNotifier] entitlement 미반영 → ${i}초 후 재조회 ($i/3)...');
           }
-          print('[PurchaseNotifier] 재조회 isPremium: ${refreshed.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true}');
+          await Future.delayed(Duration(seconds: i));
+          latestInfo = await Purchases.getCustomerInfo();
+
+          if (latestInfo.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true) {
+            if (kDebugMode) {
+              print('[PurchaseNotifier] 재조회 성공! entitlement 반영됨');
+            }
+            break;
+          }
         }
-        state = AsyncData(refreshed);
+
+        if (latestInfo != null) {
+          state = AsyncData(latestInfo);
+
+          // 3회 재시도 후에도 entitlement 미반영이면 구매 상품 ID로 강제 처리
+          if (latestInfo.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive != true) {
+            final purchasedIds = latestInfo.allPurchasedProductIdentifiers;
+            final hasPurchasedProduct = purchasedIds.contains(PurchaseConfig.productDayPass) ||
+                purchasedIds.contains(PurchaseConfig.productWeekPass) ||
+                purchasedIds.contains(PurchaseConfig.productMonthly);
+
+            if (hasPurchasedProduct) {
+              if (kDebugMode) {
+                print('[PurchaseNotifier] entitlement 미반영이지만 구매 상품 확인됨 → 강제 프리미엄');
+              }
+              _forcePremium = true;
+            }
+          }
+        }
       }
-    } on PlatformException catch (e) {
+    } on PlatformException catch (e, st) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (kDebugMode) {
         print('[PurchaseNotifier] PlatformException: $e');
         print('[PurchaseNotifier] errorCode: $errorCode');
       }
+
+      // Supabase 에러 로깅 (취소 제외)
+      if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
+        ErrorLoggingService.logError(
+          operation: 'purchase_package',
+          errorMessage: e.toString(),
+          errorType: 'purchase',
+          errorCode: errorCode.name,
+          sourceFile: 'purchase_provider.dart',
+          extraData: {
+            'package_id': package.identifier,
+            'product_id': package.storeProduct.identifier,
+          },
+        );
+      }
+
       if (errorCode == PurchasesErrorCode.productAlreadyPurchasedError) {
         // 이미 구매한 상품 → Google Play가 확인함 → 프리미엄 강제 적용
         if (kDebugMode) {
@@ -170,6 +215,19 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         print('[PurchaseNotifier] 예상치 못한 에러: $e');
         print('[PurchaseNotifier] stackTrace: $st');
       }
+
+      // Supabase 에러 로깅
+      ErrorLoggingService.logError(
+        operation: 'purchase_package',
+        errorMessage: e.toString(),
+        errorType: 'purchase_unknown',
+        sourceFile: 'purchase_provider.dart',
+        stackTrace: st.toString(),
+        extraData: {
+          'package_id': package.identifier,
+        },
+      );
+
       state = AsyncError(e, st);
     }
   }
@@ -189,17 +247,39 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       if (kDebugMode) {
         print('[PurchaseNotifier] 구매 복원 실패: $e');
       }
+
+      // Supabase 에러 로깅
+      ErrorLoggingService.logError(
+        operation: 'restore_purchase',
+        errorMessage: e.toString(),
+        errorType: 'purchase_restore',
+        sourceFile: 'purchase_provider.dart',
+        stackTrace: st.toString(),
+      );
     }
   }
 
-  /// 상태 새로고침
+  /// 상태 새로고침 (이전 상태 유지하며 백그라운드 갱신)
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    // 이전 상태 보존 (깜빡임 방지)
+    final previousValue = state.valueOrNull;
+
     try {
       final info = await Purchases.getCustomerInfo();
       state = AsyncData(info);
+      if (kDebugMode) {
+        print('[PurchaseNotifier] refresh() 완료');
+      }
     } catch (e, st) {
-      state = AsyncError(e, st);
+      if (kDebugMode) {
+        print('[PurchaseNotifier] refresh() 실패: $e');
+      }
+      // 에러 시 이전 상태가 있으면 유지, 없으면 에러 상태
+      if (previousValue != null) {
+        state = AsyncData(previousValue);
+      } else {
+        state = AsyncError(e, st);
+      }
     }
   }
 }

@@ -912,9 +912,33 @@ class SajuAnalysisRepository {
 
   /// 한글(한자) 형식에서 한글만 추출
   /// 예: "갑(甲)" → "갑", "자(子)" → "자"
+  /// Phase 61: "(寅)" 처럼 한글 없는 경우도 처리
   String _extractHangul(String formatted) {
+    if (formatted.isEmpty) return formatted;
+
     if (formatted.contains('(')) {
-      return formatted.substring(0, formatted.indexOf('('));
+      final idx = formatted.indexOf('(');
+      if (idx > 0) {
+        // 정상: "갑(甲)" → "갑"
+        return formatted.substring(0, idx);
+      } else {
+        // 비정상: "(甲)" → 한자에서 한글 역변환
+        final hanjaMatch = RegExp(r'\(([^)]+)\)').firstMatch(formatted);
+        if (hanjaMatch != null) {
+          final hanja = hanjaMatch.group(1)!;
+          // 천간 한자 → 한글
+          final cheonganEntry = cheonganHanja.entries
+              .where((e) => e.value == hanja)
+              .firstOrNull;
+          if (cheonganEntry != null) return cheonganEntry.key;
+          // 지지 한자 → 한글
+          final jijiEntry = jijiHanja.entries
+              .where((e) => e.value == hanja)
+              .firstOrNull;
+          if (jijiEntry != null) return jijiEntry.key;
+        }
+        return formatted; // 변환 실패시 원본 반환
+      }
     }
     return formatted;
   }

@@ -95,8 +95,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final horizontalPadding = context.horizontalPadding;
     final isSmall = context.isSmallMobile;
 
-    // 프리미엄 상태 확인
-    final isPremium = ref.watch(purchaseNotifierProvider.notifier).isPremium;
+    // 프리미엄 상태 확인 (상태 변경 감지 + 값 읽기)
+    ref.watch(purchaseNotifierProvider); // 상태 변경 시 rebuild
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),

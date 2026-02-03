@@ -940,8 +940,18 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   Widget _buildParagraph(AppThemeExtension theme, String text) {
+    // 온점 뒤에 줄바꿈 추가 (가독성 개선)
+    // 단, 숫자.숫자 패턴(예: 1.5)은 제외
+    final formattedText = text
+        .replaceAllMapped(
+          RegExp(r'\.(\s+)(?=[가-힣A-Za-z])'),
+          (m) => '.\n',
+        )
+        .replaceAll('. ', '.\n')
+        .trim();
+
     return Text(
-      text,
+      formattedText,
       style: TextStyle(
         fontSize: 15,
         color: theme.textSecondary,
@@ -1278,7 +1288,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       case '토':
         return const Color(0xFFFFB300);  // 노랑
       case '금':
-        return const Color(0xFFFFFFFF);  // 흰색/금색
+        return const Color(0xFF708090);  // 슬레이트 그레이 (은색 계열)
       case '수':
         return const Color(0xFF2196F3);  // 파랑
       default:
