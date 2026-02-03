@@ -79,15 +79,15 @@ class ProfileMutations extends BaseMutations {
         // 1. 기존 Primary 해제
         await client
             .from(profilesTable)
-            .update({ProfileColumns.isPrimary: false})
+            .update({ProfileColumns.profileType: 'other'})
             .eq(ProfileColumns.userId, userId)
-            .eq(ProfileColumns.isPrimary, true);
+            .eq(ProfileColumns.profileType, 'primary');
 
         // 2. 새 프로필 Primary 설정
         await client
             .from(profilesTable)
             .update({
-              ProfileColumns.isPrimary: true,
+              ProfileColumns.profileType: 'primary',
               ProfileColumns.updatedAt: DateTime.now().toUtc().toIso8601String(),
             })
             .eq(ProfileColumns.id, profileId);

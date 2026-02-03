@@ -84,7 +84,7 @@ async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: st
       .from("saju_profiles")
       .select("relation_type")
       .eq("user_id", userId)
-      .eq("is_primary", true)
+      .eq("profile_type", "primary")
       .single();
 
     if (error || !data) return false;
