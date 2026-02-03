@@ -1,0 +1,10 @@
+{
+  "title": "カレンダー",
+  "today": "今日",
+  "selectedDate": "選択した日付",
+  "noEvents": "予定はありません",
+  "luckyDay": "吉日",
+  "cautionDay": "注意日",
+  "monthView": "月間表示",
+  "weekView": "週間表示"
+}

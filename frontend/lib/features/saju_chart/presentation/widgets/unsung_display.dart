@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/twelve_unsung.dart';
 import '../../domain/services/unsung_service.dart';
 
@@ -65,8 +66,8 @@ class UnsungBadge extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      UnsungBadgeSize.small => 10.0,
-      UnsungBadgeSize.medium => 12.0,
+      UnsungBadgeSize.small => 12.0,
+      UnsungBadgeSize.medium => 13.0,
       UnsungBadgeSize.large => 14.0,
     };
   }
@@ -110,11 +111,13 @@ class UnsungTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         children: [
@@ -122,55 +125,55 @@ class UnsungTable extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceHover,
+              color: theme.surfaceHover,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(11),
               ),
             ),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   flex: 2,
                   child: Text(
                     '궁성',
                     style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
+                      color: theme.textMuted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   flex: 2,
                   child: Text(
                     '지지',
                     style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
+                      color: theme.textMuted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   flex: 3,
                   child: Text(
                     '12운성',
                     style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
+                      color: theme.textMuted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   flex: 2,
                   child: Text(
                     '강도',
                     style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
+                      color: theme.textMuted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -180,21 +183,21 @@ class UnsungTable extends StatelessWidget {
             ),
           ),
           // 데이터 행
-          _buildRow(context, result.yearUnsung, isLast: false),
-          _buildDivider(),
-          _buildRow(context, result.monthUnsung, isLast: false),
-          _buildDivider(),
-          _buildRow(context, result.dayUnsung, isLast: result.hourUnsung == null),
+          _buildRow(context, theme, result.yearUnsung, isLast: false),
+          _buildDivider(theme),
+          _buildRow(context, theme, result.monthUnsung, isLast: false),
+          _buildDivider(theme),
+          _buildRow(context, theme, result.dayUnsung, isLast: result.hourUnsung == null),
           if (result.hourUnsung != null) ...[
-            _buildDivider(),
-            _buildRow(context, result.hourUnsung!, isLast: true),
+            _buildDivider(theme),
+            _buildRow(context, theme, result.hourUnsung!, isLast: true),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildRow(BuildContext context, UnsungResult item, {required bool isLast}) {
+  Widget _buildRow(BuildContext context, AppThemeExtension theme, UnsungResult item, {required bool isLast}) {
     final color = _getUnsungColor(item.unsung);
 
     return Container(
@@ -211,8 +214,8 @@ class UnsungTable extends StatelessWidget {
             flex: 2,
             child: Text(
               item.pillarName,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: theme.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -226,14 +229,14 @@ class UnsungTable extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceHover,
+                  color: theme.surfaceHover,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Center(
                   child: Text(
                     item.jiji,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: theme.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -255,14 +258,14 @@ class UnsungTable extends StatelessWidget {
           // 강도 바
           Expanded(
             flex: 2,
-            child: _buildStrengthBar(item.unsung.strength, color),
+            child: _buildStrengthBar(theme, item.unsung.strength, color),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStrengthBar(int strength, Color color) {
+  Widget _buildStrengthBar(AppThemeExtension theme, int strength, Color color) {
     return Row(
       children: [
         Expanded(
@@ -270,7 +273,7 @@ class UnsungTable extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: strength / 10,
-              backgroundColor: AppColors.surfaceHover,
+              backgroundColor: theme.surfaceHover,
               valueColor: AlwaysStoppedAnimation<Color>(color),
               minHeight: 8,
             ),
@@ -281,7 +284,7 @@ class UnsungTable extends StatelessWidget {
           '$strength',
           style: TextStyle(
             color: color,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -289,10 +292,10 @@ class UnsungTable extends StatelessWidget {
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(
+  Widget _buildDivider(AppThemeExtension theme) {
+    return Divider(
       height: 1,
-      color: AppColors.border,
+      color: theme.border,
     );
   }
 
@@ -312,6 +315,7 @@ class UnsungRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final items = [
       result.hourUnsung,
       result.dayUnsung,
@@ -322,19 +326,19 @@ class UnsungRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 50,
             child: Text(
               '12운성',
               style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 10,
+                color: theme.textMuted,
+                fontSize: 13,
               ),
             ),
           ),
@@ -345,11 +349,11 @@ class UnsungRow extends StatelessWidget {
                           unsung: item.unsung,
                           size: UnsungBadgeSize.small,
                         )
-                      : const Text(
+                      : Text(
                           '-',
                           style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
+                            color: theme.textMuted,
+                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -368,15 +372,16 @@ class UnsungDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final color = _getUnsungColor(result.unsung);
     final interpretation = UnsungService.getDetailedInterpretation(result.unsung);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,7 +399,7 @@ class UnsungDetailCard extends StatelessWidget {
                   result.pillarName,
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -402,8 +407,8 @@ class UnsungDetailCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${result.jiji}(地支)',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: theme.textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -432,13 +437,13 @@ class UnsungDetailCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               interpretation,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: theme.textSecondary,
                 fontSize: 13,
                 height: 1.6,
               ),

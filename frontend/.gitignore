@@ -49,6 +49,9 @@ app.*.map.json
 .env.local
 .env.*.local
 
+# iOS 빌드 크리덴셜 (팀원에게 직접 전달)
+ios/CREDENTIALS.md
+
 # Supadart (contains API keys)
 supadart.yaml
 

@@ -54,10 +54,8 @@ class JasiService {
     }
 
     if (mode == JasiMode.yaJasi) {
-      // 야자시: 0시대는 익일 처리
-      if (hour == 0) {
-        return dateTime.add(const Duration(days: 1));
-      }
+      // 야자시: 23시대는 당일 유지, 0시대는 이미 다음 날이므로 조정 불필요
+      // (달력상 00:00은 이미 익일)
     } else {
       // 조자시: 23시대를 익일로 처리
       if (hour == 23) {

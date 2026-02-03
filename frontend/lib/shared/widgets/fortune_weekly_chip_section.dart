@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+import '../../purchase/providers/purchase_provider.dart';
 
 /// 주간 데이터 인터페이스
 class WeeklyData {
@@ -21,7 +23,7 @@ class WeeklyData {
 ///
 /// - 주차가 칩으로 표시되고 탭하면 펼쳐짐
 /// - 잠긴 주차는 광고를 봐야 해제
-class FortuneWeeklyChipSection extends StatefulWidget {
+class FortuneWeeklyChipSection extends ConsumerStatefulWidget {
   /// 운세 타입 (monthly)
   final String fortuneType;
 
@@ -39,11 +41,11 @@ class FortuneWeeklyChipSection extends StatefulWidget {
   });
 
   @override
-  State<FortuneWeeklyChipSection> createState() =>
+  ConsumerState<FortuneWeeklyChipSection> createState() =>
       _FortuneWeeklyChipSectionState();
 }
 
-class _FortuneWeeklyChipSectionState extends State<FortuneWeeklyChipSection> {
+class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSection> {
   /// 현재 펼쳐진 주차
   String? _expandedWeek;
 
@@ -313,10 +315,30 @@ class _FortuneWeeklyChipSectionState extends State<FortuneWeeklyChipSection> {
   Future<void> _showRewardedAdAndUnlock(String weekKey) async {
     if (_isLoadingAd) return;
 
-    setState(() => _isLoadingAd = true);
-
     final weekNum = weekKey.replaceAll('week', '');
     final weekName = '$weekNum주차';
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      await _unlockWeek(weekKey);
+      if (mounted) {
+        setState(() {
+          _expandedWeek = weekKey;
+        });
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$weekName 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
+
+    setState(() => _isLoadingAd = true);
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {

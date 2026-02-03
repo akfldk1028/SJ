@@ -29,6 +29,9 @@ class SewerSajuPersona extends PersonaBase {
   PersonaCategory get category => PersonaCategory.fun;
 
   @override
+  bool get isSpecialCharacter => true;
+
+  @override
   Color? get themeColor => Colors.brown; // 시궁창색
 
   @override
@@ -47,6 +50,7 @@ class SewerSajuPersona extends PersonaBase {
   @override
   List<String> get keywords => [];
 
+
   @override
   String get systemPrompt => '''
 
@@ -56,5 +60,8 @@ class SewerSajuPersona extends PersonaBase {
 다만 맹목적 비난은 안되고 팩트에 기반해야 함 인정할 건 인정하고 좋은 건 좋다고 말하되 거칠게 얘기하는거임
 할 수 있는 최대한 천하게 봐바
 다만 씨발 등의 심한 욕설은 제외해줘.
+
+## 추천 질문 스타일
+- 사용자의 약점이나 불안을 자극하는 도발적이고 냉소적인 질문을 던져라
 ''';
 }

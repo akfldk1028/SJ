@@ -7,6 +7,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/mystic_background.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../router/routes.dart';
 
 /// 설정 화면 - shadcn_ui 기반
@@ -73,6 +74,12 @@ class SettingsScreen extends ConsumerWidget {
               //     ],
               //   ),
               // ),
+
+              // 구독 관리 섹션
+              _buildSectionHeader(context, '구독 관리'),
+              const SizedBox(height: 8),
+              _buildPremiumTile(context, ref),
+              const SizedBox(height: 24),
 
               // 정보 섹션
               _buildSectionHeader(context, '정보'),
@@ -262,6 +269,67 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumTile(BuildContext context, WidgetRef ref) {
+    final appTheme = context.appTheme;
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+
+    return ShadCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () => context.push(Routes.settingsPremium),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(LucideIcons.sparkles, size: 20, color: isPremium ? Colors.amber : appTheme.textMuted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '프리미엄 이용권',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: appTheme.textPrimary,
+                  ),
+                ),
+              ),
+              if (isPremium)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '이용중',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  '구매하기',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: appTheme.textMuted,
+                  ),
+                ),
+              const SizedBox(width: 4),
+              Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: appTheme.textMuted,
+              ),
+            ],
+          ),
         ),
       ),
     );

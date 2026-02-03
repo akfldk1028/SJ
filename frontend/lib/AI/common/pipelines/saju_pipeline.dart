@@ -1,6 +1,6 @@
 import 'dart:convert';
-import '../core/ai_cache.dart';
-import '../core/ai_logger.dart';
+import '../../core/ai_cache.dart';
+import '../../core/ai_simple_logger.dart';
 import '../providers/openai/gpt_provider.dart';
 import '../providers/google/gemini_provider.dart';
 import '../providers/image/dalle_provider.dart';

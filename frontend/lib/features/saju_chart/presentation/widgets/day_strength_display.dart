@@ -53,8 +53,46 @@ class DayStrengthDisplay extends StatelessWidget {
               ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.help_outline, size: 16, color: theme.textMuted),
+        GestureDetector(
+          onTap: () => _showSectionHelp(context, title, theme),
+          child: Icon(Icons.help_outline, size: 16, color: theme.textMuted),
+        ),
       ],
+    );
+  }
+
+  void _showSectionHelp(BuildContext context, String title, AppThemeExtension theme) {
+    final descriptions = {
+      '신강/신약지수': '일간(나)의 기운이 강한지 약한지를 수치로 나타낸 것입니다. 50% 이상이면 신강(身强), 미만이면 신약(身弱)으로 판단합니다.',
+      '용신': '사주에서 부족한 기운을 보충해주는 가장 필요한 오행입니다. 용신을 알면 자신에게 유리한 방향, 색상, 직업 등을 파악할 수 있습니다.',
+      '일간 강약 분석': '일간을 도와주는 기운(인성·비겁)과 억누르는 기운(식상·재성·관성)의 비율을 분석하여 신강/신약을 판단합니다.',
+    };
+    final desc = descriptions[title] ?? '';
+    if (desc.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 24),
+            const SizedBox(width: 10),
+            Expanded(child: Text(
+              '$title이란?',
+              style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+            )),
+          ],
+        ),
+        content: Text(desc, style: TextStyle(color: theme.textSecondary, fontSize: 15, height: 1.7)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -129,7 +167,7 @@ class DayStrengthDisplay extends StatelessWidget {
           label,
           style: TextStyle(
             color: theme.textSecondary,
-            fontSize: 12,
+            fontSize: 13,
           ),
         ),
         const SizedBox(width: 4),
@@ -221,7 +259,7 @@ class DayStrengthDisplay extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 9,
+                    fontSize: 13,
                   ),
                 ),
               );
@@ -234,11 +272,11 @@ class DayStrengthDisplay extends StatelessWidget {
             children: [
               Text(
                 '(만명)',
-                style: TextStyle(color: theme.textMuted, fontSize: 10),
+                style: TextStyle(color: theme.textMuted, fontSize: 13),
               ),
               Text(
                 '점수: $score점',
-                style: TextStyle(color: theme.textSecondary, fontSize: 11),
+                style: TextStyle(color: theme.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -293,7 +331,7 @@ class DayStrengthDisplay extends StatelessWidget {
           label,
           style: TextStyle(
             color: theme?.textMuted ?? AppColors.textMuted,
-            fontSize: 11,
+            fontSize: 13,
           ),
         ),
         const SizedBox(height: 8),

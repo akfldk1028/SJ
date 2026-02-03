@@ -205,7 +205,8 @@ class PosstellerStyleTable extends StatelessWidget {
         if (r == null) return _buildEmptyCell(context);
         // 지장간 한글로 표시 (포스텔러 스타일)
         final jijangganStr = r.jijangganString;
-        return _buildTextCell(context, jijangganStr, AppColors.textSecondary);
+        final theme = context.appTheme;
+        return _buildTextCell(context, jijangganStr, theme.textSecondary);
       }).toList(),
     );
   }
@@ -296,7 +297,7 @@ class PosstellerStyleTable extends StatelessWidget {
         text,
         style: TextStyle(
           color: isHeader ? theme.textMuted : theme.textSecondary,
-          fontSize: compact ? 11 : 12,
+          fontSize: compact ? 12 : 13,
           fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
         ),
       ),
@@ -312,7 +313,7 @@ class PosstellerStyleTable extends StatelessWidget {
           text,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: compact ? 11 : 12,
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -347,7 +348,7 @@ class PosstellerStyleTable extends StatelessWidget {
               showHanja ? hangul : '$hangul($hanja)',
               style: TextStyle(
                 color: color.withOpacity(showHanja ? 0.8 : 1.0),
-                fontSize: compact ? 10 : 12,
+                fontSize: compact ? 12 : 13,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -359,7 +360,8 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 십성 셀
   Widget _buildSipsinCell(BuildContext context, String text, SipSin? sipsin) {
-    final color = sipsin != null ? _getSipsinColor(sipsin) : AppColors.textSecondary;
+    final theme = context.appTheme;
+    final color = sipsin != null ? _getSipsinColor(sipsin) : theme.textSecondary;
 
     return Expanded(
       child: Center(
@@ -377,7 +379,7 @@ class PosstellerStyleTable extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: compact ? 10 : 11,
+              fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -394,7 +396,7 @@ class PosstellerStyleTable extends StatelessWidget {
           text,
           style: TextStyle(
             color: color,
-            fontSize: compact ? 10 : 11,
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
@@ -421,7 +423,7 @@ class PosstellerStyleTable extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: compact ? 10 : 11,
+              fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -439,7 +441,7 @@ class PosstellerStyleTable extends StatelessWidget {
           '-',
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: compact ? 10 : 12,
+            fontSize: compact ? 12 : 13,
           ),
         ),
       ),

@@ -97,6 +97,8 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
         chatType: ChatType.fromString(session.chatType.name),
         title: session.title,
         targetProfileId: session.targetProfileId,
+        chatPersona: session.chatPersona?.name,
+        mbtiQuadrant: session.mbtiQuadrant?.name,
       );
 
       if (kDebugMode) {
@@ -191,15 +193,42 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
         content: message.content,
         role: message.role,
         tokensUsed: message.tokensUsed,
+        suggestedQuestions: message.suggestedQuestions,
       );
 
       if (kDebugMode) {
         final tokenInfo = message.tokensUsed != null ? ', tokens=${message.tokensUsed}' : '';
-        print('[ChatRepo] Supabase 메시지 저장 완료: ${message.role.name}$tokenInfo');
+        final suggestInfo = message.suggestedQuestions != null ? ', suggest=${message.suggestedQuestions!.length}개' : '';
+        print('[ChatRepo] Supabase 메시지 저장 완료: ${message.role.name}$tokenInfo$suggestInfo');
       }
+
+      // 세션 persona가 NULL인 경우 보정 (기존 세션 호환)
+      _syncSessionPersonaIfMissing(message.sessionId);
     } catch (e) {
       if (kDebugMode) {
         print('[ChatRepo] Supabase 메시지 저장 실패 (로컬은 저장됨): $e');
+      }
+    }
+  }
+
+  /// Supabase 세션에 persona가 없으면 로컬 값으로 보정
+  Future<void> _syncSessionPersonaIfMissing(String sessionId) async {
+    try {
+      final localSession = await _localDatasource.getSessionById(sessionId);
+      if (localSession == null || localSession.chatPersona == null) return;
+
+      await _supabaseRepository.updateSessionPersona(
+        sessionId,
+        chatPersona: localSession.chatPersona!,
+        mbtiQuadrant: localSession.mbtiQuadrant,
+      );
+
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase 세션 persona 보정: ${localSession.chatPersona}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[ChatRepo] Supabase persona 보정 실패 (무시): $e');
       }
     }
   }

@@ -93,6 +93,10 @@ class CompatibilityAnalysisResult {
 class CompatibilityAnalysisService {
   final SupabaseClient _client = Supabase.instance.client;
 
+  /// 현재 궁합 계산 모델 버전
+  /// 점수 로직 변경 시 버전을 올리면 기존 캐시가 자동 무효화되어 재계산됨
+  static const _currentModelVersion = 'compatibility_calculator_v9_samhyungsal_buff';
+
   /// 궁합 분석 실행 (캐시 확인 → 없으면 새로 분석)
   ///
   /// ## 파라미터
@@ -117,22 +121,15 @@ class CompatibilityAnalysisService {
       print('  - relation: $relationType');
 
       // 1. 캐시 확인 (forceRefresh가 아닌 경우)
+      // 궁합 점수는 순서 무관 (대칭적) → swapped여도 캐시 사용
       if (!forceRefresh) {
         final cached = await _getCachedAnalysis(fromProfileId, toProfileId);
         if (cached != null) {
-          // Phase 53: 순서가 바뀐 경우 캐시 무효화하고 새로 분석
-          // target_* 필드들이 현재 "나"의 사주를 가리키게 되어 잘못된 분석이 됨
-          final isSwapped = cached['_isSwapped'] as bool? ?? false;
-          if (isSwapped) {
-            print('[CompatibilityService] ⚠️ 순서가 바뀐 캐시 - 새로 분석 진행');
-            // 캐시 무시하고 아래에서 새로 분석
-          } else {
-            print('[CompatibilityService] ✅ 캐시된 분석 사용: ${cached['id']}');
-            return CompatibilityAnalysisResult.cached(
-              analysisId: cached['id'],
-              data: cached,
-            );
-          }
+          print('[CompatibilityService] ✅ 캐시된 분석 사용: ${cached['id']}');
+          return CompatibilityAnalysisResult.cached(
+            analysisId: cached['id'],
+            data: cached,
+          );
         }
       }
 
@@ -239,6 +236,21 @@ class CompatibilityAnalysisService {
           .maybeSingle();
 
       if (response == null) return null;
+
+      // 버전 체크: 구버전 분석은 캐시 무효화 → 자동 재계산
+      final modelName = response['model_name'] as String?;
+      if (modelName != _currentModelVersion) {
+        print('[CompatibilityService] ♻️ 구버전 분석 감지 ($modelName) → 재계산');
+        try {
+          await _client
+              .from('compatibility_analyses')
+              .delete()
+              .eq('id', response['id']);
+        } catch (e) {
+          print('[CompatibilityService] 구버전 삭제 오류: $e');
+        }
+        return null; // null 반환 → 새로 계산
+      }
 
       // Phase 53: 순서 확인 - profile1_id가 fromProfileId와 일치하는지
       final isSwapped = response['profile1_id'] != fromProfileId;
@@ -356,7 +368,7 @@ class CompatibilityAnalysisService {
       'challenges': calculationResult.challenges,
       'advice': null, // v4.0: 조언은 채팅에서 생성
       'model_provider': 'dart', // v4.0: Dart 계산
-      'model_name': 'compatibility_calculator_v5',
+      'model_name': _currentModelVersion,
       'tokens_used': 0, // Dart 계산은 토큰 사용 없음
       'processing_time_ms': processingTimeMs,
       // 인연 사주 개별 필드
@@ -397,30 +409,42 @@ class CompatibilityAnalysisService {
     return ganToOheng[korean];
   }
 
-  /// profile_relations 업데이트
+  /// profile_relations 양방향 업데이트
   ///
-  /// Phase 51: pair_hapchung도 함께 저장
+  /// 궁합은 양방향 동일하므로 A→B, B→A 모두 업데이트
   Future<void> _updateProfileRelation({
     required String fromProfileId,
     required String toProfileId,
     required String analysisId,
     Map<String, dynamic>? pairHapchung,
   }) async {
+    final updateData = {
+      'compatibility_analysis_id': analysisId,
+      'analysis_status': 'completed',
+      'analysis_completed_at': DateTime.now().toIso8601String(),
+      if (pairHapchung != null) 'pair_hapchung': pairHapchung,
+    };
+
+    // 정방향: from → to
     try {
       await _client
           .from('profile_relations')
-          .update({
-            'compatibility_analysis_id': analysisId,
-            'analysis_status': 'completed',
-            'analysis_completed_at': DateTime.now().toIso8601String(),
-            // Phase 51: 두 사람 간 합충형해파 저장
-            if (pairHapchung != null) 'pair_hapchung': pairHapchung,
-          })
+          .update(updateData)
           .eq('from_profile_id', fromProfileId)
           .eq('to_profile_id', toProfileId);
     } catch (e) {
-      print('[CompatibilityService] profile_relations 업데이트 오류: $e');
-      // 에러가 나도 분석 결과는 저장되었으므로 무시
+      print('[CompatibilityService] profile_relations 정방향 업데이트 오류: $e');
+    }
+
+    // 역방향: to → from (같은 점수 적용)
+    try {
+      await _client
+          .from('profile_relations')
+          .update(updateData)
+          .eq('from_profile_id', toProfileId)
+          .eq('to_profile_id', fromProfileId);
+    } catch (e) {
+      // 역방향 relation이 없을 수 있음 (정상)
     }
   }
 

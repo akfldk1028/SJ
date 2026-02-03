@@ -113,6 +113,82 @@ class CurrentSajuAnalysis extends _$CurrentSajuAnalysis {
   }
 }
 
+/// 특정 프로필의 사주 분석 Provider (profileId 기반)
+///
+/// 관계도에서 다른 사람의 사주 상세를 볼 때 사용
+@riverpod
+Future<SajuAnalysis?> sajuAnalysisForProfile(Ref ref, String profileId) async {
+  final profiles = await ref.watch(allProfilesProvider.future);
+  final profile = profiles.where((p) => p.id == profileId).firstOrNull;
+  if (profile == null) return null;
+
+  final calcService = ref.read(sajuCalculationServiceProvider);
+  final analysisService = ref.read(sajuAnalysisServiceProvider);
+
+  // 출생시간 계산
+  DateTime birthDateTime;
+  if (profile.birthTimeUnknown || profile.birthTimeMinutes == null) {
+    birthDateTime = DateTime(
+      profile.birthDate.year, profile.birthDate.month, profile.birthDate.day, 12, 0,
+    );
+  } else {
+    final hours = profile.birthTimeMinutes! ~/ 60;
+    final minutes = profile.birthTimeMinutes! % 60;
+    birthDateTime = DateTime(
+      profile.birthDate.year, profile.birthDate.month, profile.birthDate.day, hours, minutes,
+    );
+  }
+
+  final chart = calcService.calculate(
+    birthDateTime: birthDateTime,
+    birthCity: profile.birthCity,
+    isLunarCalendar: profile.isLunar,
+    isLeapMonth: profile.isLeapMonth,
+    birthTimeUnknown: profile.birthTimeUnknown,
+    jasiMode: profile.useYaJasi ? JasiMode.yaJasi : JasiMode.joJasi,
+  );
+
+  final gender = profile.gender.name == 'male' ? Gender.male : Gender.female;
+
+  return analysisService.analyze(
+    chart: chart,
+    gender: gender,
+    currentYear: DateTime.now().year,
+  );
+}
+
+/// 특정 프로필의 사주차트 Provider (profileId 기반)
+@riverpod
+Future<SajuChart?> sajuChartForProfile(Ref ref, String profileId) async {
+  final profiles = await ref.watch(allProfilesProvider.future);
+  final profile = profiles.where((p) => p.id == profileId).firstOrNull;
+  if (profile == null) return null;
+
+  final calcService = ref.read(sajuCalculationServiceProvider);
+
+  DateTime birthDateTime;
+  if (profile.birthTimeUnknown || profile.birthTimeMinutes == null) {
+    birthDateTime = DateTime(
+      profile.birthDate.year, profile.birthDate.month, profile.birthDate.day, 12, 0,
+    );
+  } else {
+    final hours = profile.birthTimeMinutes! ~/ 60;
+    final minutes = profile.birthTimeMinutes! % 60;
+    birthDateTime = DateTime(
+      profile.birthDate.year, profile.birthDate.month, profile.birthDate.day, hours, minutes,
+    );
+  }
+
+  return calcService.calculate(
+    birthDateTime: birthDateTime,
+    birthCity: profile.birthCity,
+    isLunarCalendar: profile.isLunar,
+    isLeapMonth: profile.isLeapMonth,
+    birthTimeUnknown: profile.birthTimeUnknown,
+    jasiMode: profile.useYaJasi ? JasiMode.yaJasi : JasiMode.joJasi,
+  );
+}
+
 /// 사주차트 화면 상태
 class SajuChartScreenState {
   final bool isLoading;

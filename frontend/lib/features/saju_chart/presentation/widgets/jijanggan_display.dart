@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../domain/services/jijanggan_service.dart';
 import 'sipsung_display.dart';
@@ -25,15 +26,16 @@ class JiJangGanDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final padding = _getPadding();
     final fontSize = _getFontSize();
 
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -42,7 +44,7 @@ class JiJangGanDisplay extends StatelessWidget {
           Text(
             result.jiji,
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: theme.textMuted,
               fontSize: fontSize * 0.8,
             ),
           ),
@@ -50,13 +52,13 @@ class JiJangGanDisplay extends StatelessWidget {
           // 지장간 목록 (여기 → 중기 → 정기 순)
           ...result.jijangganList
               .where((jjg) => jjg.type == JiJangGanType.yeoGi)
-              .map((jjg) => _buildJiJangGanItem(context, jjg, fontSize)),
+              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize)),
           ...result.jijangganList
               .where((jjg) => jjg.type == JiJangGanType.jungGi)
-              .map((jjg) => _buildJiJangGanItem(context, jjg, fontSize)),
+              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize)),
           ...result.jijangganList
               .where((jjg) => jjg.type == JiJangGanType.jeongGi)
-              .map((jjg) => _buildJiJangGanItem(context, jjg, fontSize)),
+              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize)),
         ],
       ),
     );
@@ -64,10 +66,11 @@ class JiJangGanDisplay extends StatelessWidget {
 
   Widget _buildJiJangGanItem(
     BuildContext context,
+    AppThemeExtension theme,
     JiJangGanSipSin jjg,
     double fontSize,
   ) {
-    final color = _getOhengColor(jjg.oheng);
+    final color = _getOhengColor(jjg.oheng, theme);
     final typeLabel = jjg.type.korean.substring(0, 1); // 여/중/정
 
     return Padding(
@@ -80,15 +83,15 @@ class JiJangGanDisplay extends StatelessWidget {
             width: 16,
             height: 16,
             decoration: BoxDecoration(
-              color: AppColors.surfaceHover,
+              color: theme.surfaceHover,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Center(
               child: Text(
                 typeLabel,
                 style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 9,
+                  color: theme.textMuted,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -118,7 +121,7 @@ class JiJangGanDisplay extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      JiJangGanSize.small => 12.0,
+      JiJangGanSize.small => 13.0,
       JiJangGanSize.medium => 16.0,
       JiJangGanSize.large => 20.0,
     };
@@ -132,14 +135,14 @@ class JiJangGanDisplay extends StatelessWidget {
     };
   }
 
-  Color _getOhengColor(String oheng) {
+  Color _getOhengColor(String oheng, AppThemeExtension theme) {
     return switch (oheng) {
       '목' => AppColors.wood,
       '화' => AppColors.fire,
       '토' => AppColors.earth,
       '금' => AppColors.metal,
       '수' => AppColors.water,
-      _ => AppColors.textSecondary,
+      _ => theme.textSecondary,
     };
   }
 }
@@ -164,6 +167,7 @@ class JiJangGanRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final results = [
       analysis.hourResult,
       analysis.dayResult,
@@ -178,8 +182,8 @@ class JiJangGanRow extends StatelessWidget {
           child: Text(
             '지장간',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textMuted,
-                  fontSize: 10,
+                  color: theme.textMuted,
+                  fontSize: 13,
                 ),
           ),
         ),
@@ -190,8 +194,8 @@ class JiJangGanRow extends StatelessWidget {
                 child: Text(
                   '-',
                   style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
+                    color: theme.textMuted,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -205,8 +209,8 @@ class JiJangGanRow extends StatelessWidget {
                 child: Text(
                   result.jijangganHanjaString,
                   style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
+                    color: theme.textSecondary,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -245,12 +249,14 @@ class JiJangGanDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: theme.surfaceElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +275,7 @@ class JiJangGanDetailCard extends StatelessWidget {
                   result.pillarName,
                   style: TextStyle(
                     color: AppColors.accent,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -278,21 +284,21 @@ class JiJangGanDetailCard extends StatelessWidget {
               Text(
                 '${result.jiji}(地支) 지장간',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: theme.textSecondary,
                     ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           // 지장간 상세
-          ...result.jijangganList.map((jjg) => _buildDetailItem(context, jjg)),
+          ...result.jijangganList.map((jjg) => _buildDetailItem(context, theme, jjg)),
         ],
       ),
     );
   }
 
-  Widget _buildDetailItem(BuildContext context, JiJangGanSipSin jjg) {
-    final color = _getOhengColor(jjg.oheng);
+  Widget _buildDetailItem(BuildContext context, AppThemeExtension theme, JiJangGanSipSin jjg) {
+    final color = _getOhengColor(jjg.oheng, theme);
     final strengthPercent = (jjg.strength / 30 * 100).round(); // 30일 기준
 
     return Padding(
@@ -304,14 +310,14 @@ class JiJangGanDetailCard extends StatelessWidget {
             width: 40,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.surfaceHover,
+              color: theme.surfaceHover,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               jjg.type.korean,
               style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 10,
+                color: theme.textMuted,
+                fontSize: 13,
               ),
               textAlign: TextAlign.center,
             ),
@@ -345,7 +351,7 @@ class JiJangGanDetailCard extends StatelessWidget {
               Text(
                 jjg.gan,
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -362,7 +368,7 @@ class JiJangGanDetailCard extends StatelessWidget {
                       jjg.oheng,
                       style: TextStyle(
                         color: color,
-                        fontSize: 9,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -371,8 +377,8 @@ class JiJangGanDetailCard extends StatelessWidget {
                   Text(
                     '${jjg.strength}일 ($strengthPercent%)',
                     style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 10,
+                      color: theme.textMuted,
+                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -390,14 +396,14 @@ class JiJangGanDetailCard extends StatelessWidget {
     );
   }
 
-  Color _getOhengColor(String oheng) {
+  Color _getOhengColor(String oheng, AppThemeExtension theme) {
     return switch (oheng) {
       '목' => AppColors.wood,
       '화' => AppColors.fire,
       '토' => AppColors.earth,
       '금' => AppColors.metal,
       '수' => AppColors.water,
-      _ => AppColors.textSecondary,
+      _ => theme.textSecondary,
     };
   }
 }

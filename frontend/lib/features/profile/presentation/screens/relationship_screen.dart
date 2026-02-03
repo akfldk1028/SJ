@@ -387,9 +387,9 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
           relation: relation,
           onChatPressed: () {
             Navigator.pop(sheetContext);
-            // 상대방 프로필 기준 채팅 화면으로 이동
+            // 궁합 채팅으로 이동 (autoMention으로 자동 멘션)
             parentContext.push(
-              '${Routes.sajuChat}?profileId=${relation.toProfileId}',
+              '${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}&autoMention=true',
             );
           },
           onEditPressed: null,  // 수정 기능 비활성화
@@ -597,26 +597,38 @@ class _RelationQuickViewSheet extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 24),
-            // 액션 버튼 - 사주 상담만 표시
+            // 액션 버튼 - 사주 상담 (shadcn_ui)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
+                child: ShadButton(
                   onPressed: onChatPressed,
-                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: const Text('사주 상담'),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline, size: 16),
+                      SizedBox(width: 8),
+                      Text('사주 상담'),
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 12),
             // 삭제 버튼
-            TextButton.icon(
+            ShadButton.ghost(
               onPressed: onDeletePressed,
-              icon: Icon(Icons.delete_outline, size: 18, color: Colors.red[400]),
-              label: Text(
-                '관계 삭제',
-                style: TextStyle(color: Colors.red[400]),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.delete_outline, size: 16, color: Colors.red[400]),
+                  const SizedBox(width: 8),
+                  Text(
+                    '관계 삭제',
+                    style: TextStyle(color: Colors.red[400]),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),

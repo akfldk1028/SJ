@@ -30,7 +30,10 @@ class Yearly2026Queries {
   ///
   /// [profileId] 프로필 UUID
   /// 반환: 캐시된 데이터 또는 null
-  Future<Map<String, dynamic>?> getCached(String profileId) async {
+  Future<Map<String, dynamic>?> getCached(
+    String profileId, {
+    bool includeStale = false,
+  }) async {
     try {
       // target_year 필드로 직접 필터링
       final response = await _supabase
@@ -50,15 +53,17 @@ class Yearly2026Queries {
       if (expiresAt != null) {
         final expiry = DateTime.parse(expiresAt);
         if (KoreaDateUtils.nowKorea().isAfter(expiry)) {
-          // 만료됨 - null 반환
           return null;
         }
       }
 
-      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      // 프롬프트 버전 체크
       final cachedVersion = response['prompt_version'];
       if (cachedVersion != kYearly2026FortunePromptVersion) {
-        print('[Yearly2026Queries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kYearly2026FortunePromptVersion');
+        if (includeStale) {
+          print('[Yearly2026Queries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kYearly2026FortunePromptVersion → stale 데이터 반환');
+          return {...response, '_isStale': true};
+        }
         return null;
       }
 

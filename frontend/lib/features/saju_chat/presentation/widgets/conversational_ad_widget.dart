@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/conversational_ad_model.dart';
+import '../../data/services/ad_trigger_service.dart';
 import '../../domain/models/ai_persona.dart';
 import '../providers/conversational_ad_provider.dart';
 import '../providers/chat_provider.dart';
@@ -55,26 +56,48 @@ class ConversationalAdWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    // 보상형 광고: tokenDepleted (필수) + tokenNearLimit (스킵 가능)
+    // 네이티브 광고: intervalAd (클릭 시 토큰)
+    // 네이티브 선택: tokenDepleted에서 "광고 보고 3번 대화" 선택 시
+    final isTokenDepleted = adState.adType == AdMessageType.tokenDepleted;
+    final isRewardedAd = isTokenDepleted ||
+        adState.adType == AdMessageType.tokenNearLimit;
+    final isRequired = isTokenDepleted;
+
+    // 참고: tokenDepleted에서 유저가 "네이티브 광고" 선택 시
+    // _handleNativeAdPressed()에서 adType을 inlineInterval로 전환
+    // → isRewardedAd = false로 변경되어 네이티브 광고 위젯이 표시됨
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // 1. 페르소나 전환 메시지
-        if (adState.transitionText != null)
+        if (adState.transitionText != null && !adState.adWatched)
           AdTransitionBubble(
-            message: _createAdMessage(adState),
+            message: isRequired
+                ? _createTokenDepletedMessage(adState) // 2버튼용 CTA 텍스트
+                : isRewardedAd
+                    ? _createAdMessage(adState)
+                    : _createAdMessageWithoutCta(adState),
             personaEmoji: persona.emoji,
             personaName: persona.displayName,
-            onCtaPressed: () => _handleCtaPressed(ref),
-            onSkipPressed: adState.adType != AdMessageType.tokenDepleted
-                ? () => _handleSkip(ref)
+            onCtaPressed: isRewardedAd
+                ? isRequired
+                    ? () => _handleVideoAdPressed(ref)
+                    : () => _handleRewardedCtaPressed(ref)
                 : null,
+            onSkipPressed: !isRequired ? () => _handleSkip(ref) : null,
+            // 토큰 소진 시 2가지 선택지 (영상 vs 네이티브)
+            secondaryCtaText: isRequired ? '📋 광고 보고 3번 대화' : null,
+            onSecondaryCtaPressed: isRequired ? () => _handleNativeAdPressed(ref) : null,
           ),
 
         const SizedBox(height: 8),
 
-        // 2. 네이티브 광고 (로드 완료 시)
-        if (adState.loadState == AdLoadState.loaded ||
-            adState.loadState == AdLoadState.loading)
+        // 3. 네이티브 광고 (인터벌 또는 tokenDepleted→네이티브 선택 후)
+        if (!isRewardedAd &&
+            (adState.loadState == AdLoadState.loaded ||
+                adState.loadState == AdLoadState.loading))
           AdNativeBubble(
             nativeAd: ref.read(conversationalAdNotifierProvider.notifier).nativeAd,
             loadState: adState.loadState,
@@ -82,7 +105,7 @@ class ConversationalAdWidget extends ConsumerWidget {
             personaEmoji: '📢',
           ),
 
-        // 3. 광고 시청 완료 시 대화 재개 버튼
+        // 4. 광고 시청 완료 시 대화 재개 버튼
         if (adState.adWatched) ...[
           const SizedBox(height: 12),
           _buildResumeButton(context, ref),
@@ -106,21 +129,78 @@ class ConversationalAdWidget extends ConsumerWidget {
     );
   }
 
-  /// CTA 버튼 클릭 처리
-  void _handleCtaPressed(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    final adState = ref.read(conversationalAdNotifierProvider);
+  /// Native 광고용 메시지 (CTA 텍스트를 전환 문구에 합침)
+  ///
+  /// CTA 버튼 대신 전환 메시지 안에 "광고를 누르시면..." 안내를 포함
+  /// → 유저가 네이티브 광고 자체를 클릭하도록 유도
+  AdChatMessage _createAdMessageWithoutCta(ConversationalAdModel adState) {
+    final combinedText = [
+      adState.transitionText ?? '',
+      if (adState.ctaText != null && adState.ctaText!.isNotEmpty)
+        '\n${adState.ctaText}',
+    ].join();
 
-    // 토큰 소진 시 보상형 광고
-    if (adState.adType == AdMessageType.tokenDepleted) {
-      final success = await notifier.showRewardedAd();
-      if (success) {
-        notifier.onAdWatched();
-      }
-    } else {
-      // 네이티브 광고 인상 처리
+    return AdChatMessage(
+      id: 'ad_${DateTime.now().millisecondsSinceEpoch}',
+      sessionId: sessionId,
+      content: combinedText,
+      role: MessageRole.assistant,
+      createdAt: DateTime.now(),
+      adType: adState.adType ?? AdMessageType.inlineInterval,
+      transitionText: combinedText,
+      ctaText: null, // CTA 버튼 표시하지 않음
+      rewardTokens: adState.rewardedTokens,
+    );
+  }
+
+  /// 토큰 소진 시 메시지 생성 (2버튼용 CTA 텍스트)
+  AdChatMessage _createTokenDepletedMessage(ConversationalAdModel adState) {
+    return AdChatMessage(
+      id: 'ad_${DateTime.now().millisecondsSinceEpoch}',
+      sessionId: sessionId,
+      content: adState.transitionText ?? '',
+      role: MessageRole.assistant,
+      createdAt: DateTime.now(),
+      adType: AdMessageType.tokenDepleted,
+      transitionText: adState.transitionText,
+      ctaText: '🎬 영상 보고 5번 대화',
+      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+    );
+  }
+
+  /// 보상형 광고 CTA (tokenNearLimit용 - 현재 비활성화)
+  void _handleRewardedCtaPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    final success = await notifier.showRewardedAd();
+    if (success) {
       notifier.onAdWatched();
     }
+  }
+
+  /// 영상 광고 선택 (보상형 영상 → 5왕복)
+  void _handleVideoAdPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    final success = await notifier.showRewardedAd(
+      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+    );
+    if (success) {
+      notifier.onAdWatched(
+        rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+      );
+    }
+  }
+
+  /// 네이티브 광고 선택 (네이티브 광고 → 3왕복)
+  ///
+  /// adType을 inlineInterval로 전환하여 네이티브 광고 위젯이 표시되도록 함.
+  /// 토큰 지급은 광고 클릭 시 provider의 _onAdClicked()에서 처리됨.
+  void _handleNativeAdPressed(WidgetRef ref) async {
+    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
+    // adType 전환: tokenDepleted → inlineInterval (네이티브 광고 표시 활성화)
+    // rewardedTokens 설정: 클릭 시 지급될 토큰 (provider._onAdClicked에서 사용)
+    notifier.switchToNativeAd(
+      rewardTokens: AdTriggerService.depletedRewardTokensNative,
+    );
   }
 
   /// 스킵 처리
@@ -134,17 +214,23 @@ class ConversationalAdWidget extends ConsumerWidget {
   ///
   /// Rewarded 광고를 끝까지 봤을 때만 토큰 충전
   /// (adWatched: true이고 rewardedTokens가 있는 경우)
+  ///
+  /// v27: 서버 저장은 provider에서 즉시 처리됨
+  /// - Rewarded ad: trackRewarded() → rewarded_tokens_earned
+  /// - Native ad: _saveNativeBonusToServer() → native_tokens_earned
+  /// 여기서는 client-side(ConversationWindowManager) 보너스만 추가
+  /// → isRewardedAd: true로 고정하여 RPC 중복 호출 방지
   void _handleAdComplete(WidgetRef ref) {
     final adState = ref.read(conversationalAdNotifierProvider);
     final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
 
-    // Rewarded 광고를 끝까지 봤으면 토큰 충전
+    // 광고를 끝까지 봤으면 클라이언트 측 토큰 충전
     if (adState.adWatched &&
         adState.rewardedTokens != null &&
         adState.rewardedTokens! > 0) {
-      // ChatNotifier에 보너스 토큰 추가
+      // isRewardedAd: true → 서버 RPC 스킵 (provider에서 이미 저장됨)
       ref.read(chatNotifierProvider(sessionId).notifier)
-          .addBonusTokens(adState.rewardedTokens!);
+          .addBonusTokens(adState.rewardedTokens!, isRewardedAd: true);
     }
 
     adNotifier.dismissAd();

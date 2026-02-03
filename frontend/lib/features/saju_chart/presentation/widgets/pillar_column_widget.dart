@@ -118,7 +118,7 @@ class PillarColumnWidget extends StatelessWidget {
                 child: Text(
                   ganOheng,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 13,
                     color: _getOhengColor(ganOheng),
                     fontWeight: FontWeight.bold,
                   ),
@@ -171,7 +171,7 @@ class PillarColumnWidget extends StatelessWidget {
                 child: Text(
                   jiOheng,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 13,
                     color: _getOhengColor(jiOheng),
                     fontWeight: FontWeight.bold,
                   ),

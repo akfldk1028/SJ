@@ -65,6 +65,7 @@ class BaseSfPersona extends PersonaBase {
   @override
   List<String> get keywords => ['친근', '유쾌', '실용', '편안', 'SF'];
 
+
   @override
   String get systemPrompt => '''
 [Base Persona: SF 친근형 조언가]
@@ -96,5 +97,8 @@ class BaseSfPersona extends PersonaBase {
 - "쉽게 말하면~", "예를 들면~" 자주 사용
 - 실생활 상황에 대입해서 설명
 - 무겁지 않게, 재미있게 전달
+
+## 추천 질문 스타일
+- 일상에서 바로 써먹을 수 있는 가볍고 재미있는 질문을 던져라
 ''';
 }

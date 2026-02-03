@@ -9,6 +9,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'monthly_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 월별 운세 데이터 모델 (v5.0: 12개월 확장)
 ///
 /// ## v5.0 변경사항 (2026-01-24)
@@ -48,7 +55,7 @@ class MonthlyFortuneData {
     final overviewJson = currentJson['overview'] as Map<String, dynamic>? ?? json['overview'] as Map<String, dynamic>? ?? {};
 
     final overview = OverviewSection(
-      score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(overviewJson['score']),
       keyword: overviewJson['keyword'] as String? ?? '',
       // v4.0: opening, monthEnergy 등이 reading으로 통합됨
       opening: overviewJson['reading'] as String? ?? overviewJson['opening'] as String? ?? '',
@@ -64,7 +71,7 @@ class MonthlyFortuneData {
       // v4.0 구조 또는 기존 구조 모두 지원
       final catJson = categoriesJson[key] as Map<String, dynamic>? ?? json[key] as Map<String, dynamic>? ?? {};
       categories[key] = CategorySection(
-        score: (catJson['score'] as num?)?.toInt() ?? 0,
+        score: _safeInt(catJson['score']),
         title: catJson['title'] as String? ?? '',
         reading: catJson['reading'] as String? ?? '',
       );
@@ -106,8 +113,8 @@ class MonthlyFortuneData {
         (json['closing'] as Map<String, dynamic>?)?['message'] as String? ?? '';
 
     return MonthlyFortuneData(
-      year: (json['year'] as num?)?.toInt() ?? KoreaDateUtils.currentYear,
-      month: (json['currentMonth'] as num?)?.toInt() ?? (json['month'] as num?)?.toInt() ?? KoreaDateUtils.currentMonth,
+      year: _safeInt(json['year'], KoreaDateUtils.currentYear),
+      month: _safeInt(json['currentMonth'], _safeInt(json['month'], KoreaDateUtils.currentMonth)),
       monthGanji: currentJson['monthGanji'] as String? ?? json['monthGanji'] as String? ?? '',
       overview: overview,
       categories: categories,
@@ -126,7 +133,7 @@ class MonthlyFortuneData {
 
   static List<int> _parseIntList(dynamic value) {
     if (value is List) {
-      return value.map((e) => (e as num).toInt()).toList();
+      return value.map((e) => _safeInt(e)).toList();
     }
     return [];
   }
@@ -172,15 +179,19 @@ class CategorySection {
   });
 }
 
-/// 월별 요약 데이터 (v5.0: 12개월 확장 - highlights, idiom 포함)
+/// 월별 요약 데이터 (v5.3: 12개월 확장 - highlights 7개, tip, lucky 추가)
 class MonthSummary {
   final String keyword;
   final int score;
   final String reading;
-  /// v5.0: 카테고리별 하이라이트 (career, business, wealth, love)
+  /// v5.0: 카테고리별 하이라이트 (v5.3: 7개 카테고리)
   final MonthHighlights? highlights;
   /// v5.0: 사자성어
   final MonthIdiom? idiom;
+  /// v5.3: 핵심 조언
+  final String tip;
+  /// v5.3: 행운 요소
+  final MonthLucky? lucky;
 
   const MonthSummary({
     required this.keyword,
@@ -188,19 +199,25 @@ class MonthSummary {
     required this.reading,
     this.highlights,
     this.idiom,
+    this.tip = '',
+    this.lucky,
   });
 
-  /// JSON에서 파싱 (v5.0)
+  /// JSON에서 파싱 (v5.3)
   factory MonthSummary.fromJson(Map<String, dynamic> json) {
     return MonthSummary(
       keyword: json['keyword'] as String? ?? '',
-      score: (json['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(json['score']),
       reading: json['reading'] as String? ?? '',
       highlights: json['highlights'] != null
           ? MonthHighlights.fromJson(json['highlights'] as Map<String, dynamic>)
           : null,
       idiom: json['idiom'] != null
           ? MonthIdiom.fromJson(json['idiom'] as Map<String, dynamic>)
+          : null,
+      tip: json['tip'] as String? ?? '',
+      lucky: json['lucky'] != null
+          ? MonthLucky.fromJson(json['lucky'] as Map<String, dynamic>)
           : null,
     );
   }
@@ -209,34 +226,37 @@ class MonthSummary {
   bool get hasCategories => highlights != null;
 }
 
-/// v5.0: 월별 카테고리 하이라이트 (career, business, wealth, love)
+/// v5.3: 월별 카테고리 하이라이트 (7개: career, business, wealth, love, marriage, health, study)
 class MonthHighlights {
   final MonthHighlightItem? career;
   final MonthHighlightItem? business;
   final MonthHighlightItem? wealth;
   final MonthHighlightItem? love;
+  final MonthHighlightItem? marriage;
+  final MonthHighlightItem? health;
+  final MonthHighlightItem? study;
 
   const MonthHighlights({
     this.career,
     this.business,
     this.wealth,
     this.love,
+    this.marriage,
+    this.health,
+    this.study,
   });
 
   factory MonthHighlights.fromJson(Map<String, dynamic> json) {
+    MonthHighlightItem? _parse(String key) =>
+        json[key] != null ? MonthHighlightItem.fromJson(json[key] as Map<String, dynamic>) : null;
     return MonthHighlights(
-      career: json['career'] != null
-          ? MonthHighlightItem.fromJson(json['career'] as Map<String, dynamic>)
-          : null,
-      business: json['business'] != null
-          ? MonthHighlightItem.fromJson(json['business'] as Map<String, dynamic>)
-          : null,
-      wealth: json['wealth'] != null
-          ? MonthHighlightItem.fromJson(json['wealth'] as Map<String, dynamic>)
-          : null,
-      love: json['love'] != null
-          ? MonthHighlightItem.fromJson(json['love'] as Map<String, dynamic>)
-          : null,
+      career: _parse('career'),
+      business: _parse('business'),
+      wealth: _parse('wealth'),
+      love: _parse('love'),
+      marriage: _parse('marriage'),
+      health: _parse('health'),
+      study: _parse('study'),
     );
   }
 }
@@ -253,7 +273,7 @@ class MonthHighlightItem {
 
   factory MonthHighlightItem.fromJson(Map<String, dynamic> json) {
     return MonthHighlightItem(
-      score: (json['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(json['score']),
       summary: json['summary'] as String? ?? '',
     );
   }
@@ -273,6 +293,24 @@ class MonthIdiom {
     return MonthIdiom(
       phrase: json['phrase'] as String? ?? '',
       meaning: json['meaning'] as String? ?? '',
+    );
+  }
+}
+
+/// v5.3: 월별 행운 요소
+class MonthLucky {
+  final String color;
+  final int number;
+
+  const MonthLucky({
+    required this.color,
+    required this.number,
+  });
+
+  factory MonthLucky.fromJson(Map<String, dynamic> json) {
+    return MonthLucky(
+      color: json['color'] as String? ?? '',
+      number: _safeInt(json['number']),
     );
   }
 }
@@ -310,13 +348,25 @@ class MonthlyFortune extends _$MonthlyFortune {
     if (activeProfile == null) return null;
 
     final queries = MonthlyQueries(Supabase.instance.client);
-    final result = await queries.getCurrentMonth(activeProfile.id);
+    final result = await queries.getCached(
+      activeProfile.id,
+      year: KoreaDateUtils.currentYear,
+      month: KoreaDateUtils.currentMonth,
+      includeStale: true,
+    );
 
     // 캐시가 있으면 바로 반환
     if (result != null) {
       final content = result['content'];
+      final isStale = result['_isStale'] == true;
       if (content is Map<String, dynamic>) {
-        print('[MonthlyFortune] 캐시 히트 - 월운 로드');
+        if (isStale) {
+          print('[MonthlyFortune] stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
+          _triggerAnalysisIfNeeded(activeProfile.id);
+          _startStalePolling(activeProfile.id);
+        } else {
+          print('[MonthlyFortune] 캐시 히트 - 월운 로드');
+        }
         _isPolling = false;
         return MonthlyFortuneData.fromJson(content);
       }
@@ -333,33 +383,47 @@ class MonthlyFortune extends _$MonthlyFortune {
     return null;
   }
 
+  /// 폴링 시도 횟수
+  int _pollAttempts = 0;
+
+  /// 최대 폴링 횟수 (3초 × 100 = 5분)
+  static const int _maxPollAttempts = 100;
+
   /// DB 폴링 시작 (AI 분석 완료 감지)
   void _startPolling(String profileId) {
     if (_isPolling) return;
     _isPolling = true;
+    _pollAttempts = 0;
 
-    print('[MonthlyFortune] 폴링 시작 - 3초마다 DB 확인');
+    print('[MonthlyFortune] 폴링 시작 - 3초마다 DB 확인 (최대 ${_maxPollAttempts}회)');
     _pollForData(profileId);
   }
 
-  /// 주기적으로 DB 확인
+  /// 주기적으로 DB 확인 (최대 _maxPollAttempts 회)
   Future<void> _pollForData(String profileId) async {
     if (!_isPolling) return;
 
     await Future.delayed(const Duration(seconds: 3));
     if (!_isPolling) return;
 
+    _pollAttempts++;
+
     final queries = MonthlyQueries(Supabase.instance.client);
     final result = await queries.getCurrentMonth(profileId);
 
     if (result != null && result['content'] != null) {
-      print('[MonthlyFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신');
+      print('[MonthlyFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
       _isPolling = false;
       _isAnalyzing = false;
       ref.invalidateSelf();
+    } else if (_pollAttempts >= _maxPollAttempts) {
+      // 최대 횟수 초과 → 폴링 중지
+      print('[MonthlyFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 중지');
+      _isPolling = false;
+      _isAnalyzing = false;
     } else {
       // 데이터 없으면 계속 폴링
-      print('[MonthlyFortune] 폴링 중 - 데이터 아직 없음');
+      print('[MonthlyFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
       _pollForData(profileId);
     }
   }
@@ -411,9 +475,50 @@ class MonthlyFortune extends _$MonthlyFortune {
     });
   }
 
+  /// stale 데이터 폴링 (백그라운드 재생성 완료 감지)
+  bool _isStalePolling = false;
+  int _stalePollAttempts = 0;
+  static const int _maxStalePollAttempts = 60;
+
+  void _startStalePolling(String profileId) {
+    if (_isStalePolling) return;
+    _isStalePolling = true;
+    _stalePollAttempts = 0;
+    print('[MonthlyFortune] stale 폴링 시작 - 5초마다 fresh 데이터 확인');
+    _pollForFreshData(profileId);
+  }
+
+  Future<void> _pollForFreshData(String profileId) async {
+    if (!_isStalePolling) return;
+
+    await Future.delayed(const Duration(seconds: 5));
+    if (!_isStalePolling) return;
+
+    _stalePollAttempts++;
+
+    final queries = MonthlyQueries(Supabase.instance.client);
+    final result = await queries.getCached(
+      profileId,
+      year: KoreaDateUtils.currentYear,
+      month: KoreaDateUtils.currentMonth,
+    );
+
+    if (result != null && result['content'] != null) {
+      print('[MonthlyFortune] fresh 데이터 발견! UI 자동 갱신 ($_stalePollAttempts회)');
+      _isStalePolling = false;
+      ref.invalidateSelf();
+    } else if (_stalePollAttempts >= _maxStalePollAttempts) {
+      print('[MonthlyFortune] stale 폴링 타임아웃 - 중지');
+      _isStalePolling = false;
+    } else {
+      _pollForFreshData(profileId);
+    }
+  }
+
   /// 운세 새로고침 (캐시 무효화)
   Future<void> refresh() async {
     _isPolling = false;
+    _isStalePolling = false;
     _isAnalyzing = false;
     ref.invalidateSelf();
   }

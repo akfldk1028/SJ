@@ -4,6 +4,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v32 변경사항 (2026-01-30):
+ * - API Key 로드밸런싱 적용 (Round-Robin + Fallback)
+ * - OPENAI_API_KEY, OPENAI_API_KEY_2, OPENAI_API_KEY_3 순환 사용
+ * - 429 (Rate Limit) 시 자동으로 다음 키로 전환
+ * - ai_tasks에 key_index 저장 (ai-openai-result에서 같은 키 사용)
+ *
  * 평생 사주 분석 (GPT-5.2 Thinking) 전용
  * API 키는 서버에만 저장 (보안)
  *
@@ -39,7 +45,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+// v32: API Key Load Balancing (Round-Robin + Fallback)
+const API_KEYS = [
+  Deno.env.get("OPENAI_API_KEY"),
+  Deno.env.get("OPENAI_API_KEY_2"),
+  Deno.env.get("OPENAI_API_KEY_3"),
+].filter(Boolean) as string[];
+
+let keyIndex = 0;
+
+function getNextApiKey(): string {
+  if (API_KEYS.length === 0) throw new Error("No OPENAI_API_KEY configured");
+  const key = API_KEYS[keyIndex % API_KEYS.length];
+  keyIndex++;
+  return key;
+}
+
+function getApiKeyByIndex(idx: number): string {
+  if (API_KEYS.length === 0) throw new Error("No OPENAI_API_KEY configured");
+  return API_KEYS[idx % API_KEYS.length];
+}
+
+// v32.1: task_type 기반 결정적 키 분배 (서버리스 병렬 호출 대응)
+// Round-robin은 같은 인스턴스 내에서만 동작하므로,
+// task_type을 해시하여 키를 결정적으로 선택
+function getKeyIndexByTaskType(taskType: string): number {
+  let hash = 0;
+  for (let i = 0; i < taskType.length; i++) {
+    hash = ((hash << 5) - hash) + taskType.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash) % API_KEYS.length;
+}
+
 // v24: Responses API 사용 (background 모드로 Supabase 타임아웃 완전 회피)
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"; // fallback용
@@ -63,6 +101,7 @@ interface OpenAIRequest {
   response_format?: { type: "json_object" | "text" };
   user_id?: string; // Quota 체크용
   run_in_background?: boolean; // Background Task 모드 (GPT-5.2 전용)
+  task_type?: string; // v29: 병렬 실행 시 task 분리용
 }
 
 interface UsageInfo {
@@ -273,15 +312,33 @@ async function processInBackground(
       requestBody.response_format = responseFormat;
     }
 
-    // OpenAI API 호출 (레거시 Chat Completions API)
-    const response = await fetch(OPENAI_CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // v32: Load Balancing
+    let response: Response | null = null;
+
+    for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
+      const currentKey = getNextApiKey();
+      const currentKeyIdx = (keyIndex - 1) % API_KEYS.length;
+      console.log(`[ai-openai v32] Background sync: Using API key ${currentKeyIdx + 1}/${API_KEYS.length}`);
+
+      response = await fetch(OPENAI_CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.status === 429) {
+        console.warn(`[ai-openai v32] Key ${currentKeyIdx + 1} rate limited, trying next...`);
+        continue;
+      }
+      break;
+    }
+
+    if (!response) {
+      throw new Error("All API keys exhausted");
+    }
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -355,8 +412,8 @@ Deno.serve(async (req) => {
 
   try {
     // API 키 확인
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    if (API_KEYS.length === 0) {
+      throw new Error("No OPENAI_API_KEY configured");
     }
 
     // Supabase 클라이언트 생성
@@ -374,10 +431,11 @@ Deno.serve(async (req) => {
       response_format,
       user_id,
       run_in_background = true,    // v24: 기본값 true (Responses API background 모드)
+      task_type = "saju_analysis", // v29: 병렬 실행 시 task 분리! (기본값 유지)
     } = requestData;
 
     // Debug: 요청 파라미터 로그
-    console.log(`[ai-openai v24] Request: run_in_background=${run_in_background}, model=${model}, user_id=${user_id}`);
+    console.log(`[ai-openai v32] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, user_id=${user_id}`);
 
     // 필수 파라미터 검증
     if (!messages || messages.length === 0) {
@@ -417,30 +475,32 @@ Deno.serve(async (req) => {
     // Supabase 150초 walltime 제한 완전 회피!
     // OpenAI 클라우드에서 비동기 처리 → 시간 제한 없음
     if (run_in_background) {
-      console.log(`[ai-openai v24] *** RESPONSES API BACKGROUND MODE ***`);
-      console.log(`[ai-openai v24] Using /v1/responses with background=true`);
+      console.log(`[ai-openai v32] *** RESPONSES API BACKGROUND MODE ***`);
+      console.log(`[ai-openai v32] Using /v1/responses with background=true`);
 
-      // 중복 방지: 동일 user의 pending/processing task 확인
+      // v29: 중복 방지 - 동일 user + 동일 task_type만 체크!
+      // 이전: 모든 운세가 "saju_analysis"로 충돌
+      // 이후: 각 운세별로 task_type 분리 (monthly_fortune, yearly_2026, etc.)
       if (user_id) {
         const { data: existingTask } = await supabase
           .from("ai_tasks")
           .select("id, status, openai_response_id, created_at")
           .eq("user_id", user_id)
-          .eq("task_type", "saju_analysis")
+          .eq("task_type", task_type)  // v29: 동적 task_type 사용!
           .in("status", ["pending", "processing", "queued", "in_progress"])
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
         if (existingTask) {
-          console.log(`[ai-openai v24] Found existing task ${existingTask.id} (${existingTask.status})`);
+          console.log(`[ai-openai v32] Found existing ${task_type} task ${existingTask.id} (${existingTask.status})`);
           return new Response(
             JSON.stringify({
               success: true,
               task_id: existingTask.id,
               openai_response_id: existingTask.openai_response_id,
               status: existingTask.status,
-              message: "Existing task in progress. Poll /ai-openai-result with task_id.",
+              message: `Existing ${task_type} task in progress. Poll /ai-openai-result with task_id.`,
               reused: true,
             }),
             {
@@ -468,7 +528,7 @@ Deno.serve(async (req) => {
 
       // OpenAI Responses API 호출 (background: true)
       // 즉시 response.id 반환, OpenAI 클라우드에서 비동기 처리
-      console.log(`[ai-openai v24] Calling OpenAI Responses API...`);
+      console.log(`[ai-openai v32] Calling OpenAI Responses API...`);
 
       const responsesApiBody: Record<string, unknown> = {
         model,
@@ -485,38 +545,59 @@ Deno.serve(async (req) => {
         };
       }
 
-      const openaiResponse = await fetch(OPENAI_RESPONSES_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify(responsesApiBody),
-      });
+      // v32.1: task_type 기반 결정적 키 분배 + fallback on 429
+      // 서버리스 환경에서 병렬 호출 시에도 키가 분산됨
+      let openaiResponse: Response | null = null;
+      let selectedKeyIndex = getKeyIndexByTaskType(task_type);
+
+      for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
+        const currentKey = getApiKeyByIndex(selectedKeyIndex + attempt);
+        const actualKeyIdx = (selectedKeyIndex + attempt) % API_KEYS.length;
+        console.log(`[ai-openai v32.1] Using API key ${actualKeyIdx + 1}/${API_KEYS.length} (task: ${task_type})`);
+
+        openaiResponse = await fetch(OPENAI_RESPONSES_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentKey}`,
+          },
+          body: JSON.stringify(responsesApiBody),
+        });
+
+        if (openaiResponse.status === 429) {
+          console.warn(`[ai-openai v32.1] Key ${actualKeyIdx + 1} rate limited (429), trying next key...`);
+          continue;
+        }
+        break;
+      }
+
+      if (!openaiResponse) {
+        throw new Error("All API keys exhausted (rate limited)");
+      }
 
       const responseData = await openaiResponse.json();
-      console.log(`[ai-openai v24] OpenAI response status: ${openaiResponse.status}`);
-      console.log(`[ai-openai v24] Response: ${JSON.stringify(responseData)}`);
+      console.log(`[ai-openai v32] OpenAI response status: ${openaiResponse.status}`);
+      console.log(`[ai-openai v32] Response: ${JSON.stringify(responseData)}`);
 
       if (!openaiResponse.ok) {
-        console.error("[ai-openai v24] OpenAI Responses API Error:", responseData);
+        console.error("[ai-openai v32] OpenAI Responses API Error:", responseData);
         throw new Error(responseData.error?.message || "OpenAI Responses API error");
       }
 
       const openaiResponseId = responseData.id;
       const openaiStatus = responseData.status; // "queued" or "in_progress"
 
-      console.log(`[ai-openai v27] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
+      console.log(`[ai-openai v32] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
 
-      // ai_tasks 테이블에 저장 (v27: Phase 정보 포함)
+      // ai_tasks 테이블에 저장 (v29: task_type 동적 지정, v32: key_index 추가)
       const { data: task, error: insertError } = await supabase
         .from("ai_tasks")
         .insert({
           user_id: user_id || null,
-          task_type: "saju_analysis",
+          task_type: task_type,  // v29: 동적 task_type 사용!
           status: openaiStatus, // OpenAI 상태 그대로 저장 (queued/in_progress)
           openai_response_id: openaiResponseId, // 핵심! OpenAI response ID
-          request_data: { messages, model, max_tokens, response_format },
+          request_data: { messages, model, max_tokens, response_format, task_type, key_index: selectedKeyIndex },
           model,
           phase: 1,            // v27: 시작 Phase
           total_phases: 4,     // v27: 총 4개 Phase
@@ -527,11 +608,11 @@ Deno.serve(async (req) => {
         .single();
 
       if (insertError || !task) {
-        console.error("[ai-openai v27] Failed to create task:", insertError);
+        console.error("[ai-openai v32] Failed to create task:", insertError);
         throw new Error("Failed to create task record");
       }
 
-      console.log(`[ai-openai v27] Created task ${task.id} with openai_response_id ${openaiResponseId}, total_phases=4`);
+      console.log(`[ai-openai v32] Created ${task_type} task ${task.id} with openai_response_id ${openaiResponseId}`);
 
       // 즉시 응답 반환 (Supabase 타임아웃 전에!)
       return new Response(
@@ -551,8 +632,8 @@ Deno.serve(async (req) => {
     }
 
     // === Sync 모드 (기본, GPT-5.2 medium reasoning 30-60초) ===
-    console.log(`[ai-openai v23] *** SYNC MODE (default) ***`);
-    console.log(`[ai-openai v23] Calling OpenAI ${model} with ${messages.length} messages`);
+    console.log(`[ai-openai v32] *** SYNC MODE (default) ***`);
+    console.log(`[ai-openai v32] Calling OpenAI ${model} with ${messages.length} messages`);
 
     // GPT-5.2는 reasoning_effort 파라미터 필요
     // NOTE: GPT-5.2는 temperature 지원 안함 (기본값 1만 허용)
@@ -574,14 +655,34 @@ Deno.serve(async (req) => {
     console.log(`[ai-openai] Sync mode: Sending request to OpenAI...`);
     console.log(`[ai-openai] Request body: ${JSON.stringify(requestBody).substring(0, 500)}...`);
 
-    const response = await fetch(OPENAI_CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // v32.1: task_type 기반 결정적 키 분배 + fallback on 429
+    let response: Response | null = null;
+    const syncKeyStart = getKeyIndexByTaskType(task_type);
+
+    for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
+      const currentKey = getApiKeyByIndex(syncKeyStart + attempt);
+      const actualKeyIdx = (syncKeyStart + attempt) % API_KEYS.length;
+      console.log(`[ai-openai v32.1] Sync mode: Using API key ${actualKeyIdx + 1}/${API_KEYS.length} (task: ${task_type})`);
+
+      response = await fetch(OPENAI_CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.status === 429) {
+        console.warn(`[ai-openai v32.1] Key ${actualKeyIdx + 1} rate limited (429), trying next key...`);
+        continue;
+      }
+      break;
+    }
+
+    if (!response) {
+      throw new Error("All API keys exhausted (rate limited)");
+    }
 
     console.log(`[ai-openai] Sync mode: OpenAI response status ${response.status}`);
 

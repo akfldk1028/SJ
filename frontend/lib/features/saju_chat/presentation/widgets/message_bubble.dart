@@ -13,11 +13,13 @@ import '../../domain/entities/chat_message.dart';
 class MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool showAvatar;
+  final bool isStreamingActive;
 
   const MessageBubble({
     super.key,
     required this.message,
     this.showAvatar = true,
+    this.isStreamingActive = false,
   });
 
   @override
@@ -126,14 +128,29 @@ class MessageBubble extends StatelessWidget {
       return Text(message.content, style: userStyle);
     }
 
-    // AI 메시지: 커스텀 볼드 파싱
+    // AI 메시지: 커스텀 볼드 파싱 (태그 제거 후)
     final aiStyle = AppFonts.aiMessage(
       color: appTheme.textPrimary,
     );
 
+    // 스트리밍 중에는 SelectableText 비활성화 (rebuild 충돌 방지)
+    if (isStreamingActive) {
+      return Text.rich(
+        _parseMarkdownBold(_cleanContent(message.content), aiStyle),
+      );
+    }
     return SelectableText.rich(
-      _parseMarkdownBold(message.content, aiStyle),
+      _parseMarkdownBold(_cleanContent(message.content), aiStyle),
     );
+  }
+
+  /// [SUGGESTED_QUESTIONS] 태그 제거 (기존 저장된 메시지 호환)
+  String _cleanContent(String content) {
+    final tagStartIndex = content.indexOf('[SUGGESTED_QUESTIONS]');
+    if (tagStartIndex != -1) {
+      return content.substring(0, tagStartIndex).trim();
+    }
+    return content;
   }
 
   /// **text** 패턴을 파싱해서 볼드체로 변환

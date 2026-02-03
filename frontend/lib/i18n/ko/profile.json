@@ -1,0 +1,17 @@
+{
+  "title": "프로필 설정",
+  "name": "이름",
+  "nameHint": "이름을 입력하세요",
+  "birthDate": "생년월일",
+  "birthTime": "출생시간",
+  "birthTimeUnknown": "시간 모름",
+  "gender": "성별",
+  "genderMale": "남성",
+  "genderFemale": "여성",
+  "calendarType": "달력 유형",
+  "calendarSolar": "양력",
+  "calendarLunar": "음력",
+  "presetMe": "나",
+  "presetLover": "연인",
+  "presetFamily": "가족"
+}

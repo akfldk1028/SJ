@@ -549,7 +549,10 @@ abstract class PromptVersions {
   ///         Phase 2: 4000 → 8000 (결혼운 잘림 해결)
   ///         Phase 3: 5000 → 10000
   ///         Phase 4: 4000 → 8000
-  static const String sajuBase = 'V9.5';
+  /// - V9.6 (2026-01-31): 전성기(peakYears) 광고 잠금 추가, AI 폴더 구조 정리
+  /// - V9.8 (2026-02-01): 중년운/말년운/청년운 상세도 확장 (3-4문장 → 6-8문장)
+  ///         각 카테고리별 구체적 콘텐츠 가이드 추가 (광고 잠금 콘텐츠 보강)
+  static const String sajuBase = 'V9.8';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)
@@ -561,7 +564,10 @@ abstract class PromptVersions {
   /// - V2.0: 구조 개선
   /// - V2.1 (2026-01-24): 사자성어(idiom) 다양화 - 하드코딩된 "마부위침" 제거
   ///         AI가 사주 특성과 오늘 기운에 맞는 사자성어를 매번 다르게 생성
-  static const String dailyFortune = 'V2.1';
+  /// - V2.2 (2026-01-31): AI 폴더 구조 정리 반영
+  /// - V2.3 (2026-01-31): 점수 하드코딩 버그 수정 - 예시 점수 복사 방지
+  ///         점수 범위 30~95, 카테고리 간 최소 15점 차이, 사주 기반 계산 명시
+  static const String dailyFortune = 'V2.3';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 월운 (monthly_fortune)
@@ -572,13 +578,17 @@ abstract class PromptVersions {
   /// - V4.0: 12개월 통합 구조 (기본 데이터만)
   /// - V5.0 (2026-01-24): 12개월 확장 - highlights(career/wealth/love), lucky, reading 6-8문장
   /// - V5.1 (2026-01-24): lucky 제거, business 추가, idiom(사자성어) 추가
-  static const String monthlyFortune = 'V5.1';
+  /// - V5.2 (2026-01-31): 카테고리 그리드 펼치기 UI 개선
+  /// - V5.4 (2026-02-01): 비현재월 상세도 확장 (3-4문장 → 8-10문장)
+  ///         시스템 프롬프트와 JSON 스키마 문장 수 불일치 수정 (광고 잠금 콘텐츠 보강)
+  static const String monthlyFortune = 'V5.4';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 년운 (yearly_fortune)
   // ─────────────────────────────────────────────────────────────────────────
   /// 년운 프롬프트 버전
-  static const String yearlyFortune = 'V1.0';
+  /// - V1.1 (2026-01-31): AI 폴더 구조 정리 반영
+  static const String yearlyFortune = 'V1.1';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2026 신년운세
@@ -588,7 +598,9 @@ abstract class PromptVersions {
   /// [히스토리]
   /// - V1.0: 초기 버전
   /// - V5.1: 구조 확장
-  static const String yearlyFortune2026 = 'V5.1';
+  /// - V5.2 (2026-01-31): AI 폴더 구조 정리 반영
+  /// - V5.4 (2026-02-01): 캐시 강제 무효화 + 전체 재생성
+  static const String yearlyFortune2026 = 'V5.4';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2025 회고
@@ -598,5 +610,47 @@ abstract class PromptVersions {
   /// [히스토리]
   /// - V1.0: 초기 버전
   /// - V3.1: 구조 확장
-  static const String yearlyFortune2025 = 'V3.1';
+  /// - V3.2 (2026-01-31): AI 폴더 구조 정리 반영
+  /// - V3.4 (2026-02-01): 캐시 강제 무효화 + 전체 재생성
+  static const String yearlyFortune2025 = 'V3.4';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 버전 해석기 (캐시 무효화용)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// summaryType → 현재 프롬프트 버전 해석기
+  ///
+  /// 캐시 조회 시 DB의 prompt_version과 비교하여
+  /// 불일치하면 캐시를 무효화(null 반환)합니다.
+  ///
+  /// ## 연동 파일 (이 메서드를 호출하는 곳)
+  /// 1. `AI/data/queries.dart` → `AiQueries.getCachedSummary()`
+  ///    - 모든 summary_type 캐시 조회 시 버전 비교 (fromJson 콜백)
+  /// 2. `core/services/ai_summary_service.dart` → `AiSummaryService.getCachedSummary()`
+  ///    - saju_base 전용 캐시 조회 시 버전 비교
+  ///
+  /// ## 버전업 절차
+  /// 1. 프롬프트 수정 후 위의 해당 상수 값 올리기 (예: V9.5 → V9.6)
+  /// 2. 앱 배포 → 기존 캐시 자동 무효화 → AI 재생성
+  ///
+  /// [summaryType] SummaryType 상수값
+  /// 반환: 해당 프롬프트 버전 문자열, 버전 체크 불필요한 타입은 null
+  static String? forSummaryType(String summaryType) {
+    switch (summaryType) {
+      case SummaryType.sajuBase:
+        return sajuBase;
+      case SummaryType.dailyFortune:
+        return dailyFortune;
+      case SummaryType.monthlyFortune:
+        return monthlyFortune;
+      case SummaryType.yearlyFortune:
+        return yearlyFortune;
+      case SummaryType.yearlyFortune2026:
+        return yearlyFortune2026;
+      case SummaryType.yearlyFortune2025:
+        return yearlyFortune2025;
+      default:
+        return null; // question_answer, compatibility 등은 버전 체크 불필요
+    }
+  }
 }

@@ -11,8 +11,7 @@ enum AdMode {
 }
 
 /// 현재 광고 모드 설정
-/// TODO: 프로덕션 배포 전 AdMode.production으로 변경
-const AdMode currentAdMode = AdMode.test;
+const AdMode currentAdMode = AdMode.production;
 
 /// 테스트 광고 Unit ID (Google 공식 테스트 ID)
 /// 개발 중에는 반드시 이 ID를 사용해야 계정 정지 방지
@@ -52,20 +51,24 @@ abstract class TestAdUnitIds {
 /// TODO: AdMob 콘솔에서 생성한 실제 광고 ID로 교체
 abstract class ProductionAdUnitIds {
   // App ID (AndroidManifest.xml, Info.plist에 설정)
-  static const String appIdAndroid = 'YOUR_ANDROID_APP_ID';
+  static const String appIdAndroid = 'ca-app-pub-7140787344231420~3931921704';
   static const String appIdIos = 'YOUR_IOS_APP_ID';
 
   // Banner
-  static const String bannerAndroid = 'YOUR_BANNER_ANDROID_ID';
+  static const String bannerAndroid = 'ca-app-pub-7140787344231420/8692228132';
   static const String bannerIos = 'YOUR_BANNER_IOS_ID';
 
   // Interstitial
-  static const String interstitialAndroid = 'YOUR_INTERSTITIAL_ANDROID_ID';
+  static const String interstitialAndroid = 'ca-app-pub-7140787344231420/2126819784';
   static const String interstitialIos = 'YOUR_INTERSTITIAL_IOS_ID';
 
   // Rewarded
-  static const String rewardedAndroid = 'YOUR_REWARDED_ANDROID_ID';
+  static const String rewardedAndroid = 'ca-app-pub-7140787344231420/8500656445';
   static const String rewardedIos = 'YOUR_REWARDED_IOS_ID';
+
+  // Native
+  static const String nativeAndroid = 'ca-app-pub-7140787344231420/4565280863';
+  static const String nativeIos = 'YOUR_NATIVE_IOS_ID';
 }
 
 /// 현재 모드에 맞는 Ad Unit ID 반환
@@ -76,9 +79,11 @@ class AdUnitId {
           ? TestAdUnitIds.bannerAndroid
           : TestAdUnitIds.bannerIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.bannerAndroid
         : ProductionAdUnitIds.bannerIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get interstitial {
@@ -87,9 +92,11 @@ class AdUnitId {
           ? TestAdUnitIds.interstitialAndroid
           : TestAdUnitIds.interstitialIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.interstitialAndroid
         : ProductionAdUnitIds.interstitialIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get rewarded {
@@ -98,9 +105,11 @@ class AdUnitId {
           ? TestAdUnitIds.rewardedAndroid
           : TestAdUnitIds.rewardedIos;
     }
-    return Platform.isAndroid
+    final id = Platform.isAndroid
         ? ProductionAdUnitIds.rewardedAndroid
         : ProductionAdUnitIds.rewardedIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get rewardedInterstitial {
@@ -110,9 +119,16 @@ class AdUnitId {
   }
 
   static String get native {
-    return Platform.isAndroid
-        ? TestAdUnitIds.nativeAndroid
-        : TestAdUnitIds.nativeIos;
+    if (currentAdMode == AdMode.test) {
+      return Platform.isAndroid
+          ? TestAdUnitIds.nativeAndroid
+          : TestAdUnitIds.nativeIos;
+    }
+    final id = Platform.isAndroid
+        ? ProductionAdUnitIds.nativeAndroid
+        : ProductionAdUnitIds.nativeIos;
+    assert(!id.startsWith('YOUR_'), 'iOS Ad Unit ID가 설정되지 않았습니다: $id');
+    return id;
   }
 
   static String get appOpen {
@@ -125,7 +141,7 @@ class AdUnitId {
 /// 광고 설정값
 abstract class AdSettings {
   /// 전면 광고 사이 최소 간격 (초)
-  static const int interstitialMinInterval = 60;
+  static const int interstitialMinInterval = 30;
 
   /// 보상형 광고 재로드 대기 시간 (초)
   static const int rewardedReloadDelay = 3;

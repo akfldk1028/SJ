@@ -31,8 +31,9 @@ import '../../domain/services/gilseong_service.dart';
 /// 여러 분석 탭(궁성, 합충, 십성, 운성, 신살, 공망)을 제공
 class SajuDetailTabs extends ConsumerStatefulWidget {
   final bool isFullPage;
+  final String? profileId;
 
-  const SajuDetailTabs({super.key, this.isFullPage = false});
+  const SajuDetailTabs({super.key, this.isFullPage = false, this.profileId});
 
   @override
   ConsumerState<SajuDetailTabs> createState() => _SajuDetailTabsState();
@@ -42,23 +43,107 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // 탭 정의
+  // 탭 정의 (각 탭에 대한 간략 설명 포함)
   static const _tabs = [
-    _TabItem(label: '만세력', icon: Icons.grid_view_rounded),
-    _TabItem(label: '오행', icon: Icons.donut_small),
-    _TabItem(label: '신강', icon: Icons.fitness_center),
-    _TabItem(label: '대운', icon: Icons.timeline),
-    _TabItem(label: '합충', icon: Icons.sync_alt),
-    _TabItem(label: '십성', icon: Icons.stars_rounded),
-    _TabItem(label: '운성', icon: Icons.trending_up),
-    _TabItem(label: '신살', icon: Icons.flash_on),
-    _TabItem(label: '공망', icon: Icons.highlight_off),
+    _TabItem(
+      label: '만세력',
+      icon: Icons.grid_view_rounded,
+      description: '사주팔자의 기본 구조인 년주·월주·일주·시주 4개의 기둥과 오행 분포를 한눈에 볼 수 있는 기본 차트입니다.',
+    ),
+    _TabItem(
+      label: '오행',
+      icon: Icons.donut_small,
+      description: '목(木)·화(火)·토(土)·금(金)·수(水) 다섯 가지 기운의 분포와 균형을 분석합니다. 오행의 과다/부족이 성격과 운세에 영향을 줍니다.',
+    ),
+    _TabItem(
+      label: '신강',
+      icon: Icons.fitness_center,
+      description: '일간(나)의 기운이 강한지 약한지를 판단합니다. 신강하면 독립적이고, 신약하면 주변의 도움이 필요한 타입입니다. 용신(필요한 오행)도 함께 분석합니다.',
+    ),
+    _TabItem(
+      label: '대운',
+      icon: Icons.timeline,
+      description: '10년 단위로 변하는 운의 흐름을 보여줍니다. 대운·세운·월운을 통해 인생의 큰 흐름과 시기별 운세를 파악할 수 있습니다.',
+    ),
+    _TabItem(
+      label: '합충',
+      icon: Icons.sync_alt,
+      description: '천간과 지지 사이의 합(合)·충(沖)·형(刑)·파(破)·해(害) 관계를 분석합니다. 사주 내 기운의 조화와 갈등을 파악합니다.',
+    ),
+    _TabItem(
+      label: '십성',
+      icon: Icons.stars_rounded,
+      description: '일간을 기준으로 다른 간지와의 관계를 10가지(비겁·식상·재성·관성·인성)로 나타냅니다. 성격, 재물운, 직업운 등을 파악하는 핵심 분석입니다.',
+    ),
+    _TabItem(
+      label: '운성',
+      icon: Icons.trending_up,
+      description: '12운성은 일간의 기운이 각 지지에서 어떤 상태인지를 나타냅니다. 장생·건록·제왕 등 12단계로 인생의 에너지 흐름을 봅니다.',
+    ),
+    _TabItem(
+      label: '신살',
+      icon: Icons.flash_on,
+      description: '사주에 나타나는 특별한 기운(신살)을 분석합니다. 역마살·도화살·화개살 등 길한 영향과 흉한 영향을 파악합니다.',
+    ),
+    _TabItem(
+      label: '공망',
+      icon: Icons.highlight_off,
+      description: '일주를 기준으로 비어있는(空亡) 지지를 찾습니다. 해당 영역의 기운이 약해질 수 있지만, 흉한 것이 공망이면 오히려 흉함이 줄어듭니다.',
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {}); // rebuild to update help bar
+      }
+    });
+  }
+
+  /// 현재 탭의 설명 팝업 표시
+  void _showTabHelp(BuildContext context) {
+    final tab = _tabs[_tabController.index];
+    if (tab.description.isEmpty) return;
+    final theme = context.appTheme;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(tab.icon, color: theme.primaryColor, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              '${tab.label}이란?',
+              style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          tab.description,
+          style: TextStyle(
+            color: theme.textSecondary,
+            fontSize: 15,
+            height: 1.7,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -70,7 +155,9 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    final sajuAnalysisAsync = ref.watch(currentSajuAnalysisProvider);
+    final sajuAnalysisAsync = widget.profileId != null
+        ? ref.watch(sajuAnalysisForProfileProvider(widget.profileId!))
+        : ref.watch(currentSajuAnalysisProvider);
     final isFullPage = widget.isFullPage;
 
     return Container(
@@ -130,27 +217,67 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
               labelColor: theme.primaryColor,
               unselectedLabelColor: theme.textMuted,
               indicatorColor: theme.primaryColor,
-              indicatorWeight: 2,
+              indicatorWeight: 2.5,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 14),
               labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
               unselectedLabelStyle: const TextStyle(
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
               tabs: _tabs
                   .map((tab) => Tab(
+                        height: 48,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(tab.icon, size: 16),
+                            Icon(tab.icon, size: 18),
                             const SizedBox(width: 6),
                             Text(tab.label),
                           ],
                         ),
                       ))
                   .toList(),
+            ),
+          ),
+          // 탭 도움말 바 (물음표 아이콘 탭 시 설명 팝업)
+          GestureDetector(
+            onTap: () => _showTabHelp(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withOpacity(0.06),
+                border: Border(
+                  bottom: BorderSide(color: theme.border, width: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.help_outline_rounded,
+                    size: 20,
+                    color: theme.primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${_tabs[_tabController.index].label} - 터치하여 자세한 설명 보기',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.primaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: theme.primaryColor.withOpacity(0.5),
+                  ),
+                ],
+              ),
             ),
           ),
           // Tab Content
@@ -222,8 +349,13 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
 class _TabItem {
   final String label;
   final IconData icon;
+  final String description;
 
-  const _TabItem({required this.label, required this.icon});
+  const _TabItem({
+    required this.label,
+    required this.icon,
+    this.description = '',
+  });
 }
 
 /// 만세력 탭 (포스텔러 스타일 테이블 포함)
@@ -332,9 +464,10 @@ class _ManseryeokTab extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.textSecondary,
+            fontSize: 16,
           ),
     );
   }
@@ -342,16 +475,17 @@ class _ManseryeokTab extends StatelessWidget {
   Widget _buildOhengBar(
       BuildContext context, String label, int count, Color color, AppThemeExtension theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           SizedBox(
-            width: 90,
+            width: 110,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.w600,
+                    fontSize: 14,
                   ),
             ),
           ),
@@ -359,20 +493,20 @@ class _ManseryeokTab extends StatelessWidget {
             child: Stack(
               children: [
                 Container(
-                  height: 12,
+                  height: 16,
                   decoration: BoxDecoration(
                     color: theme.surfaceElevated,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 if (count > 0)
                   Container(
-                    height: 12,
-                    width: count * 40.0,
-                    constraints: const BoxConstraints(maxWidth: 200),
+                    height: 16,
+                    width: count * 44.0,
+                    constraints: const BoxConstraints(maxWidth: 220),
                     decoration: BoxDecoration(
                       color: color,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
               ],
@@ -381,8 +515,9 @@ class _ManseryeokTab extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             '$count개',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: TextStyle(
                   fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
           ),
         ],
@@ -433,7 +568,7 @@ class _SipSungTab extends StatelessWidget {
 
   Widget _buildExplanationCard(BuildContext context, AppThemeExtension theme) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -443,7 +578,7 @@ class _SipSungTab extends StatelessWidget {
             theme.primaryColor.withOpacity(0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
       ),
       child: Column(
@@ -451,29 +586,29 @@ class _SipSungTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
+              Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 22),
               const SizedBox(width: 8),
               Text(
                 '십성(十星)이란?',
                 style: TextStyle(
                   color: theme.primaryColor,
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             '일간(日干, 나)을 기준으로 다른 간지와의 관계를 나타낸 것입니다. '
             '오행의 상생상극 관계와 음양 조화에 따라 10가지 관계가 정해집니다.',
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 15,
+              height: 1.6,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             '• 비겁(比劫): 나와 같은 오행 - 형제, 경쟁자, 자아\n'
             '• 식상(食傷): 내가 생하는 오행 - 표현력, 재능, 자녀\n'
@@ -482,8 +617,8 @@ class _SipSungTab extends StatelessWidget {
             '• 인성(印星): 나를 생하는 오행 - 학문, 문서, 어머니',
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 12,
-              height: 1.6,
+              fontSize: 14,
+              height: 1.7,
             ),
           ),
         ],
@@ -494,9 +629,10 @@ class _SipSungTab extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.textSecondary,
+            fontSize: 16,
           ),
     );
   }
@@ -529,7 +665,7 @@ class _SipSungTab extends StatelessWidget {
               '천간',
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ),
@@ -544,7 +680,7 @@ class _SipSungTab extends StatelessWidget {
                           '-',
                           style: TextStyle(
                             color: theme.textMuted,
-                            fontSize: 12,
+                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -650,7 +786,7 @@ class _UnsungTab extends StatelessWidget {
                 '12운성(十二運星)이란?',
                 style: TextStyle(
                   color: theme.primaryColor,
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -662,8 +798,8 @@ class _UnsungTab extends StatelessWidget {
             '마치 사람의 일생처럼 탄생(장생)부터 죽음(사)까지의 순환을 12단계로 표현합니다.',
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 15,
+              height: 1.6,
             ),
           ),
           const SizedBox(height: 12),
@@ -711,7 +847,7 @@ class _UnsungTab extends StatelessWidget {
             name,
             style: TextStyle(
               color: color,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -721,7 +857,7 @@ class _UnsungTab extends StatelessWidget {
           desc,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 9,
+            fontSize: 13,
           ),
         ),
       ],
@@ -762,7 +898,7 @@ class _UnsungTab extends StatelessWidget {
                 '궁성(宮星)이란?',
                 style: TextStyle(
                   color: tealColor,
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -774,8 +910,8 @@ class _UnsungTab extends StatelessWidget {
             '각 궁성의 운성을 통해 그 영역에서의 기운 상태를 파악할 수 있습니다.',
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 15,
+              height: 1.6,
             ),
           ),
           const SizedBox(height: 12),
@@ -817,7 +953,7 @@ class _UnsungTab extends StatelessWidget {
             pillar,
             style: TextStyle(
               color: tealColor,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -835,7 +971,7 @@ class _UnsungTab extends StatelessWidget {
             palace,
             style: TextStyle(
               color: theme.textPrimary,
-              fontSize: 10,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -847,7 +983,7 @@ class _UnsungTab extends StatelessWidget {
             meaning,
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
         ),
@@ -882,7 +1018,7 @@ class _UnsungTab extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -917,7 +1053,7 @@ class _UnsungTab extends StatelessWidget {
                 '12운성 요약',
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1083,7 +1219,7 @@ class _UnsungTab extends StatelessWidget {
                         item.unsung.hanja,
                         style: TextStyle(
                           color: theme.textSecondary,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1119,7 +1255,7 @@ class _UnsungTab extends StatelessWidget {
                           UnsungService.getDetailedInterpretation(item.unsung),
                           style: TextStyle(
                             color: theme.textSecondary,
-                            fontSize: 12,
+                            fontSize: 13,
                             height: 1.5,
                           ),
                         ),
@@ -1268,7 +1404,7 @@ class _SinsalTab extends StatelessWidget {
                 '신살(神殺)이란?',
                 style: TextStyle(
                   color: purpleColor,
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1280,8 +1416,8 @@ class _SinsalTab extends StatelessWidget {
             '12신살은 년지를 기준으로 각 지지의 특성을 파악하는 대표적인 신살 체계입니다.',
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 15,
+              height: 1.6,
             ),
           ),
           const SizedBox(height: 12),
@@ -1324,7 +1460,7 @@ class _SinsalTab extends StatelessWidget {
           label,
           style: TextStyle(
             color: theme.textSecondary,
-            fontSize: 11,
+            fontSize: 13,
           ),
         ),
       ],
@@ -1358,7 +1494,7 @@ class _SinsalTab extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -1454,7 +1590,7 @@ class _SinsalTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1581,7 +1717,7 @@ class _SinsalTab extends StatelessWidget {
                         fortuneType,
                         style: TextStyle(
                           color: fortuneColor,
-                          fontSize: 10,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1597,7 +1733,7 @@ class _SinsalTab extends StatelessWidget {
                         pillarName,
                         style: TextStyle(
                           color: theme.textSecondary,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1609,7 +1745,7 @@ class _SinsalTab extends StatelessWidget {
                   description,
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                     height: 1.4,
                   ),
                 ),
@@ -1741,7 +1877,7 @@ class _SinsalTab extends StatelessWidget {
                     fortuneType == '길' ? '길(吉)' : fortuneType == '흉' ? '흉(凶)' : '혼합',
                     style: TextStyle(
                       color: fortuneColor,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1769,7 +1905,7 @@ class _SinsalTab extends StatelessWidget {
                   TwelveSinsalService.getDetailedInterpretation(item.sinsal),
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                     height: 1.5,
                   ),
                 ),
@@ -1847,7 +1983,7 @@ class _GongmangTab extends StatelessWidget {
                 '공망(空亡)이란?',
                 style: TextStyle(
                   color: grayBlue,
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1859,8 +1995,8 @@ class _GongmangTab extends StatelessWidget {
             '공망에 해당하는 궁성은 그 영역의 기운이 약해지거나 허무하게 될 수 있습니다.',
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 15,
+              height: 1.6,
             ),
           ),
           const SizedBox(height: 12),
@@ -1879,7 +2015,7 @@ class _GongmangTab extends StatelessWidget {
                     '공망은 반드시 나쁜 것만은 아닙니다. 흉한 것이 공망이면 오히려 흉함이 줄어들기도 합니다.',
                     style: TextStyle(
                       color: theme.textSecondary,
-                      fontSize: 11,
+                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -1919,7 +2055,7 @@ class _GongmangTab extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 11,
+                fontSize: 13,
               ),
             ),
           ],
@@ -1964,7 +2100,7 @@ class _GongmangTab extends StatelessWidget {
                       '일주: ${result.dayGapja}',
                       style: TextStyle(
                         color: theme.primaryColor,
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1982,7 +2118,7 @@ class _GongmangTab extends StatelessWidget {
                   '${result.sunInfo.sunName} 소속',
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -2126,7 +2262,7 @@ class _GongmangTab extends StatelessWidget {
                               '${r.pillarName} (${r.jiji})',
                               style: TextStyle(
                                 color: AppColors.error,
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -2164,7 +2300,7 @@ class _GongmangTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -2322,7 +2458,7 @@ class _GongmangTab extends StatelessWidget {
                             GongmangService.getDetailedInterpretation(item),
                             style: TextStyle(
                               color: theme.textSecondary,
-                              fontSize: 12,
+                              fontSize: 13,
                               height: 1.5,
                             ),
                           ),

@@ -79,18 +79,42 @@ class Yearly2026Mutations {
     };
 
     try {
-      // Upsert: profile_id + summary_type + target_year 기준
+      // DELETE + INSERT 패턴 (target_month=NULL은 PostgreSQL upsert에서 매칭 불가)
+      // partial unique index (idx_ai_summaries_unique_yearly_2026)가 중복 방지
+      await _supabase
+          .from('ai_summaries')
+          .delete()
+          .eq('profile_id', profileId)
+          .eq('summary_type', SummaryType.yearlyFortune2026);
+
       final response = await _supabase
           .from('ai_summaries')
-          .upsert(
-            data,
-            onConflict: 'profile_id,summary_type,target_year,target_month',
-          )
+          .insert(data)
           .select()
           .single();
 
       print('[Yearly2026Mutations] ✅ DB 저장 성공: ${response['id']}');
       return response;
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        print('[Yearly2026Mutations] ⚠️ 중복 키 충돌 → 재시도');
+        await _supabase
+            .from('ai_summaries')
+            .delete()
+            .eq('profile_id', profileId)
+            .eq('summary_type', SummaryType.yearlyFortune2026);
+
+        final response = await _supabase
+            .from('ai_summaries')
+            .insert(data)
+            .select()
+            .single();
+
+        print('[Yearly2026Mutations] ✅ DB 재시도 저장 성공: ${response['id']}');
+        return response;
+      }
+      print('[Yearly2026Mutations] ❌ DB 저장 실패: $e');
+      rethrow;
     } catch (e) {
       print('[Yearly2026Mutations] ❌ DB 저장 실패: $e');
       rethrow;

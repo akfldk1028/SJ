@@ -75,7 +75,7 @@ const String compatibilitySelectColumns = '''
   pair_hapchung
 ''';
 
-/// 상세 정보 포함 SELECT (인연 사주 정보 포함)
+/// 상세 정보 포함 SELECT (인연 사주 정보 + owner 일주 포함)
 const String compatibilityDetailSelectColumns = '''
   id,
   profile1_id,
@@ -111,7 +111,15 @@ const String compatibilityDetailSelectColumns = '''
   target_gilseong,
   target_day_master,
   owner_hapchung,
-  pair_hapchung
+  pair_hapchung,
+  owner_profile:saju_profiles!compatibility_analyses_profile1_id_fkey (
+    id,
+    display_name,
+    saju_analysis:saju_analyses (
+      day_gan,
+      day_ji
+    )
+  )
 ''';
 
 /// JOIN하여 프로필 정보까지 가져오는 SELECT

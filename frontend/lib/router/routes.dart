@@ -22,6 +22,7 @@ abstract class Routes {
 
   // Fortune
   static const String dailyFortuneDetail = '/fortune/daily';
+  static const String categoryFortuneDetail = '/fortune/daily/category';
   static const String monthlyFortune = '/fortune/monthly';
   static const String newYearFortune = '/fortune/new-year';
   static const String yearly2025Fortune = '/fortune/yearly-2025';
@@ -46,4 +47,5 @@ abstract class Routes {
   static const String settingsPrivacy = '/settings/privacy';
   static const String settingsDisclaimer = '/settings/disclaimer';
   static const String iconGenerator = '/settings/icon-generator';
+  static const String settingsPremium = '/settings/premium';
 }

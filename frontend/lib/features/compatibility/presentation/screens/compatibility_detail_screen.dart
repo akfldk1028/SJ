@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../data/models/compatibility_analysis_model.dart';
+import '../../data/hapchung_explanations.dart';
+import '../../data/compatibility_interpreter.dart';
 import '../providers/compatibility_provider.dart';
 
 /// 궁합 분석 상세 화면
@@ -17,8 +19,8 @@ class CompatibilityDetailScreen extends ConsumerWidget {
     required this.analysisId,
   });
 
-  static const _primaryColor = Color(0xFFEC4899);
-  static const _secondaryColor = Color(0xFFF472B6);
+  static const _primaryColor = Color(0xFFD4637B);
+  static const _secondaryColor = Color(0xFFE08E9D);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -231,16 +233,12 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         _buildScoreHeader(theme, analysis, score, scoreColor),
         const SizedBox(height: 20),
 
+        // 일주 분석 섹션 (개인화된 해석)
+        _buildDayPillarSection(theme, analysis),
+
         // 요약
         if (analysis.summary != null) ...[
           _buildSummaryCard(theme, analysis.summary!),
-          const SizedBox(height: 16),
-        ],
-
-        // 카테고리별 점수
-        if (analysis.categoryScores != null &&
-            analysis.categoryScores!.isNotEmpty) ...[
-          _buildCategoryScores(theme, analysis.categoryScores!),
           const SizedBox(height: 16),
         ],
 
@@ -279,9 +277,264 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
         ],
 
-        // 분석 정보
-        _buildAnalysisInfo(theme, analysis),
         const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  /// 일주 분석 섹션 (개인화된 해석)
+  Widget _buildDayPillarSection(
+    AppThemeExtension theme,
+    CompatibilityAnalysisModel analysis,
+  ) {
+    // 일주 정보가 없으면 표시하지 않음
+    if (analysis.ownerDayGan == null && analysis.targetDayGan == null) {
+      return const SizedBox.shrink();
+    }
+
+    final interpreter = CompatibilityInterpreter(
+      myDayGan: analysis.ownerDayGan,
+      myDayJi: analysis.ownerDayJi,
+      targetDayGan: analysis.targetDayGan,
+      targetDayJi: analysis.targetDayJi,
+      pairHapchung: analysis.pairHapchung,
+    );
+
+    final interpretation = interpreter.generateInterpretation();
+    if (!interpretation.hasContent) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF9B7ED6).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 헤더
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF9B7ED6).withValues(alpha: 0.2),
+                          const Color(0xFFB794F6).withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.psychology_rounded,
+                      color: Color(0xFF9B7ED6),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '일주 분석',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: theme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '나와 상대의 일간 관계',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF9B7ED6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 내 일간 소개
+              if (interpretation.myDayGanIntro.isNotEmpty) ...[
+                _buildInterpretationItem(
+                  theme,
+                  icon: Icons.person_rounded,
+                  iconColor: const Color(0xFFD4637B),
+                  title: '나의 일간',
+                  content: interpretation.myDayGanIntro,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 상대 일간 소개
+              if (interpretation.targetDayGanIntro.isNotEmpty) ...[
+                _buildInterpretationItem(
+                  theme,
+                  icon: Icons.person_outline_rounded,
+                  iconColor: const Color(0xFF6B7F99),
+                  title: '상대의 일간',
+                  content: interpretation.targetDayGanIntro,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 천간합 분석 (있을 경우)
+              if (interpretation.ganHapAnalysis != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFD4637B).withValues(alpha: 0.1),
+                        const Color(0xFFE08E9D).withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFD4637B).withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.favorite_rounded,
+                            color: Color(0xFFD4637B),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '천간합 (天干合)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFD4637B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        interpretation.ganHapAnalysis!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.6,
+                          color: theme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 오행 분석
+              if (interpretation.ohengAnalysis != null) ...[
+                _buildInterpretationItem(
+                  theme,
+                  icon: Icons.spa_rounded,
+                  iconColor: const Color(0xFF4CAF50),
+                  title: '오행 관계',
+                  content: interpretation.ohengAnalysis!,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 조언
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9B7ED6).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: Color(0xFF9B7ED6),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        interpretation.advice,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.6,
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildInterpretationItem(
+    AppThemeExtension theme, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String content,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: iconColor, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                content,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.6,
+                  color: theme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -365,7 +618,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // 합/충 요약
+          // 合/沖 요약 - 한자 포함
           if (analysis.positiveCount > 0 || analysis.negativeCount > 0) ...[
             const SizedBox(height: 16),
             Row(
@@ -373,19 +626,19 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               children: [
                 if (analysis.positiveCount > 0)
                   _buildCountBadge(
-                    icon: Icons.favorite,
+                    icon: Icons.brightness_5_rounded,
                     count: analysis.positiveCount,
-                    label: '합',
-                    color: Colors.pink,
+                    label: '合',
+                    color: const Color(0xFFD4637B),
                   ),
                 if (analysis.positiveCount > 0 && analysis.negativeCount > 0)
                   const SizedBox(width: 16),
                 if (analysis.negativeCount > 0)
                   _buildCountBadge(
-                    icon: Icons.warning_amber_rounded,
+                    icon: Icons.contrast_rounded,
                     count: analysis.negativeCount,
-                    label: '충돌',
-                    color: Colors.blue,
+                    label: '沖',
+                    color: const Color(0xFF6B7F99),
                   ),
               ],
             ),
@@ -472,229 +725,374 @@ class CompatibilityDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryScores(
-      AppThemeExtension theme, Map<String, dynamic> scores) {
-    final categoryIcons = {
-      'love': Icons.favorite_rounded,
-      'communication': Icons.chat_rounded,
-      'values': Icons.balance_rounded,
-      'lifestyle': Icons.home_rounded,
-      'growth': Icons.trending_up_rounded,
-      'conflict': Icons.flash_on_rounded,
-    };
+  // ===== 합충형해파 분석 (Modern Redesign) =====
 
-    final categoryLabels = {
-      'love': '애정운',
-      'communication': '소통',
-      'values': '가치관',
-      'lifestyle': '생활방식',
-      'growth': '성장',
-      'conflict': '갈등해결',
-    };
+  Widget _buildHapchungSection(
+      AppThemeExtension theme, CompatibilityAnalysisModel analysis) {
+    final ph = analysis.pairHapchung;
+    if (ph == null) return const SizedBox.shrink();
 
+    final positiveWidgets = <Widget>[];
+    final negativeWidgets = <Widget>[];
+
+    // 긍정적 관계 (합) - 합력 순: 방합 > 삼합 > 육합 > 천간합 > 반합
+    // 통일된 accent color 사용 (모던/미니멀)
+    const hapColor = Color(0xFFD4637B); // 따뜻한 로즈
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '方合 방합',
+        _filterFullBanghap(_toStringList(ph['banghap'])),
+        hapColor, Icons.panorama_fish_eye);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '三合 삼합',
+        _toStringList(ph['samhap']), hapColor, Icons.change_history_rounded);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '六合 육합',
+        _toStringList(ph['yukhap']), hapColor, Icons.link_rounded);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '天干合 천간합',
+        _toStringList(ph['cheongan_hap']), hapColor, Icons.sync_alt_rounded);
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '半合 반합',
+        _toStringList(ph['banhap']), hapColor, Icons.pie_chart_outline_rounded);
+
+    // 부정적 관계 - 통일된 색상
+    const chungColor = Color(0xFF6B7F99); // 차분한 슬레이트
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '天干沖 천간충',
+        _toStringList(ph['cheongan_chung']), chungColor, Icons.compare_arrows_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '地支沖 지지충',
+        _toStringList(ph['chung']), chungColor, Icons.swap_horiz_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '刑 형',
+        _toStringList(ph['hyung']), chungColor, Icons.gavel_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '害 해',
+        _toStringList(ph['hae']), chungColor, Icons.remove_circle_outline_rounded);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '破 파',
+        _toStringList(ph['pa']), chungColor, Icons.radio_button_unchecked);
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '怨嗔 원진',
+        _toStringList(ph['wonjin']), chungColor, Icons.block_rounded);
+
+    // Fallback: sub-categories 없으면 hap/chung 필드 사용
+    if (positiveWidgets.isEmpty) {
+      // hap에서도 "일부" 방합 제외
+      final hapFiltered = _toStringList(ph['hap'])
+          .where((e) => !e.contains('일부'))
+          .toList();
+      _addCategoryIfNotEmpty(positiveWidgets, theme, '합 (合)',
+          hapFiltered, const Color(0xFFEC4899), Icons.favorite_rounded);
+    }
+
+    if (positiveWidgets.isEmpty && negativeWidgets.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        if (positiveWidgets.isNotEmpty)
+          _buildGroupCard(
+            theme,
+            title: '合 조화',
+            subtitle: '방합 · 삼합 · 육합 · 천간합 · 반합',
+            icon: Icons.brightness_5_rounded,
+            accentColor: const Color(0xFFD4637B),
+            children: positiveWidgets,
+          ),
+        if (positiveWidgets.isNotEmpty && negativeWidgets.isNotEmpty)
+          const SizedBox(height: 16),
+        if (negativeWidgets.isNotEmpty)
+          _buildGroupCard(
+            theme,
+            title: '沖 긴장',
+            subtitle: '충 · 형 · 해 · 파 · 원진',
+            icon: Icons.contrast_rounded,
+            accentColor: const Color(0xFF6B7F99),
+            children: negativeWidgets,
+          ),
+      ],
+    );
+  }
+
+  /// 방합: "일부" 포함된 항목 제외 (세 글자 완전 방합만)
+  List<String> _filterFullBanghap(List<String> entries) {
+    return entries.where((e) => !e.contains('일부')).toList();
+  }
+
+  void _addCategoryIfNotEmpty(
+    List<Widget> target,
+    AppThemeExtension theme,
+    String categoryTitle,
+    List<String> entries,
+    Color color,
+    IconData icon,
+  ) {
+    if (entries.isEmpty) return;
+    final deduped = _dedupEntries(entries);
+    if (deduped.isEmpty) return;
+    if (target.isNotEmpty) {
+      target.add(const SizedBox(height: 12));
+    }
+    target.add(_buildCategoryCard(theme, categoryTitle, deduped, color, icon));
+  }
+
+  Widget _buildGroupCard(
+    AppThemeExtension theme, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
+    required List<Widget> children,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentColor.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.bar_chart_rounded,
-                    color: Colors.blue, size: 20),
+          // Header with gradient
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  accentColor.withValues(alpha: 0.12),
+                  accentColor.withValues(alpha: 0.04),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(width: 12),
-              Text(
-                '카테고리별 점수',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: theme.textPrimary,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: accentColor, size: 22),
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: accentColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          ...scores.entries.map((entry) {
-            final categoryScore = (entry.value as num?)?.toInt() ?? 0;
-            final color = _getScoreColor(categoryScore);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(children: children),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(
+    AppThemeExtension theme,
+    String title,
+    List<({String name, String? hanja, int count})> items,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Category title
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Items
+          ...items.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final item = entry.value;
+            final explanation = _getHapchungExplanation(item.name);
+            final isLast = idx == items.length - 1;
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+              decoration: isLast
+                  ? null
+                  : BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: color.withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        categoryIcons[entry.key] ?? Icons.circle,
-                        size: 18,
-                        color: color,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        categoryLabels[entry.key] ?? entry.key,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: theme.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '$categoryScore점',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
                           color: color,
+                          shape: BoxShape.circle,
                         ),
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: item.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.textPrimary,
+                                ),
+                              ),
+                              if (item.hanja != null)
+                                TextSpan(
+                                  text: ' (${item.hanja})',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: theme.textMuted,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (item.count > 1)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '×${item.count}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: color,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: categoryScore / 100,
-                      backgroundColor: theme.isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.black.withValues(alpha: 0.05),
-                      valueColor: AlwaysStoppedAnimation<Color>(color),
-                      minHeight: 6,
+                  if (explanation.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Text(
+                        explanation,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.5,
+                          color: theme.textMuted,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             );
           }),
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Widget _buildHapchungSection(
-      AppThemeExtension theme, CompatibilityAnalysisModel analysis) {
-    final pairHapchung = analysis.pairHapchung;
-    if (pairHapchung == null) return const SizedBox.shrink();
+  // ===== Hapchung Helper Methods =====
 
-    final hapList =
-        (pairHapchung['hap'] as List<dynamic>?)?.cast<String>() ?? [];
-    final chungList =
-        (pairHapchung['chung'] as List<dynamic>?)?.cast<String>() ?? [];
-    final hyungList =
-        (pairHapchung['hyung'] as List<dynamic>?)?.cast<String>() ?? [];
-    final haeList =
-        (pairHapchung['hae'] as List<dynamic>?)?.cast<String>() ?? [];
-    final paList =
-        (pairHapchung['pa'] as List<dynamic>?)?.cast<String>() ?? [];
-    final wonjinList =
-        (pairHapchung['wonjin'] as List<dynamic>?)?.cast<String>() ?? [];
-
-    final hasContent = hapList.isNotEmpty ||
-        chungList.isNotEmpty ||
-        hyungList.isNotEmpty ||
-        haeList.isNotEmpty ||
-        paList.isNotEmpty ||
-        wonjinList.isNotEmpty;
-
-    if (!hasContent) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.sync_alt_rounded,
-                    color: Colors.purple, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '합충형해파 분석',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: theme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ...hapList.map((h) => _buildHapchungChip(h, '합', Colors.pink)),
-              ...chungList.map((c) => _buildHapchungChip(c, '충', Colors.red)),
-              ...hyungList
-                  .map((h) => _buildHapchungChip(h, '형', Colors.orange)),
-              ...haeList.map((h) => _buildHapchungChip(h, '해', Colors.amber)),
-              ...paList.map((p) => _buildHapchungChip(p, '파', Colors.blue)),
-              ...wonjinList
-                  .map((w) => _buildHapchungChip(w, '원진', Colors.indigo)),
-            ],
-          ),
-        ],
-      ),
-    );
+  List<String> _toStringList(dynamic value) {
+    if (value is List) return value.map((e) => e.toString()).toList();
+    return [];
   }
 
-  Widget _buildHapchungChip(String text, String type, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              type,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
+  List<({String name, String? hanja, int count})> _dedupEntries(
+      List<String> entries) {
+    final Map<String, ({String? hanja, int count})> grouped = {};
+    for (final entry in entries) {
+      final name = _extractCoreName(entry);
+      final hanja = _extractHanja(entry);
+      if (grouped.containsKey(name)) {
+        final prev = grouped[name]!;
+        grouped[name] = (hanja: prev.hanja ?? hanja, count: prev.count + 1);
+      } else {
+        grouped[name] = (hanja: hanja, count: 1);
+      }
+    }
+    return grouped.entries
+        .map((e) => (name: e.key, hanja: e.value.hanja, count: e.value.count))
+        .toList();
+  }
+
+  String _extractCoreName(String entry) {
+    var text = entry;
+    // Remove [type] prefix like [삼합], [반합]
+    text = text.replaceAll(RegExp(r'^\[.+?\]\s*'), '');
+    // Remove position info before ": "
+    final colonIdx = text.indexOf(': ');
+    if (colonIdx != -1) {
+      text = text.substring(colonIdx + 2);
+    }
+    // Take text before first parenthesis
+    final parenIdx = text.indexOf('(');
+    if (parenIdx > 0) {
+      text = text.substring(0, parenIdx);
+    }
+    return text.trim();
+  }
+
+  String? _extractHanja(String entry) {
+    var text = entry;
+    text = text.replaceAll(RegExp(r'^\[.+?\]\s*'), '');
+    final colonIdx = text.indexOf(': ');
+    if (colonIdx != -1) text = text.substring(colonIdx + 2);
+    final match = RegExp(r'\(([^)]+)\)').firstMatch(text);
+    return match?.group(1);
+  }
+
+  String _getHapchungExplanation(String name) {
+    final key = name.replaceAll(' ', '');
+    return hapchungExplanations[key] ??
+        hapchungExplanations[name] ??
+        '';
   }
 
   Widget _buildListSection(
@@ -822,68 +1220,10 @@ class CompatibilityDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnalysisInfo(
-      AppThemeExtension theme, CompatibilityAnalysisModel analysis) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : Colors.black.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _buildInfoRow(theme, '분석 유형', analysis.analysisTypeLabel),
-          if (analysis.modelName != null)
-            _buildInfoRow(theme, '분석 모델', analysis.modelName!),
-          if (analysis.tokensUsed != null)
-            _buildInfoRow(theme, '토큰 사용량', '${analysis.tokensUsed}'),
-          if (analysis.processingTimeMs != null)
-            _buildInfoRow(
-                theme, '처리 시간', '${analysis.processingTimeMs}ms'),
-          _buildInfoRow(
-            theme,
-            '분석 일시',
-            _formatDate(analysis.createdAt),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(AppThemeExtension theme, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 13, color: theme.textMuted),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: theme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
   Color _getScoreColor(int score) {
-    if (score >= 80) return const Color(0xFFEC4899);
-    if (score >= 60) return const Color(0xFF3B82F6);
-    if (score >= 40) return const Color(0xFFF59E0B);
-    return const Color(0xFF6B7280);
+    if (score >= 80) return const Color(0xFFD4637B); // 로즈
+    if (score >= 60) return const Color(0xFF6B7F99); // 슬레이트
+    if (score >= 40) return const Color(0xFF9CA3AF); // 그레이
+    return const Color(0xFF6B7280); // 다크 그레이
   }
 }

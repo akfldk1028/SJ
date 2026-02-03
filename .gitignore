@@ -12,6 +12,10 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Google Service Account Keys (sensitive)
+*.json.bak
+docs/04_DK/sadam-486214-*.json
+
 # Supadart (contains API keys)
 supadart.yaml
 frontend/supadart.yaml
@@ -56,3 +60,8 @@ test_full.ps1
 test_prompt.json
 test_prompt_full.json
 tools
+docs/DEPLOY_GUIDE.md
+frontend/ADMOB_PRODUCTION_TODO.md
+docs/03_command/README_iOS.md
+supabase/migrations/20260202_add_gemini_cache_name.sql
+supabase/migrations

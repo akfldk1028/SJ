@@ -16,6 +16,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/services/error_logging_service.dart';
 import '../core/ai_constants.dart';
 import '../services/ai_api_service.dart';
 import 'common/fortune_input_data.dart';
@@ -269,8 +270,15 @@ class FortuneCoordinator {
         print(
             '[FortuneCoordinator] ✅ 2026 신년운세 완료: ${result.success ? "성공" : "실패"}');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2026 신년운세 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'yearly_2026', 'profileId': profileId},
+        );
         return Yearly2026Result.error(e.toString());
       });
 
@@ -285,8 +293,15 @@ class FortuneCoordinator {
         print(
             '[FortuneCoordinator] ✅ 이번달 운세 완료: ${result.success ? "성공" : "실패"}');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 이번달 운세 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'monthly', 'profileId': profileId},
+        );
         return MonthlyResult.error(e.toString());
       });
 
@@ -301,8 +316,15 @@ class FortuneCoordinator {
         print(
             '[FortuneCoordinator] ✅ 2025 회고운세 완료: ${result.success ? "성공" : "실패"}');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2025 회고운세 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'yearly_2025', 'profileId': profileId},
+        );
         return Yearly2025Result.error(e.toString());
       });
 
@@ -318,8 +340,15 @@ class FortuneCoordinator {
         print(
             '[FortuneCoordinator] ✅ 오늘의 일운 완료: ${result.success ? "성공" : "실패"}');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 오늘의 일운 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'daily', 'profileId': profileId},
+        );
         return DailyResult.error(e.toString());
       });
 
@@ -346,8 +375,15 @@ class FortuneCoordinator {
             : null,
         daily: dailyResult?.success == true ? dailyResult?.content : null,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('[FortuneCoordinator] ❌ 전체 에러: $e');
+      ErrorLoggingService.logError(
+        operation: 'fortune_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'fortune_coordinator.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': 'analyzeAllFortunes', 'profileId': profileId},
+      );
       return FortuneAnalysisResults.error(e.toString());
     } finally {
       // v6.1 분석 완료 시 목록에서 제거
@@ -595,8 +631,15 @@ class FortuneCoordinator {
         yearly2026Result = result;
         print('[FortuneCoordinator] ✅ 2026 신년운세 완료');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2026 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'yearly_2026', 'method': 'analyzeFortuneOnly', 'profileId': profileId},
+        );
         return Yearly2026Result.error(e.toString());
       });
 
@@ -606,8 +649,15 @@ class FortuneCoordinator {
         monthlyResult = result;
         print('[FortuneCoordinator] ✅ 이번달 운세 완료');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 월운 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'monthly', 'method': 'analyzeFortuneOnly', 'profileId': profileId},
+        );
         return MonthlyResult.error(e.toString());
       });
 
@@ -617,8 +667,15 @@ class FortuneCoordinator {
         yearly2025Result = result;
         print('[FortuneCoordinator] ✅ 2025 회고운세 완료');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2025 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'yearly_2025', 'method': 'analyzeFortuneOnly', 'profileId': profileId},
+        );
         return Yearly2025Result.error(e.toString());
       });
 
@@ -629,8 +686,15 @@ class FortuneCoordinator {
         dailyResult = result;
         print('[FortuneCoordinator] ✅ 오늘의 일운 완료');
         return result;
-      }).catchError((e) {
+      }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 일운 에러: $e');
+        ErrorLoggingService.logError(
+          operation: 'fortune_analysis',
+          errorMessage: e.toString(),
+          sourceFile: 'fortune_coordinator.dart',
+          stackTrace: stackTrace.toString(),
+          extraData: {'fortuneType': 'daily', 'method': 'analyzeFortuneOnly', 'profileId': profileId},
+        );
         return DailyResult.error(e.toString());
       });
 
@@ -645,8 +709,15 @@ class FortuneCoordinator {
         yearly2025: yearly2025Result?.success == true ? yearly2025Result?.content : null,
         daily: dailyResult?.success == true ? dailyResult?.content : null,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('[FortuneCoordinator] ❌ 에러: $e');
+      ErrorLoggingService.logError(
+        operation: 'fortune_analysis',
+        errorMessage: e.toString(),
+        sourceFile: 'fortune_coordinator.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': 'analyzeFortuneOnly', 'profileId': profileId},
+      );
       return FortuneAnalysisResults.error(e.toString());
     } finally {
       // v6.1 분석 완료 시 목록에서 제거

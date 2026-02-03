@@ -82,8 +82,9 @@ class SseStreamClient {
         print('[SSE] 스트림 연결 성공, 청크 수신 시작...');
       }
 
-      await for (final chunk in response.data!.stream) {
-        final decoded = utf8.decode(chunk);
+      // utf8.decoder.bind()로 스트림 변환 (Dart 공식 권장)
+      // 멀티바이트 UTF-8 문자(한글 등)가 청크 경계에서 잘리는 문제를 자동 처리
+      await for (final decoded in utf8.decoder.bind(response.data!.stream)) {
         sseBuffer += decoded;
 
         // 디버그: 네트워크 청크 수신 확인
@@ -257,6 +258,7 @@ class SseStreamClient {
       print('[SSE] Web 시뮬레이션 완료');
     }
   }
+
 }
 
 /// SSE 청크 데이터

@@ -6,10 +6,18 @@
 /// 질문1|질문2|질문3
 /// [/SUGGESTED_QUESTIONS]
 /// ```
+///
+/// 닫힘 태그가 없어도 파싱 가능 (AI가 가끔 닫힘 태그를 생략함)
 class SuggestedQuestionsParser {
-  /// 태그 패턴 (정규식)
-  static final _tagPattern = RegExp(
+  /// 태그 패턴 (정규식) - 닫힘 태그 포함
+  static final _tagPatternWithClose = RegExp(
     r'\[SUGGESTED_QUESTIONS\]\s*(.*?)\s*\[/SUGGESTED_QUESTIONS\]',
+    dotAll: true,
+  );
+
+  /// 열림 태그만 있는 경우 (닫힘 태그 없음)
+  static final _tagPatternOpenOnly = RegExp(
+    r'\[SUGGESTED_QUESTIONS\]\s*(.*)$',
     dotAll: true,
   );
 
@@ -17,7 +25,13 @@ class SuggestedQuestionsParser {
   ///
   /// 반환: (정제된 응답 텍스트, 후속 질문 목록)
   static ParseResult parse(String response) {
-    final match = _tagPattern.firstMatch(response);
+    // 1. 먼저 닫힘 태그가 있는 완전한 패턴 시도
+    var match = _tagPatternWithClose.firstMatch(response);
+
+    // 2. 닫힘 태그가 없으면 열림 태그만 있는 패턴 시도
+    if (match == null) {
+      match = _tagPatternOpenOnly.firstMatch(response);
+    }
 
     if (match == null) {
       // 태그가 없으면 원본 반환, 질문 없음
@@ -28,7 +42,10 @@ class SuggestedQuestionsParser {
     }
 
     // 태그 내용 추출
-    final questionsText = match.group(1)?.trim() ?? '';
+    String questionsText = match.group(1)?.trim() ?? '';
+
+    // 닫힘 태그가 텍스트에 포함되어 있으면 제거
+    questionsText = questionsText.replaceAll('[/SUGGESTED_QUESTIONS]', '').trim();
 
     // 파이프(|)로 분리하여 질문 목록 생성
     final questions = questionsText
@@ -38,12 +55,11 @@ class SuggestedQuestionsParser {
         .toList();
 
     // 태그 제거한 응답 텍스트
-    // 중요: [SUGGESTED_QUESTIONS] 태그 뒤에 쓰레기 문자가 붙을 수 있음 (Gemini 반복 버그)
-    // 태그 시작 위치 이전까지만 유지하고, 태그와 그 뒤 모든 내용 제거
+    // [SUGGESTED_QUESTIONS] 태그 시작 위치 이전까지만 유지
     final tagStartIndex = response.indexOf('[SUGGESTED_QUESTIONS]');
     final cleanedContent = tagStartIndex != -1
         ? response.substring(0, tagStartIndex).trim()
-        : response.replaceAll(_tagPattern, '').trim();
+        : response.trim();
 
     return ParseResult(
       cleanedContent: cleanedContent,

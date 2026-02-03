@@ -8,6 +8,13 @@ import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'new_year_fortune_provider.g.dart';
 
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 /// 2026년 신년운세 데이터 모델 (AI 프롬프트 JSON 구조 일치)
 class NewYearFortuneData {
   final int year;
@@ -82,7 +89,7 @@ class NewYearFortuneData {
     final overviewJson = json['overview'] as Map<String, dynamic>? ?? {};
     final overview = OverviewSection(
       keyword: overviewJson['keyword'] as String? ?? '',
-      score: (overviewJson['score'] as num?)?.toInt() ?? 0,
+      score: _safeInt(overviewJson['score']),
       opening: overviewJson['opening'] as String? ?? '',
       ilganAnalysis: overviewJson['ilganAnalysis'] as String? ?? '',
       sinsalAnalysis: overviewJson['sinsalAnalysis'] as String? ?? '',
@@ -103,7 +110,7 @@ class NewYearFortuneData {
         categories[key] = CategorySection(
           title: catJson['title'] as String? ?? '',
           icon: catJson['icon'] as String? ?? '',
-          score: (catJson['score'] as num?)?.toInt() ?? 0,
+          score: _safeInt(catJson['score']),
           summary: catJson['summary'] as String? ?? '',
           reading: catJson['reading'] as String? ?? '',
           bestMonths: _parseIntList(catJson['bestMonths']),
@@ -185,7 +192,7 @@ class NewYearFortuneData {
     }
 
     return NewYearFortuneData(
-      year: (json['year'] as num?)?.toInt() ?? 2026,
+      year: _safeInt(json['year'], 2026),
       yearGanji: json['yearGanji'] as String? ?? '병오(丙午)',
       mySajuIntro: mySajuIntro,
       yearInfo: yearInfo,
@@ -207,7 +214,7 @@ class NewYearFortuneData {
       return QuarterSection(
         period: value['period'] as String? ?? '',
         theme: value['theme'] as String? ?? '',
-        score: (value['score'] as num?)?.toInt() ?? 0,
+        score: _safeInt(value['score']),
         reading: value['reading'] as String? ?? '',
       );
     }
@@ -223,7 +230,7 @@ class NewYearFortuneData {
 
   static List<int> _parseIntList(dynamic value) {
     if (value is List) {
-      return value.map((e) => (e as num).toInt()).toList();
+      return value.map((e) => _safeInt(e)).toList();
     }
     return [];
   }
@@ -482,13 +489,20 @@ class NewYearFortune extends _$NewYearFortune {
     }
 
     final queries = Yearly2026Queries(SupabaseService.client!);
-    final result = await queries.getCached(activeProfile.id);
+    final result = await queries.getCached(activeProfile.id, includeStale: true);
 
     // 캐시가 있으면 바로 반환
     if (result != null) {
       final content = result['content'];
+      final isStale = result['_isStale'] == true;
       if (content is Map<String, dynamic>) {
-        print('[NewYearFortune] 캐시 히트 - 2026 신년운세 로드');
+        if (isStale) {
+          print('[NewYearFortune] stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
+          _triggerAnalysisIfNeeded(activeProfile.id);
+          _startStalePolling(activeProfile.id);
+        } else {
+          print('[NewYearFortune] 캐시 히트 - 2026 신년운세 로드');
+        }
         _isPolling = false;
         return NewYearFortuneData.fromJson(content);
       }
@@ -505,21 +519,30 @@ class NewYearFortune extends _$NewYearFortune {
     return null;
   }
 
+  /// 폴링 시도 횟수
+  int _pollAttempts = 0;
+
+  /// 최대 폴링 횟수 (3초 × 100 = 5분)
+  static const int _maxPollAttempts = 100;
+
   /// DB 폴링 시작 (AI 분석 완료 감지)
   void _startPolling(String profileId) {
     if (_isPolling) return;
     _isPolling = true;
+    _pollAttempts = 0;
 
-    print('[NewYearFortune] 폴링 시작 - 3초마다 DB 확인');
+    print('[NewYearFortune] 폴링 시작 - 3초마다 DB 확인 (최대 ${_maxPollAttempts}회)');
     _pollForData(profileId);
   }
 
-  /// 주기적으로 DB 확인
+  /// 주기적으로 DB 확인 (최대 _maxPollAttempts 회)
   Future<void> _pollForData(String profileId) async {
     if (!_isPolling) return;
 
     await Future.delayed(const Duration(seconds: 3));
     if (!_isPolling) return;
+
+    _pollAttempts++;
 
     // 오프라인 모드 체크
     if (!SupabaseService.isConnected) {
@@ -531,13 +554,17 @@ class NewYearFortune extends _$NewYearFortune {
     final result = await queries.getCached(profileId);
 
     if (result != null && result['content'] != null) {
-      print('[NewYearFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신');
+      print('[NewYearFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
       _isPolling = false;
       _isAnalyzing = false;
       ref.invalidateSelf();
+    } else if (_pollAttempts >= _maxPollAttempts) {
+      print('[NewYearFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 중지');
+      _isPolling = false;
+      _isAnalyzing = false;
     } else {
       // 데이터 없으면 계속 폴링
-      print('[NewYearFortune] 폴링 중 - 데이터 아직 없음');
+      print('[NewYearFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
       _pollForData(profileId);
     }
   }
@@ -595,9 +622,51 @@ class NewYearFortune extends _$NewYearFortune {
     });
   }
 
+  /// stale 데이터 폴링 (백그라운드 재생성 완료 감지)
+  bool _isStalePolling = false;
+  int _stalePollAttempts = 0;
+  static const int _maxStalePollAttempts = 60;
+
+  void _startStalePolling(String profileId) {
+    if (_isStalePolling) return;
+    _isStalePolling = true;
+    _stalePollAttempts = 0;
+    print('[NewYearFortune] stale 폴링 시작 - 5초마다 fresh 데이터 확인');
+    _pollForFreshData(profileId);
+  }
+
+  Future<void> _pollForFreshData(String profileId) async {
+    if (!_isStalePolling) return;
+
+    await Future.delayed(const Duration(seconds: 5));
+    if (!_isStalePolling) return;
+
+    _stalePollAttempts++;
+
+    if (!SupabaseService.isConnected) {
+      _isStalePolling = false;
+      return;
+    }
+
+    final queries = Yearly2026Queries(SupabaseService.client!);
+    final result = await queries.getCached(profileId);
+
+    if (result != null && result['content'] != null) {
+      print('[NewYearFortune] fresh 데이터 발견! UI 자동 갱신 ($_stalePollAttempts회)');
+      _isStalePolling = false;
+      ref.invalidateSelf();
+    } else if (_stalePollAttempts >= _maxStalePollAttempts) {
+      print('[NewYearFortune] stale 폴링 타임아웃 - 중지');
+      _isStalePolling = false;
+    } else {
+      _pollForFreshData(profileId);
+    }
+  }
+
   /// 운세 새로고침 (캐시 무효화)
   Future<void> refresh() async {
     _isPolling = false;
+    _isStalePolling = false;
     _isAnalyzing = false;
     ref.invalidateSelf();
   }

@@ -227,9 +227,10 @@ class _ChatInputFieldState extends State<ChatInputField> {
                       vertical: 14,
                     ),
                   ),
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _handleSend(),
-                  maxLines: null,
+                  textInputAction: TextInputAction.newline, // 엔터 = 줄바꿈
+                  keyboardType: TextInputType.multiline, // 멀티라인 키보드
+                  maxLines: 5, // 최대 5줄까지 확장
+                  minLines: 1, // 최소 1줄
                 ),
               ),
             ),

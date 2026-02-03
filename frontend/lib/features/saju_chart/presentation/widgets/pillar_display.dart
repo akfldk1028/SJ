@@ -35,7 +35,7 @@ class PillarDisplay extends StatelessWidget {
             label,
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 10,
+              fontSize: 13,
               letterSpacing: 1,
             ),
           ),

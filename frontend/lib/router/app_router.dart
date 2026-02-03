@@ -25,6 +25,7 @@ import '../features/saju_chart/presentation/screens/saju_detail_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_chart_screen.dart';
 import '../features/saju_chart/presentation/screens/saju_graph_screen.dart';
 import '../features/daily_fortune/presentation/screens/daily_fortune_detail_screen.dart';
+import '../features/daily_fortune/presentation/screens/category_fortune_detail_screen.dart';
 import '../features/new_year_fortune/presentation/screens/new_year_fortune_screen.dart';
 import '../features/traditional_saju/presentation/screens/lifetime_fortune_screen.dart';
 import '../features/compatibility/presentation/screens/compatibility_screen.dart';
@@ -33,6 +34,7 @@ import '../features/compatibility/presentation/screens/compatibility_detail_scre
 import '../features/settings/presentation/screens/icon_generator_screen.dart';
 import '../features/monthly_fortune/presentation/screens/monthly_fortune_screen.dart';
 import '../features/yearly_2025_fortune/presentation/screens/yearly_2025_fortune_screen.dart';
+import '../purchase/purchase.dart';
 
 part 'app_router.g.dart';
 
@@ -139,7 +141,20 @@ GoRouter appRouter(Ref ref) {
         name: 'iconGenerator',
         builder: (context, state) => const IconGeneratorScreen(),
       ),
+      GoRoute(
+        path: Routes.settingsPremium,
+        name: 'settingsPremium',
+        builder: (context, state) => const PaywallScreen(),
+      ),
       // Fortune 페이지
+      GoRoute(
+        path: Routes.categoryFortuneDetail,
+        name: 'categoryFortuneDetail',
+        builder: (context, state) {
+          final key = state.uri.queryParameters['key'] ?? 'wealth';
+          return CategoryFortuneDetailScreen(categoryKey: key);
+        },
+      ),
       GoRoute(
         path: Routes.dailyFortuneDetail,
         name: 'dailyFortuneDetail',
@@ -217,9 +232,12 @@ GoRouter appRouter(Ref ref) {
             builder: (context, state) {
               final chatType = state.uri.queryParameters['type'];
               final profileId = state.uri.queryParameters['profileId'];
+              final autoMention = state.uri.queryParameters['autoMention'] == 'true';
               return SajuChatShell(
+                key: ValueKey('$chatType-$profileId-$autoMention'),
                 chatType: chatType,
                 targetProfileId: profileId,
+                autoMention: autoMention,
               );
             },
           ),
@@ -236,7 +254,10 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: Routes.sajuDetail,
             name: 'sajuDetail',
-            builder: (context, state) => const SajuDetailScreen(),
+            builder: (context, state) {
+              final profileId = state.uri.queryParameters['profileId'];
+              return SajuDetailScreen(profileId: profileId);
+            },
           ),
         ],
       ),

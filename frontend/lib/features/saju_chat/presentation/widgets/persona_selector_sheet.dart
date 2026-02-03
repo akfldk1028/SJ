@@ -73,7 +73,7 @@ class PersonaSelectorSheet extends StatelessWidget {
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             childAspectRatio: 1.3,
-            children: AiPersona.values.map((persona) {
+            children: AiPersona.visibleValues.map((persona) {
               return _PersonaCard(
                 persona: persona,
                 isSelected: persona == currentPersona,

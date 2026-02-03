@@ -65,6 +65,7 @@ class BaseStPersona extends PersonaBase {
   @override
   List<String> get keywords => ['현실', '직설', '실행', '간결', 'ST'];
 
+
   @override
   String get systemPrompt => '''
 [Base Persona: ST 현실형 실행가]
@@ -96,5 +97,8 @@ class BaseStPersona extends PersonaBase {
 - "결론:", "이유:", "추천:" 식의 구조화
 - 모호한 표현 배제
 - 실행 가능한 액션 아이템 제시
+
+## 추천 질문 스타일
+- 당장 행동으로 옮길 수 있는 실용적이고 직설적인 질문을 던져라
 ''';
 }

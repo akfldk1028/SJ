@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,15 +42,14 @@ class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserv
   }
 
   void _applySystemUiStyle() {
-    final themeExt = ref.read(currentThemeExtensionProvider);
-    // 상태바 색상을 앱바 배경색과 동일하게 설정
-    // 테마의 backgroundColor: #0A0A0F
-    const statusBarColor = Color(0xFF0A0A0F);
+    // Manual 모드: 상태바만 표시, 하단 네비게이션 바 숨김
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top],
+    );
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: statusBarColor,
+      statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: statusBarColor,
-      systemNavigationBarIconBrightness: Brightness.light,
     ));
   }
 
@@ -110,10 +110,13 @@ class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserv
           );
 
     return ShadApp.router(
-      title: '사담',
+      title: 'common.appName'.tr(),
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: shadThemeData,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       materialThemeBuilder: (context, theme) {
         return currentTheme;
       },

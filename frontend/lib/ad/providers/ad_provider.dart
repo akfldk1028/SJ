@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../purchase/providers/purchase_provider.dart';
 import '../ad_service.dart';
 import '../ad_strategy.dart';
 
@@ -92,6 +93,12 @@ class AdController extends _$AdController {
       return const AdCheckResult.skip('Web 플랫폼 미지원');
     }
 
+    // 인앱구매 광고 제거 체크
+    final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
+    if (purchaseNotifier.isPremium) {
+      return const AdCheckResult.skip('광고 제거 구매');
+    }
+
     // 일일 한도 체크
     if (state.interstitialCount >= AdStrategy.interstitialDailyLimit) {
       return const AdCheckResult.skip('일일 한도 초과');
@@ -128,12 +135,65 @@ class AdController extends _$AdController {
   Future<bool> onNewSession() async {
     if (!AdStrategy.showInterstitialOnNewSession) return false;
 
+    // 인앱구매 광고 제거 체크
+    final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
+    if (purchaseNotifier.isPremium) {
+      debugPrint('[AdController] 광고 제거 구매자 - 스킵');
+      return false;
+    }
+
     if (state.newSessionAdCount >= AdStrategy.newSessionInterstitialDailyLimit) {
       debugPrint('[AdController] 새 세션 광고 일일 한도 초과');
       return false;
     }
 
     final result = await showInterstitial();
+    if (result) {
+      state = state.copyWith(newSessionAdCount: state.newSessionAdCount + 1);
+      await _saveState();
+    }
+
+    return result;
+  }
+
+  /// 새 세션 시작 시 보상형 광고 (스킵해도 채팅 진행)
+  Future<bool> onNewSessionRewarded() async {
+    if (kIsWeb) return false;
+    if (!AdStrategy.showInterstitialOnNewSession) return false;
+
+    // 인앱구매 광고 제거 체크
+    final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
+    if (purchaseNotifier.isPremium) {
+      debugPrint('[AdController] 광고 제거 구매자 - 스킵');
+      return false;
+    }
+
+    // 일일 한도 체크
+    if (state.newSessionAdCount >= AdStrategy.newSessionInterstitialDailyLimit) {
+      debugPrint('[AdController] 새 세션 광고 일일 한도 초과');
+      return false;
+    }
+
+    // Rewarded 광고 로드 안 됐으면 대기 (최대 5초)
+    if (!AdService.instance.isRewardedLoaded) {
+      debugPrint('[AdController] Rewarded 로드 대기...');
+      final loaded = await AdService.instance.waitForRewardedLoad(
+        timeout: const Duration(seconds: 5),
+      );
+      if (!loaded) {
+        debugPrint('[AdController] Rewarded 로드 실패 - 스킵');
+        return false;
+      }
+    }
+
+    // 보상형 광고 표시 (스킵/닫기해도 채팅은 진행)
+    final result = await AdService.instance.showRewardedAd(
+      onRewarded: (amount, type) {
+        debugPrint('[AdController] 새 세션 보상: $amount $type');
+      },
+    );
+
+    // 카운터 증가 (표시 시도한 경우)
     if (result) {
       state = state.copyWith(newSessionAdCount: state.newSessionAdCount + 1);
       await _saveState();

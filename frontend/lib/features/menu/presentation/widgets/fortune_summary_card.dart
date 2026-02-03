@@ -125,7 +125,10 @@ class FortuneSummaryCard extends ConsumerWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, AppThemeExtension theme, Object error) {
-    return _buildFortuneCard(context, theme, _getSampleFortuneData());
+    // 에러 원인 로깅
+    print('[FortuneSummaryCard] ❌ 에러 발생: $error');
+    // 에러 시에도 분석 중 카드 표시 (목업 데이터 대신)
+    return _buildAnalyzingCard(theme);
   }
 
   DailyFortuneData _getSampleFortuneData() {
@@ -234,11 +237,8 @@ class FortuneSummaryCard extends ConsumerWidget {
           // 오늘의 한마디 (시간대별 운세 아래, 운세 분석 위)
           _buildTodayMessageSection(context, theme, fortune.affirmation),
           SizedBox(height: context.scaledPadding(16)),
-          // 4개 카테고리 통계 그리드
+          // 4개 카테고리 통계 그리드 + 오늘의 행운
           _buildCategoryStatsGrid(context, theme, fortune),
-          SizedBox(height: context.scaledPadding(16)),
-          // 오늘의 행운 아이템
-          _buildLuckyItemsRow(context, theme, fortune.lucky),
         ],
       ),
     );
@@ -473,25 +473,25 @@ class FortuneSummaryCard extends ConsumerWidget {
       {'key': 'health', 'icon': Icons.directions_run_rounded, 'label': '건강', 'color': const Color(0xFF10B981)},
     ];
 
-    return GestureDetector(
-      onTap: () => context.push('/fortune/daily'),
-      child: Container(
-        padding: EdgeInsets.all(context.scaledPadding(12)),
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: theme.isDark ? _shadowDark : _shadowLight,
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // 헤더
-            Row(
+    return Container(
+      padding: EdgeInsets.all(context.scaledPadding(12)),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: theme.isDark ? _shadowDark : _shadowLight,
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 헤더 (탭하면 오늘의 운세 상세로)
+          GestureDetector(
+            onTap: () => context.push('/fortune/daily'),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
@@ -509,6 +509,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
             SizedBox(height: context.scaledPadding(8)),
             // 2x2 그리드
             GridView.builder(
@@ -524,20 +525,32 @@ class FortuneSummaryCard extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final cat = categories[index];
                 final score = fortune.getCategoryScore(cat['key'] as String);
-                return _buildStatCard(context, 
-                  theme,
-                  cat['icon'] as IconData,
-                  cat['label'] as String,
-                  score,
-                  cat['color'] as Color,
+                return GestureDetector(
+                  onTap: () => context.push(
+                    '/fortune/daily/category?key=${cat['key']}',
+                  ),
+                  child: _buildStatCard(context,
+                    theme,
+                    cat['icon'] as IconData,
+                    cat['label'] as String,
+                    score,
+                    cat['color'] as Color,
+                  ),
                 );
               },
             ),
+            // 구분선
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: context.scaledPadding(12)),
+              child: Divider(color: theme.isDark ? Colors.white12 : Colors.black12, height: 1),
+            ),
+            // 오늘의 행운 (운세분석 카드 내부)
+            _buildLuckyItemsInline(context, theme, fortune.lucky),
           ],
         ),
-      ),
-    );
+      );
   }
+
 
   Widget _buildStatCard(BuildContext context,
     AppThemeExtension theme,
@@ -615,6 +628,53 @@ class FortuneSummaryCard extends ConsumerWidget {
   }
 
 
+  Widget _buildLuckyItemsInline(BuildContext context, AppThemeExtension theme, LuckyInfo lucky) {
+    final items = [
+      {'icon': Icons.access_time_rounded, 'label': '행운의 시간', 'value': lucky.time},
+      {'icon': Icons.palette_outlined, 'label': '행운의 색상', 'value': lucky.color},
+      {'icon': Icons.tag_rounded, 'label': '행운의 숫자', 'value': '${lucky.number}'},
+      {'icon': Icons.explore_outlined, 'label': '행운의 방향', 'value': lucky.direction},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.star_rounded, color: theme.accentColor, size: context.scaledIcon(16)),
+            const SizedBox(width: 4),
+            Text(
+              '오늘의 행운',
+              style: TextStyle(
+                fontSize: context.scaledFont(13),
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.scaledPadding(8)),
+        for (int i = 0; i < items.length; i += 2) ...[
+          if (i > 0) SizedBox(height: context.scaledPadding(8)),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _buildLuckyItem(context, theme, items[i])),
+                SizedBox(width: context.scaledPadding(8)),
+                Expanded(
+                  child: i + 1 < items.length
+                      ? _buildLuckyItem(context, theme, items[i + 1])
+                      : const SizedBox(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildLuckyItemsRow(BuildContext context, AppThemeExtension theme, LuckyInfo lucky) {
     final items = [
       {'icon': Icons.access_time_rounded, 'label': '행운의 시간', 'value': lucky.time},
@@ -654,62 +714,78 @@ class FortuneSummaryCard extends ConsumerWidget {
             ],
           ),
           SizedBox(height: context.scaledPadding(8)),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            childAspectRatio: 3.0,
-            mainAxisSpacing: context.scaledPadding(8),
-            crossAxisSpacing: context.scaledPadding(8),
-            children: items.map((item) {
-              return Container(
-                padding: EdgeInsets.symmetric(horizontal: context.scaledPadding(12), vertical: context.scaledPadding(8)),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      item['icon'] as IconData,
-                      color: theme.primaryColor,
-                      size: context.scaledIcon(18),
-                    ),
-                    SizedBox(width: context.scaledPadding(8)),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            item['label'] as String,
-                            style: TextStyle(
-                              fontSize: context.scaledFont(10),
-                              color: theme.textMuted,
-                            ),
-                          ),
-                          Text(
-                            item['value'] as String,
-                            style: TextStyle(
-                              fontSize: context.scaledFont(13),
-                              fontWeight: FontWeight.w600,
-                              color: theme.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+          // 2x2 레이아웃 (텍스트 길이에 따라 높이 자동 조절)
+          for (int i = 0; i < items.length; i += 2) ...[
+            if (i > 0) SizedBox(height: context.scaledPadding(8)),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _buildLuckyItem(context, theme, items[i])),
+                  SizedBox(width: context.scaledPadding(8)),
+                  Expanded(
+                    child: i + 1 < items.length
+                        ? _buildLuckyItem(context, theme, items[i + 1])
+                        : const SizedBox(),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
+  Widget _buildLuckyItem(BuildContext context, AppThemeExtension theme, Map<String, dynamic> item) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.scaledPadding(12),
+        vertical: context.scaledPadding(10),
+      ),
+      decoration: BoxDecoration(
+        color: theme.primaryColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: context.scaledPadding(2)),
+            child: Icon(
+              item['icon'] as IconData,
+              color: theme.primaryColor,
+              size: context.scaledIcon(18),
+            ),
+          ),
+          SizedBox(width: context.scaledPadding(8)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['label'] as String,
+                  style: TextStyle(
+                    fontSize: context.scaledFont(10),
+                    color: theme.textMuted,
+                  ),
+                ),
+                SizedBox(height: context.scaledPadding(2)),
+                Text(
+                  item['value'] as String,
+                  style: TextStyle(
+                    fontSize: context.scaledFont(13),
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// 오늘의 한마디 섹션
   Widget _buildTodayMessageSection(

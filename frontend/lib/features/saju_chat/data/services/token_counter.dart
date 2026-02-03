@@ -21,10 +21,10 @@ class TokenCounter {
   };
 
   /// 안전 마진 (출력 토큰 + 버퍼)
-  /// maxOutputTokens(16384) + 여유분
-  static const int safetyMargin = 18000;
+  /// 실제 채팅 max_tokens(1024) + 여유분
+  static const int safetyMargin = 2000;
 
-  /// 기본 최대 입력 토큰 (일일 quota와 동일)
+  /// 기본 최대 입력 토큰 (컨텍스트 윈도우 크기, 일일 quota와 별개)
   static const int defaultMaxInputTokens = 50000;
 
   /// 텍스트의 토큰 수 추정

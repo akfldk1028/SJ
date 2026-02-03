@@ -232,8 +232,8 @@ class SajuAnalysisRepository {
 
   /// 동기화 대기 목록에 추가
   void _markForSync(String id) {
-    // chat_sessions Box도 Map 타입으로 열렸으므로 타입 일치
-    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    // saju_sync 전용 Box 사용
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('saju_sync');
     final pendingData = syncBox.get('pending_saju_sync');
     final pendingSync = pendingData != null 
         ? List<String>.from(pendingData['items'] ?? <String>[])
@@ -246,7 +246,7 @@ class SajuAnalysisRepository {
 
   /// 동기화 대기 목록에서 제거
   void _unmarkForSync(String id) {
-    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('saju_sync');
     final pendingData = syncBox.get('pending_saju_sync');
     final pendingSync = pendingData != null 
         ? List<String>.from(pendingData['items'] ?? <String>[])
@@ -263,7 +263,7 @@ class SajuAnalysisRepository {
       return SyncResult(synced: 0, failed: 0, pending: _getPendingSyncCount());
     }
 
-    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('saju_sync');
     final pendingData = syncBox.get('pending_saju_sync');
     final pendingSync = pendingData != null 
         ? List<String>.from(pendingData['items'] ?? <String>[])
@@ -297,7 +297,7 @@ class SajuAnalysisRepository {
 
   /// 동기화 대기 개수
   int _getPendingSyncCount() {
-    final syncBox = Hive.box<Map<dynamic, dynamic>>('chat_sessions');
+    final syncBox = Hive.box<Map<dynamic, dynamic>>('saju_sync');
     final pendingData = syncBox.get('pending_saju_sync');
     if (pendingData == null) return 0;
     final items = pendingData['items'];
