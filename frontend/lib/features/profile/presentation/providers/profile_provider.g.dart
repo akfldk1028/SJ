@@ -82,7 +82,7 @@ final activeProfileProvider =
     );
 
 typedef _$ActiveProfile = AutoDisposeAsyncNotifier<SajuProfile?>;
-String _$profileFormHash() => r'ad167edc87a9a30211d48b6f32a39350c936803f';
+String _$profileFormHash() => r'fe4dacd9c79a202932679a73f9e670e65c25141d';
 
 /// 프로필 폼 Provider
 ///

@@ -770,6 +770,10 @@ class ProfileForm extends _$ProfileForm {
   }
 
   /// Fortune 분석 (daily 포함) - 완료 시 즉시 UI 갱신
+  ///
+  /// v7.3 Fix: analyzeFortuneOnly() 사용
+  /// - analyzeAllFortunes()는 profileName/birthDate/gender를 외부에서 전달받아야 함
+  /// - analyzeFortuneOnly()는 내부에서 DB 조회하여 자동으로 채움
   void _triggerFortuneAnalysis(String userId, String profileId) {
     print('[Profile] 🔮 Fortune 분석 시작 (daily 포함)...');
 
@@ -780,12 +784,10 @@ class ProfileForm extends _$ProfileForm {
     );
 
     // fire-and-forget
-    fortuneCoordinator.analyzeAllFortunes(
+    // v7.3: analyzeFortuneOnly() 사용 - 프로필 정보를 내부에서 DB 조회
+    fortuneCoordinator.analyzeFortuneOnly(
       userId: userId,
       profileId: profileId,
-      profileName: '',  // 내부에서 조회됨
-      birthDate: '',
-      gender: '',
     ).then((results) {
       print('[Profile] ✅ Fortune 분석 완료! (daily: ${results.daily != null})');
       // Fortune 완료 즉시 UI 갱신
