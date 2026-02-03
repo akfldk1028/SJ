@@ -50,9 +50,15 @@ class ParticipantResolver {
     if (isCompatibilityMode) {
       person1Id = effectiveParticipantIds[0];
       person2Id = effectiveParticipantIds[1];
-      if (kDebugMode) {
-        print('   ✅ 궁합 모드 활성화: person1Id=$person1Id, person2Id=$person2Id');
+      // Phase 59: 3명째 이후 추가 참가자 처리
+      if (effectiveParticipantIds.length > 2) {
+        extraMentionIds = effectiveParticipantIds.sublist(2);
       }
+      if (kDebugMode) {
+        print('   ✅ 궁합 모드 활성화: person1Id=$person1Id, person2Id=$person2Id, extra=${extraMentionIds.length}명');
+      }
+      // Phase 59: 첫 메시지에서 참가자들을 chat_mentions에 저장 (나중에 추가 가능하도록)
+      await _saveMergedParticipants(sessionId, effectiveParticipantIds);
     } else if (targetProfileId != null) {
       // 하위 호환: 단일 targetProfileId만 있는 경우
       // chat_mentions에서 실제 participantIds를 복원하여 정확한 person1/person2 결정
@@ -138,11 +144,108 @@ class ParticipantResolver {
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 59: 참가자 추가 모드 (기존 궁합 세션에 1명씩 추가)
+    // - 새 멘션(effectiveParticipantIds)이 있고, 기존 chat_mentions가 있으면 병합
+    // - 예: 첫 메시지 2명 → 두 번째 메시지에서 1명 추가 → 총 3명
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
+      try {
+        final existingMentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+
+        if (existingMentions is List && existingMentions.isNotEmpty) {
+          // 기존 참가자 ID 목록
+          final existingIds = existingMentions
+              .map((m) => m['target_profile_id'] as String?)
+              .where((id) => id != null)
+              .cast<String>()
+              .toList();
+
+          // 새 멘션 중 기존에 없는 것만 추가
+          final newIds = effectiveParticipantIds
+              .where((id) => !existingIds.contains(id))
+              .toList();
+
+          if (newIds.isNotEmpty) {
+            // 기존 + 새로운 참가자 병합
+            final mergedIds = [...existingIds, ...newIds];
+
+            if (kDebugMode) {
+              print('   🔄 Phase 59: 참가자 추가 모드');
+              print('      기존: $existingIds (${existingIds.length}명)');
+              print('      추가: $newIds (${newIds.length}명)');
+              print('      병합: $mergedIds (${mergedIds.length}명)');
+            }
+
+            // 병합된 참가자로 재설정
+            if (mergedIds.length >= 2) {
+              person1Id = mergedIds[0];
+              person2Id = mergedIds[1];
+              isCompatibilityMode = true;
+
+              // 3명째 이후는 extraMentionIds에 추가
+              extraMentionIds = mergedIds.length > 2
+                  ? mergedIds.sublist(2)
+                  : [];
+
+              if (kDebugMode) {
+                print('   ✅ 병합 완료: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명');
+              }
+
+              // Phase 59: 병합된 참가자를 chat_mentions에 저장
+              await _saveMergedParticipants(sessionId, mergedIds);
+            }
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('   ⚠️ Phase 59: 참가자 병합 중 오류: $e');
+        }
+      }
+    }
+
     return ParticipantResolution(
       isCompatibilityMode: isCompatibilityMode,
       person1Id: person1Id,
       person2Id: person2Id,
       extraMentionIds: extraMentionIds,
     );
+  }
+
+  /// Phase 59: 병합된 참가자를 chat_mentions에 저장
+  ///
+  /// 기존 chat_mentions 삭제 후 병합된 전체 목록 저장
+  static Future<void> _saveMergedParticipants(
+    String sessionId,
+    List<String> participantIds,
+  ) async {
+    try {
+      // 기존 멘션 삭제
+      await Supabase.instance.client
+          .from('chat_mentions')
+          .delete()
+          .eq('session_id', sessionId);
+
+      // 새 멘션 저장 (순서 유지)
+      final mentionRows = participantIds.asMap().entries.map((entry) => {
+            'session_id': sessionId,
+            'target_profile_id': entry.value,
+            'mention_order': entry.key,
+          }).toList();
+
+      await Supabase.instance.client.from('chat_mentions').insert(mentionRows);
+
+      if (kDebugMode) {
+        print('   ✅ Phase 59: chat_mentions 저장 완료 (${participantIds.length}명)');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('   ⚠️ Phase 59: chat_mentions 저장 실패: $e');
+      }
+    }
   }
 }

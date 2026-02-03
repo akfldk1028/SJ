@@ -92,6 +92,10 @@ class MentionSendHandler {
   /// Phase 56-57: 향상된 멘션 파싱 로직
   /// - "[나 제외]" 패턴 또는 두 멘션 모두 "나"가 아닌 경우 감지
   /// - 2단계 파싱: 첫 번째 멘션으로 기준 인물 파악 후 관계 재조회
+  ///
+  /// Phase 58: 캐시 무효화 추가
+  /// - 대화 도중 인연 등록 후 멘션 시 캐시된 관계 목록 문제 해결
+  /// - 멘션 파싱 전 relationListProvider 캐시 무효화
   static Future<MentionSendParams> _parseMentionsFromText({
     required String text,
     required WidgetRef ref,
@@ -103,6 +107,16 @@ class MentionSendHandler {
     String? targetId;
     List<String>? participantIds;
     bool includesOwner = true;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 58: 관계 목록 캐시 무효화 (대화 도중 인연 등록 후 멘션 시 필수)
+    // - 채팅 화면에서 인연 등록 화면으로 갔다가 돌아오면 캐시가 stale
+    // - 멘션 파싱 전 무효화하여 최신 관계 목록 사용
+    // ═══════════════════════════════════════════════════════════════════════════
+    ref.invalidate(relationListProvider(activeProfileId));
+    if (kDebugMode) {
+      print('[MentionSendHandler] Phase 58: relationListProvider 캐시 무효화 완료');
+    }
 
     // Phase 56-57: 향상된 멘션 파싱 로직
     // "[나 제외]" 패턴 또는 두 멘션 모두 "나"가 아닌 경우 감지
@@ -117,7 +131,7 @@ class MentionSendHandler {
         (allMentions.length >= 2 && !hasOwnerMention);
 
     if (kDebugMode) {
-      print('[MentionSendHandler] Phase 57: isThirdPartyMode=$isThirdPartyMode, isExcludeOwnerMode=$isExcludeOwnerMode, hasOwnerMention=$hasOwnerMention, mentionCount=${allMentions.length}');
+      print('[MentionSendHandler] Phase 58: isThirdPartyMode=$isThirdPartyMode, isExcludeOwnerMode=$isExcludeOwnerMode, hasOwnerMention=$hasOwnerMention, mentionCount=${allMentions.length}');
     }
 
     if (isThirdPartyMode && allMentions.length >= 2) {
@@ -152,15 +166,17 @@ class MentionSendHandler {
       }
 
       if (foundIds.length >= 2) {
-        participantIds = foundIds.take(2).toList();
+        // Phase 59: 3명 이상 참가자 지원 (.take(2) 제거)
+        // 모든 참가자 ID를 전달하여 additionalParticipants로 처리
+        participantIds = foundIds;
         targetId = participantIds.first;
         includesOwner = false;
         if (kDebugMode) {
-          print('[MentionSendHandler] Phase 57: third-party compatibility - participantIds=$participantIds');
+          print('[MentionSendHandler] Phase 59: third-party compatibility - participantIds=$participantIds (${foundIds.length}명)');
         }
       } else {
         if (kDebugMode) {
-          print('[MentionSendHandler] Phase 57: third-party mode but failed to find 2 (found=${foundIds.length})');
+          print('[MentionSendHandler] Phase 59: third-party mode but failed to find 2+ (found=${foundIds.length})');
         }
       }
     } else {
@@ -219,6 +235,7 @@ class MentionSendHandler {
 
       if (kDebugMode) {
         print('[MentionSendHandler] mention parse result: mentions=${parseResult.mentions.length}, targetId=${parseResult.targetProfileId}, includesOwner=${parseResult.includesOwner}');
+        print('[MentionSendHandler] participantIds: ${parseResult.participantIds}');
       }
 
       // 파싱된 targetProfileId 및 participantIds 사용

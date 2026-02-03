@@ -904,9 +904,12 @@ class ChatNotifier extends _$ChatNotifier {
           }
         }
 
-        // chat_mentions에 참가자 저장
-        if (effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
-          await _saveChatMentions(currentSessionId, effectiveParticipantIds);
+        // Phase 59: chat_mentions 저장은 ParticipantResolver에서 처리
+        // - 첫 메시지: ParticipantResolver가 effectiveParticipantIds 저장
+        // - 추가 메시지: ParticipantResolver가 기존 + 새 참가자 병합 후 저장
+        // - 여기서 저장하면 병합된 리스트를 덮어쓰므로 제거
+        if (kDebugMode && effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
+          print('   📝 chat_mentions: ParticipantResolver에서 이미 저장됨 (${effectiveParticipantIds.length}명 입력)');
         }
       }
 

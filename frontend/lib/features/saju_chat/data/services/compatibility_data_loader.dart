@@ -268,13 +268,21 @@ class CompatibilityDataLoader {
     }
 
     // v6.0 (Phase 57): "나 제외" 모드 판단
-    // - 궁합 모드에서 person1이 로그인 사용자의 primary profile이 아니면 "나 제외"
+    // Phase 59: person1 OR person2 중 하나라도 "나"이면 "나 포함" 모드
+    // - 멘션 순서와 무관하게 "나"가 참가자에 포함되어 있는지 체크
     bool isThirdPartyCompatibility = false;
     if (isCompatibilityMode && person1Id != null) {
       final ownerProfile = await ref.read(activeProfileProvider.future);
-      isThirdPartyCompatibility = ownerProfile?.id != person1Id;
-      if (kDebugMode && isThirdPartyCompatibility) {
-        print('   📌 나 제외 모드: 로그인사용자=${ownerProfile?.displayName}, person1=${activeProfile?.displayName}, person2=${targetProfile?.displayName}');
+      final ownerId = ownerProfile?.id;
+      // "나"가 person1 또는 person2에 포함되어 있으면 "나 포함" 모드
+      final ownerIncluded = (ownerId == person1Id) || (ownerId == person2Id);
+      isThirdPartyCompatibility = !ownerIncluded;
+      if (kDebugMode) {
+        print('   📌 Phase 59: ownerId=$ownerId, person1=$person1Id, person2=$person2Id');
+        print('   📌 ownerIncluded=$ownerIncluded, isThirdPartyCompatibility=$isThirdPartyCompatibility');
+        if (isThirdPartyCompatibility) {
+          print('   📌 나 제외 모드: 로그인사용자=${ownerProfile?.displayName}, person1=${activeProfile?.displayName}, person2=${targetProfile?.displayName}');
+        }
       }
     }
 

@@ -258,11 +258,6 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
   /// 새 채팅 시작
   Future<void> _handleNewChat() async {
-    // 새 세션 광고 표시 (Web 제외)
-    if (!kIsWeb) {
-      await ref.read(adControllerProvider.notifier).onNewSessionRewarded();
-    }
-
     final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final activeProfile = await ref.read(activeProfileProvider.future);
     // 현재 선택된 페르소나를 새 세션에 저장
