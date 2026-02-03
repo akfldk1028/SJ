@@ -5,7 +5,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
 import '../../purchase/providers/purchase_provider.dart';
-import '../../purchase/purchase_config.dart';
 
 /// 주간 데이터 인터페이스
 class WeeklyData {
@@ -320,10 +319,7 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
     final weekName = '$weekNum주차';
 
     // 프리미엄 유저는 광고 없이 바로 해제
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) {
       await _unlockWeek(weekKey);
       if (mounted) {

@@ -593,9 +593,7 @@ class ChatNotifier extends _$ChatNotifier {
     // ═══════════════════════════════════════════════════════════════════════════
     // AI 프리미엄 구독자: quota 체크 스킵
     // ═══════════════════════════════════════════════════════════════════════════
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive == true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // 토큰 이미 소진 상태 체크 (광고 모드 활성화)
@@ -1213,8 +1211,7 @@ class ChatNotifier extends _$ChatNotifier {
           errorMsg.contains('Timeout') ||
           errorMsg.contains('네트워크');
 
-      final isPremiumUser = ref.read(purchaseNotifierProvider).valueOrNull
-              ?.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true;
+      final isPremiumUser = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
       if (isRetryableError) {
         state = state.copyWith(

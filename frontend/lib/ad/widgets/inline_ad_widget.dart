@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../purchase/providers/purchase_provider.dart';
-import '../../purchase/purchase_config.dart';
 import '../ad_config.dart';
 import '../ad_tracking_service.dart';
 
@@ -42,10 +41,7 @@ class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
 
   void _loadAd() {
     // 프리미엄 유저는 광고 로드 자체를 스킵
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
     final width = MediaQuery.of(context).size.width.truncate();
@@ -97,12 +93,17 @@ class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 프리미엄 유저는 인라인 광고 숨김
-    final purchaseState = ref.watch(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
-    if (isPremium) return const SizedBox.shrink();
+    // 프리미엄 유저는 인라인 광고 숨김 + 로드된 광고 해제
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      if (_bannerAd != null) {
+        _bannerAd?.dispose();
+        _bannerAd = null;
+        _isLoaded = false;
+      }
+      return const SizedBox.shrink();
+    }
 
     if (!_isLoaded || _bannerAd == null) {
       // 로딩 중 placeholder (높이 유지)

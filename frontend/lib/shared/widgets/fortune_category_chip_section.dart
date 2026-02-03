@@ -6,7 +6,6 @@ import '../../ad/ad_service.dart';
 import '../../ad/feature_unlock_service.dart';
 import '../../AI/fortune/common/korea_date_utils.dart';
 import '../../purchase/providers/purchase_provider.dart';
-import '../../purchase/purchase_config.dart';
 
 /// 공통 카테고리 데이터 인터페이스
 /// v8.2: 평생운세용 상세 필드 추가
@@ -857,10 +856,7 @@ class _FortuneCategoryChipSectionState
     final categoryName = _getCategoryName(categoryKey);
 
     // 프리미엄 유저는 광고 없이 바로 해제
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) {
       _unlockCategory(categoryKey);
       if (mounted) {

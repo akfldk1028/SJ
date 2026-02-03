@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
 import '../../purchase/providers/purchase_provider.dart';
-import '../../purchase/purchase_config.dart';
 
 /// 카테고리별 운세 데이터
 class CategoryData {
@@ -917,10 +916,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
     final monthName = '$monthNum월';
 
     // 프리미엄 유저는 광고 없이 바로 해제
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) {
       await _unlockMonthAndFetchDetails(monthKey);
       if (mounted) {

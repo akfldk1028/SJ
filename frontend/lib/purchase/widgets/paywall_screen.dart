@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -185,7 +186,7 @@ class PaywallScreen extends ConsumerWidget {
                               features: [],
                             ),
                         isLoading: isLoading,
-                        onPurchase: () => _handlePurchase(ref, pkg),
+                        onPurchase: () => _handlePurchase(context, ref, pkg),
                       ),
                     )),
 
@@ -212,8 +213,93 @@ class PaywallScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handlePurchase(WidgetRef ref, Package package) async {
+  Future<void> _handlePurchase(BuildContext context, WidgetRef ref, Package package) async {
     await ref.read(purchaseNotifierProvider.notifier).purchasePackage(package);
+    if (!context.mounted) return;
+
+    final purchaseState = ref.read(purchaseNotifierProvider);
+    final notifier = ref.read(purchaseNotifierProvider.notifier);
+
+    // 구매 상태 확인
+    if (purchaseState.hasError) {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('구매 실패'),
+            content: Text('${purchaseState.error}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    if (notifier.isPremium) {
+      // 구매 성공 + 프리미엄 반영됨 → 성공 다이얼로그 후 뒤로가기
+      if (context.mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.workspace_premium, color: Color(0xFFD4AF37)),
+                SizedBox(width: 8),
+                Text('프리미엄 적용 완료'),
+              ],
+            ),
+            content: const Text('광고 제거 + AI 무제한 대화가\n즉시 적용되었습니다!'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // 다이얼로그 닫기
+                  Navigator.of(context).pop(); // PaywallScreen 닫기
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      // 구매는 됐지만 프리미엄 미반영 → 콘솔 로그만 남기고 사용자에게는 간단 안내
+      if (kDebugMode) {
+        final info = purchaseState.valueOrNull;
+        print('[PaywallScreen] 구매 완료 but isPremium=false');
+        print('[PaywallScreen] entitlements: ${info?.entitlements.all.keys.toList()}');
+        print('[PaywallScreen] purchases: ${info?.allPurchasedProductIdentifiers}');
+        print('[PaywallScreen] activeSubscriptions: ${info?.activeSubscriptions}');
+        print('[PaywallScreen] nonSubscriptionTx: ${info?.nonSubscriptionTransactions.length}');
+      }
+      if (context.mounted) {
+        await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('구매 처리 중'),
+            content: const Text(
+              '구매가 처리되고 있습니다.\n'
+              '잠시 후 앱을 재시작하면 적용됩니다.\n\n'
+              '문제가 지속되면 설정 > 구매 복원을 시도해주세요.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 }
 

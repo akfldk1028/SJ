@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../purchase_config.dart';
 import '../providers/purchase_provider.dart';
 
 /// 프리미엄 뱃지
@@ -14,25 +13,18 @@ class PremiumBadgeWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final purchaseState = ref.watch(purchaseNotifierProvider);
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
-    return purchaseState.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (info) {
-        final isPremium = info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive == true;
+    if (isPremium) {
+      return const BadgeLabel(
+        label: 'PRO',
+        icon: Icons.workspace_premium,
+        gradientColors: [Color(0xFF7C4DFF), Color(0xFFD4AF37)],
+      );
+    }
 
-        if (isPremium) {
-          return const BadgeLabel(
-            label: 'PRO',
-            icon: Icons.workspace_premium,
-            gradientColors: [Color(0xFF7C4DFF), Color(0xFFD4AF37)],
-          );
-        }
-
-        return const SizedBox.shrink();
-      },
-    );
+    return const SizedBox.shrink();
   }
 }
 

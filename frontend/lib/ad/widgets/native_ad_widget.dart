@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../purchase/providers/purchase_provider.dart';
-import '../../purchase/purchase_config.dart';
 import '../ad_config.dart';
 import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
@@ -51,10 +50,7 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
     if (!_isMobile) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
     _nativeAd = NativeAd(
@@ -141,12 +137,17 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 프리미엄 유저는 네이티브 광고 숨김
-    final purchaseState = ref.watch(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
-    if (isPremium) return const SizedBox.shrink();
+    // 프리미엄 유저는 네이티브 광고 숨김 + 로드된 광고 해제
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      if (_nativeAd != null) {
+        _nativeAd?.dispose();
+        _nativeAd = null;
+        _isLoaded = false;
+      }
+      return const SizedBox.shrink();
+    }
 
     if (!_isLoaded || _nativeAd == null) {
       // 로딩 중 placeholder
@@ -316,10 +317,7 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
     if (!_isMobile) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
     _nativeAd = NativeAd(
@@ -391,12 +389,17 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 프리미엄 유저는 컴팩트 네이티브 광고 숨김
-    final purchaseState = ref.watch(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
-    if (isPremium) return const SizedBox.shrink();
+    // 프리미엄 유저는 컴팩트 네이티브 광고 숨김 + 로드된 광고 해제
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      if (_nativeAd != null) {
+        _nativeAd?.dispose();
+        _nativeAd = null;
+        _isLoaded = false;
+      }
+      return const SizedBox.shrink();
+    }
 
     if (!_isLoaded || _nativeAd == null) {
       return const SizedBox(height: 80);

@@ -8,7 +8,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../purchase/providers/purchase_provider.dart';
-import '../../../../purchase/purchase_config.dart';
 import '../../../../router/routes.dart';
 
 /// 설정 화면 - shadcn_ui 기반
@@ -277,10 +276,8 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildPremiumTile(BuildContext context, WidgetRef ref) {
     final appTheme = context.appTheme;
-    final purchaseState = ref.watch(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
     return ShadCard(
       padding: EdgeInsets.zero,

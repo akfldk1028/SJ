@@ -10,7 +10,6 @@ import '../../../../shared/widgets/fortune_title_header.dart';
 import '../../../../ad/ad_service.dart';
 import '../../../../animation/saju_loading_animation.dart';
 import '../../../../purchase/providers/purchase_provider.dart';
-import '../../../../purchase/purchase_config.dart';
 import '../providers/lifetime_fortune_provider.dart';
 
 /// 평생운세 상세 화면 - 책처럼 읽기 쉬운 레이아웃
@@ -1768,10 +1767,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     if (_isLoadingAd) return;
 
     // 프리미엄 유저는 광고 없이 바로 해제
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive ==
-        true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) {
       setState(() {
         _unlockedCycles.add(cycleKey);

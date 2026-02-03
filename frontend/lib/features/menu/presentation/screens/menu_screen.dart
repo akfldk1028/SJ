@@ -7,6 +7,7 @@ import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
+import '../../../../purchase/widgets/premium_badge_widget.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
@@ -157,6 +158,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    const PremiumBadgeWidget(),
                     // TODO: 이전/다음 날짜 기능 - 추후 구현
                     // const SizedBox(width: 8),
                     // GestureDetector(

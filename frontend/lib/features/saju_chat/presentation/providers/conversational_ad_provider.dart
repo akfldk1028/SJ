@@ -95,9 +95,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     }
 
     // 광고 제거 구매 여부 체크
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    final isPremium = purchaseState.valueOrNull?.entitlements
-            .all[PurchaseConfig.entitlementPremium]?.isActive == true;
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
     // 트리거 체크 (쿨다운 상태 + 광고 카운터 + 프리미엄 전달)
     final trigger = AdTriggerService.checkTrigger(
