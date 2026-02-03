@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../providers/purchase_provider.dart';
 
 /// 구매 복원 버튼
@@ -12,15 +13,17 @@ class RestoreButtonWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = context.appTheme;
+
     return TextButton(
       onPressed: () => _handleRestore(context, ref),
-      child: const Text(
+      child: Text(
         '구매 복원',
         style: TextStyle(
-          color: Colors.white54,
+          color: theme.textMuted,
           fontSize: 13,
           decoration: TextDecoration.underline,
-          decorationColor: Colors.white54,
+          decorationColor: theme.textMuted,
         ),
       ),
     );

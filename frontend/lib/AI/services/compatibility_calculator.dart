@@ -1242,11 +1242,11 @@ class CompatibilityCalculator {
     // ═══════════════════════════════════════════════════════════════
 
     // 방합 (方合) - 같은 계절/방위, 가장 강한 합력 ★★★
-    // 방합은 3개 지지가 같은 계절이므로 팡팡 줌
+    // v9: 방합 점수 하향 조정 (20→14, 6→4), cap 32 유지
     double banghapScore = 0;
     for (final b in hapchungAnalysis.banghap) {
       final w = _getPositionWeight(b);
-      banghapScore += b.contains('일부') ? 6 * w : 20 * w;
+      banghapScore += b.contains('일부') ? 4 * w : 14 * w;
     }
     banghapScore = banghapScore.clamp(0, 32);
 
@@ -1320,8 +1320,9 @@ class CompatibilityCalculator {
     for (final h in hapchungAnalysis.hyung) {
       final w = _getPositionWeight(h);
       if (h.contains('삼형살')) {
-        // 완전 삼형살: 별도 강한 감점 (합거충 적용 제한)
-        samhyungsalPenalty += 14;
+        // v9: 완전 삼형살 대폭 강화 (14→25, cap 20→35)
+        // 인사신/축술미 완전 조합은 심각한 흉살
+        samhyungsalPenalty += 25;
       } else if (h.contains('자묘형')) {
         hyungPenalty += 3 * w;
       } else if (h.contains('자형')) {
@@ -1331,7 +1332,7 @@ class CompatibilityCalculator {
       }
     }
     hyungPenalty = hyungPenalty.clamp(0, 8);
-    samhyungsalPenalty = samhyungsalPenalty.clamp(0, 20);
+    samhyungsalPenalty = samhyungsalPenalty.clamp(0, 35);
 
     // 원진 (怨嗔) - 서로 꺼리는 관계
     double wonjinPenalty = 0;
@@ -1368,9 +1369,9 @@ class CompatibilityCalculator {
       final reduction = ((totalHapScore - 10) / 40).clamp(0.0, 0.5);
       regularPenalty *= (1.0 - reduction);
     }
-    // 완전 삼형살: 합이 아무리 많아도 최대 25%만 감소
+    // v9: 완전 삼형살은 합거충 거의 안 먹힘 (최대 10%만 감소)
     if (totalHapScore > 20 && samhyungsalPenalty > 0) {
-      samhyungsalPenalty *= 0.75;
+      samhyungsalPenalty *= 0.90;
     }
 
     double totalPenalty = regularPenalty + samhyungsalPenalty;

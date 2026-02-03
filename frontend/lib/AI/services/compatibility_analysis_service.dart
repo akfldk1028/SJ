@@ -95,7 +95,7 @@ class CompatibilityAnalysisService {
 
   /// 현재 궁합 계산 모델 버전
   /// 점수 로직 변경 시 버전을 올리면 기존 캐시가 자동 무효화되어 재계산됨
-  static const _currentModelVersion = 'compatibility_calculator_v8_individual_filter';
+  static const _currentModelVersion = 'compatibility_calculator_v9_samhyungsal_buff';
 
   /// 궁합 분석 실행 (캐시 확인 → 없으면 새로 분석)
   ///

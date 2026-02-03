@@ -7,6 +7,7 @@ import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../purchase/widgets/premium_badge_widget.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/section_header.dart';
@@ -65,9 +66,6 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 children: [
                   const FortuneSummaryCard(),
                   SizedBox(height: context.scaledPadding(16)),
-                  // Native 광고 #1 (운세 요약 아래) - 즉시 로드
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // 오늘의 운세 섹션 - 내 사주 위로 이동
                   const SectionHeader(
                     title: '오늘의 운세',
@@ -75,8 +73,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   SizedBox(height: context.scaledPadding(8)),
                   const FortuneCategoryList(),
                   SizedBox(height: context.scaledPadding(16)),
-                  // Native 광고 #2 (운세 카테고리 아래) - 지연 로드
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 500),
+                  // Native 광고 (운세 카테고리 아래)
+                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
                   if (_isMobile) SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
@@ -97,6 +95,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final horizontalPadding = context.horizontalPadding;
     final isSmall = context.isSmallMobile;
 
+    // 프리미엄 상태 확인
+    final isPremium = ref.watch(purchaseNotifierProvider.notifier).isPremium;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
       decoration: BoxDecoration(
@@ -104,33 +105,39 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       ),
       child: Row(
         children: [
-          // Menu button - 설정 화면으로 이동
-          GestureDetector(
-            onTap: () => context.push('/settings'),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.isDark
-                        ? const Color.fromRGBO(0, 0, 0, 0.3)
-                        : const Color.fromRGBO(0, 0, 0, 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          // 비프리미엄: 프리미엄 버튼 → Paywall
+          // 프리미엄: 숨김
+          if (!isPremium) ...[
+            GestureDetector(
+              onTap: () => context.push('/settings/premium'),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.primaryColor.withValues(alpha: 0.3),
                   ),
-                ],
-              ),
-              child: Icon(
-                Icons.menu_rounded,
-                color: theme.textPrimary,
-                size: 20,
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.isDark
+                          ? const Color.fromRGBO(0, 0, 0, 0.3)
+                          : const Color.fromRGBO(0, 0, 0, 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.workspace_premium_rounded,
+                  color: theme.primaryColor,
+                  size: 20,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ],
           // Date section
           Expanded(
             child: Column(

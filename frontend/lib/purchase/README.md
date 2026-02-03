@@ -399,3 +399,69 @@ ORDER BY created_at DESC LIMIT 5;
 | 2026-02-03 | quota_service.dart dailyQuota 50000 → 20000 (서버 일치) |
 | 2026-02-03 | FortuneMonthlyChipSection/FortuneCategoryChipSection → ConsumerStatefulWidget + premium 즉시 해제 |
 | 2026-02-03 | FortuneWeeklyChipSection/FortuneMonthlyStepSection → ConsumerStatefulWidget + premium 즉시 해제 |
+| 2026-02-03 | `@riverpod` → `@Riverpod(keepAlive: true)` 변경 (구매 상태 앱 전역 유지) |
+| 2026-02-03 | `_forcePremium` 플래그 추가 (ITEM_ALREADY_OWNED 대응) |
+| 2026-02-03 | isPremium 3단계 fallback 구현 (entitlement → subscription → transaction) |
+| 2026-02-03 | PaywallScreen 디버그 다이얼로그 → 사용자 친화적 메시지로 교체 |
+| 2026-02-03 | Google Cloud Pub/Sub API 활성화 → RevenueCat credentials "Valid" 전환 |
+| 2026-02-03 | PremiumBadgeWidget 테마 적응형 디자인으로 개선 |
+
+---
+
+## 트러블슈팅 기록 (다시 실수하지 않기 위한 노트)
+
+### 1. Cloud Pub/Sub API 미활성화 → "Credentials need attention"
+
+**증상**: 구매는 Google Play에서 성공하지만, RevenueCat이 구매를 인식 못함. entitlements 항상 `[]`.
+
+**원인**: Google Cloud Console에서 Cloud Pub/Sub API가 비활성화 상태.
+Service Account JSON을 넣었어도, API가 꺼져있으면 RevenueCat ↔ Google Play 통신 불가.
+
+**해결**: Google Cloud > API 라이브러리 > Cloud Pub/Sub API 활성화.
+
+**교훈**: RevenueCat + Google Play 연동 시 **2개 API 모두 활성화 필수**:
+1. Google Play Android Developer API
+2. Cloud Pub/Sub API
+
+### 2. ITEM_ALREADY_OWNED 무한루프
+
+**증상**: 비소모성 상품을 다시 구매 시도하면 `productAlreadyPurchasedError`.
+하지만 RevenueCat에는 기록이 없어서 entitlement도 비활성.
+
+**원인**: Credentials가 깨진 상태에서 구매 진행됨 → Google Play 결제 완료 → RevenueCat 검증 불가.
+
+**해결**: `_forcePremium = true` + `restorePurchases()` 호출.
+
+**교훈**: Google Play가 "이미 구매함"이라고 하면 사용자가 돈을 낸 것. 무조건 프리미엄 처리.
+
+### 3. @riverpod autoDispose로 구매 상태 소실
+
+**증상**: PaywallScreen에서 구매 성공 → 다른 화면 이동 → isPremium이 다시 false.
+
+**원인**: 기본 `@riverpod`는 autoDispose. Provider가 파괴되면 `_forcePremium` 등 상태 소실.
+
+**해결**: `@Riverpod(keepAlive: true)` 사용.
+
+**교훈**: 앱 전역 상태(구매, 인증 등)는 반드시 `keepAlive: true`.
+
+### 4. ShadApp에서 SnackBar 크래시
+
+**증상**: `ScaffoldMessenger.of(context)` 호출 시 "No ScaffoldMessenger widget found" 크래시.
+
+**원인**: ShadApp은 MaterialApp과 달리 ScaffoldMessenger를 제공하지 않음.
+
+**해결**: SnackBar 대신 AlertDialog 사용.
+
+### 5. 디버그 정보 사용자 노출
+
+**증상**: 구매 후 entitlements, purchases raw 데이터가 AlertDialog로 표시됨.
+
+**해결**: 디버그 정보는 `kDebugMode` + `print()`로만. 사용자에게는 친절한 메시지만.
+
+### 6. entitlement 지연 반영
+
+**증상**: 구매 직후 entitlement가 바로 안 나오고 1~2초 뒤에 나옴.
+
+**해결**: 3단계 fallback + 구매 후 1초 딜레이 재조회.
+
+**교훈**: entitlement만 믿으면 안 됨. 여러 겹의 fallback이 필요.

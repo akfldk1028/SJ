@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../data/models/compatibility_analysis_model.dart';
 import '../../data/hapchung_explanations.dart';
+import '../../data/compatibility_interpreter.dart';
 import '../providers/compatibility_provider.dart';
 
 /// 궁합 분석 상세 화면
@@ -232,6 +233,9 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         _buildScoreHeader(theme, analysis, score, scoreColor),
         const SizedBox(height: 20),
 
+        // 일주 분석 섹션 (개인화된 해석)
+        _buildDayPillarSection(theme, analysis),
+
         // 요약
         if (analysis.summary != null) ...[
           _buildSummaryCard(theme, analysis.summary!),
@@ -274,6 +278,263 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         ],
 
         const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  /// 일주 분석 섹션 (개인화된 해석)
+  Widget _buildDayPillarSection(
+    AppThemeExtension theme,
+    CompatibilityAnalysisModel analysis,
+  ) {
+    // 일주 정보가 없으면 표시하지 않음
+    if (analysis.ownerDayGan == null && analysis.targetDayGan == null) {
+      return const SizedBox.shrink();
+    }
+
+    final interpreter = CompatibilityInterpreter(
+      myDayGan: analysis.ownerDayGan,
+      myDayJi: analysis.ownerDayJi,
+      targetDayGan: analysis.targetDayGan,
+      targetDayJi: analysis.targetDayJi,
+      pairHapchung: analysis.pairHapchung,
+    );
+
+    final interpretation = interpreter.generateInterpretation();
+    if (!interpretation.hasContent) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF9B7ED6).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 헤더
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF9B7ED6).withValues(alpha: 0.2),
+                          const Color(0xFFB794F6).withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.psychology_rounded,
+                      color: Color(0xFF9B7ED6),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '일주 분석',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: theme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '나와 상대의 일간 관계',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: const Color(0xFF9B7ED6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 내 일간 소개
+              if (interpretation.myDayGanIntro.isNotEmpty) ...[
+                _buildInterpretationItem(
+                  theme,
+                  icon: Icons.person_rounded,
+                  iconColor: const Color(0xFFD4637B),
+                  title: '나의 일간',
+                  content: interpretation.myDayGanIntro,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 상대 일간 소개
+              if (interpretation.targetDayGanIntro.isNotEmpty) ...[
+                _buildInterpretationItem(
+                  theme,
+                  icon: Icons.person_outline_rounded,
+                  iconColor: const Color(0xFF6B7F99),
+                  title: '상대의 일간',
+                  content: interpretation.targetDayGanIntro,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 천간합 분석 (있을 경우)
+              if (interpretation.ganHapAnalysis != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFD4637B).withValues(alpha: 0.1),
+                        const Color(0xFFE08E9D).withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFD4637B).withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.favorite_rounded,
+                            color: Color(0xFFD4637B),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '천간합 (天干合)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFD4637B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        interpretation.ganHapAnalysis!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.6,
+                          color: theme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 오행 분석
+              if (interpretation.ohengAnalysis != null) ...[
+                _buildInterpretationItem(
+                  theme,
+                  icon: Icons.spa_rounded,
+                  iconColor: const Color(0xFF4CAF50),
+                  title: '오행 관계',
+                  content: interpretation.ohengAnalysis!,
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              // 조언
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9B7ED6).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: Color(0xFF9B7ED6),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        interpretation.advice,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.6,
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildInterpretationItem(
+    AppThemeExtension theme, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String content,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: iconColor, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                content,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.6,
+                  color: theme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

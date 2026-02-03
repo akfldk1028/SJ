@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' show ShadButton;
 
+import '../../core/theme/app_theme.dart';
 import '../purchase_config.dart';
 import '../providers/purchase_provider.dart';
 import 'restore_button_widget.dart';
@@ -16,33 +17,31 @@ class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
   /// 상품 표시 순서 및 메타 정보
+  /// accentColor 제거 → 테마 기반 통일 색상 사용
   static const _productMeta = {
     PurchaseConfig.productDayPass: _ProductMeta(
       icon: Icons.bolt,
       badge: null,
       highlight: false,
       periodLabel: '/1일',
-      accentColor: Color(0xFFFF6B6B),
       dailyPrice: null,
-      features: ['광고 제거', 'AI 무제한 대화', '24시간 이용'],
+      features: ['광고 프리', 'AI 무제한 대화', '24시간 이용'],
     ),
     PurchaseConfig.productWeekPass: _ProductMeta(
       icon: Icons.star,
       badge: '인기',
       highlight: true,
       periodLabel: '/1주',
-      accentColor: Color(0xFFD4AF37),
       dailyPrice: '일 ₩700',
-      features: ['광고 제거', 'AI 무제한 대화', '7일 이용', '일일 패스 대비 할인'],
+      features: ['광고 프리', 'AI 무제한 대화', '7일 이용', '일일 패스 대비 할인'],
     ),
     PurchaseConfig.productMonthly: _ProductMeta(
       icon: Icons.diamond_outlined,
       badge: 'BEST',
       highlight: false,
       periodLabel: '/월',
-      accentColor: Color(0xFF7C4DFF),
       dailyPrice: '일 ₩297',
-      features: ['광고 제거', 'AI 무제한 대화', '자동 갱신', '가장 저렴한 일일 단가'],
+      features: ['광고 프리', 'AI 무제한 대화', '30일 이용', '매월 자동 갱신으로 편리', '일일 ₩297로 가장 경제적'],
     ),
   };
 
@@ -57,13 +56,18 @@ class PaywallScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final offeringsAsync = ref.watch(offeringsProvider);
     final purchaseState = ref.watch(purchaseNotifierProvider);
+    final theme = context.appTheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D14),
+      backgroundColor: theme.backgroundColor,
       appBar: AppBar(
-        title: const Text('프리미엄'),
+        title: Text(
+          '프리미엄',
+          style: TextStyle(color: theme.textPrimary),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: theme.textPrimary),
       ),
       body: offeringsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -71,24 +75,27 @@ class PaywallScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 '상품 정보를 불러올 수 없습니다.',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: theme.textSecondary),
               ),
               const SizedBox(height: 16),
               ShadButton.outline(
                 onPressed: () => ref.invalidate(offeringsProvider),
-                child: const Text('다시 시도'),
+                child: Text(
+                  '다시 시도',
+                  style: TextStyle(color: theme.textPrimary),
+                ),
               ),
             ],
           ),
         ),
         data: (offerings) {
           if (offerings == null || offerings.current == null) {
-            return const Center(
+            return Center(
               child: Text(
                 '상품이 준비 중입니다.',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: theme.textSecondary),
               ),
             );
           }
@@ -111,8 +118,11 @@ class PaywallScreen extends ConsumerWidget {
               children: [
                 // 헤더 아이콘
                 ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFFD4AF37), Color(0xFF7C4DFF)],
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: [
+                      theme.primaryColor,
+                      theme.accentColor ?? theme.primaryColor.withValues(alpha: 0.7),
+                    ],
                   ).createShader(bounds),
                   child: const Icon(
                     Icons.workspace_premium,
@@ -123,19 +133,19 @@ class PaywallScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
 
                 // 헤더
-                const Text(
+                Text(
                   '프리미엄 이용권',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: theme.textPrimary,
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '광고 제거 + AI 무제한 대화',
-                  style: TextStyle(color: Colors.white60, fontSize: 14),
+                  style: TextStyle(color: theme.textSecondary, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -145,21 +155,21 @@ class PaywallScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: theme.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: theme.primaryColor.withValues(alpha: 0.3),
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.flash_on, color: Color(0xFFD4AF37), size: 14),
-                        SizedBox(width: 4),
+                        Icon(Icons.flash_on, color: theme.primaryColor, size: 14),
+                        const SizedBox(width: 4),
                         Text(
                           '구매 즉시 적용',
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: theme.textSecondary,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -181,12 +191,12 @@ class PaywallScreen extends ConsumerWidget {
                               badge: null,
                               highlight: false,
                               periodLabel: '',
-                              accentColor: Color(0xFF8B7FFF),
                               dailyPrice: null,
                               features: [],
                             ),
                         isLoading: isLoading,
                         onPurchase: () => _handlePurchase(context, ref, pkg),
+                        theme: theme,
                       ),
                     )),
 
@@ -198,10 +208,10 @@ class PaywallScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // 안내 문구
-                const Text(
+                Text(
                   '월간 구독은 자동 갱신되며, 설정에서 언제든 해지할 수 있습니다.\n'
                   '1일/1주일 이용권은 기간 만료 후 자동 종료됩니다.',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                  style: TextStyle(color: theme.textMuted, fontSize: 11),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -304,12 +314,12 @@ class PaywallScreen extends ConsumerWidget {
 }
 
 /// 상품 메타 정보
+/// accentColor 제거 → 테마 기반 통일 색상 사용
 class _ProductMeta {
   final IconData icon;
   final String? badge;
   final bool highlight;
   final String periodLabel;
-  final Color accentColor;
   final String? dailyPrice;
   final List<String> features;
 
@@ -318,42 +328,42 @@ class _ProductMeta {
     required this.badge,
     required this.highlight,
     required this.periodLabel,
-    required this.accentColor,
     this.dailyPrice,
     required this.features,
   });
 }
 
 /// 상품 카드 위젯
+/// 테마 기반 통일 색상 사용
 class _ProductCard extends StatelessWidget {
   final Package package;
   final _ProductMeta meta;
   final bool isLoading;
   final VoidCallback onPurchase;
+  final AppThemeExtension theme;
 
   const _ProductCard({
     required this.package,
     required this.meta,
     required this.isLoading,
     required this.onPurchase,
+    required this.theme,
   });
 
   @override
   Widget build(BuildContext context) {
     final product = package.storeProduct;
-    final color = meta.accentColor;
+    final primaryColor = theme.primaryColor;
 
     return Stack(
       children: [
         Container(
           decoration: BoxDecoration(
-            color: meta.highlight
-                ? const Color(0xFF1A1A2E)
-                : const Color(0xFF151520),
+            color: theme.cardColor,
             border: Border.all(
               color: meta.highlight
-                  ? color
-                  : Colors.white.withValues(alpha: 0.1),
+                  ? primaryColor
+                  : theme.border,
               width: meta.highlight ? 2 : 1,
             ),
             borderRadius: BorderRadius.circular(16),
@@ -361,15 +371,15 @@ class _ProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 상단 accentColor 바
+              // 상단 gradient 바
               Container(
                 height: 4,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      color.withValues(alpha: 0.8),
-                      color,
-                      color.withValues(alpha: 0.8),
+                      primaryColor.withValues(alpha: 0.6),
+                      primaryColor,
+                      primaryColor.withValues(alpha: 0.6),
                     ],
                   ),
                   borderRadius: const BorderRadius.only(
@@ -387,13 +397,13 @@ class _ProductCard extends StatelessWidget {
                     // 아이콘 + 상품 제목
                     Row(
                       children: [
-                        Icon(meta.icon, color: color, size: 28),
+                        Icon(meta.icon, color: primaryColor, size: 28),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             product.title.replaceAll(RegExp(r'\s*\(.*\)'), ''),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: theme.textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -411,7 +421,7 @@ class _ProductCard extends StatelessWidget {
                         Text(
                           product.priceString,
                           style: TextStyle(
-                            color: color,
+                            color: primaryColor,
                             fontSize: 32,
                             fontWeight: FontWeight.w800,
                           ),
@@ -419,8 +429,8 @@ class _ProductCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           meta.periodLabel,
-                          style: const TextStyle(
-                            color: Colors.white54,
+                          style: TextStyle(
+                            color: theme.textMuted,
                             fontSize: 16,
                           ),
                         ),
@@ -432,13 +442,13 @@ class _ProductCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.15),
+                              color: primaryColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               meta.dailyPrice!,
                               style: TextStyle(
-                                color: color,
+                                color: primaryColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -454,12 +464,12 @@ class _ProductCard extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Row(
                             children: [
-                              Icon(Icons.check, color: color, size: 14),
+                              Icon(Icons.check, color: primaryColor, size: 14),
                               const SizedBox(width: 6),
                               Text(
                                 f,
-                                style: const TextStyle(
-                                  color: Colors.white60,
+                                style: TextStyle(
+                                  color: theme.textSecondary,
                                   fontSize: 13,
                                 ),
                               ),
@@ -475,7 +485,7 @@ class _ProductCard extends StatelessWidget {
                       height: 48,
                       child: ShadButton(
                         onPressed: isLoading ? null : onPurchase,
-                        backgroundColor: color,
+                        backgroundColor: primaryColor,
                         child: isLoading
                             ? const SizedBox(
                                 width: 20,
@@ -512,7 +522,7 @@ class _ProductCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: color,
+                color: primaryColor,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(8),
                   bottomRight: Radius.circular(8),
