@@ -40,8 +40,8 @@ class PaywallScreen extends ConsumerWidget {
       badge: 'BEST',
       highlight: false,
       periodLabel: '/월',
-      dailyPrice: '일 ₩297',
-      features: ['광고 프리', 'AI 무제한 대화', '30일 이용', '매월 자동 갱신으로 편리', '일일 ₩297로 가장 경제적'],
+      dailyPrice: '일 ₩430',
+      features: ['광고 프리', 'AI 무제한 대화', '30일 이용', '매월 자동 갱신으로 편리', '일일 ₩430으로 가장 경제적'],
     ),
   };
 
