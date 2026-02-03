@@ -4,7 +4,21 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
+import '../../../../shared/utils/text_formatter.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
+
+/// 카테고리별 색상 정의 (4개로 단순화)
+class _FortuneColors {
+  static const wealth = Color(0xFFF59E0B); // 재물운 - 주황
+  static const love = Color(0xFFEC4899); // 애정운 - 핑크
+  static const work = Color(0xFF3B82F6); // 직장운 - 파랑
+  static const health = Color(0xFF10B981); // 건강운 - 초록
+
+  // 공통 액센트 색상
+  static const accent = Color(0xFF6B48FF); // 보라 (AI, 특별 강조)
+  static const highlight = Color(0xFFFFB800); // 골드 (하이라이트)
+  static const caution = Color(0xFFEF4444); // 경고 (주의사항)
+}
 
 /// 오늘의 운세 상세 화면
 class DailyFortuneDetailScreen extends ConsumerWidget {
@@ -334,16 +348,16 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // 운세 요약 메시지
+                      // 운세 요약 메시지 (가독성 개선)
                       Text(
-                        message,
+                        FortuneTextFormatter.formatParagraph(message),
                         style: TextStyle(
                           fontSize: 14,
-                          height: 1.5,
+                          height: 1.6,
                           color: theme.textPrimary,
                           fontWeight: FontWeight.w400,
                         ),
-                        maxLines: 3,
+                        maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -362,10 +376,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildMiniStat(theme, '재물', fortune.getCategoryScore('wealth'), const Color(0xFFF59E0B)),
-                  _buildMiniStat(theme, '애정', fortune.getCategoryScore('love'), const Color(0xFFEC4899)),
-                  _buildMiniStat(theme, '직장', fortune.getCategoryScore('work'), const Color(0xFF3B82F6)),
-                  _buildMiniStat(theme, '건강', fortune.getCategoryScore('health'), const Color(0xFF10B981)),
+                  _buildMiniStat(theme, '재물', fortune.getCategoryScore('wealth'), _FortuneColors.wealth),
+                  _buildMiniStat(theme, '애정', fortune.getCategoryScore('love'), _FortuneColors.love),
+                  _buildMiniStat(theme, '직장', fortune.getCategoryScore('work'), _FortuneColors.work),
+                  _buildMiniStat(theme, '건강', fortune.getCategoryScore('health'), _FortuneColors.health),
                 ],
               ),
             ),
@@ -421,16 +435,16 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
-                  const Color(0xFFFFB800),
-                  const Color(0xFFFF8A00),
+                  _FortuneColors.highlight,
+                  Color(0xFFFF8A00),
                 ],
               ),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFFB800).withOpacity(0.3),
+                  color: _FortuneColors.highlight.withOpacity(0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -453,10 +467,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  fortune.overallMessage,
+                  FortuneTextFormatter.formatParagraph(fortune.overallMessage),
                   style: TextStyle(
                     fontSize: 15,
-                    height: 1.6,
+                    height: 1.7,
                     color: theme.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
@@ -471,10 +485,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
 
   Widget _buildCategoryScrollSection(BuildContext context, AppThemeExtension theme, DailyFortuneData fortune) {
     final categories = [
-      {'key': 'wealth', 'name': '재물운', 'icon': Icons.account_balance_wallet_rounded, 'color': const Color(0xFFF59E0B)},
-      {'key': 'love', 'name': '애정운', 'icon': Icons.favorite_rounded, 'color': const Color(0xFFEC4899)},
-      {'key': 'work', 'name': '직장운', 'icon': Icons.work_rounded, 'color': const Color(0xFF3B82F6)},
-      {'key': 'health', 'name': '건강운', 'icon': Icons.monitor_heart_rounded, 'color': const Color(0xFF10B981)},
+      {'key': 'wealth', 'name': '재물운', 'icon': Icons.account_balance_wallet_rounded, 'color': _FortuneColors.wealth},
+      {'key': 'love', 'name': '애정운', 'icon': Icons.favorite_rounded, 'color': _FortuneColors.love},
+      {'key': 'work', 'name': '직장운', 'icon': Icons.work_rounded, 'color': _FortuneColors.work},
+      {'key': 'health', 'name': '건강운', 'icon': Icons.monitor_heart_rounded, 'color': _FortuneColors.health},
     ];
 
     return Column(
@@ -487,10 +501,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6B48FF).withOpacity(0.1),
+                  color: _FortuneColors.accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF6B48FF), size: 18),
+                child: const Icon(Icons.auto_awesome_rounded, color: _FortuneColors.accent, size: 18),
               ),
               const SizedBox(width: 10),
               Text(
@@ -591,13 +605,13 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                           SizedBox(height: 4 * scaleFactor),
                           Expanded(
                             child: Text(
-                              message,
+                              FortuneTextFormatter.formatParagraph(message),
                               style: TextStyle(
                                 fontSize: descSize,
                                 color: theme.textSecondary,
-                                height: 1.4,
+                                height: 1.5,
                               ),
-                              maxLines: 3,
+                              maxLines: 4,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -617,10 +631,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   Widget _buildLuckyGridSection(AppThemeExtension theme, DailyFortuneData fortune) {
     final lucky = fortune.lucky;
     final items = [
-      {'label': '행운의 시간', 'value': lucky.time, 'icon': Icons.schedule_rounded, 'color': const Color(0xFF6B48FF)},
-      {'label': '행운의 색상', 'value': lucky.color, 'icon': Icons.palette_rounded, 'color': const Color(0xFFEC4899)},
-      {'label': '행운의 숫자', 'value': '${lucky.number}', 'icon': Icons.tag_rounded, 'color': const Color(0xFF10B981)},
-      {'label': '행운의 방향', 'value': lucky.direction, 'icon': Icons.explore_rounded, 'color': const Color(0xFF3B82F6)},
+      {'label': '행운의 시간', 'value': lucky.time, 'icon': Icons.schedule_rounded, 'color': _FortuneColors.accent},
+      {'label': '행운의 색상', 'value': lucky.color, 'icon': Icons.palette_rounded, 'color': _FortuneColors.love},
+      {'label': '행운의 숫자', 'value': '${lucky.number}', 'icon': Icons.tag_rounded, 'color': _FortuneColors.health},
+      {'label': '행운의 방향', 'value': lucky.direction, 'icon': Icons.explore_rounded, 'color': _FortuneColors.work},
     ];
 
     return Column(
@@ -633,10 +647,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFB800).withOpacity(0.1),
+                  color: _FortuneColors.highlight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 18),
+                child: const Icon(Icons.star_rounded, color: _FortuneColors.highlight, size: 18),
               ),
               const SizedBox(width: 10),
               Text(
@@ -723,12 +737,12 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFF59E0B).withOpacity(0.1),
-            const Color(0xFFEF4444).withOpacity(0.05),
+            _FortuneColors.highlight.withOpacity(0.1),
+            _FortuneColors.caution.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.2)),
+        border: Border.all(color: _FortuneColors.highlight.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -738,10 +752,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withOpacity(0.15),
+                  color: _FortuneColors.highlight.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.lightbulb_rounded, color: Color(0xFFF59E0B), size: 20),
+                child: const Icon(Icons.lightbulb_rounded, color: _FortuneColors.highlight, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -765,14 +779,14 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.warning_amber_rounded, color: const Color(0xFFEF4444), size: 20),
+                const Icon(Icons.warning_amber_rounded, color: _FortuneColors.caution, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    fortune.caution,
+                    FortuneTextFormatter.formatParagraph(fortune.caution),
                     style: TextStyle(
                       fontSize: 14,
-                      height: 1.5,
+                      height: 1.6,
                       color: theme.textPrimary,
                     ),
                   ),
@@ -787,20 +801,20 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: theme.cardColor.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+              border: Border.all(color: _FortuneColors.health.withOpacity(0.2)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.self_improvement_rounded, color: const Color(0xFF10B981), size: 20),
+                const Icon(Icons.self_improvement_rounded, color: _FortuneColors.health, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    fortune.affirmation,
+                    FortuneTextFormatter.formatParagraph(fortune.affirmation),
                     style: TextStyle(
                       fontSize: 14,
                       fontStyle: FontStyle.italic,
-                      height: 1.5,
+                      height: 1.6,
                       color: theme.textSecondary,
                     ),
                   ),
@@ -821,14 +835,14 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF6B48FF), Color(0xFF8B5CF6)],
+            colors: [_FortuneColors.accent, Color(0xFF8B5CF6)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6B48FF).withOpacity(0.4),
+              color: _FortuneColors.accent.withOpacity(0.4),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -860,11 +874,6 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
     );
   }
 
-  String _truncateMessage(String message, int maxLength) {
-    if (message.length <= maxLength) return message;
-    return '${message.substring(0, maxLength)}...';
-  }
-
   String _getScoreGrade(int score) {
     if (score >= 90) return '최고의 하루';
     if (score >= 80) return '좋은 하루';
@@ -874,10 +883,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   }
 
   Color _getScoreColor(int score) {
-    // 운세 앱 분위기에 맞는 따뜻한 색상
-    if (score >= 85) return const Color(0xFFD4A574); // 골드
-    if (score >= 70) return const Color(0xFF8B7EC8); // 라벤더
-    if (score >= 60) return const Color(0xFFB8860B); // 다크골드
-    return const Color(0xFF9E7676); // 로즈브라운
+    // 운세 앱 분위기에 맞는 점수별 색상
+    if (score >= 85) return _FortuneColors.highlight; // 골드
+    if (score >= 70) return _FortuneColors.accent; // 보라
+    if (score >= 60) return _FortuneColors.work; // 파랑
+    return _FortuneColors.health; // 초록
   }
 }

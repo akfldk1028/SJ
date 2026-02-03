@@ -30,7 +30,7 @@ class PillarColumnWidget extends StatelessWidget {
       case '토':
         return const Color(0xFFFF9800); // 주황/황토
       case '금':
-        return const Color(0xFFFFD700); // 금색
+        return const Color(0xFF708090); // 슬레이트 그레이 (은색 계열)
       case '수':
         return const Color(0xFF2196F3); // 파랑
       default:

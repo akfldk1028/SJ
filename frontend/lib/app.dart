@@ -6,6 +6,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'router/app_router.dart';
 import 'core/theme/theme_provider.dart';
+import 'purchase/providers/purchase_provider.dart';
 
 /// 사담 앱 루트 위젯
 class MantokApp extends ConsumerStatefulWidget {
@@ -38,6 +39,8 @@ class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserv
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _applySystemUiStyle();
+      // 앱 재진입 시 구매 상태 갱신
+      ref.read(purchaseNotifierProvider.notifier).refresh();
     }
   }
 

@@ -90,9 +90,22 @@ class SessionRestoreService {
       // 3. 사주 분석 로드
       final sajuAnalysis = await ref.read(currentSajuAnalysisProvider.future);
 
-      // 4. AI Summary (캐시된 것만 사용 - 새로 생성하지 않음!)
-      // 세션 복원 시 Edge Function 호출하면 비용 발생하므로 캐시만 확인
-      final aiSummary = cachedAiSummary;
+      // 4. AI Summary (캐시된 것 사용, 없으면 DB에서 로드)
+      // 세션 복원 시 Edge Function 호출하면 비용 발생하므로 캐시/DB만 확인
+      // Phase 59: 앱 재시작 시 메모리 캐시가 비어있으므로 DB 캐시에서 로드
+      AiSummary? aiSummary = cachedAiSummary;
+      if (aiSummary == null && activeProfile.id != null) {
+        try {
+          aiSummary = await AiSummaryService.getCachedSummary(activeProfile.id);
+          if (kDebugMode && aiSummary != null) {
+            print('[SessionRestore] Phase 59: DB에서 AI Summary 캐시 로드 성공');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('[SessionRestore] Phase 59: AI Summary 캐시 로드 실패: $e');
+          }
+        }
+      }
 
       // 5. 궁합 모드 확인 및 상대방 데이터 복원 (v7.2)
       SajuProfile? person1Profile = activeProfile;
@@ -148,8 +161,9 @@ class SessionRestoreService {
         person1Id ??= activeProfile.id;
         person2Id ??= targetProfileId;
 
-        // "나 제외" 모드 판단
-        isThirdPartyCompatibility = activeProfile.id != person1Id;
+        // Phase 59: "나 제외" 모드 판단 - person1 또는 person2 중 하나라도 "나"이면 "나 포함"
+        final ownerIncluded = (activeProfile.id == person1Id) || (activeProfile.id == person2Id);
+        isThirdPartyCompatibility = !ownerIncluded;
 
         // v7.2: 나 제외 모드에서는 person1의 프로필/사주를 별도 로드
         if (isThirdPartyCompatibility && person1Id != null) {

@@ -234,7 +234,7 @@ class GeminiEdgeDatasource {
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
+          'max_tokens': TokenLimits.questionAnswerMaxTokens, // v29: 4096 (끊김 방지)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
           if (_sessionId != null) 'session_id': _sessionId,
@@ -367,7 +367,7 @@ class GeminiEdgeDatasource {
         data: {
           'messages': messages,
           'model': 'gemini-3-flash-preview',
-          'max_tokens': TokenLimits.questionAnswerMaxTokens, // 채팅 응답 간결하게 (1024)
+          'max_tokens': TokenLimits.questionAnswerMaxTokens, // v29: 4096 (끊김 방지)
           'temperature': 0.8,
           'stream': true,
           if (userId != null) 'user_id': userId,
@@ -394,59 +394,14 @@ class GeminiEdgeDatasource {
         }
       }
 
-      // v18: MAX_TOKENS로 끊긴 경우 자동 continuation (최대 1회)
+      // v29: 자동 continuation 제거
+      // MAX_TOKENS 감지 시 chat_provider에서 "계속 이야기해줘" 버튼을 suggested questions에 추가
+      // 사용자가 버튼을 클릭하면 그때 이어서 말하는 방식으로 변경
       if (_shouldContinue(lastFinishReason, accumulatedContent)) {
         if (kDebugMode) {
-          print('[GeminiEdge] ⚠️ MAX_TOKENS 감지 - 자동 continuation 요청');
+          print('[GeminiEdge] ⚠️ MAX_TOKENS 감지 - "계속 이야기해줘" 버튼으로 처리 (자동 continuation 비활성화)');
         }
-
-        // 현재 응답을 대화 기록에 임시 추가 (continuation을 위해)
-        _conversationHistory.add({
-          'role': 'model',
-          'parts': [{'text': accumulatedContent}],
-        });
-
-        // continuation 요청 - 태그 상태에 따라 다른 프롬프트
-        final continuationMessages = _buildMessagesForEdge();
-        final hasSuggestionsTag = accumulatedContent.contains('[SUGGESTED_QUESTIONS]');
-        final continuationPrompt = hasSuggestionsTag
-            ? '(방금 말이 끊겼어. 후속질문 태그만 마무리해줘)'
-            : '(방금 말이 끊겼어. 마지막 문장 마무리하고 후속질문 3개도 [SUGGESTED_QUESTIONS]질문1|질문2|질문3[/SUGGESTED_QUESTIONS] 형식으로 추가해줘)';
-        continuationMessages.add({
-          'role': 'user',
-          'content': continuationPrompt,
-        });
-
-        await for (final contChunk in _sseClient.streamRequestWithSimulation(
-          url: '',
-          data: {
-            'messages': continuationMessages,
-            'model': 'gemini-3-flash-preview',
-            'max_tokens': 256, // continuation은 짧게
-            'temperature': 0.8,
-            'stream': true,
-            if (userId != null) 'user_id': userId,
-          },
-          headers: {
-            'Authorization': 'Bearer $_authToken',
-          },
-        )) {
-          if (contChunk.accumulatedText.isNotEmpty) {
-            final continued = accumulatedContent + contChunk.accumulatedText;
-            yield continued;
-            if (contChunk.isDone) {
-              accumulatedContent = continued;
-              // continuation 토큰 누적
-              totalCompletionTokens = (totalCompletionTokens ?? 0) + (contChunk.completionTokens ?? 0);
-              totalTokensUsed = (totalTokensUsed ?? 0) + (contChunk.totalTokens ?? 0);
-            }
-          }
-        }
-
-        // 임시로 추가한 부분 응답 제거 (완성된 응답으로 교체될 예정)
-        if (_conversationHistory.isNotEmpty && _conversationHistory.last['role'] == 'model') {
-          _conversationHistory.removeLast();
-        }
+        // 자동 continuation 하지 않음 - chat_provider에서 처리
       }
 
       // 최종 완료 처리
@@ -641,7 +596,7 @@ class GeminiEdgeDatasource {
     );
 
     if (kDebugMode) {
-      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $totalTokens');
+      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $totalTokens, finishReason: $finishReason');
     }
   }
 

@@ -162,27 +162,84 @@ class IdiomInfo {
 ///
 /// activeProfile의 오늘 운세를 DB에서 조회
 /// 캐시가 없으면 AI 분석을 자동 트리거
+///
+/// Phase 60: 탭 이동 시 중복 분석 방지
+/// - keepAlive로 Provider 상태 유지
+/// - 프로필+날짜 기반 분석 완료 플래그 (static Set)
+/// - 한국 시간 기준 하루 1회만 분석
 @riverpod
 class DailyFortune extends _$DailyFortune {
-  /// 분석 진행 중 플래그 (중복 호출 방지)
-  static bool _isAnalyzing = false;
+  /// Phase 60: 오늘 이미 분석을 시도한 프로필 ID (한국 날짜 기준)
+  /// key: "profileId_yyyy-MM-dd"
+  static final Set<String> _analyzedToday = {};
+
+  /// 현재 분석 중인 프로필 ID
+  static final Set<String> _currentlyAnalyzing = {};
+
+  /// 분석 완료 플래그 키 생성
+  static String _getAnalyzedKey(String profileId, DateTime date) {
+    return '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Phase 60 v2: 이전 날짜 항목 정리 (메모리 누수 방지)
+  /// 오늘 날짜가 아닌 키는 제거
+  static void _cleanupOldEntries(DateTime today) {
+    final todaySuffix = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final oldCount = _analyzedToday.length;
+    _analyzedToday.removeWhere((key) => !key.endsWith(todaySuffix));
+    final removed = oldCount - _analyzedToday.length;
+    if (removed > 0) {
+      print('[DailyFortune] 🧹 이전 날짜 항목 정리: $removed개 제거');
+    }
+  }
 
   @override
   Future<DailyFortuneData?> build() async {
+    // Phase 60: keepAlive로 탭 이동 시에도 Provider 상태 유지
+    ref.keepAlive();
+
     final activeProfile = await ref.watch(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     // 🔧 한국 시간 기준으로 조회해야 캐시 히트됨 (저장도 한국 시간 기준)
     final today = KoreaDateUtils.today;
+    final analyzedKey = _getAnalyzedKey(activeProfile.id, today);
+
+    // Phase 60 v2: 날짜 변경 시 이전 날짜 항목 정리 (메모리 누수 방지)
+    _cleanupOldEntries(today);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 60 v2: 빠른 반환 조건 (DB 쿼리 전에 체크하여 불필요한 호출 최소화)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // 1. 현재 분석 중이면 바로 null 반환 (분석 완료 대기)
+    if (_currentlyAnalyzing.contains(activeProfile.id)) {
+      print('[DailyFortune] ⏳ 분석 중 - 대기 (profileId=${activeProfile.id})');
+      return null;
+    }
+
+    // 2. FortuneCoordinator에서 분석 중이면 폴링 시작 후 null 반환
+    if (FortuneCoordinator.isAnalyzing(activeProfile.id)) {
+      print('[DailyFortune] ⏳ FortuneCoordinator에서 분석 중 - 폴링 시작');
+      _analyzedToday.add(analyzedKey);  // 중복 시도 방지
+      _waitForCoordinatorCompletion(activeProfile.id);
+      return null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 60 v2: DB 캐시 확인
+    // ═══════════════════════════════════════════════════════════════════════════
+
     final result = await aiQueries.getDailyFortune(activeProfile.id, today);
 
-    // 캐시가 있으면 바로 반환 + 플래그 리셋
+    // 캐시가 있으면 바로 반환
     if (result.isSuccess && result.data != null) {
       final aiSummary = result.data!;
       final content = aiSummary.content;
       if (content != null) {
-        // 캐시 히트 시 _isAnalyzing 플래그 리셋 (다른 provider가 분석 완료했을 수 있음)
-        _isAnalyzing = false;
+        // Phase 60: 캐시 히트 시 분석 완료로 마킹
+        _analyzedToday.add(analyzedKey);
+        _currentlyAnalyzing.remove(activeProfile.id);
 
         final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
         print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
@@ -190,19 +247,31 @@ class DailyFortune extends _$DailyFortune {
         // idiom이 없는 오래된 캐시인 경우 재분석 필요
         if (!fortune.idiom.isValid) {
           print('[DailyFortune] 캐시 히트 but idiom 없음 - 재분석 필요');
-          await _triggerAnalysisIfNeeded(activeProfile.id);
+          // Phase 60: idiom 없는 경우만 재분석 (완료 플래그 제거)
+          _analyzedToday.remove(analyzedKey);
+          await _triggerAnalysisIfNeeded(activeProfile.id, today);
           // 일단 기존 데이터 반환 (idiom만 빠진 상태)
           return fortune;
         }
 
-        print('[DailyFortune] 캐시 히트 - 오늘의 운세 로드');
+        print('[DailyFortune] ✅ 캐시 히트 - 오늘의 운세 로드 (분석 스킵)');
         return fortune;
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Phase 60 v2: 캐시 미스 → 분석 트리거 (하루 1회만)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // 오늘 이미 분석 시도했으면 스킵 (중복 방지)
+    if (_analyzedToday.contains(analyzedKey)) {
+      print('[DailyFortune] ⏭️ 오늘 이미 분석 시도함 - 스킵 (key=$analyzedKey)');
+      return null;
+    }
+
     // 캐시가 없으면 AI 분석 트리거
     print('[DailyFortune] 캐시 없음 - AI 분석 시작');
-    await _triggerAnalysisIfNeeded(activeProfile.id);
+    await _triggerAnalysisIfNeeded(activeProfile.id, today);
 
     // 분석 완료 후 다시 조회 (null 반환하면 UI에서 "분석 중" 표시)
     return null;
@@ -214,8 +283,21 @@ class DailyFortune extends _$DailyFortune {
   /// 홈 화면에서 일운 캐시 미스 시 전체 운세(daily + monthly + yearly)를 함께 분석.
   /// 각 서비스는 내부적으로 캐시를 체크하므로 이미 캐시된 운세는 API 호출 없이 스킵.
   /// → 기존 사용자가 앱 재진입 시 프롬프트 버전 변경된 운세도 자동 재생성!
-  Future<void> _triggerAnalysisIfNeeded(String profileId) async {
-    if (_isAnalyzing) {
+  ///
+  /// Phase 60: 한국 시간 기준 하루 1회만 분석
+  /// - _analyzedToday: 오늘 이미 분석 시도한 프로필 (날짜별)
+  /// - _currentlyAnalyzing: 현재 분석 중인 프로필
+  Future<void> _triggerAnalysisIfNeeded(String profileId, DateTime today) async {
+    final analyzedKey = _getAnalyzedKey(profileId, today);
+
+    // Phase 60: 오늘 이미 분석 시도했으면 스킵
+    if (_analyzedToday.contains(analyzedKey)) {
+      print('[DailyFortune] ⏭️ 오늘 이미 분석 시도함 - 스킵 (key=$analyzedKey)');
+      return;
+    }
+
+    // Phase 60: 현재 분석 중이면 스킵
+    if (_currentlyAnalyzing.contains(profileId)) {
       print('[DailyFortune] 이미 분석 중 - 스킵');
       return;
     }
@@ -223,6 +305,8 @@ class DailyFortune extends _$DailyFortune {
     // v6.1 전역 중복 체크 (FortuneCoordinator에서 이미 분석 중인지)
     if (FortuneCoordinator.isAnalyzing(profileId)) {
       print('[DailyFortune] ⏭️ FortuneCoordinator에서 이미 분석 중 - 완료 대기');
+      // Phase 60: 분석 완료로 마킹 (중복 시도 방지)
+      _analyzedToday.add(analyzedKey);
       // FortuneCoordinator가 완료될 때까지 폴링하여 UI 갱신
       _waitForCoordinatorCompletion(profileId);
       return;
@@ -234,8 +318,11 @@ class DailyFortune extends _$DailyFortune {
       return;
     }
 
-    _isAnalyzing = true;
+    // Phase 60: 분석 시작 마킹
+    _currentlyAnalyzing.add(profileId);
+    _analyzedToday.add(analyzedKey);
     print('[DailyFortune] 🚀 v7.2 전체 Fortune 분석 시작 (daily + monthly + yearly)');
+    print('[DailyFortune] Phase 60: analyzedKey=$analyzedKey 등록');
 
     // v7.2: 전체 Fortune 분석 (각 서비스가 내부 캐시 체크)
     // - 캐시 히트 시 즉시 반환 (API 호출 없음)
@@ -249,13 +336,13 @@ class DailyFortune extends _$DailyFortune {
       print('  - monthly: ${result.monthly != null ? "성공" : "실패"}');
       print('  - yearly2025: ${result.yearly2025 != null ? "성공" : "실패"}');
       print('  - yearly2026: ${result.yearly2026 != null ? "성공" : "실패"}');
-      _isAnalyzing = false;
+      _currentlyAnalyzing.remove(profileId);
 
       // Provider 무효화하여 UI 갱신
       ref.invalidateSelf();
     }).catchError((e) {
       print('[DailyFortune] ❌ Fortune 분석 오류: $e');
-      _isAnalyzing = false;
+      _currentlyAnalyzing.remove(profileId);
       ref.invalidateSelf();
     });
   }
@@ -288,8 +375,18 @@ class DailyFortune extends _$DailyFortune {
   }
 
   /// 운세 새로고침 (캐시 무효화)
+  ///
+  /// Phase 60: 수동 새로고침 시 오늘 분석 플래그 리셋
+  /// - 사용자가 명시적으로 새로고침 요청 시에만 재분석 허용
   Future<void> refresh() async {
-    _isAnalyzing = false; // 수동 새로고침 시 플래그 리셋
+    final activeProfile = await ref.read(activeProfileProvider.future);
+    if (activeProfile != null) {
+      final today = KoreaDateUtils.today;
+      final analyzedKey = _getAnalyzedKey(activeProfile.id, today);
+      _analyzedToday.remove(analyzedKey);
+      _currentlyAnalyzing.remove(activeProfile.id);
+      print('[DailyFortune] 🔄 수동 새로고침 - 플래그 리셋 (key=$analyzedKey)');
+    }
     ref.invalidateSelf();
   }
 }

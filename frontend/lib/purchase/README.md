@@ -18,7 +18,7 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 |-----------|------|-----------|------|
 | `sadam_day_pass` | Non-consumable (일회성) | ₩1,100 | 24시간 프리미엄 |
 | `sadam_week_pass` | Non-consumable (일회성) | ₩4,900 | 7일 프리미엄 |
-| `sadam_monthly` | Auto-renewable subscription | ₩8,900/월 | 월간 자동갱신 구독 |
+| `sadam_monthly` | Auto-renewable subscription | ₩12,900/월 | 월간 자동갱신 구독 |
 
 > 전 상품 177개국 가격 자동 환산 적용됨 (Google Play Console)
 
@@ -40,7 +40,7 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 |------|------|------|------|
 | `sadam_day_pass` | 일회성 (purchase option: sadam-day-pass-default) | 활성 | ₩1,100 |
 | `sadam_week_pass` | 일회성 (purchase option: sadam-week-pass-default) | 활성 | ₩4,900 |
-| `sadam_monthly` | 구독 (base plan: sadam-monthly-default) | 활성 | ₩8,900/월, 유예기간 7일, 계정 보류 53일 |
+| `sadam_monthly` | 구독 (base plan: sadam-monthly-default) | 활성 | ₩12,900/월, 유예기간 7일, 계정 보류 53일 |
 
 - 패키지명: `com.clickaround.sadam`
 - 177개국 가격 설정 완료

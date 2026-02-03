@@ -921,14 +921,28 @@ class SajuCharacterInfo {
     this.season,
   });
 
+  /// 지지 → 동물 하드코딩 매핑
+  static const _jijiAnimalMap = {
+    '자': '쥐', '축': '소', '인': '호랑이', '묘': '토끼',
+    '진': '용', '사': '뱀', '오': '말', '미': '양',
+    '신': '원숭이', '유': '닭', '술': '개', '해': '돼지',
+  };
+
   factory SajuCharacterInfo.fromJson(Map<String, dynamic> json) {
+    final reading = json['reading'] as String? ?? '';
+    // AI가 animal을 안 주면 지지 한글에서 하드코딩 매핑
+    String? animal = json['animal'] as String?;
+    if ((animal == null || animal.isEmpty) && reading.isNotEmpty) {
+      animal = _jijiAnimalMap[reading];
+    }
+
     return SajuCharacterInfo(
       character: json['character'] as String? ?? '',
-      reading: json['reading'] as String? ?? '',
+      reading: reading,
       oheng: json['oheng'] as String? ?? '',
       yinYang: json['yin_yang'] as String? ?? '',
       meaning: json['meaning'] as String? ?? '',
-      animal: json['animal'] as String?,
+      animal: animal,
       season: json['season'] as String?,
     );
   }

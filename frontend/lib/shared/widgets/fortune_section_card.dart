@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../utils/text_formatter.dart';
 import 'fortune_score_gauge.dart';
 
 /// 운세 섹션 카드 위젯
@@ -80,10 +81,10 @@ class FortuneSectionCard extends StatelessWidget {
             const SizedBox(height: 14),
           ],
 
-          // 내용
+          // 내용 (온점 기준 줄바꿈 적용)
           if (content != null)
             Text(
-              content!,
+              FortuneTextFormatter.formatParagraph(content!),
               style: TextStyle(
                 fontSize: 15,
                 color: theme.textSecondary,
@@ -436,7 +437,7 @@ class FortuneHighlightBox extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  content,
+                  FortuneTextFormatter.formatParagraph(content),
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,

@@ -348,8 +348,8 @@ class ChatNotifier extends _$ChatNotifier {
         return AiPersona.babyMonk;
       case ChatPersona.scenarioWriter:
         return AiPersona.scenarioWriter;
-      case ChatPersona.saOngJiMa:
-        return AiPersona.saOngJiMa;
+      case ChatPersona.yinYangGrandpa:
+        return AiPersona.yinYangGrandpa;
       case ChatPersona.sewerSaju:
         return AiPersona.sewerSaju;
     }
@@ -904,9 +904,12 @@ class ChatNotifier extends _$ChatNotifier {
           }
         }
 
-        // chat_mentions에 참가자 저장
-        if (effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
-          await _saveChatMentions(currentSessionId, effectiveParticipantIds);
+        // Phase 59: chat_mentions 저장은 ParticipantResolver에서 처리
+        // - 첫 메시지: ParticipantResolver가 effectiveParticipantIds 저장
+        // - 추가 메시지: ParticipantResolver가 기존 + 새 참가자 병합 후 저장
+        // - 여기서 저장하면 병합된 리스트를 덮어쓰므로 제거
+        if (kDebugMode && effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
+          print('   📝 chat_mentions: ParticipantResolver에서 이미 저장됨 (${effectiveParticipantIds.length}명 입력)');
         }
       }
 
@@ -1068,7 +1071,41 @@ class ChatNotifier extends _$ChatNotifier {
       // AI 응답에서 후속 질문 파싱
       final parseResult = SuggestedQuestionsParser.parse(fullContent);
       final cleanedContent = parseResult.cleanedContent;
-      final suggestedQuestions = parseResult.suggestedQuestions;
+      var suggestedQuestions = parseResult.suggestedQuestions;
+
+      // 🔥 Truncation 감지: 여러 조건으로 판단
+      final lastResponse = _repository.getLastStreamingResponse();
+      final finishReason = lastResponse?.finishReason;
+
+      // 1) finishReason 기반 감지
+      final isFinishReasonTruncated = finishReason == 'MAX_TOKENS' || finishReason == 'LENGTH';
+
+      // 2) 문장 미완성 감지 (finishReason이 null이어도 중간에 끊긴 경우)
+      //    - 정상 종료: 마침표, 물음표, 느낌표, 물결표, 닫는 따옴표/괄호 등
+      //    - 비정상 종료: 그 외 (예: "생각", "하고" 등으로 끝남)
+      final trimmedContent = cleanedContent.trim();
+      // 정상 문장 종료 패턴 (마침표, 물음표, 느낌표, 물결, 닫는괄호, 말줄임표)
+      final normalEndingPattern = RegExp(r'[.!?~")\]\u3002\u300D\u300F\u2026\u22EF]$');
+      final looksIncomplete = trimmedContent.isNotEmpty &&
+          !normalEndingPattern.hasMatch(trimmedContent) &&
+          trimmedContent.length < 300; // 짧은 응답이 미완성으로 끝남
+
+      final isTruncated = isFinishReasonTruncated || looksIncomplete;
+
+      if (isTruncated) {
+        if (kDebugMode) {
+          print('   ⚠️ 응답 truncated 감지!');
+          print('      finishReason=$finishReason');
+          print('      looksIncomplete=$looksIncomplete (length=${trimmedContent.length})');
+          print('      마지막 10자: "${trimmedContent.length > 10 ? trimmedContent.substring(trimmedContent.length - 10) : trimmedContent}"');
+          print('      → "계속 이야기해줘" 추가');
+        }
+        // 기존 질문 앞에 "계속 이야기해줘" 추가
+        suggestedQuestions = [
+          '계속 이야기해줘',
+          ...?suggestedQuestions?.take(2), // 최대 2개만 유지 (총 3개)
+        ];
+      }
 
       // [6] 후속 질문 추출 - 디버그 강화
       if (kDebugMode) {
