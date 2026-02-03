@@ -81,7 +81,7 @@ class CompatibilityScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _primaryColor.withOpacity(0.4),
+            color: _primaryColor.withValues(alpha:0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -100,8 +100,8 @@ class CompatibilityScreen extends ConsumerWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withOpacity(0.15),
-                    Colors.white.withOpacity(0.0),
+                    Colors.white.withValues(alpha:0.15),
+                    Colors.white.withValues(alpha:0.0),
                   ],
                 ),
               ),
@@ -113,10 +113,10 @@ class CompatibilityScreen extends ConsumerWidget {
             bottom: 30,
             child: Row(
               children: [
-                Icon(Icons.favorite, size: 50, color: Colors.white.withOpacity(0.2)),
+                Icon(Icons.favorite, size: 50, color: Colors.white.withValues(alpha:0.2)),
                 Transform.translate(
                   offset: const Offset(-15, 0),
-                  child: Icon(Icons.favorite, size: 50, color: Colors.white.withOpacity(0.15)),
+                  child: Icon(Icons.favorite, size: 50, color: Colors.white.withValues(alpha:0.15)),
                 ),
               ],
             ),
@@ -131,7 +131,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -164,7 +164,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 Text(
                   '두 사람의 사주로 궁합을 분석합니다',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha:0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -182,7 +182,7 @@ class CompatibilityScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _primaryColor.withOpacity(0.1)),
+        border: Border.all(color: _primaryColor.withValues(alpha:0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +192,7 @@ class CompatibilityScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
+                  color: _primaryColor.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.menu_book_rounded, color: _primaryColor, size: 20),
@@ -222,12 +222,12 @@ class CompatibilityScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: _primaryColor.withOpacity(0.05),
+              color: _primaryColor.withValues(alpha:0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                Icon(Icons.psychology_rounded, color: _primaryColor.withOpacity(0.8), size: 20),
+                Icon(Icons.psychology_rounded, color: _primaryColor.withValues(alpha:0.8), size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -265,7 +265,7 @@ class CompatibilityScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
+                  color: _primaryColor.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.category_rounded, color: _primaryColor, size: 18),
@@ -294,7 +294,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: theme.cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withOpacity(0.15)),
+                  border: Border.all(color: color.withValues(alpha:0.15)),
                 ),
                 child: Column(
                   children: [
@@ -302,7 +302,7 @@ class CompatibilityScreen extends ConsumerWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
@@ -351,7 +351,7 @@ class CompatibilityScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
+                  color: _primaryColor.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.analytics_rounded, color: _primaryColor, size: 18),
@@ -386,7 +386,7 @@ class CompatibilityScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: color.withOpacity(0.15)),
+                border: Border.all(color: color.withValues(alpha:0.15)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +396,7 @@ class CompatibilityScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -446,14 +446,14 @@ class CompatibilityScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            _primaryColor.withOpacity(0.1),
-            _secondaryColor.withOpacity(0.05),
+            _primaryColor.withValues(alpha:0.1),
+            _secondaryColor.withValues(alpha:0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _primaryColor.withOpacity(0.2)),
+        border: Border.all(color: _primaryColor.withValues(alpha:0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,7 +463,7 @@ class CompatibilityScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.15),
+                  color: _primaryColor.withValues(alpha:0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.verified_rounded, color: _primaryColor, size: 18),
@@ -529,7 +529,7 @@ class CompatibilityScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: _primaryColor.withOpacity(0.4),
+              color: _primaryColor.withValues(alpha:0.4),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),

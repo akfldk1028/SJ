@@ -34,6 +34,7 @@ import '../features/compatibility/presentation/screens/compatibility_detail_scre
 import '../features/settings/presentation/screens/icon_generator_screen.dart';
 import '../features/monthly_fortune/presentation/screens/monthly_fortune_screen.dart';
 import '../features/yearly_2025_fortune/presentation/screens/yearly_2025_fortune_screen.dart';
+import '../purchase/purchase.dart';
 
 part 'app_router.g.dart';
 
@@ -140,6 +141,11 @@ GoRouter appRouter(Ref ref) {
         name: 'iconGenerator',
         builder: (context, state) => const IconGeneratorScreen(),
       ),
+      GoRoute(
+        path: Routes.settingsPremium,
+        name: 'settingsPremium',
+        builder: (context, state) => const PaywallScreen(),
+      ),
       // Fortune 페이지
       GoRoute(
         path: Routes.categoryFortuneDetail,
@@ -226,9 +232,12 @@ GoRouter appRouter(Ref ref) {
             builder: (context, state) {
               final chatType = state.uri.queryParameters['type'];
               final profileId = state.uri.queryParameters['profileId'];
+              final autoMention = state.uri.queryParameters['autoMention'] == 'true';
               return SajuChatShell(
+                key: ValueKey('$chatType-$profileId-$autoMention'),
                 chatType: chatType,
                 targetProfileId: profileId,
+                autoMention: autoMention,
               );
             },
           ),
@@ -245,7 +254,10 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: Routes.sajuDetail,
             name: 'sajuDetail',
-            builder: (context, state) => const SajuDetailScreen(),
+            builder: (context, state) {
+              final profileId = state.uri.queryParameters['profileId'];
+              return SajuDetailScreen(profileId: profileId);
+            },
           ),
         ],
       ),

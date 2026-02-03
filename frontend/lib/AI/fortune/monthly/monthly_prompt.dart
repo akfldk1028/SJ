@@ -16,7 +16,7 @@
 /// GPT-5-mini ($0.25 input, $2.00 output per 1M tokens)
 
 import '../../core/ai_constants.dart';
-import '../../prompts/prompt_template.dart';
+import '../common/prompt_template.dart';
 import '../common/fortune_input_data.dart';
 
 /// 이번달 운세 프롬프트 템플릿
@@ -147,7 +147,8 @@ class MonthlyPrompt extends PromptTemplate {
 
 ## 응답 구조 (중요!)
 1. **현재 월($targetMonth월)**: 7개 카테고리별 상세 분석 (각 12-15문장)
-2. **나머지 11개월**: 요약 버전 (키워드 + 점수 + 3-4문장)
+2. **나머지 11개월**: 상세 버전! (키워드 + 점수 + 8-10문장 reading + 7개 카테고리 highlights + tip + idiom + lucky)
+   - 광고 해금 후 사용자가 읽을 핵심 콘텐츠이므로 절대 짧게 쓰지 마세요!
 
 ---
 
@@ -270,9 +271,20 @@ ${_formatSajuBase()}
 - 월천간/월지와 ${inputData.yongsinElement != null ? '용신 ${inputData.yongsinElement}' : '용신'}의 관계
 - 월지 ${_monthElement['branch']}와 ${inputData.dayJi != null ? '일지 ${inputData.dayJi}' : '일지'}의 관계를 이야기하듯이
 
+## ⚠️ 점수 산정 규칙 (매우 중요!)
+- 점수는 **반드시 이 사람의 사주 원국 + 해당 월의 간지 조합**으로 계산하세요
+- **예시 점수를 절대 그대로 쓰지 마세요!** 사람마다, 달마다 달라야 합니다
+- 범위: 30~95 (과감하게! 좋은 달은 90+, 나쁜 달은 40 이하도 OK)
+- 카테고리 간 점수 차이를 크게 두세요 (최소 15점 이상 차이나는 항목이 있어야 함)
+- 12개월 간 점수 차이도 크게! (최고 달과 최저 달 차이 30점 이상)
+- 용신이 힘을 받는 달 → 해당 분야 높은 점수 (85+)
+- 기신/구신이 강한 달 → 해당 분야 낮은 점수 (50 이하)
+- 합충이 있는 달 → 변동폭 크게 (극단적 점수 가능)
+
 ## 응답 JSON 스키마 (v4.0: 12개월 통합)
 
 **중요**: 현재 월($targetMonth월)은 상세 분석, 나머지 11개월은 요약!
+**점수는 숫자만! 문자열 X. 예: "score": 42 (O), "score": "(30~95)" (X)**
 
 {
   "year": $targetYear,
@@ -283,49 +295,49 @@ ${_formatSajuBase()}
     "monthGanji": "$_monthGanji",
     "overview": {
       "keyword": "이번달 핵심 키워드 (3-4자)",
-      "score": 72,
+      "score": "(30~95, 일간+월운+용신 기반 계산)",
       "reading": "${targetMonth}월 총운입니다. 이번달은 $_monthGanji 월로, ${_monthElement['stemElement']}과 ${_monthElement['branchElement']} 기운이 함께 흐르는 시기입니다. {이름}님의 일간 {일간}에게 이번달 월지의 ${_monthElement['branchElement']} 기운이 {십성}으로 작용하면서 {영향 설명}. {용신/기신과의 관계 설명}. {합충이 있다면 설명}. 따라서 이번달은 {결론}하시면 좋겠습니다. (8-10문장)"
     },
     "categories": {
       "career": {
         "title": "직업운",
-        "score": 70,
+        "score": "(30~95, 관성+월운 기반)",
         "reading": "이번달 직장에서는 ${_monthGanji}의 {십성} 기운이 흐릅니다. {이름}님의 일간이 {일간}이시고, 월지의 ${_monthElement['branchElement']} 기운이 {십성}으로 작용해요. {십성}은 직장에서 {직장적 의미}를 의미합니다. 원국에서 관성이 {관성 특성}하신 편이라, 이번달 {구체적 영향}이 예상됩니다. {합충 영향}. 업무 성과를 높이려면 {업무 조언}하시고, 동료/상사 관계에서는 {관계 조언}을 기억하세요. {마무리 조언}. (반드시 12-15문장)"
       },
       "business": {
         "title": "사업운",
-        "score": 68,
+        "score": "(30~95, 재성+식상+월운 기반)",
         "reading": "사업 측면에서 이번달은 {십성} 기운이 영향을 미칩니다. {일간}에게 ${_monthElement['branchElement']} 기운이 {십성}으로 작용하고, 사업에서 {십성}은 {사업적 의미}를 의미해요. 원국의 재성이 {재성 강약}하셔서 {재성 영향}이 예상됩니다. 파트너십이나 거래처 관계에서는 {파트너 조언}. 사업 확장은 {확장 조언}, 신규 계약은 {계약 조언}을 참고하세요. {마무리 조언}. (반드시 12-15문장)"
       },
       "wealth": {
         "title": "재물운",
-        "score": 68,
+        "score": "(30~95, 재성+비겁+월운 기반)",
         "reading": "재물 측면에서 이번달은 {십성}의 기운이 흐릅니다. ${_monthElement['branchElement']} 기운이 {십성}으로 작용하고, 재물에서 {재물적 의미}를 나타냅니다. 원국에서 재성이 {재성 강약}하셔서 {원국 영향}. 투자는 {투자 조언}하시고, 지출 관리는 {지출 조언}을 권해드려요. {마무리 조언}. (반드시 12-15문장)"
       },
       "love": {
         "title": "애정운",
-        "score": 72,
+        "score": "(30~95, 일지+도화+월운 기반)",
         "reading": "애정운에서 이번달은 월지와 일지의 관계로 {연애 분위기}한 기운이 흐릅니다. 월지 ${_monthElement['branch']}가 일지와 {합/충/무관계}하면서 {합충 영향}. 원국에서 {배우자성}이 {특성}하셔서 {연애 영향}이 예상됩니다. 솔로이신 분들은 {솔로 조언}. 연인이 있으신 분들은 {커플 조언}. {마무리 조언}. (반드시 12-15문장)"
       },
       "marriage": {
         "title": "결혼운",
-        "score": 70,
+        "score": "(30~95, 배우자궁+월운 기반)",
         "reading": "결혼 관점에서 이번달은 배우자궁인 일지와 월지 ${_monthElement['branch']}의 관계가 핵심이에요. {합/충 분석}. {일간}에게 ${_monthElement['branchElement']} 기운이 {십성}으로 작용하고, 결혼에서 {십성}은 {결혼적 의미}를 나타내요. 미혼이신 분들은 {미혼 조언}. 기혼이신 분들은 {기혼 조언}. {마무리 조언}. (반드시 12-15문장)"
       },
       "health": {
         "title": "건강운",
-        "score": 65,
+        "score": "(30~95, 오행균형+월운 기반)",
         "reading": "건강 측면에서 이번달은 ${_monthElement['branchElement']} 기운이 강하게 흐릅니다. 오행에서 이 기운은 {해당 장부}에 해당하고, {건강 영향 원인}이 생길 수 있어요. 원국에서 {약한 오행}이 약하셔서 {오행 불균형}에 주의하세요. 운동으로는 {운동 추천}, 식이요법은 {음식 조언}이 도움됩니다. {마무리 조언}. (반드시 12-15문장)"
       },
       "study": {
         "title": "학업운",
-        "score": 72,
+        "score": "(30~95, 인성+식상+월운 기반)",
         "reading": "학업 관점에서 이번달 ${_monthElement['branchElement']} 기운이 {일간}에게 {십성}으로 작용해요. {십성}은 학업에서 {학업적 의미}를 뜻합니다. 원국에서 인성이 {인성 분석}하고 식상이 {식상 분석}하셔서 {구체적 영향}이 예상됩니다. 시험 준비는 {시험 조언}, 자격증은 {자격증 조언}을 참고하세요. {마무리 조언}. (반드시 12-15문장)"
       }
     },
     "lucky": {
       "colors": ["행운색1", "행운색2"],
-      "numbers": [숫자1, 숫자2],
+      "numbers": ["숫자1", "숫자2"],
       "tip": "행운 요소 활용법 (2문장)"
     }
   },
@@ -333,97 +345,29 @@ ${_formatSajuBase()}
   "months": {
     "month1": {
       "keyword": "1월 핵심 키워드 (3-4자)",
-      "score": 70,
-      "reading": "1월은 {월간지}의 기운으로 {일간}에게 {십성}이 작용합니다. 고전에서는 {전통해석}이지만 현대에서는 {현대해석}으로 볼 수 있어요. {용신/기신 관계 설명}. {합충이 있다면 변화/기회 설명}. 이 달의 핵심은 {핵심 포인트}입니다. {구체적 조언}하시면 좋은 결과를 얻을 수 있어요. {마무리 조언}. (반드시 6-8문장)",
+      "score": "(30~95, 1월 간지+원국 기반 - 예시 점수 복사 금지!)",
+      "reading": "1월은 {월간지}의 기운으로 {일간}에게 {십성}이 작용합니다. 고전에서는 {전통해석}이지만 현대에서는 {현대해석}으로 볼 수 있어요. {용신/기신 관계 설명}. {합충이 있다면 변화/기회 설명}. 이 달의 핵심은 {핵심 포인트}입니다. {일간+월운 조합이 각 영역에 미치는 영향 설명}. {구체적 조언}하시면 좋은 결과를 얻을 수 있어요. 전반적으로 {마무리 조언}. (반드시 8-10문장, 광고 해금 후 사용자가 읽을 핵심 콘텐츠!)",
+      "tip": "이 달의 핵심 실천 조언 (2문장, 구체적으로!)",
       "idiom": {"phrase": "사자성어 (한자 및 한글)", "meaning": "이 달에 어울리는 사자성어 의미와 적용 조언 (2문장)"},
       "highlights": {
-        "career": {"score": 72, "summary": "직장에서 {십성} 기운으로 {핵심 영향}. {1줄 조언}"},
-        "business": {"score": 70, "summary": "사업/자영업에서 {핵심 영향}. {1줄 조언}"},
-        "wealth": {"score": 68, "summary": "재물 측면에서 {핵심 영향}. {1줄 조언}"},
-        "love": {"score": 70, "summary": "애정/관계에서 {핵심 영향}. {1줄 조언}"}
-      }
+        "career": {"score": "(30~95)", "summary": "직장에서 {십성} 기운으로 {핵심 영향}. {구체적 조언} (2문장)"},
+        "business": {"score": "(30~95)", "summary": "사업/자영업에서 {핵심 영향}. {구체적 조언} (2문장)"},
+        "wealth": {"score": "(30~95)", "summary": "재물 측면에서 {핵심 영향}. {구체적 조언} (2문장)"},
+        "love": {"score": "(30~95)", "summary": "애정/관계에서 {핵심 영향}. {구체적 조언} (2문장)"},
+        "marriage": {"score": "(30~95)", "summary": "결혼/가정에서 {핵심 영향}. {구체적 조언} (2문장)"},
+        "health": {"score": "(30~95)", "summary": "건강 측면에서 {핵심 영향}. {구체적 조언} (2문장)"},
+        "study": {"score": "(30~95)", "summary": "학업/자격증에서 {핵심 영향}. {구체적 조언} (2문장)"}
+      },
+      "lucky": {"color": "이 달 행운색 (용신 기반)", "number": "(용신 오행 기반 숫자)"}
     },
-    "month2": {
-      "keyword": "2월 키워드",
-      "score": 72,
-      "reading": "2월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 70, "summary": "..."}, "business": {"score": 72, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 68, "summary": "..."}}
-    },
-    "month3": {
-      "keyword": "3월 키워드",
-      "score": 68,
-      "reading": "3월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 68, "summary": "..."}, "business": {"score": 66, "summary": "..."}, "wealth": {"score": 70, "summary": "..."}, "love": {"score": 72, "summary": "..."}}
-    },
-    "month4": {
-      "keyword": "4월 키워드",
-      "score": 75,
-      "reading": "4월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 74, "summary": "..."}, "business": {"score": 72, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
-    },
-    "month5": {
-      "keyword": "5월 키워드",
-      "score": 70,
-      "reading": "5월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 70, "summary": "..."}, "business": {"score": 68, "summary": "..."}, "wealth": {"score": 68, "summary": "..."}, "love": {"score": 72, "summary": "..."}}
-    },
-    "month6": {
-      "keyword": "6월 키워드",
-      "score": 72,
-      "reading": "6월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 72, "summary": "..."}, "business": {"score": 70, "summary": "..."}, "wealth": {"score": 70, "summary": "..."}, "love": {"score": 74, "summary": "..."}}
-    },
-    "month7": {
-      "keyword": "7월 키워드",
-      "score": 68,
-      "reading": "7월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 68, "summary": "..."}, "business": {"score": 66, "summary": "..."}, "wealth": {"score": 66, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
-    },
-    "month8": {
-      "keyword": "8월 키워드",
-      "score": 74,
-      "reading": "8월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 75, "summary": "..."}, "business": {"score": 73, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
-    },
-    "month9": {
-      "keyword": "9월 키워드",
-      "score": 70,
-      "reading": "9월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 70, "summary": "..."}, "business": {"score": 68, "summary": "..."}, "wealth": {"score": 72, "summary": "..."}, "love": {"score": 68, "summary": "..."}}
-    },
-    "month10": {
-      "keyword": "10월 키워드",
-      "score": 72,
-      "reading": "10월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 72, "summary": "..."}, "business": {"score": 70, "summary": "..."}, "wealth": {"score": 74, "summary": "..."}, "love": {"score": 70, "summary": "..."}}
-    },
-    "month11": {
-      "keyword": "11월 키워드",
-      "score": 68,
-      "reading": "11월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 68, "summary": "..."}, "business": {"score": 66, "summary": "..."}, "wealth": {"score": 70, "summary": "..."}, "love": {"score": 66, "summary": "..."}}
-    },
-    "month12": {
-      "keyword": "12월 키워드",
-      "score": 75,
-      "reading": "12월은... (반드시 6-8문장)",
-      "idiom": {"phrase": "사자성어 (한자)", "meaning": "의미와 조언 (2문장)"},
-      "highlights": {"career": {"score": 74, "summary": "..."}, "business": {"score": 76, "summary": "..."}, "wealth": {"score": 76, "summary": "..."}, "love": {"score": 72, "summary": "..."}}
-    }
+    "month2~month12": "위 month1과 동일한 구조로, 각 달의 간지에 맞춰 점수를 개별 계산하세요. 12개월 점수가 모두 비슷하면 안 됩니다! 최고 달과 최저 달 차이 30점 이상! highlights의 7개 카테고리 점수도 달마다, 카테고리마다 과감하게 차별화!"
   },
 
   "closingMessage": "${targetYear}년을 보내는 {이름}님께. 12개월 전체를 보면 {연간 흐름 요약}. {격려/응원}. (2문장)"
 }
+
+**점수는 반드시 숫자만! 예: "score": 42 (O), "score": "(30~95)" (X)**
+**12개월 점수가 65~75 사이에 몰려있으면 안 됩니다! 과감하게!**
 ''';
   }
 

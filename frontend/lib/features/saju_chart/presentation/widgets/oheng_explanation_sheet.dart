@@ -271,7 +271,7 @@ class OhengExplanationSheet extends StatelessWidget {
               Text(
                 meaning,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 13,
                   color: theme.textMuted,
                 ),
               ),

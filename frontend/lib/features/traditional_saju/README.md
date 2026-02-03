@@ -51,19 +51,50 @@ traditional_saju/
 
 ## 데이터 흐름
 
+### v30 이전 (프로필 저장 시 즉시 분석)
 ```
-1. 프로필 저장 시
-   └── SajuAnalysisService.analyzeOnProfileSave()
-       ├── Phase 1 실행 → mySajuIntro, my_saju_characters, wonGuk, sipsung, hapchung, personality, lucky_elements
-       ├── Phase 2 실행 → wealth, love, marriage
-       ├── Phase 3 실행 → career, business, health
-       └── Phase 4 실행 → life_cycles, peak_years, daeun_detail
+프로필 저장 → SajuAnalysisService.analyzeOnProfileSave() → GPT-5.2 $0.197 즉시 소모
+  → 채팅 안 하고 이탈하면 $0.197 손실
+```
 
-2. 평생운세 화면 진입 시
-   └── LifetimeFortuneProvider
-       ├── getCached() → DB에서 캐시 조회 (prompt_version 체크)
-       ├── 캐시 히트 → 파싱 후 UI 표시
-       └── 캐시 미스 → AI 재생성 트리거
+### v30 이후 (Lazy trigger)
+```
+프로필 저장 → 트리거 없음 (비용 $0)
+
+유저가 실제로 사용할 때만 트리거 (4중 안전망):
+
+  1. 하단 네비 "운세"/"AI 상담" 탭 클릭
+     main_bottom_nav.dart → _triggerSajuBaseIfNeeded()
+
+  2. 운세 카테고리 버튼 (평생운세/2025/2026/한달)
+     fortune_category_list.dart → _triggerSajuBaseIfNeeded()
+
+  3. 평생운세 페이지 로드 (기존 로직 유지)
+     lifetime_fortune_provider.dart → _triggerAnalysisIfNeeded()
+
+  4. AI 채팅 첫 메시지 (안전장치)
+     chat_provider.dart → _ensureSajuBase()
+
+  → SajuAnalysisService._analyzingProfiles Set으로 중복 방지
+  → 이미 캐시 있으면 즉시 반환 (비용 0)
+```
+
+### Phase 분할 분석 상세
+```
+SajuAnalysisService.analyzeOnProfileSave()
+    ├── Phase 1 실행 → mySajuIntro, my_saju_characters, wonGuk, sipsung, hapchung, personality, lucky_elements
+    ├── Phase 2 실행 → wealth, love, marriage
+    ├── Phase 3 실행 → career, business, health
+    └── Phase 4 실행 → life_cycles, peak_years, daeun_detail
+```
+
+### 평생운세 화면 진입 시
+```
+LifetimeFortuneProvider.build()
+    ├── getCached() → DB에서 캐시 조회 (prompt_version 체크)
+    ├── 캐시 히트 → 파싱 후 UI 표시
+    ├── stale 캐시 → 기존 데이터 표시 + 백그라운드 재생성
+    └── 캐시 미스 → _triggerAnalysisIfNeeded() + 폴링 시작
 ```
 
 ---

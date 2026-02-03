@@ -1,0 +1,10 @@
+{
+  "title": "Calendar",
+  "today": "Today",
+  "selectedDate": "Selected Date",
+  "noEvents": "No events",
+  "luckyDay": "Lucky Day",
+  "cautionDay": "Caution Day",
+  "monthView": "Monthly View",
+  "weekView": "Weekly View"
+}

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,10 +110,13 @@ class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserv
           );
 
     return ShadApp.router(
-      title: '사담',
+      title: 'common.appName'.tr(),
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: shadThemeData,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       materialThemeBuilder: (context, theme) {
         return currentTheme;
       },

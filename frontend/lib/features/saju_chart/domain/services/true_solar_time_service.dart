@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// 진태양시 계산 서비스
 /// 지역별 경도 차이에 따른 시간 보정
 class TrueSolarTimeService {
@@ -216,21 +218,12 @@ class TrueSolarTimeService {
     // 간단한 근사 공식
     // E = 9.87 * sin(2B) - 7.53 * cos(B) - 1.5 * sin(B)
     // B = (360/365) * (dayOfYear - 81) degrees
-    final b = (360.0 / 365.0) * (dayOfYear - 81) * (3.14159 / 180.0);
+    final b = (360.0 / 365.0) * (dayOfYear - 81) * (math.pi / 180.0);
 
-    final equationMinutes = 9.87 * _sin(2 * b) - 7.53 * _cos(b) - 1.5 * _sin(b);
+    final equationMinutes =
+        9.87 * math.sin(2 * b) - 7.53 * math.cos(b) - 1.5 * math.sin(b);
 
     return equationMinutes;
-  }
-
-  double _sin(double radians) {
-    // Dart의 math 라이브러리 sin 사용을 위한 헬퍼
-    return radians.sin();
-  }
-
-  double _cos(double radians) {
-    // Dart의 math 라이브러리 cos 사용을 위한 헬퍼
-    return radians.cos();
   }
 
   /// 도시명으로 경도 조회
@@ -250,26 +243,3 @@ class TrueSolarTimeService {
   }
 }
 
-/// double에 대한 sin, cos 확장 메서드
-extension _TrigonometryExtension on double {
-  double sin() {
-    // Taylor series approximation for sin
-    double x = this;
-    // Normalize to -π to π
-    while (x > 3.14159) {
-      x -= 2 * 3.14159;
-    }
-    while (x < -3.14159) {
-      x += 2 * 3.14159;
-    }
-
-    // Taylor series: sin(x) ≈ x - x³/3! + x⁵/5! - x⁷/7!
-    final x2 = x * x;
-    return x * (1 - x2 / 6 * (1 - x2 / 20 * (1 - x2 / 42)));
-  }
-
-  double cos() {
-    // cos(x) = sin(x + π/2)
-    return (this + 3.14159 / 2).sin();
-  }
-}

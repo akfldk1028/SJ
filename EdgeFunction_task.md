@@ -30,34 +30,36 @@ temperature = 0.8
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
-| **버전** | v24 | 2026-01-01 (DK 구현) |
+| **버전** | **v37** | 2026-02-01 (DK) |
 | **모델** | `gpt-5.2` | ⚠️ 변경 금지 - GPT-5.2 Thinking |
 | **max_tokens** | `10000` | 전체 응답 보장 |
 | **reasoning_effort** | `medium` | 추론 강도 (30-60초) |
 | **용도** | 평생 사주 분석 | OpenAI Responses API Background Mode |
+| **API키** | 3개 로드밸런싱 | OPENAI_API_KEY, _2, _3 |
 
 ```typescript
-// ai-openai/index.ts v24 - 핵심 설정
+// ai-openai/index.ts v37 - 핵심 설정
 model = "gpt-5.2"           // 변경 금지 - GPT-5.2 Thinking
 max_tokens = 10000          // 변경 금지 - 전체 응답 보장
 reasoning_effort = "medium" // 추론 강도 (Supabase 타임아웃 내)
 run_in_background = true    // OpenAI Responses API background 모드
 ```
 
-### ai-openai-result (결과 조회용) - 신규
+### ai-openai-result (결과 조회용)
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
-| **버전** | v4 | 2026-01-01 (DK 구현) |
-| **용도** | OpenAI background task 결과 폴링 | ai-openai v24와 연동 |
+| **버전** | **v15** | 2026-02-01 (DK) |
+| **용도** | OpenAI background task 결과 폴링 | ai-openai v37와 연동 |
 | **엔드포인트** | POST /ai-openai-result | `{ task_id: "uuid" }` |
 
 ```typescript
-// ai-openai-result/index.ts v4 - 핵심 로직
+// ai-openai-result/index.ts v15 - 핵심 로직
 // 1. ai_tasks 테이블에서 task 조회
 // 2. openai_response_id로 OpenAI /v1/responses/{id} 폴링
 // 3. 상태: queued → in_progress → completed
 // 4. 완료 시 결과 캐싱 및 반환
+// 5. reasoning 타입 필터링 (GPT thinking 내용 제외)
 ```
 
 ---
@@ -78,12 +80,27 @@ run_in_background = true    // OpenAI Responses API background 모드
 | v8 | gpt-4o-mini | max_completion_tokens 수정 |
 | v9 | gpt-5.2 | GPT-5.2로 업그레이드 |
 | v10 | gpt-5.2-thinking | 추론 강화 모델, max_tokens 10000 |
-| **v24** | gpt-5.2 | **OpenAI Responses API background 모드 (DK)** |
+| v24 | gpt-5.2 | OpenAI Responses API background 모드 (DK) |
+| **v37** | gpt-5.2 | **DB 컬럼명 수정 + reasoning 필터링 + 3키 로드밸런싱 (DK)** |
 
-### ai-openai-result (신규)
+#### v37 주요 변경사항 (2026-02-01)
+- `isAdminUser()`: `.eq("is_primary", true)` → `.eq("profile_type", "primary")` (DB 컬럼명 불일치 수정)
+- `recordTokenUsage()`: `gpt_saju_analysis_tokens` → `saju_analysis_tokens` (DB 컬럼명 불일치 수정)
+- `gpt_saju_analysis_count` 참조 제거 (DB에 존재하지 않는 컬럼)
+- `collectStreamResponse()`: `delta.reasoning_content` 필터링 (GPT thinking 내용 사용자 노출 방지)
+- API키 3개 로드밸런싱: `OPENAI_API_KEY`, `OPENAI_API_KEY_2`, `OPENAI_API_KEY_3`
+
+### ai-openai-result
 | 버전 | 용도 | 변경 사유 |
 |------|------|----------|
-| **v4** | 결과 폴링 | OpenAI /v1/responses/{id} 폴링 엔드포인트 (DK) |
+| v4 | 결과 폴링 | OpenAI /v1/responses/{id} 폴링 엔드포인트 (DK) |
+| **v15** | 결과 폴링 | **DB 컬럼명 수정 + reasoning 타입 필터링 (DK)** |
+
+#### v15 주요 변경사항 (2026-02-01)
+- `recordTokenUsage()`: `gpt_saju_analysis_tokens` → `saju_analysis_tokens` (DB 컬럼명 불일치 수정)
+- `gpt_saju_analysis_count` 참조 제거
+- output 배열에서 `type === "reasoning"` 항목 명시적 제외 (GPT thinking 내용 제외)
+- content 배열에서 `type === "reasoning"` 항목도 제외
 
 ---
 
@@ -148,9 +165,9 @@ supabase/backups/
 └── ...
 
 supabase/functions/
-├── ai-openai/index.ts         (v24 - 현재 배포됨)
+├── ai-openai/index.ts         (v37 - 현재 배포됨)
 ├── ai-openai/index_DK.ts      (DK 원본 백업)
-└── ai-openai-result/index.ts  (v4 - 현재 배포됨)
+└── ai-openai-result/index.ts  (v15 - 현재 배포됨)
 ```
 
 ---
@@ -163,7 +180,32 @@ supabase/functions/
 
 ---
 
+## 알려진 이슈 (Known Issues)
+
+### ai-gemini: DB 컬럼명 불일치 (미수정)
+- `ai-gemini/index.ts`에서 `gemini_chat_tokens`, `gemini_chat_message_count` 사용
+- **실제 DB 컬럼**: `chatting_tokens`, `chatting_message_count`
+- 현재 토큰 기록이 실패하고 있으나 채팅 기능 자체에는 영향 없음
+- 수정 시 ai-gemini Edge Function 재배포 필요
+
+### DB 컬럼명 참고 (user_daily_token_usage 실제 스키마)
+```
+saju_analysis_tokens      -- 사주분석 (ai-openai)
+daily_fortune_tokens      -- 일운 (ai-gemini)
+monthly_fortune_tokens    -- 월운
+yearly_fortune_2025_tokens -- 2025 회고
+yearly_fortune_2026_tokens -- 2026 신년
+chatting_tokens           -- 채팅 (ai-gemini) ← gemini_chat_tokens 아님!
+gpt_cost_usd             -- GPT 비용
+gemini_cost_usd           -- Gemini 비용
+total_tokens (GENERATED)  -- 자동 합산
+is_quota_exceeded (GENERATED) -- 자동 판단
+```
+
+---
+
 ## 담당자
 
 - **JH_BE (Jaehyeon)**: Supabase Backend, Edge Functions
+- **DK**: Edge Function 배포/관리, AI 파이프라인
 - 문의: 이 문서 또는 `supabase_Jaehyeon_Task.md` 참조

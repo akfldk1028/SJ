@@ -5,8 +5,8 @@ import '../../data/constants/dst_periods.dart';
 class DSTService {
   /// 서머타임 적용 여부 확인
   /// 해당 날짜가 서머타임 기간인지 확인
-  bool isDSTApplied(DateTime dateTime) {
-    return isDSTApplied(dateTime);
+  bool checkDSTApplied(DateTime dateTime) {
+    return dstPeriods.any((period) => period.contains(dateTime));
   }
 
   /// 서머타임 보정
@@ -36,7 +36,7 @@ class DSTService {
 
   /// 서머타임 보정 정보 반환 (디버깅/표시용)
   Map<String, dynamic> getDSTInfo(DateTime dateTime) {
-    final isApplied = isDSTApplied(dateTime);
+    final isApplied = checkDSTApplied(dateTime);
     DateRange? appliedPeriod;
 
     if (isApplied) {

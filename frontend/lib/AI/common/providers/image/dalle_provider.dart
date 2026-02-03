@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import '../../core/ai_config.dart';
-import '../../core/ai_logger.dart';
-import '../../core/base_provider.dart';
+import '../../../core/ai_config.dart';
+import '../../../core/ai_simple_logger.dart';
+import '../../../core/base_provider.dart';
 
 /// OpenAI DALL-E 이미지 생성 Provider
 class DalleProvider extends BaseImageProvider {

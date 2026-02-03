@@ -40,6 +40,12 @@ abstract class CompatibilityAnalysisModel with _$CompatibilityAnalysisModel {
     // JOIN된 프로필 정보 (optional)
     CompatibilityProfileInfo? profile1,
     CompatibilityProfileInfo? profile2,
+
+    // 일주 정보 (detail view용)
+    String? ownerDayGan,
+    String? ownerDayJi,
+    String? targetDayGan,
+    String? targetDayJi,
   }) = _CompatibilityAnalysisModel;
 
   const CompatibilityAnalysisModel._();
@@ -62,6 +68,25 @@ abstract class CompatibilityAnalysisModel with _$CompatibilityAnalysisModel {
       profile2 = CompatibilityProfileInfo.fromSupabaseMap(
         map['profile2'] as Map<String, dynamic>,
       );
+    }
+
+    // owner 일주 정보 추출 (nested JOIN: owner_profile.saju_analysis)
+    String? ownerDayGan;
+    String? ownerDayJi;
+    final ownerProfile = map['owner_profile'] as Map<String, dynamic>?;
+    if (ownerProfile != null) {
+      // Supabase가 1:1 관계를 object 또는 array로 반환할 수 있음
+      final sajuRaw = ownerProfile['saju_analysis'];
+      Map<String, dynamic>? sajuAnalysis;
+      if (sajuRaw is Map<String, dynamic>) {
+        sajuAnalysis = sajuRaw;
+      } else if (sajuRaw is List && sajuRaw.isNotEmpty) {
+        sajuAnalysis = sajuRaw.first as Map<String, dynamic>?;
+      }
+      if (sajuAnalysis != null) {
+        ownerDayGan = sajuAnalysis['day_gan'] as String?;
+        ownerDayJi = sajuAnalysis['day_ji'] as String?;
+      }
     }
 
     return CompatibilityAnalysisModel(
@@ -88,6 +113,10 @@ abstract class CompatibilityAnalysisModel with _$CompatibilityAnalysisModel {
       pairHapchung: map['pair_hapchung'] as Map<String, dynamic>?,
       profile1: profile1,
       profile2: profile2,
+      ownerDayGan: ownerDayGan,
+      ownerDayJi: ownerDayJi,
+      targetDayGan: map['target_day_gan'] as String?,
+      targetDayJi: map['target_day_ji'] as String?,
     );
   }
 

@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,14 +10,18 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'ad/ad.dart';
 import 'app.dart';
+import 'i18n/multi_file_asset_loader.dart';
+import 'purchase/purchase.dart';
 import 'core/services/app_update_service.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
 import 'features/profile/data/datasources/profile_local_datasource.dart';
 import 'features/profile/data/repositories/profile_repository_impl.dart';
+import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
 
   // Manual 모드: 상태바만 표시, 하단 네비게이션 바 숨김
   SystemChrome.setEnabledSystemUIMode(
@@ -41,7 +46,14 @@ void main() async {
   await _openHiveBoxSafely('chat_sessions');   // 채팅 세션
   await _openHiveBoxSafely('chat_messages');   // 채팅 메시지
   await _openHiveBoxSafely('saju_analyses');   // 사주 분석 결과 캐시
+  await _openHiveBoxSafely('saju_sync');       // 사주 분석 동기화 대기 목록
   await _openHiveBoxSafely('message_queue');   // 메시지 큐 (오프라인 재전송용)
+
+  // 테마 설정 Hive Box 열기 (앱 재시작 시 테마 복원용)
+  await _openHiveBoxStringSafely('theme_settings');
+
+  // 페르소나 설정 Hive Box 열기 (앱 재시작 시 페르소나 복원용)
+  await ChatPersonaBox.ensureBoxOpen();
 
   // AI 로그 서비스 초기화
   await AiLogger.init();
@@ -64,14 +76,33 @@ void main() async {
     }
   }
 
+  // RevenueCat IAP 초기화 (모바일만)
+  if (isMobile) {
+    try {
+      await PurchaseService.instance.initialize();
+    } catch (e) {
+      debugPrint('[PurchaseService] 초기화 실패: $e');
+    }
+  }
+
   // Google Play In-App Update 체크 (Android만)
   if (isMobile && Platform.isAndroid) {
     AppUpdateService.instance.checkForUpdate();
   }
 
   runApp(
-    const ProviderScope(
-      child: MantokApp(),
+    EasyLocalization(
+      supportedLocales: const [
+        Locale('ko'),
+        Locale('en'),
+        Locale('ja'),
+      ],
+      path: 'lib/i18n',
+      fallbackLocale: const Locale('ko'),
+      assetLoader: MultiFileAssetLoader(),
+      child: const ProviderScope(
+        child: MantokApp(),
+      ),
     ),
   );
 }
@@ -91,6 +122,19 @@ Future<void> _syncProfilesFromCloud() async {
       print('[Main] 프로필 클라우드 동기화 실패 (오프라인 모드 계속): $e');
     }
     // 동기화 실패해도 앱은 계속 동작 (오프라인 모드)
+  }
+}
+
+/// Hive Box<String> 안전하게 열기 (테마 설정 등 String 타입 Box용)
+Future<void> _openHiveBoxStringSafely(String boxName) async {
+  try {
+    await Hive.openBox<String>(boxName);
+  } catch (e) {
+    if (kDebugMode) {
+      print('[Hive] String Box 열기 실패 ($boxName): $e, 데이터 초기화 시도');
+    }
+    await Hive.deleteBoxFromDisk(boxName);
+    await Hive.openBox<String>(boxName);
   }
 }
 

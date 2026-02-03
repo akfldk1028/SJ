@@ -1,0 +1,8 @@
+{
+  "title": "相性",
+  "description": "二人の四柱の相性を調べましょう",
+  "person1": "一人目",
+  "person2": "二人目",
+  "result": "相性結果",
+  "analyze": "相性を分析する"
+}

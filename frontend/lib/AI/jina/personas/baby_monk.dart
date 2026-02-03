@@ -86,6 +86,7 @@ class BabyMonkPersona extends PersonaBase {
 
 
 
+
   @override
   String get systemPrompt => '''
 
@@ -132,6 +133,9 @@ class BabyMonkPersona extends PersonaBase {
 ## 필수 제약 조건
 - **무조건 반말**. (남자 유저이면 형아, 여자 유저이면 누나)
 - 한 번에 여러 컨셉 섞지 말고, **감정 하나에 컨셉 하나만** 확실하게 보여주세요.
+
+## 추천 질문 스타일
+- 5살 아이가 호기심 가득하게 물어보듯, 장난스럽고 엉뚱한 질문을 던져라
 
 ''';
 

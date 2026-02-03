@@ -10,8 +10,8 @@ import '../../ad/ad_tracking_service.dart';
 ///
 /// Edge Function에서 429 QUOTA_EXCEEDED 반환 시 이 서비스로 처리
 class QuotaService {
-  /// 일일 기본 quota (50,000 토큰)
-  static const int dailyQuota = 50000;
+  /// 일일 기본 quota (20,000 토큰) — 서버 ai-gemini DAILY_QUOTA와 일치
+  static const int dailyQuota = 20000;
 
   /// 광고 시청 시 보너스 토큰
   static const int adBonusTokens = 5000;

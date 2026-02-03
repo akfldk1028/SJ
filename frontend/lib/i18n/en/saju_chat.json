@@ -1,0 +1,12 @@
+{
+  "title": "Fortune Consultation",
+  "inputHint": "Ask your question...",
+  "send": "Send",
+  "loading": "Generating response...",
+  "error": "An error occurred",
+  "retry": "Retry",
+  "suggestedQuestion1": "How is my fortune this year?",
+  "suggestedQuestion2": "How is my financial luck?",
+  "suggestedQuestion3": "Tell me about my love fortune",
+  "suggestedQuestion4": "How about career fortune?"
+}

@@ -1,0 +1,17 @@
+{
+  "title": "プロフィール設定",
+  "name": "名前",
+  "nameHint": "名前を入力してください",
+  "birthDate": "生年月日",
+  "birthTime": "出生時間",
+  "birthTimeUnknown": "不明",
+  "gender": "性別",
+  "genderMale": "男性",
+  "genderFemale": "女性",
+  "calendarType": "暦の種類",
+  "calendarSolar": "新暦",
+  "calendarLunar": "旧暦",
+  "presetMe": "自分",
+  "presetLover": "恋人",
+  "presetFamily": "家族"
+}

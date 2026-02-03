@@ -68,8 +68,47 @@ class OhengAnalysisDisplay extends StatelessWidget {
               ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.help_outline, size: 16, color: theme.textMuted),
+        GestureDetector(
+          onTap: () => _showSectionHelp(context, title, theme),
+          child: Icon(Icons.help_outline, size: 16, color: theme.textMuted),
+        ),
       ],
+    );
+  }
+
+  void _showSectionHelp(BuildContext context, String title, AppThemeExtension theme) {
+    final descriptions = {
+      '오행과 십성 분석': '오행(목·화·토·금·수)의 분포와 십성(비겁·식상·재성·관성·인성) 관계를 종합적으로 분석합니다.',
+      '오행': '목(木)·화(火)·토(土)·금(金)·수(水) 다섯 가지 기운의 분포를 보여줍니다. 오행의 균형이 성격과 운세에 영향을 줍니다.',
+      '십성': '일간을 기준으로 다른 간지와의 관계를 10가지(비겁·식상·재성·관성·인성)로 분류한 것입니다.',
+    };
+    // "나의 오행: ○" 형태의 타이틀도 처리
+    final desc = descriptions[title] ?? (title.startsWith('나의 오행') ? '일간(나)의 오행 속성입니다. 내가 어떤 오행인지에 따라 성격, 적성, 궁합 등이 달라집니다.' : '');
+    if (desc.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 24),
+            const SizedBox(width: 10),
+            Expanded(child: Text(
+              '$title이란?',
+              style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+            )),
+          ],
+        ),
+        content: Text(desc, style: TextStyle(color: theme.textSecondary, fontSize: 15, height: 1.7)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -273,7 +312,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                     '${sipsin.korean}(${sipsin.hanja})',
                     style: TextStyle(
                       color: theme.textSecondary,
-                      fontSize: 12,
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -283,7 +322,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       color: count > 0 ? theme.textPrimary : theme.textMuted,
-                      fontSize: 12,
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -345,7 +384,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(color: color, fontSize: 12),
+          style: TextStyle(color: color, fontSize: 13),
         ),
       ],
     );
@@ -577,7 +616,7 @@ class _OhengPentagonPainter extends CustomPainter {
               text: '${oheng.korean}(${_getSipsinCategory(oheng)})\n',
               style: TextStyle(
                 color: _getOhengColor(oheng),
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -585,7 +624,7 @@ class _OhengPentagonPainter extends CustomPainter {
               text: '${percentage.toStringAsFixed(1)}%',
               style: TextStyle(
                 color: textSecondaryColor,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ],

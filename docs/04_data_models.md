@@ -105,7 +105,9 @@ CREATE TABLE public.saju_profiles (
   use_ya_jasi BOOLEAN DEFAULT TRUE,
 
   -- 상태
-  is_primary BOOLEAN DEFAULT FALSE,     -- 대표 프로필
+  profile_type TEXT DEFAULT 'other',     -- 대표 프로필: 'primary' / 'other'
+  -- ⚠️ 주의: 과거 문서에서 is_primary (BOOLEAN)로 표기했으나
+  -- 실제 DB 컬럼은 profile_type (TEXT)임
 
   -- 타임스탬프
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -468,7 +470,7 @@ CREATE POLICY "Users can manage own messages"
 ```sql
 -- saju_profiles
 CREATE INDEX idx_saju_profiles_user_id ON public.saju_profiles(user_id);
-CREATE INDEX idx_saju_profiles_is_primary ON public.saju_profiles(user_id, is_primary) WHERE is_primary = TRUE;
+CREATE INDEX idx_saju_profiles_primary ON public.saju_profiles(user_id, profile_type) WHERE profile_type = 'primary';
 
 -- saju_analyses
 CREATE INDEX idx_saju_analyses_profile_id ON public.saju_analyses(profile_id);
@@ -542,22 +544,23 @@ CREATE TRIGGER on_chat_message_change
 ### 6.3 대표 프로필 단일 유지
 
 ```sql
+-- ⚠️ 실제 DB는 profile_type (TEXT: 'primary'/'other') 사용
 CREATE OR REPLACE FUNCTION ensure_single_primary_profile()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.is_primary = TRUE THEN
+  IF NEW.profile_type = 'primary' THEN
     UPDATE public.saju_profiles
-    SET is_primary = FALSE
-    WHERE user_id = NEW.user_id AND id != NEW.id AND is_primary = TRUE;
+    SET profile_type = 'other'
+    WHERE user_id = NEW.user_id AND id != NEW.id AND profile_type = 'primary';
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER on_primary_profile_change
-  BEFORE INSERT OR UPDATE OF is_primary ON public.saju_profiles
+  BEFORE INSERT OR UPDATE OF profile_type ON public.saju_profiles
   FOR EACH ROW
-  WHEN (NEW.is_primary = TRUE)
+  WHEN (NEW.profile_type = 'primary')
   EXECUTE FUNCTION ensure_single_primary_profile();
 ```
 
@@ -585,7 +588,7 @@ final primaryProfile = await supabase
   .from('saju_profiles')
   .select('*, saju_analyses (*)')
   .eq('user_id', userId)
-  .eq('is_primary', true)
+  .eq('profile_type', 'primary')  // ⚠️ is_primary가 아닌 profile_type 사용
   .maybeSingle();
 ```
 
@@ -700,7 +703,111 @@ frontend/lib/sql/
 
 ---
 
-## 11. 다음 단계
+## 11. 추가 테이블 (프로덕션 운영)
+
+> 아래 테이블들은 프로덕션에서 실제 사용 중이며, 위 기본 스키마와 함께 운영됩니다.
+
+### 11.1 public.user_daily_token_usage (토큰 사용량 추적)
+
+```sql
+-- 기능별 토큰 사용량 (모델별이 아님!)
+-- total_tokens, is_quota_exceeded는 GENERATED 컬럼 (자동 계산)
+CREATE TABLE public.user_daily_token_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  usage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+
+  -- 기능별 토큰 (⚠️ 컬럼명 주의!)
+  saju_analysis_tokens INTEGER DEFAULT 0,        -- 사주 분석 (ai-openai)
+  daily_fortune_tokens INTEGER DEFAULT 0,        -- 일운 (ai-gemini)
+  monthly_fortune_tokens INTEGER DEFAULT 0,      -- 월운
+  yearly_fortune_2025_tokens INTEGER DEFAULT 0,  -- 2025 회고
+  yearly_fortune_2026_tokens INTEGER DEFAULT 0,  -- 2026 신년
+  chatting_tokens INTEGER DEFAULT 0,             -- 채팅 (ai-gemini)
+
+  -- 비용 추적 (USD, 모델별)
+  gpt_cost_usd NUMERIC(10,6) DEFAULT 0,
+  gemini_cost_usd NUMERIC(10,6) DEFAULT 0,
+
+  -- 자동 계산 컬럼
+  total_tokens INTEGER GENERATED ALWAYS AS (
+    saju_analysis_tokens + daily_fortune_tokens + monthly_fortune_tokens +
+    yearly_fortune_2025_tokens + yearly_fortune_2026_tokens + chatting_tokens
+  ) STORED,
+  is_quota_exceeded BOOLEAN GENERATED ALWAYS AS (...) STORED,
+
+  UNIQUE(user_id, usage_date)
+);
+```
+
+> **주의사항**:
+> - `gpt_saju_analysis_tokens` 컬럼은 존재하지 않음 → `saju_analysis_tokens` 사용
+> - `gpt_saju_analysis_count` 컬럼은 존재하지 않음 → 제거됨
+> - `gemini_chat_tokens` 컬럼은 존재하지 않음 → `chatting_tokens` 사용
+> - `total_tokens`와 `is_quota_exceeded`는 GENERATED 컬럼이므로 INSERT/UPDATE 시 포함하면 안 됨
+
+### 11.2 public.ai_summaries (AI 분석 요약)
+
+```sql
+CREATE TABLE public.ai_summaries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES public.saju_profiles(id) ON DELETE CASCADE,
+  summary_type TEXT NOT NULL,        -- 'saju_base', 'daily', 'monthly', 'yearly_2025', 'yearly_2026'
+  target_year INTEGER,
+  target_month INTEGER,
+  content JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- UNIQUE 제약조건 (⚠️ onConflict에서 정확히 이 컬럼 사용!)
+  CONSTRAINT ai_summaries_profile_type_year_month_unique
+    UNIQUE(profile_id, summary_type, target_year, target_month)
+);
+```
+
+> **주의사항 (ON CONFLICT)**:
+> - UNIQUE는 `(profile_id, summary_type, target_year, target_month)` 4개 컬럼
+> - `onConflict: 'profile_id'`만 사용하면 에러 발생 (PostgREST는 partial index 미지원)
+> - `onConflict: 'profile_id,target_date,summary_type'`도 에러 (`target_date` 컬럼 없음)
+> - 올바른 사용: `onConflict: 'profile_id,summary_type,target_year,target_month'`
+> - 또는 delete+insert 패턴 사용 (ai_summary_service.dart에서 사용 중)
+
+### 11.3 public.ai_tasks (Background 작업 추적)
+
+```sql
+CREATE TABLE public.ai_tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  profile_id UUID REFERENCES public.saju_profiles(id),
+  openai_response_id TEXT,           -- OpenAI Responses API response ID
+  status TEXT DEFAULT 'processing',  -- processing, completed, failed
+  result TEXT,                       -- 캐싱된 결과
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 11.4 public.chat_error_logs (에러 로깅)
+
+```sql
+CREATE TABLE public.chat_error_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  session_id TEXT,
+  error_type TEXT NOT NULL DEFAULT 'unknown',
+  error_message TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  source_file TEXT,
+  stack_trace TEXT,
+  device_info JSONB DEFAULT '{}',
+  extra_data JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+## 12. 다음 단계
 
 1. SQL 마이그레이션 파일 생성 (`frontend/lib/sql/`)
 2. Flutter Model 클래스 업데이트 (saju_analyses 구조 반영)

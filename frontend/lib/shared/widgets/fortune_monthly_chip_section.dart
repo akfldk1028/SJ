@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+import '../../purchase/providers/purchase_provider.dart';
 
 /// 카테고리별 운세 데이터
 class CategoryData {
@@ -38,6 +40,19 @@ class MonthIdiomData {
   });
 }
 
+/// v5.3: 월별 행운 데이터
+class MonthLuckyData {
+  final String color;
+  final int number;
+
+  const MonthLuckyData({
+    required this.color,
+    required this.number,
+  });
+
+  bool get hasContent => color.isNotEmpty || number > 0;
+}
+
 /// 월별 데이터 인터페이스 (v5.0: highlights, idiom 포함)
 class MonthData {
   final String keyword;
@@ -50,6 +65,8 @@ class MonthData {
   final Map<String, MonthHighlightData>? highlights;
   /// v5.0: 사자성어 정보 - 광고 해금 전에도 표시
   final MonthIdiomData? idiom;
+  /// v5.3: 행운 요소 (색상, 숫자)
+  final MonthLuckyData? lucky;
   /// 상세 데이터 로딩 중 플래그
   final bool isLoading;
 
@@ -61,6 +78,7 @@ class MonthData {
     this.categories,
     this.highlights,
     this.idiom,
+    this.lucky,
     this.isLoading = false,
   });
 
@@ -73,6 +91,9 @@ class MonthData {
   /// v5.0: 사자성어 데이터가 있는지 확인
   bool get hasIdiom => idiom != null && idiom!.phrase.isNotEmpty;
 
+  /// v5.3: 행운 데이터가 있는지 확인
+  bool get hasLucky => lucky != null && lucky!.hasContent;
+
   /// 로딩 중 상태로 복사
   MonthData copyWithLoading(bool loading) {
     return MonthData(
@@ -83,6 +104,7 @@ class MonthData {
       categories: categories,
       highlights: highlights,
       idiom: idiom,
+      lucky: lucky,
       isLoading: loading,
     );
   }
@@ -97,6 +119,7 @@ class MonthData {
       categories: newCategories,
       highlights: highlights,
       idiom: idiom,
+      lucky: lucky,
       isLoading: false,
     );
   }
@@ -108,7 +131,7 @@ class MonthData {
 /// - 잠긴 월은 광고를 봐야 해제
 /// - 현재 달(currentMonth)은 처음부터 잠금 해제 상태
 /// - v5.0: 광고 해금 시 상세 운세 API 호출 콜백 지원
-class FortuneMonthlyChipSection extends StatefulWidget {
+class FortuneMonthlyChipSection extends ConsumerStatefulWidget {
   /// 운세 타입 (monthly_fortune)
   final String fortuneType;
 
@@ -136,11 +159,11 @@ class FortuneMonthlyChipSection extends StatefulWidget {
   });
 
   @override
-  State<FortuneMonthlyChipSection> createState() =>
+  ConsumerState<FortuneMonthlyChipSection> createState() =>
       _FortuneMonthlyChipSectionState();
 }
 
-class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
+class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSection> {
   /// 현재 펼쳐진 월
   String? _expandedMonth;
 
@@ -486,15 +509,39 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
             }),
           ],
 
+          // v5.3: 행운 요소
+          if (month.hasLucky) ...[
+            const SizedBox(height: 12),
+            _buildLuckyCard(theme, month.lucky!),
+          ],
+
           // 팁
           if (month.tip.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(
-              '💡 ${month.tip}',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.textSecondary,
-                height: 1.6,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('💡', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      month.tip,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: theme.textPrimary,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -626,13 +673,16 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
     return names[key] ?? key;
   }
 
-  /// v5.0: 하이라이트 카드 아이콘 가져오기
+  /// v5.3: 하이라이트 카드 아이콘 가져오기 (7개 카테고리)
   IconData _getHighlightIcon(String key) {
     const icons = {
       'career': Icons.work_outline,
       'business': Icons.business_center_outlined,
       'wealth': Icons.account_balance_wallet_outlined,
       'love': Icons.favorite_outline,
+      'marriage': Icons.home_outlined,
+      'health': Icons.monitor_heart_outlined,
+      'study': Icons.school_outlined,
     };
     return icons[key] ?? Icons.star_outline;
   }
@@ -781,6 +831,68 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
     );
   }
 
+  /// v5.3: 행운 카드 빌드
+  Widget _buildLuckyCard(AppThemeExtension theme, MonthLuckyData lucky) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.purple.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome, size: 18, color: Colors.purple.shade300),
+          const SizedBox(width: 10),
+          Text(
+            '행운',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: theme.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 16),
+          if (lucky.color.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                lucky.color,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.purple.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (lucky.number > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${lucky.number}',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.purple.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onChipTap(String monthKey, bool isUnlocked) async {
     if (isUnlocked) {
       // 이미 해제된 월 - 토글
@@ -800,10 +912,30 @@ class _FortuneMonthlyChipSectionState extends State<FortuneMonthlyChipSection> {
   Future<void> _showRewardedAdAndUnlock(String monthKey) async {
     if (_isLoadingAd) return;
 
-    setState(() => _isLoadingAd = true);
-
     final monthNum = monthKey.replaceAll('month', '');
     final monthName = '$monthNum월';
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      await _unlockMonthAndFetchDetails(monthKey);
+      if (mounted) {
+        setState(() {
+          _expandedMonth = monthKey;
+        });
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$monthName 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
+
+    setState(() => _isLoadingAd = true);
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {

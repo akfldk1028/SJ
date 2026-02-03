@@ -114,8 +114,46 @@ class FortuneDisplay extends StatelessWidget {
               ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.help_outline, size: 16, color: theme.textMuted),
+        GestureDetector(
+          onTap: () => _showSectionHelp(context, title, theme),
+          child: Icon(Icons.help_outline, size: 16, color: theme.textMuted),
+        ),
       ],
+    );
+  }
+
+  void _showSectionHelp(BuildContext context, String title, AppThemeExtension theme) {
+    final descriptions = {
+      '대운': '10년 단위로 변하는 큰 운의 흐름입니다. 대운이 바뀌면 인생의 주요 흐름이 변화하며, 일간과의 관계에 따라 길흉이 달라집니다.',
+      '연운': '매년 변하는 운세입니다. 세운이라고도 하며, 그 해의 천간·지지가 사주와 어떤 관계를 맺는지에 따라 한 해의 흐름이 결정됩니다.',
+      '월운': '매달 변하는 운세입니다. 월지의 변화에 따라 세부적인 운의 흐름을 파악할 수 있어 단기적인 계획 수립에 도움이 됩니다.',
+    };
+    final desc = descriptions[title] ?? '';
+    if (desc.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 24),
+            const SizedBox(width: 10),
+            Expanded(child: Text(
+              '$title이란?',
+              style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+            )),
+          ],
+        ),
+        content: Text(desc, style: TextStyle(color: theme.textSecondary, fontSize: 15, height: 1.7)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -124,7 +162,7 @@ class FortuneDisplay extends StatelessWidget {
       text,
       style: TextStyle(
         color: theme.textMuted,
-        fontSize: 12,
+        fontSize: 13,
       ),
     );
   }
@@ -153,7 +191,7 @@ class DaeunSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 140,
+      height: 185,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: daeunResult.daeUnList.length,
@@ -178,8 +216,9 @@ class DaeunSlider extends StatelessWidget {
     final jiColor = _getOhengColor(daeun.pillar.jiOheng);
 
     return Container(
-      width: 70,
+      width: 76,
       margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
@@ -196,21 +235,21 @@ class DaeunSlider extends StatelessWidget {
             '${daeun.startAge}',
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
           // 천간 (한자)
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: ganColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
@@ -220,7 +259,7 @@ class DaeunSlider extends StatelessWidget {
                 cheonganHanja[daeun.pillar.gan] ?? daeun.pillar.gan,
                 style: TextStyle(
                   color: ganColor,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -229,8 +268,8 @@ class DaeunSlider extends StatelessWidget {
           const SizedBox(height: 4),
           // 지지 (한자)
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: jiColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
@@ -240,7 +279,7 @@ class DaeunSlider extends StatelessWidget {
                 jijiHanja[daeun.pillar.ji] ?? daeun.pillar.ji,
                 style: TextStyle(
                   color: jiColor,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -252,7 +291,7 @@ class DaeunSlider extends StatelessWidget {
             jiSipsin.korean.substring(0, 2),
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
         ],
@@ -296,7 +335,7 @@ class SeunSlider extends StatelessWidget {
     );
 
     return SizedBox(
-      height: 140,
+      height: 185,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: seunList.length,
@@ -320,8 +359,9 @@ class SeunSlider extends StatelessWidget {
     final jiColor = _getOhengColor(seun.pillar.jiOheng);
 
     return Container(
-      width: 70,
+      width: 76,
       margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
@@ -338,21 +378,21 @@ class SeunSlider extends StatelessWidget {
             '${seun.year}',
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
           // 천간
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: ganColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
@@ -362,7 +402,7 @@ class SeunSlider extends StatelessWidget {
                 cheonganHanja[seun.pillar.gan] ?? seun.pillar.gan,
                 style: TextStyle(
                   color: ganColor,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -371,8 +411,8 @@ class SeunSlider extends StatelessWidget {
           const SizedBox(height: 4),
           // 지지
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: jiColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
@@ -382,7 +422,7 @@ class SeunSlider extends StatelessWidget {
                 jijiHanja[seun.pillar.ji] ?? seun.pillar.ji,
                 style: TextStyle(
                   color: jiColor,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -394,7 +434,7 @@ class SeunSlider extends StatelessWidget {
             jiSipsin.korean.substring(0, 2),
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
         ],
@@ -434,7 +474,7 @@ class WolunSlider extends StatelessWidget {
     final wolunList = _generateWolunList(currentYear, currentMonth);
 
     return SizedBox(
-      height: 140,
+      height: 185,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: wolunList.length,
@@ -504,8 +544,9 @@ class WolunSlider extends StatelessWidget {
     final jiColor = _getOhengColor(pillar.jiOheng);
 
     return Container(
-      width: 70,
+      width: 76,
       margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
@@ -522,21 +563,21 @@ class WolunSlider extends StatelessWidget {
             '$month월',
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
           // 천간
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: ganColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
@@ -546,7 +587,7 @@ class WolunSlider extends StatelessWidget {
                 cheonganHanja[pillar.gan] ?? pillar.gan,
                 style: TextStyle(
                   color: ganColor,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -555,8 +596,8 @@ class WolunSlider extends StatelessWidget {
           const SizedBox(height: 4),
           // 지지
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: jiColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(4),
@@ -566,7 +607,7 @@ class WolunSlider extends StatelessWidget {
                 jijiHanja[pillar.ji] ?? pillar.ji,
                 style: TextStyle(
                   color: jiColor,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -578,7 +619,7 @@ class WolunSlider extends StatelessWidget {
             jiSipsin.korean.substring(0, 2),
             style: TextStyle(
               color: theme.textSecondary,
-              fontSize: 10,
+              fontSize: 13,
             ),
           ),
         ],

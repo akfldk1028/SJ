@@ -6,10 +6,14 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../purchase/providers/purchase_provider.dart';
 import '../ad_config.dart';
+import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
+import '../token_reward_service.dart';
 
 /// 모바일 플랫폼 체크
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -18,7 +22,7 @@ bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 ///
 /// - loadDelay: 광고 로드 지연 시간 (밀리초)
 /// - 화면에 보일 때만 로드하여 프레임 드롭 방지
-class CardNativeAdWidget extends StatefulWidget {
+class CardNativeAdWidget extends ConsumerStatefulWidget {
   /// 광고 로드 지연 시간 (밀리초)
   /// 여러 광고가 동시에 로드되는 것을 방지
   final int loadDelayMs;
@@ -29,13 +33,14 @@ class CardNativeAdWidget extends StatefulWidget {
   });
 
   @override
-  State<CardNativeAdWidget> createState() => _CardNativeAdWidgetState();
+  ConsumerState<CardNativeAdWidget> createState() => _CardNativeAdWidgetState();
 }
 
-class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
+class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
   bool _loadStarted = false;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -54,6 +59,11 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
 
   void _loadAd() {
     if (!_isMobile || _loadStarted || !mounted) return;
+
+    // 프리미엄 유저는 광고 로드 자체를 스킵
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) return;
+
     _loadStarted = true;
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
@@ -69,14 +79,29 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
           debugPrint('[CardNativeAd] Failed: ${error.message}');
           ad.dispose();
           _nativeAd = null;
+          if (mounted) {
+            setState(() => _loadFailed = true);
+          }
         },
         onAdImpression: (ad) {
           debugPrint('[CardNativeAd] Impression');
           AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
-          debugPrint('[CardNativeAd] Clicked');
-          AdTrackingService.instance.trackNativeClick();
+          debugPrint('[CardNativeAd] Clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
+          AdTrackingService.instance.trackNativeClick(
+            rewardTokens: AdStrategy.intervalClickRewardTokens,
+          );
+          TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
+        },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          debugPrint('[CardNativeAd] Paid: $valueMicros micros ($currencyCode, $precision)');
+          AdTrackingService.instance.trackAdRevenue(
+            adType: AdType.native,
+            valueMicros: valueMicros,
+            precision: precision.name,
+            currencyCode: currencyCode,
+          );
         },
       ),
       // Medium 템플릿 - 카드에 적합
@@ -119,13 +144,25 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 로딩 실패 시 공간 차지 안 함
-    if (!_isLoaded || _nativeAd == null) {
+    // 프리미엄 유저는 네이티브 광고 숨김 + 로드된 광고 해제
+    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      if (_nativeAd != null) {
+        _nativeAd?.dispose();
+        _nativeAd = null;
+        _isLoaded = false;
+      }
       return const SizedBox.shrink();
     }
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    // 로딩 중이거나 실패 시 placeholder 표시
+    if (!_isLoaded || _nativeAd == null) {
+      return _buildPlaceholder(context, isDark);
+    }
 
     // ⚡ RepaintBoundary로 광고 영역 분리 (스크롤 시 불필요한 리페인트 방지)
     return RepaintBoundary(
@@ -189,6 +226,27 @@ class _CardNativeAdWidgetState extends State<CardNativeAdWidget> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context, bool isDark) {
+    // 로드 실패 → 공간 차지 안 함 (원래 동작)
+    if (_loadFailed) {
+      return const SizedBox.shrink();
+    }
+
+    // 로딩 중 → skeleton으로 자리 확보 (갑자기 튀어나옴 방지)
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF2D2D3A).withValues(alpha: 0.5)
+              : Colors.grey.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
     );

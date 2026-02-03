@@ -1,0 +1,12 @@
+{
+  "title": "사주 상담",
+  "inputHint": "궁금한 점을 물어보세요...",
+  "send": "전송",
+  "loading": "답변을 생성하고 있습니다...",
+  "error": "오류가 발생했습니다",
+  "retry": "다시 시도",
+  "suggestedQuestion1": "올해 운세가 어떤가요?",
+  "suggestedQuestion2": "재물운은 어떤가요?",
+  "suggestedQuestion3": "연애운이 궁금해요",
+  "suggestedQuestion4": "취업/이직 운세는요?"
+}

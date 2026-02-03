@@ -67,8 +67,8 @@ class SipSungDisplay extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      SipSungSize.small => 10.0,
-      SipSungSize.medium => 12.0,
+      SipSungSize.small => 12.0,
+      SipSungSize.medium => 13.0,
       SipSungSize.large => 14.0,
     };
   }
@@ -125,7 +125,7 @@ class SipSungRow extends StatelessWidget {
               label!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: theme.textMuted,
-                    fontSize: 10,
+                    fontSize: 13,
                   ),
             ),
           ),
@@ -141,7 +141,7 @@ class SipSungRow extends StatelessWidget {
                         '-',
                         style: TextStyle(
                           color: theme.textMuted,
-                          fontSize: 10,
+                          fontSize: 13,
                         ),
                       ),
               ),
@@ -197,7 +197,7 @@ class SipSungDistributionChart extends StatelessWidget {
                           '$count',
                           style: TextStyle(
                             color: color,
-                            fontSize: 10,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -229,7 +229,7 @@ class SipSungDistributionChart extends StatelessWidget {
                   sipsin.korean.substring(0, 1), // 첫 글자만
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: theme.textMuted,
-                        fontSize: 9,
+                        fontSize: 13,
                       ),
                 ),
               ),
@@ -406,7 +406,7 @@ class SipSungCategoryChart extends StatelessWidget {
                   description,
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 11,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -436,7 +436,7 @@ class SipSungCategoryChart extends StatelessWidget {
                 '${(ratio * 100).toStringAsFixed(0)}%',
                 style: TextStyle(
                   color: theme.textMuted,
-                  fontSize: 11,
+                  fontSize: 13,
                 ),
               ),
             ],

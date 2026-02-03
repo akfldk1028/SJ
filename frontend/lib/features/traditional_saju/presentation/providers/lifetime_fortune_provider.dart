@@ -6,9 +6,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../AI/data/queries.dart';
 import '../../../../AI/fortune/lifetime/lifetime_queries.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../core/services/error_logging_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'lifetime_fortune_provider.g.dart';
+
+/// 안전한 int 파싱 (num, String 모두 지원)
+int _safeInt(dynamic value, [int fallback = 0]) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
 
 /// 평생운세 데이터 모델 (saju_base AI 응답 JSON 구조)
 class LifetimeFortuneData {
@@ -62,6 +70,11 @@ class LifetimeFortuneData {
 
   /// AI 응답 JSON에서 파싱
   factory LifetimeFortuneData.fromJson(Map<String, dynamic> json) {
+    // v41: _parse_failed 플래그가 있으면 즉시 예외 (무효 데이터)
+    if (json.containsKey('_parse_failed')) {
+      throw const FormatException('Invalid data: _parse_failed flag present');
+    }
+
     // v9.0: raw 필드 파싱 (AI 응답이 raw 문자열로 저장된 경우)
     Map<String, dynamic> parsedJson = json;
     if (json.containsKey('raw') && json['raw'] is String) {
@@ -72,12 +85,26 @@ class LifetimeFortuneData {
             _parseJsonSafely(rawString) :
             {}) as Map
         );
+        if (rawParsed.isEmpty) {
+          // v41: raw 파싱 실패 → 유효하지 않은 데이터
+          print('[LifetimeFortuneData] raw 파싱 결과 비어있음 → 예외');
+          throw const FormatException('Invalid raw content: empty parse result');
+        }
         // raw에서 파싱한 데이터와 기존 json 병합 (raw 내용 우선)
         parsedJson = {...json, ...rawParsed};
         print('[LifetimeFortuneData] raw 필드 파싱 성공: ${rawParsed.keys.take(5)}...');
       } catch (e) {
         print('[LifetimeFortuneData] raw 파싱 실패: $e');
+        rethrow;  // v41: 호출자에서 catch → 재분석 트리거
       }
+    }
+
+    // v41: 필수 데이터 존재 확인
+    final hasMinimumData = parsedJson.containsKey('personality') ||
+                            parsedJson.containsKey('career') ||
+                            parsedJson.containsKey('summary');
+    if (!hasMinimumData) {
+      throw const FormatException('No valid fortune data found (personality/career/summary all missing)');
     }
 
     // v7.0: mySajuIntro 파싱
@@ -271,8 +298,17 @@ class LifetimeFortuneData {
     final lifeCyclesJson = parsedJson['life_cycles'] as Map<String, dynamic>? ?? {};
     final lifeCycles = LifeCyclesSection(
       youth: lifeCyclesJson['youth'] as String? ?? '',
+      youthDetail: LifeCycleDetail.fromJson(
+        lifeCyclesJson['youth_detail'] as Map<String, dynamic>?,
+      ),
       middleAge: lifeCyclesJson['middle_age'] as String? ?? '',
+      middleAgeDetail: LifeCycleDetail.fromJson(
+        lifeCyclesJson['middle_age_detail'] as Map<String, dynamic>?,
+      ),
       laterYears: lifeCyclesJson['later_years'] as String? ?? '',
+      laterYearsDetail: LifeCycleDetail.fromJson(
+        lifeCyclesJson['later_years_detail'] as Map<String, dynamic>?,
+      ),
       keyYears: _parseStringList(lifeCyclesJson['key_years']),
     );
 
@@ -460,7 +496,7 @@ class LifetimeFortuneData {
 
   static List<int> _parseIntList(dynamic value) {
     if (value is List) {
-      return value.map((e) => (e as num).toInt()).toList();
+      return value.map((e) => _safeInt(e)).toList();
     }
     return [];
   }
@@ -469,94 +505,65 @@ class LifetimeFortuneData {
   static int _calculateScore(Map<String, dynamic> section) {
     // AI 응답에 score가 있으면 사용
     if (section['score'] != null) {
-      return (section['score'] as num).toInt();
+      return _safeInt(section['score']);
     }
     // 없으면 기본값 70 (양호)
     return 70;
   }
 
+  /// v9.8: 서술형 내러티브 필드만 사용하여 reading 생성
+  ///
+  /// 중복 방지 원칙:
+  /// - advice → 위젯 "조언" 카드에서 별도 표시 → reading 제외
+  /// - timing → 위젯 "타이밍" 섹션 → reading 제외
+  /// - strengths/weaknesses → 위젯 리스트 → reading 제외
+  /// - cautions → 위젯 "주의사항" 카드 → reading 제외
+  /// - suitableFields/unsuitableFields → 위젯 리스트 → reading 제외
+  ///
+  /// reading에는 서술형 분석 텍스트만 포함
+  /// (v9.4 개별 필드로도 표시되지만, reading은 내러티브 맥락으로 제공)
   static String _buildCareerReading(CareerSection career) {
-    final buffer = StringBuffer();
-    if (career.workStyle.isNotEmpty) {
-      buffer.writeln(career.workStyle);
-    }
-    if (career.suitableFields.isNotEmpty) {
-      buffer.writeln('\n적합한 분야: ${career.suitableFields.join(', ')}');
-    }
-    if (career.advice.isNotEmpty) {
-      buffer.writeln('\n${career.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (career.workStyle.isNotEmpty) parts.add(career.workStyle);
+    if (career.leadershipPotential.isNotEmpty) parts.add(career.leadershipPotential);
+    return parts.join('\n\n');
   }
 
   static String _buildBusinessReading(BusinessSection business) {
-    final buffer = StringBuffer();
-    if (business.entrepreneurshipAptitude.isNotEmpty) {
-      buffer.writeln(business.entrepreneurshipAptitude);
-    }
-    if (business.suitableBusinessTypes.isNotEmpty) {
-      buffer.writeln('\n적합한 사업: ${business.suitableBusinessTypes.join(', ')}');
-    }
-    if (business.advice.isNotEmpty) {
-      buffer.writeln('\n${business.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (business.entrepreneurshipAptitude.isNotEmpty) parts.add(business.entrepreneurshipAptitude);
+    if (business.businessPartnerTraits.isNotEmpty) parts.add(business.businessPartnerTraits);
+    return parts.join('\n\n');
   }
 
   static String _buildWealthReading(WealthSection wealth) {
-    final buffer = StringBuffer();
-    if (wealth.overallTendency.isNotEmpty) {
-      buffer.writeln(wealth.overallTendency);
-    }
-    if (wealth.earningStyle.isNotEmpty) {
-      buffer.writeln('\n돈 버는 방식: ${wealth.earningStyle}');
-    }
-    if (wealth.advice.isNotEmpty) {
-      buffer.writeln('\n${wealth.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (wealth.overallTendency.isNotEmpty) parts.add(wealth.overallTendency);
+    if (wealth.earningStyle.isNotEmpty) parts.add(wealth.earningStyle);
+    if (wealth.spendingTendency.isNotEmpty) parts.add(wealth.spendingTendency);
+    if (wealth.investmentAptitude.isNotEmpty) parts.add(wealth.investmentAptitude);
+    return parts.join('\n\n');
   }
 
   static String _buildLoveReading(LoveSection love) {
-    final buffer = StringBuffer();
-    if (love.datingPattern.isNotEmpty) {
-      buffer.writeln(love.datingPattern);
-    }
-    if (love.attractionStyle.isNotEmpty) {
-      buffer.writeln('\n끌리는 유형: ${love.attractionStyle}');
-    }
-    if (love.advice.isNotEmpty) {
-      buffer.writeln('\n${love.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (love.datingPattern.isNotEmpty) parts.add(love.datingPattern);
+    if (love.attractionStyle.isNotEmpty) parts.add(love.attractionStyle);
+    return parts.join('\n\n');
   }
 
   static String _buildMarriageReading(MarriageSection marriage) {
-    final buffer = StringBuffer();
-    if (marriage.spousePalaceAnalysis.isNotEmpty) {
-      buffer.writeln(marriage.spousePalaceAnalysis);
-    }
-    if (marriage.marriedLifeTendency.isNotEmpty) {
-      buffer.writeln('\n${marriage.marriedLifeTendency}');
-    }
-    if (marriage.advice.isNotEmpty) {
-      buffer.writeln('\n${marriage.advice}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (marriage.spousePalaceAnalysis.isNotEmpty) parts.add(marriage.spousePalaceAnalysis);
+    if (marriage.spouseCharacteristics.isNotEmpty) parts.add(marriage.spouseCharacteristics);
+    if (marriage.marriedLifeTendency.isNotEmpty) parts.add(marriage.marriedLifeTendency);
+    return parts.join('\n\n');
   }
 
   static String _buildHealthReading(HealthSection health) {
-    final buffer = StringBuffer();
-    if (health.vulnerableOrgans.isNotEmpty) {
-      buffer.writeln('취약 부위: ${health.vulnerableOrgans.join(', ')}');
-    }
-    if (health.mentalHealth.isNotEmpty) {
-      buffer.writeln('\n정신 건강: ${health.mentalHealth}');
-    }
-    if (health.lifestyleAdvice.isNotEmpty) {
-      buffer.writeln('\n생활 습관: ${health.lifestyleAdvice.join(', ')}');
-    }
-    return buffer.toString().trim();
+    final parts = <String>[];
+    if (health.mentalHealth.isNotEmpty) parts.add(health.mentalHealth);
+    return parts.join('\n\n');
   }
 }
 
@@ -693,17 +700,63 @@ class HealthSection {
   });
 }
 
+/// 인생 주기 상세 (v9.6)
+class LifeCycleDetail {
+  final String career;
+  final String wealth;
+  final String love;
+  final String health;
+  final String tip;
+  final String bestPeriod;
+  final String cautionPeriod;
+
+  const LifeCycleDetail({
+    this.career = '',
+    this.wealth = '',
+    this.love = '',
+    this.health = '',
+    this.tip = '',
+    this.bestPeriod = '',
+    this.cautionPeriod = '',
+  });
+
+  bool get hasContent =>
+      career.isNotEmpty ||
+      wealth.isNotEmpty ||
+      love.isNotEmpty ||
+      health.isNotEmpty;
+
+  static LifeCycleDetail fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const LifeCycleDetail();
+    return LifeCycleDetail(
+      career: json['career'] as String? ?? '',
+      wealth: json['wealth'] as String? ?? '',
+      love: json['love'] as String? ?? '',
+      health: json['health'] as String? ?? '',
+      tip: json['tip'] as String? ?? '',
+      bestPeriod: json['best_period'] as String? ?? '',
+      cautionPeriod: json['caution_period'] as String? ?? '',
+    );
+  }
+}
+
 /// 인생 주기 섹션
 class LifeCyclesSection {
   final String youth;
+  final LifeCycleDetail youthDetail;
   final String middleAge;
+  final LifeCycleDetail middleAgeDetail;
   final String laterYears;
+  final LifeCycleDetail laterYearsDetail;
   final List<String> keyYears;
 
   const LifeCyclesSection({
     required this.youth,
+    this.youthDetail = const LifeCycleDetail(),
     required this.middleAge,
+    this.middleAgeDetail = const LifeCycleDetail(),
     required this.laterYears,
+    this.laterYearsDetail = const LifeCycleDetail(),
     required this.keyYears,
   });
 }
@@ -1282,14 +1335,53 @@ class LifetimeFortune extends _$LifetimeFortune {
     final queries = LifetimeQueries(Supabase.instance.client);
 
     try {
-      final result = await queries.getCached(activeProfile.id);
+      final result = await queries.getCached(activeProfile.id, includeStale: true);
 
-      // 캐시가 있으면 바로 반환
+      // 캐시가 있으면 반환
       if (result != null) {
         final content = result['content'];
+        final isStale = result['_isStale'] == true;
+
         if (content is Map<String, dynamic>) {
-          print('[LifetimeFortune] ✅ 캐시 히트 - 평생운세 로드');
-          return LifetimeFortuneData.fromJson(content);
+          // v41: raw/_parse_failed content는 무효 → 캐시 삭제 후 재분석
+          if (content.containsKey('raw') || content.containsKey('_parse_failed')) {
+            print('[LifetimeFortune] 무효 content (raw/_parse_failed) 감지 → 캐시 삭제 후 재분석');
+            ErrorLoggingService.logError(
+              operation: 'lifetime_fortune_cache',
+              errorMessage: '무효 content 감지 (raw/_parse_failed) → 캐시 삭제',
+              errorType: 'invalid_cache',
+              sourceFile: 'lifetime_fortune_provider.dart',
+              extraData: {'profileId': activeProfile.id, 'has_raw': content.containsKey('raw')},
+            );
+            final queries = LifetimeQueries(Supabase.instance.client);
+            await queries.deleteCached(activeProfile.id);
+            // 아래 "캐시 없음" 분기로 진행
+          } else {
+            try {
+              if (isStale) {
+                // v9.8: 버전 불일치 → 기존 데이터 즉시 표시 + 백그라운드 재생성
+                print('[LifetimeFortune] stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
+                _triggerAnalysisIfNeeded(activeProfile.id);
+                _startStalePolling(activeProfile.id);
+              } else {
+                print('[LifetimeFortune] 캐시 히트 - 평생운세 로드');
+              }
+              return LifetimeFortuneData.fromJson(content);
+            } catch (e) {
+              // v41: 파싱 실패 → 캐시 삭제 후 재분석 트리거
+              print('[LifetimeFortune] content 파싱 실패: $e → 캐시 삭제 후 재분석');
+              ErrorLoggingService.logError(
+                operation: 'lifetime_fortune_parse',
+                errorMessage: 'content 파싱 실패: $e',
+                errorType: 'json_parse',
+                sourceFile: 'lifetime_fortune_provider.dart',
+                extraData: {'profileId': activeProfile.id},
+              );
+              final queriesForDelete = LifetimeQueries(Supabase.instance.client);
+              await queriesForDelete.deleteCached(activeProfile.id);
+              // 아래 "캐시 없음" 분기로 진행
+            }
+          }
         }
       }
     } catch (e) {
@@ -1381,6 +1473,51 @@ class LifetimeFortune extends _$LifetimeFortune {
         // 폴링이 데이터를 감지하고 UI를 갱신할 것임
       },
     );
+  }
+
+  /// stale 데이터 백그라운드 갱신용 폴링
+  /// 기존 데이터를 보여주면서 백그라운드에서 새 데이터 생성 완료 시 자동 갱신
+  void _startStalePolling(String profileId) {
+    if (_isPolling) return;
+    _isPolling = true;
+    _pollingAttempts = 0;
+
+    print('[LifetimeFortune] stale 폴링 시작 - 백그라운드 갱신 감지');
+    _pollForFreshData(profileId);
+  }
+
+  /// 새 버전 데이터가 생성될 때까지 폴링
+  Future<void> _pollForFreshData(String profileId) async {
+    if (!_isPolling) return;
+
+    _pollingAttempts++;
+    if (_pollingAttempts > _maxPollingAttempts) {
+      print('[LifetimeFortune] ⏰ stale 폴링 타임아웃');
+      _isPolling = false;
+      _isAnalyzing = false;
+      return;
+    }
+
+    await Future.delayed(const Duration(seconds: 5));
+    if (!_isPolling) return;
+
+    try {
+      final queries = LifetimeQueries(Supabase.instance.client);
+      final result = await queries.getCached(profileId);
+
+      // _isStale가 아닌 새 버전 데이터가 존재하면 갱신
+      if (result != null && result['_isStale'] != true && result['content'] != null) {
+        print('[LifetimeFortune] ✅ 새 버전 데이터 감지 - UI 자동 갱신');
+        _isPolling = false;
+        _isAnalyzing = false;
+        ref.invalidateSelf();
+      } else {
+        _pollForFreshData(profileId);
+      }
+    } catch (e) {
+      print('[LifetimeFortune] ⚠️ stale 폴링 오류: $e');
+      _pollForFreshData(profileId);
+    }
   }
 
   /// 운세 새로고침 (캐시 무효화)

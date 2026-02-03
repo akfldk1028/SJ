@@ -28,7 +28,12 @@ class LifetimeQueries {
   /// 반환: 캐시된 데이터 또는 null
   ///
   /// 참고: saju_base는 무기한 캐시 (프로필 변경 시에만 재생성)
-  Future<Map<String, dynamic>?> getCached(String profileId) async {
+  /// v9.8: 버전 불일치 시에도 기존 데이터 반환 (graceful degradation)
+  ///       → _isStale 플래그 추가하여 백그라운드 재생성 트리거 지원
+  Future<Map<String, dynamic>?> getCached(
+    String profileId, {
+    bool includeStale = false,
+  }) async {
     try {
       final response = await _supabase
           .from('ai_summaries')
@@ -42,10 +47,14 @@ class LifetimeQueries {
 
       if (response == null) return null;
 
-      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      // 프롬프트 버전 체크
       final cachedVersion = response['prompt_version'];
       if (cachedVersion != kSajuBasePromptVersion) {
-        print('[LifetimeQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kSajuBasePromptVersion');
+        if (includeStale) {
+          print('[LifetimeQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kSajuBasePromptVersion → stale 데이터 반환');
+          return {...response, '_isStale': true};
+        }
+        print('[LifetimeQueries] 프롬프트 버전 불일치: cached=$cachedVersion → null 반환');
         return null;
       }
 
@@ -61,6 +70,20 @@ class LifetimeQueries {
   Future<bool> exists(String profileId) async {
     final cached = await getCached(profileId);
     return cached != null;
+  }
+
+  /// v41: 무효 캐시 삭제 (raw/parse_failed content 감지 시)
+  Future<void> deleteCached(String profileId) async {
+    try {
+      await _supabase
+          .from('ai_summaries')
+          .delete()
+          .eq('profile_id', profileId)
+          .eq('summary_type', SummaryType.sajuBase);
+      print('[LifetimeQueries] saju_base 캐시 삭제 완료: $profileId');
+    } catch (e) {
+      print('[LifetimeQueries] saju_base 캐시 삭제 오류: $e');
+    }
   }
 
   /// 평생운세 content만 조회

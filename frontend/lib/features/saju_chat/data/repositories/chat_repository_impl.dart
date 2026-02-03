@@ -35,6 +35,9 @@ class ChatRepositoryImpl implements ChatRepository {
   Map<String, dynamic>? birthInfo;
   Map<String, dynamic>? chartData;
 
+  /// v27: Context Caching용 세션 ID
+  String? sessionId;
+
   ChatRepositoryImpl({
     GeminiEdgeDatasource? datasource,
     AIPipelineManager? pipeline,
@@ -142,7 +145,7 @@ class ChatRepositoryImpl implements ChatRepository {
     if (!_isSessionStarted) {
       // 첫 번째 메시지: 전체 초기화
       _datasource.initialize();
-      _datasource.startNewSession(systemPrompt);
+      _datasource.startNewSession(systemPrompt, sessionId: sessionId);
 
       if (usePipeline && _pipeline != null) {
         _pipeline.initialize();
@@ -185,7 +188,7 @@ class ChatRepositoryImpl implements ChatRepository {
       }).toList();
     }
 
-    _datasource.restoreSession(systemPrompt, messages: geminiMessages);
+    _datasource.restoreSession(systemPrompt, messages: geminiMessages, sessionId: sessionId);
 
     if (usePipeline && _pipeline != null) {
       _pipeline.initialize();
@@ -234,4 +237,7 @@ class ChatRepositoryImpl implements ChatRepository {
   WindowedConversation? getLastWindowResult() {
     return _datasource.lastWindowResult;
   }
+
+  /// 현재 대화 요약 (맥락 유지용)
+  String? get conversationSummary => _datasource.conversationSummary;
 }

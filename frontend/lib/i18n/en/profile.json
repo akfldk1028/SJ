@@ -1,0 +1,17 @@
+{
+  "title": "Profile Settings",
+  "name": "Name",
+  "nameHint": "Enter your name",
+  "birthDate": "Date of Birth",
+  "birthTime": "Time of Birth",
+  "birthTimeUnknown": "Unknown",
+  "gender": "Gender",
+  "genderMale": "Male",
+  "genderFemale": "Female",
+  "calendarType": "Calendar Type",
+  "calendarSolar": "Solar",
+  "calendarLunar": "Lunar",
+  "presetMe": "Me",
+  "presetLover": "Partner",
+  "presetFamily": "Family"
+}

@@ -67,6 +67,7 @@
 /// - `saju_analysis_service.dart`: 분석 오케스트레이션
 
 import '../../core/data/data.dart';
+import '../../core/services/error_logging_service.dart';
 import '../../core/supabase/generated/ai_summaries.dart';
 import '../core/ai_constants.dart';
 import '../fortune/lifetime/lifetime_queries.dart' show kSajuBasePromptVersion;
@@ -150,7 +151,7 @@ class AiMutations extends BaseMutations {
             .from(AiSummaries.table_name)
             .upsert(
               data,
-              onConflict: 'profile_id,target_date,summary_type',
+              onConflict: 'profile_id,summary_type,target_year,target_month',
             )
             .select()
             .single();
@@ -197,6 +198,31 @@ class AiMutations extends BaseMutations {
     String? systemPrompt,
     String? userPrompt,
   }) async {
+    // v41: content 유효성 검증 - raw/parse_failed/empty 저장 거부
+    if (content.containsKey('raw') || content.containsKey('_parse_failed')) {
+      print('[AiMutations] raw/parse_failed content 저장 거부');
+      ErrorLoggingService.logError(
+        operation: 'saju_base_save',
+        errorMessage: 'raw/parse_failed content 저장 거부',
+        errorType: 'validation',
+        sourceFile: 'mutations.dart',
+        extraData: {'profileId': profileId, 'has_raw': content.containsKey('raw'), 'has_parse_failed': content.containsKey('_parse_failed')},
+      );
+      return QueryResult.failure('Invalid content: raw fallback detected');
+    }
+
+    if (content.isEmpty) {
+      print('[AiMutations] 빈 content 저장 거부');
+      ErrorLoggingService.logError(
+        operation: 'saju_base_save',
+        errorMessage: '빈 content 저장 거부',
+        errorType: 'validation',
+        sourceFile: 'mutations.dart',
+        extraData: {'profileId': profileId},
+      );
+      return QueryResult.failure('Invalid content: empty');
+    }
+
     return safeMutation(
       mutation: (client) async {
         // 1. 기존 saju_base 레코드 삭제 (있으면)
@@ -236,10 +262,8 @@ class AiMutations extends BaseMutations {
           totalCostUsd: totalCostUsd,
           processingTimeMs: processingTimeMs,
           status: 'completed',
+          promptVersion: kSajuBasePromptVersion,
         );
-
-        // prompt_version 추가 (generated 클래스에 없으므로 직접 추가)
-        data['prompt_version'] = kSajuBasePromptVersion; // saju_base 프롬프트 버전
 
         final response = await client
             .from(AiSummaries.table_name)

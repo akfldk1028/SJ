@@ -20,6 +20,49 @@ import 'saju_quick_view_sheet.dart';
 /// 목업 데이터 사용 여부 (테스트용)
 const bool _useMockData = false;
 
+/// autoZoomToFit의 과도한 확대를 제한하는 TransformationController
+///
+/// 그래프 빌드 직후 일정 시간 동안 maxScale 상한을 적용하여
+/// 노드가 적을 때 화면을 꽉 채우는 현상을 방지한다.
+/// 상한 해제 후에는 사용자가 자유롭게 줌 가능.
+class _ClampedTransformController extends TransformationController {
+  double? _maxScale;
+  Size _viewportSize = Size.zero;
+
+  /// 스케일 상한 활성화 (autoZoomToFit 제한용)
+  /// [viewportSize] 뷰포트 크기 (중앙 정렬 계산에 필요)
+  void enableClamp(double maxScale, Size viewportSize) {
+    _maxScale = maxScale;
+    _viewportSize = viewportSize;
+  }
+
+  /// 스케일 상한 해제 (사용자 자유 줌 허용)
+  void disableClamp() => _maxScale = null;
+
+  @override
+  set value(Matrix4 newValue) {
+    if (_maxScale != null) {
+      final scale = newValue.getMaxScaleOnAxis();
+      if (scale > _maxScale!) {
+        final translation = newValue.getTranslation();
+        final factor = _maxScale! / scale;
+
+        // 뷰포트 중심을 focal point로 사용하여 위치 보정
+        final cx = _viewportSize.width / 2;
+        final cy = _viewportSize.height / 2;
+        final newTx = cx - (cx - translation.x) * factor;
+        final newTy = cy - (cy - translation.y) * factor;
+
+        super.value = Matrix4.identity()
+          ..translate(newTx, newTy)
+          ..scale(_maxScale!);
+        return;
+      }
+    }
+    super.value = newValue;
+  }
+}
+
 /// 관계 그래프 뷰 (SJ-Flow Large Tree 기능 사용)
 ///
 /// 주의: Provider를 직접 watch하지 않음 (defunct widget 에러 방지)
@@ -43,8 +86,8 @@ class RelationshipGraphView extends ConsumerStatefulWidget {
 }
 
 class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
-  /// 줌 컨트롤용 TransformationController
-  final TransformationController _transformController = TransformationController();
+  /// 줌 컨트롤용 TransformationController (초기 스케일 상한 지원)
+  final _ClampedTransformController _transformController = _ClampedTransformController();
 
   /// SJ-Flow GraphViewController (TransformationController 연결)
   late final GraphViewController _controller;
@@ -111,7 +154,10 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
   @override
   void dispose() {
     _isDisposed = true;
-    _transformController.dispose();
+    // GraphView 애니메이션이 끝나기 전 dispose 방지 - 지연 dispose
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _transformController.dispose();
+    });
     super.dispose();
   }
 
@@ -184,11 +230,18 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: profile,
       onChatPressed: () {
         Navigator.pop(context);
-        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필)
-        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}');
+        // 궁합 채팅으로 이동 (targetProfileId = 선택한 프로필, autoMention으로 자동 멘션)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${profile.id}&autoMention=true');
       },
       onDetailPressed: () {
         Navigator.pop(context);
+        // 사주 상세 화면으로 이동
+        context.push('${Routes.sajuDetail}?profileId=${profile.id}');
+      },
+      onCompatibilityPressed: () {
+        Navigator.pop(context);
+        // 궁합 분석 목록 화면으로 이동
+        context.push('${Routes.compatibilityList}?profileId=${profile.id}');
       },
     );
   }
@@ -246,7 +299,16 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
           _currentActiveProfileId = activeProfile.id;
           _currentRelationsByCategory = relationsByCategory;
           _isGraphInitialized = true;
+
+          // autoZoomToFit 과도한 확대 방지: 2초간 스케일 상한 0.8
+          final viewportSize = MediaQuery.of(context).size;
+          _transformController.enableClamp(0.8, viewportSize);
           setState(() {});
+
+          // 자동 줌 애니메이션 완료 후 상한 해제 → 사용자 자유 줌
+          Future.delayed(const Duration(seconds: 2), () {
+            _transformController.disableClamp();
+          });
         }
       });
 
@@ -334,9 +396,9 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
                   ..color = Colors.grey[500]!
                   ..strokeWidth = 1.5
                   ..style = PaintingStyle.stroke,
-                centerGraph: false,  // false로 변경 - 원점(0,0)부터 시작
+                centerGraph: true,   // 그래프를 뷰포트 중앙에 배치
                 animated: true,
-                autoZoomToFit: true,  // 자동으로 화면에 맞춤
+                autoZoomToFit: true,  // 항상 자동 줌 (ClampedController가 상한 제한)
                 panAnimationDuration: const Duration(milliseconds: 500),
                 toggleAnimationDuration: const Duration(milliseconds: 400),
                 builder: (Node node) => _buildNodeFromRelations(node, profiles, relationsByCategory),
@@ -519,17 +581,21 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
       profile: sajuProfile,
       onChatPressed: () {
         Navigator.pop(context);
-        // 궁합 채팅으로 이동
-        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}');
+        // 궁합 채팅으로 이동 (autoMention으로 자동 멘션)
+        context.go('${Routes.sajuChat}?type=compatibility&profileId=${relation.toProfileId}&autoMention=true');
       },
       onDetailPressed: () {
         Navigator.pop(context);
-        // 궁합 분석이 있으면 상세 화면으로, 없으면 사주 상세로 이동
+        // 사주 상세 화면으로 이동
+        context.push('${Routes.sajuDetail}?profileId=${relation.toProfileId}');
+      },
+      onCompatibilityPressed: () {
+        Navigator.pop(context);
+        // 궁합 분석이 있으면 상세 화면, 없으면 궁합 목록 화면으로 이동
         if (relation.compatibilityAnalysisId != null) {
           context.push('${Routes.compatibilityDetail}?analysisId=${relation.compatibilityAnalysisId}');
         } else {
-          // 사주 상세 화면으로 이동 (profileId 전달)
-          context.push('${Routes.sajuDetail}?profileId=${relation.toProfileId}');
+          context.push('${Routes.compatibilityList}?profileId=${relation.toProfileId}');
         }
       },
     );

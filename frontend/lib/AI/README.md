@@ -1,7 +1,7 @@
 # AI 모듈 가이드
 
 > **담당자**: JH_AI (분석) + Jina (대화)
-> **마지막 업데이트**: 2024-12
+> **마지막 업데이트**: 2026-01
 
 ---
 
@@ -21,24 +21,32 @@
 
 ```
 AI/
-├── ai.dart                 # 메인 exports
-├── core/
-│   └── ai_constants.dart   # 모델명, 가격, 상수
+├── ai.dart                 # 메인 exports (barrel)
+├── core/                   # 설정, 로거, 캐시 (통합)
+│   ├── ai_constants.dart   # 모델명, 가격, 상수, 프롬프트 버전
+│   ├── ai_config.dart      # AI 설정
+│   ├── ai_cache.dart       # 응답 캐시
+│   ├── ai_simple_logger.dart # 로거
+│   └── base_provider.dart  # Provider 베이스
 │
-├── prompts/                # 프롬프트 템플릿 (JH_AI + Jina 공동)
-│   ├── _TEMPLATE.dart      # ⭐ 새 프롬프트 템플릿
-│   ├── prompt_template.dart
-│   ├── saju_base_prompt.dart
-│   └── daily_fortune_prompt.dart
+├── fortune/                # ⭐ 운세 프롬프트 통합
+│   ├── common/             # 공통 (prompt_template, input_data, state)
+│   ├── lifetime/           # 평생운세 (saju_base 프롬프트)
+│   │   ├── lifetime_prompt.dart
+│   │   └── lifetime_phase1~4_prompt.dart
+│   ├── daily/              # 오늘운세
+│   ├── monthly/            # 월별운세
+│   ├── yearly_2025/        # 2025 회고
+│   └── yearly_2026/        # 2026 신년
 │
 ├── common/                 # 공용 모듈
-│   ├── core/               # 설정, 로거, 캐시
 │   ├── data/               # AI 데이터 제공자
 │   ├── providers/          # AI Provider (OpenAI, Google, Image)
 │   │   ├── openai/         # GPT-5.2 (JH_AI)
 │   │   ├── google/         # Gemini 3.0 (Jina)
 │   │   └── image/          # DALL-E, Imagen
-│   └── pipelines/          # 분석 파이프라인
+│   ├── pipelines/          # 분석 파이프라인
+│   └── prompts/            # 공통 프롬프트
 │
 ├── jh/                     # JH_AI 전용
 │   ├── jh.dart
@@ -51,7 +59,6 @@ AI/
 │   ├── context/            # 맥락 관리
 │   ├── image/              # Nanabanan 이미지
 │   ├── personas/           # ⭐ 페르소나 시스템
-│   │   ├── _TEMPLATE.dart  # 새 페르소나 템플릿
 │   │   ├── persona_base.dart
 │   │   ├── persona_registry.dart
 │   │   └── ...
@@ -67,9 +74,9 @@ AI/
 
 | 담당 | 역할 | 주요 폴더 |
 |------|------|----------|
-| **JH_AI** | GPT-5.2로 사주 분석 | `jh/`, `prompts/`, `common/providers/openai/` |
+| **JH_AI** | GPT-5.2로 사주 분석 | `jh/`, `fortune/`, `common/providers/openai/` |
 | **Jina** | Gemini 3.0으로 대화 생성 | `jina/`, `common/providers/google/` |
-| **공동** | 파이프라인, 캐시, 로거 | `common/core/`, `common/pipelines/` |
+| **공동** | 파이프라인, 캐시, 로거 | `core/`, `common/pipelines/` |
 
 ### 작업 영역
 
@@ -166,11 +173,11 @@ export 'personas/my_new_persona.dart';  // ← 추가!
 
 ## 새 프롬프트 추가하기
 
-### 1단계: 템플릿 복사
+### 1단계: fortune/ 하위에 파일 생성
 
 ```bash
-# prompts/ 폴더에서 템플릿 복사
-cp _TEMPLATE.dart yearly_fortune_prompt.dart
+# fortune/ 하위 적절한 폴더에 생성
+# 예: fortune/yearly_2027/yearly_2027_prompt.dart
 ```
 
 ### 2단계: 클래스 수정
@@ -239,7 +246,8 @@ class YearlyFortunePrompt extends PromptTemplate {
 ```dart
 // core/ai_constants.dart
 class OpenAIModels {
-  static const gpt52 = 'gpt-5-2-turbo-preview';
+  static const gpt52 = 'gpt-5.2';
+  static const gpt5Mini = 'gpt-5-mini';    // 운세 분석용
   static const gpt4oMini = 'gpt-4o-mini';
 }
 
@@ -294,13 +302,15 @@ class GoogleModels {
 
 ### 새 프롬프트 추가 시
 
-- [ ] `_TEMPLATE.dart` 복사
+- [ ] `fortune/` 하위 적절한 폴더에 파일 생성
 - [ ] 클래스명 변경
 - [ ] summaryType 설정 (필요시 `ai_constants.dart`에 추가)
 - [ ] modelName 선택
 - [ ] maxTokens, temperature, cacheExpiry 설정
 - [ ] systemPrompt 작성
 - [ ] buildUserPrompt 작성 (JSON 스키마 포함)
+- [ ] `ai.dart` barrel에 export 추가
+- [ ] `ai_constants.dart`에 PromptVersions 추가
 - [ ] 사용하는 서비스에서 import
 - [ ] 테스트 완료
 

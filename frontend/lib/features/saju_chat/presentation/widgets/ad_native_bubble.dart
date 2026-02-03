@@ -21,7 +21,7 @@ bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 ///
 /// Provider에서 로드한 NativeAd를 전달받아 표시
 /// 채팅 버블 스타일로 자연스럽게 노출
-class AdNativeBubble extends StatelessWidget {
+class AdNativeBubble extends StatefulWidget {
   /// 로드된 네이티브 광고
   final NativeAd? nativeAd;
 
@@ -41,6 +41,24 @@ class AdNativeBubble extends StatelessWidget {
     this.onDismiss,
     this.personaEmoji = '📢',
   });
+
+  @override
+  State<AdNativeBubble> createState() => _AdNativeBubbleState();
+}
+
+class _AdNativeBubbleState extends State<AdNativeBubble> {
+  /// AdWidget 캐시 (같은 NativeAd에 대해 한 번만 생성)
+  Widget? _cachedAdWidget;
+  NativeAd? _cachedAd;
+
+  Widget _getOrCreateAdWidget(NativeAd ad) {
+    if (_cachedAd == ad && _cachedAdWidget != null) {
+      return _cachedAdWidget!;
+    }
+    _cachedAd = ad;
+    _cachedAdWidget = AdWidget(ad: ad);
+    return _cachedAdWidget!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +109,7 @@ class AdNativeBubble extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          personaEmoji,
+          widget.personaEmoji,
           style: const TextStyle(fontSize: 14),
         ),
       ),
@@ -133,16 +151,16 @@ class AdNativeBubble extends StatelessWidget {
 
   Widget _buildAdContent(BuildContext context, AppThemeExtension theme) {
     // 로딩 중
-    if (loadState == AdLoadState.loading) {
+    if (widget.loadState == AdLoadState.loading) {
       return _buildLoadingState(theme);
     }
 
     // 로드 실패
-    if (loadState == AdLoadState.failed || nativeAd == null) {
+    if (widget.loadState == AdLoadState.failed || widget.nativeAd == null) {
       return _buildErrorState(theme);
     }
 
-    // 광고 표시
+    // 광고 표시 (캐싱된 AdWidget 사용 → "already in tree" 에러 방지)
     return Container(
       constraints: const BoxConstraints(
         minHeight: 120,
@@ -169,7 +187,7 @@ class AdNativeBubble extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: AdWidget(ad: nativeAd!),
+      child: _getOrCreateAdWidget(widget.nativeAd!),
     );
   }
 
@@ -230,9 +248,9 @@ class AdNativeBubble extends StatelessWidget {
               ),
             ),
           ),
-          if (onDismiss != null)
+          if (widget.onDismiss != null)
             TextButton(
-              onPressed: onDismiss,
+              onPressed: widget.onDismiss,
               child: Text(
                 '닫기',
                 style: TextStyle(
@@ -266,9 +284,9 @@ class AdNativeBubble extends StatelessWidget {
                 style: TextStyle(color: theme.textSecondary, fontSize: 12),
               ),
             ),
-            if (onDismiss != null)
+            if (widget.onDismiss != null)
               TextButton(
-                onPressed: onDismiss,
+                onPressed: widget.onDismiss,
                 child: const Text('확인'),
               ),
           ],

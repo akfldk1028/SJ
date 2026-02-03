@@ -125,7 +125,10 @@ class FortuneSummaryCard extends ConsumerWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, AppThemeExtension theme, Object error) {
-    return _buildFortuneCard(context, theme, _getSampleFortuneData());
+    // 에러 원인 로깅
+    print('[FortuneSummaryCard] ❌ 에러 발생: $error');
+    // 에러 시에도 분석 중 카드 표시 (목업 데이터 대신)
+    return _buildAnalyzingCard(theme);
   }
 
   DailyFortuneData _getSampleFortuneData() {

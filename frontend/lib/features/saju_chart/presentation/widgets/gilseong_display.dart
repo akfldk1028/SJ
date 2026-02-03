@@ -76,9 +76,9 @@ class SpecialSinsalBadge extends StatelessWidget {
 
   double _getFontSize() {
     return switch (size) {
-      SpecialSinsalBadgeSize.tiny => 9.0,
-      SpecialSinsalBadgeSize.small => 10.0,
-      SpecialSinsalBadgeSize.medium => 12.0,
+      SpecialSinsalBadgeSize.tiny => 11.0,
+      SpecialSinsalBadgeSize.small => 12.0,
+      SpecialSinsalBadgeSize.medium => 13.0,
       SpecialSinsalBadgeSize.large => 14.0,
     };
   }
@@ -151,7 +151,7 @@ class GilseongRow extends StatelessWidget {
                   '길성',
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -175,7 +175,7 @@ class GilseongRow extends StatelessWidget {
             '-',
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 12,
+              fontSize: 13,
             ),
           ),
         ),
@@ -285,7 +285,7 @@ class SinsalGilseongTable extends StatelessWidget {
                   '길 ${gilseongResult.totalGoodCount}',
                   style: const TextStyle(
                     color: AppColors.success,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -294,7 +294,7 @@ class SinsalGilseongTable extends StatelessWidget {
                   '흉 ${gilseongResult.totalBadCount}',
                   style: const TextStyle(
                     color: AppColors.error,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -314,7 +314,7 @@ class SinsalGilseongTable extends StatelessWidget {
           '특수 신살 없음',
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 12,
+            fontSize: 13,
           ),
         ),
       );
@@ -385,7 +385,7 @@ class SinsalGilseongTable extends StatelessWidget {
           text,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -415,7 +415,7 @@ class SinsalGilseongTable extends StatelessWidget {
         text,
         style: TextStyle(
           color: theme.textMuted,
-          fontSize: 10,
+          fontSize: 13,
         ),
       ),
     );
@@ -537,7 +537,7 @@ class SinsalGilseongTable extends StatelessWidget {
           '×',
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 12,
+            fontSize: 13,
           ),
         ),
       );
@@ -568,7 +568,7 @@ class SinsalGilseongTable extends StatelessWidget {
           '×',
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 12,
+            fontSize: 13,
           ),
         ),
       );
@@ -634,7 +634,7 @@ class GilseongSummaryCard extends StatelessWidget {
                 '${result.allUniqueSinsals.length}개',
                 style: TextStyle(
                   color: theme.textMuted,
-                  fontSize: 11,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -646,7 +646,7 @@ class GilseongSummaryCard extends StatelessWidget {
               '특수 신살 없음',
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 12,
+                fontSize: 13,
               ),
             )
           else
@@ -783,7 +783,7 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
           label,
           style: TextStyle(
             color: color,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
         ),

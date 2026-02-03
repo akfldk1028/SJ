@@ -28,6 +28,10 @@ class AdTransitionBubble extends StatelessWidget {
   final VoidCallback? onCtaPressed;
   final VoidCallback? onSkipPressed;
 
+  /// 보조 CTA (토큰 소진 시 2가지 선택지)
+  final String? secondaryCtaText;
+  final VoidCallback? onSecondaryCtaPressed;
+
   const AdTransitionBubble({
     super.key,
     required this.message,
@@ -35,6 +39,8 @@ class AdTransitionBubble extends StatelessWidget {
     this.personaName = '사담 AI',
     this.onCtaPressed,
     this.onSkipPressed,
+    this.secondaryCtaText,
+    this.onSecondaryCtaPressed,
   });
 
   @override
@@ -143,6 +149,63 @@ class AdTransitionBubble extends StatelessWidget {
   Widget _buildCtaSection(BuildContext context, AppThemeExtension theme) {
     final isRequired = message.isRequired;
 
+    // 2가지 선택지 (토큰 소진 시)
+    if (secondaryCtaText != null && onSecondaryCtaPressed != null) {
+      return Column(
+        children: [
+          // 메인 CTA (영상 광고)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onCtaPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: Text(
+                message.ctaText!,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 보조 CTA (네이티브 광고)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onSecondaryCtaPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.textSecondary,
+                side: BorderSide(
+                  color: theme.textSecondary.withValues(alpha: 0.3),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                secondaryCtaText!,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 기존 단일 CTA
     return Row(
       children: [
         const SizedBox(width: 4),

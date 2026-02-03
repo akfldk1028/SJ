@@ -92,7 +92,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                   children: [
                     Text(
                       '나의 일간',
-                      style: shadTheme.textTheme.muted.copyWith(fontSize: 11),
+                      style: shadTheme.textTheme.muted.copyWith(fontSize: 13),
                     ),
                     const SizedBox(width: 8),
                     ShadBadge(
@@ -101,7 +101,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                       child: Text(
                         '$dayMaster(${myOheng.hanja})',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -165,7 +165,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                       child: Text(
                         r.category.korean,
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -186,7 +186,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                       child: Text(
                         r.relation,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: theme.textPrimary,
                         ),
@@ -198,7 +198,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 Text(
                   r.meaning,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: theme.textSecondary,
                   ),
                 ),
@@ -231,7 +231,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 Text(
                   '해석',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: color,
                   ),
@@ -242,7 +242,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
             Text(
               r.description,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 height: 1.7,
                 color: theme.textSecondary,
               ),

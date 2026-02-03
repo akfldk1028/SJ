@@ -25,29 +25,27 @@ abstract class AdTriggerService {
   AdTriggerService._();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 토큰 기반 트리거 설정
+  // 토큰 보상 → AdStrategy에서 관리 (ad_strategy.dart에서 값 조정)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// 토큰 경고 임계값 (80%)
-  static const double tokenWarningThreshold = 0.8;
+  static int get depletedRewardTokensVideo => AdStrategy.depletedRewardTokensVideo;
+  static int get depletedRewardTokensNative => AdStrategy.depletedRewardTokensNative;
+  static int get intervalClickRewardTokens => AdStrategy.intervalClickRewardTokens;
 
-  /// 토큰 소진 임계값 (100%)
+  /// 토큰 소진 시 기본 보상 토큰 (하위 호환)
+  static int get depletedRewardTokens => AdStrategy.depletedRewardTokensVideo;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 트리거 설정 (내부용 - 변경 불필요)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 토큰 소진 임계값 (100% = 소진)
   static const double tokenDepletedThreshold = 1.0;
 
-  /// 토큰 경고 시 제공되는 보상 토큰 (광고 시청 시)
-  static const int warningRewardTokens = 5000;
-
-  /// 토큰 소진 시 제공되는 보상 토큰 (광고 시청 시)
-  static const int depletedRewardTokens = 10000;
-
-  /// 인터벌 광고 시 제공되는 보상 토큰 (광고 클릭 시)
-  static const int intervalRewardTokens = 2000;
-
-  /// 토큰 경고 스킵 후 쿨다운 (메시지 수)
-  /// 스킵하면 이 횟수만큼 메시지 동안 토큰 경고 억제
-  /// → 쿨다운 동안 인터벌 광고가 나올 수 있음
-  /// → 쿨다운 끝나면 다시 토큰 경고 발동 (계속 압박)
-  /// AdMob 정책: 매 메시지마다 같은 광고를 반복하면 invalid impression 위험
+  /// 80% 경고 비활성화 (warningRewardTokens = 0)
+  static const double tokenWarningThreshold = 0.8;
+  static const int warningRewardTokens = 0;
+  static const int impressionRewardTokens = 0;
   static const int tokenWarningCooldownMessages = 3;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -66,6 +64,7 @@ abstract class AdTriggerService {
     required int messageCount,
     bool tokenWarningOnCooldown = false,
     int shownAdCount = 0,
+    bool isPremium = false,
   }) {
     // 1. 토큰 기반 트리거 (우선순위 높음)
     final tokenTrigger = checkTokenTrigger(
@@ -73,14 +72,22 @@ abstract class AdTriggerService {
       tokenWarningOnCooldown: tokenWarningOnCooldown,
     );
     if (tokenTrigger != AdTriggerResult.none) {
+      // 광고 제거 구매자: 토큰 소진(100%) 보상형 광고만 허용
+      // → 강제 광고 아님, 유저가 직접 선택해서 시청 → 토큰 충전
+      // 토큰 경고(80%)는 차단 (강제성 있는 광고이므로)
+      if (isPremium && tokenTrigger != AdTriggerResult.tokenDepleted) {
+        return AdTriggerResult.none;
+      }
       return tokenTrigger;
     }
 
-    // 2. 메시지 간격 트리거
-    return checkIntervalTrigger(
-      messageCount: messageCount,
-      shownAdCount: shownAdCount,
-    );
+    // 광고 제거 구매자 → 인터벌(강제) 광고 차단
+    if (isPremium) return AdTriggerResult.none;
+
+    // 2. 인터벌 광고 비활성화 (v28)
+    // 인라인 ChatAdWidget이 4메시지마다 표시되므로 인터벌 AdNativeBubble 불필요.
+    // 토큰 소진 시에만 AdNativeBubble 사용.
+    return AdTriggerResult.none;
   }
 
   /// 토큰 기반 트리거 체크
@@ -99,9 +106,12 @@ abstract class AdTriggerService {
     }
 
     // 토큰 80% 이상 사용 (선제적)
-    // 스킵 후 쿨다운 중이면 억제 → 쿨다운 동안 인터벌 광고 기회
-    // 쿨다운 끝나면 다시 발동 → 광고 보라고 계속 압박
+    // warningRewardTokens = 0이면 80% 경고 완전 비활성화
+    // → 보상 없는 rewarded ad 표시는 UX 저하 + AdMob 정책 위험
     if (tokenUsage.usageRate >= tokenWarningThreshold) {
+      if (warningRewardTokens <= 0) {
+        return AdTriggerResult.none;
+      }
       if (tokenWarningOnCooldown) {
         return AdTriggerResult.none;
       }
@@ -156,7 +166,7 @@ abstract class AdTriggerService {
     return switch (trigger) {
       AdTriggerResult.tokenNearLimit => warningRewardTokens,
       AdTriggerResult.tokenDepleted => depletedRewardTokens,
-      AdTriggerResult.intervalAd => intervalRewardTokens,
+      AdTriggerResult.intervalAd => impressionRewardTokens,
       AdTriggerResult.none => 0,
     };
   }

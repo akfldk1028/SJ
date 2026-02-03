@@ -107,6 +107,15 @@ class AdService {
           debugPrint('[AdService] Banner ad clicked');
           AdTrackingService.instance.trackBannerClick();
         },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          debugPrint('[AdService] Banner paid: $valueMicros micros ($currencyCode)');
+          AdTrackingService.instance.trackAdRevenue(
+            adType: AdType.banner,
+            valueMicros: valueMicros,
+            precision: precision.name,
+            currencyCode: currencyCode,
+          );
+        },
       ),
     );
 
@@ -135,6 +144,17 @@ class AdService {
           debugPrint('[AdService] Interstitial ad loaded');
           _interstitialAd = ad;
           _isInterstitialLoaded = true;
+
+          // onPaidEvent 수익 추적
+          _interstitialAd!.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
+            debugPrint('[AdService] Interstitial paid: $valueMicros micros ($currencyCode)');
+            AdTrackingService.instance.trackAdRevenue(
+              adType: AdType.interstitial,
+              valueMicros: valueMicros,
+              precision: precision.name,
+              currencyCode: currencyCode,
+            );
+          };
 
           // 전면 광고 콜백 설정
           _interstitialAd!.fullScreenContentCallback =
@@ -217,6 +237,17 @@ class AdService {
           debugPrint('[AdService] Rewarded ad loaded');
           _rewardedAd = ad;
           _isRewardedLoaded = true;
+
+          // onPaidEvent 수익 추적
+          _rewardedAd!.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
+            debugPrint('[AdService] Rewarded paid: $valueMicros micros ($currencyCode)');
+            AdTrackingService.instance.trackAdRevenue(
+              adType: AdType.rewarded,
+              valueMicros: valueMicros,
+              precision: precision.name,
+              currencyCode: currencyCode,
+            );
+          };
 
           _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
@@ -337,6 +368,28 @@ class AdService {
       },
     );
     return true;
+  }
+
+  // ==================== Rewarded Ad Helpers ====================
+
+  /// Rewarded 광고 로드 대기 (최대 timeout)
+  /// 이미 로드되어 있으면 즉시 true 반환
+  Future<bool> waitForRewardedLoad({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (_isRewardedLoaded) return true;
+
+    // 로드 중이 아니면 재로드 시작
+    loadRewardedAd();
+
+    // 폴링으로 대기 (100ms 간격)
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (_isRewardedLoaded) return true;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    return _isRewardedLoaded;
   }
 
   // ==================== Cleanup ====================

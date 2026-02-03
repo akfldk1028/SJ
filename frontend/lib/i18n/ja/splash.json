@@ -1,0 +1,8 @@
+{
+  "loading": "データ読み込み中...",
+  "ready": "準備完了！",
+  "newJourney": "新しい旅が始まります",
+  "analyzing": "四柱分析の準備中...",
+  "offline": "オフラインモード",
+  "connectionError": "接続エラー"
+}

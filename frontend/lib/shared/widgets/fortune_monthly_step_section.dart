@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_service.dart';
+import '../../purchase/providers/purchase_provider.dart';
 import 'fortune_category_chip_section.dart';
 
 /// 월별 운세 + 카테고리 Step by Step 섹션
@@ -10,7 +12,7 @@ import 'fortune_category_chip_section.dart';
 /// - 12개월 칩이 가로 스크롤로 표시
 /// - 월 선택 시 해당 월의 분기 테마 + 카테고리가 순차적으로 표시
 /// - 각 카테고리는 광고 시청 후 해금
-class FortuneMonthlyStepSection extends StatefulWidget {
+class FortuneMonthlyStepSection extends ConsumerStatefulWidget {
   /// 운세 타입 (yearly_2025, yearly_2026)
   final String fortuneType;
 
@@ -32,7 +34,7 @@ class FortuneMonthlyStepSection extends StatefulWidget {
   });
 
   @override
-  State<FortuneMonthlyStepSection> createState() =>
+  ConsumerState<FortuneMonthlyStepSection> createState() =>
       _FortuneMonthlyStepSectionState();
 }
 
@@ -51,7 +53,7 @@ class QuarterData {
   });
 }
 
-class _FortuneMonthlyStepSectionState extends State<FortuneMonthlyStepSection> {
+class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSection> {
   /// 현재 선택된 월 (1~12, null이면 미선택)
   int? _selectedMonth;
 
@@ -381,6 +383,24 @@ class _FortuneMonthlyStepSectionState extends State<FortuneMonthlyStepSection> {
   /// 네이티브 광고 표시 후 월 해금
   Future<void> _showNativeAdAndUnlockMonth(int month) async {
     if (_isLoadingAd) return;
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      await _unlockMonth(month);
+      if (mounted) {
+        setState(() => _isLoadingAd = false);
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$month월 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
 
     setState(() => _isLoadingAd = true);
 
@@ -873,10 +893,28 @@ class _FortuneMonthlyStepSectionState extends State<FortuneMonthlyStepSection> {
   Future<void> _showRewardedAdAndUnlock(int step) async {
     if (_isLoadingAd) return;
 
-    setState(() => _isLoadingAd = true);
-
     final categoryName =
         step <= _categoryKeys.length ? _getCategoryName(_categoryKeys[step - 1]) : 'Step $step';
+
+    // 프리미엄 유저는 광고 없이 바로 해제
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    if (isPremium) {
+      await _unlockStep(step);
+      if (mounted) {
+        setState(() => _isLoadingAd = false);
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$categoryName 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+      return;
+    }
+
+    setState(() => _isLoadingAd = true);
 
     // 웹에서는 광고 스킵
     if (kIsWeb) {

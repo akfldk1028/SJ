@@ -59,17 +59,14 @@ abstract class AdStrategy {
   static const ChatAdType chatAdType = ChatAdType.nativeMedium;
 
   /// 인라인 광고 표시 간격 (메시지 수)
-  /// 5 = 약 2.5번 대화마다 광고 (유저+AI 메시지 합산)
-  /// 첫 광고: 메시지 5개 이후 (minMessages=5), 이후 5개마다
-  /// → 세션당 3~4회 광고로 수익 확보 + 초반 폭격 방지
-  static const int inlineAdMessageInterval = 5;
+  /// 6 = 3번째 대화 후 광고 1회 (유저+AI = 2메시지 × 3 = 6)
+  static const int inlineAdMessageInterval = 4;
 
-  /// 인라인 광고 최대 개수 (대화 중 지속적으로 표시)
-  static const int inlineAdMaxCount = 10;
-
+  /// 인라인 광고 최대 개수 (세션당) 이건그냥 많은게좋음
+  static const int inlineAdMaxCount = 9999;
   /// 인라인 광고 최소 메시지 수 (이보다 적으면 광고 안 보임)
-  /// 5 = 약 2~3번 대화 후부터 광고 가능
-  static const int inlineAdMinMessages = 5;
+  /// 6 = 3번째 대화 후부터 광고 시작
+  static const int inlineAdMinMessages = 4;
 
   // ==================== 전면 광고 ====================
 
@@ -88,16 +85,22 @@ abstract class AdStrategy {
   /// 새 세션 전면 광고 하루 최대 횟수 (9999 = 무제한)
   static const int newSessionInterstitialDailyLimit = 9999;
 
-  // ==================== 보상형 광고 ====================
+  // ==================== 토큰 보상 설정 ====================
+  // ★ 여기서 보상 토큰 값 조정 ★
+  // 1교환(유저+AI) ≈ 7,200 토큰
 
-  /// 일일 무료 채팅 횟수
-  static const int dailyFreeChatLimit = 10;
+  /// 토큰 소진 → 영상 광고(Rewarded Video) 보상 토큰
+  /// eCPM $15~30 → 1회 수익 $0.015~0.030
+  /// v2: 영상 광고 제거 (클릭 광고만 사용)
+  static const int depletedRewardTokensVideo = 0;
 
-  /// 보상형 광고로 추가되는 채팅 횟수
-  static const int rewardedChatBonus = 5;
+  /// 토큰 소진 → 네이티브 광고 보상 토큰 (클릭 시에만 지급)
+  /// Native CPC $0.10~0.50 → 클릭 시 웹 방문
+  /// v3: 12,000 토큰 - 클릭 1번으로 흑자
+  static const int depletedRewardTokensNative = 15000;
 
-  /// 보상형 광고 쿨다운 (초)
-  static const int rewardedCooldownSeconds = 30;
+  /// 인터벌(대화 중) 네이티브 광고 클릭 시 보상 토큰
+  static const int intervalClickRewardTokens = 10000;
 
   // ==================== 프리미엄 기능 ====================
 

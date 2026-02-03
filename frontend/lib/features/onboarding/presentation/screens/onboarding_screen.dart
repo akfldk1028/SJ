@@ -138,52 +138,74 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
       body: MysticBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            key: _formKey,  // key로 rebuild 제어
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '정확한 만세력을 위해\n정보를 입력해주세요.',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    height: 1.4,
-                    color: theme.textPrimary,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // iPad/큰 화면: 폼 최대 너비 제한 + 세로 중앙 정렬
+              final isWide = constraints.maxWidth > 600;
+              final formMaxWidth = isWide ? 500.0 : double.infinity;
+
+              return SingleChildScrollView(
+                key: _formKey,  // key로 rebuild 제어
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWide ? 40 : 20,
+                  vertical: 20,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 40, // padding 제외
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: formMaxWidth),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            '정확한 만세력을 위해\n정보를 입력해주세요.',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // 1. 이름
+                          const ProfileNameInput(),
+                          const SizedBox(height: 24),
+
+                          // 2. 성별
+                          const GenderToggleButtons(),
+                          const SizedBox(height: 24),
+
+                          // 3. 생년월일시
+                          _buildBirthSection(context),
+                          const SizedBox(height: 24),
+
+                          // 4. 출생 도시
+                          const CitySearchField(),
+                          const SizedBox(height: 16),
+
+                          // 5. 진태양시 보정 배너
+                          const TimeCorrectionBanner(),
+                          const SizedBox(height: 40),
+
+                          // 완료 버튼
+                          ShadButton(
+                            size: ShadButtonSize.lg,
+                            onPressed: _onSave,
+                            child: const Text('만세력 보러가기'),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 32),
-
-                // 1. 이름
-                const ProfileNameInput(),
-                const SizedBox(height: 24),
-
-                // 2. 성별
-                const GenderToggleButtons(),
-                const SizedBox(height: 24),
-
-                // 3. 생년월일시
-                _buildBirthSection(context),
-                const SizedBox(height: 24),
-
-                // 4. 출생 도시
-                const CitySearchField(),
-                const SizedBox(height: 16),
-
-                // 5. 진태양시 보정 배너
-                const TimeCorrectionBanner(),
-                const SizedBox(height: 40),
-
-                // 완료 버튼
-                ShadButton(
-                  size: ShadButtonSize.lg,
-                  onPressed: _onSave,
-                  child: const Text('만세력 보러가기'),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

@@ -3,4 +3,3 @@
 library;
 
 export 'queries/ad_queries.dart';
-export 'mutations/ad_mutations.dart';

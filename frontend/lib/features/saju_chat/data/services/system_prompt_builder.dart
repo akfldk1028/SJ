@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../../profile/domain/entities/saju_profile.dart';
+import '../../../profile/data/relation_schema.dart';
 import '../../../saju_chart/domain/entities/saju_analysis.dart';
 import '../../../saju_chart/domain/entities/sinsal.dart';
 import '../../../saju_chart/data/constants/cheongan_jiji.dart';
@@ -38,6 +39,9 @@ class SystemPromptBuilder {
   /// [isThirdPartyCompatibility] - v6.0 (Phase 57): "나 제외" 궁합 모드 여부
   ///   - true: 두 사람 모두 제3자 (예: 신선우 ↔ 박재현)
   ///   - false: 상담 요청자 본인 + 상대방 (예: 나 ↔ 엄마)
+  /// [additionalParticipants] - v10.0: 3번째 이후 추가 참가자 목록
+  ///   - 궁합은 여전히 person1 vs person2 1:1 (합충형해파)
+  ///   - 추가 참가자는 프로필+사주 데이터만 시스템 프롬프트에 포함
   String build({
     required String basePrompt,
     AiSummary? aiSummary,
@@ -50,6 +54,8 @@ class SystemPromptBuilder {
     SajuAnalysis? targetSajuAnalysis,
     CompatibilityAnalysis? compatibilityAnalysis,
     bool isThirdPartyCompatibility = false,
+    String? relationType,  // v8.1: 관계 유형 (family_parent, romantic_partner 등)
+    List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})>? additionalParticipants,
   }) {
     _buffer.clear();
 
@@ -84,20 +90,16 @@ class SystemPromptBuilder {
         ? '${targetProfile?.displayName ?? '두 번째 사람'}의 사주'
         : '상대방의 사주';
 
-    // 4. 프로필 정보 (첫 메시지만)
-    if (isFirstMessage && profile != null) {
+    // 4. 프로필 정보
+    // v8.0: 항상 포함 (Gemini는 stateless이므로 매 호출마다 필요)
+    if (profile != null) {
       _addProfileInfo(profile, person1Label);
     }
 
     // 5. 사주 원국 데이터 (saju_analyses 테이블 - 만세력 계산 결과)
-    if (isFirstMessage && sajuAnalysis != null) {
+    // v8.0: 항상 포함 (Gemini는 stateless이므로 매 호출마다 사주 데이터 필요)
+    if (sajuAnalysis != null) {
       _addSajuAnalysis(sajuAnalysis, person1SajuLabel);
-    } else if (!isFirstMessage) {
-      _buffer.writeln();
-      _buffer.writeln('---');
-      _buffer.writeln();
-      _buffer.writeln('## 사주 정보');
-      _buffer.writeln('(이전 대화에서 제공된 상세 사주 정보를 참조하세요)');
     }
 
     // 6. GPT-5.2 AI Summary 추가 (평생 운세 분석 - Intent Routing 적용)
@@ -105,8 +107,9 @@ class SystemPromptBuilder {
       _addAiSummary(aiSummary, intentClassification);
     }
 
-    // 7. 상대방 정보 추가 (단일 궁합 모드) - Phase 44
-    if (isFirstMessage && targetProfile != null) {
+    // 7. 상대방 정보 추가 (궁합 또는 단일 멘션 모드) - Phase 44
+    // v9.0: isFirstMessage 조건 제거 (Gemini는 stateless이므로 매 호출마다 필요)
+    if (targetProfile != null) {
       if (isThirdPartyCompatibility) {
         // v6.0: 나 제외 모드 - 커스텀 라벨 사용
         _addProfileInfo(targetProfile, person2Label);
@@ -119,6 +122,18 @@ class SystemPromptBuilder {
       }
     }
 
+    // 7-1. 추가 참가자 정보 (3번째 이후) - v10.0
+    if (additionalParticipants != null && additionalParticipants.isNotEmpty) {
+      for (int i = 0; i < additionalParticipants.length; i++) {
+        final p = additionalParticipants[i];
+        final personNum = i + 3;
+        _addProfileInfo(p.profile, '$personNum번째 사람 (${p.profile.displayName})');
+        if (p.sajuAnalysis != null) {
+          _addSajuAnalysis(p.sajuAnalysis!, '${p.profile.displayName}의 사주');
+        }
+      }
+    }
+
     // 8. 궁합 분석 결과 추가 (있는 경우) - Phase 44
     // v5.0: 다중 궁합 제거 - 항상 단일 궁합 (2명)만 처리
     if (isFirstMessage && compatibilityAnalysis != null) {
@@ -128,9 +143,13 @@ class SystemPromptBuilder {
     // 9. 궁합 지시문 추가 (궁합 모드인 경우)
     if (isFirstMessage && isCompatibilityMode) {
       _addCompatibilityInstructions(isThirdPartyCompatibility, profile, targetProfile);
+      // 10. 관계 유형별 분석 지시문 추가 (v8.1)
+      if (relationType != null) {
+        _addRelationTypeContext(relationType);
+      }
     }
 
-    // 10. 마무리 지시문
+    // 11. 마무리 지시문
     _addClosingInstructions(isCompatibilityMode: isCompatibilityMode);
 
     return _buffer.toString();
@@ -154,6 +173,8 @@ class SystemPromptBuilder {
     _buffer.writeln('## 현재 날짜');
     _buffer.writeln('오늘은 ${now.year}년 ${now.month}월 ${now.day}일 (${weekday}요일)입니다.');
     _buffer.writeln('올해는 ${gan}${ji}년(${ganHanja}${jiHanja}年)입니다.');
+    _buffer.writeln();
+    _buffer.writeln('**중요: 현재 연도는 ${now.year}년입니다. 모든 답변에서 반드시 ${now.year}년 기준으로 이야기하세요. 절대 다른 연도를 현재로 언급하지 마세요.**');
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
@@ -390,6 +411,53 @@ class SystemPromptBuilder {
     _buffer.writeln('- 구체적인 글자를 인용하며 분석하세요 (예: "경금 일간과 을목 일간이 을경합을 이루어...").');
   }
 
+  /// v8.1: 관계 유형별 분석 지시문 추가
+  ///
+  /// AI가 관계 유형에 맞는 분석과 후속 질문을 생성하도록 지시
+  void _addRelationTypeContext(String relationType) {
+    final type = ProfileRelationType.fromValue(relationType);
+    final category = type.categoryLabel;  // 가족/연인/친구/직장/기타
+
+    _buffer.writeln();
+    _buffer.writeln('## 관계 유형별 분석 지침');
+    _buffer.writeln('두 사람의 관계: **${type.displayName}** ($category)');
+    _buffer.writeln();
+
+    switch (category) {
+      case '가족':
+        _buffer.writeln('### 분석 초점');
+        _buffer.writeln('- 세대 간 소통, 가치관 차이, 서로 보완하는 역할');
+        _buffer.writeln('- 부모자녀 소통법, 가족 갈등 해소, 건강운 상호영향');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 가족 소통법, 세대차이 극복, 건강운, 가족 화합 등');
+        _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
+      case '연인':
+        _buffer.writeln('### 분석 초점');
+        _buffer.writeln('- 감정 교감, 결혼 적합성, 성격 충돌, 속궁합');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 결혼 시기, 속궁합, 성격 차이 극복, 장기 전망 등');
+        _buffer.writeln('- 속궁합, 잠자리 궁합 등 친밀감 관련 질문 자연스럽게 가능');
+      case '친구':
+        _buffer.writeln('### 분석 초점');
+        _buffer.writeln('- 우정의 깊이, 신뢰도, 동업/협업 가능성, 장기 인연');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 우정 유지법, 동업 가능성, 신뢰 문제, 오래갈 인연인지 등');
+      case '직장':
+        _buffer.writeln('### 분석 초점');
+        _buffer.writeln('- 업무 시너지, 리더십 궁합, 의사결정 스타일, 승진/이직 영향');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 업무 협업법, 상사/부하 관계 개선, 비즈니스 궁합, 승진운 등');
+      default:
+        _buffer.writeln('### 분석 초점');
+        _buffer.writeln('- 일반적 궁합 분석, 두 사람의 인연과 교류 방향');
+    }
+    _buffer.writeln();
+  }
+
   /// 마무리 지시문 추가
   void _addClosingInstructions({bool isCompatibilityMode = false}) {
     _buffer.writeln();
@@ -404,6 +472,8 @@ class SystemPromptBuilder {
       _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
       _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하여 깊이 있는 상담을 제공하세요.');
     }
+    _buffer.writeln();
+    _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
   }
 
   /// Gemini 궁합 분석 결과 추가

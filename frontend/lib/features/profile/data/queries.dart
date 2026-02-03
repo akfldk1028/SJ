@@ -53,7 +53,7 @@ class ProfileQueries extends BaseQueries {
             .from(profilesTable)
             .select(profileSelectColumns)
             .eq(ProfileColumns.userId, userId)
-            .eq(ProfileColumns.isPrimary, true)
+            .eq(ProfileColumns.profileType, 'primary')
             .maybeSingle();
         return response;
       },

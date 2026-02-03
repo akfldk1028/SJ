@@ -228,7 +228,7 @@ class HapchungTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: count > 0 ? color : theme.textMuted,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -297,7 +297,7 @@ class HapchungTab extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -543,7 +543,7 @@ class HapchungTab extends StatelessWidget {
                       hanjaName,
                       style: TextStyle(
                         color: color.withOpacity(0.7),
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -579,7 +579,7 @@ class HapchungTab extends StatelessWidget {
                       '$pillar1주 ↔ $pillar2주',
                       style: TextStyle(
                         color: theme.textMuted,
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -618,7 +618,7 @@ class HapchungTab extends StatelessWidget {
                             explanation,
                             style: TextStyle(
                               color: theme.textMuted,
-                              fontSize: 12,
+                              fontSize: 13,
                               height: 1.5,
                             ),
                           ),
@@ -729,7 +729,7 @@ class HapchungTab extends StatelessWidget {
                       '(삼합의 일부)',
                       style: TextStyle(
                         color: _hapColor.withOpacity(0.6),
-                        fontSize: 11,
+                        fontSize: 13,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -757,7 +757,7 @@ class HapchungTab extends StatelessWidget {
                       '${samhap.pillars.join(", ")}주',
                       style: TextStyle(
                         color: theme.textMuted,
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -790,7 +790,7 @@ class HapchungTab extends StatelessWidget {
                             halfExplanation,
                             style: TextStyle(
                               color: theme.textMuted,
-                              fontSize: 11,
+                              fontSize: 13,
                               height: 1.4,
                             ),
                           ),
@@ -873,7 +873,7 @@ class HapchungTab extends StatelessWidget {
                         '${banghap.direction}방 ${banghap.season}',
                         style: TextStyle(
                           color: theme.textMuted,
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
                       if (isHalfBanghap)
@@ -881,7 +881,7 @@ class HapchungTab extends StatelessWidget {
                           '(방합의 일부)',
                           style: TextStyle(
                             color: _hapColor.withOpacity(0.6),
-                            fontSize: 10,
+                            fontSize: 13,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -927,7 +927,7 @@ class HapchungTab extends StatelessWidget {
                             halfExplanation,
                             style: TextStyle(
                               color: theme.textMuted,
-                              fontSize: 11,
+                              fontSize: 13,
                               height: 1.4,
                             ),
                           ),
@@ -1031,7 +1031,7 @@ class HapchungTab extends StatelessWidget {
                   term,
                   style: TextStyle(
                     color: color,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
@@ -1043,7 +1043,7 @@ class HapchungTab extends StatelessWidget {
                   description,
                   style: TextStyle(
                     color: theme.textSecondary,
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
               ),

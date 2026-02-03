@@ -24,6 +24,7 @@ import '../../../monthly_fortune/presentation/providers/monthly_fortune_provider
 import '../../../new_year_fortune/presentation/providers/new_year_fortune_provider.dart';
 import '../../../yearly_2025_fortune/presentation/providers/yearly_2025_fortune_provider.dart';
 import '../../../traditional_saju/presentation/providers/lifetime_fortune_provider.dart';
+import '../../../../ad/ad_tracking_service.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../AI/services/ai_api_service.dart';
 import '../../../../AI/fortune/fortune_coordinator.dart';
@@ -103,7 +104,10 @@ class ActiveProfile extends _$ActiveProfile {
   @override
   Future<SajuProfile?> build() async {
     final repository = ref.watch(profileRepositoryProvider);
-    return await repository.getActive();
+    final profile = await repository.getActive();
+    // 광고 수익 추적에 profileId 연결
+    AdTrackingService.instance.currentProfileId = profile?.id;
+    return profile;
   }
 
   /// 활성 프로필 새로 고침
@@ -753,13 +757,16 @@ class ProfileForm extends _$ProfileForm {
       return;
     }
 
-    print('[Profile] 🚀 v7.1 AI 분석 시작: $profileId');
+    print('[Profile] 🚀 v7.2 AI 분석 시작 (Lazy saju_base): $profileId');
 
     // 1. Fortune 분석 먼저! (daily만 빠르게 완료 → UI 즉시 갱신)
     _triggerFortuneAnalysis(user.id, profileId);
 
-    // 2. saju_base 분석 (백그라운드, 느림)
-    _triggerSajuBaseAnalysis(user.id, profileId);
+    // 2. saju_base 분석: Lazy 생성 (v7.2)
+    //    → 프로필 저장 시 즉시 호출하지 않음 ($0.197 절약)
+    //    → 첫 채팅 시 chat_provider._ensureAiSummary()에서 자동 트리거
+    //    → 채팅 안 하는 이탈 유저의 GPT-5.2 비용 완전 방지
+    // _triggerSajuBaseAnalysis(user.id, profileId);  // v7.2: disabled for lazy generation
   }
 
   /// Fortune 분석 (daily 포함) - 완료 시 즉시 UI 갱신

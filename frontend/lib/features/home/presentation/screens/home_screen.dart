@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../ad/widgets/banner_ad_widget.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -10,6 +12,7 @@ import '../../../../router/routes.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/widgets/saju_mini_card.dart';
+import '../../../../purchase/widgets/premium_badge_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -59,22 +62,19 @@ class HomeScreen extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                Text(
-                                  today,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: theme.textPrimary,
+                                Flexible(
+                                  child: Text(
+                                    today,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: theme.textPrimary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                // const SizedBox(width: 8),
-                                // Text(
-                                //   '◀ ▶',
-                                //   style: TextStyle(
-                                //     fontSize: 10,
-                                //     color: theme.textMuted,
-                                //   ),
-                                // ),
+                                const SizedBox(width: 8),
+                                const PremiumBadgeWidget(),
                               ],
                             ),
                           ],
@@ -172,6 +172,15 @@ class HomeScreen extends ConsumerWidget {
 
                 // Advice Card
                 _buildAdviceCard(theme, dailyFortuneAsync, horizontalPadding),
+
+                SizedBox(height: isSmall ? 16 : 20),
+
+                // 배너 광고 (Web 제외)
+                if (!kIsWeb)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: const BannerAdWidget(),
+                  ),
 
                 const SizedBox(height: 100), // Bottom nav spacing
               ],

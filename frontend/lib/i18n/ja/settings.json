@@ -1,0 +1,16 @@
+{
+  "title": "設定",
+  "profile": "プロフィール管理",
+  "notification": "通知設定",
+  "language": "言語設定",
+  "languageKo": "한국어",
+  "languageEn": "English",
+  "languageJa": "日本語",
+  "terms": "利用規約",
+  "privacy": "プライバシーポリシー",
+  "disclaimer": "免責事項",
+  "version": "バージョン",
+  "theme": "テーマ",
+  "darkMode": "ダークモード",
+  "lightMode": "ライトモード"
+}
