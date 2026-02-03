@@ -4,8 +4,13 @@
 /// 상품/Entitlement ID 정의
 abstract class PurchaseConfig {
   // ── RevenueCat API Keys (대시보드에서 발급) ──
+  // Android: Google Play Console 연동
   static const String revenueCatApiKeyAndroid = 'goog_DfwxpejDQNZHDxDNdLVPSWZVDvR';
-  static const String revenueCatApiKeyIos = 'appl_xxx'; // TODO: 실제 키로 교체
+
+  // iOS: App Store Connect 연동 (빈 문자열이면 IAP 비활성화)
+  // Mac 유저가 iOS 빌드 시 이 키를 설정해야 IAP 작동
+  // RevenueCat 대시보드 → iOS App → Public API Key
+  static const String revenueCatApiKeyIos = '';
 
   // ── Entitlements ──
   /// 단일 통합 entitlement: 프리미엄 (광고 제거 + AI 무제한)

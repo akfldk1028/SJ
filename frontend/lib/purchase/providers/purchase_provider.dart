@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/services/error_logging_service.dart';
 import '../data/mutations/purchase_mutations.dart';
 import '../purchase_config.dart';
+import '../purchase_service.dart';
 
 part 'purchase_provider.g.dart';
 
@@ -21,6 +22,14 @@ class PurchaseNotifier extends _$PurchaseNotifier {
 
   @override
   Future<CustomerInfo> build() async {
+    // IAP 비활성화 상태면 에러 던져서 isPremium = false 처리
+    if (!PurchaseService.instance.isAvailable) {
+      if (kDebugMode) {
+        print('[PurchaseNotifier] IAP 비활성화 상태 → isPremium = false');
+      }
+      throw Exception('IAP not available');
+    }
+
     try {
       final info = await Purchases.getCustomerInfo();
       if (kDebugMode) {
@@ -165,6 +174,20 @@ class PurchaseNotifier extends _$PurchaseNotifier {
                 print('[PurchaseNotifier] entitlement 미반영이지만 구매 상품 확인됨 → 강제 프리미엄');
               }
               _forcePremium = true;
+
+              // Supabase 로깅 - RevenueCat 설정 문제 추적용
+              ErrorLoggingService.logError(
+                operation: 'purchase_entitlement_mismatch',
+                errorMessage: 'Entitlement 미반영 - 강제 프리미엄 적용됨',
+                errorType: 'purchase_warning',
+                sourceFile: 'purchase_provider.dart',
+                extraData: {
+                  'package_id': package.identifier,
+                  'product_id': package.storeProduct.identifier,
+                  'purchased_ids': purchasedIds.toList(),
+                  'entitlements': latestInfo.entitlements.all.keys.toList(),
+                },
+              );
             }
           }
         }
@@ -232,9 +255,11 @@ class PurchaseNotifier extends _$PurchaseNotifier {
     }
   }
 
-  /// 구매 복원
+  /// 구매 복원 (이전 상태 유지하며 복원)
   Future<void> restore() async {
-    state = const AsyncLoading();
+    // 이전 상태 보존 (깜빡임 방지)
+    final previousValue = state.valueOrNull;
+
     try {
       final info = await Purchases.restorePurchases();
       state = AsyncData(info);
@@ -243,7 +268,6 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         print('[PurchaseNotifier] 구매 복원 완료');
       }
     } catch (e, st) {
-      state = AsyncError(e, st);
       if (kDebugMode) {
         print('[PurchaseNotifier] 구매 복원 실패: $e');
       }
@@ -256,11 +280,21 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         sourceFile: 'purchase_provider.dart',
         stackTrace: st.toString(),
       );
+
+      // 에러 시 이전 상태가 있으면 유지, 없으면 에러 상태
+      if (previousValue != null) {
+        state = AsyncData(previousValue);
+      } else {
+        state = AsyncError(e, st);
+      }
     }
   }
 
   /// 상태 새로고침 (이전 상태 유지하며 백그라운드 갱신)
   Future<void> refresh() async {
+    // IAP 비활성화 상태면 스킵
+    if (!PurchaseService.instance.isAvailable) return;
+
     // 이전 상태 보존 (깜빡임 방지)
     final previousValue = state.valueOrNull;
 
@@ -282,12 +316,23 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       }
     }
   }
+
+  /// IAP 사용 가능 여부 (외부에서 체크용)
+  bool get isIapAvailable => PurchaseService.instance.isAvailable;
 }
 
 /// Offerings 조회 Provider
 @riverpod
 // ignore: deprecated_member_use_from_same_package
 Future<Offerings?> offerings(OfferingsRef ref) async {
+  // IAP 비활성화 상태면 null 반환
+  if (!PurchaseService.instance.isAvailable) {
+    if (kDebugMode) {
+      print('[offerings] IAP 비활성화 → null 반환');
+    }
+    return null;
+  }
+
   try {
     return await Purchases.getOfferings();
   } catch (e) {
