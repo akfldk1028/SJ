@@ -113,6 +113,12 @@ class SseStreamClient {
                   chunkCount++;
                   fullContent.write(text);
 
+                  // v28: 텍스트 청크에서도 finish_reason 캡처 (백업)
+                  final chunkFinishReason = eventData['finish_reason'] as String?;
+                  if (chunkFinishReason != null) {
+                    finishReason = chunkFinishReason;
+                  }
+
                   // 콜백 호출 (테스트용)
                   onChunkReceived?.call(chunkCount, text);
 

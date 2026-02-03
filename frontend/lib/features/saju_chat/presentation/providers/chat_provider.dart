@@ -1071,7 +1071,41 @@ class ChatNotifier extends _$ChatNotifier {
       // AI 응답에서 후속 질문 파싱
       final parseResult = SuggestedQuestionsParser.parse(fullContent);
       final cleanedContent = parseResult.cleanedContent;
-      final suggestedQuestions = parseResult.suggestedQuestions;
+      var suggestedQuestions = parseResult.suggestedQuestions;
+
+      // 🔥 Truncation 감지: 여러 조건으로 판단
+      final lastResponse = _repository.getLastStreamingResponse();
+      final finishReason = lastResponse?.finishReason;
+
+      // 1) finishReason 기반 감지
+      final isFinishReasonTruncated = finishReason == 'MAX_TOKENS' || finishReason == 'LENGTH';
+
+      // 2) 문장 미완성 감지 (finishReason이 null이어도 중간에 끊긴 경우)
+      //    - 정상 종료: 마침표, 물음표, 느낌표, 물결표, 닫는 따옴표/괄호 등
+      //    - 비정상 종료: 그 외 (예: "생각", "하고" 등으로 끝남)
+      final trimmedContent = cleanedContent.trim();
+      // 정상 문장 종료 패턴 (마침표, 물음표, 느낌표, 물결, 닫는괄호, 말줄임표)
+      final normalEndingPattern = RegExp(r'[.!?~")\]\u3002\u300D\u300F\u2026\u22EF]$');
+      final looksIncomplete = trimmedContent.isNotEmpty &&
+          !normalEndingPattern.hasMatch(trimmedContent) &&
+          trimmedContent.length < 300; // 짧은 응답이 미완성으로 끝남
+
+      final isTruncated = isFinishReasonTruncated || looksIncomplete;
+
+      if (isTruncated) {
+        if (kDebugMode) {
+          print('   ⚠️ 응답 truncated 감지!');
+          print('      finishReason=$finishReason');
+          print('      looksIncomplete=$looksIncomplete (length=${trimmedContent.length})');
+          print('      마지막 10자: "${trimmedContent.length > 10 ? trimmedContent.substring(trimmedContent.length - 10) : trimmedContent}"');
+          print('      → "계속 이야기해줘" 추가');
+        }
+        // 기존 질문 앞에 "계속 이야기해줘" 추가
+        suggestedQuestions = [
+          '계속 이야기해줘',
+          ...?suggestedQuestions?.take(2), // 최대 2개만 유지 (총 3개)
+        ];
+      }
 
       // [6] 후속 질문 추출 - 디버그 강화
       if (kDebugMode) {
