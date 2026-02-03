@@ -348,8 +348,8 @@ class ChatNotifier extends _$ChatNotifier {
         return AiPersona.babyMonk;
       case ChatPersona.scenarioWriter:
         return AiPersona.scenarioWriter;
-      case ChatPersona.saOngJiMa:
-        return AiPersona.saOngJiMa;
+      case ChatPersona.yinYangGrandpa:
+        return AiPersona.yinYangGrandpa;
       case ChatPersona.sewerSaju:
         return AiPersona.sewerSaju;
     }

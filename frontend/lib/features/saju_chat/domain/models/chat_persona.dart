@@ -17,14 +17,14 @@ enum ChatPersonaType {
 ///
 /// 대화창에서 선택하는 7개 페르소나:
 /// - MBTI 4종: 감성형(NF), 분석형(NT), 친근형(SF), 현실형(ST)
-/// - 특수 캐릭터 3종: 아기동자, 새옹지마, 시궁창 술사
+/// - 특수 캐릭터 3종: 아기동자, 음양 할배, 시궁창 술사
 ///
 /// ## 구조
 /// ```
 /// ┌──────────────────────────────────────────────┐
 /// │  대화창 상단 페르소나 선택기                    │
 /// │  [감성형] [분석형] [친근형] [현실형]            │
-/// │  [아기동자] [새옹지마] [시궁창]                 │
+/// │  [아기동자] [음양 할배] [시궁창]                 │
 /// └──────────────────────────────────────────────┘
 /// ```
 enum ChatPersona {
@@ -49,8 +49,8 @@ enum ChatPersona {
   /// 송작가 - 스토리텔링 전문 캐릭터 (숨김)
   scenarioWriter,
 
-  /// 새옹지마 - 긍정 재해석 전문가
-  saOngJiMa,
+  /// 음양 할배 - 어둠 속 빛, 반전의 대가
+  yinYangGrandpa,
 
   /// 시궁창 술사 - 팩폭 장인
   sewerSaju;
@@ -225,8 +225,8 @@ enum ChatPersona {
         return 'baby_monk';
       case ChatPersona.scenarioWriter:
         return 'saju_scenario_builder';
-      case ChatPersona.saOngJiMa:
-        return 'sa_ong_ji_ma';
+      case ChatPersona.yinYangGrandpa:
+        return 'yin_yang_grandpa';
       case ChatPersona.sewerSaju:
         return 'sewer_saju';
     }
@@ -254,8 +254,8 @@ enum ChatPersona {
         return '아기동자';
       case ChatPersona.scenarioWriter:
         return '송작가';
-      case ChatPersona.saOngJiMa:
-        return '새옹지마';
+      case ChatPersona.yinYangGrandpa:
+        return '음양 할배';
       case ChatPersona.sewerSaju:
         return '시궁창 술사';
     }
@@ -278,8 +278,8 @@ enum ChatPersona {
         return '👶';
       case ChatPersona.scenarioWriter:
         return '🗣️';
-      case ChatPersona.saOngJiMa:
-        return '👴';
+      case ChatPersona.yinYangGrandpa:
+        return '☯️';
       case ChatPersona.sewerSaju:
         return '🤮';
     }
@@ -302,8 +302,8 @@ enum ChatPersona {
         return Icons.face_rounded;
       case ChatPersona.scenarioWriter:
         return Icons.edit_note_rounded;
-      case ChatPersona.saOngJiMa:
-        return Icons.spa_rounded;
+      case ChatPersona.yinYangGrandpa:
+        return Icons.contrast_rounded; // 음양 - 대비
       case ChatPersona.sewerSaju:
         return Icons.bolt_rounded;
     }
@@ -326,8 +326,8 @@ enum ChatPersona {
         return '아기동자';
       case ChatPersona.scenarioWriter:
         return '송작가';
-      case ChatPersona.saOngJiMa:
-        return '새옹지마';
+      case ChatPersona.yinYangGrandpa:
+        return '음양 할배';
       case ChatPersona.sewerSaju:
         return '시궁창';
     }
@@ -350,8 +350,8 @@ enum ChatPersona {
         return '반말과 팩폭, 꼬마도사';
       case ChatPersona.scenarioWriter:
         return '사주 스토리텔러';
-      case ChatPersona.saOngJiMa:
-        return '긍정 재해석 전문가';
+      case ChatPersona.yinYangGrandpa:
+        return '어둠 속 빛, 반전의 대가';
       case ChatPersona.sewerSaju:
         return '팩폭 장인';
     }
@@ -374,8 +374,8 @@ enum ChatPersona {
         return '꼬마 도사 아기동자입니다. 반말로 거침없이 사주를 풀어주며, 핵심만 콕콕 짚어주는 팩폭 스타일입니다.\n\n가벼운 분위기에서 솔직한 사주 풀이를 원할 때 추천합니다.';
       case ChatPersona.scenarioWriter:
         return '사주를 하나의 이야기로 풀어내는 스토리텔러입니다.';
-      case ChatPersona.saOngJiMa:
-        return '새옹지마 할배는 어떤 사주든 긍정적으로 재해석해 주는 전문가입니다.\n\n나쁜 운도 좋게 해석하고, 힘든 시기에도 희망을 찾아줍니다. 위로가 필요할 때 추천합니다.';
+      case ChatPersona.yinYangGrandpa:
+        return '음양 할배는 어둠 속에서 빛을, 빛 속에서 그림자를 찾아내는 반전의 대가입니다.\n\n팩트를 직격으로 인정한 뒤, 숨겨진 강점을 극적으로 뒤집어 희망을 제시합니다. 위로와 반전이 필요할 때 추천합니다.';
       case ChatPersona.sewerSaju:
         return '시궁창 술사는 사주의 안 좋은 면을 거침없이 파헤치는 팩폭 장인입니다.\n\n독설과 사이다 발언으로 현실을 직시하게 해줍니다. 심장이 약하신 분은 주의!';
     }
@@ -404,8 +404,9 @@ enum ChatPersona {
         return ChatPersona.babyMonk;
       case 'scenarioWriter':
         return ChatPersona.scenarioWriter;
-      case 'saOngJiMa':
-        return ChatPersona.saOngJiMa;
+      case 'yinYangGrandpa':
+      case 'saOngJiMa': // 하위 호환
+        return ChatPersona.yinYangGrandpa;
       case 'sewerSaju':
         return ChatPersona.sewerSaju;
       default:

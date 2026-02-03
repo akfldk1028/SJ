@@ -641,7 +641,7 @@ class GeminiEdgeDatasource {
     );
 
     if (kDebugMode) {
-      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $totalTokens');
+      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $totalTokens, finishReason: $finishReason');
     }
   }
 

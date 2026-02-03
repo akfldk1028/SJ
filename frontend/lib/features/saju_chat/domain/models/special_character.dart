@@ -23,8 +23,8 @@ enum SpecialCharacter {
   /// 송작가 - 스토리텔링 전문 캐릭터
   scenarioWriter,
 
-  /// 새옹지마 - 긍정 재해석 전문가
-  saOngJiMa;
+  /// 음양 할배 - 어둠 속 빛을 찾는 반전의 대가
+  yinYangGrandpa;
 
   /// PersonaRegistry ID 매핑
   String get personaId {
@@ -33,8 +33,8 @@ enum SpecialCharacter {
         return 'baby_monk';
       case SpecialCharacter.scenarioWriter:
         return 'saju_scenario_builder';
-      case SpecialCharacter.saOngJiMa:
-        return 'sa_ong_ji_ma';
+      case SpecialCharacter.yinYangGrandpa:
+        return 'yin_yang_grandpa';
     }
   }
 
@@ -48,8 +48,8 @@ enum SpecialCharacter {
         return '아기동자';
       case SpecialCharacter.scenarioWriter:
         return '송작가';
-      case SpecialCharacter.saOngJiMa:
-        return '새옹지마';
+      case SpecialCharacter.yinYangGrandpa:
+        return '음양 할배';
     }
   }
 
@@ -60,8 +60,8 @@ enum SpecialCharacter {
         return '👶';
       case SpecialCharacter.scenarioWriter:
         return '🗣️';
-      case SpecialCharacter.saOngJiMa:
-        return '👴';
+      case SpecialCharacter.yinYangGrandpa:
+        return '☯️';
     }
   }
 
@@ -72,8 +72,8 @@ enum SpecialCharacter {
         return '반말과 팩폭, 꼬마도사';
       case SpecialCharacter.scenarioWriter:
         return '사주 스토리텔러';
-      case SpecialCharacter.saOngJiMa:
-        return '긍정 재해석 전문가';
+      case SpecialCharacter.yinYangGrandpa:
+        return '어둠 속 빛, 반전의 대가';
     }
   }
 
@@ -87,8 +87,9 @@ enum SpecialCharacter {
         return SpecialCharacter.babyMonk;
       case 'scenarioWriter':
         return SpecialCharacter.scenarioWriter;
-      case 'saOngJiMa':
-        return SpecialCharacter.saOngJiMa;
+      case 'yinYangGrandpa':
+      case 'saOngJiMa': // 하위 호환
+        return SpecialCharacter.yinYangGrandpa;
       default:
         return SpecialCharacter.babyMonk;
     }

@@ -561,8 +561,8 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
         return const Color(0xFFF4A261); // 주황 - 현실
       case ChatPersona.babyMonk:
         return const Color(0xFFAB47BC); // 보라 - 아기동자
-      case ChatPersona.saOngJiMa:
-        return const Color(0xFF66BB6A); // 녹색 - 새옹지마
+      case ChatPersona.yinYangGrandpa:
+        return const Color(0xFF66BB6A); // 녹색 - 음양 할배
       case ChatPersona.sewerSaju:
         return const Color(0xFF78909C); // 회색 - 시궁창
       default:

@@ -80,7 +80,7 @@ enum AiPersona {
   babyMonk,
   scenarioWriter,
   bookOfSaju,
-  saOngJiMa,
+  yinYangGrandpa,
   sewerSaju;
 
   /// UI에서 숨길 페르소나 여부
@@ -116,8 +116,8 @@ enum AiPersona {
         return 'saju_scenario_builder';
       case AiPersona.bookOfSaju:
         return 'book_of_saju';
-      case AiPersona.saOngJiMa:
-        return 'sa_ong_ji_ma';
+      case AiPersona.yinYangGrandpa:
+        return 'yin_yang_grandpa';
       case AiPersona.sewerSaju:
         return 'sewer_saju';
     }
@@ -143,8 +143,8 @@ enum AiPersona {
         return '송작가';
       case AiPersona.bookOfSaju:
         return '명리의 서';
-      case AiPersona.saOngJiMa:
-        return '새옹지마 할배';
+      case AiPersona.yinYangGrandpa:
+        return '음양 할배';
       case AiPersona.sewerSaju:
         return '시궁창 술사';
     }
@@ -167,8 +167,8 @@ enum AiPersona {
         return '🗣️';
       case AiPersona.bookOfSaju:
         return '📜';
-      case AiPersona.saOngJiMa:
-        return '👴';
+      case AiPersona.yinYangGrandpa:
+        return '☯️';
       case AiPersona.sewerSaju:
         return '🤮';
     }
@@ -191,8 +191,8 @@ enum AiPersona {
         return '사주 스토리텔러';
       case AiPersona.bookOfSaju:
         return '살아있는 사주 고서';
-      case AiPersona.saOngJiMa:
-        return '긍정 재해석 전문가';
+      case AiPersona.yinYangGrandpa:
+        return '어둠 속 빛, 반전의 대가';
       case AiPersona.sewerSaju:
         return '네 사주의 구린내를 맡아주는 팩폭 장인';
     }
@@ -200,7 +200,7 @@ enum AiPersona {
 
   /// MBTI 4분면 (성향 분류)
   ///
-  /// - NF: 감성형 (따뜻, 공감) - 할머니, 아기동자, 새옹지마
+  /// - NF: 감성형 (따뜻, 공감) - 할머니, 아기동자, 음양할배
   /// - NT: 분석형 (논리, 체계) - 도사, 명리의서, AI상담사
   /// - SF: 친근형 (유쾌, 친근) - 복돌이
   /// - ST: 현실형 (직설, 스토리) - 송작가, 시궁창술사
@@ -209,7 +209,7 @@ enum AiPersona {
       // NF: 감성형 - 따뜻함, 공감, 감성적
       case AiPersona.grandma:      // 따뜻하고 정감있는
       case AiPersona.babyMonk:     // 귀여운 팩폭
-      case AiPersona.saOngJiMa:    // 긍정 재해석
+      case AiPersona.yinYangGrandpa: // 음양 반전
         return MbtiQuadrant.NF;
 
       // NT: 분석형 - 논리적, 체계적
@@ -257,8 +257,9 @@ enum AiPersona {
         return AiPersona.scenarioWriter;
       case 'bookOfSaju':
         return AiPersona.bookOfSaju;
-      case 'saOngJiMa':
-        return AiPersona.saOngJiMa;
+      case 'yinYangGrandpa':
+      case 'saOngJiMa': // 하위 호환
+        return AiPersona.yinYangGrandpa;
       case 'sewerSaju':
         return AiPersona.sewerSaju;
       default:

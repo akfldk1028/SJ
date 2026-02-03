@@ -64,7 +64,7 @@ class PersonaRegistry {
     BabyMonkPersona(),
     SajuScenarioBuilderPersona(),
     BookOfSajuPersona(),
-    SaOngJiMaPersona(),
+    YinYangGrandpaPersona(),
     SewerSajuPersona(),
     // BasePerson MBTI 4분면
     BaseNfPersona(),
