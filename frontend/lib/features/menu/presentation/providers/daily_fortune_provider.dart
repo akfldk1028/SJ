@@ -244,14 +244,11 @@ class DailyFortune extends _$DailyFortune {
         final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
         print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
 
-        // idiom이 없는 오래된 캐시인 경우 재분석 필요
+        // idiom이 없어도 기존 데이터 그대로 사용
+        // - prompt_version 필터가 이미 구버전 캐시를 걸러냄
+        // - 재분석해도 DailyService가 캐시 히트하여 동일 데이터 반환 → 무한루프 위험
         if (!fortune.idiom.isValid) {
-          print('[DailyFortune] 캐시 히트 but idiom 없음 - 재분석 필요');
-          // Phase 60: idiom 없는 경우만 재분석 (완료 플래그 제거)
-          _analyzedToday.remove(analyzedKey);
-          await _triggerAnalysisIfNeeded(activeProfile.id, today);
-          // 일단 기존 데이터 반환 (idiom만 빠진 상태)
-          return fortune;
+          print('[DailyFortune] ⚠️ idiom 없음 - 기존 데이터 그대로 사용');
         }
 
         print('[DailyFortune] ✅ 캐시 히트 - 오늘의 운세 로드 (분석 스킵)');
@@ -279,10 +276,10 @@ class DailyFortune extends _$DailyFortune {
 
   /// AI 분석 트리거 (중복 호출 방지)
   ///
-  /// v7.2: analyzeDailyOnly → analyzeFortuneOnly로 변경
-  /// 홈 화면에서 일운 캐시 미스 시 전체 운세(daily + monthly + yearly)를 함께 분석.
-  /// 각 서비스는 내부적으로 캐시를 체크하므로 이미 캐시된 운세는 API 호출 없이 스킵.
-  /// → 기존 사용자가 앱 재진입 시 프롬프트 버전 변경된 운세도 자동 재생성!
+  /// v7.3: analyzeFortuneOnly → analyzeDailyOnly로 변경
+  /// 홈 화면에서 일운 캐시 미스 시 Daily만 단독 분석 (Gemini Flash ~3초).
+  /// 기존 analyzeFortuneOnly는 4개(daily+monthly+yearly) 전부 돌려서 ~2분 소요.
+  /// monthly/yearly는 프로필 저장 시 또는 해당 화면 진입 시 개별 분석.
   ///
   /// Phase 60: 한국 시간 기준 하루 1회만 분석
   /// - _analyzedToday: 오늘 이미 분석 시도한 프로필 (날짜별)
@@ -321,27 +318,23 @@ class DailyFortune extends _$DailyFortune {
     // Phase 60: 분석 시작 마킹
     _currentlyAnalyzing.add(profileId);
     _analyzedToday.add(analyzedKey);
-    print('[DailyFortune] 🚀 v7.2 전체 Fortune 분석 시작 (daily + monthly + yearly)');
+    print('[DailyFortune] 🚀 v7.3 Daily만 분석 시작 (Gemini Flash ~3초)');
     print('[DailyFortune] Phase 60: analyzedKey=$analyzedKey 등록');
 
-    // v7.2: 전체 Fortune 분석 (각 서비스가 내부 캐시 체크)
-    // - 캐시 히트 시 즉시 반환 (API 호출 없음)
-    // - 프롬프트 버전 변경 시 자동 재생성
-    fortuneCoordinator.analyzeFortuneOnly(
+    // v7.3: Daily만 단독 분석 (Gemini Flash ~3초)
+    // - 기존 analyzeFortuneOnly는 4개(daily+monthly+yearly) 전부 돌려서 ~2분 소요
+    // - monthly/yearly는 프로필 저장 시 또는 해당 화면 진입 시 개별 분석
+    fortuneCoordinator.analyzeDailyOnly(
       userId: user.id,
       profileId: profileId,
     ).then((result) {
-      print('[DailyFortune] 📌 전체 Fortune 분석 완료:');
-      print('  - daily: ${result.daily != null ? "성공" : "실패"}');
-      print('  - monthly: ${result.monthly != null ? "성공" : "실패"}');
-      print('  - yearly2025: ${result.yearly2025 != null ? "성공" : "실패"}');
-      print('  - yearly2026: ${result.yearly2026 != null ? "성공" : "실패"}');
+      print('[DailyFortune] 📌 Daily 분석 완료: ${result.success ? "성공" : "실패"}');
       _currentlyAnalyzing.remove(profileId);
 
       // Provider 무효화하여 UI 갱신
       ref.invalidateSelf();
     }).catchError((e) {
-      print('[DailyFortune] ❌ Fortune 분석 오류: $e');
+      print('[DailyFortune] ❌ Daily 분석 오류: $e');
       _currentlyAnalyzing.remove(profileId);
       ref.invalidateSelf();
     });

@@ -110,6 +110,7 @@ interface OpenAIRequest {
   user_id?: string;
   run_in_background?: boolean;
   task_type?: string;
+  reasoning_effort?: string;  // "low" | "medium" | "high" (default: "medium")
 }
 
 interface UsageInfo {
@@ -259,16 +260,17 @@ async function processInBackground(
   responseFormat: { type: string } | undefined,
   userId: string | undefined,
   isAdmin: boolean,
-  taskType: string = 'saju_analysis'
+  taskType: string = 'saju_analysis',
+  reasoningEffort: string = 'medium'
 ): Promise<void> {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
   try {
     await supabase.from("ai_tasks").update({ status: "processing", started_at: new Date().toISOString() }).eq("id", taskId);
-    console.log(`[ai-openai] Background task ${taskId}: Starting OpenAI call`);
+    console.log(`[ai-openai v43] Background task ${taskId}: Starting OpenAI call (reasoning_effort: ${reasoningEffort})`);
     const startTime = Date.now();
     const requestBody: Record<string, unknown> = {
       model, messages, max_completion_tokens: maxTokens,
-      reasoning_effort: "medium", stream: true, stream_options: { include_usage: true },
+      reasoning_effort: reasoningEffort, stream: true, stream_options: { include_usage: true },
     };
     if (responseFormat) requestBody.response_format = responseFormat;
     let response: Response | null = null;
@@ -335,9 +337,10 @@ Deno.serve(async (req) => {
       user_id,
       run_in_background = true,
       task_type = "saju_analysis",
+      reasoning_effort = "medium",
     } = requestData;
 
-    console.log(`[ai-openai v39] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, user_id=${user_id}`);
+    console.log(`[ai-openai v43] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, reasoning_effort=${reasoning_effort}, user_id=${user_id}`);
 
     if (!messages || messages.length === 0) throw new Error("messages is required");
 
@@ -450,6 +453,7 @@ Deno.serve(async (req) => {
 
       const responsesApiBody: Record<string, unknown> = {
         model, input: inputText, background: true, store: true, max_output_tokens: max_tokens,
+        reasoning: { effort: reasoning_effort },  // v43: reasoning_effort 지원
       };
       if (response_format?.type === "json_object") {
         responsesApiBody.text = { format: { type: "json_object" } };
@@ -490,7 +494,7 @@ Deno.serve(async (req) => {
           task_type: task_type,
           status: openaiStatus,
           openai_response_id: openaiResponseId,
-          request_data: { messages, model, max_tokens, response_format, task_type, key_index: selectedKeyIndex },
+          request_data: { messages, model, max_tokens, response_format, task_type, reasoning_effort, key_index: selectedKeyIndex },
           model,
           phase: 1,
           total_phases: 4,
@@ -522,10 +526,10 @@ Deno.serve(async (req) => {
     }
 
     // === Sync 모드 ===
-    console.log(`[ai-openai v39] *** SYNC MODE ***`);
+    console.log(`[ai-openai v43] *** SYNC MODE *** (reasoning_effort: ${reasoning_effort})`);
     const requestBody: Record<string, unknown> = {
       model, messages, max_completion_tokens: max_tokens,
-      reasoning_effort: "medium", stream: true, stream_options: { include_usage: true },
+      reasoning_effort: reasoning_effort, stream: true, stream_options: { include_usage: true },
     };
     if (response_format) requestBody.response_format = response_format;
 
