@@ -4,9 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../core/services/error_logging_service.dart';
-import '../../../../ad/ad_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
@@ -73,13 +71,7 @@ class FortuneCategoryList extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () async {
-        // v30: saju_base lazy trigger (광고 보는 동안 백그라운드 분석 시작)
         _triggerSajuBaseIfNeeded(ref);
-        // 프리미엄 유저는 광고 스킵
-        final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
-        if (!isPremium) {
-          await AdService.instance.showInterstitialAd();
-        }
         if (context.mounted) {
           context.push(route);
         }

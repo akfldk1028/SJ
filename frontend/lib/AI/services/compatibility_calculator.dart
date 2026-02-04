@@ -898,12 +898,18 @@ class CompatibilityCalculator {
     // 4. 일주 궁합 (일간 기준)
     final iljuAnalysis = _analyzeIlju(myParsed, targetParsed);
 
-    // 5. 점수 계산
+    // 5. 용신 궁합 분석
+    final yongsinScore = _analyzeYongsinCompat(
+      mySaju, targetSaju, myParsed, targetParsed,
+    );
+
+    // 6. 점수 계산
     final scores = _calculateScores(
       hapchungAnalysis: hapchungAnalysis,
       ohengAnalysis: ohengAnalysis,
       iljuAnalysis: iljuAnalysis,
       relationType: relationType,
+      yongsinScore: yongsinScore,
     );
 
     // 6. 강점/도전 추출
@@ -1178,6 +1184,74 @@ class CompatibilityCalculator {
     return {'compatible': true, 'reason': '특별한 관계 없음'};
   }
 
+  /// 용신 궁합 분석 (명리학에서 가장 중요한 궁합 요소)
+  ///
+  /// 상대의 일간 오행이 나의 용신/희신이면 → 나에게 실질적 도움이 되는 사람
+  /// 상대의 일간 오행이 나의 기신이면 → 나에게 불리하게 작용하는 사람
+  /// 양방향으로 체크 (A→B, B→A)
+  int _analyzeYongsinCompat(
+    Map<String, dynamic> mySaju,
+    Map<String, dynamic> targetSaju,
+    _ParsedSaju myParsed,
+    _ParsedSaju targetParsed,
+  ) {
+    final myYongsin = mySaju['yongsin'] as Map<String, dynamic>?;
+    final targetYongsin = targetSaju['yongsin'] as Map<String, dynamic>?;
+
+    int score = 0;
+
+    // A의 용신/희신이 B의 일간 오행 → B가 A를 돕는 존재
+    // DB 저장 형식 "수(水)" → Oheng.name "water" 로 변환하여 비교
+    final targetDayOheng = _cheonganToOhengName(targetParsed.dayGan);
+    if (myYongsin != null && targetDayOheng != null) {
+      final yongsin = _parseStoredOhengName(myYongsin['yongsin'] as String?);
+      final heesin = _parseStoredOhengName(myYongsin['heesin'] as String?);
+      final gisin = _parseStoredOhengName(myYongsin['gisin'] as String?);
+
+      if (targetDayOheng == yongsin) {
+        score += 10; // 용신 일치: 최고
+      } else if (targetDayOheng == heesin) {
+        score += 7; // 희신 일치: 좋음
+      }
+      if (targetDayOheng == gisin) {
+        score -= 5; // 기신: 불리
+      }
+    }
+
+    // B의 용신/희신이 A의 일간 오행 → A가 B를 돕는 존재
+    final myDayOheng = _cheonganToOhengName(myParsed.dayGan);
+    if (targetYongsin != null && myDayOheng != null) {
+      final yongsin = _parseStoredOhengName(targetYongsin['yongsin'] as String?);
+      final heesin = _parseStoredOhengName(targetYongsin['heesin'] as String?);
+      final gisin = _parseStoredOhengName(targetYongsin['gisin'] as String?);
+
+      if (myDayOheng == yongsin) {
+        score += 10;
+      } else if (myDayOheng == heesin) {
+        score += 7;
+      }
+      if (myDayOheng == gisin) {
+        score -= 5;
+      }
+    }
+
+    return score.clamp(-10, 20);
+  }
+
+  /// 천간 → 오행 enum name 변환 (갑 → "wood")
+  String? _cheonganToOhengName(Cheongan? gan) {
+    if (gan == null) return null;
+    return Oheng.fromString(gan.oheng)?.name;
+  }
+
+  /// 저장된 오행 문자열 → Oheng enum name 변환
+  /// DB 저장 형식 "수(水)" → "water", "금(金)" → "metal"
+  String? _parseStoredOhengName(String? stored) {
+    if (stored == null || stored.isEmpty) return null;
+    final korean = stored.split('(').first.trim();
+    return Oheng.fromString(korean)?.name;
+  }
+
   /// 일주 궁합 분석 (일간 + 일지)
   Map<String, dynamic> _analyzeIlju(_ParsedSaju my, _ParsedSaju target) {
     final result = <String, dynamic>{};
@@ -1228,13 +1302,15 @@ class CompatibilityCalculator {
     required Map<String, dynamic> ohengAnalysis,
     required Map<String, dynamic> iljuAnalysis,
     required String relationType,
+    required int yongsinScore,
   }) {
     final isRomantic = relationType.startsWith('romantic_');
 
     // ═══════════════════════════════════════════════════════════════
-    // 기본 점수 65점 (넉넉한 기본)
+    // 기본 점수 50점 (중립 — 합/충에 따라 위아래로 분산)
+    // v11: 65→50 하향, 변동 요소의 상대적 영향력 확대
     // ═══════════════════════════════════════════════════════════════
-    const baseScore = 65;
+    const baseScore = 50;
 
     // ═══════════════════════════════════════════════════════════════
     // 합 보너스 (위치 가중치 적용)
@@ -1271,15 +1347,17 @@ class CompatibilityCalculator {
     }
     yukhapScore = yukhapScore.clamp(0, 25);
 
-    // 반합 (半合) - 삼합의 일부
+    // 반합 (半合) - 삼합의 일부 (가장 약한 합)
+    // v11: 6→3, cap 18→10 (반합은 약한 합이므로 기여도 축소)
     double banhapScore = 0;
     for (final b in hapchungAnalysis.banhap) {
-      banhapScore += 6 * _getPositionWeight(b);
+      banhapScore += 3 * _getPositionWeight(b);
     }
-    banhapScore = banhapScore.clamp(0, 18);
+    banhapScore = banhapScore.clamp(0, 10);
 
     double totalHapScore = banghapScore + samhapScore + cheonganHapScore + yukhapScore + banhapScore;
-    totalHapScore = totalHapScore.clamp(0, 60);
+    // v11: cap 60→80 (합 다수 케이스의 차별화 보존)
+    totalHapScore = totalHapScore.clamp(0, 80);
 
     // ═══════════════════════════════════════════════════════════════
     // 감점 (위치 가중치 적용)
@@ -1293,7 +1371,8 @@ class CompatibilityCalculator {
     for (final c in hapchungAnalysis.cheonganChung) {
       cheonganChungPenalty += 2.5 * _getPositionWeight(c);
     }
-    cheonganChungPenalty = cheonganChungPenalty.clamp(0, 6);
+    // v11: cap 6→12 (천간충 4개 = 심각한 충돌인데 기존 cap=6이 차이 소실)
+    cheonganChungPenalty = cheonganChungPenalty.clamp(0, 12);
 
     // 지지충 (沖) - 에너지 충돌
     double chungPenalty = 0;
@@ -1356,17 +1435,18 @@ class CompatibilityCalculator {
     paPenalty = paPenalty.clamp(0, 4);
 
     // 일반 감점 합계 (삼형살 제외)
+    // v11: cap 35→50 (개별 cap 상향에 맞춰 총합도 상향, 감점 차이 보존)
     double regularPenalty = cheonganChungPenalty + chungPenalty + hyungPenalty + wonjinPenalty + haePenalty + paPenalty;
-    regularPenalty = regularPenalty.clamp(0, 22);
+    regularPenalty = regularPenalty.clamp(0, 50);
 
     // ═══════════════════════════════════════════════════════════════
     // 합거충(合去沖) - 합이 강하면 일반 감점 줄임
     // 명리학: 합이 충을 해소하는 원칙
-    // v4: 합거충 효과 강화 (최대 50% 감소)
-    // 완전 삼형살은 합거충 적용 제한 (최대 25% 감소)
+    // v11: 최대 30% 감소로 하향 (기존 50%)
+    // 합이 충을 해소하되, 감점 차이가 너무 압축되지 않도록
     // ═══════════════════════════════════════════════════════════════
     if (totalHapScore > 10) {
-      final reduction = ((totalHapScore - 10) / 40).clamp(0.0, 0.5);
+      final reduction = ((totalHapScore - 10) / 40).clamp(0.0, 0.3);
       regularPenalty *= (1.0 - reduction);
     }
     // v9: 완전 삼형살은 합거충 거의 안 먹힘 (최대 10%만 감소)
@@ -1421,12 +1501,13 @@ class CompatibilityCalculator {
     int rawScore = baseScore +
         (totalHapScore * hapWeight).round() +
         ohengScore +
-        iljuBonus -
+        iljuBonus +
+        yongsinScore -
         totalPenalty.round();
 
     // 정규화: raw score를 표시 범위(30~97)로 매핑
-    // 이론적 최대 ~173이지만, 모든 합+보너스 동시 최대는 극히 드묾
-    // 160 초과분은 clamp(97)으로 처리 (최상 궁합 = 97점)
+    // v11: base50 + 합78 + 오행10 + 일주20 + 용신20 = 이론적 최대 178
+    // rawMax=160: 상위 쌍합+용신 케이스만 90점대 도달하도록 의도적 tight 설정
     const double rawMin = 0;
     const double rawMax = 160;
     const double targetMin = 30;

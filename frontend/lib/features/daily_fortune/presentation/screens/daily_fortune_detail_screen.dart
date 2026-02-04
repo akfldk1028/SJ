@@ -306,7 +306,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             color: theme.textPrimary,
             fontWeight: FontWeight.w400,
           ),
-          textAlign: TextAlign.center,
+          textAlign: TextAlign.left,
         ),
       ],
     );
@@ -384,8 +384,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   ) {
     final score = fortune.getCategoryScore(cat.key);
     final message = fortune.getCategoryMessage(cat.key);
-    final iconSize = (36 * scale).clamp(32.0, 48.0);
-    final padding = (14 * scale).clamp(12.0, 20.0);
+    final padding = (16 * scale).clamp(14.0, 22.0);
+
+    // 온점 기준 첫 문장만 추출
+    final firstSentence = message.split('.').first.trim();
 
     return GestureDetector(
       onTap: () => context.push('/fortune/daily/category?key=${cat.key}'),
@@ -408,52 +410,63 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 카테고리명 + 점수
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: iconSize,
-                    height: iconSize,
-                    decoration: BoxDecoration(
-                      color: cat.color,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(cat.icon, color: Colors.white, size: iconSize * 0.5),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 4 * scale),
-                    decoration: BoxDecoration(
-                      color: cat.color.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$score',
-                      style: TextStyle(
-                        fontSize: (14 * scale).clamp(12.0, 18.0),
-                        fontWeight: FontWeight.w700,
-                        color: cat.color,
+                  Row(
+                    children: [
+                      Icon(cat.icon, color: cat.color, size: (18 * scale).clamp(16.0, 24.0)),
+                      SizedBox(width: 6 * scale),
+                      Text(
+                        cat.name,
+                        style: TextStyle(
+                          fontSize: (13 * scale).clamp(11.0, 16.0),
+                          fontWeight: FontWeight.w600,
+                          color: theme.textPrimary,
+                        ),
                       ),
+                    ],
+                  ),
+                  Text(
+                    '$score점',
+                    style: TextStyle(
+                      fontSize: (14 * scale).clamp(12.0, 18.0),
+                      fontWeight: FontWeight.w700,
+                      color: cat.color,
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 10 * scale),
+              // 첫 문장 크게
               Text(
-                cat.name,
+                firstSentence,
                 style: TextStyle(
-                  fontSize: (14 * scale).clamp(12.0, 18.0),
+                  fontSize: (17 * scale).clamp(15.0, 22.0),
                   fontWeight: FontWeight.w600,
                   color: theme.textPrimary,
-                ),
-              ),
-              SizedBox(height: 4 * scale),
-              Text(
-                FortuneTextFormatter.formatParagraph(message),
-                style: TextStyle(
-                  fontSize: (11 * scale).clamp(10.0, 14.0),
-                  color: theme.textSecondary,
                   height: 1.5,
                 ),
+              ),
+              SizedBox(height: 8 * scale),
+              // 탭 유도
+              Row(
+                children: [
+                  Text(
+                    '자세히 보기',
+                    style: TextStyle(
+                      fontSize: (11 * scale).clamp(10.0, 13.0),
+                      color: theme.textMuted,
+                    ),
+                  ),
+                  SizedBox(width: 2 * scale),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: (14 * scale).clamp(12.0, 18.0),
+                    color: theme.textMuted,
+                  ),
+                ],
               ),
             ],
           ),
