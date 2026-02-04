@@ -1,6 +1,6 @@
 # 만톡 DB 스키마 통합 문서
 
-> 최종 업데이트: 2026-02-03 (KST)
+> 최종 업데이트: 2026-02-04 (KST)
 > 대상: Supabase PostgreSQL
 
 ---
@@ -325,9 +325,73 @@ UPDATE chat_sessions SET
 WHERE id = NEW.session_id;
 ```
 
+### 3.2 프로필 이름 동기화 트리거 (v31)
+
+#### `sync_user_display_name` (saju_profiles UPDATE 시)
+
+> 2026-02-04 도입: 프로필 `display_name` 변경 시 관련 테이블 자동 동기화
+
+```sql
+CREATE OR REPLACE FUNCTION sync_user_display_name()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.display_name IS DISTINCT FROM NEW.display_name THEN
+
+    -- 1. ai_summaries: profile_display_name 업데이트 (해당 프로필만)
+    UPDATE ai_summaries
+    SET profile_display_name = NEW.display_name
+    WHERE profile_id = NEW.id
+      AND profile_display_name IS DISTINCT FROM NEW.display_name;
+
+    -- 2. profile_relations: to_profile의 display_name 업데이트
+    UPDATE profile_relations
+    SET display_name = NEW.display_name
+    WHERE to_profile_id = NEW.id
+      AND display_name IS DISTINCT FROM NEW.display_name;
+
+    -- 3. "본인" 프로필(primary + me)일 때만 user_display_name 업데이트
+    IF NEW.profile_type = 'primary' AND NEW.relation_type = 'me' THEN
+      UPDATE user_daily_token_usage
+      SET user_display_name = NEW.display_name
+      WHERE user_id = NEW.user_id
+        AND user_display_name IS DISTINCT FROM NEW.display_name;
+
+      UPDATE ai_summaries
+      SET user_display_name = NEW.display_name
+      WHERE user_id = NEW.user_id
+        AND user_display_name IS DISTINCT FROM NEW.display_name;
+    END IF;
+
+    RAISE LOG '[sync_display_name] profile_id=% type=%/% name: "%" → "%"',
+              NEW.id, NEW.profile_type, NEW.relation_type, OLD.display_name, NEW.display_name;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_display_name
+  AFTER UPDATE OF display_name ON saju_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_user_display_name();
+```
+
+**영향 테이블**:
+
+| 테이블 | 컬럼 | 조건 |
+|--------|------|------|
+| `ai_summaries` | `profile_display_name` | 해당 profile_id |
+| `ai_summaries` | `user_display_name` | primary+me 프로필일 때만 |
+| `user_daily_token_usage` | `user_display_name` | primary+me 프로필일 때만 |
+| `profile_relations` | `display_name` | to_profile_id 일치 |
+
+> **주의**: `user_display_name`과 `profile_display_name`은 다른 의미
+> - `user_display_name`: 로그인한 사용자의 "본인" 프로필 이름
+> - `profile_display_name`: 분석 대상 프로필의 이름
+
 ---
 
-### 3.2 RPC 함수
+### 3.3 RPC 함수
 
 #### `add_ad_bonus_tokens(p_user_id, p_bonus_tokens)`
 - Rewarded Ad 시청 완료 시 호출
@@ -527,6 +591,7 @@ const cost =
 | 20260201075846 | fix_update_daily_chat_tokens_function | **토큰 트리거 KST 변환** |
 | 20260202135648 | add_gemini_cache_name | Gemini 캐시 이름 컬럼 |
 | 20260202145444 | create_subscriptions_table | 구독 테이블 |
+| 20260204xxxxxx | sync_display_name_trigger_v4 | **프로필 이름 동기화 트리거 (v31)** |
 
 ---
 
