@@ -1272,44 +1272,6 @@ class ChatNotifier extends _$ChatNotifier {
     }
   }
 
-  /// chat_mentions 테이블에 다중 궁합 참가자 저장 (Phase 50)
-  ///
-  /// 다중 궁합 분석 시 참가자 프로필 ID를 저장하여
-  /// 추후 세션에서 참가자 정보를 조회할 수 있도록 합니다.
-  Future<void> _saveChatMentions(String sessionId, List<String> participantIds) async {
-    try {
-      if (kDebugMode) {
-        print('   📝 chat_mentions 저장 시작 (${participantIds.length}명)...');
-      }
-
-      // 기존 멘션 삭제 (세션 재분석 시 중복 방지)
-      await Supabase.instance.client
-          .from('chat_mentions')
-          .delete()
-          .eq('session_id', sessionId);
-
-      // 새 멘션 저장
-      final mentionRows = participantIds.asMap().entries.map((entry) => {
-        'session_id': sessionId,
-        'target_profile_id': entry.value,
-        'mention_order': entry.key,
-      }).toList();
-
-      await Supabase.instance.client
-          .from('chat_mentions')
-          .insert(mentionRows);
-
-      if (kDebugMode) {
-        print('   ✅ chat_mentions 저장 완료');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('   ⚠️ chat_mentions 저장 실패: $e');
-      }
-      // 실패해도 분석은 계속 진행
-    }
-  }
-
   /// 세션 메타데이터 업데이트 (메시지 개수, 미리보기)
   Future<void> _updateSessionMetadata(
       String sessionId, String lastUserMessage) async {

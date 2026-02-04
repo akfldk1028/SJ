@@ -52,6 +52,33 @@ class PaywallScreen extends ConsumerWidget {
     PurchaseConfig.productMonthly,
   ];
 
+  /// 상품 identifier에서 메타 정보 찾기
+  /// Google Play 구독은 "productId:basePlanId" 형태로 올 수 있음
+  static _ProductMeta _findProductMeta(String identifier) {
+    // 정확 매칭 우선
+    if (_productMeta.containsKey(identifier)) return _productMeta[identifier]!;
+    // prefix 매칭 (구독: sadam_monthly:sadam-monthly-default 등)
+    for (final entry in _productMeta.entries) {
+      if (identifier.startsWith(entry.key)) return entry.value;
+    }
+    return const _ProductMeta(
+      icon: Icons.shopping_bag,
+      badge: null,
+      highlight: false,
+      periodLabel: '',
+      dailyPrice: null,
+      features: [],
+    );
+  }
+
+  /// 상품 정렬 인덱스 찾기 (prefix 매칭)
+  static int _findProductIndex(String identifier) {
+    for (int i = 0; i < _productOrder.length; i++) {
+      if (identifier.startsWith(_productOrder[i])) return i;
+    }
+    return 999;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final offeringsAsync = ref.watch(offeringsProvider);
@@ -103,12 +130,12 @@ class PaywallScreen extends ConsumerWidget {
           final packages = offerings.current!.availablePackages;
           final isLoading = purchaseState is AsyncLoading;
 
-          // 상품 정렬
+          // 상품 정렬 (구독 상품은 identifier가 "productId:basePlanId" 형태일 수 있음)
           final sorted = List<Package>.from(packages)
             ..sort((a, b) {
-              final ai = _productOrder.indexOf(a.storeProduct.identifier);
-              final bi = _productOrder.indexOf(b.storeProduct.identifier);
-              return (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
+              final ai = _findProductIndex(a.storeProduct.identifier);
+              final bi = _findProductIndex(b.storeProduct.identifier);
+              return ai.compareTo(bi);
             });
 
           return SingleChildScrollView(
@@ -185,15 +212,7 @@ class PaywallScreen extends ConsumerWidget {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: _ProductCard(
                         package: pkg,
-                        meta: _productMeta[pkg.storeProduct.identifier] ??
-                            const _ProductMeta(
-                              icon: Icons.shopping_bag,
-                              badge: null,
-                              highlight: false,
-                              periodLabel: '',
-                              dailyPrice: null,
-                              features: [],
-                            ),
+                        meta: _findProductMeta(pkg.storeProduct.identifier),
                         isLoading: isLoading,
                         onPurchase: () => _handlePurchase(context, ref, pkg),
                         theme: theme,

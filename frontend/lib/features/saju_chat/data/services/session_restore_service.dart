@@ -161,8 +161,10 @@ class SessionRestoreService {
         person1Id ??= activeProfile.id;
         person2Id ??= targetProfileId;
 
-        // Phase 59: "나 제외" 모드 판단 - person1 또는 person2 중 하나라도 "나"이면 "나 포함"
-        final ownerIncluded = (activeProfile.id == person1Id) || (activeProfile.id == person2Id);
+        // Phase 59: "나 제외" 모드 판단 - person1/person2/추가참가자 중 하나라도 "나"이면 "나 포함"
+        // 중간 채팅에서 "나"를 추가한 경우 extraParticipantIds에 포함될 수 있음
+        final ownerIncluded = (activeProfile.id == person1Id) || (activeProfile.id == person2Id) ||
+            extraParticipantIds.contains(activeProfile.id);
         isThirdPartyCompatibility = !ownerIncluded;
 
         // v7.2: 나 제외 모드에서는 person1의 프로필/사주를 별도 로드

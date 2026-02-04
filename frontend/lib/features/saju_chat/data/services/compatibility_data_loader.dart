@@ -268,14 +268,16 @@ class CompatibilityDataLoader {
     }
 
     // v6.0 (Phase 57): "나 제외" 모드 판단
-    // Phase 59: person1 OR person2 중 하나라도 "나"이면 "나 포함" 모드
+    // Phase 59: person1/person2/extraMentionIds 중 하나라도 "나"이면 "나 포함" 모드
     // - 멘션 순서와 무관하게 "나"가 참가자에 포함되어 있는지 체크
+    // - 중간 채팅에서 "나"를 추가한 경우 extraMentionIds에 포함될 수 있음
     bool isThirdPartyCompatibility = false;
     if (isCompatibilityMode && person1Id != null) {
       final ownerProfile = await ref.read(activeProfileProvider.future);
       final ownerId = ownerProfile?.id;
-      // "나"가 person1 또는 person2에 포함되어 있으면 "나 포함" 모드
-      final ownerIncluded = (ownerId == person1Id) || (ownerId == person2Id);
+      // "나"가 person1, person2, 또는 추가 참가자에 포함되어 있으면 "나 포함" 모드
+      final ownerIncluded = (ownerId == person1Id) || (ownerId == person2Id) ||
+          (ownerId != null && extraMentionIds.contains(ownerId));
       isThirdPartyCompatibility = !ownerIncluded;
       if (kDebugMode) {
         print('   📌 Phase 59: ownerId=$ownerId, person1=$person1Id, person2=$person2Id');

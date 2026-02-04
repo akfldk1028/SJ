@@ -544,40 +544,10 @@ class SajuAnalysisRepository {
         details: defaultDetails,
       );
     }
-    // 이전 enum 값 매핑 (하위 호환성)
-    // DB에 저장된 형식: "중화신약(中和身弱)", "태약(太弱)" 등 한글(한자) 형식
-    // Dart enum 이름: "junghwaSinyak", "taeyak" 등 영어 형식
-    final levelStr = json['level'] as String? ?? 'junghwaSingang';
-    final mappedLevel = switch (levelStr) {
-      // 영어 레거시 형식
-      'medium' => 'junghwaSingang',
-      'veryStrong' => 'geukwang',
-      'strong' => 'singang',
-      'weak' => 'sinyak',
-      'veryWeak' => 'geukyak',
-      // 한글(한자) 형식 → enum 이름 변환 (GPT-5.2 응답 형식)
-      '극왕(極旺)' => 'geukwang',
-      '태강(太强)' => 'taegang',
-      '신강(身强)' => 'singang',
-      '중화신강(中和身强)' => 'junghwaSingang',
-      '중화신약(中和身弱)' => 'junghwaSinyak',
-      '신약(身弱)' => 'sinyak',
-      '태약(太弱)' => 'taeyak',
-      '극약(極弱)' => 'geukyak',
-      // 한글만 있는 형식 (한자 없음)
-      '극왕' => 'geukwang',
-      '태강' => 'taegang',
-      '신강' => 'singang',
-      '중화신강' => 'junghwaSingang',
-      '중화신약' => 'junghwaSinyak',
-      '신약' => 'sinyak',
-      '태약' => 'taeyak',
-      '극약' => 'geukyak',
-      _ => levelStr,
-    };
+    final score = (json['score'] as num?)?.toInt() ?? 50;
     return DayStrength(
-      score: json['score'] as int? ?? 50,
-      level: DayStrengthLevel.values.byName(mappedLevel),
+      score: score,
+      level: DayStrengthLevel.fromScore(score),
       monthScore: json['monthScore'] as int? ?? 0,
       bigeopScore: json['bigeopScore'] as int? ?? 0,
       inseongScore: json['inseongScore'] as int? ?? 0,

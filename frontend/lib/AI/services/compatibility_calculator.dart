@@ -1418,14 +1418,22 @@ class CompatibilityCalculator {
     // ═══════════════════════════════════════════════════════════════
     // 최종 점수 계산
     // ═══════════════════════════════════════════════════════════════
-    int totalScore = baseScore +
+    int rawScore = baseScore +
         (totalHapScore * hapWeight).round() +
         ohengScore +
         iljuBonus -
         totalPenalty.round();
 
-    // 점수 범위 제한 (30-97)
-    totalScore = totalScore.clamp(30, 97);
+    // 정규화: raw score를 표시 범위(30~97)로 매핑
+    // 이론적 최대 ~173이지만, 모든 합+보너스 동시 최대는 극히 드묾
+    // 160 초과분은 clamp(97)으로 처리 (최상 궁합 = 97점)
+    const double rawMin = 0;
+    const double rawMax = 160;
+    const double targetMin = 30;
+    const double targetMax = 97;
+    double normalized = targetMin +
+        ((rawScore - rawMin) / (rawMax - rawMin)) * (targetMax - targetMin);
+    int totalScore = normalized.round().clamp(30, 97);
 
     return {
       'overall': totalScore,

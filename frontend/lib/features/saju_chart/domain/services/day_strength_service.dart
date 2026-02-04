@@ -215,14 +215,8 @@ class DayStrengthService {
   /// 시간 유무와 관계없이 비율로 등급 결정
   /// → 삼주/사주 간 등급 일관성 유지
   DayStrengthLevel _determineLevelByRatio(double ratio) {
-    if (ratio >= 0.88) return DayStrengthLevel.geukwang;       // 88%+ 극왕
-    if (ratio >= 0.75) return DayStrengthLevel.taegang;        // 75-87% 태강
-    if (ratio >= 0.63) return DayStrengthLevel.singang;        // 63-74% 신강
-    if (ratio >= 0.50) return DayStrengthLevel.junghwaSingang; // 50-62% 중화신강
-    if (ratio >= 0.38) return DayStrengthLevel.junghwaSinyak;  // 38-49% 중화신약
-    if (ratio >= 0.26) return DayStrengthLevel.sinyak;         // 26-37% 신약
-    if (ratio >= 0.13) return DayStrengthLevel.taeyak;         // 13-25% 태약
-    return DayStrengthLevel.geukyak;                            // 0-12% 극약
+    final score = (ratio * 100).round().clamp(0, 100);
+    return DayStrengthLevel.fromScore(score);
   }
 
   /// 십신 분포 계산 (천간 + 지장간 전체)

@@ -46,6 +46,7 @@ class ParticipantResolver {
     String? person1Id;  // 첫 번째 사람 (기존 activeProfile 역할)
     String? person2Id;  // 두 번째 사람 (기존 targetProfile 역할)
     List<String> extraMentionIds = [];  // v10.0: chat_mentions에서 복원된 3번째 이후 참가자 ID
+    bool alreadySaved = false;  // Phase 59: 첫 분기에서 저장 완료 시 병합 블록 스킵
 
     if (isCompatibilityMode) {
       person1Id = effectiveParticipantIds[0];
@@ -59,6 +60,7 @@ class ParticipantResolver {
       }
       // Phase 59: 첫 메시지에서 참가자들을 chat_mentions에 저장 (나중에 추가 가능하도록)
       await _saveMergedParticipants(sessionId, effectiveParticipantIds);
+      alreadySaved = true;
     } else if (targetProfileId != null) {
       // 하위 호환: 단일 targetProfileId만 있는 경우
       // chat_mentions에서 실제 participantIds를 복원하여 정확한 person1/person2 결정
@@ -149,7 +151,7 @@ class ParticipantResolver {
     // - 새 멘션(effectiveParticipantIds)이 있고, 기존 chat_mentions가 있으면 병합
     // - 예: 첫 메시지 2명 → 두 번째 메시지에서 1명 추가 → 총 3명
     // ═══════════════════════════════════════════════════════════════════════════
-    if (effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
+    if (!alreadySaved && effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
       try {
         final existingMentions = await Supabase.instance.client
             .from('chat_mentions')

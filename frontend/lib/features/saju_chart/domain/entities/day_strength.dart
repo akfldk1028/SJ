@@ -69,34 +69,49 @@ class DayStrength {
 
 /// 일간 강약 등급 (8단계 - 포스텔러 기준)
 enum DayStrengthLevel {
-  /// 극왕 (88-100점)
+  /// 극왕 (85-100점)
   geukwang('극왕', '極旺'),
 
-  /// 태강 (75-87점)
+  /// 태강 (72-84점)
   taegang('태강', '太强'),
 
-  /// 신강 (63-74점)
+  /// 신강 (60-71점)
   singang('신강', '身强'),
 
-  /// 중화신강 (50-62점)
+  /// 중화신강 (47-59점)
   junghwaSingang('중화신강', '中和身强'),
 
-  /// 중화신약 (38-49점)
+  /// 중화신약 (34-46점)
   junghwaSinyak('중화신약', '中和身弱'),
 
-  /// 신약 (26-37점)
+  /// 신약 (22-33점)
   sinyak('신약', '身弱'),
 
-  /// 태약 (13-25점)
+  /// 태약 (11-21점)
   taeyak('태약', '太弱'),
 
-  /// 극약 (0-12점)
+  /// 극약 (0-10점)
   geukyak('극약', '極弱');
 
   final String korean;
   final String hanja;
 
   const DayStrengthLevel(this.korean, this.hanja);
+
+  /// score(0-100)로 등급 결정 (경계값 단일 소스)
+  ///
+  /// 캐시 로딩 시에도 이 메서드로 재계산하여
+  /// 경계값 변경이 기존 사용자에게도 즉시 반영됨
+  static DayStrengthLevel fromScore(int score) {
+    if (score >= 85) return DayStrengthLevel.geukwang;       // 85%+ 극왕
+    if (score >= 72) return DayStrengthLevel.taegang;        // 72-84% 태강
+    if (score >= 60) return DayStrengthLevel.singang;        // 60-71% 신강
+    if (score >= 47) return DayStrengthLevel.junghwaSingang; // 47-59% 중화신강
+    if (score >= 34) return DayStrengthLevel.junghwaSinyak;  // 34-46% 중화신약
+    if (score >= 22) return DayStrengthLevel.sinyak;         // 22-33% 신약
+    if (score >= 11) return DayStrengthLevel.taeyak;         // 11-21% 태약
+    return DayStrengthLevel.geukyak;                          // 0-10% 극약
+  }
 
   /// 8단계 인덱스 (0=극약 ~ 7=극왕)
   int get index8 {

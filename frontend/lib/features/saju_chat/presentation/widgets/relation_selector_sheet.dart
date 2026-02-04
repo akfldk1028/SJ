@@ -423,14 +423,17 @@ class _CompatibilitySelectorSheetState
   /// 확인 버튼
   Widget _buildConfirmButton(AppThemeExtension appTheme) {
     final count = _selectedProfileIds.length;
-    // 1명(나 제외한 인연 1명만) → 개인 사주, 2명 → 궁합
-    final isSinglePerson = count == 1 && !_isOwnerSelected;
+    // Phase 59: "나"만 선택도 허용 (기존 궁합 채팅에 "나" 추가용)
+    // - 1명(나 제외한 인연 1명만) → 개인 사주
+    // - 1명(나만 선택) → 기존 채팅에 "나" 추가
+    // - 2명 → 궁합 분석
+    final isSinglePerson = count == 1;
     final isCompatibility = count == 2;
     final isValid = isSinglePerson || isCompatibility;
 
     final buttonText = switch (count) {
       0 => '인연을 선택해주세요',
-      1 when _isOwnerSelected => '상대방을 선택해주세요',
+      1 when _isOwnerSelected => '나를 대화에 추가',
       1 => '이 사람의 사주 보기',
       2 => '2명 궁합 분석 시작',
       _ => '2명을 선택해주세요',

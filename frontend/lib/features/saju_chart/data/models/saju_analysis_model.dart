@@ -331,9 +331,10 @@ class SajuAnalysisModel {
 
   static DayStrength _dayStrengthFromJson(Map<String, dynamic> json) {
     final detailsJson = json['details'] as Map<String, dynamic>? ?? {};
+    final score = (json['score'] as num?)?.toInt() ?? 50;
     return DayStrength(
-      score: (json['score'] as num?)?.toInt() ?? 50,
-      level: _parseDayStrengthLevel(json['level'] as String?),
+      score: score,
+      level: DayStrengthLevel.fromScore(score),
       monthScore: (json['monthScore'] as num?)?.toInt() ?? 0,
       bigeopScore: (json['bigeopScore'] as num?)?.toInt() ?? 0,
       inseongScore: (json['inseongScore'] as num?)?.toInt() ?? 0,
@@ -461,22 +462,6 @@ class SajuAnalysisModel {
   // Private: Enum 파싱 헬퍼
   // ========================================
 
-  static DayStrengthLevel _parseDayStrengthLevel(String? value) {
-    if (value == null) return DayStrengthLevel.junghwaSingang;
-    // 이전 enum 값 매핑 (하위 호환성)
-    final mappedValue = switch (value) {
-      'medium' => 'junghwaSingang',
-      'veryStrong' => 'geukwang',
-      'strong' => 'singang',
-      'weak' => 'sinyak',
-      'veryWeak' => 'geukyak',
-      _ => value,
-    };
-    return DayStrengthLevel.values.firstWhere(
-      (e) => e.name == mappedValue,
-      orElse: () => DayStrengthLevel.junghwaSingang,
-    );
-  }
 
   static MonthStatus _parseMonthStatus(String? value) {
     if (value == null) return MonthStatus.neutral;
