@@ -121,8 +121,9 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
   /// 세션 초기화: 세션 로드 후 없으면 기본 세션 생성
   Future<void> _initializeSession() async {
-    // 세션 로드가 완료될 때까지 잠시 대기
-    await Future.delayed(const Duration(milliseconds: 100));
+    // 세션 로드 완료 대기 (100ms 추측 대기 대신 명시적 로드)
+    final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
+    await sessionNotifier.loadSessions();
 
     if (!mounted) return;
 
@@ -137,7 +138,6 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
       }
     }
 
-    final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final sessionState = ref.read(chatSessionNotifierProvider);
 
     // 활성 프로필 ID 가져오기
@@ -154,8 +154,26 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
       );
     } else if (sessionState.currentSessionId == null) {
-      // 세션이 있지만 선택되지 않았으면 첫 번째 세션 선택
-      sessionNotifier.selectSession(sessionState.sessions.first.id);
+      // 세션이 있지만 선택되지 않았으면 chatType에 맞는 세션 선택
+      if (_chatType != ChatType.general) {
+        // 특정 chatType(궁합 등)으로 진입: 같은 타입 세션 찾기 or 새로 생성
+        final matchingSession = sessionState.sessions
+            .where((s) => s.chatType == _chatType)
+            .firstOrNull;
+        if (matchingSession != null) {
+          sessionNotifier.selectSession(matchingSession.id);
+        } else {
+          final currentPersona = ref.read(chatPersonaNotifierProvider);
+          await sessionNotifier.createSession(
+            _chatType,
+            profileId,
+            chatPersona: currentPersona,
+            mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
+          );
+        }
+      } else {
+        sessionNotifier.selectSession(sessionState.sessions.first.id);
+      }
     } else if (_chatType != ChatType.general) {
       // 특정 chatType으로 진입했는데 현재 세션 타입이 다르면 새 세션 생성
       final currentSession = sessionState.sessions
@@ -223,6 +241,13 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
           offset: fullMentionText.length,
         );
         _pendingTargetProfileId = widget.targetProfileId;
+        // 궁합용 CompatibilitySelection 설정 (텍스트 파싱 대신 UI 선택 데이터 직접 사용)
+        _pendingCompatibilitySelection = CompatibilitySelection(
+          relations: [relation],
+          mentionTexts: [ownerMention, targetMention],
+          includesOwner: true,
+          ownerProfileId: activeProfile.id,
+        );
       });
 
       if (kDebugMode) {

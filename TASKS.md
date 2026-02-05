@@ -424,6 +424,24 @@ lib/
 
 ---
 
+## iOS IAP (In-App Purchase) 설정 - 미완료
+
+> 현재 상태: iOS 빌드에서 IAP 완전 비활성화 (`revenueCatApiKeyIos = ''`)
+> App Store 심사 통과 후 설정 진행
+> 상세 TODO: `frontend/lib/purchase/README.md` "iOS 출시 시" 섹션 참조
+
+- [ ] App Store Connect 상품 등록 (sadam_day_pass ₩1,100 / sadam_week_pass ₩4,900 / sadam_monthly ₩12,900)
+- [ ] App Store Connect 구독 그룹 생성 + Shared Secret 발급
+- [ ] RevenueCat Dashboard iOS 앱 추가 (Bundle ID: com.clickaround.sadam)
+- [ ] RevenueCat iOS Products 3개 등록 + premium entitlement 매핑
+- [ ] RevenueCat iOS Public API 키 발급
+- [ ] `purchase_config.dart` Line 13: `revenueCatApiKeyIos = ''` → 실제 키 교체 (유일한 코드 변경)
+- [ ] Xcode > Signing & Capabilities > In-App Purchase capability 추가
+- [ ] Sandbox 테스터 등록 + iOS 실기기 테스트
+- [ ] 서버 webhook "All apps" 포함 확인
+
+---
+
 ## 작업 규칙
 
 ### 컨텍스트 관리
@@ -441,8 +459,9 @@ lib/
 2. Phase 4: Profile (완료)
 3. Phase 5: Saju Chat (완료)
 4. Phase 8: 만세력 (완료)
-5. Phase 6-7: Splash/Onboarding, History/Settings
-6. Phase 9-10: MVP 확장, 웹툰형 사주
+5. **iOS IAP 설정** (앱 심사 통과 후)
+6. Phase 6-7: Splash/Onboarding, History/Settings
+7. Phase 9-10: MVP 확장, 웹툰형 사주
 
 ---
 

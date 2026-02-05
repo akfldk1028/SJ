@@ -125,13 +125,120 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
   - 노출 위치: 설정 화면, 채팅 화면 상단 등
   - premium 유저만 표시
 
-### iOS 출시 시 (미완료)
-- [ ] **App Store Connect 상품 등록** - 3개 상품 (sadam_day_pass, sadam_week_pass, sadam_monthly) 동일 구성
-- [ ] **RevenueCat iOS 앱 추가** - RevenueCat Dashboard > Apps > + New App > Apple App Store
-- [ ] **RevenueCat iOS API 키 발급** - 발급 후 아래 파일 교체
-- [ ] **`purchase_config.dart`의 `revenueCatApiKeyIos` 교체** - 현재 `appl_xxx` 플레이스홀더 → 실제 키로 변경
-- [ ] **Xcode 설정** - Signing & Capabilities > In-App Purchase capability 추가
-- [ ] **서버 측 변경 불필요** - purchase-webhook, ai-gemini, subscriptions 테이블은 iOS도 그대로 사용 (platform 필드가 "ios"로 들어올 뿐)
+### iOS 출시 시 (미완료) - 상세 TODO
+
+> **현재 상태**: `purchase_config.dart`의 `revenueCatApiKeyIos = ''` (빈 문자열)
+> → `purchase_service.dart`에서 `apiKey.isEmpty` 체크 → IAP 비활성화 (`_available = false`)
+> → `purchase_provider.dart`의 `PurchaseNotifier.build()`에서 `isAvailable = false` → `isPremium = false` 고정
+> → 즉, **현재 iOS 빌드는 IAP 완전 비활성화 상태** (앱 심사에는 문제 없음)
+
+#### Step 1: App Store Connect 상품 등록
+
+- [ ] **구독 그룹 생성** - App Store Connect > 앱 > 구독 > 구독 그룹 추가
+  - 그룹명: `sadam_premium` (또는 원하는 이름)
+- [ ] **`sadam_monthly` 등록** (자동 갱신 구독)
+  - Product ID: `sadam_monthly` (Android와 동일하게)
+  - 구독 기간: 1개월
+  - 가격: ₩12,900 (Tier 설정)
+  - 표시 이름/설명 입력 (한국어)
+  - 심사 정보: 스크린샷 + 설명
+- [ ] **`sadam_day_pass` 등록** (비소모성 In-App Purchase)
+  - Product ID: `sadam_day_pass`
+  - 유형: Non-Consumable
+  - 가격: ₩1,100
+  - 표시 이름/설명 입력
+- [ ] **`sadam_week_pass` 등록** (비소모성 In-App Purchase)
+  - Product ID: `sadam_week_pass`
+  - 유형: Non-Consumable
+  - 가격: ₩4,900
+  - 표시 이름/설명 입력
+- [ ] **상품 상태 확인** - 3개 모두 "승인 대기 중" 또는 "승인됨" 상태
+
+#### Step 2: App Store Connect Shared Secret
+
+- [ ] **App-Specific Shared Secret 생성**
+  - App Store Connect > 앱 > 일반 > 앱 정보 > App-Specific Shared Secret > 생성
+  - 또는: App Store Connect > 앱 > 구독 > App-Specific Shared Secret
+- [ ] **Shared Secret 메모** (RevenueCat에 입력용)
+
+#### Step 3: RevenueCat Dashboard 설정
+
+- [ ] **iOS 앱 추가**
+  - RevenueCat Dashboard > Project `사담 (8e37c887)` > Apps > + New App
+  - Platform: Apple App Store
+  - App name: 사담 (Sadam)
+  - Bundle ID: `com.clickaround.sadam`
+- [ ] **App Store Connect Shared Secret 입력**
+  - RevenueCat > iOS App > App Store Connect App-Specific Shared Secret 입력
+- [ ] **iOS Products 3개 등록**
+  - `sadam_day_pass` → Non-consumable
+  - `sadam_week_pass` → Non-consumable
+  - `sadam_monthly` → Auto-renewable subscription
+- [ ] **Entitlement 매핑**
+  - 기존 `premium` entitlement에 iOS 3개 상품 추가 연결
+  - (Android 상품과 동일 entitlement 공유)
+- [ ] **Offering 업데이트**
+  - 기존 `default` offering의 각 패키지에 iOS 상품 추가
+  - `$rc_monthly` → iOS `sadam_monthly`
+  - `day_pass` (custom) → iOS `sadam_day_pass`
+  - `week_pass` (custom) → iOS `sadam_week_pass`
+- [ ] **iOS Public API 키 발급**
+  - RevenueCat > iOS App > Public API Key 복사
+  - 형식: `appl_xxxxxxxxxxxxxxx`
+
+#### Step 4: 코드 변경 (1곳만)
+
+- [ ] **`purchase_config.dart` Line 13 수정**
+  ```dart
+  // 변경 전:
+  static const String revenueCatApiKeyIos = '';
+  // 변경 후:
+  static const String revenueCatApiKeyIos = 'appl_실제키';
+  ```
+  - 이것만 바꾸면 `purchase_service.dart`의 `initialize()`에서 자동으로 IAP 활성화됨
+  - `purchase_provider.dart`, `paywall_screen.dart` 등 나머지 코드는 **변경 불필요** (플랫폼 무관 로직)
+
+#### Step 5: Xcode 설정
+
+- [ ] **In-App Purchase Capability 추가**
+  - Xcode > Runner > Signing & Capabilities > + Capability > In-App Purchase
+- [ ] **(선택) StoreKit Configuration 파일 생성** - 로컬 테스트용
+  - Xcode > File > New > StoreKit Configuration File
+  - 3개 상품 추가 (로컬 Sandbox 테스트 시 편리)
+
+#### Step 6: 서버 측 (변경 불필요 확인)
+
+- [x] **purchase-webhook** - `platform` 필드가 `"ios"`로 들어올 뿐, 로직 동일
+- [x] **ai-gemini** - `subscriptions` 테이블 조회 시 `product_id`만 체크, 플랫폼 무관
+- [x] **subscriptions 테이블** - `platform text` 컬럼에 `'ios'` 저장될 뿐, 스키마 변경 없음
+- [ ] **RevenueCat Webhook에 iOS 앱 포함 확인** - 기존 webhook 설정에서 "All apps" 선택되어 있으면 OK
+
+#### Step 7: 테스트
+
+- [ ] **Sandbox 테스터 등록** - App Store Connect > 사용자 및 액세스 > Sandbox 테스터 추가
+- [ ] **iOS 실기기 테스트** (Simulator에서는 IAP 불가)
+  - 설정 → 구독 관리 → PaywallScreen 진입
+  - 3개 상품 카드 표시 확인 (offerings 로드)
+  - Sandbox 계정으로 구매 → 프리미엄 전환 확인
+  - 광고 제거 확인 (배너, 전면, 네이티브 모두)
+  - 구매 복원 (`restore_button_widget.dart`) 테스트
+- [ ] **entitlement 반영 확인**
+  - 구매 직후 `isPremium = true` 되는지
+  - `_forcePremium` fallback 동작 확인 (iOS에서도 ITEM_ALREADY_OWNED 발생 가능)
+  - 3단계 fallback 동작: entitlement → subscription → transaction
+
+#### 코드 영향 범위 정리 (참고)
+
+| 파일 | iOS 변경 필요 | 이유 |
+|------|-------------|------|
+| `purchase_config.dart:13` | **YES** | `revenueCatApiKeyIos = ''` → 실제 키 |
+| `purchase_service.dart` | NO | `Platform.isIOS` 분기 이미 구현 |
+| `purchase_provider.dart` | NO | RevenueCat SDK가 플랫폼 추상화 |
+| `paywall_screen.dart` | NO | offerings 기반 동적 UI |
+| `premium_badge_widget.dart` | NO | isPremium 체크만 |
+| `restore_button_widget.dart` | NO | Apple 필수 기능, 이미 구현 |
+| `purchase_queries.dart` | NO | Supabase 조회, 플랫폼 무관 |
+| `purchase_mutations.dart` | NO | CustomerInfo 기반 기록 |
 
 ### 기타 (미완료)
 - [ ] **W-8BEN 세금 양식 제출 완료 확인** - Google Play Console에서 상태 확인

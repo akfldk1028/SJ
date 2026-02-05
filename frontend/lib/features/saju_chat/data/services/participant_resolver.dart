@@ -49,17 +49,64 @@ class ParticipantResolver {
     bool alreadySaved = false;  // Phase 59: 첫 분기에서 저장 완료 시 병합 블록 스킵
 
     if (isCompatibilityMode) {
-      person1Id = effectiveParticipantIds[0];
-      person2Id = effectiveParticipantIds[1];
-      // Phase 59: 3명째 이후 추가 참가자 처리
-      if (effectiveParticipantIds.length > 2) {
-        extraMentionIds = effectiveParticipantIds.sublist(2);
+      // ═══════════════════════════════════════════════════════════════════
+      // v12.0: 누적 참가자 병합 (기존 chat_mentions + 새 참가자)
+      // - 처음 2명 → 다음 2명 추가 → 총 4명... N명까지 계속 누적
+      // - 기존 참가자(person1/person2)는 유지하고, 새 참가자를 extra에 추가
+      // - AI가 모든 참가자의 사주 정보를 인식할 수 있도록 함
+      // ═══════════════════════════════════════════════════════════════════
+      List<String> mergedIds = List<String>.from(effectiveParticipantIds);
+
+      try {
+        final existingMentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+
+        if (existingMentions is List && existingMentions.isNotEmpty) {
+          final existingIds = existingMentions
+              .map((m) => m['target_profile_id'] as String?)
+              .where((id) => id != null)
+              .cast<String>()
+              .toList();
+
+          // 기존 참가자 유지 + 새 참가자 중 중복 아닌 것만 추가
+          final newIds = effectiveParticipantIds
+              .where((id) => !existingIds.contains(id))
+              .toList();
+
+          if (newIds.isNotEmpty) {
+            mergedIds = [...existingIds, ...newIds];
+            if (kDebugMode) {
+              print('   🔄 누적 병합: 기존 ${existingIds.length}명 + 새 ${newIds.length}명 = 총 ${mergedIds.length}명');
+              print('      기존: $existingIds');
+              print('      추가: $newIds');
+            }
+          } else {
+            // 새 참가자가 모두 기존에 있으면 기존 목록 유지
+            mergedIds = existingIds;
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('   ⚠️ 기존 chat_mentions 조회 실패 (첫 메시지일 수 있음): $e');
+        }
       }
+
+      // 병합된 전체 목록에서 person1/person2/extra 결정
+      person1Id = mergedIds[0];
+      person2Id = mergedIds.length > 1 ? mergedIds[1] : null;
+      if (mergedIds.length > 2) {
+        extraMentionIds = mergedIds.sublist(2);
+      }
+
       if (kDebugMode) {
-        print('   ✅ 궁합 모드 활성화: person1Id=$person1Id, person2Id=$person2Id, extra=${extraMentionIds.length}명');
+        print('   ✅ 궁합 모드 활성화: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명 (총 ${mergedIds.length}명)');
       }
-      // Phase 59: 첫 메시지에서 참가자들을 chat_mentions에 저장 (나중에 추가 가능하도록)
-      await _saveMergedParticipants(sessionId, effectiveParticipantIds);
+
+      // 병합된 전체 참가자를 chat_mentions에 저장
+      await _saveMergedParticipants(sessionId, mergedIds);
       alreadySaved = true;
     } else if (targetProfileId != null) {
       // 하위 호환: 단일 targetProfileId만 있는 경우
