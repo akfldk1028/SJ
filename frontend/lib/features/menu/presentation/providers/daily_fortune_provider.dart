@@ -180,6 +180,10 @@ class DailyFortune extends _$DailyFortune {
   /// 중복 폴링 방지 (build() 재호출 시 폴링이 누적되는 문제 해결)
   static final Set<String> _pollingForCompletion = {};
 
+  /// Phase 60 v4: 분석 실패 재시도 횟수 (최대 2회)
+  /// key: "profileId_yyyy-MM-dd", value: 시도 횟수
+  static final Map<String, int> _retryCount = {};
+
   /// 분석 완료 플래그 키 생성
   static String _getAnalyzedKey(String profileId, DateTime date) {
     return '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -191,6 +195,7 @@ class DailyFortune extends _$DailyFortune {
     final todaySuffix = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     final oldCount = _analyzedToday.length;
     _analyzedToday.removeWhere((key) => !key.endsWith(todaySuffix));
+    _retryCount.removeWhere((key, _) => !key.endsWith(todaySuffix)); // Phase 60 v4
     final removed = oldCount - _analyzedToday.length;
     if (removed > 0) {
       print('[DailyFortune] 🧹 이전 날짜 항목 정리: $removed개 제거');
@@ -338,18 +343,37 @@ class DailyFortune extends _$DailyFortune {
     ).then((result) {
       _currentlyAnalyzing.remove(profileId);
 
-      // Phase 60 v3: 성공 시에만 invalidateSelf()
-      // 실패 시 invalidate하면 build() → DB miss → null → 불필요한 사이클
+      // Phase 60 v4: 성공 시 즉시 갱신, 실패 시 제한된 재시도 (최대 2회)
       if (result.success) {
         print('[DailyFortune] ✅ Daily 분석 성공 - UI 갱신');
+        _retryCount.remove(analyzedKey);
         ref.invalidateSelf();
       } else {
-        print('[DailyFortune] ⚠️ Daily 분석 실패: ${result.errorMessage ?? "unknown"}');
+        final retries = _retryCount[analyzedKey] ?? 0;
+        if (retries < 2) {
+          _retryCount[analyzedKey] = retries + 1;
+          _analyzedToday.remove(analyzedKey); // 재시도 허용
+          print('[DailyFortune] ⚠️ Daily 분석 실패 (재시도 ${retries + 1}/2): ${result.errorMessage ?? "unknown"}');
+          // 3초 후 재시도 (Gemini 응답 불안정 대응)
+          Future.delayed(const Duration(seconds: 3), () {
+            ref.invalidateSelf();
+          });
+        } else {
+          print('[DailyFortune] ❌ Daily 분석 최종 실패 (2회 재시도 소진): ${result.errorMessage ?? "unknown"}');
+        }
       }
     }).catchError((e) {
       print('[DailyFortune] ❌ Daily 분석 오류: $e');
       _currentlyAnalyzing.remove(profileId);
-      // Phase 60 v3: 에러 시 invalidate 안 함 - 수동 새로고침으로 재시도 유도
+      final retries = _retryCount[analyzedKey] ?? 0;
+      if (retries < 2) {
+        _retryCount[analyzedKey] = retries + 1;
+        _analyzedToday.remove(analyzedKey);
+        print('[DailyFortune] 🔄 오류 후 재시도 예정 (${retries + 1}/2)');
+        Future.delayed(const Duration(seconds: 3), () {
+          ref.invalidateSelf();
+        });
+      }
     });
   }
 
@@ -404,6 +428,7 @@ class DailyFortune extends _$DailyFortune {
       _analyzedToday.remove(analyzedKey);
       _currentlyAnalyzing.remove(activeProfile.id);
       _pollingForCompletion.remove(activeProfile.id);  // Phase 60 v3: 폴링 플래그도 리셋
+      _retryCount.remove(analyzedKey);  // Phase 60 v4: 재시도 횟수도 리셋
       print('[DailyFortune] 🔄 수동 새로고침 - 플래그 리셋 (key=$analyzedKey)');
     }
     ref.invalidateSelf();
