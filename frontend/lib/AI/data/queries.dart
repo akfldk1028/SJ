@@ -240,13 +240,12 @@ class AiQueries extends BaseQueries {
     }
 
     try {
+      // daily_fortune_calendar View 사용
+      // View에 summary_type/status/target_date NOT NULL 필터 내장
       final response = await client!
-          .from(AiSummaries.table_name)
-          .select(AiSummaries.c_targetDate)
-          .eq(AiSummaries.c_profileId, profileId)
-          .eq(AiSummaries.c_summaryType, SummaryType.dailyFortune)
-          .eq(AiSummaries.c_status, 'completed')
-          .not(AiSummaries.c_targetDate, 'is', null);
+          .from('daily_fortune_calendar')
+          .select('target_date')
+          .eq('profile_id', profileId);
 
       final dates = (response as List)
           .map((row) => DateTime.parse(row['target_date'] as String))
