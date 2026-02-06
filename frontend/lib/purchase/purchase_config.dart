@@ -16,10 +16,10 @@ abstract class PurchaseConfig {
   static const String entitlementPremium = 'premium';
 
   // ── Product IDs ──
-  /// 1일 이용권 (비소모성, 24시간)
+  /// 1일 이용권 (소모성/Consumable, 24시간)
   static const String productDayPass = 'sadam_day_pass';
 
-  /// 1주일 이용권 (비소모성, 7일)
+  /// 1주일 이용권 (소모성/Consumable, 7일)
   static const String productWeekPass = 'sadam_week_pass';
 
   /// 월간 구독 (자동 갱신)

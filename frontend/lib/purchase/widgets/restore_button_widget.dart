@@ -30,19 +30,11 @@ class RestoreButtonWidget extends ConsumerWidget {
   }
 
   Future<void> _handleRestore(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref.read(purchaseNotifierProvider.notifier).restore();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('구매가 복원되었습니다.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('복원할 구매 내역이 없습니다.')),
-        );
-      }
+    await ref.read(purchaseNotifierProvider.notifier).restore();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('구매가 복원되었습니다.')),
+      );
     }
   }
 }

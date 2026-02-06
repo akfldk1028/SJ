@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -425,8 +426,7 @@ class PurchaseNotifier extends _$PurchaseNotifier {
 
 /// Offerings 조회 Provider
 @riverpod
-// ignore: deprecated_member_use_from_same_package
-Future<Offerings?> offerings(OfferingsRef ref) async {
+Future<Offerings?> offerings(Ref ref) async {
   // IAP 비활성화 상태면 null 반환
   if (!PurchaseService.instance.isAvailable) {
     if (kDebugMode) {
