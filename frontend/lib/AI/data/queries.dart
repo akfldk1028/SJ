@@ -55,6 +55,7 @@ import '../../core/supabase/generated/saju_analyses.dart';
 import '../../core/supabase/generated/saju_profiles.dart';
 import '../../features/saju_chart/domain/services/hapchung_service.dart';
 import '../core/ai_constants.dart';
+import '../fortune/common/korea_date_utils.dart';
 import '../fortune/common/prompt_template.dart';
 
 /// AI 관련 쿼리
@@ -103,10 +104,19 @@ class AiQueries extends BaseQueries {
             .eq(AiSummaries.c_status, 'completed');
 
         // prompt_version 필터 (캐시 무효화)
-        // 앱의 현재 프롬프트 버전과 일치하는 캐시만 반환
-        final expectedVersion = PromptVersions.forSummaryType(summaryType);
-        if (expectedVersion != null) {
-          query = query.eq('prompt_version', expectedVersion);
+        // 과거 날짜의 daily_fortune은 버전 무관하게 조회 (캘린더 히스토리)
+        // 오늘/미래 날짜만 현재 프롬프트 버전으로 필터링
+        // 한국 시간 기준 "오늘"과 비교 (Duration(hours:15) 방식은 시간대에 따라 불안정)
+        final koreaToday = KoreaDateUtils.today;
+        final isPastDate = targetDate != null &&
+            targetDate.isBefore(koreaToday);
+        final skipVersionFilter = isPastDate && summaryType == SummaryType.dailyFortune;
+
+        if (!skipVersionFilter) {
+          final expectedVersion = PromptVersions.forSummaryType(summaryType);
+          if (expectedVersion != null) {
+            query = query.eq('prompt_version', expectedVersion);
+          }
         }
 
         // 날짜/기간 필터
@@ -120,10 +130,12 @@ class AiQueries extends BaseQueries {
           query = query.eq(AiSummaries.c_targetPeriod, targetPeriod);
         }
 
-        // 만료되지 않은 것만
-        query = query.or(
-          '${AiSummaries.c_expiresAt}.is.null,${AiSummaries.c_expiresAt}.gt.${DateTime.now().toUtc().toIso8601String()}',
-        );
+        // 만료 필터 - 과거 daily_fortune은 만료 체크 스킵 (캘린더 히스토리)
+        if (!skipVersionFilter) {
+          query = query.or(
+            '${AiSummaries.c_expiresAt}.is.null,${AiSummaries.c_expiresAt}.gt.${DateTime.now().toUtc().toIso8601String()}',
+          );
+        }
 
         return await query.maybeSingle();
       },
