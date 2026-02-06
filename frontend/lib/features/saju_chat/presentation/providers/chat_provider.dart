@@ -576,7 +576,7 @@ class ChatNotifier extends _$ChatNotifier {
     ChatType chatType, {
     String? targetProfileId,
     List<String>? multiParticipantIds,
-    bool includesOwner = true, // deprecated, 하위 호환용
+    bool? includesOwner,  // v12.1: "나 포함/제외" (MentionSendHandler에서 전달)
     List<String>? compatibilityParticipantIds,
   }) async {
     if (content.trim().isEmpty) return;
@@ -635,6 +635,7 @@ class ChatNotifier extends _$ChatNotifier {
       compatibilityParticipantIds: compatibilityParticipantIds,
       multiParticipantIds: multiParticipantIds,
       targetProfileId: targetProfileId,
+      includesOwner: includesOwner,
     );
     var isCompatibilityMode = resolution.isCompatibilityMode;
     String? person1Id = resolution.person1Id;
@@ -821,6 +822,7 @@ class ChatNotifier extends _$ChatNotifier {
           effectiveParticipantIds: effectiveParticipantIds,
           userId: userId,
           isCompatibilityMode: isCompatibilityMode,
+          includesOwner: resolution.includesOwner,
         );
       }
 

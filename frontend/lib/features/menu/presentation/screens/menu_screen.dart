@@ -138,49 +138,29 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '운세',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: theme.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 2),
                 Row(
                   children: [
-                    Flexible(
-                      child: Text(
-                        formattedDate['full']!,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: theme.textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      '운세',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: theme.textMuted,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     const PremiumBadgeWidget(),
-                    // TODO: 이전/다음 날짜 기능 - 추후 구현
-                    // const SizedBox(width: 8),
-                    // GestureDetector(
-                    //   onTap: _previousDay,
-                    //   child: Icon(
-                    //     Icons.chevron_left_rounded,
-                    //     size: 20,
-                    //     color: theme.textSecondary,
-                    //   ),
-                    // ),
-                    // GestureDetector(
-                    //   onTap: _nextDay,
-                    //   child: Icon(
-                    //     Icons.chevron_right_rounded,
-                    //     size: 20,
-                    //     color: theme.textSecondary,
-                    //   ),
-                    // ),
                   ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formattedDate['full']!,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

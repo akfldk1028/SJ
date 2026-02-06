@@ -703,7 +703,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         final includesOwner = pendingIncludesOwner; // 캡처
         ref.read(chatSessionNotifierProvider.notifier).clearPendingMessage();
         ref.read(chatNotifierProvider(currentSessionId).notifier)
-            .sendMessage(msg, widget.chatType, compatibilityParticipantIds: participantIds, targetProfileId: participantIds == null ? targetId : null);
+            .sendMessage(msg, widget.chatType, compatibilityParticipantIds: participantIds, includesOwner: includesOwner, targetProfileId: participantIds == null ? targetId : null);
 
         _isProcessingPendingMessage = false;
       });
@@ -875,6 +875,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                   text,
                   widget.chatType,
                   compatibilityParticipantIds: params.participantIds,
+                  includesOwner: params.includesOwner,
                   // 하위 호환: participantIds가 없을 때만 targetId 사용
                   targetProfileId: params.participantIds == null ? params.targetProfileId : null,
                 );

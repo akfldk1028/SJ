@@ -20,6 +20,8 @@ class PurchaseNotifier extends _$PurchaseNotifier {
   /// ITEM_ALREADY_OWNED 등 Google Play에서 구매 확인됐지만
   /// RevenueCat에 미반영된 경우 강제 프리미엄 처리
   bool _forcePremium = false;
+  String? _forcePremiumProductId; // 강제 프리미엄 시 구매한 상품 ID
+  DateTime? _forcePremiumActivatedAt; // 강제 프리미엄 활성화 시각
 
   @override
   Future<CustomerInfo> build() async {
@@ -106,8 +108,8 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       }
     }
 
-    // isPremium=false 로그는 build()에서 이미 출력하므로 여기선 생략
-    return false;
+    // 4차: _forcePremium fallback (ITEM_ALREADY_OWNED / entitlement mismatch)
+    return _forcePremium;
   }
 
   // ── 파생 상태 ──
@@ -153,7 +155,21 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         }
       }
     }
-    return latestExpiry;
+    if (latestExpiry != null) return latestExpiry;
+
+    // 3차: _forcePremium fallback (ITEM_ALREADY_OWNED 등에서 활성화된 경우)
+    if (_forcePremium && _forcePremiumProductId != null && _forcePremiumActivatedAt != null) {
+      Duration? duration;
+      if (_forcePremiumProductId == PurchaseConfig.productDayPass) {
+        duration = const Duration(hours: 24);
+      } else if (_forcePremiumProductId == PurchaseConfig.productWeekPass) {
+        duration = const Duration(days: 7);
+      }
+      if (duration != null) {
+        return _forcePremiumActivatedAt!.add(duration);
+      }
+    }
+    return null;
   }
 
   /// 현재 활성 플랜 이름
@@ -199,7 +215,12 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       }
     }
 
-    if (_forcePremium) return '프리미엄';
+    if (_forcePremium) {
+      if (_forcePremiumProductId == PurchaseConfig.productDayPass) return '1일 이용권';
+      if (_forcePremiumProductId == PurchaseConfig.productWeekPass) return '1주일 이용권';
+      if (_forcePremiumProductId == PurchaseConfig.productMonthly) return '월간 구독';
+      return '프리미엄';
+    }
     return null;
   }
 
@@ -277,6 +298,8 @@ class PurchaseNotifier extends _$PurchaseNotifier {
                 print('[PurchaseNotifier] entitlement 미반영이지만 구매 상품 확인됨 → 강제 프리미엄');
               }
               _forcePremium = true;
+              _forcePremiumProductId = package.storeProduct.identifier;
+              _forcePremiumActivatedAt = DateTime.now();
 
               // Supabase 로깅 - RevenueCat 설정 문제 추적용
               ErrorLoggingService.logError(
@@ -302,8 +325,9 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         print('[PurchaseNotifier] errorCode: $errorCode');
       }
 
-      // Supabase 에러 로깅 (취소 제외)
-      if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
+      // Supabase 에러 로깅 (취소, ITEM_ALREADY_OWNED 제외)
+      if (errorCode != PurchasesErrorCode.purchaseCancelledError &&
+          errorCode != PurchasesErrorCode.productAlreadyPurchasedError) {
         ErrorLoggingService.logError(
           operation: 'purchase_package',
           errorMessage: e.toString(),
@@ -323,6 +347,8 @@ class PurchaseNotifier extends _$PurchaseNotifier {
           print('[PurchaseNotifier] ITEM_ALREADY_OWNED → 강제 프리미엄 적용');
         }
         _forcePremium = true;
+        _forcePremiumProductId = package.storeProduct.identifier;
+        _forcePremiumActivatedAt = DateTime.now();
         try {
           final restored = await Purchases.restorePurchases();
           state = AsyncData(restored);
