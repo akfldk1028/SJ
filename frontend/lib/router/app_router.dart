@@ -146,6 +146,11 @@ GoRouter appRouter(Ref ref) {
         name: 'settingsPremium',
         builder: (context, state) => const PaywallScreen(),
       ),
+      GoRoute(
+        path: Routes.settingsSubscription,
+        name: 'settingsSubscription',
+        builder: (context, state) => const SubscriptionManageScreen(),
+      ),
       // Fortune 페이지
       GoRoute(
         path: Routes.categoryFortuneDetail,

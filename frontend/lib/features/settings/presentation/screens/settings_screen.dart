@@ -276,41 +276,68 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildPremiumTile(BuildContext context, WidgetRef ref) {
     final appTheme = context.appTheme;
-    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
-    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+    ref.watch(purchaseNotifierProvider);
+    final notifier = ref.read(purchaseNotifierProvider.notifier);
+    final isPremium = notifier.isPremium;
+    final isExpiringSoon = notifier.isExpiringSoon;
 
     return ShadCard(
       padding: EdgeInsets.zero,
       child: InkWell(
-        onTap: () => context.push(Routes.settingsPremium),
+        onTap: () => context.push(
+          isPremium ? Routes.settingsSubscription : Routes.settingsPremium,
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(LucideIcons.sparkles, size: 20, color: isPremium ? Colors.amber : appTheme.textMuted),
+              Icon(
+                LucideIcons.sparkles,
+                size: 20,
+                color: isPremium
+                    ? (isExpiringSoon ? Colors.orange : Colors.amber)
+                    : appTheme.textMuted,
+              ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  '프리미엄 이용권',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: appTheme.textPrimary,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '프리미엄 이용권',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: appTheme.textPrimary,
+                      ),
+                    ),
+                    if (isPremium && isExpiringSoon)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '만료 임박 - 연장하세요!',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.redAccent.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (isPremium)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.15),
+                    color: (isExpiringSoon ? Colors.orange : Colors.amber)
+                        .withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '이용중',
+                    isExpiringSoon ? '만료 임박' : '이용중',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Colors.amber,
+                      color: isExpiringSoon ? Colors.orange : Colors.amber,
                     ),
                   ),
                 )
