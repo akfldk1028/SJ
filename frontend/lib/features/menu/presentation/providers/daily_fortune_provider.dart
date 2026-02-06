@@ -176,6 +176,10 @@ class DailyFortune extends _$DailyFortune {
   /// 현재 분석 중인 프로필 ID
   static final Set<String> _currentlyAnalyzing = {};
 
+  /// Phase 60 v3: FortuneCoordinator 완료 대기 폴링 중인 프로필 ID
+  /// 중복 폴링 방지 (build() 재호출 시 폴링이 누적되는 문제 해결)
+  static final Set<String> _pollingForCompletion = {};
+
   /// 분석 완료 플래그 키 생성
   static String _getAnalyzedKey(String profileId, DateTime date) {
     return '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -209,25 +213,20 @@ class DailyFortune extends _$DailyFortune {
     _cleanupOldEntries(today);
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 60 v2: 빠른 반환 조건 (DB 쿼리 전에 체크하여 불필요한 호출 최소화)
+    // Phase 60 v3: 빠른 반환 조건
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // 1. 현재 분석 중이면 바로 null 반환 (분석 완료 대기)
+    // 1. 현재 이 Provider가 직접 분석을 시작한 상태면 대기
     if (_currentlyAnalyzing.contains(activeProfile.id)) {
       print('[DailyFortune] ⏳ 분석 중 - 대기 (profileId=${activeProfile.id})');
       return null;
     }
 
-    // 2. FortuneCoordinator에서 분석 중이면 폴링 시작 후 null 반환
-    if (FortuneCoordinator.isAnalyzing(activeProfile.id)) {
-      print('[DailyFortune] ⏳ FortuneCoordinator에서 분석 중 - 폴링 시작');
-      _analyzedToday.add(analyzedKey);  // 중복 시도 방지
-      _waitForCoordinatorCompletion(activeProfile.id);
-      return null;
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 60 v2: DB 캐시 확인
+    // Phase 60 v3: DB 캐시 확인 (FortuneCoordinator 상태보다 먼저!)
+    // 🔴 핵심 수정: DB에 데이터가 있으면 FortuneCoordinator가 다른 분석을
+    //    진행 중이더라도 즉시 반환. 이전에는 isAnalyzing 체크가 먼저여서
+    //    monthly/yearly 분석 중(60-120초) 동안 daily 데이터를 무시했음.
     // ═══════════════════════════════════════════════════════════════════════════
 
     final result = await aiQueries.getDailyFortune(activeProfile.id, today);
@@ -257,16 +256,25 @@ class DailyFortune extends _$DailyFortune {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 60 v2: 캐시 미스 → 분석 트리거 (하루 1회만)
+    // Phase 60 v3: 캐시 미스 → FortuneCoordinator 상태 확인 → 분석 트리거
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // 오늘 이미 분석 시도했으면 스킵 (중복 방지)
+    // 3. FortuneCoordinator에서 분석 중이면 폴링 시작 후 null 반환
+    //    (DB 캐시 miss인 경우에만 도달 = daily가 아직 DB에 없는 것)
+    if (FortuneCoordinator.isAnalyzing(activeProfile.id)) {
+      print('[DailyFortune] ⏳ FortuneCoordinator에서 분석 중 - 폴링 시작 (daily 아직 미완료)');
+      _analyzedToday.add(analyzedKey);  // 중복 시도 방지
+      _waitForCoordinatorCompletion(activeProfile.id);
+      return null;
+    }
+
+    // 4. 오늘 이미 분석 시도했으면 스킵 (중복 방지)
     if (_analyzedToday.contains(analyzedKey)) {
       print('[DailyFortune] ⏭️ 오늘 이미 분석 시도함 - 스킵 (key=$analyzedKey)');
       return null;
     }
 
-    // 캐시가 없으면 AI 분석 트리거
+    // 5. 캐시가 없으면 AI 분석 트리거
     print('[DailyFortune] 캐시 없음 - AI 분석 시작');
     await _triggerAnalysisIfNeeded(activeProfile.id, today);
 
@@ -328,21 +336,36 @@ class DailyFortune extends _$DailyFortune {
       userId: user.id,
       profileId: profileId,
     ).then((result) {
-      print('[DailyFortune] 📌 Daily 분석 완료: ${result.success ? "성공" : "실패"}');
       _currentlyAnalyzing.remove(profileId);
 
-      // Provider 무효화하여 UI 갱신
-      ref.invalidateSelf();
+      // Phase 60 v3: 성공 시에만 invalidateSelf()
+      // 실패 시 invalidate하면 build() → DB miss → null → 불필요한 사이클
+      if (result.success) {
+        print('[DailyFortune] ✅ Daily 분석 성공 - UI 갱신');
+        ref.invalidateSelf();
+      } else {
+        print('[DailyFortune] ⚠️ Daily 분석 실패: ${result.errorMessage ?? "unknown"}');
+      }
     }).catchError((e) {
       print('[DailyFortune] ❌ Daily 분석 오류: $e');
       _currentlyAnalyzing.remove(profileId);
-      ref.invalidateSelf();
+      // Phase 60 v3: 에러 시 invalidate 안 함 - 수동 새로고침으로 재시도 유도
     });
   }
 
   /// Daily Fortune DB 데이터가 생길 때까지 폴링 후 provider 갱신
   /// FortuneCoordinator 전체 완료를 기다리지 않고, daily만 완료되면 즉시 UI 갱신
+  ///
+  /// Phase 60 v3: _pollingForCompletion Set으로 중복 폴링 방지
+  /// 이전에는 build() 재호출마다 새 폴링이 생성되어 누적 → 무한 루프의 원인
   void _waitForCoordinatorCompletion(String profileId) {
+    // Phase 60 v3: 이미 이 프로필에 대해 폴링 중이면 스킵
+    if (_pollingForCompletion.contains(profileId)) {
+      print('[DailyFortune] 🔁 이미 폴링 중 - 스킵 (profileId=$profileId)');
+      return;
+    }
+    _pollingForCompletion.add(profileId);
+
     final today = KoreaDateUtils.today;
     int attempts = 0;
     const maxAttempts = 60; // 3초 × 60 = 3분
@@ -355,12 +378,14 @@ class DailyFortune extends _$DailyFortune {
       final result = await aiQueries.getDailyFortune(profileId, today);
       if (result.isSuccess && result.data != null && result.data!.content != null) {
         print('[DailyFortune] ✅ Daily Fortune DB 데이터 감지 ($attempts회) - UI 갱신');
+        _pollingForCompletion.remove(profileId);
         ref.invalidateSelf();
         return false; // stop polling
       }
 
       if (attempts >= maxAttempts) {
         print('[DailyFortune] ⚠️ 폴링 타임아웃 ($maxAttempts회)');
+        _pollingForCompletion.remove(profileId);
         return false; // stop polling
       }
       return true; // continue polling
@@ -378,6 +403,7 @@ class DailyFortune extends _$DailyFortune {
       final analyzedKey = _getAnalyzedKey(activeProfile.id, today);
       _analyzedToday.remove(analyzedKey);
       _currentlyAnalyzing.remove(activeProfile.id);
+      _pollingForCompletion.remove(activeProfile.id);  // Phase 60 v3: 폴링 플래그도 리셋
       print('[DailyFortune] 🔄 수동 새로고침 - 플래그 리셋 (key=$analyzedKey)');
     }
     ref.invalidateSelf();
