@@ -1,9 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
@@ -185,7 +185,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                   // 앱 이름
                   Text(
-                    AppStrings.appName,
+                    'common.appName'.tr(),
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -197,7 +197,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                   // 앱 설명
                   Text(
-                    AppStrings.appDescription,
+                    'common.appDescription'.tr(),
                     style: TextStyle(
                       fontSize: 16,
                       color: theme.textMuted,
@@ -294,7 +294,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            '데이터 로딩 중...',
+            'splash.loading'.tr(),
             style: TextStyle(
               fontSize: 12,
               color: theme.textMuted,
@@ -311,7 +311,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            '연결 오류',
+            'splash.connectionError'.tr(),
             style: TextStyle(
               fontSize: 12,
               color: theme.textMuted,
@@ -325,17 +325,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   String _getStatusText(PrefetchStatus status) {
     switch (status) {
       case PrefetchStatus.loading:
-        return '데이터 로딩 중...';
+        return 'splash.loading'.tr();
       case PrefetchStatus.hasData:
-        return '준비 완료!';
+        return 'splash.ready'.tr();
       case PrefetchStatus.noProfile:
-        return '새로운 여정을 시작합니다';
+        return 'splash.newJourney'.tr();
       case PrefetchStatus.noAnalysis:
-        return '사주 분석 준비 중...';
+        return 'splash.analyzing'.tr();
       case PrefetchStatus.offline:
-        return '오프라인 모드';
+        return 'splash.offline'.tr();
       case PrefetchStatus.error:
-        return '연결 오류';
+        return 'splash.connectionError'.tr();
     }
   }
 

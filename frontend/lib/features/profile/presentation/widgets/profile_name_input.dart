@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -49,7 +50,7 @@ class _ProfileNameInputState extends ConsumerState<ProfileNameInput> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '이름',
+          'onboarding.labelName'.tr(),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: theme.textPrimary,
           ),
@@ -58,7 +59,7 @@ class _ProfileNameInputState extends ConsumerState<ProfileNameInput> {
         ShadInput(
           controller: _controller,
           placeholder: Text(
-            '최대 12글자 이내로 입력하세요',
+            'onboarding.placeholderName'.tr(),
             style: TextStyle(color: theme.textMuted),
           ),
           style: TextStyle(color: theme.textPrimary),
