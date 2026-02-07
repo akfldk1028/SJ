@@ -619,6 +619,11 @@ class ProfileForm extends _$ProfileForm {
       } else {
         print('[ProfileForm] AI 캐시 무효화 실패: ${cacheResult.errorMessage}');
       }
+
+      // v7.5: DailyFortune 및 FortuneCoordinator 분석 플래그 초기화
+      // DB 캐시 삭제 후 분석 플래그도 초기화해야 새 분석 실행됨
+      DailyFortune.resetAnalyzedFlagForProfile(editingId);
+      FortuneCoordinator.resetAnalyzingFlagForProfile(editingId);
     } else {
       await repository.save(profile);
     }
