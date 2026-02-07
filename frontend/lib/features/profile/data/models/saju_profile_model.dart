@@ -32,6 +32,8 @@ abstract class SajuProfileModel with _$SajuProfileModel {
     /// DB의 profile_type 컬럼에 매핑
     @Default('primary') String profileType,
     String? memo,
+    /// UI/AI 응답 언어 (ko, ja, en)
+    @Default('ko') String locale,
   }) = _SajuProfileModel;
 
   const SajuProfileModel._();
@@ -60,6 +62,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       relationType: RelationshipType.values.byName(relationType),
       profileType: profileType,
       memo: memo,
+      locale: locale,
     );
   }
 
@@ -83,6 +86,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       relationType: entity.relationType.name,
       profileType: entity.profileType,
       memo: entity.memo,
+      locale: entity.locale,
     );
   }
 
@@ -106,6 +110,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       'relationType': relationType,
       'profileType': profileType,
       'memo': memo,
+      'locale': locale,
     };
   }
 
@@ -129,6 +134,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       relationType: (map['relationType'] as String?) ?? 'me',
       profileType: (map['profileType'] as String?) ?? 'primary',
       memo: map['memo'] as String?,
+      locale: (map['locale'] as String?) ?? 'ko',
     );
   }
 
@@ -153,6 +159,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       'birth_city': birthCity,
       'time_correction': timeCorrection,
       'use_ya_jasi': useYaJasi,
+      'locale': locale,
       // is_primary 컬럼 삭제됨 - profile_type으로 대체
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -179,6 +186,7 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       relationType: map['relation_type'] as String? ?? 'me',
       profileType: map['profile_type'] as String? ?? 'primary',
       memo: map['memo'] as String?,
+      locale: map['locale'] as String? ?? 'ko',
     );
   }
 

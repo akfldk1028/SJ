@@ -609,6 +609,7 @@ class NewYearFortune extends _$NewYearFortune {
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
+      locale: 'ko',
     ).then((result) {
       _isAnalyzing = false;
       print('[NewYearFortune] ✅ Fortune 분석 완료');

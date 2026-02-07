@@ -89,13 +89,14 @@ class Yearly2026Service {
     required String profileId,
     required FortuneInputData inputData,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
-    print('[Yearly2026Service] 🚀 분석 시작: profileId=$profileId');
+    print('[Yearly2026Service] 🚀 분석 시작: profileId=$profileId, locale=$locale');
 
     try {
       // 1. 캐시 확인 (forceRefresh가 아닐 때)
       if (!forceRefresh) {
-        final cachedContent = await _queries.getContent(profileId);
+        final cachedContent = await _queries.getContent(profileId, locale: locale);
         if (cachedContent != null) {
           print('[Yearly2026Service] 📦 캐시에서 반환');
           return Yearly2026Result.fromCache(cachedContent);
@@ -104,7 +105,7 @@ class Yearly2026Service {
 
       // 2. 프롬프트 생성
       print('[Yearly2026Service] 📝 프롬프트 생성');
-      final prompt = Yearly2026Prompt(inputData: inputData);
+      final prompt = Yearly2026Prompt(inputData: inputData, locale: locale);
 
       // 3. GPT-5-mini API 호출
       print('[Yearly2026Service] 🤖 API 호출 시작...');
@@ -156,6 +157,7 @@ class Yearly2026Service {
         inputData: inputData,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(),
+        locale: locale,
       );
       print('[Yearly2026Service] ✅ DB 저장 완료!');
 
@@ -175,18 +177,18 @@ class Yearly2026Service {
   }
 
   /// 캐시 확인만 (분석 없이)
-  Future<Map<String, dynamic>?> getCached(String profileId) {
-    return _queries.getContent(profileId);
+  Future<Map<String, dynamic>?> getCached(String profileId, {String locale = 'ko'}) {
+    return _queries.getContent(profileId, locale: locale);
   }
 
   /// 캐시 존재 여부 확인
-  Future<bool> hasCached(String profileId) {
-    return _queries.exists(profileId);
+  Future<bool> hasCached(String profileId, {String locale = 'ko'}) {
+    return _queries.exists(profileId, locale: locale);
   }
 
   /// 캐시 무효화
-  Future<void> invalidateCache(String profileId) {
-    return _mutations.invalidate(profileId);
+  Future<void> invalidateCache(String profileId, {String locale = 'ko'}) {
+    return _mutations.invalidate(profileId, locale: locale);
   }
 
   /// API 응답 파싱 + 구조 검증

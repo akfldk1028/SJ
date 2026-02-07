@@ -101,6 +101,9 @@ import '../common/prompt_template.dart';
 /// | overall_advice | 종합 인생 조언 |
 /// | lucky_elements | 행운 요소 (colors, directions, numbers) |
 class SajuBasePrompt extends PromptTemplate {
+  final String locale;
+  SajuBasePrompt({this.locale = 'ko'});
+
   @override
   String get summaryType => SummaryType.sajuBase;
 
@@ -117,7 +120,13 @@ class SajuBasePrompt extends PromptTemplate {
   Duration? get cacheExpiry => CacheExpiry.sajuBase;
 
   @override
-  String get systemPrompt => '''
+  String get systemPrompt => switch (locale) {
+    'ja' => _japaneseSystemPrompt,
+    'en' => _englishSystemPrompt,
+    _ => _koreanSystemPrompt,
+  };
+
+  String get _koreanSystemPrompt => '''
 당신은 한국 전통 사주명리학 분야 30년 경력의 최고 전문가입니다.
 전통사주를  분석하되 현대시대에 어울리는 해석을 명쾌하게 해주세요.
 원국(原局)을 철저히 분석하여 정확하고 깊이 있는 사주 해석을 제공합니다.
@@ -234,10 +243,140 @@ class SajuBasePrompt extends PromptTemplate {
 반드시 JSON 형식으로만 응답하세요. 추가 설명 없이 순수 JSON만 출력하세요.
 ''';
 
+  String get _japaneseSystemPrompt => '''
+あなたは四柱推命（しちゅうすいめい）分野で30年の経験を持つ最高の専門家です。
+伝統的な四柱推命を分析しつつ、現代に合った解釈を明快に提供してください。
+原局（げんきょく）を徹底的に分析し、正確で深みのある四柱推命の鑑定を提供します。
+
+## わかりやすさの原則（最優先！）
+
+四柱推命を全く知らない20〜30代が読むことを想定してください。
+専門用語なしでも「なるほど、自分の性格はこういうことか」と納得できるように書いてください。
+
+### readingフィールドの書き方
+1. 最初の文：自然現象の比喩で核心特性（専門用語ゼロ）
+2. 2〜5文：具体的な状況・性格・傾向の説明（専門用語ゼロ）
+3. 最後の文：アドバイス（専門用語ゼロ）
+4. ※専門的な分析根拠は本文の後に括弧で一行で記載
+
+### 使用禁止用語（readingフィールドに直接書かないでください）
+- 十星用語：比肩、劫財、食神、傷官、正財、偏財、正官、偏官、正印、偏印
+- 位置用語：日干、月干、年干、時干 → 「あなたの生まれ持ったエネルギー」などに
+- 神殺用語：用神、喜神、忌神、仇神 → 「あなたを支える力」などに
+- 関係用語：相生、相剋 → 自然現象の比喩で代替
+- 五行の漢字表記：木（もく）、火（か）等 → 「木」「火」「土」「金」「水」のみ
+
+## 分析方法論（必ず順番通りに）
+
+### 第1段階：原局構造分析
+### 第2段階：十星（じゅっせい）分析
+### 第3段階：神殺（しんさつ）・吉星（きっせい）解釈
+### 第4段階：合冲刑破害（がっちゅうけいはがい）分析
+
+**合の結束力順序**
+- 方合（最強）> 三合（柔軟）> 半合（不完全）> 六合（穏やか）
+
+**冲の破壊力順序**
+- 旺支冲（卯酉/子午）> 生支冲（寅申/巳亥）> 庫支冲（辰戌/丑未）
+
+**刑の凶の強度順序**
+- 三刑（寅巳申/丑戌未）> 相刑 > 子卯刑 > 自刑
+
+### 第5段階：十二運星分析
+### 第6段階：総合解析
+1. **財運**: 正財/偏財の位置、強弱、冲合関係
+2. **恋愛運**: 桃花殺、紅艶殺、財星/官星の状態
+3. **結婚運**: 配偶者宮（日支）の状態、冲合の有無
+4. **事業運**: 食傷生財の構造、偏財の活用度
+5. **職業運**: 官星の状態、印星のサポート
+6. **健康運**: 五行の偏り、冲刑の位置
+
+### 第7段階：伝統 vs 現代の解釈比較（内部参考用）
+
+## 分析原則
+- **原局優先**: 大運/歳運よりも原局の構造を先に把握
+- **六親中心**: 十星を通じた人間関係と運勢の解釈
+- **相互作用**: 文字間の合冲刑破害を見逃さない
+- **バランス解釈**: 良い点と注意点を共に提示
+
+## 応答形式
+必ずJSON形式のみで回答してください。追加説明なしで純粋なJSONのみ出力してください。
+すべてのJSON値は日本語で記述してください。JSONキーは変更しないでください。
+''';
+
+  String get _englishSystemPrompt => '''
+You are a top expert with 30 years of experience in Four Pillars of Destiny (BaZi / Saju) analysis.
+Analyze the traditional Four Pillars while providing interpretations relevant to modern life.
+Thoroughly analyze the natal chart (original configuration) and provide accurate, in-depth readings.
+
+## Plain Language Principle (Top Priority!)
+
+Assume the reader is a 20-30 year old who knows nothing about Four Pillars of Destiny.
+Write so they can think "Oh, so THAT'S what my personality is like" without any jargon.
+
+### How to write the "reading" fields
+1. First sentence: A nature metaphor capturing the core trait (zero jargon)
+2. Sentences 2-5: Concrete situations, personality, and tendencies (zero jargon)
+3. Last sentence: Practical advice (zero jargon)
+4. Professional analysis basis can be added in parentheses at the end
+
+### Forbidden terms in reading fields
+- Ten Gods terms: Rob Wealth, Eating God, Hurting Officer, Direct/Indirect Wealth, Direct/Indirect Officer, Direct/Indirect Resource
+- Position terms: Day Master, Month Stem, Year Stem → use "your innate energy" etc.
+- Deity terms: Useful God, Favorable God, Unfavorable God → use "the energy that supports you" etc.
+- Relationship terms: generating, controlling → use nature metaphors instead
+- Use simple element names: Wood, Fire, Earth, Metal, Water
+
+## Analysis Methodology (Follow in order)
+
+### Step 1: Natal Chart Structure Analysis
+### Step 2: Ten Gods Analysis
+### Step 3: Special Stars & Auspicious Stars Interpretation
+### Step 4: Combinations, Clashes, Punishments, Harms Analysis
+
+**Combination (He) strength order**
+- Directional Combo (strongest) > Three Harmony > Half Combo > Six Harmony (gentlest)
+
+**Clash (Chong) destructive order**
+- Cardinal Clash (Mao-You/Zi-Wu) > Growth Clash (Yin-Shen/Si-Hai) > Storage Clash (Chen-Xu/Chou-Wei)
+
+**Punishment (Xing) severity order**
+- Triple Punishment (Yin-Si-Shen/Chou-Xu-Wei) > Mutual Punishment > Zi-Mao Punishment > Self-Punishment
+
+### Step 5: Twelve Life Stages Analysis
+### Step 6: Comprehensive Analysis
+1. **Wealth**: Position and strength of Direct/Indirect Wealth, clash/combo relationships
+2. **Romance**: Peach Blossom, Red Romance stars, Wealth/Officer star status
+3. **Marriage**: Spouse Palace (Day Branch) status, clashes and combos
+4. **Business**: Food God generating Wealth structure, Indirect Wealth utilization
+5. **Career**: Officer star status, Resource star support
+6. **Health**: Five Elements imbalance, clash/punishment positions
+
+### Step 7: Traditional vs Modern Interpretation (internal reference)
+
+## Analysis Principles
+- **Natal chart first**: Understand the natal chart structure before luck cycles
+- **Six Relations focus**: Interpret relationships and fortune through Ten Gods
+- **Interactions**: Never miss combinations, clashes, punishments between characters
+- **Balanced reading**: Present both strengths and cautions
+
+## Response Format
+Respond ONLY in JSON format. Output pure JSON without any additional explanation.
+All JSON values must be written in English. Do NOT change the JSON keys.
+''';
+
   @override
   String buildUserPrompt([Map<String, dynamic>? input]) {
     final data = SajuInputData.fromJson(input!);
 
+    return switch (locale) {
+      'ja' => _buildJapaneseUserPrompt(data),
+      'en' => _buildEnglishUserPrompt(data),
+      _ => _buildKoreanUserPrompt(data),
+    };
+  }
+
+  String _buildKoreanUserPrompt(SajuInputData data) {
     return '''
 ## 분석 대상
 - 이름: ${data.profileName}
@@ -451,31 +590,31 @@ ${_buildHapchungSection(data.hapchung)}
   "life_cycles": {
     "youth": "청년기(20-35세) 총평 8-10문장. 이 시기 전반적 에너지와 핵심 기회, 성장 방향",
     "youth_detail": {
-      "career": "청년기 직업/학업 전망 6-8문장. 적합한 직업 방향, 커리어 시작점, 업종별 유불리, 취업/이직 타이밍, 상사/동료 관계, 구체적 행동 조언",
-      "wealth": "청년기 재물 전망 6-8문장. 저축/투자 전략, 돈과의 관계, 부업/N잡 적합성, 소비 패턴 주의점, 재테크 시작 시기",
-      "love": "청년기 연애/결혼 전망 6-8문장. 인연 시기, 이상형과의 궁합, 연애 패턴, 결혼 적기, 주의해야 할 이성 유형, 인연을 만날 수 있는 장소/활동",
-      "health": "청년기 건강 전망 4-5문장. 주의 부위와 관리법, 운동 추천, 식이 조언",
-      "tip": "청년기 핵심 조언 3문장 (구체적이고 실천 가능한 조언!)",
+      "career": "청년기 직업/학업 전망 6-8문장",
+      "wealth": "청년기 재물 전망 6-8문장",
+      "love": "청년기 연애/결혼 전망 6-8문장",
+      "health": "청년기 건강 전망 4-5문장",
+      "tip": "청년기 핵심 조언 3문장",
       "best_period": "가장 좋은 시기 (예: 28-32세)",
       "caution_period": "주의 시기 (예: 25-27세)"
     },
-    "middle_age": "중년기(35-55세) 총평 8-10문장. 가정/직장/재물 핵심 흐름과 전환점",
+    "middle_age": "중년기(35-55세) 총평 8-10문장",
     "middle_age_detail": {
-      "career": "중년기 직업/사업 전망 6-8문장. 승진/이직/창업 타이밍, 리더십 스타일, 조직 내 역할 변화, 전문성 확장 방향, 부서/업종 전환 가능성, 은퇴 준비 시작점",
-      "wealth": "중년기 재물/자산 전망 6-8문장. 부동산, 투자, 자산 증식 전략, 보험/연금 설계, 자녀 교육비 관리, 가장 돈이 잘 모이는 시기와 위험 시기",
-      "love": "중년기 가정/부부관계 전망 6-8문장. 배우자와의 관계 변화, 가정 안정도, 자녀와의 관계, 부부 갈등 주의 시기, 관계 개선 방법, 가족 내 역할",
-      "health": "중년기 건강 전망 6-8문장. 중년 위기 관리, 성인병 주의, 구체적 취약 장기/부위, 추천 운동과 식단, 정신건강 관리법, 정기검진 시기",
-      "tip": "중년기 핵심 조언 3문장 (구체적이고 실천 가능한 조언!)",
+      "career": "중년기 직업/사업 전망 6-8문장",
+      "wealth": "중년기 재물/자산 전망 6-8문장",
+      "love": "중년기 가정/부부관계 전망 6-8문장",
+      "health": "중년기 건강 전망 6-8문장",
+      "tip": "중년기 핵심 조언 3문장",
       "best_period": "가장 좋은 시기 (예: 42-48세)",
       "caution_period": "주의 시기 (예: 38-41세)"
     },
-    "later_years": "후년기(55세 이후) 총평 8-10문장. 건강/가족/여유 핵심 흐름",
+    "later_years": "후년기(55세 이후) 총평 8-10문장",
     "later_years_detail": {
-      "career": "후년기 직업/활동 전망 6-8문장. 은퇴 후 활동, 사회 기여, 적합한 취미/봉사 활동, 제2의 커리어 가능성, 경험 전수/멘토링, 경제활동 지속 방안",
-      "wealth": "후년기 재물/노후 전망 6-8문장. 연금, 자산 관리, 경제적 안정, 상속/증여 전략, 노후 생활비 관리, 자녀 경제적 독립과의 관계, 안정적 수입원",
-      "love": "후년기 가정/인간관계 전망 6-8문장. 자녀관계 변화, 부부 관계 재정립, 사회적 유대, 손자녀 운, 고독감 관리, 새로운 인연/커뮤니티 활동",
-      "health": "후년기 건강 전망 6-8문장. 장수 비결, 주의 질환, 심리 건강, 구체적 건강 관리 루틴, 추천 운동(산책/수영/태극권 등), 식단 관리, 정기검진 항목",
-      "tip": "후년기 핵심 조언 3문장 (구체적이고 실천 가능한 조언!)",
+      "career": "후년기 직업/활동 전망 6-8문장",
+      "wealth": "후년기 재물/노후 전망 6-8문장",
+      "love": "후년기 가정/인간관계 전망 6-8문장",
+      "health": "후년기 건강 전망 6-8문장",
+      "tip": "후년기 핵심 조언 3문장",
       "best_period": "가장 좋은 시기 (예: 60-65세)",
       "caution_period": "주의 시기 (예: 55-58세)"
     },
@@ -494,7 +633,7 @@ ${_buildHapchungSection(data.hapchung)}
   "peak_years": {
     "period": "최전성기 구간 (예: 38-48세)",
     "age_range": [38, 48],
-    "why": "왜 이 시기가 최전성기인지 8문장. 용신운과 기회 설명",
+    "why": "왜 이 시기가 최전성기인지 8문장",
     "what_to_prepare": "최전성기 준비사항 3문장",
     "what_to_do": "최전성기에 해야 할 것 3문장",
     "cautions": "최전성기 주의점 2문장"
@@ -509,29 +648,9 @@ ${_buildHapchungSection(data.hapchung)}
         "age_range": "현재 대운 나이 구간",
         "main_theme": "현재 대운 핵심 주제",
         "fortune_level": "상/중상/중/중하/하",
-        "reading": "현재 대운 5문장. 용신 관계, 해야 할 것, 주의사항",
+        "reading": "현재 대운 5문장",
         "opportunities": ["기회 2개"],
         "challenges": ["시련 2개"]
-      },
-      {
-        "order": 2,
-        "pillar": "다음 대운 간지",
-        "age_range": "다음 대운 나이 구간",
-        "main_theme": "다음 대운 핵심 주제",
-        "fortune_level": "상/중상/중/중하/하",
-        "reading": "다음 대운 5문장. 준비할 것, 기대 포인트",
-        "opportunities": ["기회 2개"],
-        "challenges": ["시련 2개"]
-      },
-      {
-        "order": 3,
-        "pillar": "최고 대운 간지 (best_daeun 시기)",
-        "age_range": "최고 대운 나이 구간",
-        "main_theme": "최고 대운 핵심 주제",
-        "fortune_level": "상",
-        "reading": "최고 대운 5문장. 왜 최고인지, 활용법",
-        "opportunities": ["기회 2개"],
-        "challenges": ["주의점 1개"]
       }
     ],
     "best_daeun": {
@@ -546,7 +665,7 @@ ${_buildHapchungSection(data.hapchung)}
   "modern_interpretation": {
     "dominant_elements": [
       {
-        "element": "사주에서 강한 요소 (예: 식상, 역마살, 도화살 등)",
+        "element": "사주에서 강한 요소",
         "traditional": "전통적 의미",
         "modern": "AI시대 적용",
         "advice": "현대 사회에서 활용법"
@@ -559,7 +678,7 @@ ${_buildHapchungSection(data.hapchung)}
     },
     "wealth_in_ai_era": {
       "traditional_view": "전통적 재물운 해석",
-      "modern_opportunities": ["디지털자산/투자/부업 등 현대 재물 기회"],
+      "modern_opportunities": ["현대 재물 기회"],
       "risk_factors": "현대 재테크 주의점"
     },
     "relationships_in_ai_era": {
@@ -567,6 +686,202 @@ ${_buildHapchungSection(data.hapchung)}
       "modern_networking": "온라인/SNS 네트워킹 스타일",
       "collaboration_style": "현대 협업 방식"
     }
+  }
+}
+```
+''';
+  }
+
+  String _buildJapaneseUserPrompt(SajuInputData data) {
+    return '''
+## 鑑定対象
+- 名前: ${data.profileName}
+- 生年月日: ${data.birthDate.year}年${data.birthDate.month}月${data.birthDate.day}日
+- 性別: ${data.gender == 'male' ? '男性' : '女性'}
+- 生まれた時間: ${data.birthTime ?? '不明'}
+
+## 四柱八字
+${data.sajuString}
+
+## 五行分布
+${data.ohengString}
+
+## 日干（自分を表す五行）
+${data.dayMaster}
+
+${_buildYongsinSection(data.yongsin)}
+${_buildDayStrengthSection(data.dayStrength)}
+${_buildGyeokgukSection(data.gyeokguk)}
+${_buildSipsinSection(data.sipsinInfo)}
+${_buildJijangganSection(data.jijangganInfo)}
+${_buildSinsalSection(data.sinsal)}
+${_buildGilseongSection(data.gilseong)}
+${_buildUnsungSection(data.twelveUnsung)}
+${_buildTwelveSinsalSection(data.twelveSinsal)}
+${_buildDaeunSection(data.daeun)}
+${_buildHapchungSection(data.hapchung)}
+
+---
+
+上記の四柱推命データに基づき、総合的な四柱推命鑑定をJSON形式で提供してください。
+
+以下のJSONスキーマに正確に従ってください。すべてのフィールドを漏れなく記入してください。
+すべての値は日本語で記述してください。JSONキーは変更しないでください。
+
+```json
+{
+  "mySajuIntro": {
+    "title": "私の四柱推命、私はどんな人？",
+    "ilju": "日柱の説明：日干と日支の組み合わせの意味",
+    "reading": "日柱を基に「私」という人の核心説明6〜8文。生まれ持った気質、性向、人生の方向性を説明。"
+  },
+
+  "summary": "この命式の核心特性を10〜20文で初心者にもわかるように客観的にまとめる",
+
+  "my_saju_characters": {
+    "description": "四柱八字の8文字それぞれの意味を初心者にもわかりやすく説明",
+    "year_gan": { "character": "年干の漢字", "reading": "読み方", "oheng": "五行", "yin_yang": "陰陽", "meaning": "意味の説明" },
+    "year_ji": { "character": "年支の漢字", "reading": "読み方", "animal": "干支の動物", "oheng": "五行", "yin_yang": "陰陽", "meaning": "意味の説明" },
+    "month_gan": { "character": "月干の漢字", "reading": "読み方", "oheng": "五行", "yin_yang": "陰陽", "meaning": "意味の説明" },
+    "month_ji": { "character": "月支の漢字", "reading": "読み方", "season": "季節", "oheng": "五行", "yin_yang": "陰陽", "meaning": "意味の説明" },
+    "day_gan": { "character": "日干の漢字（自分を表す文字）", "reading": "読み方", "oheng": "五行", "yin_yang": "陰陽", "meaning": "日干は『自分自身』を意味します。わかりやすく説明" },
+    "day_ji": { "character": "日支の漢字（配偶者宮）", "reading": "読み方", "animal": "干支の動物", "oheng": "五行", "yin_yang": "陰陽", "meaning": "日支は配偶者宮で結婚運に関連します。わかりやすく説明" },
+    "hour_gan": { "character": "時干の漢字", "reading": "読み方", "oheng": "五行", "yin_yang": "陰陽", "meaning": "意味の説明" },
+    "hour_ji": { "character": "時支の漢字（子女宮）", "reading": "読み方", "animal": "干支の動物", "oheng": "五行", "yin_yang": "陰陽", "meaning": "時支は子女宮で子供運と晩年運に関連します。わかりやすく説明" },
+    "overall_reading": "8文字の組み合わせが作り出す全体的なエネルギーと特性を3〜4文で説明"
+  },
+
+  "wonGuk_analysis": { "day_master": "日干分析", "oheng_balance": "五行バランス分析", "singang_singak": "身強/身弱の判定根拠と意味", "gyeokguk": "格局分析", "reading": "原局総合解釈8文" },
+  "sipsung_analysis": { "dominant_sipsung": ["強い十星1-3個"], "weak_sipsung": ["弱い十星1-2個"], "key_interactions": "十星間の主要相互作用", "life_implications": "十星構造が人生に与える影響", "reading": "十星総合解釈8文" },
+  "hapchung_analysis": { "major_haps": ["主要な合の意味と影響"], "major_chungs": ["主要な冲の意味と影響"], "other_interactions": "刑/破/害/怨嗔の影響", "overall_impact": "合冲構造が人生に与える総合影響", "reading": "合冲総合解釈8文" },
+  "personality": { "core_traits": ["核心的な性格特性4-6個"], "strengths": ["長所4-6個"], "weaknesses": ["短所/注意点3-4個"], "social_style": "対人関係スタイル", "reading": "性格総合解釈10文" },
+  "wealth": { "overall_tendency": "全体的な財運の傾向", "earning_style": "お金を稼ぐスタイル", "spending_tendency": "消費傾向", "investment_aptitude": "投資適性", "wealth_timing": "財運が良い時期/年齢帯", "cautions": ["財運の注意事項2-3個"], "advice": "財運向上のアドバイス", "reading": "財運総合解釈8文" },
+  "love": { "attraction_style": "惹かれる異性のタイプ", "dating_pattern": "恋愛パターン/スタイル", "romantic_strengths": ["恋愛の強み2-3個"], "romantic_weaknesses": ["恋愛の弱点2-3個"], "ideal_partner_traits": ["理想のパートナー特性3-4個"], "love_timing": "恋愛運が良い時期", "advice": "恋愛アドバイス", "reading": "恋愛運総合解釈8文" },
+  "marriage": { "spouse_palace_analysis": "配偶者宮（日支）分析", "marriage_timing": "結婚適齢期/良い時期", "spouse_characteristics": "配偶者の特性予想", "married_life_tendency": "結婚生活の傾向", "cautions": ["結婚の注意事項2-3個"], "advice": "結婚運向上のアドバイス", "reading": "結婚運総合解釈8文" },
+  "career": { "suitable_fields": ["適した職業/分野5-7個"], "unsuitable_fields": ["避けるべき分野2-3個"], "work_style": "仕事のスタイル", "leadership_potential": "リーダーシップ適性", "career_timing": "職業運が良い時期", "advice": "キャリアアドバイス", "reading": "職業運総合解釈8文" },
+  "business": { "entrepreneurship_aptitude": "起業適性分析", "suitable_business_types": ["適した事業タイプ3-5個"], "business_partner_traits": "良いビジネスパートナーの特性", "cautions": ["事業の注意事項2-3個"], "success_factors": ["事業成功要因2-3個"], "advice": "事業アドバイス", "reading": "事業運総合解釈8文" },
+  "health": { "vulnerable_organs": ["健康上の弱点2-4個"], "potential_issues": ["注意すべき健康問題2-3個"], "mental_health": "精神/心理的健康の傾向", "lifestyle_advice": ["健康管理の生活習慣アドバイス3-4個"], "caution_periods": "健康注意時期", "reading": "健康運総合解釈6文" },
+  "sinsal_gilseong": { "major_gilseong": ["主要な吉星とその意味"], "major_sinsal": ["主要な神殺とその意味"], "practical_implications": "神殺/吉星が実生活に与える影響", "reading": "神殺/吉星総合解釈6文" },
+  "life_cycles": {
+    "youth": "青年期(20-35歳)総評8-10文",
+    "youth_detail": { "career": "青年期の職業展望6-8文", "wealth": "青年期の財運展望6-8文", "love": "青年期の恋愛/結婚展望6-8文", "health": "青年期の健康展望4-5文", "tip": "青年期の核心アドバイス3文", "best_period": "最も良い時期", "caution_period": "注意時期" },
+    "middle_age": "中年期(35-55歳)総評8-10文",
+    "middle_age_detail": { "career": "中年期の職業展望6-8文", "wealth": "中年期の資産展望6-8文", "love": "中年期の家庭/夫婦関係展望6-8文", "health": "中年期の健康展望6-8文", "tip": "中年期の核心アドバイス3文", "best_period": "最も良い時期", "caution_period": "注意時期" },
+    "later_years": "晩年期(55歳以降)総評8-10文",
+    "later_years_detail": { "career": "晩年期の活動展望6-8文", "wealth": "晩年期の老後展望6-8文", "love": "晩年期の人間関係展望6-8文", "health": "晩年期の健康展望6-8文", "tip": "晩年期の核心アドバイス3文", "best_period": "最も良い時期", "caution_period": "注意時期" },
+    "key_years": ["人生の重要な転換点3-4個"]
+  },
+  "lucky_elements": { "colors": ["ラッキーカラー2-3個"], "directions": ["良い方角1-2個"], "numbers": [1, 6], "seasons": "有利な季節", "partner_elements": ["相性の良い干支2-3個"] },
+  "peak_years": { "period": "最盛期の区間", "age_range": [38, 48], "why": "なぜこの時期が最盛期なのか8文", "what_to_prepare": "最盛期の準備事項3文", "what_to_do": "最盛期にすべきこと3文", "cautions": "最盛期の注意点2文" },
+  "daeun_detail": {
+    "intro": "大運の流れ全体概要3文",
+    "cycles": [{ "order": 1, "pillar": "現在の大運干支", "age_range": "年齢区間", "main_theme": "核心テーマ", "fortune_level": "上/中上/中/中下/下", "reading": "5文の解釈", "opportunities": ["チャンス2個"], "challenges": ["試練2個"] }],
+    "best_daeun": { "period": "最も良い大運時期", "why": "理由3文" },
+    "worst_daeun": { "period": "最も注意すべき大運時期", "why": "理由3文" }
+  },
+  "modern_interpretation": {
+    "dominant_elements": [{ "element": "強い要素", "traditional": "伝統的意味", "modern": "AI時代の適用", "advice": "現代社会での活用法" }],
+    "career_in_ai_era": { "traditional_path": "伝統的なキャリア解釈", "modern_opportunities": ["AI時代に適した職業3-5個"], "digital_strengths": "デジタル/IT分野の強み" },
+    "wealth_in_ai_era": { "traditional_view": "伝統的な財運解釈", "modern_opportunities": ["現代の財運チャンス"], "risk_factors": "現代の投資注意点" },
+    "relationships_in_ai_era": { "traditional_view": "伝統的な対人関係解釈", "modern_networking": "オンライン/SNSネットワーキングスタイル", "collaboration_style": "現代のコラボレーション方式" }
+  }
+}
+```
+''';
+  }
+
+  String _buildEnglishUserPrompt(SajuInputData data) {
+    return '''
+## Subject of Analysis
+- Name: ${data.profileName}
+- Date of Birth: ${data.birthDate.year}-${data.birthDate.month.toString().padLeft(2, '0')}-${data.birthDate.day.toString().padLeft(2, '0')}
+- Gender: ${data.gender == 'male' ? 'Male' : 'Female'}
+- Birth Time: ${data.birthTime ?? 'Unknown'}
+
+## Four Pillars (BaZi)
+${data.sajuString}
+
+## Five Elements Distribution
+${data.ohengString}
+
+## Day Master (Element representing you)
+${data.dayMaster}
+
+${_buildYongsinSection(data.yongsin)}
+${_buildDayStrengthSection(data.dayStrength)}
+${_buildGyeokgukSection(data.gyeokguk)}
+${_buildSipsinSection(data.sipsinInfo)}
+${_buildJijangganSection(data.jijangganInfo)}
+${_buildSinsalSection(data.sinsal)}
+${_buildGilseongSection(data.gilseong)}
+${_buildUnsungSection(data.twelveUnsung)}
+${_buildTwelveSinsalSection(data.twelveSinsal)}
+${_buildDaeunSection(data.daeun)}
+${_buildHapchungSection(data.hapchung)}
+
+---
+
+Based on the Four Pillars data above, provide a comprehensive BaZi analysis in JSON format.
+
+Follow the JSON schema below exactly. Fill in ALL fields without omission.
+All values must be written in English. Do NOT change the JSON keys.
+
+```json
+{
+  "mySajuIntro": {
+    "title": "My Four Pillars - Who Am I?",
+    "ilju": "Day Pillar explanation: meaning of the Day Stem + Day Branch combination",
+    "reading": "Core description of 'you' based on the Day Pillar in 6-8 sentences. Explain innate temperament, tendencies, and life direction in beginner-friendly language."
+  },
+
+  "summary": "Summarize the core characteristics of this chart in 10-20 sentences, written so someone unfamiliar with BaZi can understand",
+
+  "my_saju_characters": {
+    "description": "Explain the meaning of each of the 8 characters in beginner-friendly terms",
+    "year_gan": { "character": "Year Stem Chinese character", "reading": "Pronunciation", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "Easy explanation of this character's meaning" },
+    "year_ji": { "character": "Year Branch Chinese character", "reading": "Pronunciation", "animal": "Zodiac animal", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "Easy explanation" },
+    "month_gan": { "character": "Month Stem", "reading": "Pronunciation", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "Easy explanation" },
+    "month_ji": { "character": "Month Branch", "reading": "Pronunciation", "season": "Season", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "Easy explanation" },
+    "day_gan": { "character": "Day Stem (represents YOU!)", "reading": "Pronunciation", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "The Day Stem represents 'yourself'. This character's traits are your personality and temperament." },
+    "day_ji": { "character": "Day Branch (Spouse Palace)", "reading": "Pronunciation", "animal": "Zodiac animal", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "The Day Branch is the Spouse Palace, connected to marriage fortune." },
+    "hour_gan": { "character": "Hour Stem", "reading": "Pronunciation", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "Easy explanation" },
+    "hour_ji": { "character": "Hour Branch (Children Palace)", "reading": "Pronunciation", "animal": "Zodiac animal", "oheng": "Five Element", "yin_yang": "Yin/Yang", "meaning": "The Hour Branch is the Children Palace, related to children and later years." },
+    "overall_reading": "Explain the overall energy and characteristics created by the 8-character combination in 3-4 sentences"
+  },
+
+  "wonGuk_analysis": { "day_master": "Day Master analysis", "oheng_balance": "Five Elements balance analysis", "singang_singak": "Strong/Weak Day Master determination and meaning", "gyeokguk": "Chart structure analysis", "reading": "Natal chart comprehensive interpretation in 8 sentences" },
+  "sipsung_analysis": { "dominant_sipsung": ["Strong Ten Gods 1-3"], "weak_sipsung": ["Weak Ten Gods 1-2"], "key_interactions": "Key interactions between Ten Gods", "life_implications": "How the Ten Gods structure affects life", "reading": "Ten Gods comprehensive interpretation in 8 sentences" },
+  "hapchung_analysis": { "major_haps": ["Major combinations and their effects"], "major_chungs": ["Major clashes and their effects"], "other_interactions": "Punishments/Harms effects (if any)", "overall_impact": "Overall impact of combinations and clashes on life", "reading": "Combinations & Clashes comprehensive interpretation in 8 sentences" },
+  "personality": { "core_traits": ["Core personality traits 4-6"], "strengths": ["Strengths 4-6"], "weaknesses": ["Weaknesses/cautions 3-4"], "social_style": "Social and relationship style", "reading": "Personality comprehensive interpretation in 10 sentences" },
+  "wealth": { "overall_tendency": "Overall wealth fortune tendency", "earning_style": "Money-making style", "spending_tendency": "Spending habits", "investment_aptitude": "Investment aptitude", "wealth_timing": "Best periods for wealth", "cautions": ["Wealth cautions 2-3"], "advice": "Wealth improvement advice", "reading": "Wealth fortune comprehensive interpretation in 8 sentences" },
+  "love": { "attraction_style": "Type of partner you are attracted to", "dating_pattern": "Dating pattern/style", "romantic_strengths": ["Romantic strengths 2-3"], "romantic_weaknesses": ["Romantic weaknesses 2-3"], "ideal_partner_traits": ["Ideal partner traits 3-4"], "love_timing": "Best period for romance", "advice": "Romance advice", "reading": "Love fortune comprehensive interpretation in 8 sentences" },
+  "marriage": { "spouse_palace_analysis": "Spouse Palace (Day Branch) analysis", "marriage_timing": "Best marriage timing", "spouse_characteristics": "Expected spouse characteristics", "married_life_tendency": "Marriage life tendencies", "cautions": ["Marriage cautions 2-3"], "advice": "Marriage fortune advice", "reading": "Marriage fortune comprehensive interpretation in 8 sentences" },
+  "career": { "suitable_fields": ["Suitable careers/fields 5-7"], "unsuitable_fields": ["Fields to avoid 2-3"], "work_style": "Work style", "leadership_potential": "Leadership aptitude", "career_timing": "Best career periods", "advice": "Career advice", "reading": "Career fortune comprehensive interpretation in 8 sentences" },
+  "business": { "entrepreneurship_aptitude": "Business aptitude analysis", "suitable_business_types": ["Suitable business types 3-5"], "business_partner_traits": "Good business partner traits", "cautions": ["Business cautions 2-3"], "success_factors": ["Business success factors 2-3"], "advice": "Business advice", "reading": "Business fortune comprehensive interpretation in 8 sentences" },
+  "health": { "vulnerable_organs": ["Health vulnerable areas 2-4"], "potential_issues": ["Health concerns 2-3"], "mental_health": "Mental/psychological health tendencies", "lifestyle_advice": ["Health lifestyle advice 3-4"], "caution_periods": "Health caution periods", "reading": "Health fortune comprehensive interpretation in 6 sentences" },
+  "sinsal_gilseong": { "major_gilseong": ["Major auspicious stars and meanings"], "major_sinsal": ["Major special stars and meanings"], "practical_implications": "Real-life impact of special stars", "reading": "Special stars comprehensive interpretation in 6 sentences" },
+  "life_cycles": {
+    "youth": "Young adult years (20-35) overview in 8-10 sentences",
+    "youth_detail": { "career": "Youth career outlook 6-8 sentences", "wealth": "Youth wealth outlook 6-8 sentences", "love": "Youth romance outlook 6-8 sentences", "health": "Youth health outlook 4-5 sentences", "tip": "Youth key advice 3 sentences", "best_period": "Best period (e.g., ages 28-32)", "caution_period": "Caution period (e.g., ages 25-27)" },
+    "middle_age": "Middle age (35-55) overview in 8-10 sentences",
+    "middle_age_detail": { "career": "Middle age career outlook 6-8 sentences", "wealth": "Middle age wealth outlook 6-8 sentences", "love": "Middle age family outlook 6-8 sentences", "health": "Middle age health outlook 6-8 sentences", "tip": "Middle age key advice 3 sentences", "best_period": "Best period", "caution_period": "Caution period" },
+    "later_years": "Later years (55+) overview in 8-10 sentences",
+    "later_years_detail": { "career": "Later years activity outlook 6-8 sentences", "wealth": "Later years retirement outlook 6-8 sentences", "love": "Later years relationships outlook 6-8 sentences", "health": "Later years health outlook 6-8 sentences", "tip": "Later years key advice 3 sentences", "best_period": "Best period", "caution_period": "Caution period" },
+    "key_years": ["Key life turning points 3-4 (e.g., age 28, 42, 51)"]
+  },
+  "lucky_elements": { "colors": ["Lucky colors 2-3"], "directions": ["Good directions 1-2"], "numbers": [1, 6], "seasons": "Favorable season", "partner_elements": ["Compatible zodiac signs 2-3"] },
+  "peak_years": { "period": "Peak period (e.g., ages 38-48)", "age_range": [38, 48], "why": "Why this is the peak period in 8 sentences", "what_to_prepare": "Peak preparation in 3 sentences", "what_to_do": "What to do during peak in 3 sentences", "cautions": "Peak cautions in 2 sentences" },
+  "daeun_detail": {
+    "intro": "Luck cycle overview in 3 sentences",
+    "cycles": [{ "order": 1, "pillar": "Current luck cycle pillar", "age_range": "Age range", "main_theme": "Core theme", "fortune_level": "Excellent/Good/Average/Below Average/Poor", "reading": "5-sentence interpretation", "opportunities": ["2 opportunities"], "challenges": ["2 challenges"] }],
+    "best_daeun": { "period": "Best luck cycle period", "why": "Reason in 3 sentences" },
+    "worst_daeun": { "period": "Most cautious luck cycle period", "why": "Reason in 3 sentences" }
+  },
+  "modern_interpretation": {
+    "dominant_elements": [{ "element": "Strong element in chart", "traditional": "Traditional meaning", "modern": "AI era application", "advice": "How to leverage in modern society" }],
+    "career_in_ai_era": { "traditional_path": "Traditional career interpretation", "modern_opportunities": ["AI era suitable careers 3-5"], "digital_strengths": "Digital/IT strengths" },
+    "wealth_in_ai_era": { "traditional_view": "Traditional wealth interpretation", "modern_opportunities": ["Modern wealth opportunities"], "risk_factors": "Modern investment cautions" },
+    "relationships_in_ai_era": { "traditional_view": "Traditional relationship interpretation", "modern_networking": "Online/SNS networking style", "collaboration_style": "Modern collaboration style" }
   }
 }
 ```

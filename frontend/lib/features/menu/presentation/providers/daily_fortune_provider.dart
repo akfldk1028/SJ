@@ -255,7 +255,7 @@ class DailyFortune extends _$DailyFortune {
     //    monthly/yearly 분석 중(60-120초) 동안 daily 데이터를 무시했음.
     // ═══════════════════════════════════════════════════════════════════════════
 
-    final result = await aiQueries.getDailyFortune(activeProfile.id, today);
+    final result = await aiQueries.getDailyFortune(activeProfile.id, today, locale: activeProfile.locale);
 
     // 캐시가 있으면 바로 반환
     if (result.isSuccess && result.data != null) {
@@ -290,7 +290,7 @@ class DailyFortune extends _$DailyFortune {
     if (FortuneCoordinator.isAnalyzing(activeProfile.id)) {
       print('[DailyFortune] ⏳ FortuneCoordinator에서 분석 중 - 폴링 시작 (daily 아직 미완료)');
       _analyzedToday.add(analyzedKey);  // 중복 시도 방지
-      _waitForCoordinatorCompletion(activeProfile.id);
+      _waitForCoordinatorCompletion(activeProfile.id, activeProfile.locale);
       return null;
     }
 
@@ -302,7 +302,7 @@ class DailyFortune extends _$DailyFortune {
 
     // 5. 캐시가 없으면 AI 분석 트리거
     print('[DailyFortune] 캐시 없음 - AI 분석 시작');
-    await _triggerAnalysisIfNeeded(activeProfile.id, today);
+    await _triggerAnalysisIfNeeded(activeProfile.id, today, activeProfile.locale);
 
     // 분석 완료 후 다시 조회 (null 반환하면 UI에서 "분석 중" 표시)
     return null;
@@ -318,7 +318,7 @@ class DailyFortune extends _$DailyFortune {
   /// Phase 60: 한국 시간 기준 하루 1회만 분석
   /// - _analyzedToday: 오늘 이미 분석 시도한 프로필 (날짜별)
   /// - _currentlyAnalyzing: 현재 분석 중인 프로필
-  Future<void> _triggerAnalysisIfNeeded(String profileId, DateTime today) async {
+  Future<void> _triggerAnalysisIfNeeded(String profileId, DateTime today, [String locale = 'ko']) async {
     final analyzedKey = _getAnalyzedKey(profileId, today);
 
     // Phase 60: 오늘 이미 분석 시도했으면 스킵
@@ -361,6 +361,7 @@ class DailyFortune extends _$DailyFortune {
     fortuneCoordinator.analyzeDailyOnly(
       userId: user.id,
       profileId: profileId,
+      locale: locale,
     ).then((result) {
       _currentlyAnalyzing.remove(profileId);
 
@@ -403,7 +404,7 @@ class DailyFortune extends _$DailyFortune {
   ///
   /// Phase 60 v3: _pollingForCompletion Set으로 중복 폴링 방지
   /// 이전에는 build() 재호출마다 새 폴링이 생성되어 누적 → 무한 루프의 원인
-  void _waitForCoordinatorCompletion(String profileId) {
+  void _waitForCoordinatorCompletion(String profileId, [String locale = 'ko']) {
     // Phase 60 v3: 이미 이 프로필에 대해 폴링 중이면 스킵
     if (_pollingForCompletion.contains(profileId)) {
       print('[DailyFortune] 🔁 이미 폴링 중 - 스킵 (profileId=$profileId)');
@@ -420,7 +421,7 @@ class DailyFortune extends _$DailyFortune {
       attempts++;
 
       // DB에서 직접 daily fortune 확인
-      final result = await aiQueries.getDailyFortune(profileId, today);
+      final result = await aiQueries.getDailyFortune(profileId, today, locale: locale);
       if (result.isSuccess && result.data != null && result.data!.content != null) {
         print('[DailyFortune] ✅ Daily Fortune DB 데이터 감지 ($attempts회) - UI 갱신');
         _pollingForCompletion.remove(profileId);
@@ -462,7 +463,7 @@ Future<DailyFortuneData?> dailyFortuneForDate(Ref ref, DateTime date) async {
   final activeProfile = await ref.watch(activeProfileProvider.future);
   if (activeProfile == null) return null;
 
-  final result = await aiQueries.getDailyFortune(activeProfile.id, date);
+  final result = await aiQueries.getDailyFortune(activeProfile.id, date, locale: activeProfile.locale);
 
   if (result.isFailure || result.data == null) {
     return null;
@@ -495,6 +496,6 @@ Future<List<DateTime>> dailyFortuneDates(Ref ref) async {
   final activeProfile = await ref.watch(activeProfileProvider.future);
   if (activeProfile == null) return [];
 
-  final result = await aiQueries.getDailyFortuneDates(activeProfile.id);
+  final result = await aiQueries.getDailyFortuneDates(activeProfile.id, locale: activeProfile.locale);
   return result.data ?? [];
 }

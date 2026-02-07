@@ -25,6 +25,7 @@ _SajuProfileModel _$SajuProfileModelFromJson(Map<String, dynamic> json) =>
       relationType: json['relationType'] as String? ?? 'me',
       profileType: json['profileType'] as String? ?? 'primary',
       memo: json['memo'] as String?,
+      locale: json['locale'] as String? ?? 'ko',
     );
 
 Map<String, dynamic> _$SajuProfileModelToJson(_SajuProfileModel instance) =>
@@ -46,4 +47,5 @@ Map<String, dynamic> _$SajuProfileModelToJson(_SajuProfileModel instance) =>
       'relationType': instance.relationType,
       'profileType': instance.profileType,
       'memo': instance.memo,
+      'locale': instance.locale,
     };

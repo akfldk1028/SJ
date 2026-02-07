@@ -24,6 +24,9 @@ import 'lifetime_prompt.dart';
 ///
 /// 전체 종합: 요약, 인생주기, 전성기, 현대해석
 class SajuBasePhase4Prompt extends PromptTemplate {
+  final String locale;
+  SajuBasePhase4Prompt({this.locale = 'ko'});
+
   @override
   String get summaryType => '${SummaryType.sajuBase}_phase4';
 
@@ -40,7 +43,13 @@ class SajuBasePhase4Prompt extends PromptTemplate {
   Duration? get cacheExpiry => CacheExpiry.sajuBase;
 
   @override
-  String get systemPrompt => '''
+  String get systemPrompt => switch (locale) {
+    'ja' => _japaneseSystemPrompt,
+    'en' => _englishSystemPrompt,
+    _ => _koreanSystemPrompt,
+  };
+
+  String get _koreanSystemPrompt => '''
 당신은 한국 전통 사주명리학 분야 30년 경력의 최고 전문가입니다.
 이것은 평생운세 분석의 **Phase 4 (Synthesis)** 단계입니다.
 
@@ -84,6 +93,48 @@ class SajuBasePhase4Prompt extends PromptTemplate {
 반드시 JSON 형식으로만 응답하세요. 추가 설명 없이 순수 JSON만 출력하세요.
 ''';
 
+  String get _japaneseSystemPrompt => '''
+あなたは四柱推命分野で30年の経験を持つ最高の専門家です。
+これは生涯運勢分析の**Phase 4（Synthesis）**段階です。
+
+## Phase 4 分析範囲
+この段階では**総合分析のみ**を行います：
+1. 全体の四柱推命まとめ
+2. 人生周期別展望（青年/中年/晩年）
+3. 人生の最盛期分析
+4. AI時代の現代的解釈
+
+## 分析基準
+### 全体まとめ: Phase 1〜3の結果を凝縮、核心特性、最重要ポイント
+### 人生周期: 青年期(20-35歳)、中年期(35-55歳)、晩年期(55歳+)
+### 最盛期: 最盛期の期間、理由、準備事項、注意点
+### AI時代解釈: 伝統的要素の現代的適用
+
+## 応答形式
+必ずJSON形式のみで回答してください。すべての値は日本語で記述してください。
+''';
+
+  String get _englishSystemPrompt => '''
+You are a top expert with 30 years of experience in Four Pillars of Destiny (BaZi) analysis.
+This is **Phase 4 (Synthesis)** of the lifetime fortune analysis.
+
+## Phase 4 Analysis Scope
+In this phase, perform **synthesis analysis only**:
+1. Overall BaZi Summary
+2. Life Cycle Outlook (Youth/Middle Age/Later Years)
+3. Peak Years Analysis
+4. AI Era Modern Interpretation
+
+## Analysis Criteria
+### Summary: Compress Phase 1-3 results, core characteristics, key fortune points
+### Life Cycles: Youth (20-35), Middle Age (35-55), Later Years (55+)
+### Peak Years: Peak period, reasons, preparation, cautions
+### Modern Interpretation: Traditional elements applied to the AI era
+
+## Response Format
+Respond ONLY in JSON format. All values must be written in English.
+''';
+
   /// Phase 1~3 결과를 포함한 User Prompt 생성
   String buildUserPromptWithAllPhases(
     Map<String, dynamic> input,
@@ -93,6 +144,34 @@ class SajuBasePhase4Prompt extends PromptTemplate {
   ) {
     final data = SajuInputData.fromJson(input);
 
+    // Build shared previous phases reference (structured data, locale-independent)
+    final phasesRef = '''
+${phase1Result['wonGuk_analysis']?['reading'] ?? ''}
+- ${(phase1Result['sipsung_analysis']?['dominant_sipsung'] as List?)?.join(', ') ?? ''}
+${phase1Result['sipsung_analysis']?['life_implications'] ?? ''}
+- ${(phase1Result['personality']?['core_traits'] as List?)?.join(', ') ?? ''}
+${phase1Result['personality']?['social_style'] ?? ''}
+- ${(phase1Result['lucky_elements']?['colors'] as List?)?.join(', ') ?? ''}
+- ${(phase1Result['lucky_elements']?['seasons'] ?? '')}
+${phase2Result['wealth']?['overall_tendency'] ?? ''}
+- ${phase2Result['wealth']?['wealth_timing'] ?? ''}
+- ${(phase2Result['career']?['suitable_fields'] as List?)?.take(5).join(', ') ?? ''}
+${phase2Result['business']?['entrepreneurship_aptitude'] ?? ''}
+${phase2Result['love']?['dating_pattern'] ?? ''}
+- ${phase2Result['marriage']?['marriage_timing'] ?? ''}
+${phase3Result['sinsal_gilseong']?['practical_implications'] ?? ''}
+- ${(phase3Result['health']?['vulnerable_organs'] as List?)?.join(', ') ?? ''}
+- best: ${phase3Result['daeun_detail']?['best_daeun']?['period'] ?? ''}
+- worst: ${phase3Result['daeun_detail']?['worst_daeun']?['period'] ?? ''}''';
+
+    return switch (locale) {
+      'ja' => _buildJapanesePhase4Prompt(data, phasesRef),
+      'en' => _buildEnglishPhase4Prompt(data, phasesRef),
+      _ => _buildKoreanPhase4Prompt(data, phasesRef),
+    };
+  }
+
+  String _buildKoreanPhase4Prompt(SajuInputData data, String phasesRef) {
     return '''
 ## 분석 대상
 - 이름: ${data.profileName}
@@ -107,107 +186,116 @@ ${data.dayMaster}
 
 ---
 
-## Phase 1 결과 요약 (Foundation)
-
-### 원국
-${phase1Result['wonGuk_analysis']?['reading'] ?? ''}
-
-### 십성
-- 강한 십성: ${(phase1Result['sipsung_analysis']?['dominant_sipsung'] as List?)?.join(', ') ?? ''}
-${phase1Result['sipsung_analysis']?['life_implications'] ?? ''}
-
-### 성격
-- 핵심 특성: ${(phase1Result['personality']?['core_traits'] as List?)?.join(', ') ?? ''}
-${phase1Result['personality']?['social_style'] ?? ''}
-
-### 행운 요소
-- 색: ${(phase1Result['lucky_elements']?['colors'] as List?)?.join(', ') ?? ''}
-- 방향: ${(phase1Result['lucky_elements']?['directions'] as List?)?.join(', ') ?? ''}
-- 계절: ${phase1Result['lucky_elements']?['seasons'] ?? ''}
-
----
-
-## Phase 2 결과 요약 (Fortune)
-
-### 재물운
-${phase2Result['wealth']?['overall_tendency'] ?? ''}
-- 좋은 시기: ${phase2Result['wealth']?['wealth_timing'] ?? ''}
-
-### 직업운
-- 적합 분야: ${(phase2Result['career']?['suitable_fields'] as List?)?.take(5).join(', ') ?? ''}
-${phase2Result['career']?['work_style'] ?? ''}
-
-### 사업운
-${phase2Result['business']?['entrepreneurship_aptitude'] ?? ''}
-
-### 애정/결혼운
-${phase2Result['love']?['dating_pattern'] ?? ''}
-- 결혼 시기: ${phase2Result['marriage']?['marriage_timing'] ?? ''}
-
----
-
-## Phase 3 결과 요약 (Special)
-
-### 신살/길성
-${phase3Result['sinsal_gilseong']?['practical_implications'] ?? ''}
-
-### 건강
-- 취약 부위: ${(phase3Result['health']?['vulnerable_organs'] as List?)?.join(', ') ?? ''}
-
-### 대운 핵심
-- 최고 대운: ${phase3Result['daeun_detail']?['best_daeun']?['period'] ?? ''}
-- 주의 대운: ${phase3Result['daeun_detail']?['worst_daeun']?['period'] ?? ''}
+## Phase 1-3 결과 요약 (참고용)
+$phasesRef
 
 ---
 
 **Phase 4 (Synthesis)**: 전체 종합하여 요약, 인생주기, 전성기, 현대해석을 분석해주세요.
 
-반드시 아래 JSON 스키마를 정확히 따라주세요:
+```json
+{
+  "summary": "핵심 특성 10문장 요약",
+  "life_cycles": {
+    "youth": "청년기(20-35세) 전망 5문장",
+    "middle_age": "중년기(35-55세) 전망 5문장",
+    "later_years": "후년기(55세+) 전망 5문장",
+    "key_years": ["전환점 3-4개"]
+  },
+  "peak_years": { "period": "최전성기 구간", "age_range": [38, 48], "why": "이유 8문장", "what_to_prepare": "준비 3문장", "what_to_do": "해야 할 것 3문장", "cautions": "주의점 2문장" },
+  "modern_interpretation": {
+    "dominant_elements": [{ "element": "강한 요소", "traditional": "전통적 의미", "modern": "AI시대 적용", "advice": "활용법" }],
+    "career_in_ai_era": { "traditional_path": "전통 진로", "modern_opportunities": ["AI시대 직업 3-5개"], "digital_strengths": "디지털 강점" },
+    "wealth_in_ai_era": { "traditional_view": "전통 재물운", "modern_opportunities": ["현대 재물 기회"], "risk_factors": "재테크 주의점" },
+    "relationships_in_ai_era": { "traditional_view": "전통 대인관계", "modern_networking": "SNS 네트워킹", "collaboration_style": "현대 협업" }
+  }
+}
+```
+''';
+  }
+
+  String _buildJapanesePhase4Prompt(SajuInputData data, String phasesRef) {
+    return '''
+## 鑑定対象
+- 名前: ${data.profileName}
+- 生年月日: ${_formatBirthDate(data.birthDate)}
+- 性別: ${data.gender == 'male' ? '男性' : '女性'}
+
+## 四柱八字
+${data.sajuString}
+
+## 日干
+${data.dayMaster}
+
+---
+
+## Phase 1-3 結果要約（参考用）
+$phasesRef
+
+---
+
+**Phase 4 (Synthesis)**: 全体を総合して、まとめ、人生周期、最盛期、現代解釈を分析してください。
+すべての値は日本語で記述してください。JSONキーは変更しないでください。
 
 ```json
 {
-  "summary": "이 사주의 핵심 특성을 10문장으로 간결하게 요약",
-
+  "summary": "核心特性を10文でまとめる",
   "life_cycles": {
-    "youth": "청년기(20-35세) 전망 5문장. 이 시기 핵심 기회와 집중 포인트",
-    "middle_age": "중년기(35-55세) 전망 5문장. 가정/직장/재물 핵심 흐름",
-    "later_years": "후년기(55세 이후) 전망 5문장. 건강/가족/여유 핵심 흐름",
-    "key_years": ["인생 중요 전환점 3-4개 (예: 28세, 42세, 51세)"]
+    "youth": "青年期(20-35歳)展望5文",
+    "middle_age": "中年期(35-55歳)展望5文",
+    "later_years": "晩年期(55歳+)展望5文",
+    "key_years": ["転換点3-4個"]
   },
-
-  "peak_years": {
-    "period": "최전성기 구간 (예: 38-48세)",
-    "age_range": [38, 48],
-    "why": "왜 이 시기가 최전성기인지 8문장. 용신운과 기회 설명",
-    "what_to_prepare": "최전성기 준비사항 3문장",
-    "what_to_do": "최전성기에 해야 할 것 3문장",
-    "cautions": "최전성기 주의점 2문장"
-  },
-
+  "peak_years": { "period": "最盛期の期間", "age_range": [38, 48], "why": "理由8文", "what_to_prepare": "準備事項3文", "what_to_do": "すべきこと3文", "cautions": "注意点2文" },
   "modern_interpretation": {
-    "dominant_elements": [
-      {
-        "element": "사주에서 강한 요소 (예: 식상, 역마살, 도화살 등)",
-        "traditional": "전통적 의미",
-        "modern": "AI시대 적용",
-        "advice": "현대 사회에서 활용법"
-      }
-    ],
-    "career_in_ai_era": {
-      "traditional_path": "전통적 진로 해석",
-      "modern_opportunities": ["AI시대 적합 직업/분야 3-5개"],
-      "digital_strengths": "디지털/IT 분야 강점"
-    },
-    "wealth_in_ai_era": {
-      "traditional_view": "전통적 재물운 해석",
-      "modern_opportunities": ["디지털자산/투자/부업 등 현대 재물 기회"],
-      "risk_factors": "현대 재테크 주의점"
-    },
-    "relationships_in_ai_era": {
-      "traditional_view": "전통적 대인관계 해석",
-      "modern_networking": "온라인/SNS 네트워킹 스타일",
-      "collaboration_style": "현대 협업 방식"
-    }
+    "dominant_elements": [{ "element": "強い要素", "traditional": "伝統的意味", "modern": "AI時代の適用", "advice": "活用法" }],
+    "career_in_ai_era": { "traditional_path": "伝統的キャリア", "modern_opportunities": ["AI時代の職業3-5個"], "digital_strengths": "デジタル強み" },
+    "wealth_in_ai_era": { "traditional_view": "伝統的財運", "modern_opportunities": ["現代の財運チャンス"], "risk_factors": "投資注意点" },
+    "relationships_in_ai_era": { "traditional_view": "伝統的対人関係", "modern_networking": "SNSネットワーキング", "collaboration_style": "現代コラボレーション" }
+  }
+}
+```
+''';
+  }
+
+  String _buildEnglishPhase4Prompt(SajuInputData data, String phasesRef) {
+    return '''
+## Subject of Analysis
+- Name: ${data.profileName}
+- Date of Birth: ${_formatBirthDate(data.birthDate)}
+- Gender: ${data.gender == 'male' ? 'Male' : 'Female'}
+
+## Four Pillars (BaZi)
+${data.sajuString}
+
+## Day Master
+${data.dayMaster}
+
+---
+
+## Phase 1-3 Results Summary (Reference)
+$phasesRef
+
+---
+
+**Phase 4 (Synthesis)**: Synthesize everything into summary, life cycles, peak years, and modern interpretation.
+All values must be in English. Do NOT change the JSON keys.
+
+```json
+{
+  "summary": "Core characteristics summary in 10 sentences",
+  "life_cycles": {
+    "youth": "Youth (20-35) outlook 5 sentences",
+    "middle_age": "Middle age (35-55) outlook 5 sentences",
+    "later_years": "Later years (55+) outlook 5 sentences",
+    "key_years": ["Key turning points 3-4"]
+  },
+  "peak_years": { "period": "Peak period", "age_range": [38, 48], "why": "Reason 8 sentences", "what_to_prepare": "Preparation 3 sentences", "what_to_do": "Actions 3 sentences", "cautions": "Cautions 2 sentences" },
+  "modern_interpretation": {
+    "dominant_elements": [{ "element": "Strong element", "traditional": "Traditional meaning", "modern": "AI era application", "advice": "How to leverage" }],
+    "career_in_ai_era": { "traditional_path": "Traditional career", "modern_opportunities": ["AI era careers 3-5"], "digital_strengths": "Digital strengths" },
+    "wealth_in_ai_era": { "traditional_view": "Traditional wealth", "modern_opportunities": ["Modern wealth opportunities"], "risk_factors": "Investment cautions" },
+    "relationships_in_ai_era": { "traditional_view": "Traditional relationships", "modern_networking": "SNS networking style", "collaboration_style": "Modern collaboration" }
   }
 }
 ```

@@ -48,6 +48,7 @@ class DailyMutations {
     FortuneInputData? inputData,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     final dateString = _formatDate(targetDate);
     print('[DailyMutations] 저장 시작: profileId=$profileId, date=$dateString');
@@ -72,6 +73,7 @@ class DailyMutations {
       'profile_id': profileId,
       'summary_type': SummaryType.dailyFortune,
       'target_date': dateString,
+      'locale': locale,
       'content': content,
       'input_data': inputDataJson.isNotEmpty ? inputDataJson : null,
       'model_name': modelName,
@@ -87,14 +89,15 @@ class DailyMutations {
 
     try {
       // Delete + Insert 패턴 (Partial UNIQUE INDEX 호환)
-      // idx_ai_summaries_unique_daily: (profile_id, target_date) WHERE summary_type = 'daily_fortune'
+      // idx_ai_summaries_unique_daily: (profile_id, target_date, locale) WHERE summary_type = 'daily_fortune'
       // Partial index는 Supabase upsert onConflict와 호환되지 않으므로 삭제 후 삽입
       await _supabase
           .from('ai_summaries')
           .delete()
           .eq('profile_id', profileId)
           .eq('summary_type', SummaryType.dailyFortune)
-          .eq('target_date', dateString);
+          .eq('target_date', dateString)
+          .eq('locale', locale);
 
       final response = await _supabase
           .from('ai_summaries')
@@ -113,7 +116,8 @@ class DailyMutations {
             .delete()
             .eq('profile_id', profileId)
             .eq('summary_type', SummaryType.dailyFortune)
-            .eq('target_date', dateString);
+            .eq('target_date', dateString)
+            .eq('locale', locale);
 
         final response = await _supabase
             .from('ai_summaries')

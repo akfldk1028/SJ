@@ -212,6 +212,7 @@ class SajuAnalysisService {
     required String profileId,
     bool runInBackground = true,
     void Function(ProfileAnalysisResult)? onComplete,
+    String locale = 'ko',
   }) async {
     // 중복 분석 방지: 이미 분석 중인 프로필이면 스킵
     if (_analyzingProfiles.contains(profileId)) {
@@ -238,12 +239,12 @@ class SajuAnalysisService {
     // 2. 두 분석 병렬 실행
     if (runInBackground) {
       // Fire-and-forget: 백그라운드에서 실행
-      _runBothAnalysesInBackground(userId, profileId, inputData, onComplete);
+      _runBothAnalysesInBackground(userId, profileId, inputData, onComplete, locale: locale);
       return const ProfileAnalysisResult(); // 즉시 반환
     } else {
       // 완료 대기
       try {
-        return await _runBothAnalyses(userId, profileId, inputData);
+        return await _runBothAnalyses(userId, profileId, inputData, locale: locale);
       } finally {
         // 분석 완료 → Set에서 제거
         _analyzingProfiles.remove(profileId);
@@ -305,10 +306,11 @@ class SajuAnalysisService {
     String userId,
     String profileId,
     SajuInputData inputData,
-    void Function(ProfileAnalysisResult)? onComplete,
-  ) {
+    void Function(ProfileAnalysisResult)? onComplete, {
+    String locale = 'ko',
+  }) {
     // 비동기로 실행, 결과는 DB에 저장됨
-    _runBothAnalyses(userId, profileId, inputData).then((result) {
+    _runBothAnalyses(userId, profileId, inputData, locale: locale).then((result) {
       // 분석 완료 → Set에서 제거
       _analyzingProfiles.remove(profileId);
       print('[SajuAnalysisService] 백그라운드 분석 완료');
@@ -354,8 +356,9 @@ class SajuAnalysisService {
   Future<ProfileAnalysisResult> _runBothAnalyses(
     String userId,
     String profileId,
-    SajuInputData inputData,
-  ) async {
+    SajuInputData inputData, {
+    String locale = 'ko',
+  }) async {
     final inputJson = inputData.toJson();
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -407,7 +410,7 @@ class SajuAnalysisService {
 
     // 캐시 확인 (이미 분석된 경우 스킵)
     print('[SajuAnalysisService] 🔍 saju_base 캐시 확인 중...');
-    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    final cached = await aiQueries.getSajuBaseSummary(profileId, locale: locale);
     AnalysisResult sajuBaseResult;
 
     if (cached.isSuccess && cached.data != null) {
@@ -424,6 +427,7 @@ class SajuAnalysisService {
         profileId: profileId,
         inputJson: inputJson,
         reasoningEffort: 'low',  // v43: 속도 우선
+        locale: locale,
         onPhaseComplete: (phaseResult) {
           print('[SajuAnalysisService] 🎯 Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
         },
@@ -437,6 +441,7 @@ class SajuAnalysisService {
           profileId: profileId,
           inputJson: inputJson,
           reasoningEffort: 'medium',  // v43: 폴백
+          locale: locale,
           onPhaseComplete: (phaseResult) {
             print('[SajuAnalysisService] 🎯 [medium 재시도] Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
           },
@@ -453,7 +458,7 @@ class SajuAnalysisService {
     if (sajuBaseResult.success) {
       // GPT 분석 결과 조회하여 Gemini 입력에 추가
       print('[SajuAnalysisService] 🔍 saju_base 결과 조회 중...');
-      final sajuBaseData = await aiQueries.getSajuBaseSummary(profileId);
+      final sajuBaseData = await aiQueries.getSajuBaseSummary(profileId, locale: locale);
       if (sajuBaseData.isSuccess && sajuBaseData.data != null) {
         enrichedInputJson['saju_base_analysis'] = sajuBaseData.data!.content;
         print('[SajuAnalysisService] ✅ GPT 분석 결과를 Gemini 입력에 추가');
@@ -491,15 +496,16 @@ class SajuAnalysisService {
   Future<AnalysisResult> _runSajuBaseAnalysis(
     String userId,
     String profileId,
-    Map<String, dynamic> inputJson,
-  ) async {
+    Map<String, dynamic> inputJson, {
+    String locale = 'ko',
+  }) async {
     final stopwatch = Stopwatch()..start();
 
     try {
       print('[SajuAnalysisService] 평생 사주 분석 시작...');
 
       // 1. L1 캐시 확인 (동일 프로필 - 이미 분석된 경우 스킵)
-      final cached = await aiQueries.getSajuBaseSummary(profileId);
+      final cached = await aiQueries.getSajuBaseSummary(profileId, locale: locale);
       if (cached.isSuccess && cached.data != null) {
         print('[SajuAnalysisService] ✅ L1 캐시 히트 - 즉시 반환');
         return AnalysisResult.success(
@@ -535,6 +541,7 @@ class SajuAnalysisService {
             processingTimeMs: stopwatch.elapsedMilliseconds,
             systemPrompt: null,  // 캐시 재사용
             userPrompt: null,
+            locale: locale,
           );
 
           if (saveResult.isSuccess) {
@@ -554,6 +561,7 @@ class SajuAnalysisService {
       final pendingTask = await aiQueries.getPendingTaskId(
         userId: userId,
         model: OpenAIModels.sajuAnalysis,  // gpt-5.2
+        locale: locale,
       );
       if (pendingTask.isSuccess && pendingTask.data != null) {
         print('[SajuAnalysisService] ⏳ 이미 분석 진행 중: ${pendingTask.data}');
@@ -562,7 +570,7 @@ class SajuAnalysisService {
       }
 
       // 4. 프롬프트 생성
-      final prompt = SajuBasePrompt();
+      final prompt = SajuBasePrompt(locale: locale);
       final messages = prompt.buildMessages(inputJson);
 
       // 5. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
@@ -597,6 +605,7 @@ class SajuAnalysisService {
         processingTimeMs: stopwatch.elapsedMilliseconds,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(inputJson),
+        locale: locale,
       );
 
       stopwatch.stop();
@@ -673,8 +682,9 @@ class SajuAnalysisService {
   Future<AnalysisResult> _runDailyFortuneAnalysis(
     String userId,
     String profileId,
-    Map<String, dynamic> inputJson,
-  ) async {
+    Map<String, dynamic> inputJson, {
+    String locale = 'ko',
+  }) async {
     final stopwatch = Stopwatch()..start();
 
     try {
@@ -684,6 +694,7 @@ class SajuAnalysisService {
       final result = await _fortuneCoordinator.analyzeDailyOnly(
         userId: userId,
         profileId: profileId,
+        locale: locale,
       );
 
       stopwatch.stop();
@@ -762,13 +773,14 @@ class SajuAnalysisService {
   Future<AnalysisResult> refreshDailyFortune({
     required String userId,
     required String profileId,
+    String locale = 'ko',
   }) async {
     final inputData = await _prepareInputData(profileId);
     if (inputData == null) {
       return AnalysisResult.failure('사주 데이터 조회 실패');
     }
 
-    return _runDailyFortuneAnalysis(userId, profileId, inputData.toJson());
+    return _runDailyFortuneAnalysis(userId, profileId, inputData.toJson(), locale: locale);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -811,11 +823,12 @@ class SajuAnalysisService {
     required String profileId,
     bool runInBackground = true,
     void Function(AnalysisResult)? onComplete,
+    String locale = 'ko',
   }) async {
     print('[SajuAnalysisService] 🚀 ensureSajuBaseAnalysis 시작: $profileId');
 
     // 1. 캐시 확인 (이미 분석된 경우 스킵)
-    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    final cached = await aiQueries.getSajuBaseSummary(profileId, locale: locale);
     if (cached.isSuccess && cached.data != null) {
       print('[SajuAnalysisService] ✅ saju_base 캐시 존재 - 스킵');
       return AnalysisResult.success(
@@ -835,12 +848,12 @@ class SajuAnalysisService {
     if (runInBackground) {
       // Fire-and-forget
       print('[SajuAnalysisService] 🔥 백그라운드 GPT-5.2 분석 시작');
-      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete, locale: locale);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
       // 완료 대기
       print('[SajuAnalysisService] ⏳ GPT-5.2 분석 대기 중...');
-      return await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      return await _runSajuBaseAnalysis(userId, profileId, inputData.toJson(), locale: locale);
     }
   }
 
@@ -849,9 +862,10 @@ class SajuAnalysisService {
     String userId,
     String profileId,
     Map<String, dynamic> inputJson,
-    void Function(AnalysisResult)? onComplete,
-  ) {
-    _runSajuBaseAnalysis(userId, profileId, inputJson).then((result) {
+    void Function(AnalysisResult)? onComplete, {
+    String locale = 'ko',
+  }) {
+    _runSajuBaseAnalysis(userId, profileId, inputJson, locale: locale).then((result) {
       print('[SajuAnalysisService] ✅ 백그라운드 GPT-5.2 분석 완료: ${result.success}');
       if (onComplete != null) {
         onComplete(result);
@@ -894,11 +908,12 @@ class SajuAnalysisService {
     required String profileId,
     bool runInBackground = true,
     void Function(AnalysisResult)? onComplete,
+    String locale = 'ko',
   }) async {
     print('[SajuAnalysisService] 👫 인연 프로필 분석 시작: $profileId');
 
     // 1. 캐시 확인 (이미 분석된 경우 스킵)
-    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    final cached = await aiQueries.getSajuBaseSummary(profileId, locale: locale);
     if (cached.isSuccess && cached.data != null) {
       print('[SajuAnalysisService] ✅ 인연 saju_base 캐시 존재 - 스킵');
       final result = AnalysisResult.success(
@@ -922,12 +937,12 @@ class SajuAnalysisService {
     if (runInBackground) {
       // Fire-and-forget
       print('[SajuAnalysisService] 🔥 인연 백그라운드 GPT-5.2 분석 시작');
-      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete, locale: locale);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
       // 완료 대기
       print('[SajuAnalysisService] ⏳ 인연 GPT-5.2 분석 대기 중...');
-      final result = await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      final result = await _runSajuBaseAnalysis(userId, profileId, inputData.toJson(), locale: locale);
       onComplete?.call(result);
       return result;
     }
@@ -1125,6 +1140,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     required String profileId,
     required Map<String, dynamic> inputJson,
     String reasoningEffort = 'low',  // v43: default "low" for saju_base
+    String locale = 'ko',
     void Function(PhaseAnalysisResult)? onPhaseComplete,
   }) async {
     final totalStopwatch = Stopwatch()..start();
@@ -1150,7 +1166,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // Phase 1: Foundation (원국, 십성, 합충, 성격, 행운)
       // ═══════════════════════════════════════════════════════════════════════
       print('[SajuAnalysisService] 📊 Phase 1 시작 (Foundation, reasoning: $reasoningEffort)...');
-      final phase1Result = await _runPhase1(userId, inputJson, reasoningEffort);
+      final phase1Result = await _runPhase1(userId, inputJson, reasoningEffort, locale);
       phases.add(phase1Result);
 
       if (phase1Result.success) {
@@ -1180,8 +1196,8 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // ═══════════════════════════════════════════════════════════════════════
       print('[SajuAnalysisService] 📊 Phase 2+3 병렬 시작 (reasoning: $reasoningEffort)...');
       final phase2And3Results = await Future.wait([
-        _runPhase2(userId, inputJson, phase1Result.content!, reasoningEffort),
-        _runPhase3(userId, inputJson, phase1Result.content!, reasoningEffort),
+        _runPhase2(userId, inputJson, phase1Result.content!, reasoningEffort, locale),
+        _runPhase3(userId, inputJson, phase1Result.content!, reasoningEffort, locale),
       ]);
 
       final phase2Result = phase2And3Results[0];
@@ -1235,6 +1251,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         phase2Result.content ?? {},
         phase3Result.content ?? {},
         reasoningEffort,
+        locale,
       );
       phases.add(phase4Result);
 
@@ -1298,6 +1315,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         processingTimeMs: totalStopwatch.elapsedMilliseconds,
         systemPrompt: null,
         userPrompt: null,
+        locale: locale,
       );
 
       if (saveResult.isSuccess) {
@@ -1350,11 +1368,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     String userId,
     Map<String, dynamic> inputJson,
     String reasoningEffort,
+    String locale,
   ) async {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase1Prompt();
+      final prompt = SajuBasePhase1Prompt(locale: locale);
       final messages = prompt.buildMessages(inputJson);
 
       final response = await _apiService.callOpenAI(
@@ -1434,11 +1453,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     Map<String, dynamic> inputJson,
     Map<String, dynamic> phase1Result,
     String reasoningEffort,
+    String locale,
   ) async {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase2Prompt();
+      final prompt = SajuBasePhase2Prompt(locale: locale);
       final userPrompt = prompt.buildUserPromptWithPhase1(inputJson, phase1Result);
       final messages = [
         {'role': 'system', 'content': prompt.systemPrompt},
@@ -1513,11 +1533,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     Map<String, dynamic> inputJson,
     Map<String, dynamic> phase1Result,
     String reasoningEffort,
+    String locale,
   ) async {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase3Prompt();
+      final prompt = SajuBasePhase3Prompt(locale: locale);
       final userPrompt = prompt.buildUserPromptWithPhase1(inputJson, phase1Result);
       final messages = [
         {'role': 'system', 'content': prompt.systemPrompt},
@@ -1594,11 +1615,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     Map<String, dynamic> phase2Result,
     Map<String, dynamic> phase3Result,
     String reasoningEffort,
+    String locale,
   ) async {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase4Prompt();
+      final prompt = SajuBasePhase4Prompt(locale: locale);
       final userPrompt = prompt.buildUserPromptWithAllPhases(
         inputJson,
         phase1Result,

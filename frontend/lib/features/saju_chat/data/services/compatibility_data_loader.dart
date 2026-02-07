@@ -105,6 +105,7 @@ class CompatibilityDataLoader {
               userId: userId,
               profileId: person1Id,
               runInBackground: false,
+              locale: activeProfile?.locale ?? 'ko',
             );
             if (result.success) {
               sajuAnalysis = await analysisRepo.getByProfileId(person1Id);
@@ -142,6 +143,7 @@ class CompatibilityDataLoader {
                 userId: userId,
                 profileId: person2Id,
                 runInBackground: false,
+                locale: targetProfile?.locale ?? 'ko',
               );
               if (result.success) {
                 targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);
@@ -182,6 +184,7 @@ class CompatibilityDataLoader {
                   userId: userId,
                   profileId: pid,
                   runInBackground: false,
+                  locale: p.locale,
                 );
                 if (result.success) {
                   saju = await analysisRepo.getByProfileId(pid);
@@ -226,6 +229,7 @@ class CompatibilityDataLoader {
               userId: userId,
               profileId: person2Id,
               runInBackground: false,
+              locale: targetProfile?.locale ?? 'ko',
             );
             if (result.success) {
               targetSajuAnalysis = await analysisRepo.getByProfileId(person2Id);

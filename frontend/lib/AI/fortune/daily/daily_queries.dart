@@ -30,11 +30,13 @@ class DailyQueries {
   ///
   /// [profileId] 프로필 UUID
   /// [targetDate] 대상 날짜
+  /// [locale] 언어 코드 (ko, ja, en)
   /// 반환: 캐시된 데이터 또는 null
   Future<Map<String, dynamic>?> getCached(
     String profileId,
-    DateTime targetDate,
-  ) async {
+    DateTime targetDate, {
+    String locale = 'ko',
+  }) async {
     try {
       // target_date 문자열 변환 (YYYY-MM-DD)
       final dateString = _formatDate(targetDate);
@@ -45,6 +47,7 @@ class DailyQueries {
           .eq('profile_id', profileId)
           .eq('summary_type', SummaryType.dailyFortune)
           .eq('target_date', dateString)
+          .eq('locale', locale)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -84,27 +87,28 @@ class DailyQueries {
 
   /// 오늘 일운 조회 (편의 메서드)
   /// 한국 시간 기준
-  Future<Map<String, dynamic>?> getToday(String profileId) async {
-    return getCached(profileId, KoreaDateUtils.today);
+  Future<Map<String, dynamic>?> getToday(String profileId, {String locale = 'ko'}) async {
+    return getCached(profileId, KoreaDateUtils.today, locale: locale);
   }
 
   /// 일운 존재 여부 확인
-  Future<bool> exists(String profileId, DateTime targetDate) async {
-    final cached = await getCached(profileId, targetDate);
+  Future<bool> exists(String profileId, DateTime targetDate, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, targetDate, locale: locale);
     return cached != null;
   }
 
   /// 오늘 일운 존재 여부 확인
-  Future<bool> existsToday(String profileId) async {
-    return exists(profileId, KoreaDateUtils.today);
+  Future<bool> existsToday(String profileId, {String locale = 'ko'}) async {
+    return exists(profileId, KoreaDateUtils.today, locale: locale);
   }
 
   /// 일운 content만 조회
   Future<Map<String, dynamic>?> getContent(
     String profileId,
-    DateTime targetDate,
-  ) async {
-    final cached = await getCached(profileId, targetDate);
+    DateTime targetDate, {
+    String locale = 'ko',
+  }) async {
+    final cached = await getCached(profileId, targetDate, locale: locale);
     if (cached == null) return null;
 
     final content = cached['content'];
@@ -115,17 +119,19 @@ class DailyQueries {
   }
 
   /// 오늘 일운 content만 조회
-  Future<Map<String, dynamic>?> getTodayContent(String profileId) async {
-    return getContent(profileId, KoreaDateUtils.today);
+  Future<Map<String, dynamic>?> getTodayContent(String profileId, {String locale = 'ko'}) async {
+    return getContent(profileId, KoreaDateUtils.today, locale: locale);
   }
 
   /// 최근 N일 일운 목록 조회
   ///
   /// [profileId] 프로필 UUID
   /// [days] 조회할 일수 (기본 7일)
+  /// [locale] 언어 코드 (ko, ja, en)
   Future<List<Map<String, dynamic>>> getRecentDays(
     String profileId, {
     int days = 7,
+    String locale = 'ko',
   }) async {
     try {
       final today = KoreaDateUtils.today;
@@ -136,6 +142,7 @@ class DailyQueries {
           .select('*')
           .eq('profile_id', profileId)
           .eq('summary_type', SummaryType.dailyFortune)
+          .eq('locale', locale)
           .gte('target_date', _formatDate(startDate))
           .lte('target_date', _formatDate(today))
           .order('target_date', ascending: false)

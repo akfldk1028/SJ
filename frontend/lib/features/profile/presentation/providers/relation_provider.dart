@@ -284,6 +284,7 @@ class RelationNotifier extends _$RelationNotifier {
       userId: userId,
       profileId: toProfileId,
       runInBackground: true,
+      locale: 'ko',
       onComplete: (result) async {
         if (result.success && result.summaryId != null && result.summaryId != 'pending') {
           debugPrint('✅ [RelationNotifier] 인연 사주 분석 완료: ${result.summaryId}');

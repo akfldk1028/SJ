@@ -28,11 +28,13 @@ class MonthlyQueries {
   /// [profileId] 프로필 UUID
   /// [year] 대상 연도
   /// [month] 대상 월
+  /// [locale] 언어 코드 (ko, ja, en)
   /// 반환: 캐시된 데이터 또는 null
   Future<Map<String, dynamic>?> getCached(
     String profileId, {
     required int year,
     required int month,
+    String locale = 'ko',
     bool includeStale = false,
   }) async {
     try {
@@ -44,6 +46,7 @@ class MonthlyQueries {
           .eq('summary_type', SummaryType.monthlyFortune)
           .eq('target_year', year)
           .eq('target_month', month)
+          .eq('locale', locale)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -78,11 +81,12 @@ class MonthlyQueries {
 
   /// 현재 월 운세 조회 (편의 메서드)
   /// 한국 시간 기준
-  Future<Map<String, dynamic>?> getCurrentMonth(String profileId) async {
+  Future<Map<String, dynamic>?> getCurrentMonth(String profileId, {String locale = 'ko'}) async {
     return getCached(
       profileId,
       year: KoreaDateUtils.currentYear,
       month: KoreaDateUtils.currentMonth,
+      locale: locale,
     );
   }
 
@@ -91,8 +95,9 @@ class MonthlyQueries {
     String profileId, {
     required int year,
     required int month,
+    String locale = 'ko',
   }) async {
-    final cached = await getCached(profileId, year: year, month: month);
+    final cached = await getCached(profileId, year: year, month: month, locale: locale);
     return cached != null;
   }
 
@@ -101,8 +106,9 @@ class MonthlyQueries {
     String profileId, {
     required int year,
     required int month,
+    String locale = 'ko',
   }) async {
-    final cached = await getCached(profileId, year: year, month: month);
+    final cached = await getCached(profileId, year: year, month: month, locale: locale);
     if (cached == null) return null;
 
     final content = cached['content'];

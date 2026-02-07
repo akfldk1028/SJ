@@ -120,6 +120,7 @@ class FortuneCategoryList extends ConsumerWidget {
         userId: user.id,
         profileId: profile.id,
         runInBackground: true,
+        locale: profile.locale,
       );
     }).catchError((e) {
       ErrorLoggingService.logError(

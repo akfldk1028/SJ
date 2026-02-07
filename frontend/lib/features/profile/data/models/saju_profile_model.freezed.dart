@@ -19,7 +19,8 @@ mixin _$SajuProfileModel {
  DateTime get birthDate; bool get isLunar; bool get isLeapMonth; int? get birthTimeMinutes; bool get birthTimeUnknown; bool get useYaJasi; String get birthCity; int get timeCorrection; DateTime get createdAt; DateTime get updatedAt; bool get isActive; String get relationType;// RelationshipType enum name (deprecated)
 /// 프로필 유형: 'primary' (본인) | 'other' (관계인)
 /// DB의 profile_type 컬럼에 매핑
- String get profileType; String? get memo;
+ String get profileType; String? get memo;/// UI/AI 응답 언어 (ko, ja, en)
+ String get locale;
 /// Create a copy of SajuProfileModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,16 +33,16 @@ $SajuProfileModelCopyWith<SajuProfileModel> get copyWith => _$SajuProfileModelCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SajuProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.isLunar, isLunar) || other.isLunar == isLunar)&&(identical(other.isLeapMonth, isLeapMonth) || other.isLeapMonth == isLeapMonth)&&(identical(other.birthTimeMinutes, birthTimeMinutes) || other.birthTimeMinutes == birthTimeMinutes)&&(identical(other.birthTimeUnknown, birthTimeUnknown) || other.birthTimeUnknown == birthTimeUnknown)&&(identical(other.useYaJasi, useYaJasi) || other.useYaJasi == useYaJasi)&&(identical(other.birthCity, birthCity) || other.birthCity == birthCity)&&(identical(other.timeCorrection, timeCorrection) || other.timeCorrection == timeCorrection)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.relationType, relationType) || other.relationType == relationType)&&(identical(other.profileType, profileType) || other.profileType == profileType)&&(identical(other.memo, memo) || other.memo == memo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SajuProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.isLunar, isLunar) || other.isLunar == isLunar)&&(identical(other.isLeapMonth, isLeapMonth) || other.isLeapMonth == isLeapMonth)&&(identical(other.birthTimeMinutes, birthTimeMinutes) || other.birthTimeMinutes == birthTimeMinutes)&&(identical(other.birthTimeUnknown, birthTimeUnknown) || other.birthTimeUnknown == birthTimeUnknown)&&(identical(other.useYaJasi, useYaJasi) || other.useYaJasi == useYaJasi)&&(identical(other.birthCity, birthCity) || other.birthCity == birthCity)&&(identical(other.timeCorrection, timeCorrection) || other.timeCorrection == timeCorrection)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.relationType, relationType) || other.relationType == relationType)&&(identical(other.profileType, profileType) || other.profileType == profileType)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.locale, locale) || other.locale == locale));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,gender,birthDate,isLunar,isLeapMonth,birthTimeMinutes,birthTimeUnknown,useYaJasi,birthCity,timeCorrection,createdAt,updatedAt,isActive,relationType,profileType,memo);
+int get hashCode => Object.hash(runtimeType,id,displayName,gender,birthDate,isLunar,isLeapMonth,birthTimeMinutes,birthTimeUnknown,useYaJasi,birthCity,timeCorrection,createdAt,updatedAt,isActive,relationType,profileType,memo,locale);
 
 @override
 String toString() {
-  return 'SajuProfileModel(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive, relationType: $relationType, profileType: $profileType, memo: $memo)';
+  return 'SajuProfileModel(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive, relationType: $relationType, profileType: $profileType, memo: $memo, locale: $locale)';
 }
 
 
@@ -52,7 +53,7 @@ abstract mixin class $SajuProfileModelCopyWith<$Res>  {
   factory $SajuProfileModelCopyWith(SajuProfileModel value, $Res Function(SajuProfileModel) _then) = _$SajuProfileModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String displayName, String gender, DateTime birthDate, bool isLunar, bool isLeapMonth, int? birthTimeMinutes, bool birthTimeUnknown, bool useYaJasi, String birthCity, int timeCorrection, DateTime createdAt, DateTime updatedAt, bool isActive, String relationType, String profileType, String? memo
+ String id, String displayName, String gender, DateTime birthDate, bool isLunar, bool isLeapMonth, int? birthTimeMinutes, bool birthTimeUnknown, bool useYaJasi, String birthCity, int timeCorrection, DateTime createdAt, DateTime updatedAt, bool isActive, String relationType, String profileType, String? memo, String locale
 });
 
 
@@ -69,7 +70,7 @@ class _$SajuProfileModelCopyWithImpl<$Res>
 
 /// Create a copy of SajuProfileModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? gender = null,Object? birthDate = null,Object? isLunar = null,Object? isLeapMonth = null,Object? birthTimeMinutes = freezed,Object? birthTimeUnknown = null,Object? useYaJasi = null,Object? birthCity = null,Object? timeCorrection = null,Object? createdAt = null,Object? updatedAt = null,Object? isActive = null,Object? relationType = null,Object? profileType = null,Object? memo = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? gender = null,Object? birthDate = null,Object? isLunar = null,Object? isLeapMonth = null,Object? birthTimeMinutes = freezed,Object? birthTimeUnknown = null,Object? useYaJasi = null,Object? birthCity = null,Object? timeCorrection = null,Object? createdAt = null,Object? updatedAt = null,Object? isActive = null,Object? relationType = null,Object? profileType = null,Object? memo = freezed,Object? locale = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -88,7 +89,8 @@ as DateTime,isActive: null == isActive ? _self.isActive : isActive // ignore: ca
 as bool,relationType: null == relationType ? _self.relationType : relationType // ignore: cast_nullable_to_non_nullable
 as String,profileType: null == profileType ? _self.profileType : profileType // ignore: cast_nullable_to_non_nullable
 as String,memo: freezed == memo ? _self.memo : memo // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,locale: null == locale ? _self.locale : locale // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -173,10 +175,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String gender,  DateTime birthDate,  bool isLunar,  bool isLeapMonth,  int? birthTimeMinutes,  bool birthTimeUnknown,  bool useYaJasi,  String birthCity,  int timeCorrection,  DateTime createdAt,  DateTime updatedAt,  bool isActive,  String relationType,  String profileType,  String? memo)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String gender,  DateTime birthDate,  bool isLunar,  bool isLeapMonth,  int? birthTimeMinutes,  bool birthTimeUnknown,  bool useYaJasi,  String birthCity,  int timeCorrection,  DateTime createdAt,  DateTime updatedAt,  bool isActive,  String relationType,  String profileType,  String? memo,  String locale)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SajuProfileModel() when $default != null:
-return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.isLunar,_that.isLeapMonth,_that.birthTimeMinutes,_that.birthTimeUnknown,_that.useYaJasi,_that.birthCity,_that.timeCorrection,_that.createdAt,_that.updatedAt,_that.isActive,_that.relationType,_that.profileType,_that.memo);case _:
+return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.isLunar,_that.isLeapMonth,_that.birthTimeMinutes,_that.birthTimeUnknown,_that.useYaJasi,_that.birthCity,_that.timeCorrection,_that.createdAt,_that.updatedAt,_that.isActive,_that.relationType,_that.profileType,_that.memo,_that.locale);case _:
   return orElse();
 
 }
@@ -194,10 +196,10 @@ return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.is
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String gender,  DateTime birthDate,  bool isLunar,  bool isLeapMonth,  int? birthTimeMinutes,  bool birthTimeUnknown,  bool useYaJasi,  String birthCity,  int timeCorrection,  DateTime createdAt,  DateTime updatedAt,  bool isActive,  String relationType,  String profileType,  String? memo)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String gender,  DateTime birthDate,  bool isLunar,  bool isLeapMonth,  int? birthTimeMinutes,  bool birthTimeUnknown,  bool useYaJasi,  String birthCity,  int timeCorrection,  DateTime createdAt,  DateTime updatedAt,  bool isActive,  String relationType,  String profileType,  String? memo,  String locale)  $default,) {final _that = this;
 switch (_that) {
 case _SajuProfileModel():
-return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.isLunar,_that.isLeapMonth,_that.birthTimeMinutes,_that.birthTimeUnknown,_that.useYaJasi,_that.birthCity,_that.timeCorrection,_that.createdAt,_that.updatedAt,_that.isActive,_that.relationType,_that.profileType,_that.memo);case _:
+return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.isLunar,_that.isLeapMonth,_that.birthTimeMinutes,_that.birthTimeUnknown,_that.useYaJasi,_that.birthCity,_that.timeCorrection,_that.createdAt,_that.updatedAt,_that.isActive,_that.relationType,_that.profileType,_that.memo,_that.locale);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -214,10 +216,10 @@ return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.is
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String gender,  DateTime birthDate,  bool isLunar,  bool isLeapMonth,  int? birthTimeMinutes,  bool birthTimeUnknown,  bool useYaJasi,  String birthCity,  int timeCorrection,  DateTime createdAt,  DateTime updatedAt,  bool isActive,  String relationType,  String profileType,  String? memo)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String gender,  DateTime birthDate,  bool isLunar,  bool isLeapMonth,  int? birthTimeMinutes,  bool birthTimeUnknown,  bool useYaJasi,  String birthCity,  int timeCorrection,  DateTime createdAt,  DateTime updatedAt,  bool isActive,  String relationType,  String profileType,  String? memo,  String locale)?  $default,) {final _that = this;
 switch (_that) {
 case _SajuProfileModel() when $default != null:
-return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.isLunar,_that.isLeapMonth,_that.birthTimeMinutes,_that.birthTimeUnknown,_that.useYaJasi,_that.birthCity,_that.timeCorrection,_that.createdAt,_that.updatedAt,_that.isActive,_that.relationType,_that.profileType,_that.memo);case _:
+return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.isLunar,_that.isLeapMonth,_that.birthTimeMinutes,_that.birthTimeUnknown,_that.useYaJasi,_that.birthCity,_that.timeCorrection,_that.createdAt,_that.updatedAt,_that.isActive,_that.relationType,_that.profileType,_that.memo,_that.locale);case _:
   return null;
 
 }
@@ -229,7 +231,7 @@ return $default(_that.id,_that.displayName,_that.gender,_that.birthDate,_that.is
 @JsonSerializable()
 
 class _SajuProfileModel extends SajuProfileModel {
-  const _SajuProfileModel({required this.id, required this.displayName, required this.gender, required this.birthDate, required this.isLunar, this.isLeapMonth = false, this.birthTimeMinutes, this.birthTimeUnknown = false, this.useYaJasi = true, required this.birthCity, this.timeCorrection = 0, required this.createdAt, required this.updatedAt, this.isActive = false, this.relationType = 'me', this.profileType = 'primary', this.memo}): super._();
+  const _SajuProfileModel({required this.id, required this.displayName, required this.gender, required this.birthDate, required this.isLunar, this.isLeapMonth = false, this.birthTimeMinutes, this.birthTimeUnknown = false, this.useYaJasi = true, required this.birthCity, this.timeCorrection = 0, required this.createdAt, required this.updatedAt, this.isActive = false, this.relationType = 'me', this.profileType = 'primary', this.memo, this.locale = 'ko'}): super._();
   factory _SajuProfileModel.fromJson(Map<String, dynamic> json) => _$SajuProfileModelFromJson(json);
 
 @override final  String id;
@@ -253,6 +255,8 @@ class _SajuProfileModel extends SajuProfileModel {
 /// DB의 profile_type 컬럼에 매핑
 @override@JsonKey() final  String profileType;
 @override final  String? memo;
+/// UI/AI 응답 언어 (ko, ja, en)
+@override@JsonKey() final  String locale;
 
 /// Create a copy of SajuProfileModel
 /// with the given fields replaced by the non-null parameter values.
@@ -267,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SajuProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.isLunar, isLunar) || other.isLunar == isLunar)&&(identical(other.isLeapMonth, isLeapMonth) || other.isLeapMonth == isLeapMonth)&&(identical(other.birthTimeMinutes, birthTimeMinutes) || other.birthTimeMinutes == birthTimeMinutes)&&(identical(other.birthTimeUnknown, birthTimeUnknown) || other.birthTimeUnknown == birthTimeUnknown)&&(identical(other.useYaJasi, useYaJasi) || other.useYaJasi == useYaJasi)&&(identical(other.birthCity, birthCity) || other.birthCity == birthCity)&&(identical(other.timeCorrection, timeCorrection) || other.timeCorrection == timeCorrection)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.relationType, relationType) || other.relationType == relationType)&&(identical(other.profileType, profileType) || other.profileType == profileType)&&(identical(other.memo, memo) || other.memo == memo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SajuProfileModel&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.birthDate, birthDate) || other.birthDate == birthDate)&&(identical(other.isLunar, isLunar) || other.isLunar == isLunar)&&(identical(other.isLeapMonth, isLeapMonth) || other.isLeapMonth == isLeapMonth)&&(identical(other.birthTimeMinutes, birthTimeMinutes) || other.birthTimeMinutes == birthTimeMinutes)&&(identical(other.birthTimeUnknown, birthTimeUnknown) || other.birthTimeUnknown == birthTimeUnknown)&&(identical(other.useYaJasi, useYaJasi) || other.useYaJasi == useYaJasi)&&(identical(other.birthCity, birthCity) || other.birthCity == birthCity)&&(identical(other.timeCorrection, timeCorrection) || other.timeCorrection == timeCorrection)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.relationType, relationType) || other.relationType == relationType)&&(identical(other.profileType, profileType) || other.profileType == profileType)&&(identical(other.memo, memo) || other.memo == memo)&&(identical(other.locale, locale) || other.locale == locale));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,gender,birthDate,isLunar,isLeapMonth,birthTimeMinutes,birthTimeUnknown,useYaJasi,birthCity,timeCorrection,createdAt,updatedAt,isActive,relationType,profileType,memo);
+int get hashCode => Object.hash(runtimeType,id,displayName,gender,birthDate,isLunar,isLeapMonth,birthTimeMinutes,birthTimeUnknown,useYaJasi,birthCity,timeCorrection,createdAt,updatedAt,isActive,relationType,profileType,memo,locale);
 
 @override
 String toString() {
-  return 'SajuProfileModel(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive, relationType: $relationType, profileType: $profileType, memo: $memo)';
+  return 'SajuProfileModel(id: $id, displayName: $displayName, gender: $gender, birthDate: $birthDate, isLunar: $isLunar, isLeapMonth: $isLeapMonth, birthTimeMinutes: $birthTimeMinutes, birthTimeUnknown: $birthTimeUnknown, useYaJasi: $useYaJasi, birthCity: $birthCity, timeCorrection: $timeCorrection, createdAt: $createdAt, updatedAt: $updatedAt, isActive: $isActive, relationType: $relationType, profileType: $profileType, memo: $memo, locale: $locale)';
 }
 
 
@@ -287,7 +291,7 @@ abstract mixin class _$SajuProfileModelCopyWith<$Res> implements $SajuProfileMod
   factory _$SajuProfileModelCopyWith(_SajuProfileModel value, $Res Function(_SajuProfileModel) _then) = __$SajuProfileModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String displayName, String gender, DateTime birthDate, bool isLunar, bool isLeapMonth, int? birthTimeMinutes, bool birthTimeUnknown, bool useYaJasi, String birthCity, int timeCorrection, DateTime createdAt, DateTime updatedAt, bool isActive, String relationType, String profileType, String? memo
+ String id, String displayName, String gender, DateTime birthDate, bool isLunar, bool isLeapMonth, int? birthTimeMinutes, bool birthTimeUnknown, bool useYaJasi, String birthCity, int timeCorrection, DateTime createdAt, DateTime updatedAt, bool isActive, String relationType, String profileType, String? memo, String locale
 });
 
 
@@ -304,7 +308,7 @@ class __$SajuProfileModelCopyWithImpl<$Res>
 
 /// Create a copy of SajuProfileModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? gender = null,Object? birthDate = null,Object? isLunar = null,Object? isLeapMonth = null,Object? birthTimeMinutes = freezed,Object? birthTimeUnknown = null,Object? useYaJasi = null,Object? birthCity = null,Object? timeCorrection = null,Object? createdAt = null,Object? updatedAt = null,Object? isActive = null,Object? relationType = null,Object? profileType = null,Object? memo = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? gender = null,Object? birthDate = null,Object? isLunar = null,Object? isLeapMonth = null,Object? birthTimeMinutes = freezed,Object? birthTimeUnknown = null,Object? useYaJasi = null,Object? birthCity = null,Object? timeCorrection = null,Object? createdAt = null,Object? updatedAt = null,Object? isActive = null,Object? relationType = null,Object? profileType = null,Object? memo = freezed,Object? locale = null,}) {
   return _then(_SajuProfileModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -323,7 +327,8 @@ as DateTime,isActive: null == isActive ? _self.isActive : isActive // ignore: ca
 as bool,relationType: null == relationType ? _self.relationType : relationType // ignore: cast_nullable_to_non_nullable
 as String,profileType: null == profileType ? _self.profileType : profileType // ignore: cast_nullable_to_non_nullable
 as String,memo: freezed == memo ? _self.memo : memo // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,locale: null == locale ? _self.locale : locale // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

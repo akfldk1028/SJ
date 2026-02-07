@@ -500,6 +500,7 @@ class ChatNotifier extends _$ChatNotifier {
         userId: user.id,
         profileId: profileId,
         runInBackground: true,
+        locale: 'ko',
         onComplete: (result) {
           if (kDebugMode) {
             print('[ChatNotifier] saju_base 백그라운드 완료: '

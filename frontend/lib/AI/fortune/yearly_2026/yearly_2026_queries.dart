@@ -33,6 +33,7 @@ class Yearly2026Queries {
   Future<Map<String, dynamic>?> getCached(
     String profileId, {
     bool includeStale = false,
+    String locale = 'ko',
   }) async {
     try {
       // target_year 필드로 직접 필터링
@@ -42,6 +43,7 @@ class Yearly2026Queries {
           .eq('profile_id', profileId)
           .eq('summary_type', SummaryType.yearlyFortune2026)
           .eq('target_year', targetYear)
+          .eq('locale', locale)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -78,8 +80,8 @@ class Yearly2026Queries {
   ///
   /// [profileId] 프로필 UUID
   /// 반환: 유효한 캐시 존재 여부
-  Future<bool> exists(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<bool> exists(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     return cached != null;
   }
 
@@ -87,8 +89,8 @@ class Yearly2026Queries {
   ///
   /// [profileId] 프로필 UUID
   /// 반환: content JSON 또는 null
-  Future<Map<String, dynamic>?> getContent(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<Map<String, dynamic>?> getContent(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     if (cached == null) return null;
 
     final content = cached['content'];
@@ -111,8 +113,8 @@ class Yearly2026Queries {
   ///
   /// [profileId] 프로필 UUID
   /// 반환: 만료 시간 또는 null (무기한)
-  Future<DateTime?> getExpiryTime(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<DateTime?> getExpiryTime(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     if (cached == null) return null;
 
     final expiresAt = cached['expires_at'];

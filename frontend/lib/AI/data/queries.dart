@@ -93,6 +93,7 @@ class AiQueries extends BaseQueries {
     required String summaryType,
     DateTime? targetDate,
     String? targetPeriod,
+    String locale = 'ko',
   }) async {
     return safeSingleQuery(
       query: (client) async {
@@ -101,7 +102,8 @@ class AiQueries extends BaseQueries {
             .select()
             .eq(AiSummaries.c_profileId, profileId)
             .eq(AiSummaries.c_summaryType, summaryType)
-            .eq(AiSummaries.c_status, 'completed');
+            .eq(AiSummaries.c_status, 'completed')
+            .eq('locale', locale);
 
         // prompt_version 필터 (캐시 무효화)
         // 과거 날짜의 daily_fortune은 버전 무관하게 조회 (캘린더 히스토리)
@@ -147,12 +149,16 @@ class AiQueries extends BaseQueries {
   /// 기본 사주 분석 캐시 조회 (L1 캐시)
   ///
   /// ## UNIQUE INDEX
-  /// `idx_ai_summaries_unique_base`: (profile_id) WHERE summary_type = 'saju_base'
+  /// `idx_ai_summaries_unique_base`: (profile_id, locale) WHERE summary_type = 'saju_base'
   /// saju_base는 target_date가 NULL (날짜 필터 없이 profile_id + summary_type으로 조회)
-  Future<QueryResult<AiSummaries?>> getSajuBaseSummary(String profileId) {
+  Future<QueryResult<AiSummaries?>> getSajuBaseSummary(
+    String profileId, {
+    String locale = 'ko',
+  }) {
     return getCachedSummary(
       profileId: profileId,
       summaryType: SummaryType.sajuBase,
+      locale: locale,
       // saju_base는 target_date 없음 (NULL) - 날짜 필터 적용 안 함
     );
   }
@@ -225,12 +231,14 @@ class AiQueries extends BaseQueries {
   /// 일운 캐시 조회
   Future<QueryResult<AiSummaries?>> getDailyFortune(
     String profileId,
-    DateTime date,
-  ) {
+    DateTime date, {
+    String locale = 'ko',
+  }) {
     return getCachedSummary(
       profileId: profileId,
       summaryType: SummaryType.dailyFortune,
       targetDate: date,
+      locale: locale,
     );
   }
 
@@ -244,8 +252,9 @@ class AiQueries extends BaseQueries {
   /// - 성공: 날짜 목록 (DateTime 리스트)
   /// - 실패: 빈 리스트
   Future<QueryResult<List<DateTime>>> getDailyFortuneDates(
-    String profileId,
-  ) async {
+    String profileId, {
+    String locale = 'ko',
+  }) async {
     // 오프라인이거나 client가 null이면 빈 리스트 반환
     if (!isConnected || client == null) {
       return QueryResult.success([]);
@@ -257,7 +266,8 @@ class AiQueries extends BaseQueries {
       final response = await client!
           .from('daily_fortune_calendar')
           .select('target_date')
-          .eq('profile_id', profileId);
+          .eq('profile_id', profileId)
+          .eq('locale', locale);
 
       final dates = (response as List)
           .map((row) => DateTime.parse(row['target_date'] as String))
@@ -604,17 +614,19 @@ class AiQueries extends BaseQueries {
     required String userId,
     required String model,
     String taskType = 'saju_analysis',
+    String locale = 'ko',
   }) async {
     return safeSingleQuery(
       query: (client) async {
         // ai_tasks 테이블에서 pending/processing 상태 조회
-        // user_id + model로 필터링 (동일 사용자 + 동일 모델의 중복 task 방지)
+        // user_id + model + locale로 필터링 (동일 사용자 + 동일 모델 + 동일 언어의 중복 task 방지)
         final result = await client
             .from('ai_tasks')
             .select('id')
             .eq('task_type', taskType)
             .eq('user_id', userId)
             .eq('model', model)
+            .eq('locale', locale)
             .inFilter('status', ['pending', 'processing'])
             .order('created_at', ascending: false)
             .limit(1)

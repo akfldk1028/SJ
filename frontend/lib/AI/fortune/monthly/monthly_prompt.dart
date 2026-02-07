@@ -30,10 +30,14 @@ class MonthlyPrompt extends PromptTemplate {
   /// 대상 월
   final int targetMonth;
 
+  /// UI/AI 응답 언어 (ko, ja, en)
+  final String locale;
+
   MonthlyPrompt({
     required this.inputData,
     required this.targetYear,
     required this.targetMonth,
+    this.locale = 'ko',
   });
 
   @override
@@ -136,8 +140,27 @@ class MonthlyPrompt extends PromptTemplate {
     return {};
   }
 
+  /// 성별 문자열 (locale-aware)
+  String get _genderString {
+    switch (locale) {
+      case 'ja':
+        return inputData.genderKorean == '남성' ? '男性' : '女性';
+      case 'en':
+        return inputData.genderKorean == '남성' ? 'Male' : 'Female';
+      default:
+        return inputData.genderKorean;
+    }
+  }
+
   @override
-  String get systemPrompt => '''
+  String get systemPrompt => switch (locale) {
+    'ja' => _japaneseSystemPrompt,
+    'en' => _englishSystemPrompt,
+    _ => _koreanSystemPrompt,
+  };
+
+  /// 한국어 시스템 프롬프트
+  String get _koreanSystemPrompt => '''
 당신은 30년 경력의 사주명리학 전문가이자 스토리텔러입니다.
 사용자의 원국(사주 팔자)과 평생운세 분석을 바탕으로 ${targetYear}년 12개월 전체 운세를 분석합니다.
 
@@ -256,8 +279,233 @@ class MonthlyPrompt extends PromptTemplate {
 반드시 아래 JSON 형식으로 응답하세요. 각 필드의 문장들이 자연스럽게 이어지도록!
 ''';
 
+  /// 日本語 システムプロンプト
+  String get _japaneseSystemPrompt => '''
+あなたは四柱推命（しちゅうすいめい）歴30年のベテラン鑑定士であり、ストーリーテラーです。
+ユーザーの命式（四柱八字）と一生の運勢分析をもとに、${targetYear}年の12ヶ月間の月運を詳しく鑑定します。
+
+## わかりやすさの原則（最優先！）
+
+四柱推命を全く知らない20〜30代の方が読むことを想定してください。
+専門用語を使わなくても「なるほど、今月はこうすればいいんだ」とすぐ理解できるように書いてください。
+
+### 使ってはいけない用語（本文中に直接書かないでください）
+- 十神の用語: 比肩、劫財、食神、傷官、正財、偏財、正官、偏官、印綬、偏印 → 「あなたの生まれ持った気」「今月の気の流れ」など
+- 位置の用語: 日干、月干、年干、時干、日支、月支 → 「あなたの本質的なエネルギー」「今月のエネルギー」
+- 神殺の用語: 用神、喜神、忌神、仇神 → 「あなたを支える気」「気をつけたい気の流れ」
+- 関係の用語: 相生、相剋、合、衝、刑、破、害 → 自然現象のたとえに置き換え
+- 天干/地支の漢字: 甲乙丙丁戊己庚辛壬癸、子丑寅卯辰巳午未申酉戌亥 → 本文に直接書かない
+- 五行の漢字表記: 木(もく)、火(か)など → 「木」「火」「土」「金」「水」と自然物で表現
+
+### 変換ルール
+| 専門表現 | → わかりやすい表現 |
+|----------|------------------|
+| 甲木の日干に今月の火は食神 | 大きな木のエネルギーを持つあなたに、今月の火の気は表現力のエネルギーです |
+| 偏財が入ってくる | 思いがけないお金のチャンスが訪れて |
+| 寅申衝 | 今月は大きな変化の風が吹きます |
+| 用神の水が力を得て | あなたを最も支える水のエネルギーが活性化して |
+
+### どうしても専門用語を使う場合
+「表現力と才能のエネルギー（四柱推命では『食傷』と呼びます）」のように
+**わかりやすい言葉が先、専門用語は括弧の中に小さく**
+
+---
+
+## 今月のリクエスト月: ${targetMonth}月 $_monthGanji
+- 月天干: ${_monthElement['stem']} (${_monthElement['stemElement']})
+- 月地支: ${_monthElement['branch']} (${_monthElement['branchElement']})
+
+## レスポンス構成（重要！）
+1. **当月（${targetMonth}月）**: 7つのカテゴリーで詳細分析（各12〜15文）
+2. **残り11ヶ月**: 詳細版！（キーワード＋スコア＋8〜10文のリーディング＋7カテゴリーハイライト＋tip＋四字熟語＋lucky）
+   - 広告解除後にユーザーが読む核心コンテンツなので、絶対に短く書かないでください！
+
+---
+
+## 伝統 vs 現代（AI時代）の解釈（内部参考用 - 本文に漢字/専門用語を書かないこと！）
+
+分析時にこの表を参考にしつつ、ユーザーにはわかりやすい言葉で伝えてください。
+「昔は〜と見ていましたが、現代では〜として現れます」という形式を自然に含めてください。
+
+| 内部参考 | 本文に書く表現 | 現代の適用 |
+|----------|--------------|-----------|
+| 食傷 | 「表現力・クリエイティブなエネルギー」 | YouTube/ブログ/コンテンツ |
+| 駅馬殺 | 「移動・変化の気」 | デジタルノマド/出張 |
+| 桃花殺 | 「魅力が輝く気」 | インフルエンサー/マーケティング |
+| 印星 | 「学び・守護の気」 | AI活用/オンライン講座 |
+| 財星 | 「財運・チャンスの気」 | 投資/副業/フリーランス |
+| 官星 | 「仕事・責任の気」 | 昇進/プロジェクト |
+| 比劫 | 「競争・協力の気」 | チームワーク/共同プロジェクト |
+| 華蓋殺 | 「集中・没頭の気」 | ディープワーク/在宅/研究 |
+
+---
+
+## 絶対原則：「なぜ」そうなるのか根拠を必ず説明してください！
+
+すべての分析で曖昧な表現は禁止！ 必ず原因と結果をつなげて説明します：
+
+### 悪い例（禁止！）
+- 「今月はいい月です」（理由なし）
+- 「注意が必要な時期です」（曖昧）
+- 「偏財が入って金運が良いです」（専門用語を直接使用）
+
+### 良い例（このように書いてください！）
+- 「今月は積極的にチャンスを掴む財のエネルギーが入ってくる時期です。普段より思いがけない収入や投資機会が生まれるかもしれません。」
+- 「今月は大きな変化の風が吹く時期です。スケジュールが忙しくなったり予想外の変数が生じるかもしれませんが、これは新しいチャンスの扉が開くサインでもあります。」
+- 「あなたを最も支える水のエネルギーが今月活性化し、全体的にバランスの取れた良い流れになっています。」
+
+---
+
+## 執筆原則：ストーリーテリング！
+
+### 1. 流れるように読める文章
+- 短い文の羅列禁止！ 自然につながる段落で作成
+- まるで専門家が隣で説明してくれるように
+- 各段落は3〜5文が自然につながること
+- **なぜそうなるのか、命理学的な理由も一緒に説明**
+
+### 2. 今月の気を自然に織り込む
+- 「今月は${_monthElement['branchElement']}の気が入ってきて...」
+- 専門用語は絶対に直接使わず、わかりやすい言葉で
+- **支えとなる気と今月の気の関係も自然現象で説明**
+
+### 3. 気の出会いも物語のように
+- 「特に今月の気が{名前}さんの生まれ持った気と出会い...」
+- 気が合えば良い縁、ぶつかれば変化のチャンスとして説明
+- **なぜそのような影響があるのか** 自然現象のたとえで説明
+
+### 4. 具体的な状況の例示
+- 「第1週にはミーティングや契約がスムーズに進むかもしれません...」
+- 「第3週の半ばごろ、健康管理に気を配ると...」
+
+## トーン＆マナー
+- 占い師っぽい話し方は絶対禁止（です/ます体で丁寧に）
+- 親しみやすく温かいアドバイザーのトーン
+- 四柱推命の専門用語は本文に直接書かないこと（必要なら括弧内に小さく）
+- ポジティブ/ネガティブのバランス、現実的なアドバイス
+
+## レスポンス形式
+必ず以下のJSON形式で回答してください。各フィールドの文章が自然につながるように！
+''';
+
+  /// English system prompt
+  String get _englishSystemPrompt => '''
+You are a warm, wise fortune counselor with 30 years of experience in BaZi (Four Pillars of Destiny), an ancient Chinese metaphysical system.
+Based on the user's birth chart and lifetime fortune analysis, you will provide a detailed monthly fortune reading for all 12 months of $targetYear.
+
+## Simplicity Principle (Top Priority!)
+
+Assume the reader is a young adult (20s-30s) who knows nothing about BaZi or Eastern astrology.
+Write so they can immediately understand: "Ah, so this is what I should focus on this month!"
+
+### Forbidden Terminology (Do NOT use these directly in the reading)
+- Technical terms: Companion, Rob Wealth, Eating God, Hurting Officer, Direct Wealth, Indirect Wealth, Direct Officer, Seven Killings, Direct Seal, Indirect Seal
+- Position terms: Day Master, Month Stem, Year Stem → Use "your innate energy", "this month's energy" instead
+- Spirit terms: Useful God, Favorable God, Unfavorable God → "the energy that supports you", "energy to be mindful of"
+- Relationship terms: Generating, Controlling, Combining, Clashing → Use nature metaphors instead
+- Chinese characters for Stems/Branches → Not needed in the reading
+- Five Elements in Chinese: Wood(木), Fire(火) → Just use "Wood", "Fire", "Earth", "Metal", "Water"
+
+### Conversion Rules
+| Technical Expression | → Simple Expression |
+|---------------------|---------------------|
+| Day Master is Yang Wood, this month's Fire is Eating God | You carry the energy of a great tree — this month's fire energy fuels your creative expression |
+| Indirect Wealth arrives | An unexpected financial opportunity may appear |
+| Yin-Shen clash | A big wind of change sweeps through this month |
+| Useful God Water gains strength | The water energy that supports you most comes alive |
+
+### If you must use a technical term
+"Creative and expressive energy (in BaZi, this is called 'Food God')" —
+**Simple words first, technical term in parentheses**
+
+---
+
+## Current Request Month: Month ${targetMonth} $_monthGanji
+- Month Heavenly Stem: ${_monthElement['stem']} (${_monthElement['stemElement']})
+- Month Earthly Branch: ${_monthElement['branch']} (${_monthElement['branchElement']})
+
+## Response Structure (Important!)
+1. **Current Month (Month $targetMonth)**: Detailed analysis across 7 categories (12-15 sentences each)
+2. **Remaining 11 Months**: Detailed version! (keyword + score + 8-10 sentence reading + 7 category highlights + tip + proverb + lucky)
+   - This is the core content users read after unlocking — never write it too short!
+
+---
+
+## Traditional vs Modern (AI Era) Interpretation (Internal Reference — Do NOT put technical terms in the reading!)
+
+Use this table for analysis, but communicate to users in simple language only.
+Naturally include the format: "Traditionally, this was seen as ~, but in modern life, it shows up as ~"
+
+| Internal Reference | Expression for Reading | Modern Application |
+|-------------------|----------------------|-------------------|
+| Food/Hurting Officer | "Creative/expressive energy" | YouTube/blogs/content creation |
+| Traveling Horse | "Energy of movement & change" | Digital nomad/business trips |
+| Peach Blossom | "Charm & attraction energy" | Social media/marketing |
+| Seal Star | "Learning & protective energy" | AI tools/online courses |
+| Wealth Star | "Financial opportunity energy" | Investing/side hustles/freelancing |
+| Officer Star | "Career & responsibility energy" | Promotions/projects |
+| Companion/Rob | "Competition & teamwork energy" | Team collaboration/joint projects |
+| Canopy Star | "Focus & deep-work energy" | Deep work/remote work/research |
+
+---
+
+## Absolute Rule: Always explain WHY with clear reasoning!
+
+No vague statements allowed! Always connect cause and effect:
+
+### Bad Examples (Forbidden!)
+- "This month is a good month" (no reason)
+- "Caution is needed this period" (too vague)
+- "Indirect Wealth brings good money luck" (raw technical term)
+
+### Good Examples (Write like this!)
+- "This month, an active financial energy flows in, bringing unexpected income opportunities or investment chances your way."
+- "This month carries a strong wind of change. Your schedule may get busier or surprises may pop up, but this is also a sign that new doors of opportunity are opening."
+- "The water energy that supports you most comes alive this month, creating a well-balanced and positive overall flow."
+
+---
+
+## Writing Principles: Storytelling!
+
+### 1. Flowing, readable prose
+- No bullet-point-style short sentences! Write naturally flowing paragraphs
+- As if a trusted advisor is explaining things beside you
+- Each paragraph should have 3-5 sentences naturally connected
+- **Always explain the reasoning behind the fortune reading**
+
+### 2. Weave this month's energy naturally
+- "As ${_monthElement['branchElement']} energy flows in this month..."
+- Never use technical terms directly — always in simple language
+- **Explain the relationship between supportive energy and this month's energy using nature metaphors**
+
+### 3. Describe energy interactions like a story
+- "This month's energy meets {name}'s innate energy, and..."
+- If energies harmonize → good connections; if they clash → opportunity for growth
+- **Use nature metaphors to explain why certain effects occur**
+
+### 4. Give concrete situational examples
+- "In the first week, meetings or deals may go smoothly..."
+- "Around mid-third week, paying attention to health could..."
+
+## Tone & Manner
+- Absolutely no fortune-teller cliches
+- Warm, friendly advisor tone
+- No BaZi jargon in the body text (if absolutely necessary, put it in parentheses)
+- Balance between positive/negative, realistic advice
+
+## Response Format
+Always respond in the JSON format below. Make sure sentences flow naturally within each field!
+''';
+
   @override
-  String buildUserPrompt([Map<String, dynamic>? input]) {
+  String buildUserPrompt([Map<String, dynamic>? input]) => switch (locale) {
+    'ja' => _buildJapaneseUserPrompt(),
+    'en' => _buildEnglishUserPrompt(),
+    _ => _buildKoreanUserPrompt(),
+  };
+
+  /// 한국어 사용자 프롬프트
+  String _buildKoreanUserPrompt() {
     return '''
 ## 사용자 기본 정보
 - 이름: ${inputData.profileName}
@@ -396,6 +644,292 @@ ${_formatSajuBase()}
 
 **점수는 반드시 숫자만! 예: "score": 42 (O), "score": "(30~95)" (X)**
 **12개월 점수가 65~75 사이에 몰려있으면 안 됩니다! 과감하게!**
+''';
+  }
+
+  /// 日本語 ユーザープロンプト
+  String _buildJapaneseUserPrompt() {
+    return '''
+## ユーザー基本情報
+- 名前: ${inputData.profileName}
+- 生年月日: ${inputData.birthDate}
+${inputData.birthTime != null ? '- 生まれた時間: ${inputData.birthTime}' : ''}
+- 性別: $_genderString
+
+## 四柱八字（命式）
+${inputData.sajuPaljaTable}
+
+## 日干の強弱
+${inputData.dayStrengthInfo}
+
+## 用神/忌神（最重要！）
+${inputData.yongsinInfo}
+
+---
+## ⭐ ${targetYear}年${targetMonth}月 $_monthGanji と命式の五行結合分析 ⭐
+${_formatMonthlyCombination()}
+---
+
+## 今月との合衝関係
+${_formatMonthlyHapchung()}
+
+## 神殺（しんさつ）
+${inputData.sinsalInfo}
+
+## 一生の四柱分析 (saju_base)
+${_formatSajuBase()}
+
+## 分析リクエスト
+
+上記の命式情報と**「今月と命式の五行結合分析」**をもとに、${targetYear}年${targetMonth}月の月運を分析してください。
+
+**⭐ 核心: 日干(${inputData.dayGan ?? '?'}) + 月運(${_monthElement['branchElement'] ?? '?'}) = ${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'} の関係を中心に！**
+
+**ストーリーテリングで書いてください：**
+- **十神(${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'})が今月どのような影響を与えるか**を自然に織り込んで
+- 月天干/月支と${inputData.yongsinElement != null ? '用神 ${inputData.yongsinElement}' : '用神'}の関係
+- 月支 ${_monthElement['branch']}と${inputData.dayJi != null ? '日支 ${inputData.dayJi}' : '日支'}の関係を物語のように
+
+## ⚠️ スコア算定ルール（非常に重要！）
+- スコアは**必ずこの人の命式＋該当月の干支の組み合わせ**で計算してください
+- **例のスコアをそのまま使わないでください！** 人によって、月によって異なります
+- 範囲: 30〜95（大胆に！良い月は90+、悪い月は40以下もOK）
+- カテゴリー間のスコア差を大きくしてください（最低15点以上の差がある項目が必要）
+- 12ヶ月間のスコア差も大きく！（最高月と最低月の差30点以上）
+- 用神が力を得る月 → 該当分野で高スコア（85+）
+- 忌神/仇神が強い月 → 該当分野で低スコア（50以下）
+- 合衝がある月 → 変動幅を大きく（極端なスコアも可能）
+
+## レスポンスJSONスキーマ (v4.0: 12ヶ月統合)
+
+**重要**: 当月（${targetMonth}月）は詳細分析、残り11ヶ月は要約！
+**スコアは数字のみ！文字列不可。例: "score": 42 (O), "score": "(30~95)" (X)**
+
+{
+  "year": $targetYear,
+  "currentMonth": $targetMonth,
+
+  "current": {
+    "month": $targetMonth,
+    "monthGanji": "$_monthGanji",
+    "overview": {
+      "keyword": "今月のキーワード（3〜4文字）",
+      "score": "(30〜95, 日干+月運+用神ベースで計算)",
+      "reading": "${targetMonth}月の総合運です。今月は$_monthGanji月で、${_monthElement['stemElement']}と${_monthElement['branchElement']}のエネルギーが流れる時期です。{名前}さんの日干{日干}にとって、今月の月支の${_monthElement['branchElement']}のエネルギーが{十神}として作用し{影響の説明}。{用神/忌神との関係説明}。{合衝があれば説明}。したがって今月は{結論}されるとよいでしょう。(8〜10文)"
+    },
+    "categories": {
+      "career": {
+        "title": "仕事運",
+        "score": "(30〜95, 官星+月運ベース)",
+        "reading": "今月の職場では${_monthGanji}の{十神}エネルギーが流れます。{名前}さんの日干は{日干}で、月支の${_monthElement['branchElement']}エネルギーが{十神}として作用します。{十神}は職場で{職場的な意味}を意味します。命式で官星が{官星の特性}な傾向があり、今月{具体的な影響}が予想されます。{合衝の影響}。業務成果を高めるには{業務アドバイス}し、同僚/上司との関係では{関係アドバイス}を心がけてください。{まとめのアドバイス}。(必ず12〜15文)"
+      },
+      "business": {
+        "title": "事業運",
+        "score": "(30〜95, 財星+食傷+月運ベース)",
+        "reading": "事業面で今月は{十神}のエネルギーが影響を与えます。{日干}にとって${_monthElement['branchElement']}エネルギーが{十神}として作用し、事業では{事業的な意味}を意味します。命式の財星が{財星の強弱}なので{財星の影響}が予想されます。パートナーシップや取引先との関係では{パートナーアドバイス}。事業拡大は{拡大アドバイス}、新規契約は{契約アドバイス}を参考にしてください。{まとめのアドバイス}。(必ず12〜15文)"
+      },
+      "wealth": {
+        "title": "金運",
+        "score": "(30〜95, 財星+比劫+月運ベース)",
+        "reading": "財運面で今月は{十神}のエネルギーが流れます。${_monthElement['branchElement']}エネルギーが{十神}として作用し、財運で{財運的な意味}を示します。命式で財星が{財星の強弱}なので{命式の影響}。投資は{投資アドバイス}し、支出管理は{支出アドバイス}をお勧めします。{まとめのアドバイス}。(必ず12〜15文)"
+      },
+      "love": {
+        "title": "恋愛運",
+        "score": "(30〜95, 日支+桃花+月運ベース)",
+        "reading": "恋愛運で今月は月支と日支の関係で{恋愛の雰囲気}なエネルギーが流れます。月支${_monthElement['branch']}が日支と{合/衝/無関係}し{合衝の影響}。命式で{配偶者星}が{特性}なので{恋愛への影響}が予想されます。シングルの方は{シングルアドバイス}。パートナーがいる方は{カップルアドバイス}。{まとめのアドバイス}。(必ず12〜15文)"
+      },
+      "marriage": {
+        "title": "結婚運",
+        "score": "(30〜95, 配偶者宮+月運ベース)",
+        "reading": "結婚の観点で今月は配偶者宮である日支と月支${_monthElement['branch']}の関係が核心です。{合/衝の分析}。{日干}にとって${_monthElement['branchElement']}エネルギーが{十神}として作用し、結婚で{十神}は{結婚的な意味}を示します。未婚の方は{未婚アドバイス}。既婚の方は{既婚アドバイス}。{まとめのアドバイス}。(必ず12〜15文)"
+      },
+      "health": {
+        "title": "健康運",
+        "score": "(30〜95, 五行バランス+月運ベース)",
+        "reading": "健康面で今月は${_monthElement['branchElement']}のエネルギーが強く流れます。五行でこのエネルギーは{該当臓器}に該当し、{健康影響の原因}が生じる可能性があります。命式で{弱い五行}が弱いので{五行の不均衡}に注意してください。運動は{運動の推薦}、食事は{食事アドバイス}が役立ちます。{まとめのアドバイス}。(必ず12〜15文)"
+      },
+      "study": {
+        "title": "学業運",
+        "score": "(30〜95, 印星+食傷+月運ベース)",
+        "reading": "学業の観点で今月${_monthElement['branchElement']}エネルギーが{日干}に{十神}として作用します。{十神}は学業で{学業的な意味}を意味します。命式で印星が{印星の分析}で食傷が{食傷の分析}なので{具体的な影響}が予想されます。試験準備は{試験アドバイス}、資格は{資格アドバイス}を参考にしてください。{まとめのアドバイス}。(必ず12〜15文)"
+      }
+    },
+    "lucky": {
+      "colors": ["ラッキーカラー1", "ラッキーカラー2"],
+      "numbers": ["数字1", "数字2"],
+      "tip": "ラッキー要素の活用法（2文）"
+    }
+  },
+
+  "months": {
+    "month1": {
+      "keyword": "1月のキーワード（3〜4文字）",
+      "score": "(30〜95, 1月の干支+命式ベース - 例のスコアコピー禁止！)",
+      "reading": "1月は{月干支}のエネルギーで{日干}に{十神}が作用します。伝統的には{伝統解釈}ですが、現代では{現代解釈}として見ることができます。{用神/忌神の関係説明}。{合衝があれば変化/チャンスの説明}。この月の核心は{核心ポイント}です。{日干+月運の組み合わせが各領域に与える影響の説明}。{具体的なアドバイス}すると良い結果が得られるでしょう。全体的に{まとめのアドバイス}。(必ず8〜10文、広告解除後にユーザーが読む核心コンテンツ！)",
+      "tip": "この月の核心実践アドバイス（2文、具体的に！）",
+      "idiom": {"phrase": "四字熟語（漢字とふりがな）", "meaning": "この月にふさわしい四字熟語の意味と適用アドバイス（2文）"},
+      "highlights": {
+        "career": {"score": "(30〜95)", "summary": "職場で{十神}エネルギーによる{核心的な影響}。{具体的アドバイス}（2文）"},
+        "business": {"score": "(30〜95)", "summary": "事業/自営業で{核心的な影響}。{具体的アドバイス}（2文）"},
+        "wealth": {"score": "(30〜95)", "summary": "金運面で{核心的な影響}。{具体的アドバイス}（2文）"},
+        "love": {"score": "(30〜95)", "summary": "恋愛/人間関係で{核心的な影響}。{具体的アドバイス}（2文）"},
+        "marriage": {"score": "(30〜95)", "summary": "結婚/家庭で{核心的な影響}。{具体的アドバイス}（2文）"},
+        "health": {"score": "(30〜95)", "summary": "健康面で{核心的な影響}。{具体的アドバイス}（2文）"},
+        "study": {"score": "(30〜95)", "summary": "学業/資格で{核心的な影響}。{具体的アドバイス}（2文）"}
+      },
+      "lucky": {"color": "この月のラッキーカラー（用神ベース）", "number": "（用神五行ベースの数字）"}
+    },
+    "month2~month12": "上記month1と同じ構造で、各月の干支に合わせてスコアを個別計算してください。12ヶ月のスコアが全て似通ってはいけません！最高月と最低月の差30点以上！highlightsの7カテゴリーのスコアも月ごと、カテゴリーごとに大胆に差別化！"
+  },
+
+  "closingMessage": "${targetYear}年を過ごす{名前}さんへ。12ヶ月全体を見ると{年間の流れの要約}。{励まし/応援}。(2文)"
+}
+
+**スコアは必ず数字のみ！ 例: "score": 42 (O), "score": "(30~95)" (X)**
+**12ヶ月のスコアが65〜75の間に集中してはいけません！大胆に！**
+''';
+  }
+
+  /// English user prompt
+  String _buildEnglishUserPrompt() {
+    return '''
+## User Information
+- Name: ${inputData.profileName}
+- Date of Birth: ${inputData.birthDate}
+${inputData.birthTime != null ? '- Birth Time: ${inputData.birthTime}' : ''}
+- Gender: $_genderString
+
+## Four Pillars (Birth Chart)
+${inputData.sajuPaljaTable}
+
+## Day Master Strength
+${inputData.dayStrengthInfo}
+
+## Useful God / Unfavorable God (Most Important!)
+${inputData.yongsinInfo}
+
+---
+## ⭐ $targetYear Month $targetMonth $_monthGanji — Five Element Combination Analysis with Birth Chart ⭐
+${_formatMonthlyCombination()}
+---
+
+## This Month's Harmony & Clash Relationships
+${_formatMonthlyHapchung()}
+
+## Spirit Stars (Special Influences)
+${inputData.sinsalInfo}
+
+## Lifetime BaZi Analysis (saju_base)
+${_formatSajuBase()}
+
+## Analysis Request
+
+Based on the birth chart information above and the **"Five Element Combination Analysis with this month"**, please analyze the fortune for Month $targetMonth of $targetYear.
+
+**⭐ Core Focus: Day Master (${inputData.dayGan ?? '?'}) + Monthly Energy (${_monthElement['branchElement'] ?? '?'}) = ${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'} relationship as the central theme!**
+
+**Write in storytelling style:**
+- **How the Ten God relationship (${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'}) influences this month** — weave it naturally into the narrative
+- The relationship between the Monthly Stem/Branch and ${inputData.yongsinElement != null ? 'Useful God ${inputData.yongsinElement}' : 'Useful God'}
+- The relationship between Monthly Branch ${_monthElement['branch']} and ${inputData.dayJi != null ? 'Day Branch ${inputData.dayJi}' : 'Day Branch'} — tell it like a story
+
+## ⚠️ Scoring Rules (Very Important!)
+- Scores must be calculated based on **this person's birth chart + this month's stem-branch combination**
+- **Never copy example scores!** Scores must differ per person and per month
+- Range: 30–95 (be bold! Good months can be 90+, tough months can go below 40)
+- Create significant score differences between categories (at least 15-point gaps)
+- Create significant score differences across 12 months! (30+ point gap between best and worst months)
+- Months when Useful God gains power → high scores in that area (85+)
+- Months when Unfavorable God is strong → low scores in that area (50 or below)
+- Months with clashes → large fluctuations (extreme scores possible)
+
+## Response JSON Schema (v4.0: 12-Month Integrated)
+
+**Important**: Current month (Month $targetMonth) gets detailed analysis, remaining 11 months get summary!
+**Scores must be numbers only! Not strings. Example: "score": 42 (O), "score": "(30~95)" (X)**
+
+{
+  "year": $targetYear,
+  "currentMonth": $targetMonth,
+
+  "current": {
+    "month": $targetMonth,
+    "monthGanji": "$_monthGanji",
+    "overview": {
+      "keyword": "This month's keyword (3-4 words)",
+      "score": "(30-95, calculated from Day Master + monthly energy + Useful God)",
+      "reading": "Here is your Month $targetMonth overview. This month is $_monthGanji, a period where ${_monthElement['stemElement']} and ${_monthElement['branchElement']} energies flow together. For {name}, whose Day Master is {Day Master}, the ${_monthElement['branchElement']} energy from this month's branch acts as {Ten God}, which means {influence explanation}. {Useful God/Unfavorable God relationship}. {Clash explanation if applicable}. Therefore, this month it would be wise to {conclusion}. (8-10 sentences)"
+    },
+    "categories": {
+      "career": {
+        "title": "Career Fortune",
+        "score": "(30-95, based on Officer Star + monthly energy)",
+        "reading": "At work this month, the energy of ${_monthGanji}'s {Ten God} flows through. {Name}'s Day Master is {Day Master}, and the ${_monthElement['branchElement']} energy from the monthly branch acts as {Ten God}. {Ten God} in the workplace means {workplace meaning}. In the birth chart, the Officer Star tends to be {Officer characteristic}, so this month {specific impact} is expected. {Clash impact}. To boost work performance, {work advice}, and in colleague/boss relationships, remember {relationship advice}. {Closing advice}. (Must be 12-15 sentences)"
+      },
+      "business": {
+        "title": "Business Fortune",
+        "score": "(30-95, based on Wealth Star + Food God + monthly energy)",
+        "reading": "On the business front, this month the {Ten God} energy influences you. For {Day Master}, ${_monthElement['branchElement']} energy acts as {Ten God}, and in business, {Ten God} means {business meaning}. The Wealth Star in the birth chart is {Wealth strength}, so {Wealth impact} is expected. For partnerships and client relationships, {partner advice}. Business expansion: {expansion advice}, new contracts: {contract advice}. {Closing advice}. (Must be 12-15 sentences)"
+      },
+      "wealth": {
+        "title": "Wealth Fortune",
+        "score": "(30-95, based on Wealth Star + Companion + monthly energy)",
+        "reading": "Financially, this month the {Ten God} energy flows. ${_monthElement['branchElement']} energy acts as {Ten God}, indicating {financial meaning} in wealth matters. The Wealth Star in the birth chart is {Wealth strength}, so {birth chart impact}. For investments, {investment advice}, and for spending management, {spending advice}. {Closing advice}. (Must be 12-15 sentences)"
+      },
+      "love": {
+        "title": "Love Fortune",
+        "score": "(30-95, based on Day Branch + Peach Blossom + monthly energy)",
+        "reading": "In love, this month the relationship between the monthly branch and day branch creates a {romantic atmosphere} energy. Monthly branch ${_monthElement['branch']} {combines/clashes/neutral} with the day branch, {clash impact}. In the birth chart, the {spouse star} tends to be {characteristic}, so {love impact} is expected. For singles: {singles advice}. For those in relationships: {couples advice}. {Closing advice}. (Must be 12-15 sentences)"
+      },
+      "marriage": {
+        "title": "Marriage Fortune",
+        "score": "(30-95, based on Spouse Palace + monthly energy)",
+        "reading": "From a marriage perspective, the key this month is the relationship between the Spouse Palace (Day Branch) and Monthly Branch ${_monthElement['branch']}. {Combine/clash analysis}. For {Day Master}, ${_monthElement['branchElement']} energy acts as {Ten God}, and in marriage, {Ten God} represents {marriage meaning}. For unmarried individuals: {unmarried advice}. For married individuals: {married advice}. {Closing advice}. (Must be 12-15 sentences)"
+      },
+      "health": {
+        "title": "Health Fortune",
+        "score": "(30-95, based on Five Element balance + monthly energy)",
+        "reading": "Health-wise, this month ${_monthElement['branchElement']} energy flows strongly. In the Five Elements, this energy corresponds to {related organ}, and {health impact cause} may occur. In the birth chart, {weak element} tends to be weak, so be mindful of {element imbalance}. For exercise, {exercise recommendation}, and for diet, {food advice} would help. {Closing advice}. (Must be 12-15 sentences)"
+      },
+      "study": {
+        "title": "Study Fortune",
+        "score": "(30-95, based on Seal Star + Food God + monthly energy)",
+        "reading": "Academically, this month ${_monthElement['branchElement']} energy acts as {Ten God} for {Day Master}. {Ten God} in studies means {academic meaning}. In the birth chart, the Seal Star is {Seal analysis} and Food God is {Food analysis}, so {specific impact} is expected. For exam preparation: {exam advice}, for certifications: {certification advice}. {Closing advice}. (Must be 12-15 sentences)"
+      }
+    },
+    "lucky": {
+      "colors": ["Lucky color 1", "Lucky color 2"],
+      "numbers": ["Number 1", "Number 2"],
+      "tip": "How to use lucky elements (2 sentences)"
+    }
+  },
+
+  "months": {
+    "month1": {
+      "keyword": "January keyword (3-4 words)",
+      "score": "(30-95, based on January's stem-branch + birth chart — do NOT copy example scores!)",
+      "reading": "January carries the energy of {monthly stem-branch}, acting as {Ten God} for {Day Master}. Traditionally, this was interpreted as {traditional reading}, but in modern life it manifests as {modern reading}. {Useful God/Unfavorable God relationship}. {Clash means change/opportunity if applicable}. The key theme this month is {key point}. {Day Master + monthly energy combination's impact across areas}. {Specific advice} will lead to good results. Overall, {closing advice}. (Must be 8-10 sentences — this is core content users read after unlocking!)",
+      "tip": "This month's key actionable advice (2 sentences, be specific!)",
+      "idiom": {"phrase": "A proverb or wise saying", "meaning": "The meaning of this saying and how it applies to this month (2 sentences)"},
+      "highlights": {
+        "career": {"score": "(30-95)", "summary": "At work, {Ten God} energy brings {key impact}. {Specific advice} (2 sentences)"},
+        "business": {"score": "(30-95)", "summary": "In business, {key impact}. {Specific advice} (2 sentences)"},
+        "wealth": {"score": "(30-95)", "summary": "Financially, {key impact}. {Specific advice} (2 sentences)"},
+        "love": {"score": "(30-95)", "summary": "In love/relationships, {key impact}. {Specific advice} (2 sentences)"},
+        "marriage": {"score": "(30-95)", "summary": "In marriage/family, {key impact}. {Specific advice} (2 sentences)"},
+        "health": {"score": "(30-95)", "summary": "Health-wise, {key impact}. {Specific advice} (2 sentences)"},
+        "study": {"score": "(30-95)", "summary": "Academically, {key impact}. {Specific advice} (2 sentences)"}
+      },
+      "lucky": {"color": "This month's lucky color (based on Useful God)", "number": "(number based on Useful God element)"}
+    },
+    "month2~month12": "Same structure as month1 above. Calculate scores individually based on each month's stem-branch. All 12 months must NOT have similar scores! 30+ point gap between best and worst months! The 7 category scores in highlights must also be boldly differentiated by month and category!"
+  },
+
+  "closingMessage": "To {name}, as you journey through $targetYear. Looking at all 12 months, {annual flow summary}. {encouragement/support}. (2 sentences)"
+}
+
+**Scores MUST be numbers only! Example: "score": 42 (O), "score": "(30~95)" (X)**
+**12 months' scores must NOT cluster between 65-75! Be bold and varied!**
 ''';
   }
 

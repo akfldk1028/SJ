@@ -462,6 +462,7 @@ class MonthlyFortune extends _$MonthlyFortune {
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
+      locale: 'ko',
     ).then((result) {
       _isAnalyzing = false;
       print('[MonthlyFortune] ✅ Fortune 분석 완료');

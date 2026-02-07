@@ -67,6 +67,10 @@ abstract class SajuProfile with _$SajuProfile {
 
     /// 메모
     String? memo,
+
+    /// UI/AI 응답 언어 (ko, ja, en)
+    /// country_code(출생 국가)와 별개 - 한국 출생이지만 일본어 사용 가능
+    @Default('ko') String locale,
   }) = _SajuProfile;
 
   const SajuProfile._();

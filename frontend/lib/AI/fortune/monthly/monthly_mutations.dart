@@ -47,6 +47,7 @@ class MonthlyMutations {
     FortuneInputData? inputData,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     print('[MonthlyMutations] 저장 시작: profileId=$profileId, year=$targetYear, month=$targetMonth');
 
@@ -69,6 +70,7 @@ class MonthlyMutations {
       'summary_type': SummaryType.monthlyFortune,
       'target_year': targetYear,
       'target_month': targetMonth,
+      'locale': locale,
       'content': content,
       'input_data': inputDataJson.isNotEmpty ? inputDataJson : null,
       'model_name': modelName,
@@ -106,6 +108,7 @@ class MonthlyMutations {
     String profileId, {
     required int year,
     required int month,
+    String locale = 'ko',
   }) async {
     await _supabase
         .from('ai_summaries')
@@ -113,7 +116,8 @@ class MonthlyMutations {
         .eq('profile_id', profileId)
         .eq('summary_type', SummaryType.monthlyFortune)
         .eq('target_year', year)
-        .eq('target_month', month);
+        .eq('target_month', month)
+        .eq('locale', locale);
   }
 
   /// 모든 월운 삭제
@@ -130,6 +134,7 @@ class MonthlyMutations {
     String profileId, {
     required int year,
     required int month,
+    String locale = 'ko',
   }) async {
     await _supabase
         .from('ai_summaries')
@@ -141,7 +146,8 @@ class MonthlyMutations {
         .eq('profile_id', profileId)
         .eq('summary_type', SummaryType.monthlyFortune)
         .eq('target_year', year)
-        .eq('target_month', month);
+        .eq('target_month', month)
+        .eq('locale', locale);
   }
 
   /// 구조화된 input_data JSON 생성

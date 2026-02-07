@@ -110,6 +110,7 @@ class RelationSajuHelper {
             userId: user.id,
             profileId: profileId,
             runInBackground: true,
+            locale: 'ko',
             onComplete: (result) {
               debugPrint('✅ [RelationSajuHelper] GPT 분석 완료: $displayName');
               debugPrint('   - 평생운세: ${result.sajuBase?.success ?? false}');

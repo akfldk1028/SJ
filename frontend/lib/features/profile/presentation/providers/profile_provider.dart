@@ -152,6 +152,7 @@ class ActiveProfile extends _$ActiveProfile {
       userId: user.id,
       profileId: profileId,
       runInBackground: false,  // 완료 대기
+      locale: state.value?.locale ?? 'ko',
     );
 
     if (result.sajuBase?.success == true) {
@@ -177,6 +178,7 @@ class ActiveProfile extends _$ActiveProfile {
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
+      locale: state.value?.locale ?? 'ko',
       onComplete: (result) {
         // 분석 완료 시 UI 갱신을 위해 provider invalidate
         print('[ActiveProfile] AI 분석 완료 - UI 갱신');
@@ -734,6 +736,7 @@ class ProfileForm extends _$ProfileForm {
       userId: user.id,
       profileId: profileId,
       runInBackground: false,  // 완료 대기
+      locale: 'ko',
     );
 
     if (result.sajuBase?.success == true) {
@@ -793,6 +796,7 @@ class ProfileForm extends _$ProfileForm {
     fortuneCoordinator.analyzeFortuneOnly(
       userId: userId,
       profileId: profileId,
+      locale: 'ko',
     ).then((results) {
       print('[Profile] ✅ Fortune 분석 완료! (daily: ${results.daily != null})');
       // Fortune 완료 즉시 UI 갱신
@@ -813,6 +817,7 @@ class ProfileForm extends _$ProfileForm {
       userId: userId,
       profileId: profileId,
       runInBackground: true,
+      locale: 'ko',
       onComplete: (result) {
         print('[Profile] ✅ saju_base 분석 완료: ${result.success}');
         // 평생운세 UI 갱신
