@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,7 +21,7 @@ class _FortuneColors {
 }
 
 /// 카테고리 항목 타입
-typedef _CategoryDef = ({String key, String name, IconData icon, Color color});
+typedef _CategoryDef = ({String key, String nameKey, IconData icon, Color color});
 
 /// 행운 항목 타입
 typedef _LuckyDef = ({String label, String value, IconData icon});
@@ -30,10 +31,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   const DailyFortuneDetailScreen({super.key});
 
   static const _categories = <_CategoryDef>[
-    (key: 'wealth', name: '재물운', icon: Icons.account_balance_wallet_rounded, color: _FortuneColors.wealth),
-    (key: 'love', name: '애정운', icon: Icons.favorite_rounded, color: _FortuneColors.love),
-    (key: 'work', name: '직장운', icon: Icons.work_rounded, color: _FortuneColors.work),
-    (key: 'health', name: '건강운', icon: Icons.monitor_heart_rounded, color: _FortuneColors.health),
+    (key: 'wealth', nameKey: 'daily_fortune.money', icon: Icons.account_balance_wallet_rounded, color: _FortuneColors.wealth),
+    (key: 'love', nameKey: 'daily_fortune.love', icon: Icons.favorite_rounded, color: _FortuneColors.love),
+    (key: 'work', nameKey: 'daily_fortune.work', icon: Icons.work_rounded, color: _FortuneColors.work),
+    (key: 'health', nameKey: 'daily_fortune.health', icon: Icons.monitor_heart_rounded, color: _FortuneColors.health),
   ];
 
   @override
@@ -52,7 +53,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '오늘의 운세',
+          'daily_fortune.title'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -93,7 +94,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'AI가 오늘의 운세를 분석하고 있어요',
+            'daily_fortune.analyzingTitle'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 16,
@@ -102,7 +103,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '잠시만 기다려주세요...',
+            'daily_fortune.pleaseWait'.tr(),
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
@@ -173,14 +174,27 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
 
   Widget _buildDateGreetingRow(AppThemeExtension theme, Color scoreColor) {
     final now = DateTime.now();
-    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-    final dateStr = '${now.month}월 ${now.day}일 ${weekdays[now.weekday - 1]}요일';
+    final weekdayKeys = [
+      'daily_fortune.weekdayMon',
+      'daily_fortune.weekdayTue',
+      'daily_fortune.weekdayWed',
+      'daily_fortune.weekdayThu',
+      'daily_fortune.weekdayFri',
+      'daily_fortune.weekdaySat',
+      'daily_fortune.weekdaySun',
+    ];
+    final weekdayStr = weekdayKeys[now.weekday - 1].tr();
+    final dateStr = 'daily_fortune.dateFormat'.tr(namedArgs: {
+      'month': '${now.month}',
+      'day': '${now.day}',
+      'weekday': weekdayStr,
+    });
 
     final (greeting, greetingIcon) = switch (now.hour) {
-      >= 5 && < 12 => ('좋은 아침이에요', Icons.wb_sunny_rounded),
-      >= 12 && < 18 => ('활기찬 오후에요', Icons.wb_sunny_outlined),
-      >= 18 && < 22 => ('편안한 저녁이에요', Icons.nightlight_round),
-      _ => ('고요한 밤이에요', Icons.bedtime_rounded),
+      >= 5 && < 12 => ('daily_fortune.greetingMorning'.tr(), Icons.wb_sunny_rounded),
+      >= 12 && < 18 => ('daily_fortune.greetingAfternoon'.tr(), Icons.wb_sunny_outlined),
+      >= 18 && < 22 => ('daily_fortune.greetingEvening'.tr(), Icons.nightlight_round),
+      _ => ('daily_fortune.greetingNight'.tr(), Icons.bedtime_rounded),
     };
 
     return Row(
@@ -285,7 +299,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '점',
+                  'daily_fortune.scorePoint'.tr(),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -323,7 +337,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           for (final cat in _categories)
-            _buildMiniStat(theme, cat.name.substring(0, 2), fortune.getCategoryScore(cat.key), cat.color),
+            _buildMiniStat(theme, cat.nameKey.tr().substring(0, 2), fortune.getCategoryScore(cat.key), cat.color),
         ],
       ),
     );
@@ -351,7 +365,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 16),
           child: Text(
-            '카테고리별 운세',
+            'daily_fortune.categoryFortune'.tr(),
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
         ),
@@ -419,7 +433,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                       Icon(cat.icon, color: cat.color, size: (18 * scale).clamp(16.0, 24.0)),
                       SizedBox(width: 6 * scale),
                       Text(
-                        cat.name,
+                        cat.nameKey.tr(),
                         style: TextStyle(
                           fontSize: (13 * scale).clamp(11.0, 16.0),
                           fontWeight: FontWeight.w600,
@@ -429,7 +443,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                     ],
                   ),
                   Text(
-                    '$score점',
+                    'daily_fortune.scoreWithValue'.tr(namedArgs: {'score': '$score'}),
                     style: TextStyle(
                       fontSize: (14 * scale).clamp(12.0, 18.0),
                       fontWeight: FontWeight.w700,
@@ -454,7 +468,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               Row(
                 children: [
                   Text(
-                    '자세히 보기',
+                    'daily_fortune.viewDetail'.tr(),
                     style: TextStyle(
                       fontSize: (11 * scale).clamp(10.0, 13.0),
                       color: theme.textMuted,
@@ -480,10 +494,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   Widget _buildLuckySection(AppThemeExtension theme, DailyFortuneData fortune) {
     final lucky = fortune.lucky;
     final items = <_LuckyDef>[
-      (label: '행운의 시간', value: lucky.time, icon: Icons.schedule_rounded),
-      (label: '행운의 색상', value: lucky.color, icon: Icons.palette_rounded),
-      (label: '행운의 숫자', value: '${lucky.number}', icon: Icons.tag_rounded),
-      (label: '행운의 방향', value: lucky.direction, icon: Icons.explore_rounded),
+      (label: 'daily_fortune.luckyTime'.tr(), value: lucky.time, icon: Icons.schedule_rounded),
+      (label: 'daily_fortune.luckyColor'.tr(), value: lucky.color, icon: Icons.palette_rounded),
+      (label: 'daily_fortune.luckyNumber'.tr(), value: '${lucky.number}', icon: Icons.tag_rounded),
+      (label: 'daily_fortune.luckyDirection'.tr(), value: lucky.direction, icon: Icons.explore_rounded),
     ];
 
     return Column(
@@ -492,7 +506,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 16),
           child: Text(
-            '오늘의 행운',
+            'daily_fortune.todayLucky'.tr(),
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
         ),
@@ -565,20 +579,20 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '오늘의 조언',
+            'daily_fortune.todayAdvice'.tr(),
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
           const SizedBox(height: 16),
           _buildAdviceRow(
             theme,
-            label: '주의할 점',
+            label: 'daily_fortune.cautionLabel'.tr(),
             text: FortuneTextFormatter.formatParagraph(fortune.caution),
             textColor: theme.textPrimary,
           ),
           const SizedBox(height: 12),
           _buildAdviceRow(
             theme,
-            label: '오늘의 다짐',
+            label: 'daily_fortune.todayAffirmation'.tr(),
             text: FortuneTextFormatter.formatParagraph(fortune.affirmation),
             textColor: theme.textSecondary,
             italic: true,
@@ -650,14 +664,14 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 20),
-            SizedBox(width: 10),
+            const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
             Text(
-              'AI에게 더 자세히 물어보기',
-              style: TextStyle(
+              'daily_fortune.askAiMore'.tr(),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -680,11 +694,11 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   };
 
   String _getScoreGrade(int score) => switch (score) {
-    >= 90 => '최고의 하루',
-    >= 80 => '좋은 하루',
-    >= 70 => '괜찮은 하루',
-    >= 60 => '보통의 하루',
-    _ => '조심해야 할 하루',
+    >= 90 => 'daily_fortune.gradeBestDay'.tr(),
+    >= 80 => 'daily_fortune.gradeGoodDay'.tr(),
+    >= 70 => 'daily_fortune.gradeOkDay'.tr(),
+    >= 60 => 'daily_fortune.gradeNormalDay'.tr(),
+    _ => 'daily_fortune.gradeCarefulDay'.tr(),
   };
 
   Color _getScoreColor(int score) => switch (score) {

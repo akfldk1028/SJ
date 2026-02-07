@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -41,7 +42,7 @@ class DailyFortuneCard extends StatelessWidget {
                     const Text('🔮', style: TextStyle(fontSize: 24)),
                     const SizedBox(width: 8),
                     Text(
-                      '오늘의 운세',
+                      'menu.todayFortune'.tr(),
                       style: theme.textTheme.h4,
                     ),
                   ],
@@ -57,7 +58,7 @@ class DailyFortuneCard extends StatelessWidget {
             // Profile greeting
             if (profileName != null) ...[
               Text(
-                '$profileName님, 안녕하세요!',
+                'menu.greeting'.tr(namedArgs: {'name': profileName!}),
                 style: theme.textTheme.p.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -80,14 +81,14 @@ class DailyFortuneCard extends StatelessWidget {
                 _buildLuckyItem(
                   context,
                   icon: Icons.palette_outlined,
-                  label: '행운의 색',
+                  label: 'menu.luckyColorShort'.tr(),
                   value: luckyColor ?? '파랑',
                 ),
                 const SizedBox(width: 24),
                 _buildLuckyItem(
                   context,
                   icon: Icons.tag,
-                  label: '행운의 숫자',
+                  label: 'menu.luckyNumberShort'.tr(),
                   value: '${luckyNumber ?? 7}',
                 ),
               ],
@@ -100,7 +101,7 @@ class DailyFortuneCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    '자세히 보기',
+                    'menu.viewMore'.tr(),
                     style: theme.textTheme.small.copyWith(
                       color: AppColors.primary,
                     ),

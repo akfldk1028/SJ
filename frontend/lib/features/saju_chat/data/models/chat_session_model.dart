@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/chat_session.dart';
 import '../../domain/models/chat_type.dart';
@@ -154,7 +155,7 @@ abstract class ChatSessionModel with _$ChatSessionModel {
   static ChatSessionModel fromSupabaseMap(Map<String, dynamic> map) {
     return ChatSessionModel(
       id: map['id'] as String,
-      title: (map['title'] as String?) ?? '새 대화',
+      title: (map['title'] as String?) ?? 'saju_chat.newConversation'.tr(),
       chatType: (map['chat_type'] as String?) ?? 'general',
       profileId: map['profile_id'] as String?,
       targetProfileId: map['target_profile_id'] as String?,

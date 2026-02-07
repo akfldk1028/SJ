@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -20,7 +21,7 @@ class DayStrengthDisplay extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 신강/신약 지수 섹션
-          _buildSectionTitle(context, '신강/신약지수', theme),
+          _buildSectionTitle(context, 'saju_chart.singang_title'.tr(), theme),
           const SizedBox(height: 12),
           _buildDayStrengthCard(context, theme),
           const SizedBox(height: 8),
@@ -28,13 +29,13 @@ class DayStrengthDisplay extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 용신 섹션
-          _buildSectionTitle(context, '용신', theme),
+          _buildSectionTitle(context, 'saju_chart.singang_yongsin'.tr(), theme),
           const SizedBox(height: 12),
           _buildYongsinCard(context, theme),
           const SizedBox(height: 24),
 
           // 득령/득지/득시/득세 분석
-          _buildSectionTitle(context, '일간 강약 분석', theme),
+          _buildSectionTitle(context, 'saju_chart.singang_analysisTitle'.tr(), theme),
           const SizedBox(height: 12),
           _buildStrengthFactorsCard(context, theme),
         ],
@@ -62,10 +63,13 @@ class DayStrengthDisplay extends StatelessWidget {
   }
 
   void _showSectionHelp(BuildContext context, String title, AppThemeExtension theme) {
+    final singangTitle = 'saju_chart.singang_title'.tr();
+    final yongsinTitle = 'saju_chart.singang_yongsin'.tr();
+    final analysisTitle = 'saju_chart.singang_analysisTitle'.tr();
     final descriptions = {
-      '신강/신약지수': '일간(나)의 기운이 강한지 약한지를 수치로 나타낸 것입니다. 50% 이상이면 신강(身强), 미만이면 신약(身弱)으로 판단합니다.',
-      '용신': '사주에서 부족한 기운을 보충해주는 가장 필요한 오행입니다. 용신을 알면 자신에게 유리한 방향, 색상, 직업 등을 파악할 수 있습니다.',
-      '일간 강약 분석': '일간을 도와주는 기운(인성·비겁)과 억누르는 기운(식상·재성·관성)의 비율을 분석하여 신강/신약을 판단합니다.',
+      singangTitle: 'saju_chart.singang_singangHelpDesc'.tr(),
+      yongsinTitle: 'saju_chart.singang_yongsinHelpDesc'.tr(),
+      analysisTitle: 'saju_chart.singang_analysisHelpDesc'.tr(),
     };
     final desc = descriptions[title] ?? '';
     if (desc.isEmpty) return;
@@ -80,7 +84,7 @@ class DayStrengthDisplay extends StatelessWidget {
             Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 24),
             const SizedBox(width: 10),
             Expanded(child: Text(
-              '$title이란?',
+              'saju_chart.whatIs'.tr(namedArgs: {'title': title}),
               style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
             )),
           ],
@@ -89,7 +93,7 @@ class DayStrengthDisplay extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+            child: Text('saju_chart.confirm'.tr(), style: TextStyle(color: theme.primaryColor, fontSize: 15)),
           ),
         ],
       ),
@@ -114,13 +118,13 @@ class DayStrengthDisplay extends StatelessWidget {
           // 득령/득지/득시/득세 표시 (실제 계산값 사용)
           Row(
             children: [
-              _buildDeukBadge('득령', dayStrength.deukryeong, theme),
+              _buildDeukBadge('saju_chart.singang_deukryeong'.tr(), dayStrength.deukryeong, theme),
               const SizedBox(width: 8),
-              _buildDeukBadge('득지', dayStrength.deukji, theme),
+              _buildDeukBadge('saju_chart.singang_deukji'.tr(), dayStrength.deukji, theme),
               const SizedBox(width: 8),
-              _buildDeukBadge('득시', dayStrength.deuksi, theme),
+              _buildDeukBadge('saju_chart.singang_deuksi'.tr(), dayStrength.deuksi, theme),
               const SizedBox(width: 8),
-              _buildDeukBadge('득세', dayStrength.deukse, theme),
+              _buildDeukBadge('saju_chart.singang_deukse'.tr(), dayStrength.deukse, theme),
             ],
           ),
           const SizedBox(height: 16),
@@ -133,7 +137,7 @@ class DayStrengthDisplay extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: '${analysis.chart.dayPillar.gan}일간님은 ',
+                  text: 'saju_chart.singang_dayGanDesc'.tr(namedArgs: {'dayGan': analysis.chart.dayPillar.gan}),
                 ),
                 TextSpan(
                   text: level.korean,
@@ -142,13 +146,13 @@ class DayStrengthDisplay extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const TextSpan(text: '한 사주입니다.'),
+                TextSpan(text: 'saju_chart.singang_desc_suffix'.tr()),
               ],
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '${_getPopulationPercentage(dayStrength.score)}%의 사람이 여기에 해당합니다.',
+            'saju_chart.singang_percentile'.tr(namedArgs: {'percent': '${_getPopulationPercentage(dayStrength.score)}'}),
             style: TextStyle(
               color: _getStrengthColor(level),
               fontSize: 13,
@@ -186,7 +190,16 @@ class DayStrengthDisplay extends StatelessWidget {
     final score = dayStrength.score;
 
     // 8단계 레벨
-    const levels = ['극약', '태약', '신약', '중화\n신약', '중화\n신강', '신강', '태강', '극왕'];
+    final levels = [
+      'saju_chart.singang_level_extreme_weak'.tr(),
+      'saju_chart.singang_level_very_weak'.tr(),
+      'saju_chart.singang_level_weak'.tr(),
+      'saju_chart.singang_level_neutral_weak'.tr(),
+      'saju_chart.singang_level_neutral_strong'.tr(),
+      'saju_chart.singang_level_strong'.tr(),
+      'saju_chart.singang_level_very_strong'.tr(),
+      'saju_chart.singang_level_extreme_strong'.tr(),
+    ];
 
     // level.index8 사용하여 현재 인덱스 가져오기
     final currentIndex = dayStrength.level.index8;
@@ -271,11 +284,11 @@ class DayStrengthDisplay extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '(만명)',
+                'saju_chart.singang_unit'.tr(),
                 style: TextStyle(color: theme.textMuted, fontSize: 13),
               ),
               Text(
-                '점수: $score점',
+                'saju_chart.singang_score'.tr(namedArgs: {'score': '$score'}),
                 style: TextStyle(color: theme.textSecondary, fontSize: 13),
               ),
             ],
@@ -304,13 +317,13 @@ class DayStrengthDisplay extends StatelessWidget {
         children: [
           // 조후용신
           _buildYongsinBadge(
-            label: '조후용신',
+            label: 'saju_chart.singang_johu'.tr(),
             oheng: johuYongsin,
           ),
           const SizedBox(width: 24),
           // 억부용신
           _buildYongsinBadge(
-            label: '억부용신',
+            label: 'saju_chart.singang_eokbu'.tr(),
             oheng: yongsin.yongsin,
           ),
         ],
@@ -368,17 +381,17 @@ class DayStrengthDisplay extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildFactorRow('월령', details.monthStatus.korean,
+          _buildFactorRow('saju_chart.singang_wolryeong'.tr(), details.monthStatus.korean,
               details.monthStatus == MonthStatus.deukwol, theme),
-          _buildFactorRow('비겁', '${details.bigeopCount}개',
+          _buildFactorRow('saju_chart.bigeop'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.bigeopCount}'}),
               details.bigeopCount > 1, theme),
-          _buildFactorRow('인성', '${details.inseongCount}개',
+          _buildFactorRow('saju_chart.inseong'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.inseongCount}'}),
               details.inseongCount > 0, theme),
-          _buildFactorRow('재성', '${details.jaeseongCount}개',
+          _buildFactorRow('saju_chart.jaeseong'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.jaeseongCount}'}),
               details.jaeseongCount > 2, theme, isNegative: true),
-          _buildFactorRow('관성', '${details.gwanseongCount}개',
+          _buildFactorRow('saju_chart.gwanseong'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.gwanseongCount}'}),
               details.gwanseongCount > 1, theme, isNegative: true),
-          _buildFactorRow('식상', '${details.siksangCount}개',
+          _buildFactorRow('saju_chart.siksang'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.siksangCount}'}),
               details.siksangCount > 1, theme, isNegative: true),
         ],
       ),

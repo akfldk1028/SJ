@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -75,7 +76,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
   Future<void> _saveEvent() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('일정 제목을 입력해주세요')),
+        SnackBar(content: Text('calendar.event_title_required'.tr())),
       );
       return;
     }
@@ -145,7 +146,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    _isEditing ? '일정 수정' : '일정 추가',
+                    _isEditing ? 'calendar.event_edit'.tr() : 'calendar.event_add'.tr(),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -168,7 +169,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
               _buildTextField(
                 theme,
                 controller: _titleController,
-                hint: '일정 제목',
+                hint: 'calendar.event_title_hint'.tr(),
                 icon: Icons.title_rounded,
               ),
               const SizedBox(height: 16),
@@ -177,7 +178,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
               _buildTextField(
                 theme,
                 controller: _descriptionController,
-                hint: '메모 (선택)',
+                hint: 'calendar.event_memo_hint'.tr(),
                 icon: Icons.notes_rounded,
                 maxLines: 3,
               ),
@@ -190,7 +191,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
                     child: _buildOptionButton(
                       theme,
                       icon: Icons.access_time_rounded,
-                      label: _isAllDay ? '종일' : _formatTime(_selectedTime!),
+                      label: _isAllDay ? 'calendar.all_day'.tr() : _formatTime(_selectedTime!),
                       isSelected: !_isAllDay,
                       onTap: _selectTime,
                     ),
@@ -217,7 +218,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
                         ),
                       ),
                       child: Text(
-                        '종일',
+                        'calendar.all_day'.tr(),
                         style: TextStyle(
                           fontSize: 14,
                           color: _isAllDay ? theme.primaryColor : theme.textSecondary,
@@ -232,7 +233,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
 
               // 카테고리 선택
               Text(
-                '카테고리',
+                'calendar.category'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -274,7 +275,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            category.label,
+                            _getCategoryLabel(category),
                             style: TextStyle(
                               fontSize: 13,
                               color: isSelected ? category.color : theme.textSecondary,
@@ -303,7 +304,7 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
                     ),
                   ),
                   child: Text(
-                    _isEditing ? '수정하기' : '추가하기',
+                    _isEditing ? 'calendar.save_edit'.tr() : 'calendar.save_add'.tr(),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -403,10 +404,37 @@ class _AddEventBottomSheetState extends ConsumerState<AddEventBottomSheet> {
     );
   }
 
+  String _getCategoryLabel(EventCategory category) {
+    switch (category) {
+      case EventCategory.general:
+        return 'calendar.event_category_general'.tr();
+      case EventCategory.important:
+        return 'calendar.event_category_important'.tr();
+      case EventCategory.fortune:
+        return 'calendar.event_category_fortune'.tr();
+      case EventCategory.memo:
+        return 'calendar.event_category_memo'.tr();
+      case EventCategory.anniversary:
+        return 'calendar.event_category_anniversary'.tr();
+    }
+  }
+
   String _formatDate(DateTime date) {
-    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-    final weekday = weekdays[date.weekday - 1];
-    return '${date.month}월 ${date.day}일 ($weekday)';
+    const weekdayKeys = [
+      'calendar.weekday_mon',
+      'calendar.weekday_tue',
+      'calendar.weekday_wed',
+      'calendar.weekday_thu',
+      'calendar.weekday_fri',
+      'calendar.weekday_sat',
+      'calendar.weekday_sun',
+    ];
+    final weekday = weekdayKeys[date.weekday - 1].tr();
+    return 'calendar.date_format_short'.tr(namedArgs: {
+      'month': date.month.toString(),
+      'day': date.day.toString(),
+      'weekday': weekday,
+    });
   }
 
   String _formatTime(TimeOfDay time) {

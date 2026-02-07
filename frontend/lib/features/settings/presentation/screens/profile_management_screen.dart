@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +14,7 @@ class ProfileManagementScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('프로필 관리'),
+        title: Text('settings.profile'.tr()),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -27,21 +28,21 @@ class ProfileManagementScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 계정 정보 카드
-              _buildSectionHeader(context, '계정 정보'),
+              _buildSectionHeader(context, 'settings.accountInfo'.tr()),
               const SizedBox(height: 8),
               ShadCard(
                 child: Column(
                   children: [
-                    _buildInfoRow(context, '이메일', 'user@example.com'),
+                    _buildInfoRow(context, 'settings.email'.tr(), 'user@example.com'),
                     const Divider(height: 24),
-                    _buildInfoRow(context, '가입일', '2024년 1월 1일'),
+                    _buildInfoRow(context, 'settings.joinDate'.tr(), '2024년 1월 1일'),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
 
               // 프로필 설정 카드
-              _buildSectionHeader(context, '프로필 설정'),
+              _buildSectionHeader(context, 'settings.profileSettings'.tr()),
               const SizedBox(height: 8),
               ShadCard(
                 padding: EdgeInsets.zero,
@@ -50,14 +51,14 @@ class ProfileManagementScreen extends ConsumerWidget {
                     _buildActionRow(
                       context,
                       icon: LucideIcons.user,
-                      title: '닉네임 변경',
-                      onTap: () => _showEditDialog(context, '닉네임'),
+                      title: 'settings.changeNickname'.tr(),
+                      onTap: () => _showEditDialog(context, 'settings.nickname'.tr()),
                     ),
                     const Divider(height: 1),
                     _buildActionRow(
                       context,
                       icon: LucideIcons.image,
-                      title: '프로필 이미지 변경',
+                      title: 'settings.changeProfileImage'.tr(),
                       onTap: () {},
                     ),
                   ],
@@ -66,7 +67,7 @@ class ProfileManagementScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 계정 관리 카드
-              _buildSectionHeader(context, '계정 관리'),
+              _buildSectionHeader(context, 'settings.accountManagement'.tr()),
               const SizedBox(height: 8),
               ShadCard(
                 padding: EdgeInsets.zero,
@@ -75,21 +76,21 @@ class ProfileManagementScreen extends ConsumerWidget {
                     _buildActionRow(
                       context,
                       icon: LucideIcons.lock,
-                      title: '비밀번호 변경',
+                      title: 'settings.changePassword'.tr(),
                       onTap: () {},
                     ),
                     const Divider(height: 1),
                     _buildActionRow(
                       context,
                       icon: LucideIcons.logOut,
-                      title: '로그아웃',
+                      title: 'settings.logout'.tr(),
                       onTap: () => _showLogoutDialog(context),
                     ),
                     const Divider(height: 1),
                     _buildActionRow(
                       context,
                       icon: LucideIcons.trash2,
-                      title: '계정 탈퇴',
+                      title: 'settings.deleteAccount'.tr(),
                       onTap: () => _showDeleteAccountDialog(context),
                       isDestructive: true,
                     ),
@@ -178,21 +179,21 @@ class ProfileManagementScreen extends ConsumerWidget {
     showShadDialog(
       context: context,
       builder: (context) => ShadDialog(
-        title: Text('$field 변경'),
-        description: Text('새 $field을 입력해주세요'),
+        title: Text('settings.changeField'.tr(namedArgs: {'field': field})),
+        description: Text('settings.enterNewField'.tr(namedArgs: {'field': field})),
         actions: [
           ShadButton.outline(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text('common.buttonCancel'.tr()),
           ),
           ShadButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('저장'),
+            child: Text('common.save'.tr()),
           ),
         ],
         child: ShadInput(
           controller: controller,
-          placeholder: Text('새 $field'),
+          placeholder: Text('settings.newField'.tr(namedArgs: {'field': field})),
         ),
       ),
     );
@@ -202,16 +203,16 @@ class ProfileManagementScreen extends ConsumerWidget {
     showShadDialog(
       context: context,
       builder: (context) => ShadDialog.alert(
-        title: const Text('로그아웃'),
-        description: const Text('로그아웃 하시겠습니까?'),
+        title: Text('settings.logout'.tr()),
+        description: Text('settings.logoutConfirm'.tr()),
         actions: [
           ShadButton.outline(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text('common.buttonCancel'.tr()),
           ),
           ShadButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('로그아웃'),
+            child: Text('settings.logout'.tr()),
           ),
         ],
       ),
@@ -222,16 +223,16 @@ class ProfileManagementScreen extends ConsumerWidget {
     showShadDialog(
       context: context,
       builder: (context) => ShadDialog.alert(
-        title: const Text('계정 탈퇴'),
-        description: const Text('정말 탈퇴하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다.'),
+        title: Text('settings.deleteAccount'.tr()),
+        description: Text('settings.deleteAccountConfirm'.tr()),
         actions: [
           ShadButton.outline(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text('common.buttonCancel'.tr()),
           ),
           ShadButton.destructive(
             onPressed: () => Navigator.pop(context),
-            child: const Text('탈퇴'),
+            child: Text('settings.withdraw'.tr()),
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -34,7 +35,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: onClear,
-          tooltip: '대화 초기화',
+          tooltip: 'saju_chat.resetChat'.tr(),
         ),
       ],
     );

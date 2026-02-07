@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -145,7 +146,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                   else if (_error != null)
                     Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text('사주 계산 오류: $_error'),
+                      child: Text('profile.sajuCalculationError'.tr(namedArgs: {'error': _error ?? ''})),
                     )
                   else if (_sajuChart != null)
                     _buildSajuDisplay(context, _sajuChart!),
@@ -595,7 +596,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
             child: FilledButton.icon(
               onPressed: widget.onChatPressed,
               icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: const Text('AI 사주 상담'),
+              label: Text('profile.aiSajuConsult'.tr()),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFD4A54A),
                 foregroundColor: Colors.white,
@@ -620,7 +621,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                   child: OutlinedButton.icon(
                     onPressed: widget.onDetailPressed,
                     icon: const Icon(Icons.analytics_outlined, size: 16),
-                    label: const Text('상세보기'),
+                    label: Text('profile.detailView'.tr()),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey[600],
                       side: BorderSide(color: Colors.grey[300]!),
@@ -642,7 +643,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                   child: FilledButton.icon(
                     onPressed: widget.onCompatibilityPressed,
                     icon: const Icon(Icons.favorite, size: 16),
-                    label: const Text('궁합 보기'),
+                    label: Text('profile.compatibilityView'.tr()),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFFEC4899),
                       foregroundColor: Colors.white,

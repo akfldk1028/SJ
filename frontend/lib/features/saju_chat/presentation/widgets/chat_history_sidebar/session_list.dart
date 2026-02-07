@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,13 +36,13 @@ class SessionList extends ConsumerWidget {
     final currentSessionId = sessionState.currentSessionId;
 
     if (sessions.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
-            '아직 대화가 없습니다.\n새 채팅을 시작해보세요!',
+            'saju_chat.noChatsYet'.tr(),
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );

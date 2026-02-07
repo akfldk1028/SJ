@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -54,7 +55,7 @@ class SidebarHeader extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '사담',
+                'saju_chat.appTitle'.tr(),
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -71,7 +72,7 @@ class SidebarHeader extends ConsumerWidget {
                     size: 20,
                     color: appTheme.textSecondary,
                   ),
-                  tooltip: '현재 채팅 삭제',
+                  tooltip: 'saju_chat.deleteCurrentChat'.tr(),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
                     minWidth: 32,
@@ -97,7 +98,7 @@ class SidebarHeader extends ConsumerWidget {
                 children: [
                   Icon(Icons.home_outlined, size: 18, color: appTheme.textPrimary),
                   const SizedBox(width: 8),
-                  Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+                  Text('saju_chat.goToMain'.tr(), style: TextStyle(color: appTheme.textPrimary)),
                 ],
               ),
             ),
@@ -108,12 +109,12 @@ class SidebarHeader extends ConsumerWidget {
             width: double.infinity,
             child: ShadButton(
               onPressed: onNewChat,
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add, size: 18),
-                  SizedBox(width: 8),
-                  Text('새 채팅'),
+                  const Icon(Icons.add, size: 18),
+                  const SizedBox(width: 8),
+                  Text('saju_chat.newChat'.tr()),
                 ],
               ),
             ),
@@ -128,19 +129,19 @@ class SidebarHeader extends ConsumerWidget {
     showShadDialog(
       context: context,
       builder: (context) => ShadDialog.alert(
-        title: const Text('채팅 삭제'),
-        description: const Text('이 채팅을 삭제하시겠습니까?\n삭제된 대화는 복구할 수 없습니다.'),
+        title: Text('saju_chat.deleteChatTitle'.tr()),
+        description: Text('saju_chat.deleteChatDescription'.tr()),
         actions: [
           ShadButton.outline(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
+            child: Text('saju_chat.cancel'.tr()),
           ),
           ShadButton.destructive(
             onPressed: () {
               Navigator.of(context).pop();
               onDeleteCurrentSession?.call(sessionId);
             },
-            child: const Text('삭제'),
+            child: Text('saju_chat.delete'.tr()),
           ),
         ],
       ),

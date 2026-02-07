@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -443,8 +444,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 새 채팅
             ListTile(
               leading: Icon(Icons.add_comment_outlined, color: appTheme.primaryColor),
-              title: Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('새로운 대화 시작', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('saju_chat.newChat'.tr(), style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('saju_chat.newChatSubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _handleNewChat();
@@ -453,8 +454,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 채팅 기록
             ListTile(
               leading: Icon(Icons.history, color: appTheme.textPrimary),
-              title: Text('채팅 기록', style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('이전 대화 기록 보기', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('saju_chat.chatHistory'.tr(), style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('saju_chat.chatHistorySubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _scaffoldKey.currentState?.openDrawer();
@@ -464,8 +465,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 메인으로 돌아가기
             ListTile(
               leading: Icon(Icons.home_outlined, color: appTheme.textPrimary),
-              title: Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('메인 화면으로 이동', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('saju_chat.goToMain'.tr(), style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('saju_chat.goToMainSubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 context.go(Routes.menu);
@@ -603,14 +604,14 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '무엇이든 물어보세요',
+                    'saju_chat.askAnything'.tr(),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: appTheme.textPrimary,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '사주, 운세, 궁합 등 궁금한 것을 입력해주세요',
+                    'saju_chat.askAnythingSubtitle'.tr(),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: appTheme.textMuted,
                         ),
@@ -917,7 +918,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           Padding(
             padding: const EdgeInsets.only(left: 56, top: 6, bottom: 8),
             child: Text(
-              '관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요',
+              'saju_chat.adViewToContinue'.tr(),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 fontSize: 12,

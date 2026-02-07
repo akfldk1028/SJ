@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/models/ai_persona.dart';
@@ -54,12 +55,12 @@ class PersonaSelectorSheet extends StatelessWidget {
           const SizedBox(height: 16),
           // 제목
           Text(
-            'AI 캐릭터 선택',
+            'saju_chat.selectCharacter'.tr(),
             style: theme.textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
           Text(
-            '대화 스타일을 선택하세요',
+            'saju_chat.selectStyle'.tr(),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

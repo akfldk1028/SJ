@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +58,7 @@ class _SubscriptionManageScreenState
     return Scaffold(
       backgroundColor: theme.backgroundColor,
       appBar: AppBar(
-        title: Text('구독 관리', style: TextStyle(color: theme.textPrimary)),
+        title: Text('purchase.subscriptionManage'.tr(), style: TextStyle(color: theme.textPrimary)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: theme.textPrimary),
@@ -90,7 +91,7 @@ class _SubscriptionManageScreenState
               ShadButton.outline(
                 onPressed: () => context.push(Routes.settingsPremium),
                 child: Text(
-                  '플랜 변경 / 업그레이드',
+                  'purchase.changePlanUpgrade'.tr(),
                   style: TextStyle(color: theme.textPrimary, fontSize: 15),
                 ),
               )
@@ -98,9 +99,9 @@ class _SubscriptionManageScreenState
               ShadButton(
                 onPressed: () => context.push(Routes.settingsPremium),
                 backgroundColor: theme.primaryColor,
-                child: const Text(
-                  '프리미엄 구매하기',
-                  style: TextStyle(
+                child: Text(
+                  'purchase.purchasePremium'.tr(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -114,8 +115,7 @@ class _SubscriptionManageScreenState
 
             // 안내
             Text(
-              '월간 구독은 Google Play/App Store 설정에서 해지할 수 있습니다.\n'
-              '이용권은 기간 만료 후 자동 종료됩니다.',
+              'purchase.termsManage'.tr(),
               style: TextStyle(color: theme.textMuted, fontSize: 11),
               textAlign: TextAlign.center,
             ),
@@ -148,7 +148,7 @@ class _SubscriptionManageScreenState
 
           // 상태 텍스트
           Text(
-            isPremium ? '프리미엄 이용 중' : '무료 플랜',
+            isPremium ? 'purchase.premiumActive'.tr() : 'purchase.freePlan'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 22,
@@ -175,7 +175,7 @@ class _SubscriptionManageScreenState
             )
           else
             Text(
-              '광고 표시 / AI 대화 제한',
+              'purchase.freeDescription'.tr(),
               style: TextStyle(color: theme.textMuted, fontSize: 13),
             ),
         ],
@@ -207,7 +207,7 @@ class _SubscriptionManageScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '남은 기간',
+                  'purchase.remainingPeriod'.tr(),
                   style: TextStyle(color: theme.textMuted, fontSize: 12),
                 ),
                 const SizedBox(height: 2),
@@ -251,12 +251,12 @@ class _SubscriptionManageScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '유효 기간',
+                  'purchase.validPeriod'.tr(),
                   style: TextStyle(color: theme.textMuted, fontSize: 12),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$dateStr $timeStr까지',
+                  'purchase.validUntil'.tr(namedArgs: {'date': dateStr, 'time': timeStr}),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 16,
@@ -290,9 +290,9 @@ class _SubscriptionManageScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '만료 임박!',
-                  style: TextStyle(
+                Text(
+                  'purchase.expiryWarningTitle'.tr(),
+                  style: const TextStyle(
                     color: Colors.redAccent,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -300,7 +300,7 @@ class _SubscriptionManageScreenState
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '이용권이 곧 만료됩니다. 연장하시면 중단 없이 이용할 수 있어요.',
+                  'purchase.expiryWarningMessage'.tr(),
                   style: TextStyle(
                     color: theme.textSecondary,
                     fontSize: 12,
@@ -316,8 +316,19 @@ class _SubscriptionManageScreenState
 
   /// 남은 시간 상세 포맷
   String _formatRemainingDetailed(int days, int hours, int minutes) {
-    if (days > 0) return '$days일 $hours시간 $minutes분';
-    if (hours > 0) return '$hours시간 $minutes분';
-    return '$minutes분';
+    if (days > 0) {
+      return 'purchase.remainingDaysHoursMinutes'.tr(namedArgs: {
+        'days': '$days',
+        'hours': '$hours',
+        'minutes': '$minutes',
+      });
+    }
+    if (hours > 0) {
+      return 'purchase.remainingHoursMinutes'.tr(namedArgs: {
+        'hours': '$hours',
+        'minutes': '$minutes',
+      });
+    }
+    return 'purchase.remainingMinutes'.tr(namedArgs: {'minutes': '$minutes'});
   }
 }

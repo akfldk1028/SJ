@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -63,10 +64,10 @@ class _GreetingText extends StatelessWidget {
   Widget build(BuildContext context) {
     final hour = DateTime.now().hour;
     final greeting = hour < 12
-        ? '좋은 아침이에요'
+        ? 'menu.goodMorning'.tr()
         : hour < 18
-            ? '좋은 오후에요'
-            : '좋은 저녁이에요';
+            ? 'menu.goodAfternoon'.tr()
+            : 'menu.goodEvening'.tr();
 
     return Text(
       greeting,
@@ -90,9 +91,17 @@ class _DateDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-    final weekday = weekdays[now.weekday - 1];
-    final formattedDate = '${now.year}년 ${now.month}월 ${now.day}일 $weekday요일';
+    final weekdayKeys = [
+      'menu.weekday_mon', 'menu.weekday_tue', 'menu.weekday_wed',
+      'menu.weekday_thu', 'menu.weekday_fri', 'menu.weekday_sat', 'menu.weekday_sun',
+    ];
+    final weekday = weekdayKeys[now.weekday - 1].tr();
+    final formattedDate = 'menu.dateFullFormat'.tr(namedArgs: {
+      'year': '${now.year}',
+      'month': '${now.month}',
+      'day': '${now.day}',
+      'weekday': weekday,
+    });
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

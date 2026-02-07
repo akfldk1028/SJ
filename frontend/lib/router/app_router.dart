@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -269,7 +270,7 @@ GoRouter appRouter(Ref ref) {
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(
-        child: Text('페이지를 찾을 수 없습니다: ${state.uri}'),
+        child: Text('common.errorPageNotFound'.tr(namedArgs: {'uri': '${state.uri}'})),
       ),
     ),
   );

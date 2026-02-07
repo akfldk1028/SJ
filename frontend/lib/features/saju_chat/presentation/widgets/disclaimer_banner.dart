@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -48,7 +49,7 @@ class DisclaimerBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '사주 상담은 참고용이며, 중요한 결정은 전문가와 상담하세요.',
+              'saju_chat.disclaimer'.tr(),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: textColor,
               ),

@@ -7,6 +7,7 @@ library;
 
 import 'dart:io' show Platform;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -137,7 +138,7 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
           ),
           const SizedBox(width: 3),
           Text(
-            '후원자 소개',
+            'saju_chat.adSponsor'.tr(),
             style: TextStyle(
               fontSize: 10,
               color: theme.isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8962E),
@@ -241,7 +242,7 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '광고를 불러오지 못했습니다',
+              'saju_chat.adLoadFailed'.tr(),
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 13,
@@ -252,7 +253,7 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
             TextButton(
               onPressed: widget.onDismiss,
               child: Text(
-                '닫기',
+                'saju_chat.close'.tr(),
                 style: TextStyle(
                   color: theme.primaryColor,
                   fontSize: 13,
@@ -280,14 +281,14 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '[Web] 광고는 모바일에서만 표시됩니다',
+                'saju_chat.webAdPlaceholder'.tr(),
                 style: TextStyle(color: theme.textSecondary, fontSize: 12),
               ),
             ),
             if (widget.onDismiss != null)
               TextButton(
                 onPressed: widget.onDismiss,
-                child: const Text('확인'),
+                child: Text('saju_chat.confirm'.tr()),
               ),
           ],
         ),

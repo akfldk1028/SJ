@@ -3,6 +3,7 @@
 library;
 
 import 'dart:io' show Platform;
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -213,7 +214,7 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        '광고',
+                        'common.ad'.tr(),
                         style: TextStyle(
                           fontSize: 10,
                           color: isDark ? Colors.white60 : Colors.black45,

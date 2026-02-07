@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/ai_persona.dart';
@@ -62,7 +63,7 @@ class PersonaHorizontalList extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(Icons.tune, color: Colors.white70),
                 onPressed: onSettingsTap,
-                tooltip: '성향별 선택',
+                tooltip: 'saju_chat.selectByType'.tr(),
                 iconSize: 20,
                 padding: EdgeInsets.zero,
                 constraints: BoxConstraints(

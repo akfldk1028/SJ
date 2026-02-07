@@ -3,6 +3,7 @@
 library;
 
 import 'dart:io' show Platform;
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -246,7 +247,7 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    '광고',
+                    'common.ad'.tr(),
                     style: TextStyle(
                       fontSize: 10,
                       color: colorScheme.outline,
@@ -430,9 +431,9 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
                 color: Colors.black26,
                 borderRadius: BorderRadius.circular(2),
               ),
-              child: const Text(
-                '광고',
-                style: TextStyle(
+              child: Text(
+                'common.ad'.tr(),
+                style: const TextStyle(
                   fontSize: 9,
                   color: Colors.white,
                   fontWeight: FontWeight.w500,

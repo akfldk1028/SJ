@@ -5,6 +5,7 @@
 /// - 광고 보고 3번 대화 (Native Ad → 채팅창 안에 표시)
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -63,7 +64,7 @@ class TokenDepletedBanner extends ConsumerWidget {
         children: [
           // 안내 텍스트
           Text(
-            '토큰이 소진되었어요! 광고를 보면 대화를 계속할 수 있어요',
+            'saju_chat.tokenDepleted'.tr(),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -80,7 +81,7 @@ class TokenDepletedBanner extends ConsumerWidget {
               // 네이티브 광고 버튼
               Expanded(
                 child: AdChoiceButton(
-                  label: '📋 바로 대화 계속하기',
+                  label: 'saju_chat.continueChatButton'.tr(),
                   isPrimary: false,
                   onPressed: () => _handleNativeAd(ref),
                 ),
@@ -89,7 +90,7 @@ class TokenDepletedBanner extends ConsumerWidget {
               // 프리미엄 구매 버튼
               Expanded(
                 child: AdChoiceButton(
-                  label: '✨ 광고 없이 이용하기',
+                  label: 'saju_chat.noAdsButton'.tr(),
                   isPrimary: true,
                   onPressed: () => context.push(Routes.settingsPremium),
                 ),

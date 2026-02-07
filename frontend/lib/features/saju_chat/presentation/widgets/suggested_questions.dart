@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 /// AI가 제안한 후속 질문을 표시하는 위젯
@@ -17,11 +18,11 @@ class SuggestedQuestions extends StatelessWidget {
   });
 
   /// 기본 질문 목록 (AI 응답에서 질문이 없을 때 사용)
-  static const List<String> _defaultQuestions = [
-    '올해 이직운이 궁금해요',
-    '나의 타고난 성향은?',
-    '재물운이 언제 좋아질까요?',
-    '연애운을 알고 싶어요',
+  static List<String> get _defaultQuestions => [
+    'saju_chat.defaultQuestion1'.tr(),
+    'saju_chat.defaultQuestion2'.tr(),
+    'saju_chat.defaultQuestion3'.tr(),
+    'saju_chat.defaultQuestion4'.tr(),
   ];
 
   @override

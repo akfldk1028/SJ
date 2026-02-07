@@ -12,6 +12,7 @@
 /// ```
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -67,7 +68,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                   const SizedBox(height: 20),
                   // 제목
                   Text(
-                    'AI 성향 선택 (MBTI)',
+                    'saju_chat.mbtiTitle'.tr(),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -76,7 +77,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '터치하거나 드래그해서 성향을 선택하세요',
+                    'saju_chat.mbtiSubtitle'.tr(),
                     style: TextStyle(
                       fontSize: 13,
                       color: appTheme.textSecondary,
@@ -247,10 +248,10 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                           children: [
                             const Icon(Icons.info_outline, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                '상단의 + 버튼을 눌러 새 채팅을 시작하면\n페르소나를 변경할 수 있어요!',
-                                style: TextStyle(fontSize: 13),
+                                'saju_chat.personaLockedSnackbar'.tr(),
+                                style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ],
@@ -282,7 +283,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '+ 새 채팅에서 변경 가능',
+                          'saju_chat.personaLockedHint'.tr(),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -299,7 +300,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '페르소나 변경',
+                      'saju_chat.personaChangeHint'.tr(),
                       style: TextStyle(
                         fontSize: 12,
                         color: appTheme.textMuted,
@@ -452,7 +453,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('닫기', style: TextStyle(color: accentColor, fontSize: 15)),
+            child: Text('saju_chat.close'.tr(), style: TextStyle(color: accentColor, fontSize: 15)),
           ),
         ],
       ),

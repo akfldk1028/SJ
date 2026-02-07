@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../data/constants/cheongan_jiji.dart';
 import '../../domain/entities/pillar.dart';
@@ -207,7 +208,7 @@ class UnknownHourPillarWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '시주',
+            'saju_chart.hourPillar'.tr(),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.grey[600],
             ),
@@ -238,7 +239,7 @@ class UnknownHourPillarWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '미상',
+            'saju_chart.unknown'.tr(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: Colors.grey[500],
@@ -270,7 +271,7 @@ class UnknownHourPillarWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '미상',
+            'saju_chart.unknown'.tr(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: Colors.grey[500],

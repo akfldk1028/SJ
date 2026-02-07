@@ -2,6 +2,7 @@
 /// 채팅 메시지 목록 내 인라인 광고 위젯
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -124,7 +125,7 @@ class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             child: Text(
-              '광고',
+              'common.ad'.tr(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                     fontSize: 10,

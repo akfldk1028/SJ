@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_theme.dart';
@@ -35,7 +36,7 @@ class GraphControls extends StatelessWidget {
             context,
             icon: Icons.add,
             onPressed: onZoomIn,
-            tooltip: '확대',
+            tooltip: 'profile.zoomIn'.tr(),
             appTheme: appTheme,
           ),
           const SizedBox(height: 8),
@@ -43,7 +44,7 @@ class GraphControls extends StatelessWidget {
             context,
             icon: Icons.remove,
             onPressed: onZoomOut,
-            tooltip: '축소',
+            tooltip: 'profile.zoomOut'.tr(),
             appTheme: appTheme,
           ),
           if (onZoomToFit != null) ...[
@@ -52,7 +53,7 @@ class GraphControls extends StatelessWidget {
               context,
               icon: Icons.fit_screen,
               onPressed: onZoomToFit!,
-              tooltip: '화면 맞춤',
+              tooltip: 'profile.fitToScreen'.tr(),
               appTheme: appTheme,
             ),
           ],
@@ -62,7 +63,7 @@ class GraphControls extends StatelessWidget {
               context,
               icon: Icons.center_focus_strong,
               onPressed: onResetView!,
-              tooltip: '초기화',
+              tooltip: 'profile.resetView'.tr(),
               appTheme: appTheme,
             ),
           ],

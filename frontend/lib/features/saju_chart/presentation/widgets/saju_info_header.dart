@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
@@ -58,26 +59,29 @@ class SajuInfoHeader extends StatelessWidget {
     final animalEmoji = _getAnimalEmoji(animal);
 
     // 날짜 포맷
-    final dateFormat = DateFormat('yyyy년 M월 d일');
-    final birthDateStr = dateFormat.format(profile.birthDate);
+    final birthDateStr = 'saju_chart.dateFormatYMD'.tr(namedArgs: {
+      'year': '${profile.birthDate.year}',
+      'month': '${profile.birthDate.month}',
+      'day': '${profile.birthDate.day}',
+    });
 
     // 시간 포맷
     String birthTimeStr;
     if (profile.birthTimeUnknown) {
-      birthTimeStr = '시간 미상';
+      birthTimeStr = 'saju_chart.timeUnknown'.tr();
     } else if (profile.birthTimeMinutes != null) {
       final hours = profile.birthTimeMinutes! ~/ 60;
       final minutes = profile.birthTimeMinutes! % 60;
       birthTimeStr = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
     } else {
-      birthTimeStr = '시간 미상';
+      birthTimeStr = 'saju_chart.timeUnknown'.tr();
     }
 
     // 보정 시간
     final correctionMinutes = profile.timeCorrection;
     final correctionStr = correctionMinutes >= 0
-        ? '+$correctionMinutes분'
-        : '$correctionMinutes분';
+        ? 'saju_chart.correctionPlus'.tr(namedArgs: {'minutes': '$correctionMinutes'})
+        : 'saju_chart.correctionMinus'.tr(namedArgs: {'minutes': '$correctionMinutes'});
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -114,7 +118,10 @@ class SajuInfoHeader extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '$animal띠 (${chart.yearPillar.fullName}년)',
+                      'saju_chart.zodiacAnimalYear'.tr(namedArgs: {
+                        'animal': animal,
+                        'yearName': chart.yearPillar.fullName,
+                      }),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.grey[700],
                       ),
@@ -146,7 +153,7 @@ class SajuInfoHeader extends StatelessWidget {
           _buildInfoRow(
             context,
             icon: Icons.calendar_today,
-            label: profile.isLunar ? '음력' : '양력',
+            label: profile.isLunar ? 'saju_chart.lunarCalendar'.tr() : 'saju_chart.solarCalendar'.tr(),
             value: birthDateStr,
           ),
           const SizedBox(height: 8),
@@ -154,7 +161,7 @@ class SajuInfoHeader extends StatelessWidget {
           _buildInfoRow(
             context,
             icon: Icons.access_time,
-            label: '출생시간',
+            label: 'saju_chart.birthTime'.tr(),
             value: birthTimeStr,
           ),
           const SizedBox(height: 8),
@@ -162,7 +169,7 @@ class SajuInfoHeader extends StatelessWidget {
           _buildInfoRow(
             context,
             icon: Icons.location_on,
-            label: '출생지',
+            label: 'saju_chart.birthPlace'.tr(),
             value: profile.birthCity,
           ),
           const SizedBox(height: 8),
@@ -170,7 +177,7 @@ class SajuInfoHeader extends StatelessWidget {
           _buildInfoRow(
             context,
             icon: Icons.tune,
-            label: '진태양시 보정',
+            label: 'saju_chart.trueSolarTimeCorrection'.tr(),
             value: correctionStr,
             valueColor: correctionMinutes >= 0 ? Colors.orange : Colors.blue,
           ),
@@ -180,8 +187,8 @@ class SajuInfoHeader extends StatelessWidget {
             _buildInfoRow(
               context,
               icon: Icons.brightness_3,
-              label: '윤달',
-              value: '해당',
+              label: 'saju_chart.leapMonth'.tr(),
+              value: 'saju_chart.applicable'.tr(),
               valueColor: Colors.purple,
             ),
           ],

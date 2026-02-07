@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -28,9 +29,9 @@ class FortuneDisplay extends StatelessWidget {
             _buildDaeunHeader(context, analysis.daeun!, theme),
             const SizedBox(height: 20),
             // 대운 슬라이더
-            _buildSectionTitle(context, '대운', theme),
+            _buildSectionTitle(context, 'saju_chart.fortune_daeun'.tr(), theme),
             const SizedBox(height: 8),
-            _buildSubtitle(context, '좌우로 슬라이드해서 더 볼 수 있어요.', theme),
+            _buildSubtitle(context, 'saju_chart.fortune_slideHint'.tr(), theme),
             const SizedBox(height: 12),
             DaeunSlider(
               daeunResult: analysis.daeun!,
@@ -41,7 +42,7 @@ class FortuneDisplay extends StatelessWidget {
           ],
 
           // 세운 (연운)
-          _buildSectionTitle(context, '연운', theme),
+          _buildSectionTitle(context, 'saju_chart.fortune_yeunun'.tr(), theme),
           const SizedBox(height: 12),
           SeunSlider(
             birthYear: analysis.chart.birthDateTime.year,
@@ -51,7 +52,7 @@ class FortuneDisplay extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 월운
-          _buildSectionTitle(context, '월운', theme),
+          _buildSectionTitle(context, 'saju_chart.fortune_wolun'.tr(), theme),
           const SizedBox(height: 12),
           WolunSlider(
             birthYear: analysis.chart.birthDateTime.year,
@@ -80,7 +81,7 @@ class FortuneDisplay extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '대운수 : ${daeun.startAge}(${daeun.daeUnList.isNotEmpty ? daeun.daeUnList.first.pillar.ji : ""}${daeun.daeUnList.isNotEmpty ? jijiHanja[daeun.daeUnList.first.pillar.ji] ?? "" : ""})',
+                  'saju_chart.fortune_daeunNumberInfo'.tr(namedArgs: {'info': '${daeun.startAge}(${daeun.daeUnList.isNotEmpty ? daeun.daeUnList.first.pillar.ji : ""}${daeun.daeUnList.isNotEmpty ? jijiHanja[daeun.daeUnList.first.pillar.ji] ?? "" : ""})'}),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 16,
@@ -89,7 +90,7 @@ class FortuneDisplay extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  daeun.isForward ? '순행 (順行)' : '역행 (逆行)',
+                  daeun.isForward ? 'saju_chart.fortune_forward'.tr() : 'saju_chart.fortune_backward'.tr(),
                   style: TextStyle(
                     color: theme.textSecondary,
                     fontSize: 13,
@@ -123,10 +124,13 @@ class FortuneDisplay extends StatelessWidget {
   }
 
   void _showSectionHelp(BuildContext context, String title, AppThemeExtension theme) {
+    final daeunTitle = 'saju_chart.fortune_daeun'.tr();
+    final yeununTitle = 'saju_chart.fortune_yeunun'.tr();
+    final wolunTitle = 'saju_chart.fortune_wolun'.tr();
     final descriptions = {
-      '대운': '10년 단위로 변하는 큰 운의 흐름입니다. 대운이 바뀌면 인생의 주요 흐름이 변화하며, 일간과의 관계에 따라 길흉이 달라집니다.',
-      '연운': '매년 변하는 운세입니다. 세운이라고도 하며, 그 해의 천간·지지가 사주와 어떤 관계를 맺는지에 따라 한 해의 흐름이 결정됩니다.',
-      '월운': '매달 변하는 운세입니다. 월지의 변화에 따라 세부적인 운의 흐름을 파악할 수 있어 단기적인 계획 수립에 도움이 됩니다.',
+      daeunTitle: 'saju_chart.fortune_daeunHelpDesc'.tr(),
+      yeununTitle: 'saju_chart.fortune_yeununHelpDesc'.tr(),
+      wolunTitle: 'saju_chart.fortune_wolunHelpDesc'.tr(),
     };
     final desc = descriptions[title] ?? '';
     if (desc.isEmpty) return;
@@ -141,7 +145,7 @@ class FortuneDisplay extends StatelessWidget {
             Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 24),
             const SizedBox(width: 10),
             Expanded(child: Text(
-              '$title이란?',
+              'saju_chart.whatIs'.tr(namedArgs: {'title': title}),
               style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
             )),
           ],
@@ -150,7 +154,7 @@ class FortuneDisplay extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+            child: Text('saju_chart.confirm'.tr(), style: TextStyle(color: theme.primaryColor, fontSize: 15)),
           ),
         ],
       ),
@@ -560,7 +564,7 @@ class WolunSlider extends StatelessWidget {
         children: [
           // 월
           Text(
-            '$month월',
+            'saju_chart.fortune_month'.tr(namedArgs: {'month': '$month'}),
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 13,

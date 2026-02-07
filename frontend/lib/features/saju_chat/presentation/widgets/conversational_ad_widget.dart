@@ -5,6 +5,7 @@
 /// 위젯 트리 최적화: Consumer로 선택적 리빌드
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -88,7 +89,7 @@ class ConversationalAdWidget extends ConsumerWidget {
                 : null,
             onSkipPressed: !isRequired ? () => _handleSkip(ref) : null,
             // 토큰 소진 시 2가지 선택지 (영상 vs 네이티브)
-            secondaryCtaText: isRequired ? '📋 광고 보고 3번 대화' : null,
+            secondaryCtaText: isRequired ? 'saju_chat.nativeAd3Chats'.tr() : null,
             onSecondaryCtaPressed: isRequired ? () => _handleNativeAdPressed(ref) : null,
           ),
 
@@ -163,7 +164,7 @@ class ConversationalAdWidget extends ConsumerWidget {
       createdAt: DateTime.now(),
       adType: AdMessageType.tokenDepleted,
       transitionText: adState.transitionText,
-      ctaText: '🎬 영상 보고 5번 대화',
+      ctaText: 'saju_chat.videoAd5Chats'.tr(),
       rewardTokens: AdTriggerService.depletedRewardTokensVideo,
     );
   }
@@ -249,8 +250,8 @@ class ConversationalAdWidget extends ConsumerWidget {
         icon: const Icon(Icons.chat_bubble_outline, size: 18),
         label: Text(
           adState.rewardedTokens != null && adState.rewardedTokens! > 0
-              ? '대화 재개 (+${adState.rewardedTokens} 토큰 획득!)'
-              : '대화 재개하기',
+              ? 'saju_chat.resumeChatWithTokens'.tr(namedArgs: {'tokens': '${adState.rewardedTokens}'})
+              : 'saju_chat.resumeChat'.tr(),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: theme.primaryColor,
@@ -306,7 +307,7 @@ class InlineAdWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '후원자 소개',
+                  'saju_chat.adSponsor'.tr(),
                   style: TextStyle(
                     fontSize: 10,
                     color: theme.textSecondary,
@@ -315,7 +316,7 @@ class InlineAdWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '관심 있으신 정보가 있을지도 몰라요',
+                  'saju_chat.adSponsorInfo'.tr(),
                   style: TextStyle(
                     fontSize: 13,
                     color: theme.textPrimary,

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -63,7 +64,7 @@ class AiChatCtaCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI에게 물어보세요',
+                      'menu.askAI'.tr(),
                       style: TextStyle(
                         fontSize: context.scaledFont(15),
                         fontWeight: FontWeight.w600,
@@ -72,7 +73,7 @@ class AiChatCtaCard extends StatelessWidget {
                     ),
                     SizedBox(height: context.scaledPadding(2)),
                     Text(
-                      '오늘의 운세가 궁금하다면 AI 사주 상담사에게 물어보세요',
+                      'menu.askAIDesc'.tr(),
                       style: TextStyle(
                         fontSize: context.scaledFont(12),
                         color: theme.textMuted,

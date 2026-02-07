@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../domain/entities/saju_profile.dart';
@@ -139,30 +140,30 @@ class ProfileQuickViewSheet extends StatelessWidget {
           _buildInfoRow(
             context,
             icon: Icons.cake_outlined,
-            label: '생년월일',
+            label: 'profile.birthDate'.tr(),
             value: '${profile.birthDateFormatted} (${profile.calendarTypeLabel})',
           ),
           const Divider(height: 16),
           _buildInfoRow(
             context,
             icon: Icons.access_time_outlined,
-            label: '출생시간',
+            label: 'profile.birthTime'.tr(),
             value: profile.birthTimeUnknown
-                ? '시간 모름'
-                : (profile.birthTimeFormatted ?? '미입력'),
+                ? 'profile.birthTimeUnknown'.tr()
+                : (profile.birthTimeFormatted ?? 'profile.notEntered'.tr()),
           ),
           const Divider(height: 16),
           _buildInfoRow(
             context,
             icon: Icons.person_outline,
-            label: '성별',
-            value: profile.gender == Gender.male ? '남성' : '여성',
+            label: 'common.gender'.tr(),
+            value: profile.gender == Gender.male ? 'common.genderMale'.tr() : 'common.genderFemale'.tr(),
           ),
           const Divider(height: 16),
           _buildInfoRow(
             context,
             icon: Icons.location_on_outlined,
-            label: '출생지',
+            label: 'profile.birthPlace'.tr(),
             value: '${profile.birthCity} (${profile.timeCorrectionLabel})',
           ),
           if (profile.memo != null && profile.memo!.isNotEmpty) ...[
@@ -170,7 +171,7 @@ class ProfileQuickViewSheet extends StatelessWidget {
             _buildInfoRow(
               context,
               icon: Icons.note_outlined,
-              label: '메모',
+              label: 'profile.memo'.tr(),
               value: profile.memo!,
             ),
           ],
@@ -218,12 +219,12 @@ class ProfileQuickViewSheet extends StatelessWidget {
         Expanded(
           child: ShadButton(
             onPressed: onChatPressed,
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.chat_bubble_outline, size: 18),
-                SizedBox(width: 8),
-                Text('사주 상담'),
+                const Icon(Icons.chat_bubble_outline, size: 18),
+                const SizedBox(width: 8),
+                Text('profile.sajuConsult'.tr()),
               ],
             ),
           ),

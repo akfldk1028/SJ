@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/features/saju_chat/domain/entities/chat_message.dart';
@@ -38,7 +39,7 @@ class ChatBubble extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '사담 AI',
+                    'saju_chat.aiName'.tr(),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

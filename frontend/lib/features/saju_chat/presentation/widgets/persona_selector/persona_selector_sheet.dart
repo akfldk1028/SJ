@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_theme.dart';
@@ -107,7 +108,7 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
           const SizedBox(height: 16),
           // 제목
           Text(
-            'AI PERSONA Setting',
+            'saju_chat.personaSelectorTitle'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 18,
@@ -116,7 +117,7 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            '성향을 선택하면 맞춤 AI를 추천해드려요',
+            'saju_chat.personaSelectorSubtitle'.tr(),
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 14,
@@ -160,7 +161,7 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
-                        '전체 페르소나',
+                        'saju_chat.allPersonas'.tr(),
                         style: TextStyle(
                           color: theme.textPrimary,
                           fontSize: 16,
@@ -188,7 +189,7 @@ class _PersonaSelectorSheetState extends State<PersonaSelectorSheet> {
                       ),
                     ),
                     child: Text(
-                      _showAllPersonas ? '성향별 보기' : '특별한 페르소나',
+                      _showAllPersonas ? 'saju_chat.showByType'.tr() : 'saju_chat.specialPersonas'.tr(),
                     ),
                   ),
                   const SizedBox(height: 32),

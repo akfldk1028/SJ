@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -38,7 +39,7 @@ class EventListWidget extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '일정 (${events.length})',
+              'calendar.events_header'.tr(namedArgs: {'count': events.length.toString()}),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -76,7 +77,7 @@ class EventListWidget extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '등록된 일정이 없습니다',
+              'calendar.no_events_registered'.tr(),
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textMuted,
@@ -99,29 +100,29 @@ class EventListWidget extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            '일정 삭제',
+            'calendar.event_delete_title'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
-            '"${event.title}" 일정을 삭제하시겠습니까?',
+            'calendar.event_delete_confirm'.tr(namedArgs: {'title': event.title}),
             style: TextStyle(color: theme.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
-                '취소',
+                'common.buttonCancel'.tr(),
                 style: TextStyle(color: theme.textMuted),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                '삭제',
-                style: TextStyle(color: Colors.red),
+              child: Text(
+                'common.delete'.tr(),
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],

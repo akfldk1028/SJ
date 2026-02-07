@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +36,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '이번 달 운세',
+          'monthly_fortune.appBarTitle'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -77,7 +78,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
             Icon(Icons.error_outline, size: 48, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
-              '월별 운세를 불러오지 못했습니다',
+              'monthly_fortune.errorLoadMonthly'.tr(),
               style: TextStyle(color: theme.textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -85,7 +86,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
             ElevatedButton.icon(
               onPressed: () => ref.read(monthlyFortuneProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('다시 시도'),
+              label: Text('monthly_fortune.retry'.tr()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
@@ -112,7 +113,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            '🔮 AI가 월별 운세를 분석하고 있어요',
+            'monthly_fortune.analyzingMonthly'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 16,
@@ -121,7 +122,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '잠시만 기다려주세요...',
+            'monthly_fortune.pleaseWait'.tr(),
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
@@ -139,7 +140,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
       children: [
         // 히어로 헤더
         FortuneTitleHeader(
-          title: '${fortune.year}년 ${fortune.month}월',
+          title: 'monthly_fortune.yearMonth'.tr(namedArgs: {'year': '${fortune.year}', 'month': '${fortune.month}'}),
           subtitle: fortune.monthGanji,
           keyword: fortune.overview.keyword.isNotEmpty ? fortune.overview.keyword : null,
           score: fortune.overview.score > 0 ? fortune.overview.score : null,
@@ -149,7 +150,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
 
         // 월간 총운
         FortuneSectionCard(
-          title: '월간 총운',
+          title: 'monthly_fortune.monthlyOverall'.tr(),
           icon: Icons.calendar_month,
           style: CardStyle.elevated,
           child: Column(
@@ -167,7 +168,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
               if (fortune.overview.monthEnergy.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '이달의 기운',
+                  label: 'monthly_fortune.monthEnergy'.tr(),
                   content: fortune.overview.monthEnergy,
                   type: HighlightType.info,
                   icon: Icons.bolt,
@@ -176,7 +177,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
               if (fortune.overview.hapchungEffect.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FortuneHighlightBox(
-                  label: '합충 영향',
+                  label: 'monthly_fortune.hapchungEffect'.tr(),
                   content: fortune.overview.hapchungEffect,
                   type: HighlightType.warning,
                 ),
@@ -184,7 +185,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
               if (fortune.overview.conclusion.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '결론',
+                  label: 'monthly_fortune.conclusion'.tr(),
                   content: fortune.overview.conclusion,
                   type: HighlightType.primary,
                   icon: Icons.check_circle_outline,
@@ -197,8 +198,8 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
 
         // 분야별 운세 (카드 그리드)
         if (fortune.categories.isNotEmpty) ...[
-          const FortuneSectionTitle(
-            title: '이번 달 분야별 운세',
+          FortuneSectionTitle(
+            title: 'monthly_fortune.categoryFortuneTitle'.tr(),
             icon: Icons.grid_view,
           ),
           const SizedBox(height: 12),
@@ -207,9 +208,9 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         ],
 
         // 월별 운세 (12개월 칩)
-        const FortuneSectionTitle(
-          title: '연간 월별 운세',
-          subtitle: '탭하여 다른 월 운세를 확인하세요',
+        FortuneSectionTitle(
+          title: 'monthly_fortune.yearlyMonthlyFortune'.tr(),
+          subtitle: 'monthly_fortune.yearlyMonthlySubtitle'.tr(),
           icon: Icons.date_range,
         ),
         const SizedBox(height: 12),
@@ -224,7 +225,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
 
         // 행운 정보
         FortuneSectionCard(
-          title: '이달의 행운',
+          title: 'monthly_fortune.monthlyLucky'.tr(),
           icon: Icons.star,
           style: CardStyle.gradient,
           child: _buildLuckyGrid(theme, fortune.lucky),
@@ -234,7 +235,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         // 마무리 메시지
         if (fortune.closingMessage.isNotEmpty) ...[
           FortuneSectionCard(
-            title: '이달의 메시지',
+            title: 'monthly_fortune.monthlyMessage'.tr(),
             icon: Icons.message,
             style: CardStyle.outlined,
             content: fortune.closingMessage,
@@ -361,13 +362,13 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
     final items = <Map<String, dynamic>>[];
 
     if (lucky.colors.isNotEmpty) {
-      items.add({'icon': Icons.palette, 'label': '행운의 색상', 'value': lucky.colors.join(', ')});
+      items.add({'icon': Icons.palette, 'label': 'monthly_fortune.luckyColors'.tr(), 'value': lucky.colors.join(', ')});
     }
     if (lucky.numbers.isNotEmpty) {
-      items.add({'icon': Icons.pin, 'label': '행운의 숫자', 'value': lucky.numbers.join(', ')});
+      items.add({'icon': Icons.pin, 'label': 'monthly_fortune.luckyNumbers'.tr(), 'value': lucky.numbers.join(', ')});
     }
     if (lucky.foods.isNotEmpty) {
-      items.add({'icon': Icons.restaurant, 'label': '행운의 음식', 'value': lucky.foods.join(', ')});
+      items.add({'icon': Icons.restaurant, 'label': 'monthly_fortune.luckyFoods'.tr(), 'value': lucky.foods.join(', ')});
     }
 
     return Column(
@@ -476,9 +477,9 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
       child: ElevatedButton.icon(
         onPressed: () => context.go('/saju/chat?type=monthlyFortune'),
         icon: const Icon(Icons.chat_bubble_outline, size: 20),
-        label: const Text(
-          'AI에게 월운 상담받기',
-          style: TextStyle(
+        label: Text(
+          'monthly_fortune.consultAiMonthly'.tr(),
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -497,14 +498,14 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
   }
 
   String _getCategoryName(String key) {
-    const names = {
-      'career': '직업운',
-      'business': '사업운',
-      'wealth': '재물운',
-      'love': '애정운',
-      'marriage': '결혼운',
-      'study': '학업운',
-      'health': '건강운',
+    final names = {
+      'career': 'monthly_fortune.career'.tr(),
+      'business': 'monthly_fortune.business'.tr(),
+      'wealth': 'monthly_fortune.wealth'.tr(),
+      'love': 'monthly_fortune.loveCategory'.tr(),
+      'marriage': 'monthly_fortune.marriage'.tr(),
+      'study': 'monthly_fortune.study'.tr(),
+      'health': 'monthly_fortune.healthCategory'.tr(),
     };
     return names[key] ?? key;
   }
@@ -605,9 +606,9 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
           );
         } else {
           months[monthKey] = MonthData(
-            keyword: '운세 준비중',
+            keyword: 'monthly_fortune.fortuneNotReady'.tr(),
             score: 0,
-            reading: '$i월 운세 분석이 아직 준비되지 않았습니다.',
+            reading: 'monthly_fortune.monthFortuneNotReady'.tr(namedArgs: {'month': '$i'}),
             tip: '',
           );
         }

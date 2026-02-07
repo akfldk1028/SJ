@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -124,16 +125,16 @@ class _PremiumBadgeWidgetState extends ConsumerState<PremiumBadgeWidget> {
     if (expiresAt == null) return null;
 
     final remaining = expiresAt.difference(DateTime.now());
-    if (remaining.isNegative) return '만료됨';
+    if (remaining.isNegative) return 'purchase.expired'.tr();
 
     final days = remaining.inDays;
     final hours = remaining.inHours % 24;
     final minutes = remaining.inMinutes % 60;
 
-    if (days >= 7) return '$days일';
-    if (days >= 1) return '$days일 $hours시간';
-    if (hours >= 1) return '$hours시간 $minutes분';
-    return '$minutes분';
+    if (days >= 7) return 'purchase.remainingDays'.tr(namedArgs: {'days': '$days'});
+    if (days >= 1) return 'purchase.remainingDaysHours'.tr(namedArgs: {'days': '$days', 'hours': '$hours'});
+    if (hours >= 1) return 'purchase.remainingHoursMinutes'.tr(namedArgs: {'hours': '$hours', 'minutes': '$minutes'});
+    return 'purchase.remainingMinutes'.tr(namedArgs: {'minutes': '$minutes'});
   }
 
   Color _brighten(Color c) {

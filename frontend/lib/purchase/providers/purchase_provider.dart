@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -183,14 +184,14 @@ class PurchaseNotifier extends _$PurchaseNotifier {
     final entitlement = info.entitlements.all[PurchaseConfig.entitlementPremium];
     if (entitlement?.isActive == true) {
       final pid = entitlement!.productIdentifier;
-      if (pid == PurchaseConfig.productMonthly) return '월간 구독';
-      if (pid == PurchaseConfig.productWeekPass) return '1주일 이용권';
-      if (pid == PurchaseConfig.productDayPass) return '1일 이용권';
-      return '프리미엄';
+      if (pid == PurchaseConfig.productMonthly) return 'purchase.planMonthly'.tr();
+      if (pid == PurchaseConfig.productWeekPass) return 'purchase.planWeekPass'.tr();
+      if (pid == PurchaseConfig.productDayPass) return 'purchase.planDayPass'.tr();
+      return 'purchase.planPremium'.tr();
     }
 
     if (info.activeSubscriptions.contains(PurchaseConfig.productMonthly)) {
-      return '월간 구독';
+      return 'purchase.planMonthly'.tr();
     }
 
     // 비구독 상품 체크
@@ -204,10 +205,10 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       String? name;
       if (productId == PurchaseConfig.productDayPass) {
         duration = const Duration(hours: 24);
-        name = '1일 이용권';
+        name = 'purchase.planDayPass'.tr();
       } else if (productId == PurchaseConfig.productWeekPass) {
         duration = const Duration(days: 7);
-        name = '1주일 이용권';
+        name = 'purchase.planWeekPass'.tr();
       }
 
       if (duration != null && now.isBefore(purchaseDate.add(duration))) {
@@ -216,10 +217,10 @@ class PurchaseNotifier extends _$PurchaseNotifier {
     }
 
     if (_forcePremium) {
-      if (_forcePremiumProductId == PurchaseConfig.productDayPass) return '1일 이용권';
-      if (_forcePremiumProductId == PurchaseConfig.productWeekPass) return '1주일 이용권';
-      if (_forcePremiumProductId == PurchaseConfig.productMonthly) return '월간 구독';
-      return '프리미엄';
+      if (_forcePremiumProductId == PurchaseConfig.productDayPass) return 'purchase.planDayPass'.tr();
+      if (_forcePremiumProductId == PurchaseConfig.productWeekPass) return 'purchase.planWeekPass'.tr();
+      if (_forcePremiumProductId == PurchaseConfig.productMonthly) return 'purchase.planMonthly'.tr();
+      return 'purchase.planPremium'.tr();
     }
     return null;
   }

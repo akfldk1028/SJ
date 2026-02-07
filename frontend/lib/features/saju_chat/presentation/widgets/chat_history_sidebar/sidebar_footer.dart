@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,7 +34,7 @@ class SidebarFooter extends StatelessWidget {
             context.push('/settings');
           },
           icon: const Icon(Icons.settings, size: 18),
-          label: const Text('설정'),
+          label: Text('saju_chat.settings'.tr()),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
