@@ -370,22 +370,44 @@ class DailyFortune extends _$DailyFortune {
         _retryCount.remove(analyzedKey);
         ref.invalidateSelf();
       } else {
+        final errorMsg = result.errorMessage ?? 'unknown';
+
+        // v7.6: "이미 분석 중" 에러는 진짜 실패가 아님
+        // FortuneCoordinator가 '진행 중' 메시지를 반환한 경우
+        // → _analyzedToday 가드 유지 (제거하지 않음!)
+        // → 폴링으로 완료 대기
+        if (errorMsg.contains('진행 중')) {
+          print('[DailyFortune] ⏳ v7.6 이미 분석 진행 중 감지 - 폴링 전환 (재시도 안 함): $errorMsg');
+          _waitForCoordinatorCompletion(profileId);
+          return;
+        }
+
+        // 진짜 실패만 재시도
         final retries = _retryCount[analyzedKey] ?? 0;
         if (retries < 2) {
           _retryCount[analyzedKey] = retries + 1;
           _analyzedToday.remove(analyzedKey); // 재시도 허용
-          print('[DailyFortune] ⚠️ Daily 분석 실패 (재시도 ${retries + 1}/2): ${result.errorMessage ?? "unknown"}');
+          print('[DailyFortune] ⚠️ Daily 분석 실패 (재시도 ${retries + 1}/2): $errorMsg');
           // 3초 후 재시도 (Gemini 응답 불안정 대응)
           Future.delayed(const Duration(seconds: 3), () {
             ref.invalidateSelf();
           });
         } else {
-          print('[DailyFortune] ❌ Daily 분석 최종 실패 (2회 재시도 소진): ${result.errorMessage ?? "unknown"}');
+          print('[DailyFortune] ❌ Daily 분석 최종 실패 (2회 재시도 소진): $errorMsg');
         }
       }
     }).catchError((e) {
       print('[DailyFortune] ❌ Daily 분석 오류: $e');
       _currentlyAnalyzing.remove(profileId);
+
+      // v7.6: catchError에서도 "진행 중" 에러 체크
+      final errorStr = e.toString();
+      if (errorStr.contains('진행 중')) {
+        print('[DailyFortune] ⏳ v7.6 오류 내 진행 중 감지 - 폴링 전환');
+        _waitForCoordinatorCompletion(profileId);
+        return;
+      }
+
       final retries = _retryCount[analyzedKey] ?? 0;
       if (retries < 2) {
         _retryCount[analyzedKey] = retries + 1;

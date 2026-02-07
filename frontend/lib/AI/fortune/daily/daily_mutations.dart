@@ -83,19 +83,14 @@ class DailyMutations {
       'expires_at': expiresAt,
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
       'prompt_version': kDailyFortunePromptVersion, // 일운 프롬프트 버전
+      'status': 'completed', // v7.6: DB DEFAULT 의존 제거, 명시적 상태
     };
 
     try {
-      // Delete + Insert 패턴 (Partial UNIQUE INDEX 호환)
+      // v7.6: Insert-first 패턴 (Delete GAP 제거)
+      // 기존 행이 없으면: Insert 한 번으로 완료 (GAP 없음)
+      // 기존 행이 있으면: 23505 → Delete → Insert (기존 행이 존재하는 동안 GAP 없음)
       // idx_ai_summaries_unique_daily: (profile_id, target_date) WHERE summary_type = 'daily_fortune'
-      // Partial index는 Supabase upsert onConflict와 호환되지 않으므로 삭제 후 삽입
-      await _supabase
-          .from('ai_summaries')
-          .delete()
-          .eq('profile_id', profileId)
-          .eq('summary_type', SummaryType.dailyFortune)
-          .eq('target_date', dateString);
-
       final response = await _supabase
           .from('ai_summaries')
           .insert(data)
@@ -105,9 +100,9 @@ class DailyMutations {
       print('[DailyMutations] ✅ DB 저장 성공: ${response['id']}');
       return response;
     } on PostgrestException catch (e) {
-      // 레이스 컨디션: 동시 요청으로 insert 충돌 시 delete 후 재시도 (1회)
       if (e.code == '23505') {
-        print('[DailyMutations] ⚠️ 중복 키 충돌 → 재시도');
+        // 기존 행 존재 → Delete 후 Insert
+        print('[DailyMutations] ⚠️ 중복 키 → Delete 후 Insert 재시도');
         await _supabase
             .from('ai_summaries')
             .delete()

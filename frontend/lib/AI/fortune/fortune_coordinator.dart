@@ -822,7 +822,8 @@ class FortuneCoordinator {
 
   /// 분석 중 여부 확인 (Provider에서 사용)
   static bool isAnalyzing(String profileId) {
-    return _analyzingProfiles.contains(profileId);
+    return _analyzingProfiles.contains(profileId) ||
+        _analyzingDaily.any((key) => key.startsWith('${profileId}_'));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
