@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,7 +45,7 @@ class BirthTimePicker extends ConsumerWidget {
             child: Text(
               isEnabled
                   ? '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}'
-                  : '시간 모름',
+                  : 'profile.birthTimeUnknown'.tr(),
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: isEnabled ? theme.textPrimary : theme.textMuted,
               ),
@@ -53,7 +54,7 @@ class BirthTimePicker extends ConsumerWidget {
           if (isEnabled)
             TextButton(
               onPressed: () => _showTimePicker(context, ref, hours, minutes),
-              child: Text('변경', style: TextStyle(color: theme.primaryColor)),
+              child: Text('profile.change'.tr(), style: TextStyle(color: theme.primaryColor)),
             ),
         ],
       ),
@@ -77,13 +78,13 @@ class BirthTimePicker extends ConsumerWidget {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('취소'),
+                  child: Text('common.buttonCancel'.tr()),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text('확인'),
+                  child: Text('common.buttonConfirm'.tr()),
                 ),
               ],
             ),

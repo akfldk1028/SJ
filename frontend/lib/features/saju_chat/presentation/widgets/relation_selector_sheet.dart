@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -192,7 +193,7 @@ class RelationSelectorSheet extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '인연 선택',
+                        'saju_chat.relationSelect'.tr(),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -201,7 +202,7 @@ class RelationSelectorSheet extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '상대방을 선택하면 궁합 분석 채팅이 시작됩니다',
+                        'saju_chat.relationSelectSubtitle'.tr(),
                         style: TextStyle(
                           fontSize: 13,
                           color: appTheme.textSecondary,
@@ -219,7 +220,7 @@ class RelationSelectorSheet extends ConsumerWidget {
             child: activeProfileAsync.when(
               data: (activeProfile) {
                 if (activeProfile == null) {
-                  return _buildEmptyState(appTheme, '프로필을 먼저 등록해주세요');
+                  return _buildEmptyState(appTheme, 'saju_chat.registerProfileFirst'.tr());
                 }
                 return _RelationList(
                   fromProfileId: activeProfile.id,
@@ -232,7 +233,7 @@ class RelationSelectorSheet extends ConsumerWidget {
                   child: CircularProgressIndicator(),
                 ),
               ),
-              error: (e, _) => _buildEmptyState(appTheme, '오류: $e'),
+              error: (e, _) => _buildEmptyState(appTheme, 'saju_chat.errorWithDetail'.tr(namedArgs: {'error': '$e'})),
             ),
           ),
         ],
@@ -336,7 +337,7 @@ class _CompatibilitySelectorSheetState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '궁합 인연 선택',
+                        'saju_chat.compatibilitySelect'.tr(),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -345,7 +346,7 @@ class _CompatibilitySelectorSheetState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '1명: 개인 사주 · 2명: 궁합 분석 (선택: ${_selectedProfileIds.length}명)',
+                        'saju_chat.compatibilitySelectSubtitle'.tr(namedArgs: {'count': '${_selectedProfileIds.length}'}),
                         style: TextStyle(
                           fontSize: 13,
                           color: appTheme.textSecondary,
@@ -365,7 +366,7 @@ class _CompatibilitySelectorSheetState
             child: activeProfileAsync.when(
               data: (activeProfile) {
                 if (activeProfile == null) {
-                  return _buildEmptyState(appTheme, '프로필을 먼저 등록해주세요');
+                  return _buildEmptyState(appTheme, 'saju_chat.registerProfileFirst'.tr());
                 }
                 _ownerProfileId = activeProfile.id;
                 _ownerName = activeProfile.displayName;
@@ -383,7 +384,7 @@ class _CompatibilitySelectorSheetState
                   child: CircularProgressIndicator(),
                 ),
               ),
-              error: (e, _) => _buildEmptyState(appTheme, '오류: $e'),
+              error: (e, _) => _buildEmptyState(appTheme, 'saju_chat.errorWithDetail'.tr(namedArgs: {'error': '$e'})),
             ),
           ),
 
@@ -432,11 +433,11 @@ class _CompatibilitySelectorSheetState
     final isValid = isSinglePerson || isCompatibility;
 
     final buttonText = switch (count) {
-      0 => '인연을 선택해주세요',
-      1 when _isOwnerSelected => '나를 대화에 추가',
-      1 => '이 사람의 사주 보기',
-      2 => '2명 궁합 분석 시작',
-      _ => '2명을 선택해주세요',
+      0 => 'saju_chat.selectRelationPlease'.tr(),
+      1 when _isOwnerSelected => 'saju_chat.addSelfToChat'.tr(),
+      1 => 'saju_chat.viewThisPersonSaju'.tr(),
+      2 => 'saju_chat.startCompatibility'.tr(),
+      _ => 'saju_chat.selectTwoPeople'.tr(),
     };
 
     return SafeArea(
@@ -487,7 +488,7 @@ class _CompatibilitySelectorSheetState
         if (relation != null) {
           selectedRelations.add(relation);
           final relationType = ProfileRelationType.fromValue(relation.relationType);
-          mentionTexts.add('@${relationType.categoryLabel}/${relation.displayName ?? "이름 없음"}');
+          mentionTexts.add('@${relationType.categoryLabel}/${relation.displayName ?? 'saju_chat.noName'.tr()}');
         }
       }
     }
@@ -585,7 +586,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text('오류: $e', style: TextStyle(color: appTheme.textMuted)),
+          child: Text('saju_chat.errorWithDetail'.tr(namedArgs: {'error': '$e'}), style: TextStyle(color: appTheme.textMuted)),
         ),
       ),
     );
@@ -606,7 +607,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
               Icon(Icons.person, size: 18, color: appTheme.primaryColor),
               const SizedBox(width: 8),
               Text(
-                '나',
+                'saju_chat.self'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -651,7 +652,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
                   ),
                   child: Center(
                     child: Text(
-                      ownerName?.isNotEmpty == true ? ownerName![0] : '나',
+                      ownerName?.isNotEmpty == true ? ownerName![0] : 'saju_chat.self'.tr(),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -667,7 +668,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ownerName ?? '나',
+                        ownerName ?? 'saju_chat.self'.tr(),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -676,7 +677,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '본인',
+                        'saju_chat.selfLabel'.tr(),
                         style: TextStyle(
                           fontSize: 13,
                           color: appTheme.textSecondary,
@@ -706,7 +707,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
           padding: const EdgeInsets.all(32),
           child: Center(
             child: Text(
-              '등록된 인연이 없습니다\n인연 목록에서 새 인연을 추가해주세요',
+              'saju_chat.noRelationsFull'.tr(),
               style: TextStyle(fontSize: 14, color: appTheme.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -795,7 +796,7 @@ class _MultiRelationList extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Text(
-            '오류: $e',
+            'saju_chat.errorWithDetail'.tr(namedArgs: {'error': '$e'}),
             style: TextStyle(color: appTheme.textMuted),
           ),
         ),
@@ -817,7 +818,7 @@ class _MultiRelationList extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '등록된 인연이 없습니다',
+              'saju_chat.noRelations'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -826,7 +827,7 @@ class _MultiRelationList extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '인연 목록에서 새 인연을 추가해주세요',
+              'saju_chat.noRelationsSubtitle'.tr(),
               style: TextStyle(
                 fontSize: 13,
                 color: appTheme.textMuted,
@@ -990,7 +991,7 @@ class _MultiRelationTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    relation.displayName ?? '이름 없음',
+                    relation.displayName ?? 'saju_chat.noName'.tr(),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -1078,7 +1079,7 @@ class _RelationList extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Text(
-            '오류: $e',
+            'saju_chat.errorWithDetail'.tr(namedArgs: {'error': '$e'}),
             style: TextStyle(color: appTheme.textMuted),
           ),
         ),
@@ -1100,7 +1101,7 @@ class _RelationList extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '등록된 인연이 없습니다',
+              'saju_chat.noRelations'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -1109,7 +1110,7 @@ class _RelationList extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '인연 목록에서 새 인연을 추가해주세요',
+              'saju_chat.noRelationsSubtitle'.tr(),
               style: TextStyle(
                 fontSize: 13,
                 color: appTheme.textMuted,
@@ -1193,7 +1194,7 @@ class _CategorySection extends StatelessWidget {
               relation: relation,
               onTap: () {
                 final relationType = ProfileRelationType.fromValue(relation.relationType);
-                final displayName = relation.displayName ?? '이름 없음';
+                final displayName = relation.displayName ?? 'saju_chat.noName'.tr();
                 final mentionText = '@${relationType.categoryLabel}/$displayName';
                 onSelected?.call(RelationSelection(
                   relation: relation,
@@ -1255,7 +1256,7 @@ class _RelationTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    relation.displayName ?? '이름 없음',
+                    relation.displayName ?? 'saju_chat.noName'.tr(),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,

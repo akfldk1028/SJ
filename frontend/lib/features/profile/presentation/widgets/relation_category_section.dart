@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/profile_relation_model.dart';
 
@@ -229,14 +230,14 @@ class EmptyRelationState extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            '등록된 인연이 없습니다',
+            'profile.emptyRelationTitle'.tr(),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.grey[600],
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            '소중한 사람들의 사주를 등록해보세요',
+            'profile.emptyRelationHint'.tr(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[500],
                 ),
@@ -246,7 +247,7 @@ class EmptyRelationState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAddPressed,
               icon: const Icon(Icons.person_add, size: 18),
-              label: const Text('인연 등록하기'),
+              label: Text('profile.addRelation'.tr()),
             ),
           ],
         ],
@@ -277,14 +278,14 @@ class NoActiveProfileState extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            '나의 프로필을 먼저 등록해주세요',
+            'profile.noProfileTitle'.tr(),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.grey[600],
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            '프로필을 등록하면 인연 관계를 추가할 수 있습니다',
+            'profile.noProfileHint'.tr(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[500],
                 ),
@@ -294,7 +295,7 @@ class NoActiveProfileState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onCreateProfile,
               icon: const Icon(Icons.person_add, size: 18),
-              label: const Text('프로필 등록하기'),
+              label: Text('profile.createProfile'.tr()),
             ),
           ],
         ],

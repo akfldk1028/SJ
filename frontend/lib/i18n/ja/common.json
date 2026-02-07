@@ -35,5 +35,14 @@
   "category_health": "健康運",
   "category_overall": "総合運",
   "category_family": "家庭運",
-  "category_social": "対人運"
+  "category_social": "対人運",
+  "errorPageNotFound": "ページが見つかりません: {uri}",
+  "edit": "編集",
+  "delete": "削除",
+  "historyTitle": "チャット履歴",
+  "historyEmpty": "保存された会話はありません",
+  "gender": "性別",
+  "genderMale": "男性",
+  "genderFemale": "女性",
+  "adHintMessage": "気になる広告をチェックすると会話がもっと増えます"
 }

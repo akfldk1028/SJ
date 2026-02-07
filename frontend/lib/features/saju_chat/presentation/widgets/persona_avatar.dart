@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/models/ai_persona.dart';
@@ -66,7 +67,7 @@ class PersonaAppBarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onTap,
-      tooltip: '캐릭터 변경',
+      tooltip: 'saju_chat.changePersona'.tr(),
       icon: Text(
         persona.emoji,
         style: const TextStyle(fontSize: 24),

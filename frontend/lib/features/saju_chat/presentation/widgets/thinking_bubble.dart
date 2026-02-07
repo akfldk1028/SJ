@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'typing_indicator.dart';
@@ -19,27 +20,29 @@ class ThinkingBubble extends StatefulWidget {
 class _ThinkingBubbleState extends State<ThinkingBubble>
     with SingleTickerProviderStateMixin {
   /// 사주 테마 로딩 메시지
-  static const List<String> _thinkingMessages = [
-    '🔮 사주팔자를 풀어보고 있어요...',
-    '⭐ 오행의 기운을 읽고 있어요...',
-    '🌙 음양의 조화를 살펴보고 있어요...',
-    '📜 운명의 흐름을 분석 중이에요...',
-    '🧙 천간지지를 해석하고 있어요...',
-    '✨ 당신만의 답을 준비하고 있어요...',
-    '🎋 대운의 흐름을 살펴보고 있어요...',
-    '🌟 숨겨진 기운을 찾고 있어요...',
-    '🏮 길한 방향을 탐색 중이에요...',
-    '🍀 행운의 기운을 모으고 있어요...',
+  static List<String> _getThinkingMessages() => [
+    'saju_chat.thinkingMsg1'.tr(),
+    'saju_chat.thinkingMsg2'.tr(),
+    'saju_chat.thinkingMsg3'.tr(),
+    'saju_chat.thinkingMsg4'.tr(),
+    'saju_chat.thinkingMsg5'.tr(),
+    'saju_chat.thinkingMsg6'.tr(),
+    'saju_chat.thinkingMsg7'.tr(),
+    'saju_chat.thinkingMsg8'.tr(),
+    'saju_chat.thinkingMsg9'.tr(),
+    'saju_chat.thinkingMsg10'.tr(),
   ];
 
   int _currentIndex = 0;
   Timer? _timer;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
+  late List<String> _thinkingMessages;
 
   @override
   void initState() {
     super.initState();
+    _thinkingMessages = _getThinkingMessages();
 
     // 페이드 애니메이션 설정
     _fadeController = AnimationController(

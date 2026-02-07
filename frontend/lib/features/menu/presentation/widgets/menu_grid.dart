@@ -20,7 +20,7 @@ class MenuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const menuList = MenuItem.menuList;
+    final menuList = MenuItem.menuList;
 
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),

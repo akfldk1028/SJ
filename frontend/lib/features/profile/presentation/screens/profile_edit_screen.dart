@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -112,7 +113,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          isEditing ? '프로필 수정' : '프로필 만들기',
+          isEditing ? 'profile.editTitle'.tr() : 'profile.createTitle'.tr(),
           style: TextStyle(color: theme.textPrimary),
         ),
         centerTitle: true,
@@ -125,7 +126,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           if (AdminConfig.isAdminModeAvailable && !isEditing)
             IconButton(
               icon: Icon(Icons.admin_panel_settings, color: theme.textPrimary),
-              tooltip: '개발자 모드',
+              tooltip: 'profile.developerMode'.tr(),
               onPressed: () => _handleAdminLogin(context, ref),
             ),
         ],
@@ -196,7 +197,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         updatedAt: now,
         isActive: true,
         relationType: RelationshipType.admin, // Admin relation type!
-        memo: '개발자 테스트 계정',
+        memo: 'profile.developerTestAccount'.tr(),
       );
 
       // 2. 프로필 저장 (사주 분석 자동 실행됨)
@@ -218,7 +219,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Admin 로그인 실패: $e'),
+            content: Text('profile.adminLoginFailed'.tr(namedArgs: {'error': e.toString()})),
             backgroundColor: Colors.red,
           ),
         );

@@ -7,12 +7,14 @@ class ParticipantResolution {
   final String? person1Id;
   final String? person2Id;
   final List<String> extraMentionIds;
+  final bool? includesOwner; // v12.1: "나 포함/제외" 전달
 
   const ParticipantResolution({
     required this.isCompatibilityMode,
     this.person1Id,
     this.person2Id,
     this.extraMentionIds = const [],
+    this.includesOwner,
   });
 }
 
@@ -35,6 +37,7 @@ class ParticipantResolver {
     List<String>? compatibilityParticipantIds,
     List<String>? multiParticipantIds,
     String? targetProfileId,
+    bool? includesOwner,  // v12.1: "나 포함/제외" (MentionSendHandler에서 전달)
   }) async {
     // 궁합 참가자 결정 (우선순위: compatibilityParticipantIds > multiParticipantIds)
     final effectiveParticipantIds = compatibilityParticipantIds ?? multiParticipantIds;
@@ -50,10 +53,10 @@ class ParticipantResolver {
 
     if (isCompatibilityMode) {
       // ═══════════════════════════════════════════════════════════════════
-      // v12.0: 누적 참가자 병합 (기존 chat_mentions + 새 참가자)
-      // - 처음 2명 → 다음 2명 추가 → 총 4명... N명까지 계속 누적
-      // - 기존 참가자(person1/person2)는 유지하고, 새 참가자를 extra에 추가
-      // - AI가 모든 참가자의 사주 정보를 인식할 수 있도록 함
+      // v12.1: 새 멘션 우선 병합 (신규 = primary pair, 기존 = extra)
+      // - 새 멘션이 person1/person2가 되어 궁합 분석 대상이 됨
+      // - 기존 참가자는 extra로 이동하여 AI가 동등하게 참조 가능
+      // - chat_mentions 순서: [신규..., 기존 중 신규에 없는 것...]
       // ═══════════════════════════════════════════════════════════════════
       List<String> mergedIds = List<String>.from(effectiveParticipantIds);
 
@@ -71,22 +74,23 @@ class ParticipantResolver {
               .cast<String>()
               .toList();
 
-          // 기존 참가자 유지 + 새 참가자 중 중복 아닌 것만 추가
-          final newIds = effectiveParticipantIds
-              .where((id) => !existingIds.contains(id))
+          // 기존 참가자 중 새 멘션에 없는 사람만 뒤에 추가
+          final oldExtras = existingIds
+              .where((id) => !effectiveParticipantIds.contains(id))
               .toList();
 
-          if (newIds.isNotEmpty) {
-            mergedIds = [...existingIds, ...newIds];
+          if (oldExtras.isNotEmpty) {
+            mergedIds = [...effectiveParticipantIds, ...oldExtras];
             if (kDebugMode) {
-              print('   🔄 누적 병합: 기존 ${existingIds.length}명 + 새 ${newIds.length}명 = 총 ${mergedIds.length}명');
-              print('      기존: $existingIds');
-              print('      추가: $newIds');
+              print('   🔄 v12.1 병합: 신규 ${effectiveParticipantIds.length}명(primary) + 기존 ${oldExtras.length}명(extra) = 총 ${mergedIds.length}명');
+              print('      신규(primary): $effectiveParticipantIds');
+              print('      기존(extra): $oldExtras');
             }
-          } else {
-            // 새 참가자가 모두 기존에 있으면 기존 목록 유지
-            mergedIds = existingIds;
+          } else if (existingIds.length > effectiveParticipantIds.length) {
+            // 새 참가자가 모두 기존에 있지만 기존이 더 많으면 → 기존 중 신규 외 나머지 유지
+            mergedIds = [...effectiveParticipantIds, ...existingIds.where((id) => !effectiveParticipantIds.contains(id))];
           }
+          // 새 참가자 == 기존이면 그대로 (mergedIds = effectiveParticipantIds)
         }
       } catch (e) {
         if (kDebugMode) {
@@ -94,7 +98,7 @@ class ParticipantResolver {
         }
       }
 
-      // 병합된 전체 목록에서 person1/person2/extra 결정
+      // 신규 멘션이 primary pair (person1/person2)
       person1Id = mergedIds[0];
       person2Id = mergedIds.length > 1 ? mergedIds[1] : null;
       if (mergedIds.length > 2) {
@@ -105,7 +109,7 @@ class ParticipantResolver {
         print('   ✅ 궁합 모드 활성화: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명 (총 ${mergedIds.length}명)');
       }
 
-      // 병합된 전체 참가자를 chat_mentions에 저장
+      // 병합된 전체 참가자를 chat_mentions에 저장 (신규 우선 순서)
       await _saveMergedParticipants(sessionId, mergedIds);
       alreadySaved = true;
     } else if (targetProfileId != null) {
@@ -262,6 +266,7 @@ class ParticipantResolver {
       person1Id: person1Id,
       person2Id: person2Id,
       extraMentionIds: extraMentionIds,
+      includesOwner: includesOwner,
     );
   }
 

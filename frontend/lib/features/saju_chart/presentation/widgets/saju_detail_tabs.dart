@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -44,58 +45,46 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
   late TabController _tabController;
 
   // 탭 정의 (각 탭에 대한 간략 설명 포함)
-  static const _tabs = [
-    _TabItem(
-      label: '만세력',
-      icon: Icons.grid_view_rounded,
-      description: '사주팔자의 기본 구조인 년주·월주·일주·시주 4개의 기둥과 오행 분포를 한눈에 볼 수 있는 기본 차트입니다.',
-    ),
-    _TabItem(
-      label: '오행',
-      icon: Icons.donut_small,
-      description: '목(木)·화(火)·토(土)·금(金)·수(水) 다섯 가지 기운의 분포와 균형을 분석합니다. 오행의 과다/부족이 성격과 운세에 영향을 줍니다.',
-    ),
-    _TabItem(
-      label: '신강',
-      icon: Icons.fitness_center,
-      description: '일간(나)의 기운이 강한지 약한지를 판단합니다. 신강하면 독립적이고, 신약하면 주변의 도움이 필요한 타입입니다. 용신(필요한 오행)도 함께 분석합니다.',
-    ),
-    _TabItem(
-      label: '대운',
-      icon: Icons.timeline,
-      description: '10년 단위로 변하는 운의 흐름을 보여줍니다. 대운·세운·월운을 통해 인생의 큰 흐름과 시기별 운세를 파악할 수 있습니다.',
-    ),
-    _TabItem(
-      label: '합충',
-      icon: Icons.sync_alt,
-      description: '천간과 지지 사이의 합(合)·충(沖)·형(刑)·파(破)·해(害) 관계를 분석합니다. 사주 내 기운의 조화와 갈등을 파악합니다.',
-    ),
-    _TabItem(
-      label: '십성',
-      icon: Icons.stars_rounded,
-      description: '일간을 기준으로 다른 간지와의 관계를 10가지(비겁·식상·재성·관성·인성)로 나타냅니다. 성격, 재물운, 직업운 등을 파악하는 핵심 분석입니다.',
-    ),
-    _TabItem(
-      label: '운성',
-      icon: Icons.trending_up,
-      description: '12운성은 일간의 기운이 각 지지에서 어떤 상태인지를 나타냅니다. 장생·건록·제왕 등 12단계로 인생의 에너지 흐름을 봅니다.',
-    ),
-    _TabItem(
-      label: '신살',
-      icon: Icons.flash_on,
-      description: '사주에 나타나는 특별한 기운(신살)을 분석합니다. 역마살·도화살·화개살 등 길한 영향과 흉한 영향을 파악합니다.',
-    ),
-    _TabItem(
-      label: '공망',
-      icon: Icons.highlight_off,
-      description: '일주를 기준으로 비어있는(空亡) 지지를 찾습니다. 해당 영역의 기운이 약해질 수 있지만, 흉한 것이 공망이면 오히려 흉함이 줄어듭니다.',
-    ),
+  static const _tabIcons = [
+    Icons.grid_view_rounded,
+    Icons.donut_small,
+    Icons.fitness_center,
+    Icons.timeline,
+    Icons.sync_alt,
+    Icons.stars_rounded,
+    Icons.trending_up,
+    Icons.flash_on,
+    Icons.highlight_off,
+  ];
+
+  static const _tabLabelKeys = [
+    'saju_chart.tabManseryeok',
+    'saju_chart.tabOheng',
+    'saju_chart.tabSingang',
+    'saju_chart.tabDaeun',
+    'saju_chart.tabHapchung',
+    'saju_chart.tabSipsung',
+    'saju_chart.tabUnsung',
+    'saju_chart.tabSinsal',
+    'saju_chart.tabGongmang',
+  ];
+
+  static const _tabDescKeys = [
+    'saju_chart.tabManseryeokLongDesc',
+    'saju_chart.tabOhengLongDesc',
+    'saju_chart.tabSingangLongDesc',
+    'saju_chart.tabDaeunLongDesc',
+    'saju_chart.tabHapchungLongDesc',
+    'saju_chart.tabSipsungLongDesc',
+    'saju_chart.tabUnsungLongDesc',
+    'saju_chart.tabSinsalLongDesc',
+    'saju_chart.tabGongmangLongDesc',
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(length: _tabIcons.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {}); // rebuild to update help bar
@@ -105,8 +94,10 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
 
   /// 현재 탭의 설명 팝업 표시
   void _showTabHelp(BuildContext context) {
-    final tab = _tabs[_tabController.index];
-    if (tab.description.isEmpty) return;
+    final index = _tabController.index;
+    final label = _tabLabelKeys[index].tr();
+    final description = _tabDescKeys[index].tr();
+    if (description.isEmpty) return;
     final theme = context.appTheme;
 
     showDialog(
@@ -116,10 +107,10 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(tab.icon, color: theme.primaryColor, size: 24),
+            Icon(_tabIcons[index], color: theme.primaryColor, size: 24),
             const SizedBox(width: 10),
             Text(
-              '${tab.label}이란?',
+              'saju_chart.whatIs'.tr(namedArgs: {'title': label}),
               style: TextStyle(
                 color: theme.textPrimary,
                 fontSize: 18,
@@ -129,7 +120,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
           ],
         ),
         content: Text(
-          tab.description,
+          description,
           style: TextStyle(
             color: theme.textSecondary,
             fontSize: 15,
@@ -139,7 +130,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+            child: Text('saju_chart.confirm'.tr(), style: TextStyle(color: theme.primaryColor, fontSize: 15)),
           ),
         ],
       ),
@@ -190,7 +181,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '사주 풀이 자세히 보기',
+                    'saju_chart.sajuDetailView'.tr(),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: theme.textPrimary,
                           fontWeight: FontWeight.bold,
@@ -227,19 +218,17 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
-              tabs: _tabs
-                  .map((tab) => Tab(
+              tabs: List.generate(_tabIcons.length, (i) => Tab(
                         height: 48,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(tab.icon, size: 18),
+                            Icon(_tabIcons[i], size: 18),
                             const SizedBox(width: 6),
-                            Text(tab.label),
+                            Text(_tabLabelKeys[i].tr()),
                           ],
                         ),
-                      ))
-                  .toList(),
+                      )),
             ),
           ),
           // 탭 도움말 바 (물음표 아이콘 탭 시 설명 팝업)
@@ -263,7 +252,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${_tabs[_tabController.index].label} - 터치하여 자세한 설명 보기',
+                      'saju_chart.tabTouchHint'.tr(namedArgs: {'label': _tabLabelKeys[_tabController.index].tr()}),
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.primaryColor,
@@ -287,7 +276,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                 if (analysis == null) {
                   return Center(
                     child: Text(
-                      '분석 정보를 불러올 수 없습니다.',
+                      'saju_chart.cannotLoadAnalysis'.tr(),
                       style: TextStyle(color: theme.textSecondary),
                     ),
                   );
@@ -331,7 +320,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    '오류가 발생했습니다:\n$err',
+                    'saju_chart.errorOccurredWithMsg'.tr(namedArgs: {'msg': '$err'}),
                     style: TextStyle(color: theme.fireColor ?? AppColors.error),
                     textAlign: TextAlign.center,
                   ),
@@ -345,18 +334,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
   }
 }
 
-/// 탭 아이템 정의
-class _TabItem {
-  final String label;
-  final IconData icon;
-  final String description;
-
-  const _TabItem({
-    required this.label,
-    required this.icon,
-    this.description = '',
-  });
-}
+// _TabItem class removed - tab data now uses i18n key arrays
 
 /// 만세력 탭 (포스텔러 스타일 테이블 포함)
 class _ManseryeokTab extends StatelessWidget {
@@ -377,13 +355,13 @@ class _ManseryeokTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 포스텔러 스타일 통합 테이블
-          _buildSectionTitle(context, '사주 팔자 분석표', theme),
+          _buildSectionTitle(context, 'saju_chart.sajuPaljaAnalysisTable'.tr(), theme),
           const SizedBox(height: 12),
           PosstellerStyleTable(chart: chart),
           const SizedBox(height: 24),
 
           // 기존 4주 카드 표시
-          _buildSectionTitle(context, '사주팔자 (Four Pillars)', theme),
+          _buildSectionTitle(context, 'saju_chart.sajuPaljaFourPillars'.tr(), theme),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -403,28 +381,28 @@ class _ManseryeokTab extends StatelessWidget {
                   children: [
                     Flexible(
                       child: PillarDisplay(
-                        label: '시주',
+                        label: 'saju_chart.hourPillar'.tr(),
                         pillar: chart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
                         size: pillarSize,
                       ),
                     ),
                     Flexible(
                       child: PillarDisplay(
-                        label: '일주 (나)',
+                        label: 'saju_chart.dayPillarMe'.tr(),
                         pillar: chart.dayPillar,
                         size: pillarSize,
                       ),
                     ),
                     Flexible(
                       child: PillarDisplay(
-                        label: '월주',
+                        label: 'saju_chart.monthPillar'.tr(),
                         pillar: chart.monthPillar,
                         size: pillarSize,
                       ),
                     ),
                     Flexible(
                       child: PillarDisplay(
-                        label: '년주',
+                        label: 'saju_chart.yearPillar'.tr(),
                         pillar: chart.yearPillar,
                         size: pillarSize,
                       ),
@@ -437,7 +415,7 @@ class _ManseryeokTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 오행 분포
-          _buildSectionTitle(context, '오행 분포', theme),
+          _buildSectionTitle(context, 'saju_chart.ohengDistribution'.tr(), theme),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -448,11 +426,11 @@ class _ManseryeokTab extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildOhengBar(context, '목(木) Wood', oheng.mok, theme.woodColor ?? AppColors.wood, theme),
-                _buildOhengBar(context, '화(火) Fire', oheng.hwa, theme.fireColor ?? AppColors.fire, theme),
-                _buildOhengBar(context, '토(土) Earth', oheng.to, theme.earthColor ?? AppColors.earth, theme),
-                _buildOhengBar(context, '금(金) Metal', oheng.geum, theme.metalColor ?? AppColors.metal, theme),
-                _buildOhengBar(context, '수(水) Water', oheng.su, theme.waterColor ?? AppColors.water, theme),
+                _buildOhengBar(context, 'saju_chart.ohengWoodBar'.tr(), oheng.mok, theme.woodColor ?? AppColors.wood, theme),
+                _buildOhengBar(context, 'saju_chart.ohengFireBar'.tr(), oheng.hwa, theme.fireColor ?? AppColors.fire, theme),
+                _buildOhengBar(context, 'saju_chart.ohengEarthBar'.tr(), oheng.to, theme.earthColor ?? AppColors.earth, theme),
+                _buildOhengBar(context, 'saju_chart.ohengMetalBar'.tr(), oheng.geum, theme.metalColor ?? AppColors.metal, theme),
+                _buildOhengBar(context, 'saju_chart.ohengWaterBar'.tr(), oheng.su, theme.waterColor ?? AppColors.water, theme),
               ],
             ),
           ),
@@ -514,7 +492,7 @@ class _ManseryeokTab extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            '$count개',
+            'saju_chart.countUnit'.tr(namedArgs: {'count': '$count'}),
             style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -546,17 +524,17 @@ class _SipSungTab extends StatelessWidget {
           _buildExplanationCard(context, theme),
           const SizedBox(height: 20),
 
-          _buildSectionTitle(context, '천간 십성', theme),
+          _buildSectionTitle(context, 'saju_chart.cheonganSipsung'.tr(), theme),
           const SizedBox(height: 12),
           _buildCheonganSipSin(context, theme),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, '지장간 십성', theme),
+          _buildSectionTitle(context, 'saju_chart.jijangganSipsung'.tr(), theme),
           const SizedBox(height: 12),
           JiJangGanRow(analysis: jijangganResult, compact: true),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, '십성 분포', theme),
+          _buildSectionTitle(context, 'saju_chart.sipsungDistribution'.tr(), theme),
           const SizedBox(height: 12),
           SipSungCategoryChart(
             distribution: jijangganResult.categoryDistribution,
@@ -589,7 +567,7 @@ class _SipSungTab extends StatelessWidget {
               Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 22),
               const SizedBox(width: 8),
               Text(
-                '십성(十星)이란?',
+                'saju_chart.sipsungDetailTitle'.tr(),
                 style: TextStyle(
                   color: theme.primaryColor,
                   fontSize: 17,
@@ -600,8 +578,7 @@ class _SipSungTab extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            '일간(日干, 나)을 기준으로 다른 간지와의 관계를 나타낸 것입니다. '
-            '오행의 상생상극 관계와 음양 조화에 따라 10가지 관계가 정해집니다.',
+            'saju_chart.sipsungDetailBody'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -610,11 +587,11 @@ class _SipSungTab extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            '• 비겁(比劫): 나와 같은 오행 - 형제, 경쟁자, 자아\n'
-            '• 식상(食傷): 내가 생하는 오행 - 표현력, 재능, 자녀\n'
-            '• 재성(財星): 내가 극하는 오행 - 재물, 아버지(남), 아내(남)\n'
-            '• 관성(官星): 나를 극하는 오행 - 직장, 명예, 남편(여)\n'
-            '• 인성(印星): 나를 생하는 오행 - 학문, 문서, 어머니',
+            '${'saju_chart.sipsungBigeopDesc'.tr()}\n'
+            '${'saju_chart.sipsungSiksangDesc'.tr()}\n'
+            '${'saju_chart.sipsungJaeseongDesc'.tr()}\n'
+            '${'saju_chart.sipsungGwanseongDesc'.tr()}\n'
+            '${'saju_chart.sipsungInseongDesc'.tr()}',
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 14,
@@ -662,7 +639,7 @@ class _SipSungTab extends StatelessWidget {
           SizedBox(
             width: 60,
             child: Text(
-              '천간',
+              'saju_chart.heavenlyStem'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 13,
@@ -752,7 +729,7 @@ class _UnsungTab extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 12운성 상세 카드 리스트
-          _buildSectionHeader(context, '궁성별 12운성', '각 궁의 운성과 그 의미', theme.primaryColor, Icons.analytics_rounded, theme),
+          _buildSectionHeader(context, 'saju_chart.gungseongUnsung'.tr(), 'saju_chart.gungseongUnsungSubtitle'.tr(), theme.primaryColor, Icons.analytics_rounded, theme),
           const SizedBox(height: 12),
           _buildUnsungDetailCards(context, result, theme),
         ],
@@ -783,7 +760,7 @@ class _UnsungTab extends StatelessWidget {
               Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
-                '12운성(十二運星)이란?',
+                'saju_chart.unsungDetailTitle'.tr(),
                 style: TextStyle(
                   color: theme.primaryColor,
                   fontSize: 17,
@@ -794,8 +771,7 @@ class _UnsungTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '12운성은 일간(日干)의 기운이 각 지지(地支)에서 어떤 상태인지를 나타냅니다. '
-            '마치 사람의 일생처럼 탄생(장생)부터 죽음(사)까지의 순환을 12단계로 표현합니다.',
+            'saju_chart.unsungDetailBody'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -813,17 +789,17 @@ class _UnsungTab extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildCycleItem('장생', '탄생', theme),
+                  _buildCycleItem('장생', 'saju_chart.unsungCycleBirth'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('목욕', '성장', theme),
+                  _buildCycleItem('목욕', 'saju_chart.unsungCycleGrowth'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('관대', '성인', theme),
+                  _buildCycleItem('관대', 'saju_chart.unsungCycleAdult'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('건록', '전성', theme),
+                  _buildCycleItem('건록', 'saju_chart.unsungCyclePrime'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('제왕', '정점', theme),
+                  _buildCycleItem('제왕', 'saju_chart.unsungCyclePeak'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('쇠', '쇠퇴', theme),
+                  _buildCycleItem('쇠', 'saju_chart.unsungCycleDecline'.tr(), theme),
                 ],
               ),
             ),
@@ -895,7 +871,7 @@ class _UnsungTab extends StatelessWidget {
               Icon(Icons.account_tree_rounded, color: tealColor, size: 20),
               const SizedBox(width: 8),
               Text(
-                '궁성(宮星)이란?',
+                'saju_chart.gungseongDetailTitle'.tr(),
                 style: TextStyle(
                   color: tealColor,
                   fontSize: 17,
@@ -906,8 +882,7 @@ class _UnsungTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '궁성은 사주팔자의 4개 기둥(년주, 월주, 일주, 시주)이 각각 나타내는 삶의 영역입니다. '
-            '각 궁성의 운성을 통해 그 영역에서의 기운 상태를 파악할 수 있습니다.',
+            'saju_chart.gungseongDetailBody'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -923,13 +898,13 @@ class _UnsungTab extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildGungseongRow('년주(年柱)', '조상궁', '조상, 유년기, 사회적 배경', theme),
+                _buildGungseongRow('saju_chart.gungseong_year'.tr(), 'saju_chart.gungseong_yearPalace'.tr(), 'saju_chart.gungseong_yearMeaning'.tr(), theme),
                 const SizedBox(height: 8),
-                _buildGungseongRow('월주(月柱)', '부모궁', '부모, 청년기, 성장환경', theme),
+                _buildGungseongRow('saju_chart.gungseong_month'.tr(), 'saju_chart.gungseong_monthPalace'.tr(), 'saju_chart.gungseong_monthMeaning'.tr(), theme),
                 const SizedBox(height: 8),
-                _buildGungseongRow('일주(日柱)', '자신궁', '자신, 배우자, 중년기', theme),
+                _buildGungseongRow('saju_chart.gungseong_day'.tr(), 'saju_chart.gungseong_dayPalace'.tr(), 'saju_chart.gungseong_dayMeaning'.tr(), theme),
                 const SizedBox(height: 8),
-                _buildGungseongRow('시주(時柱)', '자녀궁', '자녀, 노년기, 결과', theme),
+                _buildGungseongRow('saju_chart.gungseong_hour'.tr(), 'saju_chart.gungseong_hourPalace'.tr(), 'saju_chart.gungseong_hourMeaning'.tr(), theme),
               ],
             ),
           ),
@@ -1050,7 +1025,7 @@ class _UnsungTab extends StatelessWidget {
               Icon(Icons.auto_awesome_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 10),
               Text(
-                '12운성 요약',
+                'saju_chart.unsungSummaryTitle'.tr(),
                 style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 17,
@@ -1339,20 +1314,20 @@ class _SinsalTab extends StatelessWidget {
               twelveSinsalResult.dohwaResult != null ||
               twelveSinsalResult.hwagaeResult != null ||
               twelveSinsalResult.jangsungResult != null) ...[
-            _buildSectionHeader(context, '주요 신살', '특히 주목해야 할 신살', theme.primaryColor, Icons.star_rounded, theme),
+            _buildSectionHeader(context, 'saju_chart.mainSinsal'.tr(), 'saju_chart.mainSinsalSubtitle'.tr(), theme.primaryColor, Icons.star_rounded, theme),
             const SizedBox(height: 12),
             _buildKeySinsalCards(context, twelveSinsalResult, theme),
             const SizedBox(height: 20),
           ],
 
           // 12신살 상세 카드 리스트
-          _buildSectionHeader(context, '12신살 상세', '각 궁성별 신살 분석', theme.textSecondary, Icons.grid_view_rounded, theme),
+          _buildSectionHeader(context, 'saju_chart.twelveSinsalDetail'.tr(), 'saju_chart.twelveSinsalDetailSubtitle'.tr(), theme.textSecondary, Icons.grid_view_rounded, theme),
           const SizedBox(height: 12),
           _buildSinsalDetailCards(context, twelveSinsalResult, theme),
           const SizedBox(height: 20),
 
           // 신살과 길성 통합 테이블 (포스텔러 스타일)
-          _buildSectionHeader(context, '신살·길성 테이블', '전체 신살 현황', theme.textSecondary, Icons.table_chart_rounded, theme),
+          _buildSectionHeader(context, 'saju_chart.sinsalGilseongTable'.tr(), 'saju_chart.sinsalGilseongTableSubtitle'.tr(), theme.textSecondary, Icons.table_chart_rounded, theme),
           const SizedBox(height: 12),
           SinsalGilseongTable(
             gilseongResult: gilseongResult,
@@ -1401,7 +1376,7 @@ class _SinsalTab extends StatelessWidget {
               Icon(Icons.help_outline_rounded, color: purpleColor, size: 20),
               const SizedBox(width: 8),
               Text(
-                '신살(神殺)이란?',
+                'saju_chart.sinsalDetailTitle'.tr(),
                 style: TextStyle(
                   color: purpleColor,
                   fontSize: 17,
@@ -1412,8 +1387,7 @@ class _SinsalTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '신살은 사주팔자에 나타나는 특별한 기운으로, 길한 영향(길신)과 흉한 영향(흉신)을 분석합니다. '
-            '12신살은 년지를 기준으로 각 지지의 특성을 파악하는 대표적인 신살 체계입니다.',
+            'saju_chart.sinsalDetailBody'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -1429,11 +1403,11 @@ class _SinsalTab extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _buildLegendItem('길신(吉神)', AppColors.success, theme),
+                _buildLegendItem('saju_chart.gilsin'.tr(), AppColors.success, theme),
                 const SizedBox(width: 16),
-                _buildLegendItem('흉신(凶神)', AppColors.error, theme),
+                _buildLegendItem('saju_chart.hyungsin'.tr(), AppColors.error, theme),
                 const SizedBox(width: 16),
-                _buildLegendItem('혼합', theme.primaryColor, theme),
+                _buildLegendItem('saju_chart.mixed'.tr(), theme.primaryColor, theme),
               ],
             ),
           ),
@@ -1525,15 +1499,15 @@ class _SinsalTab extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildStatBox('길(吉)', result.goodSinsalCount, AppColors.success),
+                child: _buildStatBox('saju_chart.fortuneGil'.tr(), result.goodSinsalCount, AppColors.success),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildStatBox('흉(凶)', result.badSinsalCount, AppColors.error),
+                child: _buildStatBox('saju_chart.fortuneHyung'.tr(), result.badSinsalCount, AppColors.error),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildStatBox('혼합', result.mixedSinsalCount, theme.primaryColor),
+                child: _buildStatBox('saju_chart.mixed'.tr(), result.mixedSinsalCount, theme.primaryColor),
               ),
             ],
           ),
@@ -1874,7 +1848,7 @@ class _SinsalTab extends StatelessWidget {
                     border: Border.all(color: fortuneColor.withOpacity(0.4)),
                   ),
                   child: Text(
-                    fortuneType == '길' ? '길(吉)' : fortuneType == '흉' ? '흉(凶)' : '혼합',
+                    fortuneType == '길' ? 'saju_chart.fortuneGil'.tr() : fortuneType == '흉' ? 'saju_chart.fortuneHyung'.tr() : 'saju_chart.mixed'.tr(),
                     style: TextStyle(
                       color: fortuneColor,
                       fontSize: 13,
@@ -1948,7 +1922,7 @@ class _GongmangTab extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 각 궁성별 공망 상세 카드
-          _buildSectionHeader(context, '궁성별 공망 분석', '각 궁의 공망 여부와 해석', theme.textSecondary, Icons.grid_view_rounded, theme),
+          _buildSectionHeader(context, 'saju_chart.gungseongGongmangAnalysis'.tr(), 'saju_chart.gungseongGongmangSubtitle'.tr(), theme.textSecondary, Icons.grid_view_rounded, theme),
           const SizedBox(height: 12),
           _buildGongmangDetailCards(context, result, theme),
         ],
@@ -1980,7 +1954,7 @@ class _GongmangTab extends StatelessWidget {
               Icon(Icons.help_outline_rounded, color: grayBlue, size: 20),
               const SizedBox(width: 8),
               Text(
-                '공망(空亡)이란?',
+                'saju_chart.gongmangDetailTitle'.tr(),
                 style: TextStyle(
                   color: grayBlue,
                   fontSize: 17,
@@ -1991,8 +1965,7 @@ class _GongmangTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '공망은 \'비어있다\'는 의미로, 일주를 기준으로 특정 지지가 빈 상태를 말합니다. '
-            '공망에 해당하는 궁성은 그 영역의 기운이 약해지거나 허무하게 될 수 있습니다.',
+            'saju_chart.gongmangDetailBody'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -2012,7 +1985,7 @@ class _GongmangTab extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '공망은 반드시 나쁜 것만은 아닙니다. 흉한 것이 공망이면 오히려 흉함이 줄어들기도 합니다.',
+                    'saju_chart.gongmangTipBody'.tr(),
                     style: TextStyle(
                       color: theme.textSecondary,
                       fontSize: 13,
@@ -2097,7 +2070,7 @@ class _GongmangTab extends StatelessWidget {
                     Icon(Icons.calendar_today_rounded, color: theme.primaryColor, size: 14),
                     const SizedBox(width: 6),
                     Text(
-                      '일주: ${result.dayGapja}',
+                      'saju_chart.gongmangDayPillarLabel'.tr(namedArgs: {'dayGapja': result.dayGapja}),
                       style: TextStyle(
                         color: theme.primaryColor,
                         fontSize: 13,
@@ -2115,7 +2088,7 @@ class _GongmangTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '${result.sunInfo.sunName} 소속',
+                  'saju_chart.gongmangSunBelong'.tr(namedArgs: {'sunName': result.sunInfo.sunName}),
                   style: TextStyle(
                     color: theme.textSecondary,
                     fontSize: 13,
@@ -2131,7 +2104,7 @@ class _GongmangTab extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '공망 지지',
+                'saju_chart.gongmangJijiLabel'.tr(),
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 13,
@@ -2201,11 +2174,11 @@ class _GongmangTab extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildStatBox('공망 궁', result.gongmangCount, AppColors.error),
+                child: _buildStatBox('saju_chart.gongmangGung'.tr(), result.gongmangCount, AppColors.error),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildStatBox('정상 궁', result.allResults.length - result.gongmangCount, AppColors.success),
+                child: _buildStatBox('saju_chart.normalGung'.tr(), result.allResults.length - result.gongmangCount, AppColors.success),
               ),
             ],
           ),
@@ -2411,7 +2384,7 @@ class _GongmangTab extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isGongmang ? '공망' : '정상',
+                        isGongmang ? 'saju_chart.gongmang'.tr() : 'saju_chart.normal'.tr(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -2472,7 +2445,7 @@ class _GongmangTab extends StatelessWidget {
                       Icon(Icons.check_rounded, color: AppColors.success, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        '공망에 해당하지 않아 정상적인 기운을 발휘합니다.',
+                        'saju_chart.normalEnergyDesc'.tr(),
                         style: TextStyle(
                           color: theme.textSecondary,
                           fontSize: 13,

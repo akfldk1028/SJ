@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:io';
@@ -28,7 +29,7 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
       backgroundColor: theme.backgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('앱 아이콘 선택', style: TextStyle(color: theme.textPrimary)),
+        title: Text('settings.iconSelectTitle'.tr(), style: TextStyle(color: theme.textPrimary)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -44,7 +45,7 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
             child: Column(
               children: [
                 Text(
-                  '앱 아이콘 디자인 선택',
+                  'settings.iconDesignSelect'.tr(),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -53,7 +54,7 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '원하는 디자인을 탭하여 저장하세요',
+                  'settings.iconDesignSelectDesc'.tr(),
                   style: TextStyle(fontSize: 14, color: theme.textMuted),
                 ),
                 const SizedBox(height: 32),
@@ -70,29 +71,29 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
                     _buildIconOption(
                       context,
                       key: _iconKeys[0],
-                      title: '태극 문양',
-                      subtitle: '현대적 음양 디자인',
+                      title: 'settings.iconTaegeuk'.tr(),
+                      subtitle: 'settings.iconTaegeukDesc'.tr(),
                       child: const TaegeukIcon(),
                     ),
                     _buildIconOption(
                       context,
                       key: _iconKeys[1],
-                      title: '달과 별',
-                      subtitle: '신비로운 운세 느낌',
+                      title: 'settings.iconMoonStars'.tr(),
+                      subtitle: 'settings.iconMoonStarsDesc'.tr(),
                       child: const MoonStarsIcon(),
                     ),
                     _buildIconOption(
                       context,
                       key: _iconKeys[2],
-                      title: '한자 운(運)',
-                      subtitle: '동양풍 문자 디자인',
+                      title: 'settings.iconHanja'.tr(),
+                      subtitle: 'settings.iconHanjaDesc'.tr(),
                       child: const HanjaIcon(),
                     ),
                     _buildIconOption(
                       context,
                       key: _iconKeys[3],
-                      title: '연꽃',
-                      subtitle: '평화로운 느낌',
+                      title: 'settings.iconLotus'.tr(),
+                      subtitle: 'settings.iconLotusDesc'.tr(),
                       child: const LotusIcon(),
                     ),
                   ],
@@ -184,7 +185,7 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('아이콘 저장됨: $filePath'),
+            content: Text('settings.iconSaved'.tr(namedArgs: {'path': filePath})),
             backgroundColor: theme.primaryColor,
           ),
         );
@@ -193,7 +194,7 @@ class _IconGeneratorScreenState extends State<IconGeneratorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('저장 실패: $e'),
+            content: Text('settings.iconSaveFailed'.tr(namedArgs: {'error': e.toString()})),
             backgroundColor: Colors.red,
           ),
         );

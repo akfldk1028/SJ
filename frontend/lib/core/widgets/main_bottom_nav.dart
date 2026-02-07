@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,11 +35,11 @@ class MainBottomNav extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(context, ref, theme, Icons.auto_awesome_rounded, '운세', 0, '/menu'),
-          _buildNavItem(context, ref, theme, Icons.people_outline_rounded, '인맥', 1, '/relationships'),
-          _buildNavItem(context, ref, theme, Icons.forum_rounded, 'AI 상담', 2, '/saju/chat'),
-          _buildNavItem(context, ref, theme, Icons.calendar_month_rounded, '캘린더', 3, '/calendar'),
-          _buildNavItem(context, ref, theme, Icons.settings_outlined, '설정', 4, '/settings'),
+          _buildNavItem(context, ref, theme, Icons.auto_awesome_rounded, 'menu.nav_fortune'.tr(), 0, '/menu'),
+          _buildNavItem(context, ref, theme, Icons.people_outline_rounded, 'menu.nav_relationships'.tr(), 1, '/relationships'),
+          _buildNavItem(context, ref, theme, Icons.forum_rounded, 'menu.nav_aiChat'.tr(), 2, '/saju/chat'),
+          _buildNavItem(context, ref, theme, Icons.calendar_month_rounded, 'menu.nav_calendar'.tr(), 3, '/calendar'),
+          _buildNavItem(context, ref, theme, Icons.settings_outlined, 'menu.nav_settings'.tr(), 4, '/settings'),
         ],
       ),
     );

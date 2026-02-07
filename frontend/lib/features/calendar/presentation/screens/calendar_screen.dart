@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -131,7 +132,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              '운세 캘린더',
+              'calendar.fortune_calendar'.tr(),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -157,7 +158,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
               ),
               child: Text(
-                '오늘',
+                'calendar.today'.tr(),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -378,7 +379,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '추가',
+                        'calendar.add_button'.tr(),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -446,7 +447,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                '오늘의 운세',
+                'calendar.todays_fortune'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -498,7 +499,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '운세를 불러오는데 실패했습니다',
+              'calendar.fortune_load_error'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 14,
@@ -527,10 +528,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             const SizedBox(height: 8),
             Text(
               isFuture
-                  ? '미래의 운세는 아직 볼 수 없습니다'
+                  ? 'calendar.future_fortune'.tr()
                   : isToday
-                      ? '오늘의 운세를 확인하려면\n메인 화면으로 이동하세요'
-                      : '해당 날짜의 운세 기록이 없습니다',
+                      ? 'calendar.today_fortune_guide'.tr()
+                      : 'calendar.no_fortune_record'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: theme.textMuted,
@@ -552,7 +553,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ),
                   ),
                   child: Text(
-                    '메인 화면으로',
+                    'calendar.go_main'.tr(),
                     style: TextStyle(
                       color: theme.primaryColor,
                       fontSize: 13,
@@ -582,7 +583,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '종합 운세',
+                    'calendar.overall_fortune'.tr(),
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.textMuted,
@@ -671,7 +672,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                '오늘의 사자성어',
+                'calendar.todays_idiom'.tr(),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -694,7 +695,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const SizedBox(height: 4),
           // 한자 + 뜻
           Text(
-            '${idiom.chinese} · ${idiom.meaning}',
+            '${idiom.chinese} \u00B7 ${idiom.meaning}',
             style: TextStyle(
               fontSize: 13,
               color: theme.textSecondary,
@@ -749,10 +750,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   Widget _buildCategoryScores(AppThemeExtension theme, DailyFortuneData fortune) {
     final categories = [
-      ('love', '연애운', Icons.favorite_rounded),
-      ('wealth', '재물운', Icons.monetization_on_rounded),  // 'money' → 'wealth' (DB 키와 일치)
-      ('work', '직장운', Icons.work_rounded),
-      ('health', '건강운', Icons.health_and_safety_rounded),
+      ('love', 'calendar.category_love'.tr(), Icons.favorite_rounded),
+      ('wealth', 'calendar.category_wealth'.tr(), Icons.monetization_on_rounded),
+      ('work', 'calendar.category_work'.tr(), Icons.work_rounded),
+      ('health', 'calendar.category_health'.tr(), Icons.health_and_safety_rounded),
     ];
 
     return Wrap(
@@ -790,7 +791,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
           const SizedBox(width: 6),
           Text(
-            '$label $score',  // 점수 숫자로 표시
+            '$label $score',
             style: TextStyle(
               fontSize: 12,
               color: theme.textSecondary,
@@ -821,7 +822,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '행운의 시간: ${lucky.time} · 색상: ${lucky.color} · 숫자: ${lucky.number}',
+              'calendar.lucky_info'.tr(namedArgs: {
+                'time': lucky.time,
+                'color': lucky.color,
+                'number': lucky.number.toString(),
+              }),
               style: TextStyle(
                 fontSize: 12,
                 color: theme.textSecondary,
@@ -835,17 +840,26 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   String _formatDateHeader(DateTime date) {
-    final weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-    final weekday = weekdays[date.weekday - 1];
-    return '${date.year}년 ${date.month}월 ${date.day}일 ($weekday)';
+    final weekdayKeys = [
+      'calendar.weekday_mon', 'calendar.weekday_tue', 'calendar.weekday_wed',
+      'calendar.weekday_thu', 'calendar.weekday_fri', 'calendar.weekday_sat',
+      'calendar.weekday_sun',
+    ];
+    final weekday = weekdayKeys[date.weekday - 1].tr();
+    return 'calendar.date_format'.tr(namedArgs: {
+      'year': date.year.toString(),
+      'month': date.month.toString(),
+      'day': date.day.toString(),
+      'weekday': weekday,
+    });
   }
 
   String _getScoreLabel(int score) {
-    if (score >= 90) return '대길';
-    if (score >= 80) return '길';
-    if (score >= 70) return '소길';
-    if (score >= 60) return '평';
-    if (score >= 50) return '소흉';
-    return '흉';
+    if (score >= 90) return 'calendar.score_great'.tr();
+    if (score >= 80) return 'calendar.score_good'.tr();
+    if (score >= 70) return 'calendar.score_small_good'.tr();
+    if (score >= 60) return 'calendar.score_normal'.tr();
+    if (score >= 50) return 'calendar.score_small_bad'.tr();
+    return 'calendar.score_bad'.tr();
   }
 }

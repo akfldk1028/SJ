@@ -4,6 +4,7 @@
 /// 위젯 트리 최적화: const 생성자, 100줄 이하, 단일 책임
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_fonts.dart';
@@ -258,7 +259,7 @@ class AdTransitionBubble extends StatelessWidget {
             style: TextButton.styleFrom(
               foregroundColor: theme.textSecondary,
             ),
-            child: const Text('건너뛰기'),
+            child: Text('saju_chat.skipAd'.tr()),
           ),
         ],
       ],

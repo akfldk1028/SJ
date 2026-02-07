@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -23,7 +24,7 @@ class TodayMessageCard extends ConsumerWidget {
 
     return affirmation.when(
       loading: () => _buildLoadingCard(context, theme),
-      error: (_, __) => _buildCard(context, theme, '메시지를 불러올 수 없습니다.'),
+      error: (_, __) => _buildCard(context, theme, 'menu.cannotLoadMessage'.tr()),
       data: (message) {
         // message가 null이면 AI 분석 중
         if (message == null) {
@@ -84,7 +85,7 @@ class TodayMessageCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '오늘의 한마디',
+                    'menu.todayMessage'.tr(),
                     style: TextStyle(
                       fontSize: titleSize,
                       fontWeight: FontWeight.w600,
@@ -107,7 +108,7 @@ class TodayMessageCard extends ConsumerWidget {
                 ),
                 SizedBox(width: context.scaledPadding(12)),
                 Text(
-                  'AI가 메시지를 준비하고 있어요...',
+                  'menu.aiPreparingMessage'.tr(),
                   style: TextStyle(
                     fontSize: context.scaledFont(14),
                     color: theme.textMuted,
@@ -172,7 +173,7 @@ class TodayMessageCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '오늘의 한마디',
+                    'menu.todayMessage'.tr(),
                     style: TextStyle(
                       fontSize: titleSize,
                       fontWeight: FontWeight.w600,

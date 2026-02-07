@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -101,7 +102,7 @@ class OhengExplanationSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '오행(五行)이란?',
+                'saju_chart.ohengExplanationTitle'.tr(),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -109,7 +110,7 @@ class OhengExplanationSheet extends StatelessWidget {
                 ),
               ),
               Text(
-                '사주의 기본 원리를 쉽게 알아보세요',
+                'saju_chart.ohengExplanationSubtitle'.tr(),
                 style: TextStyle(
                   fontSize: 13,
                   color: theme.textMuted,
@@ -143,7 +144,7 @@ class OhengExplanationSheet extends StatelessWidget {
                 color: theme.primaryColor, size: 18),
               const SizedBox(width: 8),
               Text(
-                '쉽게 이해하기',
+                'saju_chart.easyUnderstanding'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -154,9 +155,7 @@ class OhengExplanationSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '오행(五行)은 우주 만물의 변화를 다섯 가지 기운으로 설명하는 동양 철학입니다.\n\n'
-            '나무(木), 불(火), 흙(土), 쇠(金), 물(水) - 이 다섯 가지가 서로 '
-            '도와주기도 하고(상생), 억제하기도 하면서(상극) 자연의 균형을 이룹니다.',
+            'saju_chart.ohengExplanationBody'.tr(),
             style: TextStyle(
               fontSize: 14,
               height: 1.7,
@@ -171,39 +170,39 @@ class OhengExplanationSheet extends StatelessWidget {
   Widget _buildElementCards(AppThemeExtension theme) {
     final elements = [
       {
-        'name': '목(木)',
-        'korean': '나무',
+        'name': 'saju_chart.elementWoodHanjaLabel'.tr(),
+        'korean': 'saju_chart.elementWoodName'.tr(),
         'color': theme.woodColor ?? const Color(0xFF4CAF50),
         'emoji': '🌳',
-        'meaning': '성장, 발전, 인자함',
+        'meaning': 'saju_chart.elementWoodMeaning'.tr(),
       },
       {
-        'name': '화(火)',
-        'korean': '불',
+        'name': 'saju_chart.elementFireHanjaLabel'.tr(),
+        'korean': 'saju_chart.elementFireName'.tr(),
         'color': theme.fireColor ?? const Color(0xFFE53935),
         'emoji': '🔥',
-        'meaning': '열정, 예의, 따뜻함',
+        'meaning': 'saju_chart.elementFireMeaning'.tr(),
       },
       {
-        'name': '토(土)',
-        'korean': '흙',
+        'name': 'saju_chart.elementEarthHanjaLabel'.tr(),
+        'korean': 'saju_chart.elementEarthName'.tr(),
         'color': theme.earthColor ?? const Color(0xFFD4A574),
         'emoji': '🏔️',
-        'meaning': '중심, 신뢰, 포용력',
+        'meaning': 'saju_chart.elementEarthMeaning'.tr(),
       },
       {
-        'name': '금(金)',
-        'korean': '쇠',
+        'name': 'saju_chart.elementMetalHanjaLabel'.tr(),
+        'korean': 'saju_chart.elementMetalName'.tr(),
         'color': theme.metalColor ?? const Color(0xFF9E9E9E),
         'emoji': '⚔️',
-        'meaning': '결단력, 의리, 정의',
+        'meaning': 'saju_chart.elementMetalMeaning'.tr(),
       },
       {
-        'name': '수(水)',
-        'korean': '물',
+        'name': 'saju_chart.elementWaterHanjaLabel'.tr(),
+        'korean': 'saju_chart.elementWaterName'.tr(),
         'color': theme.waterColor ?? const Color(0xFF2196F3),
         'emoji': '💧',
-        'meaning': '지혜, 유연함, 소통',
+        'meaning': 'saju_chart.elementWaterMeaning'.tr(),
       },
     ];
 
@@ -211,7 +210,7 @@ class OhengExplanationSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '다섯 가지 원소',
+          'saju_chart.fiveElementsTitle'.tr(),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -315,7 +314,7 @@ class OhengExplanationSheet extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '상생(相生) - 서로 도와주는 관계',
+                'saju_chart.sangsaengTitle'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -340,11 +339,11 @@ class OhengExplanationSheet extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 상생 설명
-          _buildRelationItem(theme, '목생화', '나무 → 불', '나무가 타서 불을 일으킨다', const Color(0xFF4CAF50)),
-          _buildRelationItem(theme, '화생토', '불 → 흙', '불이 타고 나면 재(흙)가 된다', const Color(0xFFE53935)),
-          _buildRelationItem(theme, '토생금', '흙 → 쇠', '흙 속에서 광물(쇠)이 나온다', const Color(0xFFD4A574)),
-          _buildRelationItem(theme, '금생수', '쇠 → 물', '쇠가 차가워지면 이슬(물)이 맺힌다', const Color(0xFF9E9E9E)),
-          _buildRelationItem(theme, '수생목', '물 → 나무', '물이 나무를 자라게 한다', const Color(0xFF2196F3)),
+          _buildRelationItem(theme, 'saju_chart.sangsaeng_mokHwa'.tr(), 'saju_chart.sangsaeng_mokHwa_arrow'.tr(), 'saju_chart.sangsaeng_mokHwa_desc'.tr(), const Color(0xFF4CAF50)),
+          _buildRelationItem(theme, 'saju_chart.sangsaeng_hwaTo'.tr(), 'saju_chart.sangsaeng_hwaTo_arrow'.tr(), 'saju_chart.sangsaeng_hwaTo_desc'.tr(), const Color(0xFFE53935)),
+          _buildRelationItem(theme, 'saju_chart.sangsaeng_toGeum'.tr(), 'saju_chart.sangsaeng_toGeum_arrow'.tr(), 'saju_chart.sangsaeng_toGeum_desc'.tr(), const Color(0xFFD4A574)),
+          _buildRelationItem(theme, 'saju_chart.sangsaeng_geumSu'.tr(), 'saju_chart.sangsaeng_geumSu_arrow'.tr(), 'saju_chart.sangsaeng_geumSu_desc'.tr(), const Color(0xFF9E9E9E)),
+          _buildRelationItem(theme, 'saju_chart.sangsaeng_suMok'.tr(), 'saju_chart.sangsaeng_suMok_arrow'.tr(), 'saju_chart.sangsaeng_suMok_desc'.tr(), const Color(0xFF2196F3)),
         ],
       ),
     );
@@ -383,7 +382,7 @@ class OhengExplanationSheet extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '상극(相剋) - 서로 억제하는 관계',
+                'saju_chart.sanggeukTitle'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -408,11 +407,11 @@ class OhengExplanationSheet extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 상극 설명
-          _buildRelationItem(theme, '화극금', '불 → 쇠', '불의 열기가 쇠를 녹인다', const Color(0xFFE53935)),
-          _buildRelationItem(theme, '금극목', '쇠 → 나무', '쇠(도끼)가 나무를 베어낸다', const Color(0xFF9E9E9E)),
-          _buildRelationItem(theme, '목극토', '나무 → 흙', '나무가 흙의 기운을 빼앗는다', const Color(0xFF4CAF50)),
-          _buildRelationItem(theme, '토극수', '흙 → 물', '흙이 물을 막고 흡수한다', const Color(0xFFD4A574)),
-          _buildRelationItem(theme, '수극화', '물 → 불', '물이 불을 꺼버린다', const Color(0xFF2196F3)),
+          _buildRelationItem(theme, 'saju_chart.sanggeuk_hwaGeum'.tr(), 'saju_chart.sanggeuk_hwaGeum_arrow'.tr(), 'saju_chart.sanggeuk_hwaGeum_desc'.tr(), const Color(0xFFE53935)),
+          _buildRelationItem(theme, 'saju_chart.sanggeuk_geumMok'.tr(), 'saju_chart.sanggeuk_geumMok_arrow'.tr(), 'saju_chart.sanggeuk_geumMok_desc'.tr(), const Color(0xFF9E9E9E)),
+          _buildRelationItem(theme, 'saju_chart.sanggeuk_mokTo'.tr(), 'saju_chart.sanggeuk_mokTo_arrow'.tr(), 'saju_chart.sanggeuk_mokTo_desc'.tr(), const Color(0xFF4CAF50)),
+          _buildRelationItem(theme, 'saju_chart.sanggeuk_toSu'.tr(), 'saju_chart.sanggeuk_toSu_arrow'.tr(), 'saju_chart.sanggeuk_toSu_desc'.tr(), const Color(0xFFD4A574)),
+          _buildRelationItem(theme, 'saju_chart.sanggeuk_suHwa'.tr(), 'saju_chart.sanggeuk_suHwa_arrow'.tr(), 'saju_chart.sanggeuk_suHwa_desc'.tr(), const Color(0xFF2196F3)),
         ],
       ),
     );
@@ -486,7 +485,7 @@ class OhengExplanationSheet extends StatelessWidget {
               Icon(Icons.balance, color: theme.primaryColor, size: 18),
               const SizedBox(width: 8),
               Text(
-                '균형이 중요해요!',
+                'saju_chart.balanceImportant'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -497,10 +496,7 @@ class OhengExplanationSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '상생과 상극은 좋고 나쁨이 아니에요. 오행이 서로 도와주고 '
-            '억제하며 균형을 이룰 때 가장 이상적입니다.\n\n'
-            '내 사주에 어떤 오행이 많고 적은지 파악하면, '
-            '보완할 부분을 알 수 있어요.',
+            'saju_chart.balanceExplanation'.tr(),
             style: TextStyle(
               fontSize: 14,
               height: 1.7,

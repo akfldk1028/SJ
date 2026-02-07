@@ -7,20 +7,19 @@ abstract class PurchaseConfig {
   // Android: Google Play Console 연동
   static const String revenueCatApiKeyAndroid = 'goog_DfwxpejDQNZHDxDNdLVPSWZVDvR';
 
-  // iOS: App Store Connect 연동 (빈 문자열이면 IAP 비활성화)
-  // Mac 유저가 iOS 빌드 시 이 키를 설정해야 IAP 작동
+  // iOS: App Store Connect 연동
   // RevenueCat 대시보드 → iOS App → Public API Key
-  static const String revenueCatApiKeyIos = '';
+  static const String revenueCatApiKeyIos = 'appl_XVHtNdLmfGXiACGixJipPUkiAmf';
 
   // ── Entitlements ──
   /// 단일 통합 entitlement: 프리미엄 (광고 제거 + AI 무제한)
   static const String entitlementPremium = 'premium';
 
   // ── Product IDs ──
-  /// 1일 이용권 (비소모성, 24시간)
+  /// 1일 이용권 (소모성/Consumable, 24시간)
   static const String productDayPass = 'sadam_day_pass';
 
-  /// 1주일 이용권 (비소모성, 7일)
+  /// 1주일 이용권 (소모성/Consumable, 7일)
   static const String productWeekPass = 'sadam_week_pass';
 
   /// 월간 구독 (자동 갱신)

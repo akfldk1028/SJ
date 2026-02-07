@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,10 +22,10 @@ class FortuneCategoryList extends ConsumerWidget {
     final scale = context.scaleFactor;
 
     final categories = [
-      {'name': '평생운세', 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
-      {'name': '2025운세', 'icon': Icons.history_rounded, 'route': '/fortune/yearly-2025'},  // 회고/돌아보기
-      {'name': '2026운세', 'icon': Icons.flare_rounded, 'route': '/fortune/new-year'},  // 신년/새빛
-      {'name': '한달운세', 'icon': Icons.calendar_month_rounded, 'route': '/fortune/monthly'},
+      {'name': 'menu.lifetimeFortune'.tr(), 'icon': Icons.menu_book_rounded, 'route': '/fortune/traditional-saju'},
+      {'name': 'menu.yearly2025'.tr(), 'icon': Icons.history_rounded, 'route': '/fortune/yearly-2025'},  // 회고/돌아보기
+      {'name': 'menu.yearly2026'.tr(), 'icon': Icons.flare_rounded, 'route': '/fortune/new-year'},  // 신년/새빛
+      {'name': 'menu.monthlyFortune'.tr(), 'icon': Icons.calendar_month_rounded, 'route': '/fortune/monthly'},
     ];
 
     return Padding(

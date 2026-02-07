@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,7 +52,7 @@ class ChatMobileLayout extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () => scaffoldKey.currentState?.openDrawer(),
-          tooltip: '메뉴',
+          tooltip: 'saju_chat.menu'.tr(),
         ),
         title: Text(
           currentSession?.title ?? chatType.title,
@@ -62,13 +63,13 @@ class ChatMobileLayout extends ConsumerWidget {
           IconButton(
             icon: Icon(Icons.add, color: appTheme.primaryColor),
             onPressed: onNewChat,
-            tooltip: '새 채팅 시작 (페르소나 변경)',
+            tooltip: 'saju_chat.newChatTooltip'.tr(),
           ),
           // 궁합 버튼 (2명 선택)
           IconButton(
             icon: const Icon(Icons.group_add_outlined),
             onPressed: onCompatibilityChat,
-            tooltip: '궁합 보기',
+            tooltip: 'saju_chat.compatibilityTooltip'.tr(),
           ),
         ],
       ),

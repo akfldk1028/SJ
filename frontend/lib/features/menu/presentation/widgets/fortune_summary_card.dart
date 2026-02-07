@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +58,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '운세를 불러오는 중...',
+                'menu.fortuneLoading'.tr(),
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 14,
@@ -102,7 +103,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '🔮 AI가 운세를 분석하고 있어요',
+                'menu.aiAnalyzing'.tr(),
                 style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 16,
@@ -111,7 +112,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '잠시만 기다려주세요...',
+                'menu.pleaseWait'.tr(),
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 14,
@@ -175,7 +176,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     if (hour >= 5 && hour < 11) {
       // 오전
       return _TimeTheme(
-        period: '오전',
+        period: 'menu.periodMorning'.tr(),
         element: '',
         meaning: '',
         colors: [const Color(0xFFE65100), const Color(0xFFFF8A65)], // 주황-살몬
@@ -185,7 +186,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     } else if (hour >= 11 && hour < 17) {
       // 오후 - 안정, 균형, 성취
       return _TimeTheme(
-        period: '오후',
+        period: 'menu.periodAfternoon'.tr(),
         element: '',
         meaning: '',
         colors: [const Color(0xFFD4A574), const Color(0xFFC9A66B)], // 황금-브라운
@@ -195,7 +196,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     } else if (hour >= 17 && hour < 23) {
       // 저녁
       return _TimeTheme(
-        period: '저녁',
+        period: 'menu.periodEvening'.tr(),
         element: '',
         meaning: '',
         colors: [const Color(0xFF1a1a2e), const Color(0xFF16213e)], // 네이비
@@ -205,7 +206,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     } else {
       // 새벽
       return _TimeTheme(
-        period: '새벽',
+        period: 'menu.periodDawn'.tr(),
         element: '',
         meaning: '',
         colors: [const Color(0xFF0D47A1), const Color(0xFF1565C0)], // 진한 파랑
@@ -318,7 +319,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '${timeTheme.period} 운세',
+                              'menu.periodFortune'.tr(namedArgs: {'period': timeTheme.period}),
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 12,
@@ -467,10 +468,10 @@ class FortuneSummaryCard extends ConsumerWidget {
     DailyFortuneData fortune,
   ) {
     final categories = [
-      {'key': 'wealth', 'icon': Icons.monetization_on_outlined, 'label': '재물', 'color': const Color(0xFFF59E0B)},
-      {'key': 'love', 'icon': Icons.favorite_outline_rounded, 'label': '애정', 'color': const Color(0xFFEC4899)},
-      {'key': 'work', 'icon': Icons.work_outline_rounded, 'label': '직장', 'color': const Color(0xFF3B82F6)},
-      {'key': 'health', 'icon': Icons.directions_run_rounded, 'label': '건강', 'color': const Color(0xFF10B981)},
+      {'key': 'wealth', 'icon': Icons.monetization_on_outlined, 'label': 'menu.wealth'.tr(), 'color': const Color(0xFFF59E0B)},
+      {'key': 'love', 'icon': Icons.favorite_outline_rounded, 'label': 'menu.love'.tr(), 'color': const Color(0xFFEC4899)},
+      {'key': 'work', 'icon': Icons.work_outline_rounded, 'label': 'menu.work'.tr(), 'color': const Color(0xFF3B82F6)},
+      {'key': 'health', 'icon': Icons.directions_run_rounded, 'label': 'menu.health'.tr(), 'color': const Color(0xFF10B981)},
     ];
 
     return Container(
@@ -495,7 +496,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '운세 분석',
+                  'menu.fortuneAnalysis'.tr(),
                   style: TextStyle(
                     fontSize: context.scaledFont(15),
                     fontWeight: FontWeight.w600,
@@ -630,10 +631,10 @@ class FortuneSummaryCard extends ConsumerWidget {
 
   Widget _buildLuckyItemsInline(BuildContext context, AppThemeExtension theme, LuckyInfo lucky) {
     final items = [
-      {'icon': Icons.access_time_rounded, 'label': '행운의 시간', 'value': lucky.time},
-      {'icon': Icons.palette_outlined, 'label': '행운의 색상', 'value': lucky.color},
-      {'icon': Icons.tag_rounded, 'label': '행운의 숫자', 'value': '${lucky.number}'},
-      {'icon': Icons.explore_outlined, 'label': '행운의 방향', 'value': lucky.direction},
+      {'icon': Icons.access_time_rounded, 'label': 'menu.luckyTime'.tr(), 'value': lucky.time},
+      {'icon': Icons.palette_outlined, 'label': 'menu.luckyColor'.tr(), 'value': lucky.color},
+      {'icon': Icons.tag_rounded, 'label': 'menu.luckyNumber'.tr(), 'value': '${lucky.number}'},
+      {'icon': Icons.explore_outlined, 'label': 'menu.luckyDirection'.tr(), 'value': lucky.direction},
     ];
 
     return Column(
@@ -644,7 +645,7 @@ class FortuneSummaryCard extends ConsumerWidget {
             Icon(Icons.star_rounded, color: theme.accentColor, size: context.scaledIcon(16)),
             const SizedBox(width: 4),
             Text(
-              '오늘의 행운',
+              'menu.todayLuck'.tr(),
               style: TextStyle(
                 fontSize: context.scaledFont(13),
                 fontWeight: FontWeight.w600,
@@ -677,10 +678,10 @@ class FortuneSummaryCard extends ConsumerWidget {
 
   Widget _buildLuckyItemsRow(BuildContext context, AppThemeExtension theme, LuckyInfo lucky) {
     final items = [
-      {'icon': Icons.access_time_rounded, 'label': '행운의 시간', 'value': lucky.time},
-      {'icon': Icons.palette_outlined, 'label': '행운의 색상', 'value': lucky.color},
-      {'icon': Icons.tag_rounded, 'label': '행운의 숫자', 'value': '${lucky.number}'},
-      {'icon': Icons.explore_outlined, 'label': '행운의 방향', 'value': lucky.direction},
+      {'icon': Icons.access_time_rounded, 'label': 'menu.luckyTime'.tr(), 'value': lucky.time},
+      {'icon': Icons.palette_outlined, 'label': 'menu.luckyColor'.tr(), 'value': lucky.color},
+      {'icon': Icons.tag_rounded, 'label': 'menu.luckyNumber'.tr(), 'value': '${lucky.number}'},
+      {'icon': Icons.explore_outlined, 'label': 'menu.luckyDirection'.tr(), 'value': lucky.direction},
     ];
 
     return Container(
@@ -704,7 +705,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               Icon(Icons.star_rounded, color: theme.accentColor, size: context.scaledIcon(18)),
               const SizedBox(width: 6),
               Text(
-                '오늘의 행운',
+                'menu.todayLuck'.tr(),
                 style: TextStyle(
                   fontSize: context.scaledFont(14),
                   fontWeight: FontWeight.w600,
@@ -843,7 +844,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '오늘의 한마디',
+                    'menu.todayMessage'.tr(),
                     style: TextStyle(
                       fontSize: titleSize,
                       fontWeight: FontWeight.w600,
@@ -866,7 +867,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                 ),
                 SizedBox(width: context.scaledPadding(12)),
                 Text(
-                  'AI가 메시지를 준비하고 있어요...',
+                  'menu.aiPreparingMessage'.tr(),
                   style: TextStyle(
                     fontSize: context.scaledFont(14),
                     color: theme.textMuted,
@@ -947,11 +948,11 @@ class FortuneSummaryCard extends ConsumerWidget {
   }
 
   String _getGradeText(int score) {
-    if (score >= 90) return '대길';
-    if (score >= 80) return '길';
-    if (score >= 70) return '중길';
-    if (score >= 60) return '소길';
-    return '평';
+    if (score >= 90) return 'menu.grade_great'.tr();
+    if (score >= 80) return 'menu.grade_good'.tr();
+    if (score >= 70) return 'menu.grade_moderate'.tr();
+    if (score >= 60) return 'menu.grade_small'.tr();
+    return 'menu.grade_normal'.tr();
   }
 }
 

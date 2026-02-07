@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/chat_message.dart';
@@ -53,7 +54,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
     final now = DateTime.now();
     final newSession = ChatSessionModel(
       id: _uuid.v4(),
-      title: '새 대화', // 초기 타이틀, 첫 메시지로 나중에 업데이트
+      title: 'saju_chat.newConversation'.tr(), // 초기 타이틀, 첫 메시지로 나중에 업데이트
       chatType: chatType.name,
       profileId: profileId,
       targetProfileId: targetProfileId,
@@ -293,7 +294,7 @@ class ChatSessionRepositoryImpl implements ChatSessionRepository {
 
     // 타이틀 생성 (첫 사용자 메시지에서)
     String title = session.title;
-    if (title == '새 대화' && messages.isNotEmpty) {
+    if (title == 'saju_chat.newConversation'.tr() && messages.isNotEmpty) {
       final firstUserMessage = messages.firstWhere(
         (m) => m.role == 'user',
         orElse: () => messages.first,

@@ -35,5 +35,14 @@
   "category_health": "건강운",
   "category_overall": "총운",
   "category_family": "가정운",
-  "category_social": "대인운"
+  "category_social": "대인운",
+  "errorPageNotFound": "페이지를 찾을 수 없습니다: {uri}",
+  "edit": "수정",
+  "delete": "삭제",
+  "historyTitle": "대화 기록",
+  "historyEmpty": "저장된 대화가 없습니다",
+  "gender": "성별",
+  "genderMale": "남성",
+  "genderFemale": "여성",
+  "adHintMessage": "관심 있는 광고를 살펴보시면 대화가 더 많아져요"
 }

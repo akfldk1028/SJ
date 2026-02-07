@@ -2,6 +2,7 @@
 /// 모듈형 채팅 내 광고 팩토리 패턴
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../ad_strategy.dart';
@@ -84,7 +85,7 @@ class ChatAdWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 56, top: 4, bottom: 8),
           child: Text(
-            '관심 있는 광고를 살펴보시면 대화가 더 많아져요',
+            'common.adHintMessage'.tr(),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               fontSize: 12,

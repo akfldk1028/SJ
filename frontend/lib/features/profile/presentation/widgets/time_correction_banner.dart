@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -22,9 +23,10 @@ class TimeCorrectionBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final suffix = 'onboarding.minutesSuffix'.tr();
     final correctionText = timeCorrection > 0
-        ? '+$timeCorrection분'
-        : '$timeCorrection분';
+        ? '+$timeCorrection$suffix'
+        : '$timeCorrection$suffix';
 
     return Container(
       width: double.infinity,
@@ -64,7 +66,7 @@ class TimeCorrectionBanner extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '진태양시 보정',
+                  'onboarding.trueSolarTimeTitle'.tr(),
                   style: TextStyle(
                     color: theme.primaryColor,
                     fontSize: 12,
@@ -73,7 +75,7 @@ class TimeCorrectionBanner extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$birthCity 기준 $correctionText 보정 적용',
+                  'onboarding.trueSolarTimeDesc'.tr(namedArgs: {'city': birthCity, 'correction': correctionText}),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,

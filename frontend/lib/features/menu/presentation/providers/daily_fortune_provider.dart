@@ -202,6 +202,27 @@ class DailyFortune extends _$DailyFortune {
     }
   }
 
+  /// v7.5: 프로필 수정 시 분석 플래그 초기화 (외부 호출용)
+  ///
+  /// 프로필이 수정되면 기존 AI 캐시가 삭제되므로,
+  /// _analyzedToday 플래그도 초기화해야 새 분석이 실행됨.
+  ///
+  /// [profileId] 초기화할 프로필 ID
+  static void resetAnalyzedFlagForProfile(String profileId) {
+    final today = KoreaDateUtils.today;
+    final analyzedKey = _getAnalyzedKey(profileId, today);
+
+    final hadFlag = _analyzedToday.contains(analyzedKey);
+    _analyzedToday.remove(analyzedKey);
+    _currentlyAnalyzing.remove(profileId);
+    _pollingForCompletion.remove(profileId);
+    _retryCount.remove(analyzedKey);
+
+    if (hadFlag) {
+      print('[DailyFortune] 🔄 v7.5 프로필 수정 - 분석 플래그 초기화 (key=$analyzedKey)');
+    }
+  }
+
   @override
   Future<DailyFortuneData?> build() async {
     // Phase 60: keepAlive로 탭 이동 시에도 Provider 상태 유지

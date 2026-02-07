@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -15,12 +16,12 @@ class RelationshipTypeDropdown extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '관계',
+          'profile.relationship'.tr(),
           style: Theme.of(context).textTheme.labelMedium,
         ),
         const SizedBox(height: 8),
         ShadSelect<RelationshipType>(
-          placeholder: const Text('관계를 선택하세요'),
+          placeholder: Text('profile.selectRelationship'.tr()),
           initialValue: relationType,
           options: RelationshipType.selectableValues.map((type) {
             return ShadOption(

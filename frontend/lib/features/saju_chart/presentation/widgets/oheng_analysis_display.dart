@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -19,7 +20,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(context, '오행과 십성 분석', theme),
+          _buildSectionTitle(context, 'saju_chart.ohengAndSipsung'.tr(), theme),
           const SizedBox(height: 16),
 
           // 도넛 차트 2개 (오행, 십성)
@@ -37,19 +38,19 @@ class OhengAnalysisDisplay extends StatelessWidget {
           const SizedBox(height: 24),
 
           // 오행 분포 테이블
-          _buildSectionTitle(context, '오행', theme),
+          _buildSectionTitle(context, 'saju_chart.ohengTab'.tr(), theme),
           const SizedBox(height: 12),
           _buildOhengTable(context, theme),
           const SizedBox(height: 24),
 
           // 십성 분포 테이블
-          _buildSectionTitle(context, '십성', theme),
+          _buildSectionTitle(context, 'saju_chart.sipsungTab'.tr(), theme),
           const SizedBox(height: 12),
           _buildSipsinTable(context, theme),
           const SizedBox(height: 24),
 
           // 오행 상생상극 관계도
-          _buildSectionTitle(context, '나의 오행: ${_getDayGanOheng().korean}', theme),
+          _buildSectionTitle(context, 'saju_chart.myOheng'.tr(namedArgs: {'oheng': _getDayGanOheng().korean}), theme),
           const SizedBox(height: 12),
           _buildOhengRelationDiagram(context, theme),
         ],
@@ -77,13 +78,17 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   void _showSectionHelp(BuildContext context, String title, AppThemeExtension theme) {
+    final ohengAndSipsungTitle = 'saju_chart.ohengAndSipsung'.tr();
+    final ohengTitle = 'saju_chart.ohengTab'.tr();
+    final sipsungTitle = 'saju_chart.sipsungTab'.tr();
+    final myOhengPrefix = 'saju_chart.myOheng'.tr(namedArgs: {'oheng': ''}).replaceAll(RegExp(r'\s*$'), '');
     final descriptions = {
-      '오행과 십성 분석': '오행(목·화·토·금·수)의 분포와 십성(비겁·식상·재성·관성·인성) 관계를 종합적으로 분석합니다.',
-      '오행': '목(木)·화(火)·토(土)·금(金)·수(水) 다섯 가지 기운의 분포를 보여줍니다. 오행의 균형이 성격과 운세에 영향을 줍니다.',
-      '십성': '일간을 기준으로 다른 간지와의 관계를 10가지(비겁·식상·재성·관성·인성)로 분류한 것입니다.',
+      ohengAndSipsungTitle: 'saju_chart.ohengHelpDesc_ohengAndSipsung'.tr(),
+      ohengTitle: 'saju_chart.ohengHelpDesc_oheng'.tr(),
+      sipsungTitle: 'saju_chart.ohengHelpDesc_sipsung'.tr(),
     };
     // "나의 오행: ○" 형태의 타이틀도 처리
-    final desc = descriptions[title] ?? (title.startsWith('나의 오행') ? '일간(나)의 오행 속성입니다. 내가 어떤 오행인지에 따라 성격, 적성, 궁합 등이 달라집니다.' : '');
+    final desc = descriptions[title] ?? (title.startsWith(myOhengPrefix) ? 'saju_chart.ohengHelpDesc_myOheng'.tr() : '');
     if (desc.isEmpty) return;
 
     showDialog(
@@ -96,7 +101,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
             Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 24),
             const SizedBox(width: 10),
             Expanded(child: Text(
-              '$title이란?',
+              'saju_chart.whatIs'.tr(namedArgs: {'title': title}),
               style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
             )),
           ],
@@ -105,7 +110,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+            child: Text('saju_chart.confirm'.tr(), style: TextStyle(color: theme.primaryColor, fontSize: 15)),
           ),
         ],
       ),
@@ -119,11 +124,11 @@ class OhengAnalysisDisplay extends StatelessWidget {
     final strongest = oheng.strongest;
 
     final data = [
-      _ChartData('목', oheng.mok, theme.woodColor ?? AppColors.wood),
-      _ChartData('화', oheng.hwa, theme.fireColor ?? AppColors.fire),
-      _ChartData('토', oheng.to, theme.earthColor ?? AppColors.earth),
-      _ChartData('금', oheng.geum, theme.metalColor ?? AppColors.metal),
-      _ChartData('수', oheng.su, theme.waterColor ?? AppColors.water),
+      _ChartData('saju_chart.elementWood'.tr(), oheng.mok, theme.woodColor ?? AppColors.wood),
+      _ChartData('saju_chart.elementFire'.tr(), oheng.hwa, theme.fireColor ?? AppColors.fire),
+      _ChartData('saju_chart.elementEarth'.tr(), oheng.to, theme.earthColor ?? AppColors.earth),
+      _ChartData('saju_chart.elementMetal'.tr(), oheng.geum, theme.metalColor ?? AppColors.metal),
+      _ChartData('saju_chart.elementWater'.tr(), oheng.su, theme.waterColor ?? AppColors.water),
     ];
 
     return Container(
@@ -236,11 +241,11 @@ class OhengAnalysisDisplay extends StatelessWidget {
     final total = oheng.total;
 
     final items = [
-      _OhengItem('목(木)', oheng.mok, total, theme.woodColor ?? AppColors.wood),
-      _OhengItem('화(火)', oheng.hwa, total, theme.fireColor ?? AppColors.fire),
-      _OhengItem('토(土)', oheng.to, total, theme.earthColor ?? AppColors.earth),
-      _OhengItem('금(金)', oheng.geum, total, theme.metalColor ?? AppColors.metal),
-      _OhengItem('수(水)', oheng.su, total, theme.waterColor ?? AppColors.water),
+      _OhengItem('saju_chart.elementWoodHanjaLabel'.tr(), oheng.mok, total, theme.woodColor ?? AppColors.wood),
+      _OhengItem('saju_chart.elementFireHanjaLabel'.tr(), oheng.hwa, total, theme.fireColor ?? AppColors.fire),
+      _OhengItem('saju_chart.elementEarthHanjaLabel'.tr(), oheng.to, total, theme.earthColor ?? AppColors.earth),
+      _OhengItem('saju_chart.elementMetalHanjaLabel'.tr(), oheng.geum, total, theme.metalColor ?? AppColors.metal),
+      _OhengItem('saju_chart.elementWaterHanjaLabel'.tr(), oheng.su, total, theme.waterColor ?? AppColors.water),
     ];
 
     return Container(
@@ -352,9 +357,9 @@ class OhengAnalysisDisplay extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildLegend('생(生)', AppColors.info),
+              _buildLegend('saju_chart.sangsaeng'.tr(), AppColors.info),
               const SizedBox(width: 16),
-              _buildLegend('극(剋)', AppColors.error),
+              _buildLegend('saju_chart.sanggeuk'.tr(), AppColors.error),
             ],
           ),
           const SizedBox(height: 16),
@@ -420,10 +425,10 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   String _getOhengStatus(double percentage) {
-    if (percentage >= 30) return '과다';
-    if (percentage >= 20) return '발달';
-    if (percentage >= 10) return '적정';
-    return '부족';
+    if (percentage >= 30) return 'saju_chart.excessive'.tr();
+    if (percentage >= 20) return 'saju_chart.developed'.tr();
+    if (percentage >= 10) return 'saju_chart.adequate'.tr();
+    return 'saju_chart.deficient'.tr();
   }
 
   Color _getOhengColor(Oheng oheng) {

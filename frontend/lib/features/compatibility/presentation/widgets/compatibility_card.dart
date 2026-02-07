@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/compatibility_analysis_model.dart';
@@ -57,7 +58,7 @@ class CompatibilityCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '궁합 점수',
+                        'compatibility.score_label'.tr(),
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.textMuted,
@@ -65,7 +66,7 @@ class CompatibilityCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${analysis.scoreGrade} 궁합',
+                        '${analysis.scoreGrade} ${'compatibility.score_suffix'.tr()}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -177,7 +178,7 @@ class CompatibilityCard extends StatelessWidget {
                 Icon(Icons.favorite, size: 14, color: Colors.pink[400]),
                 const SizedBox(width: 4),
                 Text(
-                  '합 ${analysis.positiveCount}개',
+                  'compatibility.hap_count'.tr(namedArgs: {'count': analysis.positiveCount.toString()}),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -204,7 +205,7 @@ class CompatibilityCard extends StatelessWidget {
                     size: 14, color: Colors.blue[400]),
                 const SizedBox(width: 4),
                 Text(
-                  '충돌 ${analysis.negativeCount}개',
+                  'compatibility.clash_count'.tr(namedArgs: {'count': analysis.negativeCount.toString()}),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
