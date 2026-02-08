@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../AI/services/saju_analysis_service.dart';
-import '../../../../core/services/error_logging_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// Fortune category grid - 테마 적용 (정통운세 그리드)
-class FortuneCategoryList extends ConsumerWidget {
+class FortuneCategoryList extends StatelessWidget {
   const FortuneCategoryList({super.key});
 
   static const _shadowLight = Color.fromRGBO(0, 0, 0, 0.06);
   static const _shadowDark = Color.fromRGBO(0, 0, 0, 0.3);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = context.appTheme;
     final scale = context.scaleFactor;
 
@@ -50,7 +45,6 @@ class FortuneCategoryList extends ConsumerWidget {
             return Expanded(
               child: _buildCategoryItem(
                 context,
-                ref,
                 category['name'] as String,
                 category['icon'] as IconData,
                 category['route'] as String,
@@ -63,18 +57,15 @@ class FortuneCategoryList extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, WidgetRef ref, String name, IconData icon, String route, double scale) {
+  Widget _buildCategoryItem(BuildContext context, String name, IconData icon, String route, double scale) {
     final theme = context.appTheme;
     final boxSize = (56 * scale).clamp(48.0, 72.0);
     final iconSize = context.scaledIcon(28);
     final fontSize = context.scaledFont(12);
 
     return GestureDetector(
-      onTap: () async {
-        _triggerSajuBaseIfNeeded(ref);
-        if (context.mounted) {
-          context.push(route);
-        }
+      onTap: () {
+        context.push(route);
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -107,26 +98,5 @@ class FortuneCategoryList extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  /// v30: saju_base lazy trigger (fire-and-forget)
-  void _triggerSajuBaseIfNeeded(WidgetRef ref) {
-    ref.read(activeProfileProvider.future).then((profile) {
-      if (profile == null) return;
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-      SajuAnalysisService().analyzeOnProfileSave(
-        userId: user.id,
-        profileId: profile.id,
-        runInBackground: true,
-      );
-    }).catchError((e) {
-      ErrorLoggingService.logError(
-        operation: 'fortune_category_list._triggerSajuBaseIfNeeded',
-        errorMessage: e.toString(),
-        errorType: 'saju_base_trigger',
-        sourceFile: 'menu/presentation/widgets/fortune_category_list.dart',
-      );
-    });
   }
 }

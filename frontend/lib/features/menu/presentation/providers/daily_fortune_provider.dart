@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -184,6 +186,9 @@ class DailyFortune extends _$DailyFortune {
   /// key: "profileId_yyyy-MM-dd", value: 시도 횟수
   static final Map<String, int> _retryCount = {};
 
+  /// 자정 자동 갱신 Timer (static으로 중복 방지)
+  static Timer? _midnightTimer;
+
   /// 분석 완료 플래그 키 생성
   static String _getAnalyzedKey(String profileId, DateTime date) {
     return '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -223,10 +228,28 @@ class DailyFortune extends _$DailyFortune {
     }
   }
 
+  /// 다음 자정(KST)에 provider를 자동 갱신하는 Timer 설정
+  /// 앱이 활성 상태에서 자정을 넘기는 경우 대응
+  void _scheduleMidnightRefresh() {
+    _midnightTimer?.cancel();
+    final now = KoreaDateUtils.nowKorea();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    final duration = nextMidnight.difference(now) + const Duration(seconds: 2);
+    print('[DailyFortune] ⏰ 자정 Timer 설정: ${duration.inMinutes}분 후 갱신');
+    _midnightTimer = Timer(duration, () {
+      print('[DailyFortune] 🌙 자정 도달 - provider 갱신');
+      _midnightTimer = null;
+      ref.invalidateSelf();
+    });
+  }
+
   @override
   Future<DailyFortuneData?> build() async {
     // Phase 60: keepAlive로 탭 이동 시에도 Provider 상태 유지
     ref.keepAlive();
+
+    // 자정 Timer: 앱 활성 상태에서 날짜 넘어가면 자동 갱신
+    _scheduleMidnightRefresh();
 
     final activeProfile = await ref.watch(activeProfileProvider.future);
     if (activeProfile == null) return null;
