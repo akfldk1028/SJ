@@ -16,8 +16,8 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 
 | Product ID | 유형 | 가격(KRW) | 설명 |
 |-----------|------|-----------|------|
-| `sadam_day_pass` | Non-consumable (일회성) | ₩1,100 | 24시간 프리미엄 |
-| `sadam_week_pass` | Non-consumable (일회성) | ₩4,900 | 7일 프리미엄 |
+| `sadam_day_pass` | Consumable (소모성) | ₩1,100 | 24시간 프리미엄 |
+| `sadam_week_pass` | Consumable (소모성) | ₩4,900 | 7일 프리미엄 |
 | `sadam_monthly` | Auto-renewable subscription | ₩12,900/월 | 월간 자동갱신 구독 |
 
 > 전 상품 177개국 가격 자동 환산 적용됨 (Google Play Console)
@@ -62,8 +62,8 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 | RevenueCat ID | Display Name | Type |
 |---------------|-------------|------|
 | `sadam_monthly:sadam-monthly-default` | 월간 구독 | Subscription |
-| `sadam_day_pass` | 1일 이용권 | Non-consumable |
-| `sadam_week_pass` | 1주일 이용권 | Non-consumable |
+| `sadam_day_pass` | 1일 이용권 | Consumable |
+| `sadam_week_pass` | 1주일 이용권 | Consumable |
 
 **Entitlement**: `premium` → 3개 상품 모두 연결됨
 
@@ -142,14 +142,14 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
   - 가격: ₩12,900 (Tier 설정)
   - 표시 이름/설명 입력 (한국어)
   - 심사 정보: 스크린샷 + 설명
-- [ ] **`sadam_day_pass` 등록** (비소모성 In-App Purchase)
+- [ ] **`sadam_day_pass` 등록** (소모성 In-App Purchase)
   - Product ID: `sadam_day_pass`
-  - 유형: Non-Consumable
+  - 유형: Consumable
   - 가격: ₩1,100
   - 표시 이름/설명 입력
-- [ ] **`sadam_week_pass` 등록** (비소모성 In-App Purchase)
+- [ ] **`sadam_week_pass` 등록** (소모성 In-App Purchase)
   - Product ID: `sadam_week_pass`
-  - 유형: Non-Consumable
+  - 유형: Consumable
   - 가격: ₩4,900
   - 표시 이름/설명 입력
 - [ ] **상품 상태 확인** - 3개 모두 "승인 대기 중" 또는 "승인됨" 상태
@@ -171,8 +171,8 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 - [ ] **App Store Connect Shared Secret 입력**
   - RevenueCat > iOS App > App Store Connect App-Specific Shared Secret 입력
 - [ ] **iOS Products 3개 등록**
-  - `sadam_day_pass` → Non-consumable
-  - `sadam_week_pass` → Non-consumable
+  - `sadam_day_pass` → Consumable
+  - `sadam_week_pass` → Consumable
   - `sadam_monthly` → Auto-renewable subscription
 - [ ] **Entitlement 매핑**
   - 기존 `premium` entitlement에 iOS 3개 상품 추가 연결
@@ -281,11 +281,11 @@ PaywallScreen                   → 구매 UI (3개 상품 카드)
 - 서버(ai-gemini): `subscriptions` 테이블에서 `status='active'` + `product_id in (day_pass, week_pass, monthly)` 확인
 
 ### 기간별 만료 관리
-- **RevenueCat SDK가 자동 관리**: entitlement 만료 시 `isPremium` → `false` 자동 전환
+- **RevenueCat entitlement**: `sadam_monthly`(구독)만 entitlement 기반 만료 관리
+- **day_pass/week_pass**: Consumable 상품 → entitlement `isActive` 영구 true 문제 → `purchaseDate + duration`으로 직접 계산 (v0.1.0 수정)
 - **서버 webhook**: EXPIRATION 이벤트 → `subscriptions.status = 'expired'` 자동 업데이트
-- **day_pass** (24시간): RevenueCat이 `expiration_at_ms` 기준으로 만료 처리
-- **week_pass** (7일): 동일
 - **monthly** (자동갱신): RENEWAL 이벤트로 `expires_at` 자동 갱신, 미갱신 시 EXPIRATION
+- **Premium 만료 전환**: ai-gemini v59에서 premium→free 전환 시 `chatting_tokens` 리셋 처리
 
 ---
 
@@ -354,7 +354,7 @@ restore_button_widget.dart    ← provider
 | Function | 버전 | JWT | 용도 |
 |----------|------|-----|------|
 | `purchase-webhook` | v3 | OFF | RevenueCat 이벤트 수신 → `subscriptions` 테이블 upsert |
-| `ai-gemini` | v50 | ON | 채팅 시 `subscriptions` 조회 → premium이면 quota 면제 |
+| `ai-gemini` | v59 | ON | 채팅 시 `subscriptions` 조회 → premium이면 quota 면제 |
 
 ### purchase-webhook 이벤트 처리
 
@@ -512,6 +512,10 @@ ORDER BY created_at DESC LIMIT 5;
 | 2026-02-03 | PaywallScreen 디버그 다이얼로그 → 사용자 친화적 메시지로 교체 |
 | 2026-02-03 | Google Cloud Pub/Sub API 활성화 → RevenueCat credentials "Valid" 전환 |
 | 2026-02-03 | PremiumBadgeWidget 테마 적응형 디자인으로 개선 |
+| 2026-02-06 | day_pass/week_pass Non-consumable → Consumable 변경 (재구매 ITEM_ALREADY_OWNED 수정) |
+| 2026-02-06 | isPremium 4단계 fallback (entitlement → subscription → transaction → _forcePremium) |
+| 2026-02-06 | day_pass/week_pass 만료 로직: purchaseDate + duration 직접 계산 (RevenueCat entitlement 미지원) |
+| 2026-02-08 | ai-gemini v59: Premium 만료 전환 시 chatting_tokens 리셋 |
 
 ---
 

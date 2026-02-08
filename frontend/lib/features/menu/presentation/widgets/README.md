@@ -7,7 +7,7 @@
 | 파일 | 역할 |
 |------|------|
 | `fortune_category_list.dart` | 운세 카테고리 그리드 (평생운세, 2025, 2026, 한달) |
-| `fortune_summary_card.dart` | 오늘의 운세 점수 + 카테고리별 수치 |
+| `fortune_summary_card.dart` | 오늘의 운세 점수 + 카테고리별 수치. v0.1.2: 로딩/에러 상태에서 탭하면 `ref.read(dailyFortuneProvider.notifier).refresh()` 호출 (GestureDetector + "탭하면 다시 불러옵니다" 텍스트) |
 
 ## fortune_category_list.dart
 

@@ -8,7 +8,14 @@
 ### 1. Daily Fortune Provider
 파일: `presentation/providers/daily_fortune_provider.dart`
 
-오늘의 운세 데이터를 관리합니다.
+오늘의 운세 데이터를 관리합니다. `@Riverpod(keepAlive: true)` 사용.
+
+#### v0.1.2 수정사항
+- **타임아웃 추가**: `activeProfileProvider.future` 10초, `getDailyFortune()` 8초
+- **자동 재시도**: 쿼리 실패 시 5초 후 재시도 (최대 3회, `_queryRetryCount`)
+- **에러 로깅**: `ErrorLoggingService.logError()` → `chat_error_logs` Supabase 테이블
+  - 프로필 타임아웃, DB 쿼리 타임아웃, DB 쿼리 에러, 분석 최종 실패, 폴링 타임아웃 (5개 지점)
+- **무한 로딩 수정**: keepAlive provider의 Supabase 쿼리 hang → 타임아웃으로 해소
 
 #### 데이터 모델
 ```dart
@@ -76,3 +83,4 @@ class DailyFortuneData {
 ## 수정 이력
 - v2.0: overallMessageShort 추가 (짧은 오늘의 한마디)
 - v2.1 (2026-01-24): 사자성어 다양화 프롬프트 개선
+- v0.1.2 (2026-02-08): daily_fortune_provider 타임아웃/재시도/에러로깅 추가, fortune_summary_card 탭-재시도 추가
