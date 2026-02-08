@@ -587,7 +587,9 @@ abstract class PromptVersions {
   ///         시스템 프롬프트와 JSON 스키마 문장 수 불일치 수정 (광고 잠금 콘텐츠 보강)
   /// - V5.5 (2026-02-04): 쉬운말 원칙 추가 - 십성/합충 전문용어 본문 직접 사용 금지
   ///         "고전 vs 현대 해석" 테이블을 내부 참고용으로 변경
-  static const String monthlyFortune = 'V5.5';
+  /// - V5.6 (2026-02-08): months JSON 스키마에 month2~month12 개별 키 명시
+  ///         AI가 "month2~month12" 단일 키로 묶는 버그 수정
+  static const String monthlyFortune = 'V5.6';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 년운 (yearly_fortune)

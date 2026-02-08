@@ -322,10 +322,19 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
           if (kDebugMode) {
             print('   ❌ [AD] Rewarded ad failed: ${error.message}');
           }
-          // 로드 실패 시 광고 모드 자동 해제 → stuck 방지
-          state = const ConversationalAdModel();
-          if (kDebugMode) {
-            print('   🔄 [AD] Rewarded load failed → ad mode auto-dismissed');
+          // tokenDepleted인 경우: 배너 유지 (네이티브 광고 전환 버튼 사용 가능)
+          // Rewarded 로드 실패해도 "바로 대화 계속하기" 버튼으로 네이티브 광고 가능
+          if (state.adType == AdMessageType.tokenDepleted) {
+            state = state.copyWith(loadState: AdLoadState.loaded);
+            if (kDebugMode) {
+              print('   🔄 [AD] Rewarded load failed → banner kept (native ad fallback available)');
+            }
+          } else {
+            // 비소진 광고(경고/인터벌)는 기존대로 해제
+            state = const ConversationalAdModel();
+            if (kDebugMode) {
+              print('   🔄 [AD] Rewarded load failed → ad mode auto-dismissed');
+            }
           }
         },
       ),
