@@ -406,17 +406,27 @@ class SajuAnalysisService {
     // ═══════════════════════════════════════════════════════════════════════
 
     // 캐시 확인 (이미 분석된 경우 스킵)
+    // v50: Gemini/fallback 결과는 캐시 히트로 안 침 (GPT-5.2 결과만 유효)
     print('[SajuAnalysisService] 🔍 saju_base 캐시 확인 중...');
     final cached = await aiQueries.getSajuBaseSummary(profileId);
     AnalysisResult sajuBaseResult;
 
-    if (cached.isSuccess && cached.data != null) {
-      print('[SajuAnalysisService] ✅ saju_base 캐시 히트 - 즉시 반환');
+    // v50: model_provider='openai' 인 GPT 결과만 캐시 히트로 인정
+    // Gemini/fallback(model_provider='google', model_name='fallback')은 무시
+    final isGptCacheHit = cached.isSuccess &&
+        cached.data != null &&
+        cached.data!.modelProvider == 'openai';
+
+    if (isGptCacheHit) {
+      print('[SajuAnalysisService] ✅ saju_base 캐시 히트 (GPT) - 즉시 반환');
       sajuBaseResult = AnalysisResult.success(
         summaryId: cached.data!.id,
         processingTimeMs: 0,
       );
     } else {
+      if (cached.isSuccess && cached.data != null) {
+        print('[SajuAnalysisService] ⚠️ saju_base 존재하지만 Gemini/fallback (model=${cached.data!.modelName}) - GPT 분석 강행');
+      }
       // v43: Phase 분할 분석 실행 (reasoning_effort: low → medium 폴백)
       print('[SajuAnalysisService] 📊 saju_base Phase 분할 분석 시작 (reasoning_effort: low)...');
       var phasedResult = await runSajuBaseAnalysisWithPhases(
@@ -831,37 +841,65 @@ class SajuAnalysisService {
       return AnalysisResult.failure('사주 데이터 조회 실패');
     }
 
-    // 3. 분석 실행
+    // 3. 분석 실행 (v49: phased path 사용 — monolithic 대비 성공률 90% vs 40%)
+    final inputJson = inputData.toJson();
     if (runInBackground) {
       // Fire-and-forget
-      print('[SajuAnalysisService] 🔥 백그라운드 GPT-5.2 분석 시작');
-      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      print('[SajuAnalysisService] 🔥 백그라운드 phased 분석 시작');
+      _runPhasedAnalysisInBackground(userId, profileId, inputJson, onComplete);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
-      // 완료 대기
-      print('[SajuAnalysisService] ⏳ GPT-5.2 분석 대기 중...');
-      return await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      // 완료 대기 (phased path + low→medium fallback)
+      print('[SajuAnalysisService] ⏳ phased 분석 대기 중...');
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!phasedResult.overall.success) {
+        print('[SajuAnalysisService] ⚠️ low 실패 → medium 재시도');
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',
+        );
+      }
+      return phasedResult.overall;
     }
   }
 
-  /// saju_base 분석 백그라운드 실행
-  void _runSajuBaseAnalysisInBackground(
+  /// v49: phased 분석 백그라운드 실행 (monolithic 대비 성공률 90% vs 40%)
+  void _runPhasedAnalysisInBackground(
     String userId,
     String profileId,
     Map<String, dynamic> inputJson,
     void Function(AnalysisResult)? onComplete,
   ) {
-    _runSajuBaseAnalysis(userId, profileId, inputJson).then((result) {
-      print('[SajuAnalysisService] ✅ 백그라운드 GPT-5.2 분석 완료: ${result.success}');
-      if (onComplete != null) {
-        onComplete(result);
+    () async {
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!phasedResult.overall.success) {
+        print('[SajuAnalysisService] ⚠️ 백그라운드 low 실패 → medium 재시도');
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',
+        );
       }
+      return phasedResult.overall;
+    }().then((result) {
+      print('[SajuAnalysisService] ✅ 백그라운드 phased 분석 완료: ${result.success}');
+      onComplete?.call(result);
     }).catchError((e) {
-      print('[SajuAnalysisService] ❌ 백그라운드 GPT-5.2 분석 오류: $e');
-      // v7.3: 에러 시에도 onComplete 콜백 호출
-      if (onComplete != null) {
-        onComplete(AnalysisResult.failure(e.toString()));
-      }
+      print('[SajuAnalysisService] ❌ 백그라운드 phased 분석 오류: $e');
+      onComplete?.call(AnalysisResult.failure(e.toString()));
     });
   }
 
@@ -918,16 +956,31 @@ class SajuAnalysisService {
       return result;
     }
 
-    // 3. 분석 실행
+    // 3. 분석 실행 (v49: phased path — 성공률 90% vs monolithic 40%)
+    final inputJson = inputData.toJson();
     if (runInBackground) {
       // Fire-and-forget
-      print('[SajuAnalysisService] 🔥 인연 백그라운드 GPT-5.2 분석 시작');
-      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      print('[SajuAnalysisService] 🔥 인연 백그라운드 phased 분석 시작');
+      _runPhasedAnalysisInBackground(userId, profileId, inputJson, onComplete);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
-      // 완료 대기
-      print('[SajuAnalysisService] ⏳ 인연 GPT-5.2 분석 대기 중...');
-      final result = await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      // 완료 대기 (phased path + low→medium fallback)
+      print('[SajuAnalysisService] ⏳ 인연 phased 분석 대기 중...');
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!phasedResult.overall.success) {
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',
+        );
+      }
+      final result = phasedResult.overall;
       onComplete?.call(result);
       return result;
     }

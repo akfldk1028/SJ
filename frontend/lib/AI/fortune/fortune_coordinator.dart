@@ -14,6 +14,8 @@
 /// ## 파일 위치
 /// `frontend/lib/AI/fortune/fortune_coordinator.dart`
 
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/services/error_logging_service.dart';
@@ -374,15 +376,20 @@ class FortuneCoordinator {
         });
       }
 
-      // 모든 Future 완료 대기 (개별 저장은 이미 완료됨)
-      await Future.wait([
-        yearly2026Future,
-        monthlyFuture,
-        yearly2025Future,
-        dailyFuture,
-      ]);
+      // v8.0: 모든 Future 완료 대기 (5분 타임아웃 - stuck task 방지)
+      // 개별 서비스는 .then()에서 이미 저장 완료됨
+      try {
+        await Future.wait([
+          yearly2026Future,
+          monthlyFuture,
+          yearly2025Future,
+          dailyFuture,
+        ]).timeout(const Duration(minutes: 5));
+      } on TimeoutException {
+        print('[FortuneCoordinator] ⚠️ Future.wait 타임아웃 (5분) - 일부 task가 stuck');
+      }
 
-      print('[FortuneCoordinator] 🏁 v7.0 모든 운세 분석 완료 (Daily 포함)');
+      print('[FortuneCoordinator] 🏁 v8.0 모든 운세 분석 완료 (Daily 포함)');
 
       // 4. 결과 반환
       return FortuneAnalysisResults(
@@ -792,9 +799,15 @@ class FortuneCoordinator {
         });
       }
 
-      await Future.wait([yearly2026Future, monthlyFuture, yearly2025Future, dailyFuture]);
+      // v8.0: 5분 타임아웃 - stuck task로 인한 무한 대기 방지
+      try {
+        await Future.wait([yearly2026Future, monthlyFuture, yearly2025Future, dailyFuture])
+            .timeout(const Duration(minutes: 5));
+      } on TimeoutException {
+        print('[FortuneCoordinator] ⚠️ Future.wait 타임아웃 (5분) - 일부 task가 stuck');
+      }
 
-      print('[FortuneCoordinator] 🏁 v7.0 Fortune 분석 완료! (Daily 포함)');
+      print('[FortuneCoordinator] 🏁 v8.0 Fortune 분석 완료! (Daily 포함)');
 
       return FortuneAnalysisResults(
         success: true,
@@ -824,6 +837,16 @@ class FortuneCoordinator {
   static bool isAnalyzing(String profileId) {
     return _analyzingProfiles.contains(profileId) ||
         _analyzingDaily.any((key) => key.startsWith('${profileId}_'));
+  }
+
+  /// v8.0: stuck 분석 플래그 강제 리셋 (Provider safety timeout용)
+  ///
+  /// Provider에서 _isAnalyzing 타임아웃 후 FortuneCoordinator의
+  /// stuck 플래그도 함께 정리할 때 사용
+  static void resetAnalyzingFlag(String profileId) {
+    _analyzingProfiles.remove(profileId);
+    _analyzingDaily.removeWhere((key) => key.startsWith('${profileId}_'));
+    print('[FortuneCoordinator] 🔄 v8.0 stuck 플래그 강제 리셋: $profileId');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

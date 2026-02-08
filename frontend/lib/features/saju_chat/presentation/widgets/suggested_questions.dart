@@ -10,10 +10,14 @@ class SuggestedQuestions extends StatelessWidget {
   /// AI가 제안한 후속 질문 목록 (null이면 기본 질문 사용)
   final List<String>? questions;
 
+  /// 비활성화 여부 (토큰 소진 시 회색 처리)
+  final bool enabled;
+
   const SuggestedQuestions({
     super.key,
     required this.onQuestionSelected,
     this.questions,
+    this.enabled = true,
   });
 
   /// 기본 질문 목록 (AI 응답에서 질문이 없을 때 사용)
@@ -39,18 +43,23 @@ class SuggestedQuestions extends StatelessWidget {
         itemCount: displayQuestions.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          return ActionChip(
-            label: Text(
-              displayQuestions[index],
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            onPressed: () => onQuestionSelected(displayQuestions[index]),
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+          return Opacity(
+            opacity: enabled ? 1.0 : 0.4,
+            child: ActionChip(
+              label: Text(
+                displayQuestions[index],
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              onPressed: enabled
+                  ? () => onQuestionSelected(displayQuestions[index])
+                  : null,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           );
         },

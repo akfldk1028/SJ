@@ -643,33 +643,26 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
 
       debugPrint('[MonthlyFortune] ✅ $monthKey 데이터 반환: keyword=${monthSummary.keyword}');
 
-      // v5.0: highlights 변환
+      // v5.3: highlights 변환 (7개 카테고리 - _generate12MonthsData와 동일)
       Map<String, MonthHighlightData>? highlights;
       if (monthSummary.highlights != null) {
         highlights = {};
-        if (monthSummary.highlights!.career != null) {
-          highlights['career'] = MonthHighlightData(
-            score: monthSummary.highlights!.career!.score,
-            summary: monthSummary.highlights!.career!.summary,
-          );
-        }
-        if (monthSummary.highlights!.business != null) {
-          highlights['business'] = MonthHighlightData(
-            score: monthSummary.highlights!.business!.score,
-            summary: monthSummary.highlights!.business!.summary,
-          );
-        }
-        if (monthSummary.highlights!.wealth != null) {
-          highlights['wealth'] = MonthHighlightData(
-            score: monthSummary.highlights!.wealth!.score,
-            summary: monthSummary.highlights!.wealth!.summary,
-          );
-        }
-        if (monthSummary.highlights!.love != null) {
-          highlights['love'] = MonthHighlightData(
-            score: monthSummary.highlights!.love!.score,
-            summary: monthSummary.highlights!.love!.summary,
-          );
+        final h = monthSummary.highlights!;
+        for (final entry in {
+          'career': h.career,
+          'business': h.business,
+          'wealth': h.wealth,
+          'love': h.love,
+          'marriage': h.marriage,
+          'health': h.health,
+          'study': h.study,
+        }.entries) {
+          if (entry.value != null) {
+            highlights[entry.key] = MonthHighlightData(
+              score: entry.value!.score,
+              summary: entry.value!.summary,
+            );
+          }
         }
       }
 
@@ -682,13 +675,23 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         );
       }
 
+      // v5.3: lucky 변환
+      MonthLuckyData? luckyData;
+      if (monthSummary.lucky != null) {
+        luckyData = MonthLuckyData(
+          color: monthSummary.lucky!.color,
+          number: monthSummary.lucky!.number,
+        );
+      }
+
       return MonthData(
         keyword: monthSummary.keyword,
         score: monthSummary.score,
         reading: monthSummary.reading,
-        tip: '',
+        tip: monthSummary.tip,
         highlights: highlights,
         idiom: idiom,
+        lucky: luckyData,
       );
     } catch (e) {
       debugPrint('[MonthlyFortune] 데이터 조회 오류: $e');

@@ -4,6 +4,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v49 변경사항 (2026-02-08):
+ * - fortune 태스크(monthly_fortune 등) completed 재사용 로직 제거
+ *   프롬프트 버전 업데이트 시 Edge Function이 옛 결과를 재사용하는 버그 수정
+ *   fortune 캐시는 Flutter ai_summaries에서 관리하므로 Edge Function 재사용 불필요
+ *
  * v40 변경사항 (2026-02-01):
  * - checkQuota: rewarded_tokens_earned 포함 (광고 보상 토큰 반영)
  * - recordTokenUsage: daily_quota 덮어쓰기 제거 (광고 보상 증가값 보존)
@@ -381,19 +386,21 @@ Deno.serve(async (req) => {
 
       if (user_id) {
         // v39: 중복 방지 강화 - 진행 중 OR 오늘 완료된 task 재사용
-        // 1단계: 진행 중인 task 체크 (기존)
+        // 1단계: 진행 중인 task 체크 (v48: 10분 이내만 재사용, 오래된 건 failed 처리)
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const { data: inProgressTask } = await supabase
           .from("ai_tasks")
           .select("id, status, openai_response_id, created_at")
           .eq("user_id", user_id)
           .eq("task_type", task_type)
           .in("status", ["pending", "processing", "queued", "in_progress"])
+          .gte("created_at", tenMinutesAgo)  // v48: 10분 이내만!
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
         if (inProgressTask) {
-          console.log(`[ai-openai v39] Found in-progress ${task_type} task ${inProgressTask.id} (${inProgressTask.status})`);
+          console.log(`[ai-openai v48] Found recent in-progress ${task_type} task ${inProgressTask.id} (${inProgressTask.status})`);
           return new Response(
             JSON.stringify({
               success: true,
@@ -407,34 +414,63 @@ Deno.serve(async (req) => {
           );
         }
 
+        // v48: 10분 초과된 stuck in_progress tasks → failed 자동 정리
+        const { data: stuckTasks } = await supabase
+          .from("ai_tasks")
+          .select("id")
+          .eq("user_id", user_id)
+          .eq("task_type", task_type)
+          .in("status", ["pending", "processing", "queued", "in_progress"])
+          .lt("created_at", tenMinutesAgo);
+
+        if (stuckTasks && stuckTasks.length > 0) {
+          const stuckIds = stuckTasks.map((t: any) => t.id);
+          console.log(`[ai-openai v48] Auto-cleanup ${stuckIds.length} stuck ${task_type} tasks: ${stuckIds.join(", ")}`);
+          await supabase
+            .from("ai_tasks")
+            .update({ status: "failed", error_message: "Auto-cleanup: stuck > 10min (v48)" })
+            .in("id", stuckIds);
+        }
+
         // 2단계: 오늘 완료된 task 체크 (v39 신규)
         // 앱이 결과 저장 실패해서 반복 호출해도 기존 completed 결과 재사용
         // → 토큰 중복 차감 완전 방지
-        const today = getTodayKST();
-        const { data: completedTask } = await supabase
-          .from("ai_tasks")
-          .select("id, status, openai_response_id, result_data, completed_at")
-          .eq("user_id", user_id)
-          .eq("task_type", task_type)
-          .eq("status", "completed")
-          .gte("completed_at", `${today}T00:00:00Z`)
-          .order("completed_at", { ascending: false })
-          .limit(1)
-          .single();
+        //
+        // v49: fortune 태스크는 completed 재사용 스킵!
+        // 이유: 프롬프트 버전 업데이트(V5.5→V5.6) 시 Edge Function이
+        //       옛 결과를 재사용하여 새 프롬프트가 실행되지 않는 버그.
+        //       fortune 캐시는 Flutter ai_summaries에서 prompt_version으로 관리하므로
+        //       Edge Function 레벨 재사용은 불필요.
+        const isFortuneTask = QUOTA_EXEMPT_TASK_TYPES.has(task_type);
+        if (!isFortuneTask) {
+          const today = getTodayKST();
+          const { data: completedTask } = await supabase
+            .from("ai_tasks")
+            .select("id, status, openai_response_id, result_data, completed_at")
+            .eq("user_id", user_id)
+            .eq("task_type", task_type)
+            .eq("status", "completed")
+            .gte("completed_at", `${today}T00:00:00Z`)
+            .order("completed_at", { ascending: false })
+            .limit(1)
+            .single();
 
-        if (completedTask) {
-          console.log(`[ai-openai v39] Found today's completed ${task_type} task ${completedTask.id} → reusing (no new tokens)`);
-          return new Response(
-            JSON.stringify({
-              success: true,
-              task_id: completedTask.id,
-              openai_response_id: completedTask.openai_response_id,
-              status: "completed",
-              message: `Reusing today's completed ${task_type} task. Poll /ai-openai-result with task_id.`,
-              reused: true,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          if (completedTask) {
+            console.log(`[ai-openai v49] Found today's completed ${task_type} task ${completedTask.id} → reusing (no new tokens)`);
+            return new Response(
+              JSON.stringify({
+                success: true,
+                task_id: completedTask.id,
+                openai_response_id: completedTask.openai_response_id,
+                status: "completed",
+                message: `Reusing today's completed ${task_type} task. Poll /ai-openai-result with task_id.`,
+                reused: true,
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          console.log(`[ai-openai v49] Fortune task ${task_type} → skip completed reuse (prompt version may have changed)`);
         }
       }
 

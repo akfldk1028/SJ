@@ -2,7 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v29)
+ * Gemini API 호출 Edge Function (v31)
+ *
+ * v31 변경사항 (2026-02-08):
+ * - BUG FIX: checkAndUpdateQuota catch 블록 fail-open → fail-closed
+ *   → 이전: DB 에러 시 allowed: true → quota 우회 가능
+ *   → 수정: DB 에러 시 allowed: false → 안전하게 차단
  *
  * v29 변경사항 (2026-02-08):
  * - BUG FIX: 프리미엄 만료 후 chatting_tokens 리셋이 매 API 호출마다 반복 실행되던 치명적 버그 수정
@@ -177,8 +182,9 @@ async function checkAndUpdateQuota(
     if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     if (currentChatUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
     return { allowed: true, remaining, quotaLimit: effectiveQuota };
-  } catch {
-    return { allowed: true, remaining: quotaLimit, quotaLimit };
+  } catch (e) {
+    console.error(`[ai-gemini v31] checkAndUpdateQuota error → blocking: ${e}`);
+    return { allowed: false, remaining: 0, quotaLimit };
   }
 }
 

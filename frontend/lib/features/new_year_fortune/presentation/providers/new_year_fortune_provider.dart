@@ -559,12 +559,16 @@ class NewYearFortune extends _$NewYearFortune {
       _isAnalyzing = false;
       ref.invalidateSelf();
     } else if (_pollAttempts >= _maxPollAttempts) {
-      print('[NewYearFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 중지');
+      // v8.0: 타임아웃 시 invalidateSelf()로 재시도 (무한 로딩 수정)
+      print('[NewYearFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 재시도');
       _isPolling = false;
       _isAnalyzing = false;
+      ref.invalidateSelf();
     } else {
-      // 데이터 없으면 계속 폴링
-      print('[NewYearFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
+      // 데이터 없으면 계속 폴링 (로그 10회마다)
+      if (_pollAttempts % 10 == 0) {
+        print('[NewYearFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
+      }
       _pollForData(profileId);
     }
   }
