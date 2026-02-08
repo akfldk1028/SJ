@@ -1,13 +1,17 @@
 import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../core/data/query_result.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../profile/domain/entities/saju_profile.dart';
 
 import '../../../../AI/data/queries.dart';
 import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/fortune/common/korea_date_utils.dart';
 import '../../../../core/supabase/generated/ai_summaries.dart';
+import '../../../../core/services/error_logging_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'daily_fortune_provider.g.dart';
@@ -189,6 +193,10 @@ class DailyFortune extends _$DailyFortune {
   /// 자정 자동 갱신 Timer (static으로 중복 방지)
   static Timer? _midnightTimer;
 
+  /// v8: DB 쿼리 타임아웃 시 재시도 카운터 (최대 3회)
+  static int _queryRetryCount = 0;
+  static const int _maxQueryRetries = 3;
+
   /// 분석 완료 플래그 키 생성
   static String _getAnalyzedKey(String profileId, DateTime date) {
     return '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -243,6 +251,20 @@ class DailyFortune extends _$DailyFortune {
     });
   }
 
+  /// v8: DB 쿼리 타임아웃/오류 시 자동 재시도 (5초 후, 최대 3회)
+  void _scheduleRetry() {
+    if (_queryRetryCount >= _maxQueryRetries) {
+      print('[DailyFortune] ❌ 재시도 한도 초과 ($_maxQueryRetries회) - 포기');
+      _queryRetryCount = 0;
+      return;
+    }
+    _queryRetryCount++;
+    print('[DailyFortune] 🔄 $_queryRetryCount/$_maxQueryRetries 재시도 예약 (5초 후)');
+    Future.delayed(const Duration(seconds: 5), () {
+      ref.invalidateSelf();
+    });
+  }
+
   @override
   Future<DailyFortuneData?> build() async {
     // Phase 60: keepAlive로 탭 이동 시에도 Provider 상태 유지
@@ -251,7 +273,23 @@ class DailyFortune extends _$DailyFortune {
     // 자정 Timer: 앱 활성 상태에서 날짜 넘어가면 자동 갱신
     _scheduleMidnightRefresh();
 
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    // v8: activeProfileProvider 타임아웃 (10초) - hang 방지
+    SajuProfile? activeProfile;
+    try {
+      activeProfile = await ref.watch(activeProfileProvider.future)
+          .timeout(const Duration(seconds: 10));
+    } on TimeoutException {
+      print('[DailyFortune] ⚠️ activeProfileProvider 타임아웃 (10초)');
+      ErrorLoggingService.logError(
+        operation: 'daily_fortune_load',
+        errorMessage: 'activeProfileProvider timeout (10s)',
+        errorType: 'timeout',
+        sourceFile: 'daily_fortune_provider.dart',
+        extraData: {'retry': _queryRetryCount},
+      );
+      _scheduleRetry();
+      return null;
+    }
     if (activeProfile == null) return null;
 
     // 🔧 한국 시간 기준으로 조회해야 캐시 히트됨 (저장도 한국 시간 기준)
@@ -272,29 +310,53 @@ class DailyFortune extends _$DailyFortune {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 60 v3: DB 캐시 확인 (FortuneCoordinator 상태보다 먼저!)
-    // 🔴 핵심 수정: DB에 데이터가 있으면 FortuneCoordinator가 다른 분석을
-    //    진행 중이더라도 즉시 반환. 이전에는 isAnalyzing 체크가 먼저여서
-    //    monthly/yearly 분석 중(60-120초) 동안 daily 데이터를 무시했음.
+    // v8: DB 캐시 확인 + 타임아웃 + 재시도
+    // Supabase 쿼리가 hang 되면 영원히 로딩 → 8초 타임아웃 적용
+    // 타임아웃 시 5초 후 자동 재시도 (최대 3회)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    final result = await aiQueries.getDailyFortune(activeProfile.id, today);
+    QueryResult<AiSummaries?> result;
+    try {
+      result = await aiQueries.getDailyFortune(activeProfile.id, today)
+          .timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      print('[DailyFortune] ⚠️ DB 쿼리 타임아웃 (8초) - 재시도 예약');
+      ErrorLoggingService.logError(
+        operation: 'daily_fortune_db_query',
+        errorMessage: 'getDailyFortune timeout (8s) - profileId=${activeProfile.id}',
+        errorType: 'timeout',
+        sourceFile: 'daily_fortune_provider.dart',
+        extraData: {'profileId': activeProfile.id, 'retry': _queryRetryCount},
+      );
+      _scheduleRetry();
+      return null;
+    } catch (e, st) {
+      print('[DailyFortune] ❌ DB 쿼리 오류: $e - 재시도 예약');
+      ErrorLoggingService.logError(
+        operation: 'daily_fortune_db_query',
+        errorMessage: 'getDailyFortune error: $e',
+        errorType: 'query_error',
+        sourceFile: 'daily_fortune_provider.dart',
+        stackTrace: st.toString(),
+        extraData: {'profileId': activeProfile.id, 'retry': _queryRetryCount},
+      );
+      _scheduleRetry();
+      return null;
+    }
 
     // 캐시가 있으면 바로 반환
-    if (result.isSuccess && result.data != null) {
+    if ((result.isSuccess || result.isOffline) && result.data != null) {
       final aiSummary = result.data!;
       final content = aiSummary.content;
       if (content != null) {
         // Phase 60: 캐시 히트 시 분석 완료로 마킹
         _analyzedToday.add(analyzedKey);
         _currentlyAnalyzing.remove(activeProfile.id);
+        _queryRetryCount = 0; // 성공 시 재시도 카운터 리셋
 
         final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
         print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
 
-        // idiom이 없어도 기존 데이터 그대로 사용
-        // - prompt_version 필터가 이미 구버전 캐시를 걸러냄
-        // - 재분석해도 DailyService가 캐시 히트하여 동일 데이터 반환 → 무한루프 위험
         if (!fortune.idiom.isValid) {
           print('[DailyFortune] ⚠️ idiom 없음 - 기존 데이터 그대로 사용');
         }
@@ -417,11 +479,25 @@ class DailyFortune extends _$DailyFortune {
           });
         } else {
           print('[DailyFortune] ❌ Daily 분석 최종 실패 (2회 재시도 소진): $errorMsg');
+          ErrorLoggingService.logError(
+            operation: 'daily_fortune_analysis',
+            errorMessage: 'Daily 분석 최종 실패 (2회 재시도 소진): $errorMsg',
+            errorType: 'analysis_failed',
+            sourceFile: 'daily_fortune_provider.dart',
+            extraData: {'profileId': profileId, 'analyzedKey': analyzedKey},
+          );
         }
       }
-    }).catchError((e) {
+    }).catchError((e, st) {
       print('[DailyFortune] ❌ Daily 분석 오류: $e');
       _currentlyAnalyzing.remove(profileId);
+      ErrorLoggingService.logError(
+        operation: 'daily_fortune_analysis',
+        errorMessage: 'Daily 분석 오류: $e',
+        sourceFile: 'daily_fortune_provider.dart',
+        stackTrace: st.toString(),
+        extraData: {'profileId': profileId},
+      );
 
       // v7.6: catchError에서도 "진행 중" 에러 체크
       final errorStr = e.toString();
@@ -476,6 +552,13 @@ class DailyFortune extends _$DailyFortune {
       if (attempts >= maxAttempts) {
         print('[DailyFortune] ⚠️ 폴링 타임아웃 ($maxAttempts회)');
         _pollingForCompletion.remove(profileId);
+        ErrorLoggingService.logError(
+          operation: 'daily_fortune_polling',
+          errorMessage: '폴링 타임아웃 (${maxAttempts * 3}초) - DB 데이터 없음',
+          errorType: 'timeout',
+          sourceFile: 'daily_fortune_provider.dart',
+          extraData: {'profileId': profileId, 'attempts': maxAttempts},
+        );
         return false; // stop polling
       }
       return true; // continue polling

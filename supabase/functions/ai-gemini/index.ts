@@ -82,10 +82,13 @@ async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: st
 }
 
 /**
- * v24: Quota 확인 - chatting_tokens만 대상, bonus_tokens + rewarded_tokens_earned 포함
+ * v28: Quota 확인 - chatting_tokens만 대상, bonus_tokens + rewarded_tokens_earned 포함
  * 운세 토큰(saju_analysis, monthly, yearly 등)은 핵심 콘텐츠이므로 쿼터 면제
  * 채팅만 일일 쿼터 제한 적용
- * effective_quota = daily_quota + bonus_tokens + rewarded_tokens_earned
+ * effective_quota = daily_quota + bonus_tokens + rewarded_tokens_earned + native_tokens_earned
+ *
+ * v28 추가: Premium 만료 시 chatting_tokens 자동 리셋
+ * - Premium 중 누적된 chatting_tokens가 free quota 초과 → 만료 후 영구 차단 방지
  */
 async function checkAndUpdateQuota(
   supabase: ReturnType<typeof createClient>,
@@ -116,19 +119,51 @@ async function checkAndUpdateQuota(
       }
     }
 
+    // v28: 만료된 구독이 있는지 확인 (최근 만료)
+    // sub이 없거나 isValid가 false인 경우 = 구독 없음 or 만료
+    // 최근 만료 구독 확인 → chatting_tokens 리셋 필요 여부 판단
+    const { data: expiredSub } = await supabase
+      .from("subscriptions")
+      .select("product_id, expires_at")
+      .eq("user_id", userId)
+      .in("product_id", ["sadam_day_pass", "sadam_week_pass", "sadam_monthly"])
+      .in("status", ["expired", "active"])
+      .order("expires_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
       .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned, native_tokens_earned")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
-    // v27: chatting_tokens만 쿼터 대상, bonus_tokens + rewarded_tokens_earned + native_tokens_earned 포함
-    const currentChatUsage = usage?.chatting_tokens || 0;
+
+    let currentChatUsage = usage?.chatting_tokens || 0;
     const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
     const bonusTokens = usage?.bonus_tokens || 0;
     const rewardedTokens = usage?.rewarded_tokens_earned || 0;
     const nativeTokens = usage?.native_tokens_earned || 0;
     const effectiveQuota = baseQuota + bonusTokens + rewardedTokens + nativeTokens;
+
+    // v28: Premium 만료 후 chatting_tokens가 free quota를 크게 초과하면 리셋
+    // 조건: 만료된 구독이 있고, chatting_tokens > effectiveQuota
+    if (expiredSub && currentChatUsage > effectiveQuota) {
+      const expiredAt = expiredSub.expires_at ? new Date(expiredSub.expires_at) : null;
+      const isRecentlyExpired = expiredAt && (Date.now() - expiredAt.getTime()) < 7 * 24 * 60 * 60 * 1000; // 7일 이내
+
+      if (isRecentlyExpired) {
+        console.log(`[ai-gemini v28] Premium expired (${expiredSub.product_id}), chatting_tokens=${currentChatUsage} > effectiveQuota=${effectiveQuota} → resetting`);
+        // chatting_tokens를 0으로 리셋
+        await supabase
+          .from("user_daily_token_usage")
+          .update({ chatting_tokens: 0, updated_at: new Date().toISOString() })
+          .eq("user_id", userId)
+          .eq("usage_date", today);
+        currentChatUsage = 0;
+      }
+    }
+
     const remaining = effectiveQuota - currentChatUsage;
     if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     if (currentChatUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };

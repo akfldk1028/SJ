@@ -359,7 +359,7 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         // 사용자가 취소한 경우 이전 상태로 복원
         state = AsyncData(await Purchases.getCustomerInfo());
       } else {
-        state = AsyncError(e, StackTrace.current);
+        state = AsyncError(e, st);
       }
     } catch (e, st) {
       // PlatformException 외의 모든 에러 캐치

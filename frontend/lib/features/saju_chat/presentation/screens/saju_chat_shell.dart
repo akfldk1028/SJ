@@ -709,12 +709,24 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       });
     }
 
-    // 에러 발생 시 자동 소거 (팝업/배너 없이 조용히 처리)
+    // 에러 발생 시 처리: quota 에러는 SnackBar 표시 후 소거
     ref.listen(
       chatNotifierProvider(currentSessionId).select((s) => s.error),
       (previous, next) {
         if (next != null && previous != next) {
-          // 토큰 소진 에러는 배너에서 처리하므로 즉시 소거
+          // QUOTA_EXCEEDED 또는 토큰 관련 에러 → SnackBar로 사용자 피드백
+          if (next.contains('토큰') || next.contains('한도')) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(next),
+                  backgroundColor: const Color(0xFFD4AF37),
+                  duration: const Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
           ref.read(chatNotifierProvider(currentSessionId).notifier).clearError();
         }
       },
@@ -863,9 +875,14 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             print('  participantIds: ${params.participantIds}');
             print('  targetId: ${params.targetProfileId}');
             print('  includesOwner: ${params.includesOwner}');
-            // 인터벌 광고 활성 시 메시지 전송 전에 dismiss (AdWidget 중복 방지)
+            // 인터벌 광고 활성 시 처리
             final adState = ref.read(conversationalAdNotifierProvider);
             if (adState.isAdMode && adState.adType == AdMessageType.inlineInterval) {
+              if (!adState.adWatched) {
+                // 광고 미클릭 상태 → 메시지 전송 차단 (토큰 미지급)
+                return;
+              }
+              // 광고 클릭 완료 → dismiss 후 메시지 전송
               ref.read(conversationalAdNotifierProvider.notifier).dismissAd();
             }
 

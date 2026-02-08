@@ -1195,12 +1195,14 @@ class ChatNotifier extends _$ChatNotifier {
       _isSendingMessage = false;
     } catch (e, stackTrace) {
       // [ERROR]
-      print('');
-      print('╔══════════════════════════════════════════════════════════════╗');
-      print('║  ❌ [ERROR] CHAT FAILED                                      ║');
-      print('╚══════════════════════════════════════════════════════════════╝');
-      print('   💥 $e');
-      print('');
+      if (kDebugMode) {
+        print('');
+        print('╔══════════════════════════════════════════════════════════════╗');
+        print('║  ❌ [ERROR] CHAT FAILED                                      ║');
+        print('╚══════════════════════════════════════════════════════════════╝');
+        print('   💥 $e');
+        print('');
+      }
 
       // 에러 로깅 (비동기, 실패 무시)
       ErrorLoggingService.logError(
@@ -1220,7 +1222,9 @@ class ChatNotifier extends _$ChatNotifier {
       // QUOTA_EXCEEDED: 서버에서 일일 토큰 한도 초과 → 광고 모드 활성화
       // AI 프리미엄 구독자는 서버에서 면제되므로 여기까지 오지 않음
       if (errorMsg.contains('QUOTA_EXCEEDED')) {
-        print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
+        if (kDebugMode) {
+          print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
+        }
         final selectedPersona = ref.read(chatPersonaNotifierProvider);
         ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
           tokenUsage: const TokenUsageInfo(
@@ -1249,8 +1253,6 @@ class ChatNotifier extends _$ChatNotifier {
           errorMsg.contains('timeout') ||
           errorMsg.contains('Timeout') ||
           errorMsg.contains('네트워크');
-
-      final isPremiumUser = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
       if (isRetryableError) {
         state = state.copyWith(
