@@ -21,7 +21,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     final fortuneAsync = ref.watch(dailyFortuneProvider);
 
     return fortuneAsync.when(
-      loading: () => _buildLoadingCard(theme),
+      loading: () => _buildLoadingCard(ref, theme),
       error: (error, stack) => _buildErrorCard(context, ref, theme, error),
       data: (fortune) {
         // fortune이 null이면 AI 분석 중 → 탭하면 재시도
@@ -33,37 +33,50 @@ class FortuneSummaryCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoadingCard(AppThemeExtension theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 220,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: AnimatedYinYangIllustration(
-                  size: 80,
-                  showGlow: true,
+  Widget _buildLoadingCard(WidgetRef ref, AppThemeExtension theme) {
+    return GestureDetector(
+      onTap: () {
+        ref.invalidate(dailyFortuneProvider);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          height: 220,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: AnimatedYinYangIllustration(
+                    size: 80,
+                    showGlow: true,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '운세를 불러오는 중...',
-                style: TextStyle(
-                  color: theme.textMuted,
-                  fontSize: 14,
+                const SizedBox(height: 16),
+                Text(
+                  '운세를 불러오는 중...',
+                  style: TextStyle(
+                    color: theme.textMuted,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  '탭하면 다시 불러옵니다',
+                  style: TextStyle(
+                    color: theme.textMuted.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
