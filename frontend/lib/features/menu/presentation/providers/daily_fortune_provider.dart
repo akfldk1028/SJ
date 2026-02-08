@@ -296,11 +296,13 @@ class DailyFortune extends _$DailyFortune {
 
   /// build() 내부 로직 (v9: 외부 try-catch에서 호출)
   Future<DailyFortuneData?> _buildInternal() async {
-    // v9: activeProfileProvider 타임아웃 (10초) - hang 방지
-    // 모든 예외 catch (TimeoutException뿐 아니라 auth/Hive 오류 등)
+    // v10: ref.read 사용 (ref.watch 대신)
+    // ref.watch는 activeProfileProvider가 변경될 때마다 build()를 취소+재시작시킴
+    // → 앱 시작 시 프로필 동기화/리빌드가 반복되면 build()가 영원히 완료 안 됨 (무한로딩)
+    // 프로필 변경 시에는 profile_provider.dart에서 이미 ref.invalidate(dailyFortuneProvider) 호출함
     SajuProfile? activeProfile;
     try {
-      activeProfile = await ref.watch(activeProfileProvider.future)
+      activeProfile = await ref.read(activeProfileProvider.future)
           .timeout(const Duration(seconds: 10));
     } on TimeoutException {
       print('[DailyFortune] ⚠️ activeProfileProvider 타임아웃 (10초)');
@@ -314,8 +316,6 @@ class DailyFortune extends _$DailyFortune {
       _scheduleRetry();
       return null;
     } catch (e, st) {
-      // v9: activeProfileProvider에서 발생하는 모든 예외 처리
-      // (Hive 오류, auth 오류 등 - 기존에는 여기서 누수되어 무한 로딩 발생)
       print('[DailyFortune] ❌ activeProfileProvider 오류: $e');
       ErrorLoggingService.logError(
         operation: 'daily_fortune_load',
