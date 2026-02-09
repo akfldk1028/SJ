@@ -224,13 +224,20 @@ class PurchaseNotifier extends _$PurchaseNotifier {
     return null;
   }
 
-  /// 만료 임박 여부 (24시간 이내, 아직 만료되지 않은 경우만)
+  /// 만료 임박 여부 (상품별 임계값, 아직 만료되지 않은 경우만)
+  /// - 1일 이용권: 3시간 미만
+  /// - 1주일 이용권: 24시간 미만
+  /// - 월간 구독: 3일 미만
   bool get isExpiringSoon {
     final expiry = expiresAt;
     if (expiry == null) return false;
     final remaining = expiry.difference(DateTime.now());
     if (remaining.isNegative) return false; // 이미 만료됨
-    return remaining.inHours < 24;
+
+    final plan = activePlanName;
+    if (plan == '1일 이용권') return remaining.inHours < 3;
+    if (plan == '1주일 이용권') return remaining.inHours < 24;
+    return remaining.inDays < 3; // 월간 구독 등
   }
 
   int get dailyQuota => isPremium

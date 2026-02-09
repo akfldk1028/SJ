@@ -338,7 +338,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
 
   @override
   Future<Yearly2025FortuneData?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     // 오프라인 모드 - 더미 데이터 반환 (UI 테스트용)

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -297,16 +298,15 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        // 메시지 (전체 너비 — 좁은 Row 대신 아래로 길게)
+        // 메시지 (명조체 + 양쪽정렬)
         Text(
           FortuneTextFormatter.formatParagraph(fortune.overallMessage),
-          style: TextStyle(
-            fontSize: 14,
-            height: 1.6,
+          style: AppFonts.fortuneBody(
             color: theme.textPrimary,
-            fontWeight: FontWeight.w400,
+            fontSize: 14,
+            height: 1.7,
           ),
-          textAlign: TextAlign.left,
+          textAlign: TextAlign.justify,
         ),
       ],
     );
@@ -439,15 +439,15 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                 ],
               ),
               SizedBox(height: 10 * scale),
-              // 첫 문장 크게
+              // 첫 문장 (명조체 + 양쪽정렬)
               Text(
                 firstSentence,
-                style: TextStyle(
-                  fontSize: (17 * scale).clamp(15.0, 22.0),
-                  fontWeight: FontWeight.w600,
+                style: AppFonts.fortuneBody(
                   color: theme.textPrimary,
-                  height: 1.5,
+                  fontSize: (14 * scale).clamp(13.0, 16.0),
+                  height: 1.6,
                 ),
+                textAlign: TextAlign.justify,
               ),
               SizedBox(height: 8 * scale),
               // 탭 유도
@@ -544,7 +544,11 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             item.value,
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: color),
+            style: AppFonts.fortuneBody(
+              color: color,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -615,12 +619,14 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             text,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.6,
+            style: AppFonts.fortuneBody(
               color: textColor,
+              fontSize: 14,
+              height: 1.7,
+            ).copyWith(
               fontStyle: italic ? FontStyle.italic : FontStyle.normal,
             ),
+            textAlign: TextAlign.justify,
           ),
         ],
       ),

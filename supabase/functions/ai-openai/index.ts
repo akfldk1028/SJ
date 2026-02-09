@@ -4,10 +4,14 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
- * v49 변경사항 (2026-02-08):
- * - fortune 태스크(monthly_fortune 등) completed 재사용 로직 제거
- *   프롬프트 버전 업데이트 시 Edge Function이 옛 결과를 재사용하는 버그 수정
- *   fortune 캐시는 Flutter ai_summaries에서 관리하므로 Edge Function 재사용 불필요
+ * v50 변경사항 (2026-02-09):
+ * - v44(locale) + v48(stuck 정리) + v49(fortune 스킵) 통합 머지
+ * - locale 파라미터 추가 (default: 'ko') - 다국어 지원
+ * - 중복 task 감지에 locale 필터 추가 (같은 task_type이라도 locale 다르면 별개)
+ * - ai_tasks INSERT에 locale 포함
+ * - QUOTA_EXCEEDED 메시지 locale별 분기 (ko/ja/en)
+ * - v48: 10분 초과 stuck task 자동 failed 처리
+ * - v49: fortune task completed 재사용 스킵 (프롬프트 버전 변경 대응)
  *
  * v40 변경사항 (2026-02-01):
  * - checkQuota: rewarded_tokens_earned 포함 (광고 보상 토큰 반영)
@@ -116,6 +120,7 @@ interface OpenAIRequest {
   run_in_background?: boolean;
   task_type?: string;
   reasoning_effort?: string;  // "low" | "medium" | "high" (default: "medium")
+  locale?: string;  // "ko" | "ja" | "en" (default: "ko") - v50: 다국어 지원
 }
 
 interface UsageInfo {
@@ -191,7 +196,7 @@ async function recordTokenUsage(
   const today = getTodayKST();
   const totalTokens = promptTokens + completionTokens;
   const tokenColumn = getTokenColumnForTaskType(taskType);
-  console.log(`[ai-openai v39] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
+  console.log(`[ai-openai v50] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
   try {
     const { data: existing } = await supabase
       .from("user_daily_token_usage")
@@ -218,7 +223,7 @@ async function recordTokenUsage(
       await supabase.from("user_daily_token_usage").insert(insertData);
     }
   } catch (error) {
-    console.error("[ai-openai v39] Failed to record token usage:", error);
+    console.error("[ai-openai v50] Failed to record token usage:", error);
   }
 }
 
@@ -271,7 +276,7 @@ async function processInBackground(
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
   try {
     await supabase.from("ai_tasks").update({ status: "processing", started_at: new Date().toISOString() }).eq("id", taskId);
-    console.log(`[ai-openai v43] Background task ${taskId}: Starting OpenAI call (reasoning_effort: ${reasoningEffort})`);
+    console.log(`[ai-openai v50] Background task ${taskId}: Starting OpenAI call (reasoning_effort: ${reasoningEffort})`);
     const startTime = Date.now();
     const requestBody: Record<string, unknown> = {
       model, messages, max_completion_tokens: maxTokens,
@@ -343,9 +348,10 @@ Deno.serve(async (req) => {
       run_in_background = true,
       task_type = "saju_analysis",
       reasoning_effort = "medium",
+      locale = "ko",
     } = requestData;
 
-    console.log(`[ai-openai v43] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, reasoning_effort=${reasoning_effort}, user_id=${user_id}`);
+    console.log(`[ai-openai v50] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, reasoning_effort=${reasoning_effort}, locale=${locale}, user_id=${user_id}`);
 
     if (!messages || messages.length === 0) throw new Error("messages is required");
 
@@ -353,7 +359,7 @@ Deno.serve(async (req) => {
     let isAdmin = false;
     if (user_id) {
       isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-openai v39] User ${user_id} isAdmin: ${isAdmin}`);
+      console.log(`[ai-openai v50] User ${user_id} isAdmin: ${isAdmin}`);
 
       // v39: 운세 분석은 쿼터 면제 (핵심 콘텐츠, 1회성 캐시)
       // 채팅만 쿼터 제한 적용
@@ -362,12 +368,17 @@ Deno.serve(async (req) => {
       if (!isAdmin && !isQuotaExempt) {
         const quota = await checkQuota(supabase, user_id, isAdmin);
         if (!quota.allowed) {
-          console.log(`[ai-openai v39] Quota exceeded for user ${user_id} (task_type: ${task_type})`);
+          console.log(`[ai-openai v50] Quota exceeded for user ${user_id} (task_type: ${task_type}, locale: ${locale})`);
+          const quotaMessages: Record<string, string> = {
+            ko: "오늘 사용 가능한 토큰을 모두 사용했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.",
+            ja: "本日のトークンをすべて使用しました。広告を視聴すると追加トークンを獲得できます。",
+            en: "You've used all available tokens for today. Watch an ad to earn additional tokens.",
+          };
           return new Response(
             JSON.stringify({
               success: false,
               error: "QUOTA_EXCEEDED",
-              message: "오늘 사용 가능한 토큰을 모두 사용했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.",
+              message: quotaMessages[locale] || quotaMessages.ko,
               tokens_used: DAILY_QUOTA - quota.remaining,
               quota_limit: quota.quotaLimit,
               ads_required: true,
@@ -376,31 +387,32 @@ Deno.serve(async (req) => {
           );
         }
       } else if (isQuotaExempt) {
-        console.log(`[ai-openai v39] Quota check SKIPPED for ${task_type} (fortune exempt)`);
+        console.log(`[ai-openai v50] Quota check SKIPPED for ${task_type} (fortune exempt)`);
       }
     }
 
     // === Background 모드 ===
     if (run_in_background) {
-      console.log(`[ai-openai v39] *** RESPONSES API BACKGROUND MODE ***`);
+      console.log(`[ai-openai v50] *** RESPONSES API BACKGROUND MODE ***`);
 
       if (user_id) {
-        // v39: 중복 방지 강화 - 진행 중 OR 오늘 완료된 task 재사용
-        // 1단계: 진행 중인 task 체크 (v48: 10분 이내만 재사용, 오래된 건 failed 처리)
+        // v50: 중복 방지 (v44 locale + v48 stuck 정리 + v49 fortune 스킵 통합)
+        // 1단계: 진행 중인 task 체크 (v48: 10분 이내 + v44: locale 필터)
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const { data: inProgressTask } = await supabase
           .from("ai_tasks")
           .select("id, status, openai_response_id, created_at")
           .eq("user_id", user_id)
           .eq("task_type", task_type)
+          .eq("locale", locale)
           .in("status", ["pending", "processing", "queued", "in_progress"])
-          .gte("created_at", tenMinutesAgo)  // v48: 10분 이내만!
+          .gte("created_at", tenMinutesAgo)
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
         if (inProgressTask) {
-          console.log(`[ai-openai v48] Found recent in-progress ${task_type} task ${inProgressTask.id} (${inProgressTask.status})`);
+          console.log(`[ai-openai v50] Found recent in-progress ${task_type} task ${inProgressTask.id} (${inProgressTask.status}, locale: ${locale})`);
           return new Response(
             JSON.stringify({
               success: true,
@@ -414,33 +426,29 @@ Deno.serve(async (req) => {
           );
         }
 
-        // v48: 10분 초과된 stuck in_progress tasks → failed 자동 정리
+        // v48: 10분 초과 stuck tasks 자동 정리 (v50: locale 필터 추가)
         const { data: stuckTasks } = await supabase
           .from("ai_tasks")
           .select("id")
           .eq("user_id", user_id)
           .eq("task_type", task_type)
+          .eq("locale", locale)
           .in("status", ["pending", "processing", "queued", "in_progress"])
           .lt("created_at", tenMinutesAgo);
 
         if (stuckTasks && stuckTasks.length > 0) {
           const stuckIds = stuckTasks.map((t: any) => t.id);
-          console.log(`[ai-openai v48] Auto-cleanup ${stuckIds.length} stuck ${task_type} tasks: ${stuckIds.join(", ")}`);
+          console.log(`[ai-openai v50] Auto-cleanup ${stuckIds.length} stuck ${task_type} tasks: ${stuckIds.join(", ")}`);
           await supabase
             .from("ai_tasks")
-            .update({ status: "failed", error_message: "Auto-cleanup: stuck > 10min (v48)" })
+            .update({ status: "failed", error_message: "Auto-cleanup: stuck > 10min (v50)" })
             .in("id", stuckIds);
         }
 
-        // 2단계: 오늘 완료된 task 체크 (v39 신규)
-        // 앱이 결과 저장 실패해서 반복 호출해도 기존 completed 결과 재사용
-        // → 토큰 중복 차감 완전 방지
-        //
-        // v49: fortune 태스크는 completed 재사용 스킵!
-        // 이유: 프롬프트 버전 업데이트(V5.5→V5.6) 시 Edge Function이
-        //       옛 결과를 재사용하여 새 프롬프트가 실행되지 않는 버그.
-        //       fortune 캐시는 Flutter ai_summaries에서 prompt_version으로 관리하므로
-        //       Edge Function 레벨 재사용은 불필요.
+        // 2단계: 오늘 완료된 task 재사용 (v49: fortune 제외 + v44: locale 필터)
+        // fortune 태스크는 completed 재사용 스킵!
+        // 이유: 프롬프트 버전 업데이트 시 옛 결과 재사용 버그 방지
+        // fortune 캐시는 Flutter ai_summaries에서 prompt_version으로 관리
         const isFortuneTask = QUOTA_EXEMPT_TASK_TYPES.has(task_type);
         if (!isFortuneTask) {
           const today = getTodayKST();
@@ -449,6 +457,7 @@ Deno.serve(async (req) => {
             .select("id, status, openai_response_id, result_data, completed_at")
             .eq("user_id", user_id)
             .eq("task_type", task_type)
+            .eq("locale", locale)
             .eq("status", "completed")
             .gte("completed_at", `${today}T00:00:00Z`)
             .order("completed_at", { ascending: false })
@@ -456,7 +465,7 @@ Deno.serve(async (req) => {
             .single();
 
           if (completedTask) {
-            console.log(`[ai-openai v49] Found today's completed ${task_type} task ${completedTask.id} → reusing (no new tokens)`);
+            console.log(`[ai-openai v50] Found today's completed ${task_type} task ${completedTask.id} → reusing (locale: ${locale})`);
             return new Response(
               JSON.stringify({
                 success: true,
@@ -470,7 +479,7 @@ Deno.serve(async (req) => {
             );
           }
         } else {
-          console.log(`[ai-openai v49] Fortune task ${task_type} → skip completed reuse (prompt version may have changed)`);
+          console.log(`[ai-openai v50] Fortune task ${task_type} → skip completed reuse (prompt version may have changed)`);
         }
       }
 
@@ -485,7 +494,7 @@ Deno.serve(async (req) => {
         ? `[System Instructions]\n${systemContent}\n\n[User Request]\n${userContent}`
         : userContent;
 
-      console.log(`[ai-openai v39] Calling OpenAI Responses API...`);
+      console.log(`[ai-openai v50] Calling OpenAI Responses API...`);
 
       const responsesApiBody: Record<string, unknown> = {
         model, input: inputText, background: true, store: true, max_output_tokens: max_tokens,
@@ -500,37 +509,38 @@ Deno.serve(async (req) => {
       for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
         const currentKey = getApiKeyByIndex(selectedKeyIndex + attempt);
         const actualKeyIdx = (selectedKeyIndex + attempt) % API_KEYS.length;
-        console.log(`[ai-openai v39] Using API key ${actualKeyIdx + 1}/${API_KEYS.length} (task: ${task_type})`);
+        console.log(`[ai-openai v50] Using API key ${actualKeyIdx + 1}/${API_KEYS.length} (task: ${task_type})`);
         openaiResponse = await fetch(OPENAI_RESPONSES_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentKey}` },
           body: JSON.stringify(responsesApiBody),
         });
-        if (openaiResponse.status === 429) { console.warn(`[ai-openai v39] Key ${actualKeyIdx + 1} rate limited (429), trying next key...`); continue; }
+        if (openaiResponse.status === 429) { console.warn(`[ai-openai v50] Key ${actualKeyIdx + 1} rate limited (429), trying next key...`); continue; }
         break;
       }
       if (!openaiResponse) throw new Error("All API keys exhausted (rate limited)");
 
       const responseData = await openaiResponse.json();
-      console.log(`[ai-openai v39] OpenAI response status: ${openaiResponse.status}`);
+      console.log(`[ai-openai v50] OpenAI response status: ${openaiResponse.status}`);
 
       if (!openaiResponse.ok) {
-        console.error("[ai-openai v39] OpenAI Responses API Error:", responseData);
+        console.error("[ai-openai v50] OpenAI Responses API Error:", responseData);
         throw new Error(responseData.error?.message || "OpenAI Responses API error");
       }
 
       const openaiResponseId = responseData.id;
       const openaiStatus = responseData.status;
-      console.log(`[ai-openai v39] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
+      console.log(`[ai-openai v50] Got OpenAI response_id: ${openaiResponseId}, status: ${openaiStatus}`);
 
       const { data: task, error: insertError } = await supabase
         .from("ai_tasks")
         .insert({
           user_id: user_id || null,
           task_type: task_type,
+          locale: locale,
           status: openaiStatus,
           openai_response_id: openaiResponseId,
-          request_data: { messages, model, max_tokens, response_format, task_type, reasoning_effort, key_index: selectedKeyIndex },
+          request_data: { messages, model, max_tokens, response_format, task_type, reasoning_effort, locale, key_index: selectedKeyIndex },
           model,
           phase: 1,
           total_phases: 4,
@@ -541,11 +551,11 @@ Deno.serve(async (req) => {
         .single();
 
       if (insertError || !task) {
-        console.error("[ai-openai v39] Failed to create task:", insertError);
+        console.error("[ai-openai v50] Failed to create task:", insertError);
         throw new Error("Failed to create task record");
       }
 
-      console.log(`[ai-openai v39] Created ${task_type} task ${task.id} with openai_response_id ${openaiResponseId}`);
+      console.log(`[ai-openai v50] Created ${task_type} task ${task.id} with openai_response_id ${openaiResponseId}`);
 
       return new Response(
         JSON.stringify({
@@ -562,7 +572,7 @@ Deno.serve(async (req) => {
     }
 
     // === Sync 모드 ===
-    console.log(`[ai-openai v43] *** SYNC MODE *** (reasoning_effort: ${reasoning_effort})`);
+    console.log(`[ai-openai v50] *** SYNC MODE *** (reasoning_effort: ${reasoning_effort})`);
     const requestBody: Record<string, unknown> = {
       model, messages, max_completion_tokens: max_tokens,
       reasoning_effort: reasoning_effort, stream: true, stream_options: { include_usage: true },
@@ -575,13 +585,13 @@ Deno.serve(async (req) => {
     for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
       const currentKey = getApiKeyByIndex(syncKeyStart + attempt);
       const actualKeyIdx = (syncKeyStart + attempt) % API_KEYS.length;
-      console.log(`[ai-openai v39] Sync: Using API key ${actualKeyIdx + 1}/${API_KEYS.length} (task: ${task_type})`);
+      console.log(`[ai-openai v50] Sync: Using API key ${actualKeyIdx + 1}/${API_KEYS.length} (task: ${task_type})`);
       response = await fetch(OPENAI_CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentKey}` },
         body: JSON.stringify(requestBody),
       });
-      if (response.status === 429) { console.warn(`[ai-openai v39] Key ${actualKeyIdx + 1} rate limited, trying next...`); continue; }
+      if (response.status === 429) { console.warn(`[ai-openai v50] Key ${actualKeyIdx + 1} rate limited, trying next...`); continue; }
       break;
     }
     if (!response) throw new Error("All API keys exhausted (rate limited)");
@@ -620,7 +630,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("[ai-openai v39] Error:", error);
+    console.error("[ai-openai v50] Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

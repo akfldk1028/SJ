@@ -370,7 +370,7 @@ class MonthlyFortune extends _$MonthlyFortune {
       _analyzeStartTime = null;
     }
 
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     // v8.0 Safety: FortuneCoordinator stuck flag 리셋

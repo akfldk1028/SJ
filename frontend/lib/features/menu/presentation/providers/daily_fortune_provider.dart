@@ -564,7 +564,7 @@ class DailyFortune extends _$DailyFortune {
 
       // DB에서 직접 daily fortune 확인
       final result = await aiQueries.getDailyFortune(profileId, today);
-      if (result.isSuccess && result.data != null && result.data!.content != null) {
+      if (result.isSuccess && result.data != null && result.data!.content.isNotEmpty) {
         print('[DailyFortune] ✅ Daily Fortune DB 데이터 감지 ($attempts회) - UI 갱신');
         _pollingForCompletion.remove(profileId);
         ref.invalidateSelf();
