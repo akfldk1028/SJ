@@ -2,6 +2,7 @@
 
 > `business_analysis.md` (2/1) 이후 실제 DB 데이터 + Edge Function 코드 + 공식 가격 문서 기반 정밀 감사
 > **v5 수정**: Rewarded Video 완전 제거 반영, Native CPC 전용 구조 확정, depletedRewardTokensNative 12,000 반영, BEP 재계산
+> **v5.1 수정 (2026-02-04)**: v43 reasoning_effort "low" 반영, v44 모델 배치 최적성 검증 결과 반영, 코드↔문서 불일치 수정 (15,000/10,000), 비용 최적화 완료 선언
 
 ---
 
@@ -9,11 +10,13 @@
 
 | 항목 | 결론 |
 |------|------|
-| 모델 라우팅 합리적? | **Yes** — GPT-5.2(분석) + GPT-5-mini(파생) + Gemini Flash(채팅) 3단 구조 최적 |
+| 모델 라우팅 합리적? | **Yes** — GPT-5.2(분석) + GPT-5-mini(파생) + Gemini Flash(채팅) 3단 구조 **이미 최적 (v44.1 검증)** |
+| 모델 변경 필요? | **No** — 빈도 낮은 것=비싼 모델 OK, 빈도 높은 것=이미 최저가. 변경 ROI 없음 |
 | 채팅 수익 구조? | **Native CPC 전용** — CPC $0.05~0.30/click, Rewarded 제거 (단가 열위) |
-| 가장 큰 비용? | **GPT-5.2 saju_base** (호출당 $0.197, 1회성) — 전체 AI 비용의 48.6% |
-| 복리 수익 가능? | **Yes** — Native click 1회/일 시 BEP 14일 (보수적), 5일 (CPC $0.15) |
+| 가장 큰 비용? | **GPT-5.2 saju_base** (호출당 $0.183, 1회성) — 전체 AI 비용의 48.6% |
+| 복리 수익 가능? | **Yes** — Native click 1회/일 시 BEP **4.6일** (보수적), 2.4일 (CPC $0.10) |
 | Rewarded 제거 이유? | eCPM $0.020/회 − AI비용 $0.025 = **적자**. Native CPC $0.050 − AI $0.015 = **흑자** |
+| 비용 최적화 상태? | **완료** — 수익/성장 단계로 전환 권장 |
 
 ---
 
@@ -397,10 +400,11 @@ Context Caching 적용 전/후:
 
 ### 7.1 설정
 
-| 항목 | 값 |
-|------|-----|
-| reasoning_effort | `"medium"` |
-| API 엔드포인트 | `/v1/responses` (Responses API) |
+| 항목 | 값 | 비고 |
+|------|-----|------|
+| reasoning_effort (saju_base) | `"low"` → `"medium"` 폴백 | v43에서 low로 변경, 효과 7% |
+| reasoning_effort (기타) | `"medium"` (기본) | 변경 없음 |
+| API 엔드포인트 | `/v1/responses` (Responses API) | |
 
 ### 7.2 실측 (ai_summaries에서 10건 샘플)
 
@@ -503,7 +507,7 @@ fallback: 스트림 완료 후 토큰 0이면:
 
 ## 11. 최종 판단 — v5
 
-### 현재 코드 설정값 (v30, 2026-02-03 확인)
+### 현재 코드 설정값 (v44, 2026-02-04 확인)
 
 | 설정 | 값 | 파일 |
 |------|-----|------|
@@ -511,11 +515,12 @@ fallback: 스트림 완료 후 토큰 0이면:
 | inlineAdMessageInterval | 4 | ad_strategy.dart:63 |
 | inlineAdMinMessages | 4 | ad_strategy.dart:69 |
 | depletedRewardTokensVideo | **0 (제거됨)** | ad_strategy.dart:95 |
-| depletedRewardTokensNative | **12,000** | ad_strategy.dart:100 |
-| intervalClickRewardTokens | 7,000 | ad_strategy.dart:103 |
+| depletedRewardTokensNative | **15,000** | ad_strategy.dart:100 |
+| intervalClickRewardTokens | **10,000** | ad_strategy.dart:103 |
 | interstitialMessageInterval | 5 | ad_strategy.dart:74 |
+| reasoning_effort (saju_base) | **low → medium 폴백** | saju_analysis_service.dart (v43) |
 
-### 현재 상태 요약 (v30 구현 후, 2026-02-03)
+### 현재 상태 요약 (v44 업데이트, 2026-02-04)
 
 ```
 구현 완료:
@@ -526,21 +531,35 @@ fallback: 스트림 완료 후 토큰 0이면:
   ✅ session_id 프론트→Edge 전달 체인
   ✅ Rewarded Video 제거 — 적자 구조 차단
   ✅ Native CPC 전용 구조 확정 — 흑자 구조
+  ✅ reasoning_effort "low" (v43) — saju_base 비용 7% 절감
+  ✅ 소진 토큰 15,000 / 인라인 토큰 10,000으로 상향
+
+검토 완료 (변경 불필요):
+  ✅ 모델 배치 최적성 검증 (v44.1) — 현재 3단 구조가 이미 최적
+     - 빈도 낮은 것(saju_base/yearly/monthly): 비싼 모델 OK (1회성)
+     - 빈도 높은 것(daily/chat): 이미 최저가 Gemini
+     - 모델 변경 ROI 없음 (GPT-5-mini가 Gemini 3.0 Flash보다 싸서 이관 시 오히려 비용 증가)
+  ✅ reasoning_effort "low" — 효과 미미(7%)하지만 리스크 없으므로 유지
 
 미구현:
   ⬜ saju_base Phase 분리 (4→2+2)
   ⬜ Native CTA 최적화 (인라인 광고)
   ⬜ AdMob 실측 CPC 추적
 
-현재 경제성 (Rewarded 제거 후, Native CPC only):
+현재 경제성 (v44, Native CPC only):
   1. 핵심 수익원: Native CPC ($0.05~0.30/click)
-  2. 소진 배너: [바로 대화 계속하기] → 12,000 토큰, 순이익 +$0.035
-  3. 인라인 클릭: 7,000 토큰, 순이익 +$0.041
-  4. Context Caching 적용됨 → blended cost $0.80 → ~$0.55/1M
-  5. Lazy saju_base → 비사용 유저 $0.197 절약
-  6. 일일 순수익: +$0.032/유저 (소진 Native click 1회, 보수적)
-  7. saju_base BEP: ~7일 (보수적 CPC $0.05)
+  2. 소진 배너: [바로 대화 계속하기] → 15,000 토큰, 순이익 +$0.042
+  3. 인라인 클릭: 10,000 토큰, 순이익 +$0.044
+  4. Context Caching → blended cost ~$0.55/1M
+  5. Lazy saju_base → 비사용 유저 $0 손실
+  6. reasoning_effort "low" → saju_base $0.183 (7% 절감, 효과 미미)
+  7. 모델 배치 이미 최적 (v44.1) → 모델 변경 불필요, 비용 최적화 완료
+  8. 일일 순수익: +$0.055/유저 (소진 Native click 1회, CPC $0.05)
+  9. saju_base BEP: ~4.6일 (보수적)
+  10. → 비용 최적화 완료 단계, 수익/성장에 집중 전환
 ```
+
+> **상세 분석**: `docs/v44_bep_final_analysis.md` 참조
 
 ### 남은 행동 계획
 
@@ -587,7 +606,7 @@ Phase 분리까지 구현 시 (향후):
 | blended cost | $2.00/1M | $0.80/1M | 동일 | 동일 | 동일 |
 | Native click 수익 | $0.005 | $0.005 | $0.005 | **$0.05~0.30** | 동일 |
 | Rewarded Video | 포함 | 포함 | 포함 | 포함 | **제거 (적자)** |
-| 소진 Native 토큰 | 7,000 | 7,000 | 7,000 | 7,000 | **12,000** |
+| 소진 Native 토큰 | 7,000 | 7,000 | 7,000 | 7,000 | **15,000** (v44 확인) |
 | 기본 20K 손익 | -$0.032 | -$0.008 | -$0.012 | -$0.002 | **-$0.015** |
 | 소진 Native 순이익 | -$0.006 | ~±$0 | ~±$0 | +$0.044 | **+$0.035** |
 | saju_base BEP | 불가능 | 3.2일 | 44일 | 3.9일 | **~7일 (보수적)** |

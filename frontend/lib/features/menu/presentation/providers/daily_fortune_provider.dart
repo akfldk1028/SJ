@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/data/query_result.dart';
 import '../../../../AI/data/queries.dart';
 import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/fortune/common/korea_date_utils.dart';
@@ -21,11 +22,11 @@ int _safeInt(dynamic value, [int fallback = 0]) {
 class DailyFortuneData {
   final int overallScore;
   final String overallMessage;
-  final String overallMessageShort;  // 짧은 버전 (오늘의 한마디)
+  final String overallMessageShort;
   final String date;
   final Map<String, CategoryScore> categories;
   final LuckyInfo lucky;
-  final IdiomInfo idiom;  // 오늘의 사자성어
+  final IdiomInfo idiom;
   final String caution;
   final String affirmation;
 
@@ -43,7 +44,6 @@ class DailyFortuneData {
 
   /// AI 응답 JSON에서 파싱
   factory DailyFortuneData.fromJson(Map<String, dynamic> json) {
-    // categories 파싱
     final categoriesJson = json['categories'] as Map<String, dynamic>? ?? {};
     final categories = <String, CategoryScore>{};
 
@@ -57,7 +57,6 @@ class DailyFortuneData {
       }
     });
 
-    // lucky 파싱
     final luckyJson = json['lucky'] as Map<String, dynamic>? ?? {};
     final lucky = LuckyInfo(
       time: luckyJson['time'] as String? ?? '',
@@ -66,7 +65,6 @@ class DailyFortuneData {
       direction: luckyJson['direction'] as String? ?? '',
     );
 
-    // idiom 파싱 (오늘의 사자성어)
     final idiomJson = json['idiom'] as Map<String, dynamic>? ?? {};
     final idiom = IdiomInfo(
       chinese: idiomJson['chinese'] as String? ?? '',
@@ -88,17 +86,14 @@ class DailyFortuneData {
     );
   }
 
-  /// 카테고리 점수 가져오기
   int getCategoryScore(String category) {
     return categories[category]?.score ?? 0;
   }
 
-  /// 카테고리 메시지 가져오기
   String getCategoryMessage(String category) {
     return categories[category]?.message ?? '';
   }
 
-  /// 카테고리 팁 가져오기
   String getCategoryTip(String category) {
     return categories[category]?.tip ?? '';
   }
@@ -134,10 +129,10 @@ class LuckyInfo {
 
 /// 오늘의 사자성어 정보
 class IdiomInfo {
-  final String chinese;   // 한자 (예: 磨斧爲針)
-  final String korean;    // 한글 (예: 마부위침)
-  final String meaning;   // 뜻풀이 (예: 도끼를 갈아 바늘을 만든다)
-  final String message;   // 오늘에 맞는 메시지 (2-3문장)
+  final String chinese;
+  final String korean;
+  final String meaning;
+  final String message;
 
   const IdiomInfo({
     required this.chinese,
@@ -146,7 +141,6 @@ class IdiomInfo {
     required this.message,
   });
 
-  /// 빈 사자성어 정보
   static const empty = IdiomInfo(
     chinese: '',
     korean: '',
@@ -154,183 +148,108 @@ class IdiomInfo {
     message: '',
   );
 
-  /// 유효한지 확인
   bool get isValid => korean.isNotEmpty && chinese.isNotEmpty;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Provider
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /// 오늘의 운세 Provider
 ///
-/// activeProfile의 오늘 운세를 DB에서 조회
-/// 캐시가 없으면 AI 분석을 자동 트리거
+/// 로직:
+///   1. 활성 프로필로 DB 조회
+///   2. 캐시 히트 → 반환
+///   3. 캐시 미스 → AI 분석 트리거 (fire-and-forget) → 완료 시 자동 갱신
+///
+/// 갱신 시점:
+///   - 프로필 변경 → profile_provider가 ref.invalidate(dailyFortuneProvider)
+///   - 날짜 변경 → app.dart가 ref.invalidate(dailyFortuneProvider)
+///   - 수동 → 사용자 탭 → refresh()
+///
+/// 중복 분석 방지: FortuneCoordinator가 전담 (_analyzingProfiles, _analyzingDaily)
 @riverpod
 class DailyFortune extends _$DailyFortune {
-  /// 분석 진행 중 플래그 (중복 호출 방지)
-  static bool _isAnalyzing = false;
-
   @override
   Future<DailyFortuneData?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
-    if (activeProfile == null) return null;
+    ref.keepAlive();
 
-    // 🔧 한국 시간 기준으로 조회해야 캐시 히트됨 (저장도 한국 시간 기준)
+    // 1. 프로필 (ref.read: profile 변경 시 profile_provider가 invalidate해줌)
+    final profile = await ref.read(activeProfileProvider.future);
+    if (profile == null) return null;
+
+    // 2. DB 조회 (한국 시간 기준)
     final today = KoreaDateUtils.today;
-    final result = await aiQueries.getDailyFortune(activeProfile.id, today);
+    final result = await aiQueries.getDailyFortune(profile.id, today);
 
-    // 캐시가 있으면 바로 반환 + 플래그 리셋
-    if (result.isSuccess && result.data != null) {
-      final aiSummary = result.data!;
-      final content = aiSummary.content;
-      if (content != null) {
-        // 캐시 히트 시 _isAnalyzing 플래그 리셋 (다른 provider가 분석 완료했을 수 있음)
-        _isAnalyzing = false;
-
-        final fortune = DailyFortuneData.fromJson(content as Map<String, dynamic>);
-        print('[DailyFortune] idiom 파싱 결과: korean="${fortune.idiom.korean}", chinese="${fortune.idiom.chinese}", isValid=${fortune.idiom.isValid}');
-
-        // idiom이 없는 오래된 캐시인 경우 재분석 필요
-        if (!fortune.idiom.isValid) {
-          print('[DailyFortune] 캐시 히트 but idiom 없음 - 재분석 필요');
-          await _triggerAnalysisIfNeeded(activeProfile.id);
-          // 일단 기존 데이터 반환 (idiom만 빠진 상태)
-          return fortune;
-        }
-
-        print('[DailyFortune] 캐시 히트 - 오늘의 운세 로드');
-        return fortune;
-      }
+    // 3. 캐시 히트 → 반환
+    if ((result.isSuccess || result.isOffline) &&
+        result.data != null &&
+        result.data!.content.isNotEmpty) {
+      return DailyFortuneData.fromJson(result.data!.content);
     }
 
-    // 캐시가 없으면 AI 분석 트리거
-    print('[DailyFortune] 캐시 없음 - AI 분석 시작');
-    await _triggerAnalysisIfNeeded(activeProfile.id);
-
-    // 분석 완료 후 다시 조회 (null 반환하면 UI에서 "분석 중" 표시)
+    // 4. 캐시 미스 → 분석 트리거
+    _triggerAnalysis(profile.id);
     return null;
   }
 
-  /// AI 분석 트리거 (중복 호출 방지)
+  /// AI 분석 트리거 (fire-and-forget)
   ///
-  /// v7.2: analyzeDailyOnly → analyzeFortuneOnly로 변경
-  /// 홈 화면에서 일운 캐시 미스 시 전체 운세(daily + monthly + yearly)를 함께 분석.
-  /// 각 서비스는 내부적으로 캐시를 체크하므로 이미 캐시된 운세는 API 호출 없이 스킵.
-  /// → 기존 사용자가 앱 재진입 시 프롬프트 버전 변경된 운세도 자동 재생성!
-  Future<void> _triggerAnalysisIfNeeded(String profileId) async {
-    if (_isAnalyzing) {
-      print('[DailyFortune] 이미 분석 중 - 스킵');
-      return;
-    }
-
-    // v6.1 전역 중복 체크 (FortuneCoordinator에서 이미 분석 중인지)
-    if (FortuneCoordinator.isAnalyzing(profileId)) {
-      print('[DailyFortune] ⏭️ FortuneCoordinator에서 이미 분석 중 - 완료 대기');
-      // FortuneCoordinator가 완료될 때까지 폴링하여 UI 갱신
-      _waitForCoordinatorCompletion(profileId);
-      return;
-    }
+  /// FortuneCoordinator가 중복 분석 방지 담당:
+  /// - _analyzingProfiles: analyzeFortuneOnly() 실행 중 (profile_provider)
+  /// - _analyzingDaily: analyzeDailyOnly() 실행 중
+  void _triggerAnalysis(String profileId) {
+    // profile_provider에서 이미 분석 중이면 스킵
+    // → 완료 시 profile_provider가 ref.invalidate(dailyFortuneProvider) 호출
+    if (FortuneCoordinator.isAnalyzing(profileId)) return;
 
     final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      print('[DailyFortune] 사용자 없음 - 분석 스킵');
-      return;
-    }
+    if (user == null) return;
 
-    _isAnalyzing = true;
-    print('[DailyFortune] 🚀 v7.2 전체 Fortune 분석 시작 (daily + monthly + yearly)');
-
-    // v7.2: 전체 Fortune 분석 (각 서비스가 내부 캐시 체크)
-    // - 캐시 히트 시 즉시 반환 (API 호출 없음)
-    // - 프롬프트 버전 변경 시 자동 재생성
-    fortuneCoordinator.analyzeFortuneOnly(
+    fortuneCoordinator.analyzeDailyOnly(
       userId: user.id,
       profileId: profileId,
     ).then((result) {
-      print('[DailyFortune] 📌 전체 Fortune 분석 완료:');
-      print('  - daily: ${result.daily != null ? "성공" : "실패"}');
-      print('  - monthly: ${result.monthly != null ? "성공" : "실패"}');
-      print('  - yearly2025: ${result.yearly2025 != null ? "성공" : "실패"}');
-      print('  - yearly2026: ${result.yearly2026 != null ? "성공" : "실패"}');
-      _isAnalyzing = false;
-
-      // Provider 무효화하여 UI 갱신
-      ref.invalidateSelf();
-    }).catchError((e) {
-      print('[DailyFortune] ❌ Fortune 분석 오류: $e');
-      _isAnalyzing = false;
-      ref.invalidateSelf();
-    });
-  }
-
-  /// Daily Fortune DB 데이터가 생길 때까지 폴링 후 provider 갱신
-  /// FortuneCoordinator 전체 완료를 기다리지 않고, daily만 완료되면 즉시 UI 갱신
-  void _waitForCoordinatorCompletion(String profileId) {
-    final today = KoreaDateUtils.today;
-    int attempts = 0;
-    const maxAttempts = 60; // 3초 × 60 = 3분
-
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 3));
-      attempts++;
-
-      // DB에서 직접 daily fortune 확인
-      final result = await aiQueries.getDailyFortune(profileId, today);
-      if (result.isSuccess && result.data != null && result.data!.content != null) {
-        print('[DailyFortune] ✅ Daily Fortune DB 데이터 감지 ($attempts회) - UI 갱신');
+      if (result.success) {
         ref.invalidateSelf();
-        return false; // stop polling
       }
-
-      if (attempts >= maxAttempts) {
-        print('[DailyFortune] ⚠️ 폴링 타임아웃 ($maxAttempts회)');
-        return false; // stop polling
-      }
-      return true; // continue polling
+    }).catchError((e) {
+      print('[DailyFortune] 분석 오류: $e');
     });
   }
 
-  /// 운세 새로고침 (캐시 무효화)
+  /// 수동 새로고침 (탭하면 재시도)
   Future<void> refresh() async {
-    _isAnalyzing = false; // 수동 새로고침 시 플래그 리셋
     ref.invalidateSelf();
+  }
+
+  /// 프로필 변경 시 호출 (profile_provider 호환)
+  /// FortuneCoordinator.resetAnalyzingFlagForProfile()이 실제 리셋 처리
+  static void resetAnalyzedFlagForProfile(String profileId) {
+    // 별도 static 상태 없으므로 no-op
   }
 }
 
-/// 특정 날짜의 운세 Provider
+/// 특정 날짜의 운세 Provider (캘린더용)
 @riverpod
 Future<DailyFortuneData?> dailyFortuneForDate(Ref ref, DateTime date) async {
-  final activeProfile = await ref.watch(activeProfileProvider.future);
+  final activeProfile = await ref.read(activeProfileProvider.future);
   if (activeProfile == null) return null;
 
   final result = await aiQueries.getDailyFortune(activeProfile.id, date);
+  if (result.isFailure || result.data == null) return null;
 
-  if (result.isFailure || result.data == null) {
-    return null;
-  }
+  final content = result.data!.content;
+  if (content.isEmpty) return null;
 
-  final aiSummary = result.data!;
-  final content = aiSummary.content;
-
-  if (content == null) return null;
-
-  return DailyFortuneData.fromJson(content as Map<String, dynamic>);
+  return DailyFortuneData.fromJson(content);
 }
 
 /// 프로필의 일운이 있는 날짜 목록 Provider (캘린더 마커용)
-///
-/// ## 용도
-/// 캘린더에서 운세가 저장된 날에 마커(점)를 표시하기 위해
-/// 해당 프로필의 모든 daily_fortune 날짜를 조회합니다.
-///
-/// ## 사용 예시
-/// ```dart
-/// final datesAsync = ref.watch(dailyFortuneDatesProvider);
-/// datesAsync.when(
-///   data: (dates) => dates.contains(day) ? ['fortune'] : [],
-///   ...
-/// );
-/// ```
 @riverpod
 Future<List<DateTime>> dailyFortuneDates(Ref ref) async {
-  final activeProfile = await ref.watch(activeProfileProvider.future);
+  final activeProfile = await ref.read(activeProfileProvider.future);
   if (activeProfile == null) return [];
 
   final result = await aiQueries.getDailyFortuneDates(activeProfile.id);

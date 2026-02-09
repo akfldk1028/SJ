@@ -158,7 +158,7 @@ class PillarDisplay extends StatelessWidget {
       case '토':
         return theme.earthColor ?? const Color(0xFFD4A574);
       case '금':
-        return theme.metalColor ?? const Color(0xFFE8E8E8);
+        return theme.metalColor ?? const Color(0xFF708090);  // 슬레이트 그레이
       case '수':
         return theme.waterColor ?? const Color(0xFF7EB8DA);
       default:

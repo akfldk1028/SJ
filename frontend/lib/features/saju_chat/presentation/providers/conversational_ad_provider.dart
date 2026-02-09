@@ -164,15 +164,19 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     required int messageCount,
     required AiPersona persona,
   }) {
-    final transitionText = switch (persona.name.toLowerCase()) {
-      'doryeong' || 'dolyeong' =>
-        '허허, 잠시 통신이 불안하구려. 이것을 보시는 동안 다시 준비하겠소.',
-      'seonyeo' || 'sunnyeo' =>
-        '후후, 잠깐 인연의 끈이 흔들렸어요. 이것을 보시면 다시 연결해드릴게요.',
-      'monk' || 'seunim' =>
-        '아미타불, 잠시 기운이 흐트러졌습니다. 이것을 보시는 동안 기를 모으겠습니다.',
-      'grandmother' || 'halmeoni' =>
+    final transitionText = switch (persona) {
+      AiPersona.grandma =>
         '아이고, 잠깐 끊겼네. 이거 보는 동안 다시 해볼게.',
+      AiPersona.master =>
+        '허허, 잠시 통신이 불안하구려. 이것을 보시는 동안 다시 준비하겠소.',
+      AiPersona.cute =>
+        '앗! 잠깐 연결이 끊겼다냥~ 이거 보는 동안 다시 준비할게냥!',
+      AiPersona.babyMonk =>
+        '아미타불, 잠시 기운이 흐트러졌습니다. 이것을 보시는 동안 기를 모으겠습니다.',
+      AiPersona.yinYangGrandpa =>
+        '허허, 빛과 어둠이 잠시 엇갈렸구나. 잠깐 기다려보거라.',
+      AiPersona.sewerSaju =>
+        '크큭... 하수도가 잠깐 막혔다. 이거 보는 동안 뚫어놓지.',
       _ =>
         '연결이 잠시 끊겼어요. 광고를 보시면 다시 시도할 수 있어요!',
     };
@@ -318,10 +322,19 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
           if (kDebugMode) {
             print('   ❌ [AD] Rewarded ad failed: ${error.message}');
           }
-          // 로드 실패 시 광고 모드 자동 해제 → stuck 방지
-          state = const ConversationalAdModel();
-          if (kDebugMode) {
-            print('   🔄 [AD] Rewarded load failed → ad mode auto-dismissed');
+          // tokenDepleted인 경우: 배너 유지 (네이티브 광고 전환 버튼 사용 가능)
+          // Rewarded 로드 실패해도 "바로 대화 계속하기" 버튼으로 네이티브 광고 가능
+          if (state.adType == AdMessageType.tokenDepleted) {
+            state = state.copyWith(loadState: AdLoadState.loaded);
+            if (kDebugMode) {
+              print('   🔄 [AD] Rewarded load failed → banner kept (native ad fallback available)');
+            }
+          } else {
+            // 비소진 광고(경고/인터벌)는 기존대로 해제
+            state = const ConversationalAdModel();
+            if (kDebugMode) {
+              print('   🔄 [AD] Rewarded load failed → ad mode auto-dismissed');
+            }
           }
         },
       ),
@@ -388,11 +401,19 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
   ///
   /// 소진 광고: 클릭해야 7,000 토큰 지급 (impression에서는 미지급)
   /// 인터벌 광고: impression(1,500) + 클릭 보너스(1,500) = 총 3,000 토큰
+  ///
+  /// NativeAd.onAdClicked 콜백은 sync이므로 unawaited로 감싸고
+  /// 내부에서 서버 업데이트를 await한 후 상태를 변경
   void _onAdClicked() {
     // 보상 토큰 수 결정 (추적과 지급에 동일 값 사용)
     final rewardTokens = state.adType == AdMessageType.tokenDepleted
         ? AdTriggerService.depletedRewardTokensNative
         : AdTriggerService.intervalClickRewardTokens;
+
+    if (kDebugMode) {
+      final adTypeLabel = state.adType == AdMessageType.tokenDepleted ? 'depleted' : 'interval';
+      print('   💰 [AD] Native ad CLICKED ($adTypeLabel) → +$rewardTokens tokens (saving to server...)');
+    }
 
     // 클릭 이벤트 추적 + native_tokens_earned 카운터 동시 증가
     AdTrackingService.instance.trackNativeClick(
@@ -400,15 +421,26 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       rewardTokens: rewardTokens,
     );
 
+    // 서버에 토큰 먼저 저장한 후 상태 변경 (race condition 방지)
+    unawaited(_grantNativeTokensAndUpdateState(rewardTokens));
+  }
+
+  /// 서버에 네이티브 토큰 저장 후 상태 업데이트
+  Future<void> _grantNativeTokensAndUpdateState(int rewardTokens) async {
+    try {
+      await TokenRewardService.grantNativeAdTokens(rewardTokens);
+    } catch (e) {
+      if (kDebugMode) {
+        print('   ❌ [AD] Native token grant failed: $e');
+      }
+    }
+    // 서버 저장 후 상태 변경 → dismiss → sendMessage 순서 보장
     state = state.copyWith(
       adWatched: true,
       rewardedTokens: rewardTokens,
     );
-    TokenRewardService.grantNativeAdTokens(rewardTokens);
-
     if (kDebugMode) {
-      final adTypeLabel = state.adType == AdMessageType.tokenDepleted ? 'depleted' : 'interval';
-      print('   💰 [AD] Native ad CLICKED ($adTypeLabel) → +$rewardTokens tokens (saved to server)');
+      print('   ✅ [AD] Native tokens saved & state updated: +$rewardTokens');
     }
   }
 

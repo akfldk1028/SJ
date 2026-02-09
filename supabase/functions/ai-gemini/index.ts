@@ -2,7 +2,18 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v27)
+ * Gemini API 호출 Edge Function (v31)
+ *
+ * v31 변경사항 (2026-02-08):
+ * - BUG FIX: checkAndUpdateQuota catch 블록 fail-open → fail-closed
+ *   → 이전: DB 에러 시 allowed: true → quota 우회 가능
+ *   → 수정: DB 에러 시 allowed: false → 안전하게 차단
+ *
+ * v29 변경사항 (2026-02-08):
+ * - BUG FIX: 프리미엄 만료 후 chatting_tokens 리셋이 매 API 호출마다 반복 실행되던 치명적 버그 수정
+ *   → premium_quota_reset 플래그로 하루 1회만 리셋하도록 제한
+ *   → 이전: expiredSub + chatting_tokens > effectiveQuota → 매번 0으로 리셋 → 쿼타 시스템 무효화
+ *   → 수정: premium_quota_reset = true 설정 → 이후 리셋 스킵
  *
  * v27 변경사항 (2026-02-02):
  * - BUG FIX: cachedTokens → totalCachedTokens 변수명 오타 수정 (ReferenceError 방지)
@@ -82,10 +93,14 @@ async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: st
 }
 
 /**
- * v24: Quota 확인 - chatting_tokens만 대상, bonus_tokens + rewarded_tokens_earned 포함
+ * v29: Quota 확인 - chatting_tokens만 대상, bonus_tokens + rewarded_tokens_earned 포함
  * 운세 토큰(saju_analysis, monthly, yearly 등)은 핵심 콘텐츠이므로 쿼터 면제
  * 채팅만 일일 쿼터 제한 적용
- * effective_quota = daily_quota + bonus_tokens + rewarded_tokens_earned
+ * effective_quota = daily_quota + bonus_tokens + rewarded_tokens_earned + native_tokens_earned
+ *
+ * v29: Premium 만료 시 chatting_tokens 자동 리셋 (하루 1회만)
+ * - premium_quota_reset 플래그로 재리셋 방지
+ * - Premium 중 누적된 chatting_tokens가 free quota 초과 → 만료 후 영구 차단 방지
  */
 async function checkAndUpdateQuota(
   supabase: ReturnType<typeof createClient>,
@@ -116,25 +131,60 @@ async function checkAndUpdateQuota(
       }
     }
 
+    // v28: 만료된 구독이 있는지 확인 (최근 만료)
+    // sub이 없거나 isValid가 false인 경우 = 구독 없음 or 만료
+    // 최근 만료 구독 확인 → chatting_tokens 리셋 필요 여부 판단
+    const { data: expiredSub } = await supabase
+      .from("subscriptions")
+      .select("product_id, expires_at")
+      .eq("user_id", userId)
+      .in("product_id", ["sadam_day_pass", "sadam_week_pass", "sadam_monthly"])
+      .in("status", ["expired", "active"])
+      .order("expires_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const { data: usage } = await supabase
       .from("user_daily_token_usage")
-      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned, native_tokens_earned")
+      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned, native_tokens_earned, premium_quota_reset")
       .eq("user_id", userId)
       .eq("usage_date", today)
       .single();
-    // v27: chatting_tokens만 쿼터 대상, bonus_tokens + rewarded_tokens_earned + native_tokens_earned 포함
-    const currentChatUsage = usage?.chatting_tokens || 0;
+
+    let currentChatUsage = usage?.chatting_tokens || 0;
     const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
     const bonusTokens = usage?.bonus_tokens || 0;
     const rewardedTokens = usage?.rewarded_tokens_earned || 0;
     const nativeTokens = usage?.native_tokens_earned || 0;
     const effectiveQuota = baseQuota + bonusTokens + rewardedTokens + nativeTokens;
+
+    // v29: Premium 만료 후 chatting_tokens가 free quota를 크게 초과하면 리셋 (하루 1회만)
+    // 케이스: day_pass가 오늘 중간에 만료 → 프리미엄 기간 사용량이 free quota 초과 → 리셋 필요
+    // v28 버그: premium_quota_reset 플래그 없이 매 API 호출마다 리셋 반복 → 쿼타 시스템 무효화
+    // v29 수정: premium_quota_reset = true 설정하여 하루 1회만 리셋
+    if (expiredSub && currentChatUsage > effectiveQuota && !usage?.premium_quota_reset) {
+      const expiredAt = expiredSub.expires_at ? new Date(expiredSub.expires_at) : null;
+      const isRecentlyExpired = expiredAt && (Date.now() - expiredAt.getTime()) < 7 * 24 * 60 * 60 * 1000; // 7일 이내
+
+      if (isRecentlyExpired) {
+        console.log(`[ai-gemini v29] Premium expired (${expiredSub.product_id}), chatting_tokens=${currentChatUsage} > effectiveQuota=${effectiveQuota} → one-time reset`);
+        // chatting_tokens를 0으로 리셋 + premium_quota_reset 플래그 설정 (재리셋 방지)
+        await supabase
+          .from("user_daily_token_usage")
+          .update({ chatting_tokens: 0, premium_quota_reset: true, updated_at: new Date().toISOString() })
+          .eq("user_id", userId)
+          .eq("usage_date", today);
+        currentChatUsage = 0;
+      }
+    }
+
     const remaining = effectiveQuota - currentChatUsage;
     if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
     if (currentChatUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
     return { allowed: true, remaining, quotaLimit: effectiveQuota };
-  } catch {
-    return { allowed: true, remaining: quotaLimit, quotaLimit };
+  } catch (e) {
+    console.error(`[ai-gemini v31] checkAndUpdateQuota error → blocking: ${e}`);
+    return { allowed: false, remaining: 0, quotaLimit };
   }
 }
 

@@ -22,6 +22,7 @@ class TodayMessageCard extends ConsumerWidget {
     );
 
     return affirmation.when(
+      skipLoadingOnRefresh: true,
       loading: () => _buildLoadingCard(context, theme),
       error: (_, __) => _buildCard(context, theme, '메시지를 불러올 수 없습니다.'),
       data: (message) {

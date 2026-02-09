@@ -211,7 +211,7 @@ class AppTheme {
     woodColor: Color(0xFF7EDA98),
     fireColor: Color(0xFFE87C7C),
     earthColor: Color(0xFFD4A574),
-    metalColor: Color(0xFFE8E8E8),
+    metalColor: Color(0xFFC0C0C0),  // 은색 (다크 배경에서 잘 보임)
     waterColor: Color(0xFF7EB8DA),
   );
 
@@ -233,7 +233,7 @@ class AppTheme {
     woodColor: Color(0xFF4CAF50),
     fireColor: Color(0xFFE53935),
     earthColor: Color(0xFFFF9800),
-    metalColor: Color(0xFF607D8B),
+    metalColor: Color(0xFF708090),  // 슬레이트 그레이 (라이트 배경에서 잘 보임)
     waterColor: Color(0xFF2196F3),
   );
 
@@ -254,7 +254,7 @@ class AppTheme {
     woodColor: Color(0xFF7EDA98),
     fireColor: Color(0xFFE87C7C),
     earthColor: Color(0xFFD4A574),
-    metalColor: Color(0xFFE8E8E8),
+    metalColor: Color(0xFFC0C0C0),  // 은색 (다크 배경에서 잘 보임)
     waterColor: Color(0xFF7EB8DA),
   );
 
@@ -272,7 +272,7 @@ class AppTheme {
     woodColor: Color(0xFF5AB878),
     fireColor: Color(0xFFC65D5D),
     earthColor: Color(0xFFA67C52),
-    metalColor: Color(0xFF888888),
+    metalColor: Color(0xFF708090),  // 슬레이트 그레이 (라이트 배경에서 잘 보임)
     waterColor: Color(0xFF5A8DB8),
   );
 

@@ -23,11 +23,31 @@ abstract class PurchaseMutations {
           customerInfo.entitlements.all[PurchaseConfig.entitlementPremium];
 
       if (premium?.isActive == true) {
+        String? expiresAt = premium!.expirationDate;
+
+        // 시간제 상품은 RevenueCat이 만료일을 모르므로 구매일+기간으로 계산
+        if (expiresAt == null) {
+          final pid = premium.productIdentifier;
+          final purchaseDateStr = premium.latestPurchaseDate;
+          final purchaseDate = DateTime.tryParse(purchaseDateStr);
+          if (purchaseDate != null) {
+            Duration? duration;
+            if (pid == PurchaseConfig.productDayPass) {
+              duration = const Duration(hours: 24);
+            } else if (pid == PurchaseConfig.productWeekPass) {
+              duration = const Duration(days: 7);
+            }
+            if (duration != null) {
+              expiresAt = purchaseDate.add(duration).toIso8601String();
+            }
+          }
+        }
+
         await _upsertSubscription(
           userId: userId,
-          productId: premium!.productIdentifier,
+          productId: premium.productIdentifier,
           isLifetime: false,
-          expiresAt: premium.expirationDate,
+          expiresAt: expiresAt,
         );
       }
     } catch (e) {

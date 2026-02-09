@@ -544,40 +544,10 @@ class SajuAnalysisRepository {
         details: defaultDetails,
       );
     }
-    // 이전 enum 값 매핑 (하위 호환성)
-    // DB에 저장된 형식: "중화신약(中和身弱)", "태약(太弱)" 등 한글(한자) 형식
-    // Dart enum 이름: "junghwaSinyak", "taeyak" 등 영어 형식
-    final levelStr = json['level'] as String? ?? 'junghwaSingang';
-    final mappedLevel = switch (levelStr) {
-      // 영어 레거시 형식
-      'medium' => 'junghwaSingang',
-      'veryStrong' => 'geukwang',
-      'strong' => 'singang',
-      'weak' => 'sinyak',
-      'veryWeak' => 'geukyak',
-      // 한글(한자) 형식 → enum 이름 변환 (GPT-5.2 응답 형식)
-      '극왕(極旺)' => 'geukwang',
-      '태강(太强)' => 'taegang',
-      '신강(身强)' => 'singang',
-      '중화신강(中和身强)' => 'junghwaSingang',
-      '중화신약(中和身弱)' => 'junghwaSinyak',
-      '신약(身弱)' => 'sinyak',
-      '태약(太弱)' => 'taeyak',
-      '극약(極弱)' => 'geukyak',
-      // 한글만 있는 형식 (한자 없음)
-      '극왕' => 'geukwang',
-      '태강' => 'taegang',
-      '신강' => 'singang',
-      '중화신강' => 'junghwaSingang',
-      '중화신약' => 'junghwaSinyak',
-      '신약' => 'sinyak',
-      '태약' => 'taeyak',
-      '극약' => 'geukyak',
-      _ => levelStr,
-    };
+    final score = (json['score'] as num?)?.toInt() ?? 50;
     return DayStrength(
-      score: json['score'] as int? ?? 50,
-      level: DayStrengthLevel.values.byName(mappedLevel),
+      score: score,
+      level: DayStrengthLevel.fromScore(score),
       monthScore: json['monthScore'] as int? ?? 0,
       bigeopScore: json['bigeopScore'] as int? ?? 0,
       inseongScore: json['inseongScore'] as int? ?? 0,
@@ -912,9 +882,33 @@ class SajuAnalysisRepository {
 
   /// 한글(한자) 형식에서 한글만 추출
   /// 예: "갑(甲)" → "갑", "자(子)" → "자"
+  /// Phase 61: "(寅)" 처럼 한글 없는 경우도 처리
   String _extractHangul(String formatted) {
+    if (formatted.isEmpty) return formatted;
+
     if (formatted.contains('(')) {
-      return formatted.substring(0, formatted.indexOf('('));
+      final idx = formatted.indexOf('(');
+      if (idx > 0) {
+        // 정상: "갑(甲)" → "갑"
+        return formatted.substring(0, idx);
+      } else {
+        // 비정상: "(甲)" → 한자에서 한글 역변환
+        final hanjaMatch = RegExp(r'\(([^)]+)\)').firstMatch(formatted);
+        if (hanjaMatch != null) {
+          final hanja = hanjaMatch.group(1)!;
+          // 천간 한자 → 한글
+          final cheonganEntry = cheonganHanja.entries
+              .where((e) => e.value == hanja)
+              .firstOrNull;
+          if (cheonganEntry != null) return cheonganEntry.key;
+          // 지지 한자 → 한글
+          final jijiEntry = jijiHanja.entries
+              .where((e) => e.value == hanja)
+              .firstOrNull;
+          if (jijiEntry != null) return jijiEntry.key;
+        }
+        return formatted; // 변환 실패시 원본 반환
+      }
     }
     return formatted;
   }

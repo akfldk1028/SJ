@@ -576,7 +576,7 @@ class ChatNotifier extends _$ChatNotifier {
     ChatType chatType, {
     String? targetProfileId,
     List<String>? multiParticipantIds,
-    bool includesOwner = true, // deprecated, 하위 호환용
+    bool? includesOwner,  // v12.1: "나 포함/제외" (MentionSendHandler에서 전달)
     List<String>? compatibilityParticipantIds,
   }) async {
     if (content.trim().isEmpty) return;
@@ -635,6 +635,7 @@ class ChatNotifier extends _$ChatNotifier {
       compatibilityParticipantIds: compatibilityParticipantIds,
       multiParticipantIds: multiParticipantIds,
       targetProfileId: targetProfileId,
+      includesOwner: includesOwner,
     );
     var isCompatibilityMode = resolution.isCompatibilityMode;
     String? person1Id = resolution.person1Id;
@@ -821,6 +822,7 @@ class ChatNotifier extends _$ChatNotifier {
           effectiveParticipantIds: effectiveParticipantIds,
           userId: userId,
           isCompatibilityMode: isCompatibilityMode,
+          includesOwner: resolution.includesOwner,
         );
       }
 
@@ -904,9 +906,12 @@ class ChatNotifier extends _$ChatNotifier {
           }
         }
 
-        // chat_mentions에 참가자 저장
-        if (effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
-          await _saveChatMentions(currentSessionId, effectiveParticipantIds);
+        // Phase 59: chat_mentions 저장은 ParticipantResolver에서 처리
+        // - 첫 메시지: ParticipantResolver가 effectiveParticipantIds 저장
+        // - 추가 메시지: ParticipantResolver가 기존 + 새 참가자 병합 후 저장
+        // - 여기서 저장하면 병합된 리스트를 덮어쓰므로 제거
+        if (kDebugMode && effectiveParticipantIds != null && effectiveParticipantIds.isNotEmpty) {
+          print('   📝 chat_mentions: ParticipantResolver에서 이미 저장됨 (${effectiveParticipantIds.length}명 입력)');
         }
       }
 
@@ -1190,12 +1195,14 @@ class ChatNotifier extends _$ChatNotifier {
       _isSendingMessage = false;
     } catch (e, stackTrace) {
       // [ERROR]
-      print('');
-      print('╔══════════════════════════════════════════════════════════════╗');
-      print('║  ❌ [ERROR] CHAT FAILED                                      ║');
-      print('╚══════════════════════════════════════════════════════════════╝');
-      print('   💥 $e');
-      print('');
+      if (kDebugMode) {
+        print('');
+        print('╔══════════════════════════════════════════════════════════════╗');
+        print('║  ❌ [ERROR] CHAT FAILED                                      ║');
+        print('╚══════════════════════════════════════════════════════════════╝');
+        print('   💥 $e');
+        print('');
+      }
 
       // 에러 로깅 (비동기, 실패 무시)
       ErrorLoggingService.logError(
@@ -1215,7 +1222,9 @@ class ChatNotifier extends _$ChatNotifier {
       // QUOTA_EXCEEDED: 서버에서 일일 토큰 한도 초과 → 광고 모드 활성화
       // AI 프리미엄 구독자는 서버에서 면제되므로 여기까지 오지 않음
       if (errorMsg.contains('QUOTA_EXCEEDED')) {
-        print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
+        if (kDebugMode) {
+          print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
+        }
         final selectedPersona = ref.read(chatPersonaNotifierProvider);
         ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
           tokenUsage: const TokenUsageInfo(
@@ -1245,8 +1254,6 @@ class ChatNotifier extends _$ChatNotifier {
           errorMsg.contains('Timeout') ||
           errorMsg.contains('네트워크');
 
-      final isPremiumUser = ref.read(purchaseNotifierProvider.notifier).isPremium;
-
       if (isRetryableError) {
         state = state.copyWith(
           isLoading: false,
@@ -1266,44 +1273,6 @@ class ChatNotifier extends _$ChatNotifier {
         streamingContent: null,
         error: userMessage,
       );
-    }
-  }
-
-  /// chat_mentions 테이블에 다중 궁합 참가자 저장 (Phase 50)
-  ///
-  /// 다중 궁합 분석 시 참가자 프로필 ID를 저장하여
-  /// 추후 세션에서 참가자 정보를 조회할 수 있도록 합니다.
-  Future<void> _saveChatMentions(String sessionId, List<String> participantIds) async {
-    try {
-      if (kDebugMode) {
-        print('   📝 chat_mentions 저장 시작 (${participantIds.length}명)...');
-      }
-
-      // 기존 멘션 삭제 (세션 재분석 시 중복 방지)
-      await Supabase.instance.client
-          .from('chat_mentions')
-          .delete()
-          .eq('session_id', sessionId);
-
-      // 새 멘션 저장
-      final mentionRows = participantIds.asMap().entries.map((entry) => {
-        'session_id': sessionId,
-        'target_profile_id': entry.value,
-        'mention_order': entry.key,
-      }).toList();
-
-      await Supabase.instance.client
-          .from('chat_mentions')
-          .insert(mentionRows);
-
-      if (kDebugMode) {
-        print('   ✅ chat_mentions 저장 완료');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('   ⚠️ chat_mentions 저장 실패: $e');
-      }
-      // 실패해도 분석은 계속 진행
     }
   }
 

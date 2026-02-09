@@ -1,22 +1,45 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../providers/purchase_provider.dart';
 
-/// 프리미엄 뱃지
+/// 프리미엄 뱃지 + 남은 시간 카운트다운
 ///
-/// 사용자의 구매 상태에 따라 뱃지 표시
-/// 테마의 primaryColor + accentColor 기반 그라데이션
-/// - 프리미엄: 밝은 그라데이션 PRO 뱃지
-/// - 무료: 표시 안 함
-class PremiumBadgeWidget extends ConsumerWidget {
+/// PRO 아이콘/텍스트 + 연한 회색으로 "5일 3시간" 형태 표시
+/// 매분 자동 갱신, 만료 임박 시 경고색
+class PremiumBadgeWidget extends ConsumerStatefulWidget {
   const PremiumBadgeWidget({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
-    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
+  ConsumerState<PremiumBadgeWidget> createState() => _PremiumBadgeWidgetState();
+}
+
+class _PremiumBadgeWidgetState extends ConsumerState<PremiumBadgeWidget> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // 매 60초마다 카운트다운 갱신
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(purchaseNotifierProvider);
+    final notifier = ref.read(purchaseNotifierProvider.notifier);
+    final isPremium = notifier.isPremium;
 
     if (!isPremium) return const SizedBox.shrink();
 
@@ -24,9 +47,12 @@ class PremiumBadgeWidget extends ConsumerWidget {
     final primary = theme.primaryColor;
     final accent = theme.accentColor ?? primary;
 
-    // 밝은 핑크톤 그라데이션 (테마 색상 기반)
     final gradStart = _brighten(primary);
     final gradEnd = _brighten(accent);
+
+    final expiresAt = notifier.expiresAt;
+    final remainingText = _formatRemaining(expiresAt);
+    final isExpiringSoon = notifier.isExpiringSoon;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -71,12 +97,45 @@ class PremiumBadgeWidget extends ConsumerWidget {
               ),
             ),
           ),
+          if (remainingText != null) ...[
+            const SizedBox(width: 5),
+            Text(
+              remainingText,
+              style: TextStyle(
+                color: isExpiringSoon
+                    ? Colors.redAccent.withValues(alpha: 0.8)
+                    : theme.textMuted.withValues(alpha: 0.7),
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  /// 색상을 밝고 생동감 있는 핑크/로즈 톤으로 변환
+  /// 남은 시간 포맷
+  /// 7일 이상: "6일"
+  /// 1일 이상: "2일 3시간"
+  /// 1시간 이상: "5시간 23분"
+  /// 1시간 미만: "45분"
+  String? _formatRemaining(DateTime? expiresAt) {
+    if (expiresAt == null) return null;
+
+    final remaining = expiresAt.difference(DateTime.now());
+    if (remaining.isNegative) return '만료됨';
+
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+
+    if (days >= 7) return '$days일';
+    if (days >= 1) return '$days일 $hours시간';
+    if (hours >= 1) return '$hours시간 $minutes분';
+    return '$minutes분';
+  }
+
   Color _brighten(Color c) {
     final hsl = HSLColor.fromColor(c);
     return hsl

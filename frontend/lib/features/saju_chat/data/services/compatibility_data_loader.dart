@@ -70,6 +70,7 @@ class CompatibilityDataLoader {
     List<String>? effectiveParticipantIds,
     String? userId,
     required bool isCompatibilityMode,
+    bool? includesOwner,  // v12.1: "나 포함/제외" 명시적 전달
   }) async {
     SajuProfile? activeProfile;    // 첫 번째 사람 (궁합) 또는 owner (일반)
     SajuAnalysis? sajuAnalysis;    // 첫 번째 사람의 사주
@@ -185,7 +186,11 @@ class CompatibilityDataLoader {
                 if (result.success) {
                   saju = await analysisRepo.getByProfileId(pid);
                 }
-              } catch (_) {}
+              } catch (e) {
+                if (kDebugMode) {
+                  print('   ❌ Person${i + 3} 사주 자동생성 실패: $e');
+                }
+              }
             }
             additionalParticipants.add((profile: p, sajuAnalysis: saju));
             if (kDebugMode) {
@@ -267,14 +272,34 @@ class CompatibilityDataLoader {
       }
     }
 
-    // v6.0 (Phase 57): "나 제외" 모드 판단
-    // - 궁합 모드에서 person1이 로그인 사용자의 primary profile이 아니면 "나 제외"
+    // v12.1: "나 제외" 모드 판단 (includesOwner 명시적 전달 우선)
+    // - includesOwner가 명시적으로 false이면 무조건 "나 제외" 모드
+    // - includesOwner가 null이면 기존 로직 (참가자에 owner 포함 여부 체크)
     bool isThirdPartyCompatibility = false;
     if (isCompatibilityMode && person1Id != null) {
-      final ownerProfile = await ref.read(activeProfileProvider.future);
-      isThirdPartyCompatibility = ownerProfile?.id != person1Id;
-      if (kDebugMode && isThirdPartyCompatibility) {
-        print('   📌 나 제외 모드: 로그인사용자=${ownerProfile?.displayName}, person1=${activeProfile?.displayName}, person2=${targetProfile?.displayName}');
+      if (includesOwner == false) {
+        // v12.1: MentionSendHandler에서 "[나 제외]" 감지 → 명시적 나 제외
+        isThirdPartyCompatibility = true;
+        if (kDebugMode) {
+          print('   📌 v12.1: includesOwner=false → 나 제외 모드 (명시적)');
+        }
+      } else if (includesOwner == null) {
+        // 기존 로직: owner가 참가자에 포함되어 있는지 자동 판단
+        final ownerProfile = await ref.read(activeProfileProvider.future);
+        final ownerId = ownerProfile?.id;
+        final ownerIncluded = (ownerId == person1Id) || (ownerId == person2Id) ||
+            (ownerId != null && extraMentionIds.contains(ownerId));
+        isThirdPartyCompatibility = !ownerIncluded;
+        if (kDebugMode) {
+          print('   📌 includesOwner=null → 자동 판단: ownerId=$ownerId, ownerIncluded=$ownerIncluded');
+        }
+      }
+      // includesOwner == true → isThirdPartyCompatibility = false (기본값)
+      if (kDebugMode) {
+        print('   📌 isThirdPartyCompatibility=$isThirdPartyCompatibility');
+        if (isThirdPartyCompatibility) {
+          print('   📌 나 제외 모드: person1=${activeProfile?.displayName}, person2=${targetProfile?.displayName}');
+        }
       }
     }
 

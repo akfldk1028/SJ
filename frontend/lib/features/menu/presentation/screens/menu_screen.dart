@@ -1,15 +1,13 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../ad/ad.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../purchase/widgets/premium_badge_widget.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
+import '../widgets/ai_chat_cta_card.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
@@ -24,26 +22,10 @@ class MenuScreen extends ConsumerStatefulWidget {
 }
 
 class _MenuScreenState extends ConsumerState<MenuScreen> {
-  DateTime _selectedDate = DateTime.now();
-
-  // TODO: 이전/다음 날짜 기능 - 추후 구현
-  // void _previousDay() {
-  //   setState(() {
-  //     _selectedDate = _selectedDate.subtract(const Duration(days: 1));
-  //   });
-  // }
-
-  // void _nextDay() {
-  //   setState(() {
-  //     _selectedDate = _selectedDate.add(const Duration(days: 1));
-  //   });
-  // }
-
-  /// 모바일 플랫폼 체크 (광고 표시용)
-  bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-
   @override
   Widget build(BuildContext context) {
+    // build마다 현재 날짜 사용 (자정 넘기 대응)
+    final selectedDate = DateTime.now();
     final theme = context.appTheme;
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
@@ -57,7 +39,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             color: theme.backgroundColor,
           ),
           // 앱바
-          _buildAppBar(theme),
+          _buildAppBar(theme, selectedDate),
           // 나머지 콘텐츠
           Expanded(
             child: MysticBackground(
@@ -73,9 +55,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   SizedBox(height: context.scaledPadding(8)),
                   const FortuneCategoryList(),
                   SizedBox(height: context.scaledPadding(16)),
-                  // Native 광고 (운세 카테고리 아래)
-                  if (_isMobile) const CardNativeAdWidget(loadDelayMs: 0),
-                  if (_isMobile) SizedBox(height: context.scaledPadding(16)),
+                  const AiChatCtaCard(),
+                  SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
                   // 오늘의 한마디는 FortuneSummaryCard 내 시간대별 운세 아래에 배치됨
@@ -89,14 +70,15 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     );
   }
 
-  Widget _buildAppBar(AppThemeExtension theme) {
-    final formattedDate = _formatDate(_selectedDate);
+  Widget _buildAppBar(AppThemeExtension theme, DateTime selectedDate) {
+    final formattedDate = _formatDate(selectedDate);
     final activeProfileAsync = ref.watch(activeProfileProvider);
     final horizontalPadding = context.horizontalPadding;
     final isSmall = context.isSmallMobile;
 
-    // 프리미엄 상태 확인
-    final isPremium = ref.watch(purchaseNotifierProvider.notifier).isPremium;
+    // 프리미엄 상태 확인 (상태 변경 감지 + 값 읽기)
+    ref.watch(purchaseNotifierProvider); // 상태 변경 시 rebuild
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmall ? 12 : 16),
@@ -143,49 +125,29 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '운세',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: theme.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 2),
                 Row(
                   children: [
-                    Flexible(
-                      child: Text(
-                        formattedDate['full']!,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: theme.textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      '운세',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: theme.textMuted,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     const PremiumBadgeWidget(),
-                    // TODO: 이전/다음 날짜 기능 - 추후 구현
-                    // const SizedBox(width: 8),
-                    // GestureDetector(
-                    //   onTap: _previousDay,
-                    //   child: Icon(
-                    //     Icons.chevron_left_rounded,
-                    //     size: 20,
-                    //     color: theme.textSecondary,
-                    //   ),
-                    // ),
-                    // GestureDetector(
-                    //   onTap: _nextDay,
-                    //   child: Icon(
-                    //     Icons.chevron_right_rounded,
-                    //     size: 20,
-                    //     color: theme.textSecondary,
-                    //   ),
-                    // ),
                   ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formattedDate['full']!,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

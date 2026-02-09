@@ -217,6 +217,10 @@ class AiApiService {
   /// - yearly_2026: 2026 신년운세
   /// - yearly_2025: 2025 회고운세
   /// - daily_fortune: 오늘의 일운
+  /// v43: reasoningEffort 파라미터 추가
+  /// - "low": saju_base 분석 (속도 우선, 비용 절감)
+  /// - "medium": 기본값 (기존 동작)
+  /// - "high": 복잡한 분석 (품질 우선)
   Future<AiApiResponse> callOpenAI({
     required List<Map<String, String>> messages,
     required String model,
@@ -226,9 +230,10 @@ class AiApiService {
     String? userId,
     bool runInBackground = true,  // v24: 기본값 true
     String taskType = 'saju_analysis',  // v29: task 구분용 (기본값 유지)
+    String reasoningEffort = 'medium',  // v43: reasoning_effort (low/medium/high)
   }) async {
     try {
-      print('[AiApiService v29] OpenAI 호출: $model (background=$runInBackground, taskType=$taskType, userId: ${userId ?? "null"})');
+      print('[AiApiService v43] OpenAI 호출: $model (background=$runInBackground, taskType=$taskType, reasoning=$reasoningEffort, userId: ${userId ?? "null"})');
 
       final response = await _client.functions.invoke(
         'ai-openai',
@@ -240,6 +245,7 @@ class AiApiService {
           'response_format': {'type': 'json_object'},
           'run_in_background': runInBackground,  // v24: Background 모드
           'task_type': taskType,  // v29: 병렬 실행 시 task 분리!
+          'reasoning_effort': reasoningEffort,  // v43: reasoning_effort
           if (userId != null) 'user_id': userId,
         },
       );
@@ -805,6 +811,7 @@ class AiApiService {
   /// - gemini-* 모델 → callGemini() 사용
   /// - 그 외 → callOpenAI() 사용
   /// v29: taskType 파라미터 추가 - 병렬 실행 시 task 분리용
+  /// v43: reasoningEffort 파라미터 추가
   Future<ChatResponse> chat({
     required String model,
     required String systemPrompt,
@@ -814,6 +821,7 @@ class AiApiService {
     String logType = 'fortune',
     String? userId,
     String taskType = 'saju_analysis',  // v29: 병렬 실행 시 task 분리!
+    String reasoningEffort = 'medium',  // v43: reasoning_effort
   }) async {
     final messages = [
       {'role': 'system', 'content': systemPrompt},
@@ -844,7 +852,7 @@ class AiApiService {
       );
     }
 
-    // OpenAI 모델 - v29: taskType 전달
+    // OpenAI 모델 - v29: taskType 전달, v43: reasoningEffort 전달
     final response = await callOpenAI(
       messages: messages,
       model: model,
@@ -853,6 +861,7 @@ class AiApiService {
       logType: logType,
       userId: userId,
       taskType: taskType,  // v29: 병렬 실행 시 task 분리!
+      reasoningEffort: reasoningEffort,  // v43: reasoning_effort
     );
 
     return ChatResponse(

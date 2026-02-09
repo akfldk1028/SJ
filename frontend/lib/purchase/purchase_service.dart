@@ -14,10 +14,15 @@ class PurchaseService {
   PurchaseService._();
 
   bool _initialized = false;
+  bool _available = false; // IAP 사용 가능 여부
+
+  /// IAP 사용 가능 여부 (API 키가 설정되어 있고 초기화 성공)
+  bool get isAvailable => _initialized && _available;
 
   /// RevenueCat SDK 초기화
   ///
   /// 모바일 전용 (Web에서는 호출하지 않음)
+  /// API 키가 없으면 초기화 스킵 (iOS 빌드 시 키 미설정 대응)
   Future<void> initialize() async {
     if (_initialized) return;
 
@@ -25,51 +30,37 @@ class PurchaseService {
         ? PurchaseConfig.revenueCatApiKeyIos
         : PurchaseConfig.revenueCatApiKeyAndroid;
 
-    await Purchases.configure(PurchasesConfiguration(apiKey));
-
-    // Supabase user ID와 RevenueCat user ID 동기화
-    final userId = SupabaseService.currentUserId;
-    if (userId != null) {
-      await Purchases.logIn(userId);
-    }
-
-    _initialized = true;
-
-    if (kDebugMode) {
-      print('[PurchaseService] RevenueCat 초기화 완료 (userId: $userId)');
-    }
-  }
-
-  /// 프리미엄 여부 (day_pass, week_pass, monthly 중 하나 활성)
-  Future<bool> get isPremium async {
-    try {
-      final info = await Purchases.getCustomerInfo();
-      return info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive ==
-          true;
-    } catch (e) {
+    // API 키가 없거나 더미값이면 초기화 스킵
+    if (apiKey.isEmpty || apiKey.startsWith('appl_xxx') || apiKey.startsWith('goog_xxx')) {
+      _initialized = true;
+      _available = false;
       if (kDebugMode) {
-        print('[PurchaseService] isPremium 체크 실패: $e');
+        print('[PurchaseService] API 키 미설정 → IAP 비활성화 (${Platform.isIOS ? 'iOS' : 'Android'})');
       }
-      return false;
+      return;
     }
-  }
 
-  /// Offerings 조회 (상품 목록)
-  Future<Offerings?> getOfferings() async {
     try {
-      return await Purchases.getOfferings();
-    } catch (e) {
-      if (kDebugMode) {
-        print('[PurchaseService] getOfferings 실패: $e');
+      await Purchases.configure(PurchasesConfiguration(apiKey));
+
+      // Supabase user ID와 RevenueCat user ID 동기화
+      final userId = SupabaseService.currentUserId;
+      if (userId != null) {
+        await Purchases.logIn(userId);
       }
-      return null;
+
+      _initialized = true;
+      _available = true;
+
+      if (kDebugMode) {
+        print('[PurchaseService] RevenueCat 초기화 완료 (userId: $userId)');
+      }
+    } catch (e) {
+      _initialized = true;
+      _available = false;
+      if (kDebugMode) {
+        print('[PurchaseService] RevenueCat 초기화 실패 → IAP 비활성화: $e');
+      }
     }
   }
-
-  /// 구매 실행
-  Future<PurchaseResult> purchase(Package package) =>
-      Purchases.purchasePackage(package);
-
-  /// 구매 복원
-  Future<CustomerInfo> restore() => Purchases.restorePurchases();
 }

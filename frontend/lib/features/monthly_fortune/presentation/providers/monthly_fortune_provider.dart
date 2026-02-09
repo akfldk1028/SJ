@@ -334,18 +334,50 @@ class LuckySection {
 ///
 /// activeProfile의 이번 달 운세를 DB에서 조회
 /// 캐시가 없으면 AI 분석을 자동 트리거하고 폴링으로 완료 감지
+///
+/// ## v8.0 변경 (2026-02-08)
+/// - 폴링 타임아웃 시 ref.invalidateSelf()로 자동 재시도 (무한 로딩 수정)
+/// - _isAnalyzing safety timeout (6분) 추가 (stuck 플래그 방지)
+/// - 재시도 카운터 (최대 3회) 후 에러 throw
+/// - FortuneCoordinator stuck flag 자동 정리
 @riverpod
 class MonthlyFortune extends _$MonthlyFortune {
   /// 분석 진행 중 플래그 (중복 호출 방지)
   static bool _isAnalyzing = false;
+
+  /// 분석 시작 시각 (safety timeout용)
+  static DateTime? _analyzeStartTime;
+
+  /// 연속 재시도 횟수 (무한 루프 방지)
+  static int _retryCount = 0;
+
+  /// 최대 재시도 횟수
+  static const int _maxRetries = 3;
+
+  /// 분석 타임아웃 (6분 - OpenAI polling 4분 + 여유)
+  static const Duration _analyzeTimeout = Duration(minutes: 6);
 
   /// 폴링 활성화 플래그
   bool _isPolling = false;
 
   @override
   Future<MonthlyFortuneData?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    // v8.0 Safety: stuck _isAnalyzing 리셋 (타임아웃 초과 시)
+    if (_isAnalyzing && _analyzeStartTime != null &&
+        DateTime.now().difference(_analyzeStartTime!) > _analyzeTimeout) {
+      print('[MonthlyFortune] ⚠️ _isAnalyzing 타임아웃 리셋 (${_analyzeTimeout.inMinutes}분 초과)');
+      _isAnalyzing = false;
+      _analyzeStartTime = null;
+    }
+
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
+
+    // v8.0 Safety: FortuneCoordinator stuck flag 리셋
+    if (!_isAnalyzing && FortuneCoordinator.isAnalyzing(activeProfile.id)) {
+      print('[MonthlyFortune] ⚠️ FortuneCoordinator stuck flag 리셋');
+      FortuneCoordinator.resetAnalyzingFlag(activeProfile.id);
+    }
 
     final queries = MonthlyQueries(Supabase.instance.client);
     final result = await queries.getCached(
@@ -360,6 +392,7 @@ class MonthlyFortune extends _$MonthlyFortune {
       final content = result['content'];
       final isStale = result['_isStale'] == true;
       if (content is Map<String, dynamic>) {
+        _retryCount = 0; // 성공 시 재시도 카운터 리셋
         if (isStale) {
           print('[MonthlyFortune] stale 캐시 - 기존 데이터 표시 + 백그라운드 재생성');
           _triggerAnalysisIfNeeded(activeProfile.id);
@@ -372,8 +405,15 @@ class MonthlyFortune extends _$MonthlyFortune {
       }
     }
 
+    // v8.0: 최대 재시도 초과 → 에러 throw (UI에서 에러 화면 + 재시도 버튼)
+    if (_retryCount >= _maxRetries) {
+      print('[MonthlyFortune] ❌ 최대 재시도 초과 ($_retryCount/$_maxRetries)');
+      _retryCount = 0; // 다음 수동 새로고침에서는 다시 시도 가능
+      throw Exception('월별 운세 분석에 실패했습니다.\n잠시 후 다시 시도해주세요.');
+    }
+
     // 캐시가 없으면 AI 분석 트리거
-    print('[MonthlyFortune] 캐시 없음 - AI 분석 시작');
+    print('[MonthlyFortune] 캐시 없음 - AI 분석 시작 (retry=$_retryCount)');
     await _triggerAnalysisIfNeeded(activeProfile.id);
 
     // 폴링 시작 (3초마다 DB 확인)
@@ -415,15 +455,24 @@ class MonthlyFortune extends _$MonthlyFortune {
       print('[MonthlyFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
       _isPolling = false;
       _isAnalyzing = false;
+      _analyzeStartTime = null;
+      _retryCount = 0; // 성공 시 리셋
       ref.invalidateSelf();
     } else if (_pollAttempts >= _maxPollAttempts) {
-      // 최대 횟수 초과 → 폴링 중지
-      print('[MonthlyFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 중지');
+      // v8.0: 최대 횟수 초과 → 재시도 (invalidateSelf로 build() 재실행)
+      // Future.wait().timeout(5분) 덕분에 FortuneCoordinator 락이 해제되어
+      // 재시도 시 Edge Function dedup → 완료된 데이터 반환 → 정상 save 진행
+      print('[MonthlyFortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 재시도 #${_retryCount + 1}');
       _isPolling = false;
       _isAnalyzing = false;
+      _analyzeStartTime = null;
+      _retryCount++;
+      ref.invalidateSelf();
     } else {
-      // 데이터 없으면 계속 폴링
-      print('[MonthlyFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
+      // 데이터 없으면 계속 폴링 (로그 10회마다)
+      if (_pollAttempts % 10 == 0) {
+        print('[MonthlyFortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
+      }
       _pollForData(profileId);
     }
   }
@@ -456,6 +505,7 @@ class MonthlyFortune extends _$MonthlyFortune {
     }
 
     _isAnalyzing = true;
+    _analyzeStartTime = DateTime.now();
     print('[MonthlyFortune] 🚀 v6.0 Fortune만 즉시 분석 시작! (saju_base 대기 없음)');
 
     // v6.0: Fortune만 직접 분석 (saju_base 대기 없음!)
@@ -464,6 +514,7 @@ class MonthlyFortune extends _$MonthlyFortune {
       profileId: profileId,
     ).then((result) {
       _isAnalyzing = false;
+      _analyzeStartTime = null;
       print('[MonthlyFortune] ✅ Fortune 분석 완료');
       print('  - monthly: ${result.monthly != null ? "성공" : "실패"}');
       print('  - yearly2025: ${result.yearly2025 != null ? "성공" : "실패"}');
@@ -471,6 +522,7 @@ class MonthlyFortune extends _$MonthlyFortune {
       // 폴링이 데이터를 감지하고 UI를 갱신할 것임
     }).catchError((e) {
       _isAnalyzing = false;
+      _analyzeStartTime = null;
       print('[MonthlyFortune] ❌ Fortune 분석 오류: $e');
     });
   }
@@ -520,6 +572,8 @@ class MonthlyFortune extends _$MonthlyFortune {
     _isPolling = false;
     _isStalePolling = false;
     _isAnalyzing = false;
+    _analyzeStartTime = null;
+    _retryCount = 0;
     ref.invalidateSelf();
   }
 }

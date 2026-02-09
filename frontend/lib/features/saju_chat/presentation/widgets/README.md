@@ -48,6 +48,17 @@ _handleAdComplete(isRewardedAd: true/false)
 chat_provider.addBonusTokens(amount, isRewardedAd: flag)
 ```
 
+## v0.1.2 Changes
+
+### onSend 광고 미클릭 차단 (BUG-3)
+`saju_chat_shell.dart`의 `onSend` 콜백에서:
+- inlineInterval 광고 active 상태에서 `adWatched == false`이면 메시지 전송 차단 (return)
+- `adWatched == true`인 경우에만 `dismissAd()` → 메시지 전송 진행
+
+### error_banner 복원 (BUG-4)
+- 주석 처리되어 있던 error_banner import 및 위젯 복원
+- QUOTA_EXCEEDED 등 에러 발생 시 UI에 에러 메시지 표시
+
 ## Connections
 
 - **Providers**: All widgets consume from `providers/` (chat_provider, conversational_ad_provider, persona providers)

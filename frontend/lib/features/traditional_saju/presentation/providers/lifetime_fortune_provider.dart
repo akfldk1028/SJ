@@ -921,14 +921,28 @@ class SajuCharacterInfo {
     this.season,
   });
 
+  /// 지지 → 동물 하드코딩 매핑
+  static const _jijiAnimalMap = {
+    '자': '쥐', '축': '소', '인': '호랑이', '묘': '토끼',
+    '진': '용', '사': '뱀', '오': '말', '미': '양',
+    '신': '원숭이', '유': '닭', '술': '개', '해': '돼지',
+  };
+
   factory SajuCharacterInfo.fromJson(Map<String, dynamic> json) {
+    final reading = json['reading'] as String? ?? '';
+    // AI가 animal을 안 주면 지지 한글에서 하드코딩 매핑
+    String? animal = json['animal'] as String?;
+    if ((animal == null || animal.isEmpty) && reading.isNotEmpty) {
+      animal = _jijiAnimalMap[reading];
+    }
+
     return SajuCharacterInfo(
       character: json['character'] as String? ?? '',
-      reading: json['reading'] as String? ?? '',
+      reading: reading,
       oheng: json['oheng'] as String? ?? '',
       yinYang: json['yin_yang'] as String? ?? '',
       meaning: json['meaning'] as String? ?? '',
-      animal: json['animal'] as String?,
+      animal: animal,
       season: json['season'] as String?,
     );
   }
@@ -1325,8 +1339,9 @@ class LifetimeFortune extends _$LifetimeFortune {
     // Provider 재빌드 시 상태 초기화
     _isPolling = false;
     _pollingAttempts = 0;
+    _isAnalyzing = false;
 
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) {
       print('[LifetimeFortune] 활성 프로필 없음');
       return null;
@@ -1446,6 +1461,12 @@ class LifetimeFortune extends _$LifetimeFortune {
   }
 
   /// AI 분석 트리거 (중복 호출 방지)
+  ///
+  /// v7.3: analyzeOnProfileSave → analyzeRelationProfile로 변경
+  /// - analyzeOnProfileSave는 saju_base + analyzeAllFortunes(daily 포함)를 실행
+  /// - LifetimeProvider는 saju_base만 필요, daily는 DailyFortuneProvider가 담당
+  /// - 기존: analyzeOnProfileSave → _runBothAnalyses → analyzeAllFortunes (daily 중복 API 호출)
+  /// - 변경: analyzeRelationProfile → _runSajuBaseAnalysis (saju_base만 단독 실행)
   Future<void> _triggerAnalysisIfNeeded(String profileId) async {
     if (_isAnalyzing) {
       print('[LifetimeFortune] 이미 분석 중 - 스킵');
@@ -1459,17 +1480,16 @@ class LifetimeFortune extends _$LifetimeFortune {
     }
 
     _isAnalyzing = true;
-    print('[LifetimeFortune] 🚀 AI 분석 백그라운드 시작...');
+    print('[LifetimeFortune] 🚀 saju_base 단독 분석 시작 (fortune 제외)...');
 
-    // 백그라운드로 분석 실행
-    sajuAnalysisService.analyzeOnProfileSave(
+    // v7.3: saju_base만 단독 분석 (daily/monthly/yearly는 각 provider가 담당)
+    sajuAnalysisService.analyzeRelationProfile(
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
       onComplete: (result) {
         _isAnalyzing = false;
-        print('[LifetimeFortune] ✅ AI 분석 완료');
-        print('  - saju_base: ${result.sajuBase?.success ?? false}');
+        print('[LifetimeFortune] ✅ saju_base 분석 완료: ${result.success}');
         // 폴링이 데이터를 감지하고 UI를 갱신할 것임
       },
     );
@@ -1579,7 +1599,7 @@ class SajuPaljaData {
 class SajuPalja extends _$SajuPalja {
   @override
   Future<SajuPaljaData?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     try {

@@ -149,8 +149,13 @@ class SystemPromptBuilder {
       }
     }
 
-    // 11. 마무리 지시문
-    _addClosingInstructions(isCompatibilityMode: isCompatibilityMode);
+    // 11. 마무리 지시문 (v12.1: 전체 참가자 수 전달)
+    final totalParticipants = (isCompatibilityMode ? 2 : 0) +
+        (additionalParticipants?.length ?? 0);
+    _addClosingInstructions(
+      isCompatibilityMode: isCompatibilityMode,
+      totalParticipants: totalParticipants,
+    );
 
     return _buffer.toString();
   }
@@ -406,9 +411,11 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
     _buffer.writeln('### 데이터 활용 지시');
-    _buffer.writeln('- 위에 제공된 두 사람의 **사주팔자 8글자, 오행 분포, 용신, 십성, 합충형해파** 데이터를 반드시 활용하세요.');
+    _buffer.writeln('- 위에 제공된 **모든 참가자**의 **사주팔자 8글자, 오행 분포, 용신, 십성, 합충형해파** 데이터를 반드시 활용하세요.');
+    _buffer.writeln('- 사용자가 특정 인물을 언급하면 해당 인물의 사주 데이터를 즉시 활용하세요.');
     _buffer.writeln('- 두 사람의 일간(日干)을 비교하여 천간합 여부와 오행 관계를 먼저 분석하세요.');
     _buffer.writeln('- 구체적인 글자를 인용하며 분석하세요 (예: "경금 일간과 을목 일간이 을경합을 이루어...").');
+    _buffer.writeln('- 위에 사주 데이터가 제공된 참가자는 바로 분석하세요. 데이터가 없는 인물이 언급되면 생년월일시를 요청하세요.');
   }
 
   /// v8.1: 관계 유형별 분석 지시문 추가
@@ -459,13 +466,21 @@ class SystemPromptBuilder {
   }
 
   /// 마무리 지시문 추가
-  void _addClosingInstructions({bool isCompatibilityMode = false}) {
+  /// [totalParticipants]: 전체 참가자 수 (person1 + person2 + additional)
+  void _addClosingInstructions({bool isCompatibilityMode = false, int totalParticipants = 2}) {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
     if (isCompatibilityMode) {
-      _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
-      _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+      if (totalParticipants > 2) {
+        // v12.1: 3명 이상 참가자 → 모든 참가자 동등 참조
+        _buffer.writeln('위 $totalParticipants명 모든 참가자의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+        _buffer.writeln('위에 프로필과 사주 데이터가 제공된 참가자는 즉시 해당 데이터를 활용하여 분석하세요.');
+        _buffer.writeln('데이터가 제공되지 않은 인물이 언급되면, 해당 인물의 생년월일시와 성별을 요청하세요.');
+      } else {
+        _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+        _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+      }
       _buffer.writeln('합충형파해 관계를 적극 활용하여 깊이 있는 궁합 분석을 제공하세요.');
     } else {
       _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');

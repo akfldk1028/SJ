@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/utils/text_formatter.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
 import '../../../../shared/widgets/fortune_section_card.dart';
@@ -941,7 +942,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   Widget _buildParagraph(AppThemeExtension theme, String text) {
     return Text(
-      text,
+      FortuneTextFormatter.formatParagraph(text),
       style: TextStyle(
         fontSize: 15,
         color: theme.textSecondary,
@@ -1278,7 +1279,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       case '토':
         return const Color(0xFFFFB300);  // 노랑
       case '금':
-        return const Color(0xFFFFFFFF);  // 흰색/금색
+        return const Color(0xFF708090);  // 슬레이트 그레이 (은색 계열)
       case '수':
         return const Color(0xFF2196F3);  // 파랑
       default:

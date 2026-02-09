@@ -228,7 +228,7 @@ class SajuDetailSheet extends ConsumerWidget {
                             _buildOhengBar(context, theme, '토(土)', oheng.to,
                                 theme.earthColor ?? const Color(0xFFD4A574)),
                             _buildOhengBar(context, theme, '금(金)', oheng.geum,
-                                theme.metalColor ?? const Color(0xFFE8E8E8)),
+                                theme.metalColor ?? const Color(0xFF708090)),
                             _buildOhengBar(context, theme, '수(水)', oheng.su,
                                 theme.waterColor ?? const Color(0xFF7EB8DA)),
                           ],

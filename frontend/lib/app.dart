@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import 'AI/fortune/common/korea_date_utils.dart';
 import 'router/app_router.dart';
 import 'core/theme/theme_provider.dart';
+import 'features/menu/presentation/providers/daily_fortune_provider.dart';
+import 'purchase/providers/purchase_provider.dart';
 
 /// 사담 앱 루트 위젯
 class MantokApp extends ConsumerStatefulWidget {
@@ -17,6 +20,8 @@ class MantokApp extends ConsumerStatefulWidget {
 
 class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserver {
   bool _routerListenerAdded = false;
+  /// 마지막으로 확인한 한국 날짜 (앱 resume 시 날짜 변경 감지용)
+  DateTime _lastKnownDate = KoreaDateUtils.today;
 
   @override
   void initState() {
@@ -38,6 +43,21 @@ class _MantokAppState extends ConsumerState<MantokApp> with WidgetsBindingObserv
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _applySystemUiStyle();
+      // 앱 재진입 시 구매 상태 갱신
+      ref.read(purchaseNotifierProvider.notifier).refresh();
+      // 날짜 변경 감지 → 일운 자동 갱신
+      _checkDateChange();
+    }
+  }
+
+  /// 한국 날짜가 바뀌었으면 dailyFortune 갱신
+  void _checkDateChange() {
+    final currentDate = KoreaDateUtils.today;
+    if (currentDate != _lastKnownDate) {
+      print('[MantokApp] 📅 날짜 변경 감지: $_lastKnownDate → $currentDate');
+      _lastKnownDate = currentDate;
+      ref.invalidate(dailyFortuneProvider);
+      ref.invalidate(dailyFortuneDatesProvider);
     }
   }
 

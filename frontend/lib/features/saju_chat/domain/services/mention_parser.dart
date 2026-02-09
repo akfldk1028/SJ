@@ -285,7 +285,8 @@ class MentionParser {
       case '직장':
         return relationType.startsWith('work');
       case '기타':
-        return relationType == 'other' || relationType.startsWith('other');
+        return relationType == 'other' || relationType.startsWith('other')
+            || relationType == 'business_partner' || relationType == 'mentor';
       default:
         return false;
     }
