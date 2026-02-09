@@ -1,21 +1,16 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../AI/services/saju_analysis_service.dart';
-import '../services/error_logging_service.dart';
-import '../../features/profile/presentation/providers/profile_provider.dart';
 import '../theme/app_theme.dart';
 
 /// 메인 하단 네비게이션 바 - 공유 위젯
-class MainBottomNav extends ConsumerWidget {
+class MainBottomNav extends StatelessWidget {
   final int currentIndex;
 
   const MainBottomNav({super.key, required this.currentIndex});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = context.appTheme;
 
     return Container(
@@ -35,27 +30,23 @@ class MainBottomNav extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(context, ref, theme, Icons.auto_awesome_rounded, 'menu.nav_fortune'.tr(), 0, '/menu'),
-          _buildNavItem(context, ref, theme, Icons.people_outline_rounded, 'menu.nav_relationships'.tr(), 1, '/relationships'),
-          _buildNavItem(context, ref, theme, Icons.forum_rounded, 'menu.nav_aiChat'.tr(), 2, '/saju/chat'),
-          _buildNavItem(context, ref, theme, Icons.calendar_month_rounded, 'menu.nav_calendar'.tr(), 3, '/calendar'),
-          _buildNavItem(context, ref, theme, Icons.settings_outlined, 'menu.nav_settings'.tr(), 4, '/settings'),
+          _buildNavItem(context, theme, Icons.auto_awesome_rounded, 'menu.nav_fortune'.tr(), 0, '/menu'),
+          _buildNavItem(context, theme, Icons.people_outline_rounded, 'menu.nav_relationships'.tr(), 1, '/relationships'),
+          _buildNavItem(context, theme, Icons.forum_rounded, 'menu.nav_aiChat'.tr(), 2, '/saju/chat'),
+          _buildNavItem(context, theme, Icons.calendar_month_rounded, 'menu.nav_calendar'.tr(), 3, '/calendar'),
+          _buildNavItem(context, theme, Icons.settings_outlined, 'menu.nav_settings'.tr(), 4, '/settings'),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, WidgetRef ref, AppThemeExtension theme, IconData icon, String label, int index, String route) {
+  Widget _buildNavItem(BuildContext context, AppThemeExtension theme, IconData icon, String label, int index, String route) {
     final isActive = currentIndex == index;
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           if (!isActive) {
-            // v30: AI 상담 또는 운세 탭 → saju_base lazy trigger
-            if (index == 0 || index == 2) {
-              _triggerSajuBaseIfNeeded(ref);
-            }
             context.go(route);
           }
         },
@@ -82,26 +73,5 @@ class MainBottomNav extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  /// v30: saju_base lazy trigger (fire-and-forget)
-  void _triggerSajuBaseIfNeeded(WidgetRef ref) {
-    ref.read(activeProfileProvider.future).then((profile) {
-      if (profile == null) return;
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-      SajuAnalysisService().analyzeOnProfileSave(
-        userId: user.id,
-        profileId: profile.id,
-        runInBackground: true,
-      );
-    }).catchError((e) {
-      ErrorLoggingService.logError(
-        operation: 'main_bottom_nav._triggerSajuBaseIfNeeded',
-        errorMessage: e.toString(),
-        errorType: 'saju_base_trigger',
-        sourceFile: 'core/widgets/main_bottom_nav.dart',
-      );
-    });
   }
 }

@@ -2,7 +2,7 @@
 
 Gemini 3.0 Flash 기반 AI 채팅 Edge Function. SSE 스트리밍 응답.
 
-**현재 버전**: v27 (배포 version 48)
+**현재 버전**: v59 (2026-02-08)
 
 ## 핵심 기능
 
@@ -13,6 +13,9 @@ Gemini 3.0 Flash 기반 AI 채팅 Edge Function. SSE 스트리밍 응답.
 | 캐시 fallback (v27) | 캐시 에러 시 표준 요청으로 자동 재시도 |
 | 비용 기록 | gemini_cost_usd → user_daily_token_usage |
 | 비용 추산 fallback (v26) | usageMetadata 누락 시 텍스트 길이 기반 추산 |
+| Quota 체크 (v50+) | `effective_quota = daily_quota + bonus + rewarded + native_tokens`. 초과 시 429 |
+| Premium bypass (v50+) | `subscriptions` 테이블에서 active 상품 확인 → quota 면제 |
+| Premium 만료 전환 (v59) | premium→free 전환 시 chatting_tokens가 free quota 3배 초과면 리셋 |
 
 ## Context Caching 흐름
 
@@ -37,8 +40,17 @@ Gemini 3.0 Flash 기반 AI 채팅 Edge Function. SSE 스트리밍 응답.
   └─ session_id 없음 → 표준 요청 (캐싱 미사용)
 ```
 
-## v27 수정 사항 (3건)
+## 주요 버전 변경사항
 
+### v59 (2026-02-08)
+- Premium 만료 전환 처리: `chatting_tokens > free_quota * 3`이면 리셋
+
+### v50 (2026-02-02)
+- Quota 체크 로직: `checkAndUpdateQuota()` 함수 추가
+- Premium bypass: `subscriptions` 테이블 조회 → active이면 quota 면제
+- `effective_quota = daily_quota + bonus_tokens + rewarded_tokens_earned + native_tokens_earned`
+
+### v27
 1. **변수명 오타**: `cachedTokens` → `totalCachedTokens` (비용 기록 에러 수정)
 2. **캐시 생성 API**: `contents` 필드 제거 (Gemini API 규격 준수)
 3. **캐시 fallback**: 캐시 에러 시 `throw` 대신 캐시 없이 재시도

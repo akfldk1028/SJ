@@ -1,7 +1,7 @@
 # ad/ - AdMob Advertising Module
 
 > **Owner**: DK
-> **Package**: google_mobile_ads ^5.3.0
+> **Package**: google_mobile_ads ^6.0.0
 
 ## Folder Structure
 
@@ -42,13 +42,15 @@ frontend/lib/ad/
 | Trigger | Reward | Tracking Column |
 |---------|--------|-----------------|
 | Rewarded ad complete | 3000 tokens | `rewarded_tokens_earned` |
-| Native ad impression | 1500 tokens | `native_impressions` (count only) |
+| Native ad click | 7000~10000 tokens | `native_tokens_earned` (via `add_native_bonus_tokens` RPC) |
+| Native ad impression | count only | `native_impressions` (count only) |
 
 ## DB Columns (user_daily_token_usage)
 
 | Column | Status | Description |
 |--------|--------|-------------|
 | `rewarded_tokens_earned` | Implemented | Tokens from rewarded ads |
+| `native_tokens_earned` | Implemented | Tokens from native ad clicks |
 | `bonus_tokens_earned` | Not implemented | Reserved for events/attendance |
 
 ## Test vs Production

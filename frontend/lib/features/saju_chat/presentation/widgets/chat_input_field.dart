@@ -83,6 +83,9 @@ class ChatInputField extends StatefulWidget {
   final bool enabled;
   final String? hintText;
 
+  /// 힌트 텍스트 색상 (null이면 기본 textMuted)
+  final Color? hintColor;
+
   /// 외부에서 텍스트 제어를 위한 컨트롤러 (선택적)
   final TextEditingController? controller;
 
@@ -94,6 +97,7 @@ class ChatInputField extends StatefulWidget {
     required this.onSend,
     this.enabled = true,
     this.hintText,
+    this.hintColor,
     this.controller,
     this.mentionColor,
   });
@@ -219,8 +223,9 @@ class _ChatInputFieldState extends State<ChatInputField> {
                   decoration: InputDecoration(
                     hintText: widget.hintText ?? 'saju_chat.defaultInputHint'.tr(),
                     hintStyle: TextStyle(
-                      color: theme.textMuted,
+                      color: widget.hintColor ?? theme.textMuted,
                       fontSize: 15,
+                      fontWeight: widget.hintColor != null ? FontWeight.w600 : null,
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(

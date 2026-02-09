@@ -2,7 +2,7 @@
 
 AI backend for Mantok saju chat service.
 
-> **Last updated**: 2026-02-01 (DK)
+> **Last updated**: 2026-02-08 (DK)
 > **Related docs**: `EdgeFunction_task.md` (deployment), `docs/04_data_models.md` (DB schema)
 
 ## Functions
@@ -11,13 +11,13 @@ AI backend for Mantok saju chat service.
 |----------|-------|---------|---------|
 | `ai-openai` | GPT-5.2 | **v42** | Saju analysis (background mode) |
 | `ai-openai-result` | - | **v32** | Poll GPT background task results |
-| `ai-gemini` | gemini-3-flash-preview | **v43** | Chat streaming (SSE) |
+| `ai-gemini` | gemini-3-flash-preview | **v59** | Chat streaming (SSE) + quota check + premium bypass |
 | `ai-openai-mini` | - | - | Lightweight OpenAI tasks |
 | `ai-task-status` | - | - | Task status check endpoint |
 | `generate-ai-summary` | gemini-2.0-flash | v4 | Legacy (do not use for new features) |
 | `purchase-webhook` | - | - | Purchase verification webhook |
 
-## ai-gemini (v43)
+## ai-gemini (v59)
 
 Gemini 3.0 Flash chat with SSE streaming.
 
@@ -26,7 +26,9 @@ Gemini 3.0 Flash chat with SSE streaming.
 - **Token recording**: Records `gemini_cost_usd` directly. `chatting_tokens` and `chatting_message_count` recorded by Edge Function (no DB trigger).
 - **Thought filtering**: Filters out Gemini thinking/reasoning content from streamed output
 - **Buffer flush fix**: Ensures partial buffers are flushed on stream end
-- **Quota**: Only `chatting_tokens` count toward daily quota. Fortune tokens (saju, monthly, yearly) are exempt.
+- **Quota check**: `effective_quota = daily_quota + bonus_tokens + rewarded_tokens + native_tokens`. QUOTA_EXCEEDED → 429 응답
+- **Premium bypass**: `subscriptions` 테이블에서 active 상품 확인 → premium이면 quota 면제
+- **Premium 만료 전환** (v59): premium→free 전환 시 `chatting_tokens`가 free quota의 3배 초과면 리셋
 - **Intent classification**: Uses `gemini-2.5-flash-lite` for intent detection (`countAsMessage: false`)
 
 ## ai-openai (v42)
@@ -84,7 +86,7 @@ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 | Column | Source |
 |--------|--------|
 | `saju_analysis_tokens` | ai-openai-result |
-| `chatting_tokens` | ai-gemini |
+| `chatting_tokens` | ai-gemini (quota 대상) |
 | `monthly_fortune_tokens` | ai-openai-result |
 | `yearly_fortune_2025_tokens` | ai-openai-result |
 | `yearly_fortune_2026_tokens` | ai-openai-result |

@@ -25,9 +25,10 @@ class AppFonts {
     return GoogleFonts.notoSansKr();
   }
 
-  /// 운세/결과 표시용 폰트 (Noto Sans KR)
+  /// 운세/결과 표시용 폰트 (Noto Serif KR — 명조체)
+  /// 사주/운세 콘텐츠에 신뢰감+전통 느낌
   static TextStyle get fortuneStyle {
-    return GoogleFonts.notoSansKr();
+    return GoogleFonts.notoSerifKr();
   }
 
   /// 강조/제목용 폰트 (Noto Sans KR)
@@ -67,13 +68,13 @@ class AppFonts {
     );
   }
 
-  /// 운세 결과 스타일
+  /// 운세 결과 스타일 (명조체)
   static TextStyle fortuneResult({
     Color? color,
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.normal,
   }) {
-    return GoogleFonts.notoSansKr(
+    return GoogleFonts.notoSerifKr(
       color: color,
       fontSize: fontSize,
       fontWeight: fontWeight,
@@ -81,15 +82,30 @@ class AppFonts {
     );
   }
 
-  /// 사주 용어 스타일 (강조)
+  /// 사주 용어 스타일 (명조체 강조)
   static TextStyle sajuTerm({
     Color? color,
     double fontSize = 14,
   }) {
-    return GoogleFonts.notoSansKr(
+    return GoogleFonts.notoSerifKr(
       color: color,
       fontSize: fontSize,
       fontWeight: FontWeight.w600,
+    );
+  }
+
+  /// 운세 본문 스타일 (명조체 — 카테고리 설명, 조언 등)
+  static TextStyle fortuneBody({
+    Color? color,
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.w400,
+    double height = 1.7,
+  }) {
+    return GoogleFonts.notoSerifKr(
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      height: height,
     );
   }
 

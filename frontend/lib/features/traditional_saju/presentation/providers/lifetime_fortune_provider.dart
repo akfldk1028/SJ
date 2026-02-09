@@ -1341,7 +1341,7 @@ class LifetimeFortune extends _$LifetimeFortune {
     _pollingAttempts = 0;
     _isAnalyzing = false;
 
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) {
       print('[LifetimeFortune] 활성 프로필 없음');
       return null;
@@ -1600,7 +1600,7 @@ class SajuPaljaData {
 class SajuPalja extends _$SajuPalja {
   @override
   Future<SajuPaljaData?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     try {

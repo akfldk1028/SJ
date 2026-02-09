@@ -22,114 +22,130 @@ class FortuneSummaryCard extends ConsumerWidget {
     final fortuneAsync = ref.watch(dailyFortuneProvider);
 
     return fortuneAsync.when(
-      loading: () => _buildLoadingCard(theme),
-      error: (error, stack) => _buildErrorCard(context, theme, error),
+      loading: () => _buildLoadingCard(ref, theme),
+      error: (error, stack) => _buildErrorCard(context, ref, theme, error),
       data: (fortune) {
-        // fortune이 null이면 AI 분석 중 → 로딩 표시
+        // fortune이 null이면 AI 분석 중 → 탭하면 재시도
         if (fortune == null) {
-          return _buildAnalyzingCard(theme);
+          return _buildAnalyzingCard(ref, theme);
         }
         return _buildFortuneCard(context, theme, fortune);
       },
     );
   }
 
-  Widget _buildLoadingCard(AppThemeExtension theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 220,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: AnimatedYinYangIllustration(
-                  size: 80,
-                  showGlow: true,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'menu.fortuneLoading'.tr(),
-                style: TextStyle(
-                  color: theme.textMuted,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+  Widget _buildLoadingCard(WidgetRef ref, AppThemeExtension theme) {
+    return GestureDetector(
+      onTap: () {
+        ref.invalidate(dailyFortuneProvider);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          height: 220,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// AI 분석 중일 때 표시하는 카드
-  Widget _buildAnalyzingCard(AppThemeExtension theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 220,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: theme.isDark ? _shadowDark : _shadowLight,
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: AnimatedYinYangIllustration(
+                    size: 80,
+                    showGlow: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'menu.fortuneLoading'.tr(),
+                  style: TextStyle(
+                    color: theme.textMuted,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'menu.tapToReload'.tr(),
+                  style: TextStyle(
+                    color: theme.textMuted.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: AnimatedYinYangIllustration(
-                  size: 80,
-                  showGlow: true,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'menu.aiAnalyzing'.tr(),
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'menu.pleaseWait'.tr(),
-                style: TextStyle(
-                  color: theme.textMuted,
-                  fontSize: 14,
-                ),
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildErrorCard(BuildContext context, AppThemeExtension theme, Object error) {
-    // 에러 원인 로깅
-    print('[FortuneSummaryCard] ❌ 에러 발생: $error');
-    // 에러 시에도 분석 중 카드 표시 (목업 데이터 대신)
-    return _buildAnalyzingCard(theme);
+  /// AI 분석 중일 때 표시하는 카드 (탭하면 수동 새로고침)
+  Widget _buildAnalyzingCard(WidgetRef ref, AppThemeExtension theme) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(dailyFortuneProvider.notifier).refresh();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          height: 220,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: theme.isDark ? _shadowDark : _shadowLight,
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: AnimatedYinYangIllustration(
+                    size: 80,
+                    showGlow: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'menu.aiAnalyzing'.tr(),
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'menu.tapToReload'.tr(),
+                  style: TextStyle(
+                    color: theme.textMuted,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(BuildContext context, WidgetRef ref, AppThemeExtension theme, Object error) {
+    print('[FortuneSummaryCard] 에러 발생: $error');
+    return _buildAnalyzingCard(ref, theme);
   }
 
   DailyFortuneData _getSampleFortuneData() {
@@ -922,7 +938,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '오늘의 한마디',
+                  'menu.todayMessage'.tr(),
                   style: TextStyle(
                     fontSize: titleSize,
                     fontWeight: FontWeight.w600,

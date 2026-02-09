@@ -135,6 +135,7 @@ class _SubscriptionManageScreenState
   ) {
     return ShadCard(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 아이콘
           Icon(
@@ -149,6 +150,7 @@ class _SubscriptionManageScreenState
           // 상태 텍스트
           Text(
             isPremium ? 'purchase.premiumActive'.tr() : 'purchase.freePlan'.tr(),
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 22,
@@ -166,6 +168,7 @@ class _SubscriptionManageScreenState
               ),
               child: Text(
                 planName,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: theme.primaryColor,
                   fontSize: 13,
@@ -176,6 +179,7 @@ class _SubscriptionManageScreenState
           else
             Text(
               'purchase.freeDescription'.tr(),
+              textAlign: TextAlign.center,
               style: TextStyle(color: theme.textMuted, fontSize: 13),
             ),
         ],
@@ -233,9 +237,10 @@ class _SubscriptionManageScreenState
     DateTime expiresAt,
     bool isExpiringSoon,
   ) {
-    final dateStr = '${expiresAt.month}/${expiresAt.day}';
+    final local = expiresAt.toLocal();
+    final dateStr = '${local.month}/${local.day}';
     final timeStr =
-        '${expiresAt.hour.toString().padLeft(2, '0')}:${expiresAt.minute.toString().padLeft(2, '0')}';
+        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 
     return ShadCard(
       child: Row(

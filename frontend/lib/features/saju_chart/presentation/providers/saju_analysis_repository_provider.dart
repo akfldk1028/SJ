@@ -30,7 +30,7 @@ SajuAnalysisRepository sajuAnalysisRepository(Ref ref) {
 class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
   @override
   Future<SajuAnalysisDbModel?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     final repository = ref.read(sajuAnalysisRepositoryProvider);

@@ -710,12 +710,24 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       });
     }
 
-    // 에러 발생 시 자동 소거 (팝업/배너 없이 조용히 처리)
+    // 에러 발생 시 처리: quota 에러는 SnackBar 표시 후 소거
     ref.listen(
       chatNotifierProvider(currentSessionId).select((s) => s.error),
       (previous, next) {
         if (next != null && previous != next) {
-          // 토큰 소진 에러는 배너에서 처리하므로 즉시 소거
+          // QUOTA_EXCEEDED 또는 토큰 관련 에러 → SnackBar로 사용자 피드백
+          if (next.contains('토큰') || next.contains('한도')) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(next),
+                  backgroundColor: const Color(0xFFD4AF37),
+                  duration: const Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
           ref.read(chatNotifierProvider(currentSessionId).notifier).clearError();
         }
       },
@@ -791,6 +803,10 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     // 가로 모드 체크 (화면 높이가 400 미만이면 가로 모드로 간주)
     final isLandscape = MediaQuery.of(context).size.height < 400;
 
+    // 토큰 소진 상태 체크 (입력창/칩 비활성화 → 광고 버튼 클릭 유도)
+    final adState = ref.watch(conversationalAdNotifierProvider);
+    final isTokenDepleted = adState.isAdMode && adState.adType == AdMessageType.tokenDepleted;
+
     // 상단 요소들 (가로 모드에서는 컴팩트하게)
     final topWidgets = <Widget>[
       // const DisclaimerBanner(), // 주석처리: 사주상담 참고용 안내 배너
@@ -826,6 +842,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             padding: const EdgeInsets.only(bottom: 8),
             child: SuggestedQuestions(
               questions: suggestedQuestions,
+              enabled: !isTokenDepleted,
               onQuestionSelected: (question) {
                 print('[_ChatContent] 추천 질문 선택: $question');
                 ref
@@ -864,9 +881,14 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             print('  participantIds: ${params.participantIds}');
             print('  targetId: ${params.targetProfileId}');
             print('  includesOwner: ${params.includesOwner}');
-            // 인터벌 광고 활성 시 메시지 전송 전에 dismiss (AdWidget 중복 방지)
-            final adState = ref.read(conversationalAdNotifierProvider);
-            if (adState.isAdMode && adState.adType == AdMessageType.inlineInterval) {
+            // 인터벌 광고 활성 시 처리
+            final adStateNow = ref.read(conversationalAdNotifierProvider);
+            if (adStateNow.isAdMode && adStateNow.adType == AdMessageType.inlineInterval) {
+              if (!adStateNow.adWatched) {
+                // 광고 미클릭 상태 → 메시지 전송 차단 (토큰 미지급)
+                return;
+              }
+              // 광고 클릭 완료 → dismiss 후 메시지 전송
               ref.read(conversationalAdNotifierProvider.notifier).dismissAd();
             }
 
@@ -886,8 +908,11 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
               widget.onMentionSent!();
             }
           },
-          enabled: !chatState.isLoading,
-          hintText: widget.chatType.inputHint,
+          enabled: !chatState.isLoading && !isTokenDepleted,
+          hintText: isTokenDepleted
+              ? '위 버튼을 눌러 대화를 이어가세요'
+              : widget.chatType.inputHint,
+          hintColor: isTokenDepleted ? const Color(0xFFE91E63) : null,
         ),
       ],
     );

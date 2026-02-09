@@ -338,7 +338,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
 
   @override
   Future<Yearly2025FortuneData?> build() async {
-    final activeProfile = await ref.watch(activeProfileProvider.future);
+    final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
     // 오프라인 모드 - 더미 데이터 반환 (UI 테스트용)
@@ -418,12 +418,16 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       _isAnalyzing = false;
       ref.invalidateSelf();
     } else if (_pollAttempts >= _maxPollAttempts) {
-      print('[Yearly2025Fortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 중지');
+      // v8.0: 타임아웃 시 invalidateSelf()로 재시도 (무한 로딩 수정)
+      print('[Yearly2025Fortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 재시도');
       _isPolling = false;
       _isAnalyzing = false;
+      ref.invalidateSelf();
     } else {
-      // 데이터 없으면 계속 폴링
-      print('[Yearly2025Fortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
+      // 데이터 없으면 계속 폴링 (로그 10회마다)
+      if (_pollAttempts % 10 == 0) {
+        print('[Yearly2025Fortune] 폴링 중 - 데이터 아직 없음 ($_pollAttempts/$_maxPollAttempts)');
+      }
       _pollForData(profileId);
     }
   }
