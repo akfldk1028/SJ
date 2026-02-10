@@ -30,6 +30,8 @@ class InlineAdWidget extends ConsumerStatefulWidget {
 class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _loadAttempted = false;
+  bool _loadFailed = false;
 
   @override
   void didChangeDependencies() {
@@ -61,6 +63,10 @@ class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
         onAdFailedToLoad: (ad, error) {
           debugPrint('[InlineAdWidget] Failed to load: ${error.message}');
           ad.dispose();
+          _bannerAd = null;
+          if (mounted) {
+            setState(() => _loadFailed = true);
+          }
         },
         onAdImpression: (ad) {
           debugPrint('[InlineAdWidget] Impression');
@@ -102,10 +108,23 @@ class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
         _bannerAd = null;
         _isLoaded = false;
       }
+      _loadAttempted = false;
+      _loadFailed = false;
       return const SizedBox.shrink();
     }
 
     if (!_isLoaded || _bannerAd == null) {
+      // 로드 실패 → 공간 차지 안 함
+      if (_loadFailed) {
+        return const SizedBox.shrink();
+      }
+      // 프리미엄 만료 후 광고 재로드
+      if (!_loadAttempted && _bannerAd == null) {
+        _loadAttempted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAd();
+        });
+      }
       // 로딩 중 placeholder (높이 유지)
       return const SizedBox(height: 60);
     }

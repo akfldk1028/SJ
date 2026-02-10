@@ -153,6 +153,8 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
         _nativeAd = null;
         _isLoaded = false;
       }
+      _loadStarted = false; // 프리미엄 해제 시 재로드 가능하도록 리셋
+      _loadFailed = false;
       return const SizedBox.shrink();
     }
 
@@ -161,6 +163,12 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
 
     // 로딩 중이거나 실패 시 placeholder 표시
     if (!_isLoaded || _nativeAd == null) {
+      // 프리미엄 만료 후 광고 재로드
+      if (!_loadStarted && _nativeAd == null && !_loadFailed) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAd();
+        });
+      }
       return _buildPlaceholder(context, isDark);
     }
 
