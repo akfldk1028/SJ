@@ -37,6 +37,8 @@ class NativeAdWidget extends ConsumerStatefulWidget {
 class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
+  bool _loadAttempted = false;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -69,6 +71,9 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
           debugPrint('[NativeAdWidget] Failed to load: ${error.message}');
           ad.dispose();
           _nativeAd = null;
+          if (mounted) {
+            setState(() => _loadFailed = true);
+          }
         },
         onAdOpened: (ad) {
           debugPrint('[NativeAdWidget] Ad opened');
@@ -146,10 +151,23 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
         _nativeAd = null;
         _isLoaded = false;
       }
+      _loadAttempted = false; // 프리미엄 해제 시 재로드 가능하도록 리셋
+      _loadFailed = false;
       return const SizedBox.shrink();
     }
 
     if (!_isLoaded || _nativeAd == null) {
+      // 로드 실패 → 공간 차지 안 함
+      if (_loadFailed) {
+        return const SizedBox.shrink();
+      }
+      // 프리미엄 만료 후 광고 재로드 (1회만 시도)
+      if (!_loadAttempted && _nativeAd == null) {
+        _loadAttempted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAd();
+        });
+      }
       // 로딩 중 placeholder
       return _buildPlaceholder(context);
     }
@@ -304,6 +322,8 @@ class CompactNativeAdWidget extends ConsumerStatefulWidget {
 class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isLoaded = false;
+  bool _loadAttempted = false;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -332,6 +352,10 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
         onAdFailedToLoad: (ad, error) {
           debugPrint('[CompactNativeAdWidget] Failed: ${error.message}');
           ad.dispose();
+          _nativeAd = null;
+          if (mounted) {
+            setState(() => _loadFailed = true);
+          }
         },
         onAdImpression: (ad) {
           debugPrint('[CompactNativeAdWidget] Ad impression');
@@ -398,10 +422,23 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
         _nativeAd = null;
         _isLoaded = false;
       }
+      _loadAttempted = false;
+      _loadFailed = false;
       return const SizedBox.shrink();
     }
 
     if (!_isLoaded || _nativeAd == null) {
+      // 로드 실패 → 공간 차지 안 함
+      if (_loadFailed) {
+        return const SizedBox.shrink();
+      }
+      // 프리미엄 만료 후 광고 재로드
+      if (!_loadAttempted && _nativeAd == null) {
+        _loadAttempted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAd();
+        });
+      }
       return const SizedBox(height: 80);
     }
 

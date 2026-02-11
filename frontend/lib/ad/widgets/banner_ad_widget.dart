@@ -20,6 +20,7 @@ class BannerAdWidget extends ConsumerStatefulWidget {
 class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _loadAttempted = false;
 
   @override
   void didChangeDependencies() {
@@ -70,10 +71,18 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
         _bannerAd = null;
         _isLoaded = false;
       }
+      _loadAttempted = false; // 프리미엄 해제 시 재로드 가능하도록 리셋
       return const SizedBox.shrink();
     }
 
     if (!_isLoaded || _bannerAd == null) {
+      // 프리미엄 만료 후 광고 재로드
+      if (!_loadAttempted && _bannerAd == null) {
+        _loadAttempted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAd();
+        });
+      }
       return const SizedBox.shrink();
     }
 
