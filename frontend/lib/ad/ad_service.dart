@@ -37,6 +37,10 @@ class AdService {
   /// SDK 초기화
   Future<void> initialize() async {
     if (_isInitialized) return;
+    if (!adEnabled) {
+      debugPrint('[AdService] Ad kill switch OFF — skipping SDK init');
+      return;
+    }
 
     try {
       final status = await MobileAds.instance.initialize();
@@ -61,6 +65,8 @@ class AdService {
     void Function(BannerAd)? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
+    if (!adEnabled) return;
+
     // 기존 배너 정리
     await _bannerAd?.dispose();
     _isBannerLoaded = false;
@@ -136,6 +142,8 @@ class AdService {
     void Function()? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
+    if (!adEnabled) return;
+
     await InterstitialAd.load(
       adUnitId: AdUnitId.interstitial,
       request: const AdRequest(),
@@ -202,6 +210,8 @@ class AdService {
 
   /// 전면 광고 표시
   Future<bool> showInterstitialAd() async {
+    if (!adEnabled) return false;
+
     // 최소 간격 체크
     if (_lastInterstitialTime != null) {
       final elapsed = DateTime.now().difference(_lastInterstitialTime!);
@@ -229,6 +239,11 @@ class AdService {
     void Function()? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
+    if (!adEnabled) {
+      debugPrint('[AdService] Ad kill switch OFF — skipping rewarded load');
+      return;
+    }
+
     await RewardedAd.load(
       adUnitId: AdUnitId.rewarded,
       request: const AdRequest(),
@@ -316,6 +331,8 @@ class AdService {
     int? targetMonth,
     String? profileId,
   }) async {
+    if (!adEnabled) return false;
+
     if (!_isRewardedLoaded || _rewardedAd == null) {
       debugPrint('[AdService] Rewarded not ready');
       return false;

@@ -110,6 +110,12 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       return trigger;
     }
 
+    // 킬스위치 OFF → 토큰 소진(tokenDepleted)만 허용 (점검 중 배너 표시용)
+    // interval/nearLimit 광고는 SDK 없이 빈 버블만 나오므로 차단
+    if (!adEnabled && trigger != AdTriggerResult.tokenDepleted) {
+      return AdTriggerResult.none;
+    }
+
     // 광고 모드 활성화
     _activateAdMode(trigger, persona, tokenUsage.usageRate);
 
@@ -229,6 +235,12 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
 
   /// Native 광고 로드
   void _loadNativeAd() {
+    if (!adEnabled) {
+      // 킬스위치 OFF → SDK 호출 없이 loaded 상태로 (UI 표시용)
+      state = state.copyWith(loadState: AdLoadState.loaded);
+      return;
+    }
+
     _nativeAd?.dispose();
 
     _nativeAd = NativeAd(
@@ -305,6 +317,14 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
 
   /// 보상형 광고 로드
   void _loadRewardedAd() {
+    if (!adEnabled) {
+      // 킬스위치 OFF → tokenDepleted 배너는 유지 (프리미엄 구매 유도)
+      if (state.adType == AdMessageType.tokenDepleted) {
+        state = state.copyWith(loadState: AdLoadState.loaded);
+      }
+      return;
+    }
+
     _rewardedAd?.dispose();
 
     RewardedAd.load(

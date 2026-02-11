@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../ad/ad_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../data/models/conversational_ad_model.dart';
@@ -35,7 +36,60 @@ class TokenDepletedBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    // 광고 킬스위치 OFF → 광고 버튼 없이 안내 + 프리미엄만
+    if (!adEnabled) {
+      return _buildAdDisabledBanner(context);
+    }
+
     return _buildTwoButtonBanner(context, ref);
+  }
+
+  /// 광고 비활성화 시 배너 (프리미엄 구매만 안내)
+  Widget _buildAdDisabledBanner(BuildContext context) {
+    final appTheme = context.appTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: appTheme.isDark
+            ? const Color(0xFF2D3A4A)
+            : const Color(0xFFFFF8E1),
+        border: Border(
+          top: BorderSide(
+            color: appTheme.isDark
+                ? const Color(0xFFD4AF37).withValues(alpha: 0.3)
+                : const Color(0xFFFFB300),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '토큰이 소진되었어요. 현재 광고 서비스 점검 중이에요',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: appTheme.isDark
+                  ? const Color(0xFFE0E0E0)
+                  : const Color(0xFF5D4037),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: AdChoiceButton(
+              label: '✨ 광고 없이 이용하기',
+              isPrimary: true,
+              onPressed: () => context.push(Routes.settingsPremium),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 2버튼 배너 (영상 광고 / 네이티브 광고)

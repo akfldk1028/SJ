@@ -43,13 +43,13 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
   @override
   void initState() {
     super.initState();
-    if (_isMobile) {
+    if (_isMobile && adEnabled) {
       _loadAd();
     }
   }
 
   void _loadAd() {
-    if (!_isMobile) return;
+    if (!_isMobile || !adEnabled) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -142,6 +142,8 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!adEnabled) return const SizedBox.shrink();
+
     // 프리미엄 유저는 네이티브 광고 숨김 + 로드된 광고 해제
     ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -328,13 +330,13 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
   @override
   void initState() {
     super.initState();
-    if (_isMobile) {
+    if (_isMobile && adEnabled) {
       _loadAd();
     }
   }
 
   void _loadAd() {
-    if (!_isMobile) return;
+    if (!_isMobile || !adEnabled) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -413,6 +415,8 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!adEnabled) return const SizedBox.shrink();
+
     // 프리미엄 유저는 컴팩트 네이티브 광고 숨김 + 로드된 광고 해제
     ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;

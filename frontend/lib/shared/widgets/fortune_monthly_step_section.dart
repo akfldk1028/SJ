@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ad/ad_config.dart';
 import '../../ad/ad_service.dart';
 import '../../purchase/providers/purchase_provider.dart';
 import 'fortune_category_chip_section.dart';
@@ -418,6 +419,13 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           );
         } catch (_) {}
       }
+      return;
+    }
+
+    // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
+    if (!adEnabled) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog('$month월');
       return;
     }
 
@@ -933,6 +941,13 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       return;
     }
 
+    // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
+    if (!adEnabled) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog(categoryName);
+      return;
+    }
+
     // 광고 로드 및 표시
     if (!AdService.instance.isRewardedLoaded) {
       await AdService.instance.loadRewardedAd(
@@ -991,9 +1006,12 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('광고 준비 중'),
-        content:
-            Text('$categoryName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'),
+        title: Text(adEnabled ? '광고 준비 중' : '광고 서비스 점검 중'),
+        content: Text(
+          adEnabled
+              ? '$categoryName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'
+              : '$categoryName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고 서비스 점검 중입니다.\n프리미엄 구독으로 바로 이용할 수 있어요.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

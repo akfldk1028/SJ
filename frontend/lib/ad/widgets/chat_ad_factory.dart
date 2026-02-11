@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../ad_config.dart';
 import '../ad_strategy.dart';
 import 'inline_ad_widget.dart';
 import 'native_ad_widget.dart';
@@ -70,6 +71,8 @@ class ChatAdWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!adEnabled) return const SizedBox.shrink();
+
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

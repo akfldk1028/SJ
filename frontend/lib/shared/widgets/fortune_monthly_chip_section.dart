@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ad/ad_config.dart';
 import '../../ad/ad_service.dart';
 import '../../purchase/providers/purchase_provider.dart';
 
@@ -957,6 +958,13 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
       return;
     }
 
+    // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
+    if (!adEnabled) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog(monthName);
+      return;
+    }
+
     // 광고가 로드되어 있는지 확인
     if (!AdService.instance.isRewardedLoaded) {
       await AdService.instance.loadRewardedAd(
@@ -1037,9 +1045,12 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('광고 준비 중'),
-        content:
-            Text('$monthName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'),
+        title: Text(adEnabled ? '광고 준비 중' : '광고 서비스 점검 중'),
+        content: Text(
+          adEnabled
+              ? '$monthName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'
+              : '$monthName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고 서비스 점검 중입니다.\n프리미엄 구독으로 바로 이용할 수 있어요.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

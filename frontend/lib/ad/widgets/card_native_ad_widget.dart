@@ -58,7 +58,7 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
   }
 
   void _loadAd() {
-    if (!_isMobile || _loadStarted || !mounted) return;
+    if (!_isMobile || !adEnabled || _loadStarted || !mounted) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -144,6 +144,8 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!adEnabled) return const SizedBox.shrink();
+
     // 프리미엄 유저는 네이티브 광고 숨김 + 로드된 광고 해제
     ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;

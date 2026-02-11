@@ -84,10 +84,12 @@ abstract class OpenAIModels {
   /// - 저렴한 비용
   static const String gpt4oMini = 'gpt-4o-mini';
 
-  /// 사주 분석용 기본 모델
-  /// - GPT-5.2 Thinking: 추론 능력 강화로 사주 분석에 최적
-  /// - 프로필당 1회만 실행되므로 비용 부담 적음
-  static const String sajuAnalysis = gpt52;
+  /// 사주 분석용 기본 모델 (평생운세 saju_base)
+  /// - 원래: gpt52 (GPT-5.2, $1.75/$14.00) → 건당 ~$0.20
+  /// - 현재: gpt5Mini (GPT-5-mini, $0.25/$2.00) → 건당 ~$0.03
+  /// - 이유: AdMob 무효트래픽 제한으로 광고 수익 없음 (2026-02-10~)
+  /// - 복원: 광고 재개되면 gpt52로 되돌리기
+  static const String sajuAnalysis = gpt5Mini;
 
   /// GPT-5-mini (2026년 출시)
   /// - API ID: gpt-5-mini
@@ -96,9 +98,9 @@ abstract class OpenAIModels {
   /// - 입력: $0.25/1M, 출력: $2.00/1M
   static const String gpt5Mini = 'gpt-5-mini';
 
-  /// 운세 분석용 모델 (GPT-5-mini)
-  /// - saju_base를 기반으로 파생 운세 생성
-  /// - 2026 신년운세, 이번달 운세, 2025 회고 등
+  /// 운세 분석용 모델 (파생 운세: 2025 회고, 2026 신년, 월운 등)
+  /// - 처음부터 gpt5Mini로 설계 (saju_base 기반 파생이라 mini로 충분)
+  /// - sajuAnalysis와 달리 모델 변경 이력 없음
   static const String fortuneAnalysis = gpt5Mini;
 }
 

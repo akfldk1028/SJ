@@ -13,6 +13,12 @@ enum AdMode {
 /// 현재 광고 모드 설정
 const AdMode currentAdMode = AdMode.production;
 
+/// 광고 킬스위치
+/// false = 모든 광고 비활성화 (SDK 초기화, 로드, 표시 전부 스킵)
+/// true = 정상 동작
+/// AdMob 제한 해제 또는 대체 네트워크 승인 시 true로 변경
+const bool adEnabled = false;
+
 /// 테스트 광고 Unit ID (Google 공식 테스트 ID)
 /// 개발 중에는 반드시 이 ID를 사용해야 계정 정지 방지
 abstract class TestAdUnitIds {
