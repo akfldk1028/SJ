@@ -1,15 +1,8 @@
 package com.clickaround.sadam
 
-import android.graphics.Color
-import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 
-class MainActivity : FlutterActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // Edge-to-Edge: 시스템 바 투명으로 설정
-        window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.TRANSPARENT
-    }
-}
+// Android 15+ (SDK 35): edge-to-edge 자동 강제
+// deprecated setStatusBarColor/setNavigationBarColor 제거
+// Flutter Dart-side SystemChrome으로 시스템바 제어
+class MainActivity : FlutterActivity()
