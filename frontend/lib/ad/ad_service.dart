@@ -250,11 +250,11 @@ class AdService {
 
     // AdFit 전면 광고 우선 시도 (한국 Android)
     if (AdNetworkResolver.isAdFitAvailable && AdFitService.instance.isInterstitialLoaded) {
-      _lastInterstitialTime = DateTime.now();
       final shown = await AdFitService.instance.showInterstitial(
         onDismissed: onDismissed,
       );
       if (shown) {
+        _lastInterstitialTime = DateTime.now();
         debugPrint('[AdService] AdFit interstitial shown');
         return true;
       }
@@ -277,7 +277,7 @@ class AdService {
         },
         onAdFailedToShowFullScreenContent: (ad, error) {
           originalCallback?.onAdFailedToShowFullScreenContent?.call(ad, error);
-          onDismissed();
+          // onDismissed 호출하지 않음 — 광고 표시 실패 시 토큰 지급 방지
         },
         onAdImpression: originalCallback?.onAdImpression,
         onAdClicked: originalCallback?.onAdClicked,
@@ -292,6 +292,7 @@ class AdService {
   /// Interstitial 광고 로드 대기 (최대 timeout)
   /// 이미 로드되어 있으면 즉시 true 반환
   /// AdFit 또는 AdMob 중 하나라도 로드되면 true
+  /// 2초 경과 후에도 미로드 시 1회 재시도
   Future<bool> waitForInterstitialLoad({
     Duration timeout = const Duration(seconds: 5),
   }) async {
@@ -302,13 +303,23 @@ class AdService {
 
     // 폴링으로 대기 (100ms 간격)
     final checkAdFit = AdNetworkResolver.isAdFitAvailable;
-    final deadline = DateTime.now().add(timeout);
+    final startTime = DateTime.now();
+    final deadline = startTime.add(timeout);
+    bool retried = false;
+
     while (DateTime.now().isBefore(deadline)) {
       if (checkAdFit) {
         _isAdFitInterstitialLoaded = AdFitService.instance.isInterstitialLoaded;
       }
       if (isInterstitialLoaded) return true;
       await Future.delayed(const Duration(milliseconds: 100));
+
+      // 2초 경과 후에도 로드 안 됐으면 1회 재시도
+      if (!retried && DateTime.now().difference(startTime).inMilliseconds > 2000) {
+        retried = true;
+        debugPrint('[AdService] Interstitial not loaded after 2s, retrying...');
+        loadInterstitialAd();
+      }
     }
 
     if (checkAdFit) {

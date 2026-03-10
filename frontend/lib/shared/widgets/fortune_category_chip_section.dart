@@ -886,6 +886,7 @@ class _FortuneCategoryChipSectionState
     // 전면 광고 로드 대기 (최대 5초) → 표시
     await AdService.instance.waitForInterstitialLoad();
     final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
       onDismissed: () async {
         // 광고 닫힌 후 해금 (크래시 방지)
         if (unlockInfo != null) {
