@@ -95,7 +95,7 @@ class CompatibilityAnalysisService {
 
   /// 현재 궁합 계산 모델 버전
   /// 점수 로직 변경 시 버전을 올리면 기존 캐시가 자동 무효화되어 재계산됨
-  static const _currentModelVersion = 'compatibility_calculator_v11_spread';
+  static const _currentModelVersion = 'compatibility_calculator_v12_detailed';
 
   /// 궁합 분석 실행 (캐시 확인 → 없으면 새로 분석)
   ///
@@ -252,6 +252,12 @@ class CompatibilityAnalysisService {
         return null; // null 반환 → 새로 계산
       }
 
+      // saju_analysis에서 detailed_analysis 추출 → top-level로 승격
+      final sajuAnalysis = response['saju_analysis'] as Map<String, dynamic>?;
+      if (sajuAnalysis?['detailed_analysis'] != null) {
+        response['detailed_analysis'] = sajuAnalysis!['detailed_analysis'];
+      }
+
       // Phase 53: 순서 확인 - profile1_id가 fromProfileId와 일치하는지
       final isSwapped = response['profile1_id'] != fromProfileId;
 
@@ -362,7 +368,10 @@ class CompatibilityAnalysisService {
       'relation_type': relationType,
       'overall_score': calculationResult.overallScore,
       'category_scores': calculationResult.categoryScores,
-      'saju_analysis': calculationResult.hapchungDetails.toJson(),
+      'saju_analysis': {
+        ...calculationResult.hapchungDetails.toJson(),
+        'detailed_analysis': calculationResult.detailedAnalysis,
+      },
       'summary': calculationResult.summary,
       'strengths': calculationResult.strengths,
       'challenges': calculationResult.challenges,

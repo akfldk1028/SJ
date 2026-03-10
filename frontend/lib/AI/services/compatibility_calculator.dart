@@ -831,6 +831,9 @@ class CompatibilityResult {
   /// 요약 설명
   final String summary;
 
+  /// 오행/용신 상세 분석 (프롬프트 전달용)
+  final Map<String, dynamic> detailedAnalysis;
+
   const CompatibilityResult({
     required this.overallScore,
     required this.categoryScores,
@@ -838,6 +841,7 @@ class CompatibilityResult {
     required this.challenges,
     required this.hapchungDetails,
     required this.summary,
+    required this.detailedAnalysis,
   });
 
   /// JSON 변환
@@ -848,6 +852,7 @@ class CompatibilityResult {
         'challenges': challenges,
         'hapchung_details': hapchungDetails.toJson(),
         'summary': summary,
+        'detailed_analysis': detailedAnalysis,
       };
 }
 
@@ -923,6 +928,12 @@ class CompatibilityCalculator {
       relationType: relationType,
     );
 
+    // 8. 상세 분석 텍스트 생성 (오행 관계 + 용신 호환성)
+    final detailedAnalysis = {
+      'oheng': _buildOhengDetail(myParsed, targetParsed, ohengAnalysis, mySaju, targetSaju),
+      'yongsin': _buildYongsinDetail(mySaju, targetSaju, myParsed, targetParsed),
+    };
+
     print('[CompatibilityCalculator] ✅ 궁합 계산 완료: ${scores['overall']}점');
 
     return CompatibilityResult(
@@ -932,6 +943,7 @@ class CompatibilityCalculator {
       challenges: challenges,
       hapchungDetails: hapchungAnalysis,
       summary: summary,
+      detailedAnalysis: detailedAnalysis,
     );
   }
 
@@ -1542,6 +1554,157 @@ class CompatibilityCalculator {
       case '시': return 0.7;  // 시주: 말년/내적 관계
       default: return 1.0;
     }
+  }
+
+  /// 오행 관계 상세 텍스트 생성 (원국 전체 기반)
+  Map<String, dynamic> _buildOhengDetail(
+    _ParsedSaju myParsed,
+    _ParsedSaju targetParsed,
+    Map<String, dynamic> ohengAnalysis,
+    Map<String, dynamic> mySaju,
+    Map<String, dynamic> targetSaju,
+  ) {
+    final myDayMaster = myParsed.dayGan?.toKoreanHanja() ?? '?';
+    final targetDayMaster = targetParsed.dayGan?.toKoreanHanja() ?? '?';
+    final myDayOheng = myParsed.dayGan?.oheng ?? '?';
+    final targetDayOheng = targetParsed.dayGan?.oheng ?? '?';
+
+    // 원국 전체 오행 합산
+    final myOheng = mySaju['oheng_distribution'] as Map<String, dynamic>? ?? {};
+    final targetOheng = targetSaju['oheng_distribution'] as Map<String, dynamic>? ?? {};
+    final combined = <String, int>{};
+    for (final key in ['목', '화', '토', '금', '수']) {
+      final myCount = (myOheng[key] as num?)?.toInt() ?? 0;
+      final targetCount = (targetOheng[key] as num?)?.toInt() ?? 0;
+      combined[key] = myCount + targetCount;
+    }
+
+    final allPresent = combined.values.every((v) => v > 0);
+    final ohengSummary = combined.entries.map((e) => '${e.key}${e.value}').join('·');
+    final circulationNote = allPresent ? '전 오행 존재, 순환 가능' : '일부 오행 결핍';
+
+    // 상생/상극 방향 텍스트
+    String relationship = ohengAnalysis['reason'] as String? ?? '분석 불가';
+    final ohengType = ohengAnalysis['type'] as String?;
+    if (ohengType == 'sangsaeng') {
+      // 누가 누구를 생하는지 방향 표시
+      final myOh = Oheng.fromString(myDayOheng);
+      final targetOh = Oheng.fromString(targetDayOheng);
+      if (myOh != null && targetOh != null) {
+        if (targetOh.iGenerate == myOh) {
+          relationship += ' — 상대(${targetOh.korean})가 나(${myOh.korean})를 생해주는 관계';
+        } else if (myOh.iGenerate == targetOh) {
+          relationship += ' — 내(${myOh.korean})가 상대(${targetOh.korean})를 생해주는 관계';
+        }
+      }
+    }
+
+    return {
+      'my_day_master': '$myDayMaster [$myDayOheng]',
+      'target_day_master': '$targetDayMaster [$targetDayOheng]',
+      'relationship': relationship,
+      'interpretation': '합산 오행: $ohengSummary — $circulationNote',
+    };
+  }
+
+  /// 용신 호환성 상세 텍스트 생성 (원국 전체 기반)
+  Map<String, dynamic> _buildYongsinDetail(
+    Map<String, dynamic> mySaju,
+    Map<String, dynamic> targetSaju,
+    _ParsedSaju myParsed,
+    _ParsedSaju targetParsed,
+  ) {
+    final myYongsin = mySaju['yongsin'] as Map<String, dynamic>?;
+    final targetYongsin = targetSaju['yongsin'] as Map<String, dynamic>?;
+    final myOheng = mySaju['oheng_distribution'] as Map<String, dynamic>? ?? {};
+    final targetOheng = targetSaju['oheng_distribution'] as Map<String, dynamic>? ?? {};
+
+    String myEffect = '용신 정보 없음';
+    String targetEffect = '용신 정보 없음';
+    int myBenefit = 0;
+    int targetBenefit = 0;
+
+    // 상대 원국에서 나의 용신/희신/기신 오행 개수
+    if (myYongsin != null) {
+      final parts = <String>[];
+      final yongsinK = _extractOhengKorean(myYongsin['yongsin'] as String?);
+      final heesinK = _extractOhengKorean(myYongsin['heesin'] as String?);
+      final gisinK = _extractOhengKorean(myYongsin['gisin'] as String?);
+
+      if (yongsinK != null) {
+        final count = (targetOheng[yongsinK] as num?)?.toInt() ?? 0;
+        parts.add('용신($yongsinK) ${count}개');
+        myBenefit += count * 2;
+      }
+      if (heesinK != null) {
+        final count = (targetOheng[heesinK] as num?)?.toInt() ?? 0;
+        parts.add('희신($heesinK) ${count}개');
+        myBenefit += count;
+      }
+      if (gisinK != null) {
+        final count = (targetOheng[gisinK] as num?)?.toInt() ?? 0;
+        if (count > 0) parts.add('기신($gisinK) ${count}개');
+        myBenefit -= count;
+      }
+      if (parts.isNotEmpty) {
+        final tone = myBenefit > 3 ? '용신 에너지 풍부' : myBenefit > 0 ? '용신 보완 가능' : '기신 영향 주의';
+        myEffect = '상대 원국에 나의 ${parts.join(', ')} → $tone';
+      }
+    }
+
+    // 나의 원국에서 상대 용신/희신/기신 오행 개수
+    if (targetYongsin != null) {
+      final parts = <String>[];
+      final yongsinK = _extractOhengKorean(targetYongsin['yongsin'] as String?);
+      final heesinK = _extractOhengKorean(targetYongsin['heesin'] as String?);
+      final gisinK = _extractOhengKorean(targetYongsin['gisin'] as String?);
+
+      if (yongsinK != null) {
+        final count = (myOheng[yongsinK] as num?)?.toInt() ?? 0;
+        parts.add('용신($yongsinK) ${count}개');
+        targetBenefit += count * 2;
+      }
+      if (heesinK != null) {
+        final count = (myOheng[heesinK] as num?)?.toInt() ?? 0;
+        parts.add('희신($heesinK) ${count}개');
+        targetBenefit += count;
+      }
+      if (gisinK != null) {
+        final count = (myOheng[gisinK] as num?)?.toInt() ?? 0;
+        if (count > 0) parts.add('기신($gisinK) ${count}개');
+        targetBenefit -= count;
+      }
+      if (parts.isNotEmpty) {
+        final tone = targetBenefit > 3 ? '용신 에너지 풍부' : targetBenefit > 0 ? '용신 보완 가능' : '기신 영향 주의';
+        targetEffect = '나의 원국에 상대 ${parts.join(', ')} → $tone';
+      }
+    }
+
+    // 시너지 판정
+    String synergy;
+    if (myBenefit > 0 && targetBenefit > 0) {
+      synergy = '쌍방 도움 관계 — 서로의 용신을 보완하는 궁합';
+    } else if (myBenefit > 0) {
+      synergy = '상대가 나를 돕는 관계 — 나의 용신을 상대가 채워줌';
+    } else if (targetBenefit > 0) {
+      synergy = '내가 상대를 돕는 관계 — 상대의 용신을 내가 채워줌';
+    } else if (myYongsin == null && targetYongsin == null) {
+      synergy = '용신 데이터 미산출 — 추후 분석 필요';
+    } else {
+      synergy = '용신 보완 미약 — 다른 궁합 요소로 보완';
+    }
+
+    return {
+      'my_yongsin_effect': myEffect,
+      'target_yongsin_effect': targetEffect,
+      'synergy': synergy,
+    };
+  }
+
+  /// 저장된 오행 문자열에서 한글 오행명 추출 ("토(土)" → "토")
+  String? _extractOhengKorean(String? stored) {
+    if (stored == null || stored.isEmpty) return null;
+    return stored.split('(').first.trim();
   }
 
   /// 강점 추출

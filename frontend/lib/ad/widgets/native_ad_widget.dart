@@ -1,5 +1,6 @@
 /// Native Ad Widget for Chat
 /// 채팅 버블 스타일의 네이티브 광고 위젯
+/// AdFit (한국 Android) / AdMob (해외) 자동 분기
 library;
 
 import 'dart:io' show Platform;
@@ -10,8 +11,10 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../purchase/providers/purchase_provider.dart';
 import '../ad_config.dart';
+import '../ad_network_resolver.dart';
 import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
+import '../adfit/adfit_native_ad_widget.dart';
 import '../token_reward_service.dart';
 
 /// 모바일 플랫폼 체크
@@ -40,9 +43,17 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
   bool _loadAttempted = false;
   bool _loadFailed = false;
 
+  /// AdFit 사용 여부 (한국 Android)
+  bool _useAdFit = false;
+  /// AdFit 로드 성공 여부
+  bool _adFitLoaded = false;
+  /// AdFit 로드 실패 → AdMob fallback 시도 중
+  bool _adFitFailed = false;
+
   @override
   void initState() {
     super.initState();
+    _useAdFit = AdNetworkResolver.isAdFitAvailable;
     if (_isMobile && adEnabled) {
       _loadAd();
     }
@@ -55,12 +66,28 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
+    // AdFit 우선 (한국 Android, 아직 실패 안 한 경우)
+    // AdFit은 PlatformView가 위젯 트리에 삽입되면 자체 로드함
+    // → _adFitLoaded = true로 설정하여 AdFit 위젯을 build에서 렌더링
+    // → PlatformView 내부에서 onLoaded/onLoadFailed 콜백으로 실제 결과 수신
+    if (_useAdFit && !_adFitFailed) {
+      if (mounted) {
+        setState(() => _adFitLoaded = true);
+      }
+      return;
+    }
+
+    // AdMob 로드 (해외 또는 AdFit fallback)
+    _loadAdMobNative();
+  }
+
+  void _loadAdMobNative() {
     _nativeAd = NativeAd(
       adUnitId: AdUnitId.native,
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
-          debugPrint('[NativeAdWidget] Ad loaded');
+          debugPrint('[NativeAdWidget] AdMob ad loaded');
           if (mounted) {
             setState(() {
               _isLoaded = true;
@@ -68,7 +95,7 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
           }
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint('[NativeAdWidget] Failed to load: ${error.message}');
+          debugPrint('[NativeAdWidget] AdMob failed to load: ${error.message}');
           ad.dispose();
           _nativeAd = null;
           if (mounted) {
@@ -86,11 +113,10 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
           AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
-          debugPrint('[NativeAdWidget] Ad clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
+          debugPrint('[NativeAdWidget] Ad clicked → tracking only (no token reward)');
           AdTrackingService.instance.trackNativeClick(
-            rewardTokens: AdStrategy.intervalClickRewardTokens,
+            rewardTokens: 0,
           );
-          TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
         onPaidEvent: (ad, valueMicros, precision, currencyCode) {
           debugPrint('[NativeAdWidget] Paid: $valueMicros micros ($currencyCode, $precision)');
@@ -134,6 +160,25 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
     _nativeAd!.load();
   }
 
+  /// AdFit 로드 실패 → AdMob fallback
+  void _onAdFitFailed() {
+    debugPrint('[NativeAdWidget] AdFit failed → AdMob fallback');
+    _adFitFailed = true;
+    _adFitLoaded = false;
+    _loadAdMobNative();
+  }
+
+  /// AdFit 클릭 → 토큰 보상 (CPC 모델이므로 보상 OK)
+  void _onAdFitClicked() {
+    debugPrint('[NativeAdWidget] AdFit clicked → token reward: ${AdStrategy.adfitNativeClickRewardTokens}');
+    AdTrackingService.instance.trackNativeClick(
+      rewardTokens: AdStrategy.adfitNativeClickRewardTokens,
+    );
+    TokenRewardService.grantNativeAdTokens(
+      AdStrategy.adfitNativeClickRewardTokens,
+    );
+  }
+
   @override
   void dispose() {
     _nativeAd?.dispose();
@@ -155,9 +200,18 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
       }
       _loadAttempted = false; // 프리미엄 해제 시 재로드 가능하도록 리셋
       _loadFailed = false;
+      _adFitLoaded = false;
+      _adFitFailed = false;
       return const SizedBox.shrink();
     }
 
+    // AdFit 위젯 모드 (한국 Android)
+    // AdFit PlatformView가 내부에서 자체 로딩/에러 처리
+    if (_useAdFit && _adFitLoaded && !_adFitFailed) {
+      return _buildAdFitBubble(context);
+    }
+
+    // AdMob 모드
     if (!_isLoaded || _nativeAd == null) {
       // 로드 실패 → 공간 차지 안 함
       if (_loadFailed) {
@@ -175,6 +229,91 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
     }
 
     return _buildAdBubble(context);
+  }
+
+  /// AdFit 네이티브 광고 버블 (한국 Android)
+  Widget _buildAdFitBubble(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // AI 아바타 (광고 아이콘)
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.campaign_outlined,
+              size: 18,
+              color: colorScheme.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 광고 버블
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 광고 라벨
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '광고',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: colorScheme.outline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // AdFit 네이티브 광고
+                Container(
+                  constraints: const BoxConstraints(
+                    minHeight: 120,
+                    maxHeight: 280,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerLow,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      width: 0.5,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: AdFitNativeAdWidget(
+                    onLoaded: () {
+                      debugPrint('[NativeAdWidget] AdFit native loaded');
+                    },
+                    onLoadFailed: _onAdFitFailed,
+                    onClicked: _onAdFitClicked,
+                    onImpression: () {
+                      AdTrackingService.instance.trackNativeImpression();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 로딩 중 placeholder (채팅 버블 스타일)
@@ -268,9 +407,9 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
                   child: Text(
                     '광고',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 15,
                       color: colorScheme.outline,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -364,11 +503,10 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
           AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
-          debugPrint('[CompactNativeAdWidget] Ad clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
+          debugPrint('[CompactNativeAdWidget] Ad clicked → tracking only (no token reward)');
           AdTrackingService.instance.trackNativeClick(
-            rewardTokens: AdStrategy.intervalClickRewardTokens,
+            rewardTokens: 0,
           );
-          TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
         onPaidEvent: (ad, valueMicros, precision, currencyCode) {
           debugPrint('[CompactNativeAd] Paid: $valueMicros micros ($currencyCode, $precision)');
@@ -474,9 +612,9 @@ class _CompactNativeAdWidgetState extends ConsumerState<CompactNativeAdWidget> {
               child: const Text(
                 '광고',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 15,
                   color: Colors.white,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

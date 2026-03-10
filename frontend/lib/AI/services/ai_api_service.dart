@@ -624,6 +624,25 @@ class AiApiService {
       final promptTokens = usage?['prompt_tokens'] as int?;
       final completionTokens = usage?['completion_tokens'] as int?;
 
+      // v32: JSON 파싱 실패 감지 → failure 반환 (callOpenAI와 동일한 패턴)
+      if (content.containsKey('_parse_failed')) {
+        final parseError = 'JSON parse failed: ${content['_parse_error']}';
+        print('[AiApiService] Gemini JSON 파싱 실패 → failure 반환');
+        await AiLogger.log(
+          provider: 'gemini',
+          model: model,
+          type: logType,
+          request: {
+            'messages': messages,
+            'max_tokens': maxTokens,
+            'temperature': temperature,
+          },
+          success: false,
+          error: parseError,
+        );
+        return AiApiResponse.failure(parseError);
+      }
+
       // 비용 계산
       final totalCostUsd = _calculateGeminiCost(
         model: model,

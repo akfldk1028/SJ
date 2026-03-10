@@ -1,12 +1,16 @@
-/// AdMob Service
+/// AdMob + AdFit 이중 광고 서비스
 /// 광고 초기화, 로딩, 표시를 담당하는 서비스
+/// 한국 Android: AdFit primary → AdMob fallback
+/// 해외 / iOS: AdMob only
 library;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_config.dart';
+import 'ad_network_resolver.dart';
 import 'ad_tracking_service.dart';
+import 'adfit/adfit_service.dart';
 import 'feature_unlock_service.dart';
 
 /// 광고 서비스 싱글톤
@@ -27,10 +31,13 @@ class AdService {
   bool _isInterstitialLoaded = false;
   bool _isRewardedLoaded = false;
 
+  /// AdFit 전면 광고 로드 상태
+  bool _isAdFitInterstitialLoaded = false;
+
   // Getters
   bool get isInitialized => _isInitialized;
   bool get isBannerLoaded => _isBannerLoaded;
-  bool get isInterstitialLoaded => _isInterstitialLoaded;
+  bool get isInterstitialLoaded => _isInterstitialLoaded || _isAdFitInterstitialLoaded;
   bool get isRewardedLoaded => _isRewardedLoaded;
   BannerAd? get bannerAd => _bannerAd;
 
@@ -51,9 +58,15 @@ class AdService {
         debugPrint('[AdService] Adapter $key: ${value.description}');
       });
 
-      debugPrint('[AdService] SDK initialized successfully');
+      debugPrint('[AdService] AdMob SDK initialized successfully');
     } catch (e) {
-      debugPrint('[AdService] SDK initialization failed: $e');
+      debugPrint('[AdService] AdMob SDK initialization failed: $e');
+    }
+
+    // AdFit 초기화 (한국 Android만)
+    if (AdNetworkResolver.isAdFitAvailable) {
+      AdFitService.instance.initialize();
+      debugPrint('[AdService] AdFit initialized (Korea Android)');
     }
   }
 
@@ -137,12 +150,17 @@ class AdService {
 
   // ==================== Interstitial Ad ====================
 
-  /// 전면 광고 로드
+  /// 전면 광고 로드 (AdFit primary → AdMob fallback)
   Future<void> loadInterstitialAd({
     void Function()? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
     if (!adEnabled) return;
+
+    // 한국 Android: AdFit도 병렬 로드 (결과는 MethodChannel 콜백으로 비동기 수신)
+    if (AdNetworkResolver.isAdFitAvailable) {
+      AdFitService.instance.loadInterstitial();
+    }
 
     await InterstitialAd.load(
       adUnitId: AdUnitId.interstitial,
@@ -209,11 +227,19 @@ class AdService {
   }
 
   /// 전면 광고 표시
-  Future<bool> showInterstitialAd() async {
+  ///
+  /// [onDismissed] 광고가 닫힌 후 호출되는 콜백 (토큰 충전 등 후처리용)
+  /// [bypassInterval] true면 최소 간격 체크 무시 (토큰 소진 등 필수 광고용)
+  /// 광고 show() 후 바로 return하면 광고가 아직 화면에 있는 상태라
+  /// 후처리가 너무 일찍 실행되어 크래시 발생 → onDismissed 콜백으로 안전하게 처리
+  Future<bool> showInterstitialAd({
+    void Function()? onDismissed,
+    bool bypassInterval = false,
+  }) async {
     if (!adEnabled) return false;
 
-    // 최소 간격 체크
-    if (_lastInterstitialTime != null) {
+    // 최소 간격 체크 (bypassInterval이면 무시 — 토큰 소진 필수 광고)
+    if (!bypassInterval && _lastInterstitialTime != null) {
       final elapsed = DateTime.now().difference(_lastInterstitialTime!);
       if (elapsed.inSeconds < AdSettings.interstitialMinInterval) {
         debugPrint(
@@ -222,14 +248,73 @@ class AdService {
       }
     }
 
+    // AdFit 전면 광고 우선 시도 (한국 Android)
+    if (AdNetworkResolver.isAdFitAvailable && AdFitService.instance.isInterstitialLoaded) {
+      _lastInterstitialTime = DateTime.now();
+      final shown = await AdFitService.instance.showInterstitial(
+        onDismissed: onDismissed,
+      );
+      if (shown) {
+        debugPrint('[AdService] AdFit interstitial shown');
+        return true;
+      }
+      debugPrint('[AdService] AdFit interstitial show failed → trying AdMob');
+    }
+
     if (!_isInterstitialLoaded || _interstitialAd == null) {
       debugPrint('[AdService] Interstitial not ready');
       return false;
     }
 
+    // onDismissed 콜백을 기존 fullScreenContentCallback에 연결
+    if (onDismissed != null) {
+      final originalCallback = _interstitialAd!.fullScreenContentCallback;
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: originalCallback?.onAdShowedFullScreenContent,
+        onAdDismissedFullScreenContent: (ad) {
+          originalCallback?.onAdDismissedFullScreenContent?.call(ad);
+          onDismissed();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          originalCallback?.onAdFailedToShowFullScreenContent?.call(ad, error);
+          onDismissed();
+        },
+        onAdImpression: originalCallback?.onAdImpression,
+        onAdClicked: originalCallback?.onAdClicked,
+      );
+    }
+
     _lastInterstitialTime = DateTime.now();
     await _interstitialAd!.show();
     return true;
+  }
+
+  /// Interstitial 광고 로드 대기 (최대 timeout)
+  /// 이미 로드되어 있으면 즉시 true 반환
+  /// AdFit 또는 AdMob 중 하나라도 로드되면 true
+  Future<bool> waitForInterstitialLoad({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (isInterstitialLoaded) return true;
+
+    // 로드 시작
+    loadInterstitialAd();
+
+    // 폴링으로 대기 (100ms 간격)
+    final checkAdFit = AdNetworkResolver.isAdFitAvailable;
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (checkAdFit) {
+        _isAdFitInterstitialLoaded = AdFitService.instance.isInterstitialLoaded;
+      }
+      if (isInterstitialLoaded) return true;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (checkAdFit) {
+      _isAdFitInterstitialLoaded = AdFitService.instance.isInterstitialLoaded;
+    }
+    return isInterstitialLoaded;
   }
 
   // ==================== Rewarded Ad ====================
@@ -424,5 +509,10 @@ class AdService {
     _isBannerLoaded = false;
     _isInterstitialLoaded = false;
     _isRewardedLoaded = false;
+    _isAdFitInterstitialLoaded = false;
+
+    if (AdNetworkResolver.isAdFitAvailable) {
+      AdFitService.instance.dispose();
+    }
   }
 }

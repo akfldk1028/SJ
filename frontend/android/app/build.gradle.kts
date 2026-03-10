@@ -66,4 +66,6 @@ flutter {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
+    // Kakao AdFit SDK
+    implementation("com.kakao.adfit:ads-base:3.21.17")
 }

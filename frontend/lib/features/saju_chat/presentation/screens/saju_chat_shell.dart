@@ -928,28 +928,12 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         !adState.adWatched &&
         (adState.loadState == AdLoadState.loaded ||
             adState.loadState == AdLoadState.loading)) {
-      final nativeAd = ref.read(conversationalAdNotifierProvider.notifier).nativeAd;
-      final theme = Theme.of(context);
-      trailingWidget = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AdNativeBubble(
-            nativeAd: nativeAd,
-            loadState: adState.loadState,
-            personaEmoji: '📢',
-          ),
-          // 안내 문구 (AdMob 정책: "클릭하세요" 금지, 보상 안내는 허용)
-          Padding(
-            padding: const EdgeInsets.only(left: 56, top: 6, bottom: 8),
-            child: Text(
-              '관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
+      final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
+      trailingWidget = AdNativeBubble(
+        nativeAd: adNotifier.nativeAd,
+        adWidget: adNotifier.adFitNativeWidget,
+        loadState: adState.loadState,
+        personaEmoji: '📢',
       );
     }
 

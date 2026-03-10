@@ -306,20 +306,6 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
 
-    // 각 글자별 오행 매핑 (AI가 두 사람의 오행을 정확히 비교할 수 있도록)
-    _buffer.writeln('### 글자별 오행');
-    _buffer.writeln('| 위치 | 글자 | 오행 |');
-    _buffer.writeln('|------|------|------|');
-    _buffer.writeln('| 년간 | $yearGan | ${cheonganOheng[yearGan] ?? '?'} |');
-    _buffer.writeln('| 년지 | $yearJi | ${jijiOheng[yearJi] ?? '?'} |');
-    _buffer.writeln('| 월간 | $monthGan | ${cheonganOheng[monthGan] ?? '?'} |');
-    _buffer.writeln('| 월지 | $monthJi | ${jijiOheng[monthJi] ?? '?'} |');
-    _buffer.writeln('| 일간 | $dayGan | ${cheonganOheng[dayGan] ?? '?'} |');
-    _buffer.writeln('| 일지 | $dayJi | ${jijiOheng[dayJi] ?? '?'} |');
-    _buffer.writeln('| 시간 | $hourGan | ${cheonganOheng[hourGan] ?? '?'} |');
-    _buffer.writeln('| 시지 | $hourJi | ${jijiOheng[hourJi] ?? '?'} |');
-    _buffer.writeln();
-
     // 용신
     final yongsin = sajuAnalysis.yongsin;
     _buffer.writeln('### 용신');
@@ -363,6 +349,19 @@ class SystemPromptBuilder {
     _buffer.writeln('| 지지 | $yearJiSipsin | $monthJiSipsin | $dayJiSipsin | $hourJiSipsin |');
     _buffer.writeln();
 
+    // 지장간
+    final jijanggan = sajuAnalysis.jijangganInfo;
+    _buffer.writeln('### 지장간');
+    _buffer.writeln('| 위치 | 지장간 |');
+    _buffer.writeln('|------|--------|');
+    _buffer.writeln('| 년지 | ${_formatJiJangGan(jijanggan.yearJi)} |');
+    _buffer.writeln('| 월지 | ${_formatJiJangGan(jijanggan.monthJi)} |');
+    _buffer.writeln('| 일지 | ${_formatJiJangGan(jijanggan.dayJi)} |');
+    if (jijanggan.hourJi.isNotEmpty) {
+      _buffer.writeln('| 시지 | ${_formatJiJangGan(jijanggan.hourJi)} |');
+    }
+    _buffer.writeln();
+
     // 신살
     final sinsalList = sajuAnalysis.sinsalList;
     if (sinsalList.isNotEmpty) {
@@ -378,8 +377,39 @@ class SystemPromptBuilder {
       }
       _buffer.writeln();
     }
+
+    // 대운 (10년 단위 운의 흐름)
+    final daeun = sajuAnalysis.daeun;
+    if (daeun != null && daeun.daeUnList.isNotEmpty) {
+      _buffer.writeln('### 대운 (大運)');
+      _buffer.writeln('- 대운 시작 나이: ${daeun.startAge}세');
+      _buffer.writeln('- 진행 방향: ${daeun.isForward ? '순행' : '역행'}');
+      _buffer.writeln();
+      _buffer.writeln('| 순서 | 대운 | 기간 | 천간오행 | 지지오행 |');
+      _buffer.writeln('|------|------|------|---------|---------|');
+      for (final d in daeun.daeUnList) {
+        _buffer.writeln('| ${d.order} | ${d.pillar.fullName} | ${d.ageRange} | ${d.pillar.ganOheng} | ${d.pillar.jiOheng} |');
+      }
+      _buffer.writeln();
+    }
+
+    // 현재 세운 (올해의 운)
+    final seun = sajuAnalysis.currentSeun;
+    if (seun != null) {
+      _buffer.writeln('### 세운 (歲運) — ${seun.year}년');
+      _buffer.writeln('- 세운: ${seun.pillar.fullName}');
+      _buffer.writeln('- 천간: ${seun.pillar.gan} (${seun.pillar.ganOheng})');
+      _buffer.writeln('- 지지: ${seun.pillar.ji} (${seun.pillar.jiOheng})');
+      _buffer.writeln();
+    }
   }
 
+
+  /// 지장간 포맷 헬퍼: "갑(정기·정인) 을(중기·편인) 병(여기·상관)"
+  String _formatJiJangGan(List<JiJangGanItem> items) {
+    if (items.isEmpty) return '-';
+    return items.map((i) => '${i.gan}(${i.type}·${i.sipsin.korean})').join(' ');
+  }
 
   /// 합충형파해 섹션 헬퍼
   void _addHapchungSection(Map<String, dynamic> hapchung, String key, String label) {

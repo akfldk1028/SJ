@@ -18,10 +18,10 @@ enum ChatAdType {
 ///
 /// ## 실측 데이터 (2026-02 기준, Supabase DB)
 ///
-/// ### Gemini API 비용
-/// - 평균 $0.56/1M 토큰 (Gemini Flash)
+/// ### Gemini API 비용 (실측 2026-03)
+/// - 평균 $0.47/1M 토큰 (Gemini 3 Flash Preview, input+output 혼합)
 /// - 일일 유저당 평균 API 비용: $0.03
-/// - 10,000 토큰 보상 시 API 원가: $0.006
+/// - 10,000 토큰 보상 시 API 원가: $0.0047
 ///
 /// ### 유저 행동 (비프리미엄, daily_quota=20,000)
 /// - 메시지당 평균 토큰: ~5,200 (assistant 응답 기준)
@@ -69,17 +69,17 @@ abstract class AdStrategy {
   /// 전면 광고 표시 간격 (메시지 수)
   static const int interstitialMessageInterval = 5;
 
-  /// 하루 최대 전면 광고 횟수 (9999 = 무제한)
-  static const int interstitialDailyLimit = 9999;
+  /// 하루 최대 전면 광고 횟수
+  static const int interstitialDailyLimit = 15;
 
-  /// 전면 광고 쿨다운 (초) - 0 = 제한 없음
-  static const int interstitialCooldownSeconds = 0;
+  /// 전면 광고 쿨다운 (초)
+  static const int interstitialCooldownSeconds = 60;
 
   /// 새 세션 시작 시 전면 광고 표시 여부
   static const bool showInterstitialOnNewSession = true;
 
-  /// 새 세션 전면 광고 하루 최대 횟수 (9999 = 무제한)
-  static const int newSessionInterstitialDailyLimit = 9999;
+  /// 새 세션 전면 광고 하루 최대 횟수
+  static const int newSessionInterstitialDailyLimit = 5;
 
   // ==================== 토큰 보상 설정 ====================
   // ★ 여기서 보상 토큰 값 조정 ★
@@ -92,21 +92,29 @@ abstract class AdStrategy {
   //
   // [유저 패턴] 광고 시청 유저: 평균 6번 클릭 → 대화 19회/일
 
-  /// 토큰 소진 → 영상 광고(Rewarded Video) 보상 토큰
-  /// 한국 eCPM $15~$30 (iOS $29) → 1회 수익 $0.015~$0.030
-  /// v2: 영상 광고 비활성화 (네이티브 클릭 CPC가 10x 더 수익성 높음)
-  static const int depletedRewardTokensVideo = 0;
+  /// 토큰 소진 → 전면 광고 5초 후 충전할 토큰량
+  /// 전면 광고 eCPM $11.23 (한국 Android) → 1회 $0.011 수익
+  /// Gemini 실측 $0.47/1M tokens → 14K = $0.0066 비용
+  /// 순이익: $0.005 (~6원/회), 대화 ~2-3회 추가
+  static const int depletedRewardTokensVideo = 14000;
 
-  /// 토큰 소진 → 네이티브 광고 보상 토큰 (클릭 시에만 지급)
-  /// CPC ~$0.25 수익 vs API 원가 $0.0084 → 순이익 $0.24/클릭
-  /// 15,000 토큰 = 대화 ~2.9회 추가 (소진 후 재시작용, 넉넉하게)
-  static const int depletedRewardTokensNative = 15000;
+  /// 토큰 소진 → 네이티브 광고 보상 토큰: 0 (정책 위반 방지)
+  /// v3: 네이티브 클릭 → 토큰 보상 제거 (AdMob 인센티브화 클릭 정책 위반)
+  static const int depletedRewardTokensNative = 0;
 
-  /// 인터벌(대화 중) 네이티브 광고 클릭 시 보상 토큰
-  /// CPC ~$0.25 수익 vs API 원가 $0.006 → 순이익 $0.244/클릭
-  /// 10,000 토큰 = 대화 ~1.9회 추가
-  /// 광고 6번 클릭으로 기본 3.8회 → 총 ~19회 대화 가능
-  static const int intervalClickRewardTokens = 10000;
+  /// 인터벌(대화 중) 네이티브 광고 클릭 시 보상 토큰: 0 (정책 위반 방지)
+  /// v3: 네이티브 클릭 → 토큰 보상 제거 (AdMob 인센티브화 클릭 정책 위반)
+  static const int intervalClickRewardTokens = 0;
+
+  // ==================== AdFit 보상 설정 ====================
+  // AdFit은 CPC 모델 → 클릭 = 수익 → 인센티브화 보상 정책 위반 아님
+  // AdMob과 별도 보상 정책 적용
+
+  /// AdFit 네이티브 클릭 보상 토큰 (CPC 모델이므로 보상 OK)
+  static const int adfitNativeClickRewardTokens = 10000;
+
+  /// AdFit 전면 광고 보상 토큰 (AdMob 전면과 동일)
+  static const int adfitInterstitialRewardTokens = 14000;
 
   // ==================== 프리미엄 기능 ====================
 

@@ -643,6 +643,10 @@ class FortuneCoordinator {
   Future<FortuneAnalysisResults> analyzeFortuneOnly({
     required String userId,
     required String profileId,
+    void Function()? onDailyComplete,
+    void Function()? onMonthlyComplete,
+    void Function()? onYearly2026Complete,
+    void Function()? onYearly2025Complete,
   }) async {
     // v6.1 중복 분석 방지
     if (_analyzingProfiles.contains(profileId)) {
@@ -714,6 +718,7 @@ class FortuneCoordinator {
           .then((result) {
         yearly2026Result = result;
         print('[FortuneCoordinator] ✅ 2026 신년운세 완료');
+        if (result.success) onYearly2026Complete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2026 에러: $e');
@@ -732,6 +737,7 @@ class FortuneCoordinator {
           .then((result) {
         monthlyResult = result;
         print('[FortuneCoordinator] ✅ 이번달 운세 완료');
+        if (result.success) onMonthlyComplete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 월운 에러: $e');
@@ -750,6 +756,7 @@ class FortuneCoordinator {
           .then((result) {
         yearly2025Result = result;
         print('[FortuneCoordinator] ✅ 2025 회고운세 완료');
+        if (result.success) onYearly2025Complete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2025 에러: $e');
@@ -784,6 +791,7 @@ class FortuneCoordinator {
           dailyResult = result;
           _analyzingDaily.remove(dailyKey); // v7.4: 완료 시 잠금 해제
           print('[FortuneCoordinator] ✅ 오늘의 일운 완료, 잠금 해제: $dailyKey');
+          if (result.success) onDailyComplete?.call();
           return result;
         }).catchError((e, stackTrace) {
           print('[FortuneCoordinator] ❌ 일운 에러: $e');

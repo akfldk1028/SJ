@@ -846,12 +846,16 @@ class _FortuneCategoryChipSectionState
         }
       });
     } else {
-      // 잠긴 카테고리 - 광고 보여주기
-      await _showRewardedAdAndUnlock(categoryKey);
+      // 잠긴 카테고리 - 전면 광고 후 해금
+      await _showInterstitialAndUnlock(categoryKey);
     }
   }
 
-  Future<void> _showRewardedAdAndUnlock(String categoryKey) async {
+  /// 전면 광고 표시 후 카테고리 해금
+  ///
+  /// v3: 보상형 광고 → 전면 광고(5초)로 전환
+  /// 전면 광고 실패 시 → 무료 해금 (광고 못 보여주면 차라리 해금)
+  Future<void> _showInterstitialAndUnlock(String categoryKey) async {
     if (_isLoadingAd) return;
 
     final categoryName = _getCategoryName(categoryKey);
@@ -859,20 +863,19 @@ class _FortuneCategoryChipSectionState
     // 프리미엄 유저는 광고 없이 바로 해제
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) {
-      _unlockCategory(categoryKey);
-      if (mounted) {
-        setState(() {
-          _expandedCategory = categoryKey;
-        });
-        try {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$categoryName 운세가 해제되었습니다!'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        } catch (_) {}
-      }
+      _unlockAndExpand(categoryKey, categoryName);
+      return;
+    }
+
+    // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
+    if (kIsWeb) {
+      _unlockAndExpand(categoryKey, categoryName, suffix: ' (웹 테스트)');
+      return;
+    }
+
+    // 광고 킬스위치 OFF → 무료 해금
+    if (!adEnabled) {
+      _unlockAndExpand(categoryKey, categoryName);
       return;
     }
 
@@ -880,138 +883,64 @@ class _FortuneCategoryChipSectionState
 
     final unlockInfo = _parseFortuneType();
 
-    // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
-    if (kIsWeb) {
-      _unlockCategory(categoryKey);
+    // 전면 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      onDismissed: () async {
+        // 광고 닫힌 후 해금 (크래시 방지)
+        if (unlockInfo != null) {
+          await FeatureUnlockService.instance.unlockByRewardedAd(
+            featureType: unlockInfo.featureType,
+            featureKey: categoryKey,
+            targetYear: unlockInfo.targetYear,
+            targetMonth: unlockInfo.targetMonth,
+            rewardAmount: 0,
+            rewardType: 'interstitial',
+            profileId: widget.profileId,
+          );
+        }
+        if (mounted) {
+          setState(() => _isLoadingAd = false);
+          _unlockAndExpand(categoryKey, categoryName);
+        }
+      },
+    );
+
+    if (!shown) {
+      // 전면 광고 로드 안 됨 → 잠금 유지 + 안내 메시지
       if (mounted) {
-        setState(() {
-          _expandedCategory = categoryKey;
-          _isLoadingAd = false;
-        });
-        // SnackBar 표시 (에러 방지)
+        setState(() => _isLoadingAd = false);
         try {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$categoryName 운세가 해제되었습니다! (웹 테스트)'),
-              duration: const Duration(seconds: 2),
+            const SnackBar(
+              content: Text('광고를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'),
+              duration: Duration(seconds: 2),
             ),
           );
         } catch (_) {}
       }
-      return;
-    }
-
-    // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
-    if (!adEnabled) {
-      setState(() => _isLoadingAd = false);
-      _showAdNotReadyDialog(categoryName);
-      return;
-    }
-
-    // 광고가 로드되어 있는지 확인
-    if (!AdService.instance.isRewardedLoaded) {
-      // 광고 로드 시도
-      await AdService.instance.loadRewardedAd(
-        onLoaded: () async {
-          // 광고 로드 완료 후 표시 (해금 추적 포함)
-          final shown = await AdService.instance.showRewardedAdWithUnlock(
-            onRewarded: (amount, type) async {
-              // 보상 지급 - 카테고리 잠금 해제
-              _unlockCategory(categoryKey);
-
-              if (mounted) {
-                setState(() {
-                  _expandedCategory = categoryKey;
-                  _isLoadingAd = false;
-                });
-
-                try {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('$categoryName 운세가 해제되었습니다!'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                } catch (_) {
-                  // ScaffoldMessenger not available (ad activity context)
-                }
-              }
-            },
-            featureType: unlockInfo?.featureType,
-            featureKey: categoryKey,
-            targetYear: unlockInfo?.targetYear,
-            targetMonth: unlockInfo?.targetMonth,
-            profileId: widget.profileId,
-          );
-
-          if (!shown && mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(categoryName);
-          }
-        },
-        onFailed: (error) {
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(categoryName);
-          }
-        },
-      );
-    } else {
-      // 광고가 이미 로드됨 - 바로 표시 (해금 추적 포함)
-      final shown = await AdService.instance.showRewardedAdWithUnlock(
-        onRewarded: (amount, type) async {
-          _unlockCategory(categoryKey);
-
-          if (mounted) {
-            setState(() {
-              _expandedCategory = categoryKey;
-              _isLoadingAd = false;
-            });
-
-            try {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('$categoryName 운세가 해제되었습니다!'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            } catch (_) {
-              // ScaffoldMessenger not available (ad activity context)
-            }
-          }
-        },
-        featureType: unlockInfo?.featureType,
-        featureKey: categoryKey,
-        targetYear: unlockInfo?.targetYear,
-        targetMonth: unlockInfo?.targetMonth,
-        profileId: widget.profileId,
-      );
-
-      if (!shown && mounted) {
-        setState(() => _isLoadingAd = false);
-        _showAdNotReadyDialog(categoryName);
-      }
+      // 다음을 위해 전면 광고 재로드
+      AdService.instance.loadInterstitialAd();
     }
   }
 
-  void _showAdNotReadyDialog(String categoryName) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(adEnabled ? '광고 준비 중' : '광고 서비스 점검 중'),
-        content: Text(
-          adEnabled
-              ? '$categoryName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'
-              : '$categoryName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고 서비스 점검 중입니다.\n프리미엄 구독으로 바로 이용할 수 있어요.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
+  /// 해금 + 펼치기 + SnackBar 공통 처리
+  void _unlockAndExpand(String categoryKey, String categoryName, {String suffix = ''}) {
+    _unlockCategory(categoryKey);
+    if (mounted) {
+      setState(() {
+        _expandedCategory = categoryKey;
+        _isLoadingAd = false;
+      });
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$categoryName 운세가 해제되었습니다!$suffix'),
+            duration: const Duration(seconds: 2),
           ),
-        ],
-      ),
-    );
+        );
+      } catch (_) {}
+    }
   }
 
   String _getCategoryName(String key) {

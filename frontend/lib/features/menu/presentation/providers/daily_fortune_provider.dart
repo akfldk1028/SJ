@@ -200,9 +200,14 @@ class DailyFortune extends _$DailyFortune {
   /// - _analyzingProfiles: analyzeFortuneOnly() 실행 중 (profile_provider)
   /// - _analyzingDaily: analyzeDailyOnly() 실행 중
   void _triggerAnalysis(String profileId) {
-    // profile_provider에서 이미 분석 중이면 스킵
-    // → 완료 시 profile_provider가 ref.invalidate(dailyFortuneProvider) 호출
-    if (FortuneCoordinator.isAnalyzing(profileId)) return;
+    // profile_provider에서 이미 분석 중이면 5초 후 재시도
+    // (daily가 먼저 완료되어 DB에 저장됐을 수 있음)
+    if (FortuneCoordinator.isAnalyzing(profileId)) {
+      Future.delayed(const Duration(seconds: 5), () {
+        ref.invalidateSelf();
+      });
+      return;
+    }
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;

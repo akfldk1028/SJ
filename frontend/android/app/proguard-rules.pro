@@ -65,3 +65,7 @@
 
 # Hive (Local Storage)
 -keep class ** extends com.google.protobuf.GeneratedMessageLite { *; }
+
+# Kakao AdFit SDK
+-keep class com.kakao.adfit.** { *; }
+-dontwarn com.kakao.adfit.**

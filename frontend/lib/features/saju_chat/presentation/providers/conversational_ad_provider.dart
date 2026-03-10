@@ -1,19 +1,23 @@
 /// 대화형 광고 Provider
 ///
 /// 토큰 기반 광고 트리거 및 상태 관리
+/// AdFit (한국 Android) / AdMob (해외) 자동 분기
 /// Riverpod 3.0 annotation 스타일
 library;
 
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../ad/ad_config.dart';
+import '../../../../ad/ad_network_resolver.dart';
+import '../../../../ad/ad_strategy.dart';
 import '../../../../ad/ad_tracking_service.dart';
+import '../../../../ad/adfit/adfit_native_ad_widget.dart';
 import '../../../../ad/token_reward_service.dart';
 import '../../../../purchase/purchase.dart';
 import '../../data/models/conversational_ad_model.dart';
@@ -59,6 +63,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     ref.onDispose(() {
       _nativeAd?.dispose();
       _rewardedAd?.dispose();
+      _adFitWidget = null;
     });
 
     // 새 세션이면 카운터 리셋
@@ -233,6 +238,12 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     }
   }
 
+  /// AdFit 네이티브 광고 위젯 (한국 Android)
+  Widget? _adFitWidget;
+
+  /// AdFit 네이티브 광고 위젯 가져오기
+  Widget? get adFitNativeWidget => _adFitWidget;
+
   /// Native 광고 로드
   void _loadNativeAd() {
     if (!adEnabled) {
@@ -241,6 +252,54 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       return;
     }
 
+    // 한국 Android: AdFit 네이티브 우선
+    if (AdNetworkResolver.isAdFitAvailable) {
+      _adFitWidget = AdFitNativeAdWidget(
+        onLoaded: () {
+          if (kDebugMode) {
+            print('   ✅ [AD] AdFit native ad loaded');
+          }
+          state = state.copyWith(loadState: AdLoadState.loaded);
+        },
+        onLoadFailed: () {
+          if (kDebugMode) {
+            print('   ❌ [AD] AdFit native failed → AdMob fallback');
+          }
+          _adFitWidget = null;
+          _loadAdMobNativeAd();
+        },
+        onClicked: () {
+          if (kDebugMode) {
+            print('   👆 [AD] AdFit native clicked → token reward!');
+          }
+          // AdFit CPC: 클릭 = 수익 → 토큰 보상 OK
+          AdTrackingService.instance.trackNativeClick(
+            screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+            rewardTokens: AdStrategy.adfitNativeClickRewardTokens,
+          );
+          TokenRewardService.grantNativeAdTokens(
+            AdStrategy.adfitNativeClickRewardTokens,
+          );
+          _shownAdCount++;
+        },
+        onImpression: () {
+          if (kDebugMode) {
+            print('   👁️ [AD] AdFit native impression');
+          }
+          AdTrackingService.instance.trackNativeImpression(
+            screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+          );
+        },
+      );
+      state = state.copyWith(loadState: AdLoadState.loaded);
+      return;
+    }
+
+    _loadAdMobNativeAd();
+  }
+
+  /// AdMob 네이티브 광고 로드
+  void _loadAdMobNativeAd() {
     _nativeAd?.dispose();
 
     _nativeAd = NativeAd(
@@ -417,51 +476,21 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     return completer.future;
   }
 
-  /// 광고 클릭 처리 (Native 광고 클릭 시 토큰 보상)
+  /// 광고 클릭 처리 (Native 광고 클릭 시 추적만, 토큰 보상 없음)
   ///
-  /// 소진 광고: 클릭해야 7,000 토큰 지급 (impression에서는 미지급)
-  /// 인터벌 광고: impression(1,500) + 클릭 보너스(1,500) = 총 3,000 토큰
-  ///
-  /// NativeAd.onAdClicked 콜백은 sync이므로 unawaited로 감싸고
-  /// 내부에서 서버 업데이트를 await한 후 상태를 변경
+  /// v3: AdMob 정책 위반 방지 — 네이티브 클릭에 토큰 보상 제거
+  /// 클릭 이벤트 추적만 유지 (rewardTokens: 0)
   void _onAdClicked() {
-    // 보상 토큰 수 결정 (추적과 지급에 동일 값 사용)
-    final rewardTokens = state.adType == AdMessageType.tokenDepleted
-        ? AdTriggerService.depletedRewardTokensNative
-        : AdTriggerService.intervalClickRewardTokens;
-
     if (kDebugMode) {
       final adTypeLabel = state.adType == AdMessageType.tokenDepleted ? 'depleted' : 'interval';
-      print('   💰 [AD] Native ad CLICKED ($adTypeLabel) → +$rewardTokens tokens (saving to server...)');
+      print('   👆 [AD] Native ad CLICKED ($adTypeLabel) → tracking only, no token reward');
     }
 
-    // 클릭 이벤트 추적 + native_tokens_earned 카운터 동시 증가
+    // 클릭 이벤트 추적 (토큰 보상 0)
     AdTrackingService.instance.trackNativeClick(
       screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
-      rewardTokens: rewardTokens,
+      rewardTokens: 0,
     );
-
-    // 서버에 토큰 먼저 저장한 후 상태 변경 (race condition 방지)
-    unawaited(_grantNativeTokensAndUpdateState(rewardTokens));
-  }
-
-  /// 서버에 네이티브 토큰 저장 후 상태 업데이트
-  Future<void> _grantNativeTokensAndUpdateState(int rewardTokens) async {
-    try {
-      await TokenRewardService.grantNativeAdTokens(rewardTokens);
-    } catch (e) {
-      if (kDebugMode) {
-        print('   ❌ [AD] Native token grant failed: $e');
-      }
-    }
-    // 서버 저장 후 상태 변경 → dismiss → sendMessage 순서 보장
-    state = state.copyWith(
-      adWatched: true,
-      rewardedTokens: rewardTokens,
-    );
-    if (kDebugMode) {
-      print('   ✅ [AD] Native tokens saved & state updated: +$rewardTokens');
-    }
   }
 
   /// 보상 획득 처리
@@ -518,6 +547,7 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
     _nativeAd = null;
     _rewardedAd?.dispose();
     _rewardedAd = null;
+    _adFitWidget = null;
 
     state = const ConversationalAdModel();
 
