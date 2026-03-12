@@ -1,7 +1,7 @@
 /// AdMob + AdFit 이중 광고 서비스
 /// 광고 초기화, 로딩, 표시를 담당하는 서비스
-/// 한국 Android: AdFit primary → AdMob fallback
-/// 해외 / iOS: AdMob only
+/// 전면/네이티브: AdMob primary → AdFit fallback (Android)
+/// 배너: AdFit 고정 (Android) / AdMob (iOS)
 library;
 
 import 'package:flutter/foundation.dart';
@@ -48,6 +48,9 @@ class AdService {
       debugPrint('[AdService] Ad kill switch OFF — skipping SDK init');
       return;
     }
+
+    // 에뮬레이터 감지 → 테스트 광고 자동 전환
+    await AdModeResolver.init();
 
     try {
       final status = await MobileAds.instance.initialize();
@@ -150,14 +153,14 @@ class AdService {
 
   // ==================== Interstitial Ad ====================
 
-  /// 전면 광고 로드 (AdFit primary → AdMob fallback)
+  /// 전면 광고 로드 (AdMob primary, AdFit도 병렬 로드하여 fallback 대비)
   Future<void> loadInterstitialAd({
     void Function()? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
     if (!adEnabled) return;
 
-    // 한국 Android: AdFit도 병렬 로드 (결과는 MethodChannel 콜백으로 비동기 수신)
+    // Android: AdFit도 병렬 로드 (AdMob 실패 시 fallback용)
     if (AdNetworkResolver.isAdFitAvailable) {
       AdFitService.instance.loadInterstitial();
     }
@@ -248,45 +251,53 @@ class AdService {
       }
     }
 
-    // AdFit 전면 광고 우선 시도 (한국 Android)
+    // AdFit 상태 동기화 (stale 캐시 방지)
+    if (AdNetworkResolver.isAdFitAvailable) {
+      _isAdFitInterstitialLoaded = AdFitService.instance.isInterstitialLoaded;
+    }
+
+    // 1) AdMob 우선 시도
+    if (_isInterstitialLoaded && _interstitialAd != null) {
+      // onDismissed 콜백을 기존 fullScreenContentCallback에 연결
+      if (onDismissed != null) {
+        final originalCallback = _interstitialAd!.fullScreenContentCallback;
+        _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+          onAdShowedFullScreenContent: originalCallback?.onAdShowedFullScreenContent,
+          onAdDismissedFullScreenContent: (ad) {
+            originalCallback?.onAdDismissedFullScreenContent?.call(ad);
+            onDismissed();
+          },
+          onAdFailedToShowFullScreenContent: (ad, error) {
+            originalCallback?.onAdFailedToShowFullScreenContent?.call(ad, error);
+          },
+          onAdImpression: originalCallback?.onAdImpression,
+          onAdClicked: originalCallback?.onAdClicked,
+        );
+      }
+
+      _lastInterstitialTime = DateTime.now();
+      await _interstitialAd!.show();
+      debugPrint('[AdService] AdMob interstitial shown');
+      return true;
+    }
+
+    // 2) AdMob 실패 → AdFit fallback (Android only)
     if (AdNetworkResolver.isAdFitAvailable && AdFitService.instance.isInterstitialLoaded) {
       final shown = await AdFitService.instance.showInterstitial(
         onDismissed: onDismissed,
       );
       if (shown) {
         _lastInterstitialTime = DateTime.now();
-        debugPrint('[AdService] AdFit interstitial shown');
+        _isAdFitInterstitialLoaded = false; // 소비됨 — 캐시 리셋
+        debugPrint('[AdService] AdFit interstitial shown (AdMob fallback)');
         return true;
       }
-      debugPrint('[AdService] AdFit interstitial show failed → trying AdMob');
+      debugPrint('[AdService] AdFit interstitial also failed');
     }
 
-    if (!_isInterstitialLoaded || _interstitialAd == null) {
-      debugPrint('[AdService] Interstitial not ready');
-      return false;
-    }
-
-    // onDismissed 콜백을 기존 fullScreenContentCallback에 연결
-    if (onDismissed != null) {
-      final originalCallback = _interstitialAd!.fullScreenContentCallback;
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdShowedFullScreenContent: originalCallback?.onAdShowedFullScreenContent,
-        onAdDismissedFullScreenContent: (ad) {
-          originalCallback?.onAdDismissedFullScreenContent?.call(ad);
-          onDismissed();
-        },
-        onAdFailedToShowFullScreenContent: (ad, error) {
-          originalCallback?.onAdFailedToShowFullScreenContent?.call(ad, error);
-          // onDismissed 호출하지 않음 — 광고 표시 실패 시 토큰 지급 방지
-        },
-        onAdImpression: originalCallback?.onAdImpression,
-        onAdClicked: originalCallback?.onAdClicked,
-      );
-    }
-
-    _lastInterstitialTime = DateTime.now();
-    await _interstitialAd!.show();
-    return true;
+    // 3) 둘 다 실패
+    debugPrint('[AdService] Interstitial not ready (both networks)');
+    return false;
   }
 
   /// Interstitial 광고 로드 대기 (최대 timeout)
@@ -294,7 +305,7 @@ class AdService {
   /// AdFit 또는 AdMob 중 하나라도 로드되면 true
   /// 2초 경과 후에도 미로드 시 1회 재시도
   Future<bool> waitForInterstitialLoad({
-    Duration timeout = const Duration(seconds: 5),
+    Duration timeout = const Duration(seconds: 8),
   }) async {
     if (isInterstitialLoaded) return true;
 
@@ -314,8 +325,8 @@ class AdService {
       if (isInterstitialLoaded) return true;
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // 2초 경과 후에도 로드 안 됐으면 1회 재시도
-      if (!retried && DateTime.now().difference(startTime).inMilliseconds > 2000) {
+      // 3초 경과 후에도 로드 안 됐으면 1회 재시도
+      if (!retried && DateTime.now().difference(startTime).inMilliseconds > 3000) {
         retried = true;
         debugPrint('[AdService] Interstitial not loaded after 2s, retrying...');
         loadInterstitialAd();

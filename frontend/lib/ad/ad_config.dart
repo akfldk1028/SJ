@@ -4,15 +4,56 @@ library;
 
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
+
 /// 광고 모드 (테스트/프로덕션)
 enum AdMode {
   test,
   production,
 }
 
-/// 현재 광고 모드 설정
-/// AdMob 밴 해제 확인됨 (2026-03-08)
-const AdMode currentAdMode = AdMode.production;
+/// 에뮬레이터 감지 + 광고 모드 결정
+/// 에뮬레이터 → 무조건 test, 실기기 → production
+class AdModeResolver {
+  AdModeResolver._();
+  static AdMode _resolved = AdMode.production;
+  static bool _initialized = false;
+  static bool _isEmulator = false;
+
+  static AdMode get current => _resolved;
+  static bool get isEmulator => _isEmulator;
+
+  /// 앱 시작 시 1회 호출 (main.dart 또는 AdService.initialize에서)
+  static Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+
+    // kDebugMode면 무조건 test
+    if (kDebugMode) {
+      _resolved = AdMode.test;
+      _isEmulator = true;
+      debugPrint('[AdModeResolver] Debug mode → test ads');
+      return;
+    }
+
+    // Release 빌드에서도 에뮬레이터 감지
+    try {
+      if (Platform.isAndroid) {
+        final info = await DeviceInfoPlugin().androidInfo;
+        _isEmulator = !info.isPhysicalDevice;
+      } else if (Platform.isIOS) {
+        final info = await DeviceInfoPlugin().iosInfo;
+        _isEmulator = !info.isPhysicalDevice;
+      }
+    } catch (e) {
+      debugPrint('[AdModeResolver] Device info check failed: $e');
+    }
+
+    _resolved = _isEmulator ? AdMode.test : AdMode.production;
+    debugPrint('[AdModeResolver] isEmulator=$_isEmulator → ${_resolved.name}');
+  }
+}
 
 /// 광고 킬스위치
 /// false = 모든 광고 비활성화 (SDK 초기화, 로드, 표시 전부 스킵)
@@ -84,9 +125,12 @@ abstract class ProductionAdUnitIds {
 }
 
 /// 현재 모드에 맞는 Ad Unit ID 반환
+/// 에뮬레이터/디버그 → 테스트 ID, 실기기 릴리스 → 프로덕션 ID
 class AdUnitId {
+  static bool get _useTest => AdModeResolver.current == AdMode.test;
+
   static String get banner {
-    if (currentAdMode == AdMode.test) {
+    if (_useTest) {
       return Platform.isAndroid
           ? TestAdUnitIds.bannerAndroid
           : TestAdUnitIds.bannerIos;
@@ -99,7 +143,7 @@ class AdUnitId {
   }
 
   static String get interstitial {
-    if (currentAdMode == AdMode.test) {
+    if (_useTest) {
       return Platform.isAndroid
           ? TestAdUnitIds.interstitialAndroid
           : TestAdUnitIds.interstitialIos;
@@ -112,7 +156,7 @@ class AdUnitId {
   }
 
   static String get rewarded {
-    if (currentAdMode == AdMode.test) {
+    if (_useTest) {
       return Platform.isAndroid
           ? TestAdUnitIds.rewardedAndroid
           : TestAdUnitIds.rewardedIos;
@@ -131,7 +175,7 @@ class AdUnitId {
   }
 
   static String get native {
-    if (currentAdMode == AdMode.test) {
+    if (_useTest) {
       return Platform.isAndroid
           ? TestAdUnitIds.nativeAndroid
           : TestAdUnitIds.nativeIos;

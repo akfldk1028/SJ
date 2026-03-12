@@ -265,7 +265,7 @@ class AiApiService {
         print('[AiApiService v24] Task created: $taskId');
         print('[AiApiService v24] OpenAI Response ID: $openaiResponseId');
 
-        // Polling으로 결과 대기
+        // Polling으로 결과 대기 (실패 시 sync fallback)
         return await _pollForOpenAIResult(
           taskId: taskId,
           model: model,
@@ -273,6 +273,9 @@ class AiApiService {
           messages: messages,
           maxTokens: maxTokens,
           temperature: temperature,
+          userId: userId,
+          taskType: taskType,
+          reasoningEffort: reasoningEffort,
         );
       }
 
@@ -366,6 +369,7 @@ class AiApiService {
   /// ai-openai-result Edge Function 호출
   /// → OpenAI /v1/responses/{id} 직접 polling
   /// → 상태: queued → in_progress → completed
+  /// v52: 폴링 실패 시 sync API 직접 호출로 fallback
   Future<AiApiResponse> _pollForOpenAIResult({
     required String taskId,
     required String model,
@@ -373,6 +377,9 @@ class AiApiService {
     required List<Map<String, String>> messages,
     required int maxTokens,
     required double temperature,
+    String? userId,
+    String taskType = 'saju_analysis',
+    String reasoningEffort = 'medium',
   }) async {
     for (int attempt = 0; attempt < _maxPollingAttempts; attempt++) {
       try {
@@ -554,9 +561,32 @@ class AiApiService {
       }
     }
 
-    // Timeout
-    final error = 'Polling timeout after ${_maxPollingAttempts * 2}s';
-    print('[AiApiService v24] $error');
+    // Timeout → sync API 직접 호출로 재시도
+    print('[AiApiService v52] Polling timeout after ${_maxPollingAttempts * 2}s → sync 재시도');
+
+    try {
+      final syncResult = await callOpenAI(
+        messages: messages,
+        model: model,
+        maxTokens: maxTokens,
+        temperature: temperature,
+        logType: logType,
+        userId: userId,
+        runInBackground: false,  // sync 직접 호출
+        taskType: taskType,
+        reasoningEffort: reasoningEffort,
+      );
+      if (syncResult.success) {
+        print('[AiApiService v52] Sync 재시도 성공!');
+        return syncResult;
+      }
+      print('[AiApiService v52] Sync 재시도도 실패: ${syncResult.error}');
+    } catch (e) {
+      print('[AiApiService v52] Sync 재시도 예외: $e');
+    }
+
+    final error = 'Polling timeout + sync retry failed';
+    print('[AiApiService v52] $error');
 
     await AiLogger.log(
       provider: 'openai',

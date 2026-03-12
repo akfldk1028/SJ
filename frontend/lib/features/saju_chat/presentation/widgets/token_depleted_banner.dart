@@ -183,24 +183,15 @@ class TokenDepletedBanner extends ConsumerWidget {
     );
 
     if (!shown) {
-      // 전면 광고 로드 안 됨 → 소량 무료 충전 (5,000)
-      const fallbackTokens = 5000;
-      // 서버 측 토큰 지급
-      await TokenRewardService.grantRewardedAdTokens(
-        fallbackTokens,
-        screen: 'token_depleted_fallback',
-      );
-      // 클라이언트 측 토큰 업데이트 (ConversationWindowManager)
-      chatNotifier.addBonusTokens(fallbackTokens, isRewardedAd: true);
-      adNotifier.dismissAd();
+      // 전면 광고 로드 안 됨 (AdMob + AdFit 둘 다 실패) → 구매 안내
       // 다음을 위해 전면 광고 재로드
       AdService.instance.loadInterstitialAd();
-      debugPrint('[TokenDepletedBanner] 광고 로드 실패 → fallback +$fallbackTokens tokens');
+      debugPrint('[TokenDepletedBanner] 광고 로드 실패 → 구매 안내');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('광고 준비 중이어서 소량 충전되었어요. 다음엔 더 많이 충전돼요!'),
-            duration: Duration(seconds: 2),
+            content: Text('광고를 불러올 수 없어요. 프리미엄 구독으로 무제한 이용하세요!'),
+            duration: Duration(seconds: 3),
           ),
         );
       }

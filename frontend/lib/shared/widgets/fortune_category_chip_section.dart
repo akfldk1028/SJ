@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../ad/ad_config.dart';
 import '../../ad/ad_service.dart';
 import '../../ad/feature_unlock_service.dart';
 import '../../AI/fortune/common/korea_date_utils.dart';
 import '../../purchase/providers/purchase_provider.dart';
+import '../../router/routes.dart';
 
 /// 공통 카테고리 데이터 인터페이스
 /// v8.2: 평생운세용 상세 필드 추가
@@ -137,6 +139,9 @@ class _FortuneCategoryChipSectionState
 
   /// 광고 로딩 중 플래그
   bool _isLoadingAd = false;
+
+  /// 현재 로딩 중인 카테고리 키
+  String? _loadingCategoryKey;
 
   /// [Static] 세션 기반 잠금해제 상태 - 앱 종료 전까지 유지!
   /// fortuneType별로 구분 (lifetime, yearly_2025, yearly_2026, monthly)
@@ -316,13 +321,23 @@ class _FortuneCategoryChipSectionState
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 잠금 아이콘 (잠긴 경우)
+            // 잠금 아이콘 또는 로딩 스피너
             if (!isUnlocked) ...[
-              Icon(
-                Icons.lock_outline,
-                size: 14,
-                color: theme.textSecondary,
-              ),
+              if (_loadingCategoryKey == categoryKey)
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.textSecondary,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.lock_outline,
+                  size: 14,
+                  color: theme.textSecondary,
+                ),
               const SizedBox(width: 4),
             ],
 
@@ -873,13 +888,16 @@ class _FortuneCategoryChipSectionState
       return;
     }
 
-    // 광고 킬스위치 OFF → 무료 해금
+    // 광고 킬스위치 OFF → 구매 안내
     if (!adEnabled) {
-      _unlockAndExpand(categoryKey, categoryName);
+      _showPurchaseDialog(categoryName);
       return;
     }
 
-    setState(() => _isLoadingAd = true);
+    setState(() {
+      _isLoadingAd = true;
+      _loadingCategoryKey = categoryKey;
+    });
 
     final unlockInfo = _parseFortuneType();
 
@@ -901,24 +919,23 @@ class _FortuneCategoryChipSectionState
           );
         }
         if (mounted) {
-          setState(() => _isLoadingAd = false);
+          setState(() {
+            _isLoadingAd = false;
+            _loadingCategoryKey = null;
+          });
           _unlockAndExpand(categoryKey, categoryName);
         }
       },
     );
 
     if (!shown) {
-      // 전면 광고 로드 안 됨 → 잠금 유지 + 안내 메시지
+      // 전면 광고 로드 안 됨 (AdMob + AdFit 둘 다 실패) → 구매 안내
       if (mounted) {
-        setState(() => _isLoadingAd = false);
-        try {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('광고를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        } catch (_) {}
+        setState(() {
+          _isLoadingAd = false;
+          _loadingCategoryKey = null;
+        });
+        _showPurchaseDialog(categoryName);
       }
       // 다음을 위해 전면 광고 재로드
       AdService.instance.loadInterstitialAd();
@@ -942,6 +959,32 @@ class _FortuneCategoryChipSectionState
         );
       } catch (_) {}
     }
+  }
+
+  /// 광고 실패 시 구매 안내 다이얼로그
+  void _showPurchaseDialog(String categoryName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('프리미엄으로 바로 보기'),
+        content: Text(
+          '$categoryName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('닫기'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push(Routes.settingsPremium);
+            },
+            child: const Text('프리미엄 보기'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _getCategoryName(String key) {

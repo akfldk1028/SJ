@@ -252,50 +252,59 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       return;
     }
 
-    // 한국 Android: AdFit 네이티브 우선
-    if (AdNetworkResolver.isAdFitAvailable) {
-      _adFitWidget = AdFitNativeAdWidget(
-        onLoaded: () {
-          if (kDebugMode) {
-            print('   ✅ [AD] AdFit native ad loaded');
-          }
-          state = state.copyWith(loadState: AdLoadState.loaded);
-        },
-        onLoadFailed: () {
-          if (kDebugMode) {
-            print('   ❌ [AD] AdFit native failed → AdMob fallback');
-          }
-          _adFitWidget = null;
-          _loadAdMobNativeAd();
-        },
-        onClicked: () {
-          if (kDebugMode) {
-            print('   👆 [AD] AdFit native clicked → token reward!');
-          }
-          // AdFit CPC: 클릭 = 수익 → 토큰 보상 OK
-          AdTrackingService.instance.trackNativeClick(
-            screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
-            rewardTokens: AdStrategy.adfitNativeClickRewardTokens,
-          );
-          TokenRewardService.grantNativeAdTokens(
-            AdStrategy.adfitNativeClickRewardTokens,
-          );
-          _shownAdCount++;
-        },
-        onImpression: () {
-          if (kDebugMode) {
-            print('   👁️ [AD] AdFit native impression');
-          }
-          AdTrackingService.instance.trackNativeImpression(
-            screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
-          );
-        },
-      );
-      state = state.copyWith(loadState: AdLoadState.loaded);
+    // AdMob 우선 로드, AdFit은 AdMob 실패 시 fallback
+    // AdMob 네이티브를 먼저 시도
+    _loadAdMobNativeAd();
+  }
+
+  /// AdMob 네이티브 실패 시 AdFit fallback
+  void _loadAdFitFallback() {
+    if (!AdNetworkResolver.isAdFitAvailable) {
+      // AdFit도 불가 → 로드 실패
+      state = const ConversationalAdModel();
+      if (kDebugMode) {
+        print('   🔄 [AD] Both AdMob and AdFit failed → ad mode auto-dismissed');
+      }
       return;
     }
 
-    _loadAdMobNativeAd();
+    _adFitWidget = AdFitNativeAdWidget(
+      onLoaded: () {
+        if (kDebugMode) {
+          print('   ✅ [AD] AdFit native ad loaded (fallback)');
+        }
+        state = state.copyWith(loadState: AdLoadState.loaded);
+      },
+      onLoadFailed: () {
+        if (kDebugMode) {
+          print('   ❌ [AD] AdFit native also failed → ad mode dismissed');
+        }
+        _adFitWidget = null;
+        state = const ConversationalAdModel();
+      },
+      onClicked: () {
+        if (kDebugMode) {
+          print('   👆 [AD] AdFit native clicked → token reward!');
+        }
+        AdTrackingService.instance.trackNativeClick(
+          screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+          rewardTokens: AdStrategy.adfitNativeClickRewardTokens,
+        );
+        TokenRewardService.grantNativeAdTokens(
+          AdStrategy.adfitNativeClickRewardTokens,
+        );
+        _shownAdCount++;
+      },
+      onImpression: () {
+        if (kDebugMode) {
+          print('   👁️ [AD] AdFit native impression');
+        }
+        AdTrackingService.instance.trackNativeImpression(
+          screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
+        );
+      },
+    );
+    state = state.copyWith(loadState: AdLoadState.loaded);
   }
 
   /// AdMob 네이티브 광고 로드
@@ -314,15 +323,12 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
         },
         onAdFailedToLoad: (ad, error) {
           if (kDebugMode) {
-            print('   ❌ [AD] Native ad failed: ${error.message}');
+            print('   ❌ [AD] AdMob native failed: ${error.message} → trying AdFit');
           }
           ad.dispose();
           _nativeAd = null;
-          // 로드 실패 시 광고 모드 자동 해제 → 다음 트리거에서 재시도 가능
-          state = const ConversationalAdModel();
-          if (kDebugMode) {
-            print('   🔄 [AD] Load failed → ad mode auto-dismissed');
-          }
+          // AdMob 실패 → AdFit fallback 시도
+          _loadAdFitFallback();
         },
         onAdClicked: (ad) {
           if (kDebugMode) {

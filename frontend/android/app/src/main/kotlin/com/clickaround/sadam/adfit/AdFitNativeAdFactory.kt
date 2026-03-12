@@ -155,7 +155,6 @@ class AdFitNativeAdPlatformView(
 
     override fun dispose() {
         nativeAdBinder?.unbind()
-        nativeAdLoader?.destroy()
         nativeAdBinder = null
         nativeAdLoader = null
         nativeAdLayout = null

@@ -43,17 +43,19 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
   bool _loadAttempted = false;
   bool _loadFailed = false;
 
-  /// AdFit 사용 여부 (한국 Android)
-  bool _useAdFit = false;
+  /// AdMob 로드 실패 → AdFit fallback 시도
+  bool _admobFailed = false;
   /// AdFit 로드 성공 여부
   bool _adFitLoaded = false;
-  /// AdFit 로드 실패 → AdMob fallback 시도 중
+  /// AdFit 로드 실패
   bool _adFitFailed = false;
+  /// 재시도 횟수
+  int _retryCount = 0;
+  static const _maxRetries = 2;
 
   @override
   void initState() {
     super.initState();
-    _useAdFit = AdNetworkResolver.isAdFitAvailable;
     if (_isMobile && adEnabled) {
       _loadAd();
     }
@@ -66,19 +68,28 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
-    // AdFit 우선 (한국 Android, 아직 실패 안 한 경우)
-    // AdFit은 PlatformView가 위젯 트리에 삽입되면 자체 로드함
-    // → _adFitLoaded = true로 설정하여 AdFit 위젯을 build에서 렌더링
-    // → PlatformView 내부에서 onLoaded/onLoadFailed 콜백으로 실제 결과 수신
-    if (_useAdFit && !_adFitFailed) {
+    // AdMob 우선 로드 (AdMob 실패 안 한 경우)
+    if (!_admobFailed) {
+      _loadAdMobNative();
+      return;
+    }
+
+    // AdMob 실패 → AdFit fallback (Android only)
+    if (AdNetworkResolver.isAdFitAvailable && !_adFitFailed) {
       if (mounted) {
         setState(() => _adFitLoaded = true);
       }
       return;
     }
 
-    // AdMob 로드 (해외 또는 AdFit fallback)
-    _loadAdMobNative();
+    // 둘 다 실패 → 재시도 가능하면 AdMob 다시 시도
+    if (_retryCount < _maxRetries) {
+      _retryCount++;
+      _admobFailed = false;
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) _loadAdMobNative();
+      });
+    }
   }
 
   void _loadAdMobNative() {
@@ -98,7 +109,20 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
           debugPrint('[NativeAdWidget] AdMob failed to load: ${error.message}');
           ad.dispose();
           _nativeAd = null;
-          if (mounted) {
+          _admobFailed = true;
+          // AdFit fallback 시도
+          if (AdNetworkResolver.isAdFitAvailable && !_adFitFailed) {
+            if (mounted) {
+              setState(() => _adFitLoaded = true);
+            }
+          } else if (_retryCount < _maxRetries) {
+            // 재시도
+            _retryCount++;
+            _admobFailed = false;
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) _loadAdMobNative();
+            });
+          } else if (mounted) {
             setState(() => _loadFailed = true);
           }
         },
@@ -160,12 +184,19 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
     _nativeAd!.load();
   }
 
-  /// AdFit 로드 실패 → AdMob fallback
+  /// AdFit 로드 실패 → 재시도 또는 최종 실패
   void _onAdFitFailed() {
-    debugPrint('[NativeAdWidget] AdFit failed → AdMob fallback');
+    debugPrint('[NativeAdWidget] AdFit failed');
     _adFitFailed = true;
     _adFitLoaded = false;
-    _loadAdMobNative();
+    // 재시도 가능하면 AdMob 다시 시도
+    if (_retryCount < _maxRetries) {
+      _retryCount++;
+      _admobFailed = false;
+      _loadAdMobNative();
+    } else if (mounted) {
+      setState(() => _loadFailed = true);
+    }
   }
 
   /// AdFit 클릭 → 토큰 보상 (CPC 모델이므로 보상 OK)
@@ -200,14 +231,16 @@ class _NativeAdWidgetState extends ConsumerState<NativeAdWidget> {
       }
       _loadAttempted = false; // 프리미엄 해제 시 재로드 가능하도록 리셋
       _loadFailed = false;
+      _admobFailed = false;
       _adFitLoaded = false;
       _adFitFailed = false;
+      _retryCount = 0;
       return const SizedBox.shrink();
     }
 
-    // AdFit 위젯 모드 (한국 Android)
+    // AdFit 위젯 모드 (AdMob 실패 후 fallback)
     // AdFit PlatformView가 내부에서 자체 로딩/에러 처리
-    if (_useAdFit && _adFitLoaded && !_adFitFailed) {
+    if (_adFitLoaded && !_adFitFailed) {
       return _buildAdFitBubble(context);
     }
 

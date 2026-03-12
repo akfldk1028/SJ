@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../ad/ad_network_resolver.dart';
+import '../../../../ad/adfit/adfit_banner_ad_widget.dart';
 import '../../../../ad/widgets/banner_ad_widget.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -12,6 +14,7 @@ import '../../../../router/routes.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../saju_chart/presentation/widgets/saju_mini_card.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../purchase/widgets/premium_badge_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -175,11 +178,14 @@ class HomeScreen extends ConsumerWidget {
 
                 SizedBox(height: isSmall ? 16 : 20),
 
-                // 배너 광고 (Web 제외)
-                if (!kIsWeb)
+                // 배너 광고 (Web 제외, 프리미엄 유저 제외)
+                // 배너: AdFit 고정 (Android), iOS는 AdMob
+                if (!kIsWeb && !ref.read(purchaseNotifierProvider.notifier).isPremium)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    child: const BannerAdWidget(),
+                    child: AdNetworkResolver.isAdFitAvailable
+                        ? const Center(child: AdFitBannerAdWidget())
+                        : const BannerAdWidget(),
                   ),
 
                 const SizedBox(height: 100), // Bottom nav spacing
@@ -309,9 +315,9 @@ class HomeScreen extends ConsumerWidget {
                 final isLoading = fortune == null;
 
                 // 디버그: idiom 상태 확인
-                print('[HomeScreen] fortune: ${fortune != null}, isLoading: $isLoading');
+                debugPrint('[HomeScreen] fortune: ${fortune != null}, isLoading: $isLoading');
                 if (fortune != null) {
-                  print('[HomeScreen] idiom.korean: "${fortune.idiom.korean}", isValid: ${fortune.idiom.isValid}');
+                  debugPrint('[HomeScreen] idiom.korean: "${fortune.idiom.korean}", isValid: ${fortune.idiom.isValid}');
                 }
 
                 // 점수 기반 운세 등급
@@ -587,28 +593,26 @@ class HomeScreen extends ConsumerWidget {
       {'key': 'health', 'icon': '🏥', 'name': '건강운'},
     ];
 
-    // 반응형 카드 높이
+    // 반응형: 고정 높이 대신 IntrinsicHeight로 콘텐츠에 맞춤
     final isSmall = context.isSmallMobile;
-    final cardHeight = isSmall ? 105.0 : 120.0;
     final cardWidth = isSmall ? 80.0 : 90.0;
 
-    return SizedBox(
-      height: cardHeight,
-      child: fortuneAsync.when(
-        data: (fortune) {
-          final isLoading = fortune == null;
+    return fortuneAsync.when(
+      data: (fortune) {
+        final isLoading = fortune == null;
 
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            itemCount: categoryMap.length,
-            itemBuilder: (context, index) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Row(
+            children: List.generate(categoryMap.length, (index) {
               final cat = categoryMap[index];
               final score = isLoading ? 0 : fortune.getCategoryScore(cat['key']!);
 
               return Container(
                 width: cardWidth,
                 margin: EdgeInsets.only(right: index < categoryMap.length - 1 ? (isSmall ? 10 : 12) : 0),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -624,13 +628,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       cat['icon']!,
                       style: const TextStyle(fontSize: 28),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Text(
                       cat['name']!,
                       style: TextStyle(
@@ -638,7 +642,7 @@ class HomeScreen extends ConsumerWidget {
                         color: theme.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     isLoading
                         ? SizedBox(
                             width: 16,
@@ -659,57 +663,59 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               );
-            },
-          );
-        },
-        loading: () => _buildCategoryListLoading(theme, categoryMap.length),
-        error: (e, _) => _buildCategoryListLoading(theme, categoryMap.length),
-      ),
+            }),
+          ),
+        );
+      },
+      loading: () => _buildCategoryListLoading(theme, categoryMap.length),
+      error: (e, _) => _buildCategoryListLoading(theme, categoryMap.length),
     );
   }
 
   Widget _buildCategoryListLoading(AppThemeExtension theme, int count, {double horizontalPadding = 20}) {
-    return ListView.builder(
+    return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      itemCount: count,
-      itemBuilder: (context, index) {
-        return Container(
-          width: 90,
-          margin: EdgeInsets.only(right: index < count - 1 ? 12 : 0),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.cardColor,
-                theme.cardColor.withValues(alpha: 0.9),
+      child: Row(
+        children: List.generate(count, (index) {
+          return Container(
+            width: 90,
+            margin: EdgeInsets.only(right: index < count - 1 ? 12 : 0),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.cardColor,
+                  theme.cardColor.withValues(alpha: 0.9),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.primaryColor.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildShimmerBox(theme, 28, 28),
+                const SizedBox(height: 8),
+                _buildShimmerBox(theme, 40, 14),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.primaryColor.withValues(alpha: 0.5),
+                  ),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.primaryColor.withValues(alpha: 0.1),
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildShimmerBox(theme, 28, 28),
-              const SizedBox(height: 10),
-              _buildShimmerBox(theme, 40, 14),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: theme.primaryColor.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+          );
+        }),
+      ),
     );
   }
 

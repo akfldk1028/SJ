@@ -22,27 +22,30 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
   bool _loadAttempted = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    debugPrint('[BannerAdWidget] didChangeDependencies called');
-    _loadAd();
+    if (!_isLoading && !_isLoaded) {
+      _loadAd();
+    }
   }
 
   void _loadAd() {
-    if (!adEnabled) return;
+    if (!adEnabled || _isLoading) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
+    _isLoading = true;
     final width = MediaQuery.of(context).size.width;
-    debugPrint('[BannerAdWidget] Loading banner ad with width: $width');
 
     AdService.instance.loadBannerAd(
       width: width,
       onLoaded: (ad) {
+        _isLoading = false;
         if (mounted) {
           setState(() {
             _bannerAd = ad;
@@ -51,6 +54,7 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
         }
       },
       onFailed: (error) {
+        _isLoading = false;
         debugPrint('[BannerAdWidget] Failed to load: ${error.message}');
       },
     );

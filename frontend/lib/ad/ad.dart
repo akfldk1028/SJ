@@ -21,6 +21,7 @@ export 'feature_unlock_service.dart';
 // AdFit
 export 'adfit/adfit_config.dart';
 export 'adfit/adfit_service.dart';
+export 'adfit/adfit_banner_ad_widget.dart';
 export 'adfit/adfit_native_ad_widget.dart';
 
 // Providers
