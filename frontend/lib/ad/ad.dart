@@ -1,5 +1,5 @@
-/// AdMob + AdFit Module
-/// 광고 관련 모듈 exports
+/// 멀티 네트워크 광고 모듈
+/// AdMob + Unity + AdFit (+ Vungle stub) 플러그인 패턴
 library;
 
 // Config
@@ -9,6 +9,15 @@ export 'ad_strategy.dart';
 // Network
 export 'ad_network_resolver.dart';
 export 'region_detector.dart';
+
+// Adapters
+export 'adapters/ad_network_adapter.dart';
+export 'adapters/admob_adapter.dart';
+export 'adapters/adfit_adapter.dart';
+export 'adapters/unity_ads_adapter.dart';
+export 'adapters/unity_ads_config.dart';
+export 'adapters/vungle_adapter.dart';
+export 'adapters/vungle_config.dart';
 
 // Data Layer (Supabase queries/mutations)
 export 'data/ad_data.dart';

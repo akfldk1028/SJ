@@ -647,6 +647,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  gma_mediation_unity:
+    dependency: "direct main"
+    description:
+      name: gma_mediation_unity
+      sha256: "8a7d88a0b4ae1e05926607664ba2062974e5f616a4de002cc22828518c8bd816"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.5"
   go_router:
     dependency: "direct main"
     description:
@@ -1441,6 +1449,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  unity_ads_plugin:
+    dependency: "direct main"
+    description:
+      name: unity_ads_plugin
+      sha256: af43cfe45ee056758c37077beffd683631416f7c180cc96bcf610e342f4e5e52
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.29"
   universal_image:
     dependency: transitive
     description:

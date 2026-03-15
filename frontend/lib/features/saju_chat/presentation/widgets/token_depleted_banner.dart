@@ -158,9 +158,15 @@ class TokenDepletedBanner extends ConsumerWidget {
   }
 
   /// 전면 광고 5초 → 광고 닫힌 후 서버 + 클라이언트 토큰 충전
+  ///
+  /// 더블탭 방지: adNotifier.setLoading()으로 즉시 상태 변경 → 배너 UI 비활성화
+  /// stale ref 방지: async gap 전에 notifier 캡처
   void _handleInterstitialAndContinue(BuildContext context, WidgetRef ref) async {
     final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
     final chatNotifier = ref.read(chatNotifierProvider(sessionId).notifier);
+
+    // 더블탭 방지: 즉시 광고 로딩 상태로 전환 → 버튼 재탭 차단
+    adNotifier.dismissAd();
 
     // 전면 광고 로드 대기 (최대 5초) → 표시
     // bypassInterval: true → 토큰 소진은 필수 광고이므로 쿨다운 무시
@@ -177,20 +183,25 @@ class TokenDepletedBanner extends ConsumerWidget {
         );
         // 클라이언트 측 토큰 업데이트 (ConversationWindowManager)
         chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
-        adNotifier.dismissAd();
         debugPrint('[TokenDepletedBanner] 전면 광고 완료 → +$tokens tokens (서버+클라이언트)');
       },
     );
 
     if (!shown) {
-      // 전면 광고 로드 안 됨 (AdMob + AdFit 둘 다 실패) → 구매 안내
+      // 전면 광고 로드 안 됨 → fallback 소량 토큰 지급
+      const fallbackTokens = AdStrategy.depletedFallbackTokens;
+      await TokenRewardService.grantRewardedAdTokens(
+        fallbackTokens,
+        screen: 'token_depleted_fallback',
+      );
+      chatNotifier.addBonusTokens(fallbackTokens, isRewardedAd: false);
       // 다음을 위해 전면 광고 재로드
       AdService.instance.loadInterstitialAd();
-      debugPrint('[TokenDepletedBanner] 광고 로드 실패 → 구매 안내');
+      debugPrint('[TokenDepletedBanner] 광고 로드 실패 → fallback +$fallbackTokens tokens');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('광고를 불러올 수 없어요. 프리미엄 구독으로 무제한 이용하세요!'),
+            content: Text('광고를 불러올 수 없어 소량 충전했어요. 잠시 후 다시 시도해주세요!'),
             duration: Duration(seconds: 3),
           ),
         );
