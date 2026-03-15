@@ -33,6 +33,15 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       throw Exception('IAP not available');
     }
 
+    // RevenueCat 실시간 리스너: 구독 갱신/만료/구매 변경 시 자동 반영
+    Purchases.addCustomerInfoUpdateListener((info) {
+      if (kDebugMode) {
+        print('[PurchaseNotifier] CustomerInfo 실시간 업데이트 수신');
+        print('[PurchaseNotifier] isPremium 변경 → UI 자동 갱신');
+      }
+      state = AsyncData(info);
+    });
+
     try {
       final info = await Purchases.getCustomerInfo();
       if (kDebugMode) {
