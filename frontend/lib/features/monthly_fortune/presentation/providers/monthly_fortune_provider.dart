@@ -362,6 +362,12 @@ class MonthlyFortune extends _$MonthlyFortune {
 
   @override
   Future<MonthlyFortuneData?> build() async {
+    // Dispose 시 폴링 중단 (Future.delayed 체인 정리)
+    ref.onDispose(() {
+      _isPolling = false;
+      _isStalePolling = false;
+    });
+
     // v8.0 Safety: stuck _isAnalyzing 리셋 (타임아웃 초과 시)
     if (_isAnalyzing && _analyzeStartTime != null &&
         DateTime.now().difference(_analyzeStartTime!) > _analyzeTimeout) {
