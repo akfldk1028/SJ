@@ -112,6 +112,23 @@ Task 도구:
 | Local Storage | **Hive** (캐시), flutter_secure_storage (토큰) |
 | Backend | Supabase (JH_BE 담당) |
 | AI | **GPT-5.2** (분석) + **Gemini 3.0** (대화) + DALL-E/Imagen (이미지) |
+| **광고** | 멀티 네트워크 어댑터 패턴 (AdMob + Unity Ads 직접 + Vungle stub) |
+
+### 광고 시스템 (v0.1.6+49, 2026-03-15)
+
+**어댑터 패턴** — `frontend/lib/ad/adapters/`
+```
+AdService (오케스트레이터)
+  └── _adapters: [AdMobAdapter, UnityAdsAdapter]
+       ├── AdMob: 1순위 (미디에이션 Liftoff/Mintegral)
+       └── Unity: 2순위 (직접 SDK, AdMob 밴 시 독립 동작)
+```
+
+- **AdFit**: 배너/네이티브만 (전면/보상형 미포함, DK 지시)
+- **Vungle**: stub (네이티브 SDK 브릿지 미구현)
+- **토큰 지급**: RPC 3회 재시도 + Hive 실패 큐 + 앱 시작 시 재시도
+- **Unity Dashboard**: "Unity Ads only" 모드 (Bidding→직접 전환 완료)
+- 설정: `ad_config.dart`, `ad_strategy.dart`
 
 ### Shadcn UI 사용 규칙
 - **모든 UI 컴포넌트는 shadcn_ui 우선 사용**
