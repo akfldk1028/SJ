@@ -2,6 +2,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Kakao AdFit SDK
+        maven { url = uri("https://devrepo.kakao.com/nexus/content/groups/public/") }
+        // Mintegral SDK
+        maven { url = uri("https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea/") }
     }
 }
 

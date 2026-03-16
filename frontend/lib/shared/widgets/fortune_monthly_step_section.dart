@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ad/ad_config.dart';
 import '../../ad/ad_service.dart';
 import '../../purchase/providers/purchase_provider.dart';
+import '../../router/routes.dart';
 import 'fortune_category_chip_section.dart';
 
 /// 월별 운세 + 카테고리 Step by Step 섹션
@@ -421,58 +424,34 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       return;
     }
 
-    // 네이티브 광고 대신 보상형 광고 사용 (네이티브 광고는 인라인 표시용)
-    // 여기서는 보상형 광고로 대체
-    if (!AdService.instance.isRewardedLoaded) {
-      await AdService.instance.loadRewardedAd(
-        onLoaded: () async {
-          final shown = await AdService.instance.showRewardedAd(
-            onRewarded: (amount, type) async {
-              await _unlockMonth(month);
-              if (mounted) {
-                setState(() => _isLoadingAd = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$month월 운세가 해제되었습니다!'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
+    // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
+    if (!adEnabled) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog('$month월');
+      return;
+    }
+
+    // 전면 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
+      onDismissed: () async {
+        await _unlockMonth(month);
+        if (mounted) {
+          setState(() => _isLoadingAd = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$month월 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
           );
+        }
+      },
+    );
 
-          if (!shown && mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog('$month월');
-          }
-        },
-        onFailed: (error) {
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog('$month월');
-          }
-        },
-      );
-    } else {
-      final shown = await AdService.instance.showRewardedAd(
-        onRewarded: (amount, type) async {
-          await _unlockMonth(month);
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$month월 운세가 해제되었습니다!'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-      );
-
-      if (!shown && mounted) {
-        setState(() => _isLoadingAd = false);
-        _showAdNotReadyDialog('$month월');
-      }
+    if (!shown && mounted) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog('$month월');
     }
   }
 
@@ -933,71 +912,56 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       return;
     }
 
-    // 광고 로드 및 표시
-    if (!AdService.instance.isRewardedLoaded) {
-      await AdService.instance.loadRewardedAd(
-        onLoaded: () async {
-          final shown = await AdService.instance.showRewardedAd(
-            onRewarded: (amount, type) async {
-              await _unlockStep(step);
-              if (mounted) {
-                setState(() => _isLoadingAd = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$categoryName 운세가 해제되었습니다!'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
+    // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
+    if (!adEnabled) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog(categoryName);
+      return;
+    }
+
+    // 전면 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
+      onDismissed: () async {
+        await _unlockStep(step);
+        if (mounted) {
+          setState(() => _isLoadingAd = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$categoryName 운세가 해제되었습니다!'),
+              duration: const Duration(seconds: 2),
+            ),
           );
+        }
+      },
+    );
 
-          if (!shown && mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(categoryName);
-          }
-        },
-        onFailed: (error) {
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(categoryName);
-          }
-        },
-      );
-    } else {
-      final shown = await AdService.instance.showRewardedAd(
-        onRewarded: (amount, type) async {
-          await _unlockStep(step);
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$categoryName 운세가 해제되었습니다!'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-      );
-
-      if (!shown && mounted) {
-        setState(() => _isLoadingAd = false);
-        _showAdNotReadyDialog(categoryName);
-      }
+    if (!shown && mounted) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog(categoryName);
     }
   }
 
   void _showAdNotReadyDialog(String categoryName) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('광고 준비 중'),
-        content:
-            Text('$categoryName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('프리미엄으로 바로 보기'),
+        content: Text(
+          '$categoryName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('닫기'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push(Routes.settingsPremium);
+            },
+            child: const Text('프리미엄 보기'),
           ),
         ],
       ),

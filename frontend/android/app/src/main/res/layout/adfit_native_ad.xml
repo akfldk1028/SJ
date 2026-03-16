@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AdFit 네이티브 광고 레이아웃 — 채팅 버블 스타일 -->
+<!-- AdFitNativeAdView(필수 컨테이너) + AdFitMediaView(필수 미디어) -->
+<!-- SDK가 자동으로 소재를 채우고 광고 정보 아이콘을 배치함 -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent">
+
+    <com.kakao.adfit.ads.na.AdFitNativeAdView
+        android:id="@+id/containerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 프로필 영역: 아이콘 + 브랜드명 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingBottom="8dp">
+
+                <ImageView
+                    android:id="@+id/profileIconView"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:contentDescription="AD Profile"
+                    android:scaleType="centerCrop"
+                    tools:src="@mipmap/ic_launcher" />
+
+                <TextView
+                    android:id="@+id/profileNameTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="#B0B0B0"
+                    android:textSize="12sp"
+                    tools:text="광고주명" />
+            </LinearLayout>
+
+            <!-- 미디어 소재 (필수 — AdFitMediaView) -->
+            <com.kakao.adfit.ads.na.AdFitMediaView
+                android:id="@+id/mediaView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- 제목 (필수) -->
+            <TextView
+                android:id="@+id/titleTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:textColor="#E0E0E0"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="광고 제목" />
+
+            <!-- 홍보문구 -->
+            <TextView
+                android:id="@+id/bodyTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:textColor="#B0B0B0"
+                android:textSize="12sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="광고 설명" />
+
+            <!-- 행동유도 버튼 (CTA) -->
+            <Button
+                android:id="@+id/callToActionButton"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:layout_marginTop="8dp"
+                android:background="#D4AF37"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:text="자세히 보기" />
+
+        </LinearLayout>
+    </com.kakao.adfit.ads.na.AdFitNativeAdView>
+</FrameLayout>

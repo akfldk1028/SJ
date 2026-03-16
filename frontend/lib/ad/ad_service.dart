@@ -1,5 +1,13 @@
-/// AdMob Service
-/// 광고 초기화, 로딩, 표시를 담당하는 서비스
+/// 멀티 네트워크 광고 서비스 (어댑터 오케스트레이터)
+///
+/// AdNetworkAdapter 리스트를 우선순위 순으로 순회하며 fallback 처리.
+/// 새 네트워크 추가 = 어댑터 1개 구현 + _adapters 등록. 끝.
+///
+/// Fallback 순서:
+///   AdMob(+미디에이션) → UnityAds(직접)
+/// AdFit은 배너/네이티브 전용 (전면/보상형에 포함하지 않음)
+///
+/// 배너/네이티브는 기존 방식 유지 (어댑터 대상 아님).
 library;
 
 import 'package:flutter/foundation.dart';
@@ -7,6 +15,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_config.dart';
 import 'ad_tracking_service.dart';
+import 'adapters/ad_network_adapter.dart';
+import 'adapters/admob_adapter.dart';
+import 'adapters/unity_ads_adapter.dart';
 import 'feature_unlock_service.dart';
 
 /// 광고 서비스 싱글톤
@@ -17,43 +28,54 @@ class AdService {
   bool _isInitialized = false;
   DateTime? _lastInterstitialTime;
 
-  // 광고 인스턴스
-  BannerAd? _bannerAd;
-  InterstitialAd? _interstitialAd;
-  RewardedAd? _rewardedAd;
+  // 어댑터 리스트 (우선순위 순)
+  final List<AdNetworkAdapter> _adapters = [];
 
-  // 광고 로드 상태
+  // 배너 광고 (어댑터 미적용 — AdMob 전용)
+  BannerAd? _bannerAd;
   bool _isBannerLoaded = false;
-  bool _isInterstitialLoaded = false;
-  bool _isRewardedLoaded = false;
 
   // Getters
   bool get isInitialized => _isInitialized;
   bool get isBannerLoaded => _isBannerLoaded;
-  bool get isInterstitialLoaded => _isInterstitialLoaded;
-  bool get isRewardedLoaded => _isRewardedLoaded;
   BannerAd? get bannerAd => _bannerAd;
 
-  /// SDK 초기화
+  /// 전면 광고 로드 여부 (어댑터 중 하나라도 로드됐으면 true)
+  bool get isInterstitialLoaded =>
+      _adapters.any((a) => a.isInterstitialLoaded);
+
+  /// 보상형 광고 로드 여부 (어댑터 중 하나라도 로드됐으면 true)
+  bool get isRewardedLoaded => _adapters.any((a) => a.isRewardedLoaded);
+
+  /// SDK 초기화 + 어댑터 등록
   Future<void> initialize() async {
     if (_isInitialized) return;
-
-    try {
-      final status = await MobileAds.instance.initialize();
-      _isInitialized = true;
-
-      // 어댑터 상태 로깅
-      status.adapterStatuses.forEach((key, value) {
-        debugPrint('[AdService] Adapter $key: ${value.description}');
-      });
-
-      debugPrint('[AdService] SDK initialized successfully');
-    } catch (e) {
-      debugPrint('[AdService] SDK initialization failed: $e');
+    if (!adEnabled) {
+      debugPrint('[AdService] Ad kill switch OFF — skipping init');
+      return;
     }
+
+    // 에뮬레이터 감지 → 테스트 광고 자동 전환
+    await AdModeResolver.init();
+
+    // 어댑터 등록 (우선순위 순)
+    // AdFit은 배너/네이티브 전용 — 전면/보상형 fallback에 포함하지 않음
+    _adapters.addAll([
+      AdMobAdapter(), // 1순위: AdMob (+Liftoff/Mintegral bidding 미디에이션)
+      UnityAdsAdapter(), // 2순위: Unity Ads 직접 SDK (Bidding→직접 전환 완료 2026-03-15)
+      // VungleAdapter(), // TODO: Liftoff SDK 네이티브 브릿지 구현 후 활성화
+    ]);
+
+    // 전체 SDK 병렬 초기화
+    await Future.wait(_adapters.map((a) => a.initialize()));
+
+    _isInitialized = true;
+    debugPrint(
+        '[AdService] Initialized with ${_adapters.length} adapters: '
+        '${_adapters.map((a) => a.name).join(', ')}');
   }
 
-  // ==================== Banner Ad ====================
+  // ==================== Banner Ad (기존 유지) ====================
 
   /// 배너 광고 로드
   Future<void> loadBannerAd({
@@ -61,11 +83,11 @@ class AdService {
     void Function(BannerAd)? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
-    // 기존 배너 정리
+    if (!adEnabled) return;
+
     await _bannerAd?.dispose();
     _isBannerLoaded = false;
 
-    // Adaptive 크기 가져오기
     final adSize =
         await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
       width.truncate(),
@@ -82,33 +104,34 @@ class AdService {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          debugPrint('[AdService] Banner ad loaded');
+          debugPrint('[AdService] Banner loaded');
           _isBannerLoaded = true;
           onLoaded?.call(ad as BannerAd);
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint('[AdService] Banner ad failed: ${error.message}');
+          debugPrint('[AdService] Banner failed: ${error.message}');
           ad.dispose();
           _bannerAd = null;
           _isBannerLoaded = false;
           onFailed?.call(error);
         },
         onAdOpened: (ad) {
-          debugPrint('[AdService] Banner ad opened');
+          debugPrint('[AdService] Banner opened');
         },
         onAdClosed: (ad) {
-          debugPrint('[AdService] Banner ad closed');
+          debugPrint('[AdService] Banner closed');
         },
         onAdImpression: (ad) {
-          debugPrint('[AdService] Banner ad impression');
+          debugPrint('[AdService] Banner impression');
           AdTrackingService.instance.trackBannerImpression();
         },
         onAdClicked: (ad) {
-          debugPrint('[AdService] Banner ad clicked');
+          debugPrint('[AdService] Banner clicked');
           AdTrackingService.instance.trackBannerClick();
         },
         onPaidEvent: (ad, valueMicros, precision, currencyCode) {
-          debugPrint('[AdService] Banner paid: $valueMicros micros ($currencyCode)');
+          debugPrint(
+              '[AdService] Banner paid: $valueMicros micros ($currencyCode)');
           AdTrackingService.instance.trackAdRevenue(
             adType: AdType.banner,
             valueMicros: valueMicros,
@@ -131,79 +154,30 @@ class AdService {
 
   // ==================== Interstitial Ad ====================
 
-  /// 전면 광고 로드
+  /// 전면 광고 로드 (모든 어댑터 병렬)
   Future<void> loadInterstitialAd({
     void Function()? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
-    await InterstitialAd.load(
-      adUnitId: AdUnitId.interstitial,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          debugPrint('[AdService] Interstitial ad loaded');
-          _interstitialAd = ad;
-          _isInterstitialLoaded = true;
+    if (!adEnabled) return;
 
-          // onPaidEvent 수익 추적
-          _interstitialAd!.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
-            debugPrint('[AdService] Interstitial paid: $valueMicros micros ($currencyCode)');
-            AdTrackingService.instance.trackAdRevenue(
-              adType: AdType.interstitial,
-              valueMicros: valueMicros,
-              precision: precision.name,
-              currencyCode: currencyCode,
-            );
-          };
-
-          // 전면 광고 콜백 설정
-          _interstitialAd!.fullScreenContentCallback =
-              FullScreenContentCallback(
-            onAdShowedFullScreenContent: (ad) {
-              debugPrint('[AdService] Interstitial showed');
-              AdTrackingService.instance.trackInterstitialShow();
-            },
-            onAdDismissedFullScreenContent: (ad) {
-              debugPrint('[AdService] Interstitial dismissed');
-              AdTrackingService.instance.trackInterstitialComplete();
-              ad.dispose();
-              _interstitialAd = null;
-              _isInterstitialLoaded = false;
-              // 자동 재로드
-              loadInterstitialAd();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              debugPrint('[AdService] Interstitial failed to show: $error');
-              ad.dispose();
-              _interstitialAd = null;
-              _isInterstitialLoaded = false;
-              // 표시 실패 시에도 재로드 → 다음 기회에 사용 가능
-              loadInterstitialAd();
-            },
-            onAdImpression: (ad) {
-              debugPrint('[AdService] Interstitial impression');
-            },
-            onAdClicked: (ad) {
-              debugPrint('[AdService] Interstitial clicked');
-              AdTrackingService.instance.trackInterstitialClick();
-            },
-          );
-
-          onLoaded?.call();
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('[AdService] Interstitial failed to load: ${error.message}');
-          _isInterstitialLoaded = false;
-          onFailed?.call(error);
-        },
-      ),
-    );
+    for (final adapter in _adapters) {
+      adapter.loadInterstitial();
+    }
   }
 
   /// 전면 광고 표시
-  Future<bool> showInterstitialAd() async {
+  ///
+  /// [onDismissed] 광고 닫힌 후 콜백 (토큰 충전 등)
+  /// [bypassInterval] true면 최소 간격 무시 (토큰 소진 필수 광고)
+  Future<bool> showInterstitialAd({
+    void Function()? onDismissed,
+    bool bypassInterval = false,
+  }) async {
+    if (!adEnabled) return false;
+
     // 최소 간격 체크
-    if (_lastInterstitialTime != null) {
+    if (!bypassInterval && _lastInterstitialTime != null) {
       final elapsed = DateTime.now().difference(_lastInterstitialTime!);
       if (elapsed.inSeconds < AdSettings.interstitialMinInterval) {
         debugPrint(
@@ -212,88 +186,66 @@ class AdService {
       }
     }
 
-    if (!_isInterstitialLoaded || _interstitialAd == null) {
-      debugPrint('[AdService] Interstitial not ready');
-      return false;
+    // 우선순위 순으로 어댑터 시도
+    for (final adapter in _adapters) {
+      if (adapter.isInterstitialLoaded) {
+        final shown =
+            await adapter.showInterstitial(onDismissed: onDismissed);
+        if (shown) {
+          _lastInterstitialTime = DateTime.now();
+          debugPrint('[AdService] ${adapter.name} interstitial shown');
+          return true;
+        }
+      }
     }
 
-    _lastInterstitialTime = DateTime.now();
-    await _interstitialAd!.show();
-    return true;
+    debugPrint('[AdService] Interstitial not ready (all adapters)');
+    return false;
+  }
+
+  /// 전면 광고 로드 대기 (최대 timeout)
+  ///
+  /// 모든 어댑터에 로드 요청 후, 아무 어댑터라도 로드 완료되면 반환.
+  Future<bool> waitForInterstitialLoad({
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    if (isInterstitialLoaded) return true;
+
+    // 모든 어댑터에 로드 요청
+    loadInterstitialAd();
+
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (isInterstitialLoaded) {
+        debugPrint(
+            '[AdService] Interstitial ready: '
+            '${_adapters.firstWhere((a) => a.isInterstitialLoaded).name}');
+        return true;
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    return isInterstitialLoaded;
   }
 
   // ==================== Rewarded Ad ====================
 
-  /// 보상형 광고 로드
+  /// 보상형 광고 로드 (모든 어댑터 병렬)
   Future<void> loadRewardedAd({
     void Function()? onLoaded,
     void Function(LoadAdError)? onFailed,
   }) async {
-    await RewardedAd.load(
-      adUnitId: AdUnitId.rewarded,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          debugPrint('[AdService] Rewarded ad loaded');
-          _rewardedAd = ad;
-          _isRewardedLoaded = true;
+    if (!adEnabled) {
+      debugPrint('[AdService] Ad kill switch OFF — skipping rewarded load');
+      return;
+    }
 
-          // onPaidEvent 수익 추적
-          _rewardedAd!.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
-            debugPrint('[AdService] Rewarded paid: $valueMicros micros ($currencyCode)');
-            AdTrackingService.instance.trackAdRevenue(
-              adType: AdType.rewarded,
-              valueMicros: valueMicros,
-              precision: precision.name,
-              currencyCode: currencyCode,
-            );
-          };
-
-          _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-            onAdShowedFullScreenContent: (ad) {
-              debugPrint('[AdService] Rewarded showed');
-              AdTrackingService.instance.trackRewardedShow();
-            },
-            onAdDismissedFullScreenContent: (ad) {
-              debugPrint('[AdService] Rewarded dismissed');
-              AdTrackingService.instance.trackRewardedComplete();
-              ad.dispose();
-              _rewardedAd = null;
-              _isRewardedLoaded = false;
-              // 지연 후 재로드
-              Future.delayed(
-                const Duration(seconds: AdSettings.rewardedReloadDelay),
-                () => loadRewardedAd(),
-              );
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              debugPrint('[AdService] Rewarded failed to show: $error');
-              ad.dispose();
-              _rewardedAd = null;
-              _isRewardedLoaded = false;
-            },
-            onAdImpression: (ad) {
-              debugPrint('[AdService] Rewarded impression');
-            },
-            onAdClicked: (ad) {
-              debugPrint('[AdService] Rewarded clicked');
-              AdTrackingService.instance.trackRewardedClick();
-            },
-          );
-
-          onLoaded?.call();
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('[AdService] Rewarded failed to load: ${error.message}');
-          _isRewardedLoaded = false;
-          onFailed?.call(error);
-        },
-      ),
-    );
+    for (final adapter in _adapters) {
+      adapter.loadRewarded();
+    }
   }
 
   /// 보상형 광고 표시 (기본)
-  /// [onRewarded] 보상 지급 콜백 (보상 금액, 보상 타입)
   Future<bool> showRewardedAd({
     required void Function(int amount, String type) onRewarded,
   }) async {
@@ -301,13 +253,6 @@ class AdService {
   }
 
   /// 보상형 광고 표시 + 기능 해금 추적
-  ///
-  /// [onRewarded] 보상 지급 콜백
-  /// [featureType] 해금할 기능 유형 (null이면 해금 없이 광고만)
-  /// [featureKey] 해금할 기능 키 (career, love 등)
-  /// [targetYear] 대상 연도
-  /// [targetMonth] 대상 월 (연간은 0)
-  /// [profileId] 현재 활성 프로필 ID
   Future<bool> showRewardedAdWithUnlock({
     required void Function(int amount, String type) onRewarded,
     FeatureType? featureType,
@@ -316,10 +261,7 @@ class AdService {
     int? targetMonth,
     String? profileId,
   }) async {
-    if (!_isRewardedLoaded || _rewardedAd == null) {
-      debugPrint('[AdService] Rewarded not ready');
-      return false;
-    }
+    if (!adEnabled) return false;
 
     // screen 문자열 생성 (추적용)
     String? screen;
@@ -330,66 +272,72 @@ class AdService {
       }
     }
 
-    await _rewardedAd!.show(
-      onUserEarnedReward: (ad, reward) async {
-        debugPrint(
-            '[AdService] User earned reward: ${reward.amount} ${reward.type}');
+    // 우선순위 순으로 어댑터 시도
+    for (final adapter in _adapters) {
+      if (adapter.isRewardedLoaded) {
+        final shown = await adapter.showRewarded(
+          onRewarded: (amount, type) async {
+            debugPrint(
+                '[AdService] Reward earned via ${adapter.name}: $amount $type');
 
-        // 1. 광고 이벤트 추적 (ad_events 테이블)
-        // featureType이 있으면 잠금해제 목적, 없으면 일반
-        final adEventId = await AdTrackingService.instance.trackRewarded(
-          rewardAmount: reward.amount.toInt(),
-          rewardType: reward.type,
-          screen: screen,
-          profileId: profileId,
-          purpose: featureType != null
-              ? AdPurpose.featureUnlock
-              : AdPurpose.general,
+            // 1. 광고 이벤트 추적
+            final adEventId =
+                await AdTrackingService.instance.trackRewarded(
+              rewardAmount: amount,
+              rewardType: type,
+              screen: screen,
+              profileId: profileId,
+              purpose: featureType != null
+                  ? AdPurpose.featureUnlock
+                  : AdPurpose.general,
+            );
+
+            // 2. 기능 해금
+            if (featureType != null &&
+                featureKey != null &&
+                targetYear != null) {
+              await FeatureUnlockService.instance.unlockByRewardedAd(
+                featureType: featureType,
+                featureKey: featureKey,
+                targetYear: targetYear,
+                targetMonth: targetMonth ?? 0,
+                rewardAmount: amount,
+                rewardType: type,
+                adEventId: adEventId,
+                profileId: profileId,
+              );
+            }
+
+            // 3. 유저 콜백
+            onRewarded(amount, type);
+          },
         );
-
-        // 2. 기능 해금 (feature_unlocks 테이블)
-        if (featureType != null &&
-            featureKey != null &&
-            targetYear != null) {
-          await FeatureUnlockService.instance.unlockByRewardedAd(
-            featureType: featureType,
-            featureKey: featureKey,
-            targetYear: targetYear,
-            targetMonth: targetMonth ?? 0,
-            rewardAmount: reward.amount.toInt(),
-            rewardType: reward.type,
-            adEventId: adEventId,
-            profileId: profileId,
-          );
+        if (shown) {
+          debugPrint('[AdService] ${adapter.name} rewarded shown');
+          return true;
         }
+      }
+    }
 
-        // 3. 콜백 호출
-        onRewarded(reward.amount.toInt(), reward.type);
-      },
-    );
-    return true;
+    debugPrint('[AdService] Rewarded not ready (all adapters)');
+    return false;
   }
 
-  // ==================== Rewarded Ad Helpers ====================
-
-  /// Rewarded 광고 로드 대기 (최대 timeout)
-  /// 이미 로드되어 있으면 즉시 true 반환
+  /// 보상형 광고 로드 대기 (최대 timeout)
   Future<bool> waitForRewardedLoad({
     Duration timeout = const Duration(seconds: 5),
   }) async {
-    if (_isRewardedLoaded) return true;
+    if (isRewardedLoaded) return true;
 
-    // 로드 중이 아니면 재로드 시작
     loadRewardedAd();
 
-    // 폴링으로 대기 (100ms 간격)
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
-      if (_isRewardedLoaded) return true;
+      if (isRewardedLoaded) return true;
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    return _isRewardedLoaded;
+    return isRewardedLoaded;
   }
 
   // ==================== Cleanup ====================
@@ -397,15 +345,11 @@ class AdService {
   /// 모든 광고 해제
   void disposeAll() {
     _bannerAd?.dispose();
-    _interstitialAd?.dispose();
-    _rewardedAd?.dispose();
-
     _bannerAd = null;
-    _interstitialAd = null;
-    _rewardedAd = null;
-
     _isBannerLoaded = false;
-    _isInterstitialLoaded = false;
-    _isRewardedLoaded = false;
+
+    for (final adapter in _adapters) {
+      adapter.dispose();
+    }
   }
 }

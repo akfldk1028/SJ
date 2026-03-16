@@ -152,7 +152,6 @@ class ActiveProfile extends _$ActiveProfile {
       userId: user.id,
       profileId: profileId,
       runInBackground: false,  // 완료 대기
-      locale: state.value?.locale ?? 'ko',
     );
 
     if (result.sajuBase?.success == true) {
@@ -178,7 +177,6 @@ class ActiveProfile extends _$ActiveProfile {
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
-      locale: state.value?.locale ?? 'ko',
       onComplete: (result) {
         // 분석 완료 시 UI 갱신을 위해 provider invalidate
         print('[ActiveProfile] AI 분석 완료 - UI 갱신');
@@ -736,7 +734,6 @@ class ProfileForm extends _$ProfileForm {
       userId: user.id,
       profileId: profileId,
       runInBackground: false,  // 완료 대기
-      locale: 'ko',
     );
 
     if (result.sajuBase?.success == true) {
@@ -793,17 +790,28 @@ class ProfileForm extends _$ProfileForm {
 
     // fire-and-forget
     // v7.3: analyzeFortuneOnly() 사용 - 프로필 정보를 내부에서 DB 조회
+    // v8.1: 각 운세 타입별 완료 즉시 UI 갱신 (Future.wait 대기 안 함!)
     fortuneCoordinator.analyzeFortuneOnly(
       userId: userId,
       profileId: profileId,
-      locale: 'ko',
+      onDailyComplete: () {
+        print('[Profile] 🔔 일운 완료 → UI 즉시 갱신');
+        ref.invalidate(dailyFortuneProvider);
+      },
+      onMonthlyComplete: () {
+        print('[Profile] 🔔 월운 완료 → UI 즉시 갱신');
+        ref.invalidate(monthlyFortuneProvider);
+      },
+      onYearly2026Complete: () {
+        print('[Profile] 🔔 2026 신년운세 완료 → UI 즉시 갱신');
+        ref.invalidate(newYearFortuneProvider);
+      },
+      onYearly2025Complete: () {
+        print('[Profile] 🔔 2025 회고운세 완료 → UI 즉시 갱신');
+        ref.invalidate(yearly2025FortuneProvider);
+      },
     ).then((results) {
-      print('[Profile] ✅ Fortune 분석 완료! (daily: ${results.daily != null})');
-      // Fortune 완료 즉시 UI 갱신
-      ref.invalidate(dailyFortuneProvider);
-      ref.invalidate(monthlyFortuneProvider);
-      ref.invalidate(newYearFortuneProvider);
-      ref.invalidate(yearly2025FortuneProvider);
+      print('[Profile] ✅ Fortune 분석 모두 완료!');
     }).catchError((e) {
       print('[Profile] ❌ Fortune 분석 오류: $e');
     });
@@ -817,7 +825,6 @@ class ProfileForm extends _$ProfileForm {
       userId: userId,
       profileId: profileId,
       runInBackground: true,
-      locale: 'ko',
       onComplete: (result) {
         print('[Profile] ✅ saju_base 분석 완료: ${result.success}');
         // 평생운세 UI 갱신

@@ -23,6 +23,7 @@ class TodayMessageCard extends ConsumerWidget {
     );
 
     return affirmation.when(
+      skipLoadingOnRefresh: true,
       loading: () => _buildLoadingCard(context, theme),
       error: (_, __) => _buildCard(context, theme, 'menu.cannotLoadMessage'.tr()),
       data: (message) {

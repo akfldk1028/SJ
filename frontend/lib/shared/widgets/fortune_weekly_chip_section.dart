@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/app_theme.dart';
+import '../../ad/ad_config.dart';
 import '../../ad/ad_service.dart';
 import '../../purchase/providers/purchase_provider.dart';
+import '../../router/routes.dart';
 
 /// 주간 데이터 인터페이스
 class WeeklyData {
@@ -51,6 +54,9 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
 
   /// 광고 로딩 중 플래그
   bool _isLoadingAd = false;
+
+  /// 현재 로딩 중인 주차 키
+  String? _loadingWeekKey;
 
   /// Hive box for local storage
   Box<bool>? _box;
@@ -177,13 +183,23 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 잠금 아이콘 (잠긴 경우)
+            // 잠금 아이콘 또는 로딩 스피너
             if (!isUnlocked) ...[
-              Icon(
-                Icons.lock_outline,
-                size: 14,
-                color: theme.textSecondary,
-              ),
+              if (_loadingWeekKey == weekKey)
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.textSecondary,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.lock_outline,
+                  size: 14,
+                  color: theme.textSecondary,
+                ),
               const SizedBox(width: 4),
             ],
 
@@ -338,7 +354,10 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
       return;
     }
 
-    setState(() => _isLoadingAd = true);
+    setState(() {
+      _isLoadingAd = true;
+      _loadingWeekKey = weekKey;
+    });
 
     // 웹에서는 광고 스킵하고 바로 해제 (테스트용)
     if (kIsWeb) {
@@ -360,81 +379,73 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
       return;
     }
 
-    // 광고가 로드되어 있는지 확인
-    if (!AdService.instance.isRewardedLoaded) {
-      await AdService.instance.loadRewardedAd(
-        onLoaded: () async {
-          final shown = await AdService.instance.showRewardedAd(
-            onRewarded: (amount, type) async {
-              await _unlockWeek(weekKey);
+    // 광고 킬스위치 OFF → 구매 안내
+    if (!adEnabled) {
+      setState(() {
+        _isLoadingAd = false;
+        _loadingWeekKey = null;
+      });
+      _showPurchaseDialog(weekName);
+      return;
+    }
 
-              if (mounted) {
-                setState(() {
-                  _expandedWeek = weekKey;
-                  _isLoadingAd = false;
-                });
+    // 전면 광고 로드 대기 (최대 8초) → 표시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
+      onDismissed: () async {
+        await _unlockWeek(weekKey);
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$weekName 운세가 해제되었습니다!'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          );
+        if (mounted) {
+          setState(() {
+            _expandedWeek = weekKey;
+            _isLoadingAd = false;
+            _loadingWeekKey = null;
+          });
 
-          if (!shown && mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(weekName);
-          }
-        },
-        onFailed: (error) {
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(weekName);
-          }
-        },
-      );
-    } else {
-      final shown = await AdService.instance.showRewardedAd(
-        onRewarded: (amount, type) async {
-          await _unlockWeek(weekKey);
-
-          if (mounted) {
-            setState(() {
-              _expandedWeek = weekKey;
-              _isLoadingAd = false;
-            });
-
+          try {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('$weekName 운세가 해제되었습니다!'),
                 duration: const Duration(seconds: 2),
               ),
             );
-          }
-        },
-      );
+          } catch (_) {}
+        }
+      },
+    );
 
-      if (!shown && mounted) {
-        setState(() => _isLoadingAd = false);
-        _showAdNotReadyDialog(weekName);
-      }
+    if (!shown && mounted) {
+      setState(() {
+        _isLoadingAd = false;
+        _loadingWeekKey = null;
+      });
+      _showPurchaseDialog(weekName);
+      // 다음을 위해 재로드
+      AdService.instance.loadInterstitialAd();
     }
   }
 
-  void _showAdNotReadyDialog(String weekName) {
+  /// 광고 실패 시 구매 안내 다이얼로그
+  void _showPurchaseDialog(String weekName) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('광고 준비 중'),
-        content:
-            Text('$weekName 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('프리미엄으로 바로 보기'),
+        content: Text(
+          '$weekName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('닫기'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push(Routes.settingsPremium);
+            },
+            child: const Text('프리미엄 보기'),
           ),
         ],
       ),

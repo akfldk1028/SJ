@@ -486,7 +486,6 @@ class FortuneCoordinator {
     required FortuneInputData inputData,
     DateTime? targetDate,
     bool forceRefresh = false,
-    String locale = 'ko',
   }) {
     return _dailyService.analyze(
       userId: userId,
@@ -494,7 +493,6 @@ class FortuneCoordinator {
       inputData: inputData,
       targetDate: targetDate,
       forceRefresh: forceRefresh,
-      locale: locale,
     );
   }
 
@@ -511,7 +509,6 @@ class FortuneCoordinator {
     required String profileId,
     DateTime? targetDate,
     bool forceRefresh = false,
-    String locale = 'ko',
   }) async {
     // v7.4: Daily 전용 중복 분석 방지
     // 🔧 v7.4.1: DateTime.now() → KoreaDateUtils.today (한국 시간 기준!)
@@ -583,7 +580,6 @@ class FortuneCoordinator {
         inputData: inputData,
         targetDate: targetDate,
         forceRefresh: forceRefresh,
-        locale: locale,
       );
       return result;
     } catch (e) {
@@ -647,7 +643,10 @@ class FortuneCoordinator {
   Future<FortuneAnalysisResults> analyzeFortuneOnly({
     required String userId,
     required String profileId,
-    String locale = 'ko',
+    void Function()? onDailyComplete,
+    void Function()? onMonthlyComplete,
+    void Function()? onYearly2026Complete,
+    void Function()? onYearly2025Complete,
   }) async {
     // v6.1 중복 분석 방지
     if (_analyzingProfiles.contains(profileId)) {
@@ -715,10 +714,11 @@ class FortuneCoordinator {
       DailyResult? dailyResult;
 
       final yearly2026Future = _yearly2026Service
-          .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
+          .analyze(userId: userId, profileId: profileId, inputData: inputData)
           .then((result) {
         yearly2026Result = result;
         print('[FortuneCoordinator] ✅ 2026 신년운세 완료');
+        if (result.success) onYearly2026Complete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2026 에러: $e');
@@ -733,10 +733,11 @@ class FortuneCoordinator {
       });
 
       final monthlyFuture = _monthlyService
-          .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
+          .analyze(userId: userId, profileId: profileId, inputData: inputData)
           .then((result) {
         monthlyResult = result;
         print('[FortuneCoordinator] ✅ 이번달 운세 완료');
+        if (result.success) onMonthlyComplete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 월운 에러: $e');
@@ -751,10 +752,11 @@ class FortuneCoordinator {
       });
 
       final yearly2025Future = _yearly2025Service
-          .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
+          .analyze(userId: userId, profileId: profileId, inputData: inputData)
           .then((result) {
         yearly2025Result = result;
         print('[FortuneCoordinator] ✅ 2025 회고운세 완료');
+        if (result.success) onYearly2025Complete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2025 에러: $e');
@@ -784,11 +786,12 @@ class FortuneCoordinator {
         print('[FortuneCoordinator] 🔒 Daily 분석 잠금 (analyzeFortuneOnly): $dailyKey');
 
         dailyFuture = _dailyService
-            .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
+            .analyze(userId: userId, profileId: profileId, inputData: inputData)
             .then((result) {
           dailyResult = result;
           _analyzingDaily.remove(dailyKey); // v7.4: 완료 시 잠금 해제
           print('[FortuneCoordinator] ✅ 오늘의 일운 완료, 잠금 해제: $dailyKey');
+          if (result.success) onDailyComplete?.call();
           return result;
         }).catchError((e, stackTrace) {
           print('[FortuneCoordinator] ❌ 일운 에러: $e');

@@ -333,11 +333,31 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
   /// 분석 진행 중 플래그 (중복 호출 방지)
   static bool _isAnalyzing = false;
 
+  /// 분석 시작 시각 (safety timeout용)
+  static DateTime? _analyzeStartTime;
+
+  /// 분석 타임아웃 (6분 - OpenAI polling 4분 + 여유)
+  static const Duration _analyzeTimeout = Duration(minutes: 6);
+
   /// 폴링 활성화 플래그
   bool _isPolling = false;
 
   @override
   Future<Yearly2025FortuneData?> build() async {
+    // Dispose 시 폴링 중단 (Future.delayed 체인 정리)
+    ref.onDispose(() {
+      _isPolling = false;
+      _isStalePolling = false;
+    });
+
+    // Safety: stuck _isAnalyzing 리셋 (타임아웃 초과 시)
+    if (_isAnalyzing && _analyzeStartTime != null &&
+        DateTime.now().difference(_analyzeStartTime!) > _analyzeTimeout) {
+      print('[Yearly2025Fortune] ⚠️ _isAnalyzing 타임아웃 리셋 (${_analyzeTimeout.inMinutes}분 초과)');
+      _isAnalyzing = false;
+      _analyzeStartTime = null;
+    }
+
     final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
@@ -416,12 +436,14 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       print('[Yearly2025Fortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
       _isPolling = false;
       _isAnalyzing = false;
+      _analyzeStartTime = null;
       ref.invalidateSelf();
     } else if (_pollAttempts >= _maxPollAttempts) {
       // v8.0: 타임아웃 시 invalidateSelf()로 재시도 (무한 로딩 수정)
       print('[Yearly2025Fortune] ⚠️ 폴링 타임아웃 (${_maxPollAttempts}회 초과) - 재시도');
       _isPolling = false;
       _isAnalyzing = false;
+      _analyzeStartTime = null;
       ref.invalidateSelf();
     } else {
       // 데이터 없으면 계속 폴링 (로그 10회마다)
@@ -466,6 +488,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     }
 
     _isAnalyzing = true;
+    _analyzeStartTime = DateTime.now();
     print('[Yearly2025Fortune] 🚀 v6.0 Fortune만 즉시 분석 시작! (saju_base 대기 없음)');
 
     // v6.0: Fortune만 직접 분석 (saju_base 대기 없음!)
@@ -475,6 +498,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       locale: 'ko',
     ).then((result) {
       _isAnalyzing = false;
+      _analyzeStartTime = null;
       print('[Yearly2025Fortune] ✅ Fortune 분석 완료');
       print('  - yearly2025: ${result.yearly2025 != null ? "성공" : "실패"}');
       print('  - yearly2026: ${result.yearly2026 != null ? "성공" : "실패"}');
@@ -482,6 +506,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       // 폴링이 데이터를 감지하고 UI를 갱신할 것임
     }).catchError((e) {
       _isAnalyzing = false;
+      _analyzeStartTime = null;
       print('[Yearly2025Fortune] ❌ Fortune 분석 오류: $e');
     });
   }
@@ -532,6 +557,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     _isPolling = false;
     _isStalePolling = false;
     _isAnalyzing = false;
+    _analyzeStartTime = null;
     ref.invalidateSelf();
   }
 

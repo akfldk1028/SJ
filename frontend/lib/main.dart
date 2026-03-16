@@ -8,7 +8,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:purchases_flutter/purchases_flutter.dart';
+
 import 'ad/ad.dart';
+import 'ad/token_reward_service.dart';
 import 'app.dart';
 import 'i18n/multi_file_asset_loader.dart';
 import 'purchase/purchase.dart';
@@ -64,24 +67,36 @@ void main() async {
   // 프로필 클라우드 동기화 (Supabase → Hive)
   await _syncProfilesFromCloud();
 
-  // AdMob SDK 초기화 (모바일만 - Android/iOS)
+  // RevenueCat IAP 초기화 (모바일만, AdService보다 먼저)
   final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-  if (isMobile) {
-    try {
-      await AdService.instance.initialize();
-      await AdService.instance.loadInterstitialAd();
-      await AdService.instance.loadRewardedAd();
-    } catch (e) {
-      debugPrint('[AdService] 초기화 실패: $e');
-    }
-  }
-
-  // RevenueCat IAP 초기화 (모바일만)
   if (isMobile) {
     try {
       await PurchaseService.instance.initialize();
     } catch (e) {
       debugPrint('[PurchaseService] 초기화 실패: $e');
+    }
+  }
+
+  // AdMob SDK 초기화 (모바일만 - Android/iOS)
+  if (isMobile) {
+    try {
+      await AdService.instance.initialize();
+      // 광고 선로딩 (프리미엄이 아닌 경우에만)
+      if (!await _isPremiumUser()) {
+        await AdService.instance.loadInterstitialAd();
+        await AdService.instance.loadRewardedAd();
+      } else {
+        debugPrint('[main] 프리미엄 유저 → 광고 선로딩 스킵');
+      }
+    } catch (e) {
+      debugPrint('[AdService] 초기화 실패: $e');
+    }
+
+    // 실패한 토큰 지급 재시도 (네트워크 에러로 이전에 실패한 건)
+    try {
+      await TokenRewardService.retryFailedGrants();
+    } catch (e) {
+      debugPrint('[TokenRewardService] 실패 큐 재시도 오류: $e');
     }
   }
 
@@ -182,5 +197,49 @@ Future<void> _openHiveBoxSafely(String boxName) async {
     // Box를 완전히 삭제하고 다시 열기
     await Hive.deleteBoxFromDisk(boxName);
     await Hive.openBox<Map<dynamic, dynamic>>(boxName);
+  }
+}
+
+/// 프리미엄 유저 빠른 체크 (main 전용)
+/// PurchaseService 초기화 후 호출. Provider 없이 직접 확인.
+/// ⚠️ purchase_provider.dart의 isPremium 로직과 동일하게 유지할 것
+Future<bool> _isPremiumUser() async {
+  if (!PurchaseService.instance.isAvailable) return false;
+  try {
+    final info = await Purchases.getCustomerInfo();
+
+    // 1차: entitlement (구독 상품만 신뢰)
+    // ⚠️ day_pass/week_pass는 RevenueCat이 만료 추적 못함 → isActive 영원히 true
+    final entitlement = info.entitlements.all[PurchaseConfig.entitlementPremium];
+    if (entitlement?.isActive == true) {
+      final pid = entitlement!.productIdentifier;
+      final isTimeLimited = pid == PurchaseConfig.productDayPass ||
+          pid == PurchaseConfig.productWeekPass;
+      if (!isTimeLimited) return true; // 월간 구독 → 신뢰
+    }
+
+    // 2차: 활성 구독
+    if (info.activeSubscriptions.contains(PurchaseConfig.productMonthly)) return true;
+
+    // 3차: 시간제 상품 — 구매일+기간으로 직접 체크
+    final now = DateTime.now();
+    for (final tx in info.nonSubscriptionTransactions) {
+      Duration? duration;
+      if (tx.productIdentifier == PurchaseConfig.productDayPass) {
+        duration = const Duration(hours: 24);
+      } else if (tx.productIdentifier == PurchaseConfig.productWeekPass) {
+        duration = const Duration(days: 7);
+      }
+      if (duration != null) {
+        final purchaseDate = DateTime.tryParse(tx.purchaseDate);
+        if (purchaseDate != null && now.isBefore(purchaseDate.add(duration))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch (e) {
+    debugPrint('[main] 프리미엄 체크 실패: $e');
+    return false;
   }
 }

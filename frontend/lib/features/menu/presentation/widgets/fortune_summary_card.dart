@@ -21,7 +21,11 @@ class FortuneSummaryCard extends ConsumerWidget {
     final theme = context.appTheme;
     final fortuneAsync = ref.watch(dailyFortuneProvider);
 
+    // skipLoadingOnRefresh: ref.invalidateSelf() 등으로 provider가 rebuild될 때
+    // 이전 데이터를 유지하여 "운세를 불러오는 중..." 무한로딩 방지
+    // → 이전 상태가 data(null)이면 "AI 분석 중" 카드 유지 (로딩 스피너 대신)
     return fortuneAsync.when(
+      skipLoadingOnRefresh: true,
       loading: () => _buildLoadingCard(ref, theme),
       error: (error, stack) => _buildErrorCard(context, ref, theme, error),
       data: (fortune) {

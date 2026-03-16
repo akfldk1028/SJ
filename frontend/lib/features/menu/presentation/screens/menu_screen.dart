@@ -1,7 +1,10 @@
-import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../ad/ad_network_resolver.dart';
+import '../../../../ad/adfit/adfit_banner_ad_widget.dart';
+import '../../../../ad/widgets/banner_ad_widget.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -50,8 +53,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   const FortuneSummaryCard(),
                   SizedBox(height: context.scaledPadding(16)),
                   // 오늘의 운세 섹션 - 내 사주 위로 이동
-                  SectionHeader(
-                    title: 'menu.todayFortune'.tr(),
+                  const SectionHeader(
+                    title: '오늘의 운세',
                   ),
                   SizedBox(height: context.scaledPadding(8)),
                   const FortuneCategoryList(),
@@ -60,6 +63,14 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
+                  // 배너 광고 (프리미엄 제외)
+                  if (!kIsWeb && !ref.read(purchaseNotifierProvider.notifier).isPremium) ...[
+                    SizedBox(height: context.scaledPadding(16)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: _MenuBannerAd(),
+                    ),
+                  ],
                   // 오늘의 한마디는 FortuneSummaryCard 내 시간대별 운세 아래에 배치됨
                 ],
               ),
@@ -129,7 +140,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 Row(
                   children: [
                     Text(
-                      'menu.fortune'.tr(),
+                      '운세',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -184,7 +195,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'menu.loading'.tr(),
+                      '로딩...',
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textMuted,
@@ -201,7 +212,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'menu.noProfile'.tr(),
+                      '프로필 없음',
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textMuted,
@@ -220,7 +231,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'menu.addProfile'.tr(),
+                          '프로필 추가',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -239,7 +250,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'menu.profileSuffix'.tr(namedArgs: {'name': profile.displayName}),
+                        '${profile.displayName}님',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -272,19 +283,38 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   }
 
   Map<String, String> _formatDate(DateTime date) {
-    final weekdayKeys = [
-      'menu.weekday_mon', 'menu.weekday_tue', 'menu.weekday_wed',
-      'menu.weekday_thu', 'menu.weekday_fri', 'menu.weekday_sat', 'menu.weekday_sun',
-    ];
-    final weekday = weekdayKeys[date.weekday - 1].tr();
+    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    final weekday = weekdays[date.weekday - 1];
 
     return {
-      'full': 'menu.dateFormat'.tr(namedArgs: {
-        'year': '${date.year}',
-        'month': date.month.toString().padLeft(2, '0'),
-        'day': date.day.toString().padLeft(2, '0'),
-        'weekday': weekday,
-      }),
+      'full': '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ($weekday)',
     };
+  }
+}
+
+/// 메뉴 배너 광고: AdFit primary (Android) → AdMob fallback
+class _MenuBannerAd extends StatefulWidget {
+  const _MenuBannerAd();
+
+  @override
+  State<_MenuBannerAd> createState() => _MenuBannerAdState();
+}
+
+class _MenuBannerAdState extends State<_MenuBannerAd> {
+  bool _adFitFailed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (AdNetworkResolver.isAdFitAvailable && !_adFitFailed) {
+      return Center(
+        child: AdFitBannerAdWidget(
+          onFailed: () {
+            debugPrint('[MenuBanner] AdFit failed → AdMob fallback');
+            if (mounted) setState(() => _adFitFailed = true);
+          },
+        ),
+      );
+    }
+    return const BannerAdWidget();
   }
 }

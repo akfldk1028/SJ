@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +18,7 @@ import '../widgets/relation_selector_sheet.dart';
 import '../widgets/suggested_questions.dart';
 import '../providers/chat_persona_provider.dart';
 import '../providers/conversational_ad_provider.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../domain/models/chat_persona.dart';
 import '../../domain/models/ai_persona.dart';
@@ -444,8 +444,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 새 채팅
             ListTile(
               leading: Icon(Icons.add_comment_outlined, color: appTheme.primaryColor),
-              title: Text('saju_chat.newChat'.tr(), style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('saju_chat.newChatSubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('새로운 대화 시작', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _handleNewChat();
@@ -454,8 +454,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 채팅 기록
             ListTile(
               leading: Icon(Icons.history, color: appTheme.textPrimary),
-              title: Text('saju_chat.chatHistory'.tr(), style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('saju_chat.chatHistorySubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('채팅 기록', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('이전 대화 기록 보기', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _scaffoldKey.currentState?.openDrawer();
@@ -465,8 +465,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 메인으로 돌아가기
             ListTile(
               leading: Icon(Icons.home_outlined, color: appTheme.textPrimary),
-              title: Text('saju_chat.goToMain'.tr(), style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('saju_chat.goToMainSubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('메인 화면으로 이동', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 context.go(Routes.menu);
@@ -604,14 +604,14 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'saju_chat.askAnything'.tr(),
+                    '무엇이든 물어보세요',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: appTheme.textPrimary,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'saju_chat.askAnythingSubtitle'.tr(),
+                    '사주, 운세, 궁합 등 궁금한 것을 입력해주세요',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: appTheme.textMuted,
                         ),
@@ -921,36 +921,23 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
   /// 네이티브 광고를 채팅 리스트 안에 trailingWidget으로 표시
   Widget _buildChatListWithAd(WidgetRef ref, dynamic chatState, String sessionId) {
     final adState = ref.watch(conversationalAdNotifierProvider);
+    ref.watch(purchaseNotifierProvider); // 프리미엄 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
-    // 네이티브 광고 모드일 때만 채팅 리스트 끝에 광고 표시
+    // 네이티브 광고 모드일 때만 채팅 리스트 끝에 광고 표시 (프리미엄 제외)
     Widget? trailingWidget;
-    if (adState.isAdMode &&
+    if (!isPremium &&
+        adState.isAdMode &&
         adState.adType == AdMessageType.inlineInterval &&
         !adState.adWatched &&
         (adState.loadState == AdLoadState.loaded ||
             adState.loadState == AdLoadState.loading)) {
-      final nativeAd = ref.read(conversationalAdNotifierProvider.notifier).nativeAd;
-      final theme = Theme.of(context);
-      trailingWidget = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AdNativeBubble(
-            nativeAd: nativeAd,
-            loadState: adState.loadState,
-            personaEmoji: '📢',
-          ),
-          // 안내 문구 (AdMob 정책: "클릭하세요" 금지, 보상 안내는 허용)
-          Padding(
-            padding: const EdgeInsets.only(left: 56, top: 6, bottom: 8),
-            child: Text(
-              'saju_chat.adViewToContinue'.tr(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
+      final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
+      trailingWidget = AdNativeBubble(
+        nativeAd: adNotifier.nativeAd,
+        adWidget: adNotifier.adFitNativeWidget,
+        loadState: adState.loadState,
+        personaEmoji: '📢',
       );
     }
 
@@ -960,7 +947,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       scrollController: widget.scrollController,
       isLoading: chatState.isLoading,
       trailingWidget: trailingWidget,
-      hideInlineAds: adState.isAdMode,
+      hideInlineAds: adState.isAdMode || isPremium,
     );
   }
 }

@@ -34,6 +34,15 @@ class PurchaseNotifier extends _$PurchaseNotifier {
       throw Exception('IAP not available');
     }
 
+    // RevenueCat 실시간 리스너: 구독 갱신/만료/구매 변경 시 자동 반영
+    Purchases.addCustomerInfoUpdateListener((info) {
+      if (kDebugMode) {
+        print('[PurchaseNotifier] CustomerInfo 실시간 업데이트 수신');
+        print('[PurchaseNotifier] isPremium 변경 → UI 자동 갱신');
+      }
+      state = AsyncData(info);
+    });
+
     try {
       final info = await Purchases.getCustomerInfo();
       if (kDebugMode) {
@@ -110,7 +119,27 @@ class PurchaseNotifier extends _$PurchaseNotifier {
     }
 
     // 4차: _forcePremium fallback (ITEM_ALREADY_OWNED / entitlement mismatch)
-    return _forcePremium;
+    if (_forcePremium) {
+      if (_forcePremiumProductId != null && _forcePremiumActivatedAt != null) {
+        Duration? duration;
+        if (_forcePremiumProductId == PurchaseConfig.productDayPass) {
+          duration = const Duration(hours: 24);
+        } else if (_forcePremiumProductId == PurchaseConfig.productWeekPass) {
+          duration = const Duration(days: 7);
+        } else if (_forcePremiumProductId == PurchaseConfig.productMonthly) {
+          duration = const Duration(days: 35); // 월구독 안전 만료 (RevenueCat 싱크 대기)
+        }
+        if (duration != null) {
+          final expiry = _forcePremiumActivatedAt!.add(duration);
+          if (DateTime.now().isAfter(expiry)) {
+            _forcePremium = false; // 만료 → 자동 해제
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   // ── 파생 상태 ──
@@ -165,6 +194,8 @@ class PurchaseNotifier extends _$PurchaseNotifier {
         duration = const Duration(hours: 24);
       } else if (_forcePremiumProductId == PurchaseConfig.productWeekPass) {
         duration = const Duration(days: 7);
+      } else if (_forcePremiumProductId == PurchaseConfig.productMonthly) {
+        duration = const Duration(days: 35);
       }
       if (duration != null) {
         return _forcePremiumActivatedAt!.add(duration);

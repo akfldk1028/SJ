@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,7 +42,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'lifetime_fortune.title'.tr(),
+          '평생운세',
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -83,13 +82,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'lifetime_fortune.errorLoad'.tr(),
+            '평생운세를 불러오지 못했습니다',
             style: TextStyle(color: theme.textSecondary, fontSize: 16),
           ),
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => ref.read(lifetimeFortuneProvider.notifier).refresh(),
-            child: Text('lifetime_fortune.retry'.tr()),
+            child: const Text('다시 시도'),
           ),
         ],
       ),
@@ -115,7 +114,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       data: (sajuPalja) {
         final currentPhase = progress?.currentPhase ?? 0;
         final totalPhases = progress?.totalPhases ?? 4;
-        final statusMessage = progress?.currentAnalysisDetail ?? 'lifetime_fortune.analyzingStatus'.tr();
+        final statusMessage = progress?.currentAnalysisDetail ?? '당신의 사주정보를 파악하고 있습니다...';
 
         return Container(
           decoration: BoxDecoration(
@@ -156,7 +155,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const CircularProgressIndicator(),
           const SizedBox(height: 16),
           Text(
-            'lifetime_fortune.analyzingFallback'.tr(),
+            '평생운세를 분석하고 있습니다...',
             style: TextStyle(color: theme.textSecondary, fontSize: 16),
           ),
           const SizedBox(height: 8),
@@ -167,7 +166,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             ),
           ] else ...[
             Text(
-              'lifetime_fortune.analyzingFallbackSub'.tr(),
+              '사주정보를 파악하고 있습니다...',
               style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.7), fontSize: 14),
             ),
           ],
@@ -233,7 +232,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             // 완료된 섹션 표시
             if (progress.completedSections.isNotEmpty) ...[
               Text(
-                'lifetime_fortune.completed'.tr(namedArgs: {'sections': progress.completedSections.join(', ')}),
+                '완료: ${progress.completedSections.join(', ')}',
                 style: TextStyle(
                   fontSize: 13,
                   color: theme.textSecondary.withValues(alpha: 0.7),
@@ -300,7 +299,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (fortune.summary.isNotEmpty) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.mySajuSummary'.tr(),
+            title: '나의 사주 요약',
             children: [
               _buildParagraph(theme, fortune.summary),
             ],
@@ -312,14 +311,14 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (_hasPersonality(fortune.personality)) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.personality'.tr(),
+            title: '타고난 성격',
             children: [
               if (fortune.personality.description.isNotEmpty)
                 _buildParagraph(theme, fortune.personality.description),
               if (fortune.personality.coreTraits.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'lifetime_fortune.coreTraits'.tr(),
+                  '핵심 특성:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -332,7 +331,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               if (fortune.personality.strengths.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'lifetime_fortune.strengths'.tr(),
+                  '강점:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -345,7 +344,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               if (fortune.personality.weaknesses.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'lifetime_fortune.weaknesses'.tr(),
+                  '주의할 점:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -365,7 +364,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
-            title: 'lifetime_fortune.categoryFortune'.tr(),
+            title: '평생 분야별 운세',
             categories: fortune.categories.map((key, cat) => MapEntry(
               key,
               CategoryData(
@@ -412,10 +411,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (_hasLifeCycles(fortune.lifeCycles)) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.lifeCycleOutlook'.tr(),
+            title: '인생 주기별 전망',
             children: [
               if (fortune.lifeCycles.youth.isNotEmpty) ...[
-                _buildSubSection(theme, 'lifetime_fortune.youthPeriod'.tr(), fortune.lifeCycles.youth),
+                _buildSubSection(theme, '청년기 (20-35세)', fortune.lifeCycles.youth),
                 if (fortune.lifeCycles.youthDetail.hasContent) ...[
                   const SizedBox(height: 12),
                   _buildLifeCycleDetailSection(theme, fortune.lifeCycles.youthDetail),
@@ -426,8 +425,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 _buildLifeCycleCard(
                   theme,
                   cycleKey: 'middleAge',
-                  title: 'lifetime_fortune.middleAgePeriod'.tr(),
-                  ageRange: 'lifetime_fortune.middleAgeRange'.tr(),
+                  title: '중년기',
+                  ageRange: '35-55세',
                   content: fortune.lifeCycles.middleAge,
                   detail: fortune.lifeCycles.middleAgeDetail,
                 ),
@@ -437,15 +436,15 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 _buildLifeCycleCard(
                   theme,
                   cycleKey: 'laterYears',
-                  title: 'lifetime_fortune.laterYearsPeriod'.tr(),
-                  ageRange: 'lifetime_fortune.laterYearsRange'.tr(),
+                  title: '후년기',
+                  ageRange: '55세 이후',
                   content: fortune.lifeCycles.laterYears,
                   detail: fortune.lifeCycles.laterYearsDetail,
                 ),
               if (fortune.lifeCycles.keyYears.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'lifetime_fortune.keyTurningPoints'.tr(),
+                  '중요 전환점:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -471,18 +470,18 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (_hasLucky(fortune.luckyElements)) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.luckyInfo'.tr(),
+            title: '행운 정보',
             children: [
               if (fortune.luckyElements.colors.isNotEmpty)
-                _buildLuckyItem(theme, 'color', 'lifetime_fortune.luckyColor'.tr(), fortune.luckyElements.colors.join(', ')),
+                _buildLuckyItem(theme, '행운의 색상', fortune.luckyElements.colors.join(', ')),
               if (fortune.luckyElements.numbers.isNotEmpty)
-                _buildLuckyItem(theme, 'number', 'lifetime_fortune.luckyNumber'.tr(), fortune.luckyElements.numbers.join(', ')),
+                _buildLuckyItem(theme, '행운의 숫자', fortune.luckyElements.numbers.join(', ')),
               if (fortune.luckyElements.directions.isNotEmpty)
-                _buildLuckyItem(theme, 'direction', 'lifetime_fortune.luckyDirection'.tr(), fortune.luckyElements.directions.join(', ')),
+                _buildLuckyItem(theme, '좋은 방향', fortune.luckyElements.directions.join(', ')),
               if (fortune.luckyElements.seasons.isNotEmpty)
-                _buildLuckyItem(theme, 'season', 'lifetime_fortune.luckySeason'.tr(), fortune.luckyElements.seasons),
+                _buildLuckyItem(theme, '유리한 계절', fortune.luckyElements.seasons),
               if (fortune.luckyElements.partnerElements.isNotEmpty)
-                _buildLuckyItem(theme, 'partner', 'lifetime_fortune.luckyPartner'.tr(), fortune.luckyElements.partnerElements.join(', ')),
+                _buildLuckyItem(theme, '궁합이 좋은 띠', fortune.luckyElements.partnerElements.join(', ')),
             ],
           ),
           const SizedBox(height: 32),
@@ -499,7 +498,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (fortune.overallAdvice.isNotEmpty) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.overallLifeAdvice'.tr(),
+            title: '종합 인생 조언',
             children: [
               _buildParagraph(theme, fortune.overallAdvice),
             ],
@@ -576,7 +575,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                     Icon(Icons.auto_awesome, size: 16, color: theme.textPrimary),
                     const SizedBox(width: 6),
                     Text(
-                      'lifetime_fortune.analyzingInProgress'.tr(),
+                      '분석 진행 중',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -623,7 +622,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '${progress.currentAnalysisDetail}\n${'lifetime_fortune.autoShowOnComplete'.tr()}',
+              '${progress.currentAnalysisDetail}\n완료되면 자동으로 표시됩니다.',
               style: TextStyle(
                 fontSize: 13,
                 color: theme.textSecondary,
@@ -680,7 +679,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (fortune.summary.isNotEmpty) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.mySajuSummary'.tr(),
+            title: '나의 사주 요약',
             children: [
               _buildParagraph(theme, fortune.summary),
             ],
@@ -692,14 +691,14 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (_hasPersonality(fortune.personality)) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.personality'.tr(),
+            title: '타고난 성격',
             children: [
               if (fortune.personality.description.isNotEmpty)
                 _buildParagraph(theme, fortune.personality.description),
               if (fortune.personality.coreTraits.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'lifetime_fortune.coreTraits'.tr(),
+                  '핵심 특성:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -712,7 +711,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               if (fortune.personality.strengths.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'lifetime_fortune.strengths'.tr(),
+                  '강점:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -725,7 +724,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               if (fortune.personality.weaknesses.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'lifetime_fortune.weaknesses'.tr(),
+                  '주의할 점:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -745,7 +744,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (fortune.categories.isNotEmpty) ...[
           FortuneCategoryChipSection(
             fortuneType: 'lifetime',
-            title: 'lifetime_fortune.categoryFortune'.tr(),
+            title: '평생 분야별 운세',
             categories: fortune.categories.map((key, cat) => MapEntry(
               key,
               CategoryData(
@@ -792,11 +791,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (_hasLifeCycles(fortune.lifeCycles)) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.lifeCycleOutlook'.tr(),
+            title: '인생 주기별 전망',
             children: [
               // 청년기 (항상 열림)
               if (fortune.lifeCycles.youth.isNotEmpty) ...[
-                _buildSubSection(theme, 'lifetime_fortune.youthPeriod'.tr(), fortune.lifeCycles.youth),
+                _buildSubSection(theme, '청년기 (20-35세)', fortune.lifeCycles.youth),
                 if (fortune.lifeCycles.youthDetail.hasContent) ...[
                   const SizedBox(height: 12),
                   _buildLifeCycleDetailSection(theme, fortune.lifeCycles.youthDetail),
@@ -808,8 +807,8 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 _buildLifeCycleCard(
                   theme,
                   cycleKey: 'middleAge',
-                  title: 'lifetime_fortune.middleAgePeriod'.tr(),
-                  ageRange: 'lifetime_fortune.middleAgeRange'.tr(),
+                  title: '중년기',
+                  ageRange: '35-55세',
                   content: fortune.lifeCycles.middleAge,
                   detail: fortune.lifeCycles.middleAgeDetail,
                 ),
@@ -820,15 +819,15 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 _buildLifeCycleCard(
                   theme,
                   cycleKey: 'laterYears',
-                  title: 'lifetime_fortune.laterYearsPeriod'.tr(),
-                  ageRange: 'lifetime_fortune.laterYearsRange'.tr(),
+                  title: '후년기',
+                  ageRange: '55세 이후',
                   content: fortune.lifeCycles.laterYears,
                   detail: fortune.lifeCycles.laterYearsDetail,
                 ),
               if (fortune.lifeCycles.keyYears.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'lifetime_fortune.keyTurningPoints'.tr(),
+                  '중요 전환점:',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -854,18 +853,18 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (_hasLucky(fortune.luckyElements)) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.luckyInfo'.tr(),
+            title: '행운 정보',
             children: [
               if (fortune.luckyElements.colors.isNotEmpty)
-                _buildLuckyItem(theme, 'color', 'lifetime_fortune.luckyColor'.tr(), fortune.luckyElements.colors.join(', ')),
+                _buildLuckyItem(theme, '행운의 색상', fortune.luckyElements.colors.join(', ')),
               if (fortune.luckyElements.numbers.isNotEmpty)
-                _buildLuckyItem(theme, 'number', 'lifetime_fortune.luckyNumber'.tr(), fortune.luckyElements.numbers.join(', ')),
+                _buildLuckyItem(theme, '행운의 숫자', fortune.luckyElements.numbers.join(', ')),
               if (fortune.luckyElements.directions.isNotEmpty)
-                _buildLuckyItem(theme, 'direction', 'lifetime_fortune.luckyDirection'.tr(), fortune.luckyElements.directions.join(', ')),
+                _buildLuckyItem(theme, '좋은 방향', fortune.luckyElements.directions.join(', ')),
               if (fortune.luckyElements.seasons.isNotEmpty)
-                _buildLuckyItem(theme, 'season', 'lifetime_fortune.luckySeason'.tr(), fortune.luckyElements.seasons),
+                _buildLuckyItem(theme, '유리한 계절', fortune.luckyElements.seasons),
               if (fortune.luckyElements.partnerElements.isNotEmpty)
-                _buildLuckyItem(theme, 'partner', 'lifetime_fortune.luckyPartner'.tr(), fortune.luckyElements.partnerElements.join(', ')),
+                _buildLuckyItem(theme, '궁합이 좋은 띠', fortune.luckyElements.partnerElements.join(', ')),
             ],
           ),
           const SizedBox(height: 32),
@@ -882,7 +881,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         if (fortune.overallAdvice.isNotEmpty) ...[
           _buildSection(
             theme,
-            title: 'lifetime_fortune.overallLifeAdvice'.tr(),
+            title: '종합 인생 조언',
             children: [
               _buildParagraph(theme, fortune.overallAdvice),
             ],
@@ -898,9 +897,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   }
 
   Widget _buildTitle(AppThemeExtension theme) {
-    return FortuneTitleHeader(
-      title: 'lifetime_fortune.title'.tr(),
-      subtitle: 'lifetime_fortune.subtitle'.tr(),
+    return const FortuneTitleHeader(
+      title: '평생운세',
+      subtitle: '타고난 사주로 본 나의 운명',
       style: HeaderStyle.centered,
     );
   }
@@ -983,23 +982,23 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  Widget _buildLuckyItem(AppThemeExtension theme, String iconKey, String label, String value) {
-    // 아이콘 키별 아이콘
+  Widget _buildLuckyItem(AppThemeExtension theme, String label, String value) {
+    // 라벨별 아이콘
     IconData icon;
-    switch (iconKey) {
-      case 'color':
+    switch (label) {
+      case '행운의 색상':
         icon = Icons.palette_outlined;
         break;
-      case 'number':
+      case '행운의 숫자':
         icon = Icons.tag;
         break;
-      case 'direction':
+      case '좋은 방향':
         icon = Icons.explore_outlined;
         break;
-      case 'season':
+      case '유리한 계절':
         icon = Icons.wb_sunny_outlined;
         break;
-      case 'partner':
+      case '궁합이 좋은 띠':
         icon = Icons.favorite_outline;
         break;
       default:
@@ -1071,9 +1070,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       child: ElevatedButton.icon(
         onPressed: () => context.go('/saju/chat?type=lifetimeFortune'),
         icon: const Icon(Icons.auto_awesome, size: 20),
-        label: Text(
-          'lifetime_fortune.consultButton'.tr(),
-          style: const TextStyle(
+        label: const Text(
+          'AI에게 평생운세 상담받기',
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -1109,7 +1108,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     }
 
     return FortuneSectionCard(
-      title: intro.title.isNotEmpty ? intro.title : 'lifetime_fortune.mySajuIntroDefault'.tr(),
+      title: intro.title.isNotEmpty ? intro.title : '나의 사주, 나는 누구인가요?',
       icon: Icons.person_outline,
       content: contentBuffer.toString().trim(),
       style: CardStyle.elevated,
@@ -1134,7 +1133,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               Icon(Icons.grid_view_rounded, color: theme.textPrimary, size: 22),
               const SizedBox(width: 10),
               Text(
-                'lifetime_fortune.mySajuCharacters'.tr(),
+                '나의 사주팔자 8글자',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -1185,10 +1184,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   /// 전통 순서: 시주 → 일주 → 월주 → 연주 (오른쪽에서 왼쪽으로 읽음)
   Widget _buildSajuGrid(AppThemeExtension theme, MySajuCharactersSection chars) {
     final columns = [
-      ('lifetime_fortune.pillarHour'.tr(), chars.hourGan, chars.hourJi),
-      ('lifetime_fortune.pillarDay'.tr(), chars.dayGan, chars.dayJi),
-      ('lifetime_fortune.pillarMonth'.tr(), chars.monthGan, chars.monthJi),
-      ('lifetime_fortune.pillarYear'.tr(), chars.yearGan, chars.yearJi),
+      ('시주', chars.hourGan, chars.hourJi),
+      ('일주', chars.dayGan, chars.dayJi),
+      ('월주', chars.monthGan, chars.monthJi),
+      ('연주', chars.yearGan, chars.yearJi),
     ];
 
     return Row(
@@ -1208,10 +1207,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               ),
               const SizedBox(height: 8),
               // 천간
-              _buildCharacterCard(theme, gan, isGan: true, isDay: label == 'lifetime_fortune.pillarDay'.tr()),
+              _buildCharacterCard(theme, gan, isGan: true, isDay: label == '일주'),
               const SizedBox(height: 6),
               // 지지
-              _buildCharacterCard(theme, ji, isGan: false, isDay: label == 'lifetime_fortune.pillarDay'.tr()),
+              _buildCharacterCard(theme, ji, isGan: false, isDay: label == '일주'),
             ],
           ),
         );
@@ -1343,7 +1342,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                             _buildTag(theme, info.oheng, ohengColor),
                             _buildTag(theme, info.yinYang, theme.textSecondary),
                             if (isDay)
-                              _buildTag(theme, 'lifetime_fortune.dayMasterTag'.tr(), theme.textPrimary),
+                              _buildTag(theme, '일간 (나)', theme.textPrimary),
                           ],
                         ),
                       ],
@@ -1366,11 +1365,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               // 추가 정보
               if (info.animal != null && info.animal!.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _buildInfoRow(theme, 'lifetime_fortune.zodiacAnimal'.tr(), info.animal!),
+                _buildInfoRow(theme, '띠', info.animal!),
               ],
               if (info.season != null && info.season!.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                _buildInfoRow(theme, 'lifetime_fortune.season'.tr(), info.season!),
+                _buildInfoRow(theme, '계절', info.season!),
               ],
 
               const SizedBox(height: 24),
@@ -1529,7 +1528,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'lifetime_fortune.locked'.tr(),
+                    '잠김',
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.textSecondary,
@@ -1564,10 +1563,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   /// 인생 주기 상세 카테고리 섹션 (v9.6)
   Widget _buildLifeCycleDetailSection(AppThemeExtension theme, LifeCycleDetail detail) {
     final categories = <MapEntry<String, String>>[];
-    if (detail.career.isNotEmpty) categories.add(MapEntry('💼 ${'lifetime_fortune.categoryCareer'.tr()}', detail.career));
-    if (detail.wealth.isNotEmpty) categories.add(MapEntry('💰 ${'lifetime_fortune.categoryWealth'.tr()}', detail.wealth));
-    if (detail.love.isNotEmpty) categories.add(MapEntry('💕 ${'lifetime_fortune.categoryRelationship'.tr()}', detail.love));
-    if (detail.health.isNotEmpty) categories.add(MapEntry('🏥 ${'lifetime_fortune.categoryHealth'.tr()}', detail.health));
+    if (detail.career.isNotEmpty) categories.add(MapEntry('💼 직업/활동', detail.career));
+    if (detail.wealth.isNotEmpty) categories.add(MapEntry('💰 재물/자산', detail.wealth));
+    if (detail.love.isNotEmpty) categories.add(MapEntry('💕 인간관계', detail.love));
+    if (detail.health.isNotEmpty) categories.add(MapEntry('🏥 건강', detail.health));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1633,13 +1632,13 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             children: [
               if (detail.bestPeriod.isNotEmpty)
                 Expanded(
-                  child: _buildPeriodChip(theme, 'lifetime_fortune.bestPeriod'.tr(), detail.bestPeriod, true),
+                  child: _buildPeriodChip(theme, '최적기', detail.bestPeriod, true),
                 ),
               if (detail.bestPeriod.isNotEmpty && detail.cautionPeriod.isNotEmpty)
                 const SizedBox(width: 8),
               if (detail.cautionPeriod.isNotEmpty)
                 Expanded(
-                  child: _buildPeriodChip(theme, 'lifetime_fortune.cautionPeriod'.tr(), detail.cautionPeriod, false),
+                  child: _buildPeriodChip(theme, '주의기', detail.cautionPeriod, false),
                 ),
             ],
           ),
@@ -1704,7 +1703,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'lifetime_fortune.adWatchToUnlock'.tr(namedArgs: {'title': title}),
+                    '광고를 시청하면 $title 운세를 확인할 수 있습니다.',
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -1741,7 +1740,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                       )
                     : Icon(Icons.play_circle_filled, size: 20, color: theme.backgroundColor),
                 label: Text(
-                  _isLoadingAd ? 'lifetime_fortune.adLoading'.tr() : 'lifetime_fortune.adWatchAndCheck'.tr(namedArgs: {'title': title}),
+                  _isLoadingAd ? '광고 로딩 중...' : '광고 보고 $title 확인',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1764,7 +1763,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 광고 보고 잠금 해제 (기존 FortuneCategoryChipSection 패턴 참고)
+  /// 광고 보고 잠금 해제 (전면 광고 사용 — AdFit/AdMob)
   Future<void> _showRewardedAdAndUnlock(String cycleKey, String title) async {
     if (_isLoadingAd) return;
 
@@ -1777,7 +1776,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('lifetime_fortune.adUnlocked'.tr(namedArgs: {'title': title})),
+            content: Text('$title 운세가 해제되었습니다!'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1797,7 +1796,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('lifetime_fortune.adUnlockedWeb'.tr(namedArgs: {'title': title})),
+              content: Text('$title 운세가 해제되었습니다! (웹 테스트)'),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -1806,76 +1805,57 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       return;
     }
 
-    // 광고가 로드되어 있는지 확인
-    if (!AdService.instance.isRewardedLoaded) {
-      await AdService.instance.loadRewardedAd(
-        onLoaded: () async {
-          final shown = await AdService.instance.showRewardedAd(
-            onRewarded: (amount, type) async {
-              if (mounted) {
-                setState(() {
-                  _unlockedCycles.add(cycleKey);
-                  _isLoadingAd = false;
-                });
+    // 전면 광고 로드 대기 (최대 8초) → 표시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
+      onDismissed: () {
+        if (mounted) {
+          setState(() {
+            _unlockedCycles.add(cycleKey);
+            _isLoadingAd = false;
+          });
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('lifetime_fortune.adUnlocked'.tr(namedArgs: {'title': title})),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          );
-
-          if (!shown && mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(title);
-          }
-        },
-        onFailed: (error) {
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(title);
-          }
-        },
-      );
-    } else {
-      final shown = await AdService.instance.showRewardedAd(
-        onRewarded: (amount, type) async {
-          if (mounted) {
-            setState(() {
-              _unlockedCycles.add(cycleKey);
-              _isLoadingAd = false;
-            });
-
+          try {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('lifetime_fortune.adUnlocked'.tr(namedArgs: {'title': title})),
+                content: Text('$title 운세가 해제되었습니다!'),
                 duration: const Duration(seconds: 2),
               ),
             );
+          } catch (_) {
+            // AdFit onDismissed가 MethodChannel에서 호출 시
+            // ScaffoldMessenger가 없을 수 있음 → 무시
           }
-        },
-      );
+        }
+      },
+    );
 
-      if (!shown && mounted) {
-        setState(() => _isLoadingAd = false);
-        _showAdNotReadyDialog(title);
-      }
+    if (!shown && mounted) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog(title);
     }
   }
 
   void _showAdNotReadyDialog(String title) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('lifetime_fortune.adNotReadyTitle'.tr()),
-        content: Text('lifetime_fortune.adNotReadyContent'.tr(namedArgs: {'title': title})),
+      builder: (ctx) => AlertDialog(
+        title: const Text('프리미엄으로 바로 보기'),
+        content: Text(
+          '$title 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('lifetime_fortune.confirm'.tr()),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('닫기'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push('/settings/premium');
+            },
+            child: const Text('프리미엄 보기'),
           ),
         ],
       ),
@@ -1890,20 +1870,20 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildWonGukSection(AppThemeExtension theme, WonGukAnalysisSection wonGuk) {
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.wonGukAnalysis'.tr(),
+      title: '원국 분석',
       children: [
         if (wonGuk.gyeokguk.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.gyeokguk'.tr()),
+          _buildSubSectionHeader(theme, '격국'),
           _buildParagraph(theme, wonGuk.gyeokguk),
           const SizedBox(height: 12),
         ],
         if (wonGuk.dayMaster.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.dayMaster'.tr()),
+          _buildSubSectionHeader(theme, '일간'),
           _buildParagraph(theme, wonGuk.dayMaster),
           const SizedBox(height: 12),
         ],
         if (wonGuk.ohengBalance.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.ohengBalance'.tr()),
+          _buildSubSectionHeader(theme, '오행 균형'),
           _buildParagraph(theme, wonGuk.ohengBalance),
           const SizedBox(height: 12),
         ],
@@ -1920,25 +1900,25 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildSipsungSection(AppThemeExtension theme, SipsungAnalysisSection sipsung) {
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.sipsungAnalysis'.tr(),
+      title: '십성 분석',
       children: [
         if (sipsung.dominantSipsung.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.dominantSipsung'.tr()),
+          _buildSubSectionHeader(theme, '강한 십성'),
           ...sipsung.dominantSipsung.map((s) => _buildListItem(theme, s)),
           const SizedBox(height: 12),
         ],
         if (sipsung.weakSipsung.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.weakSipsung'.tr()),
+          _buildSubSectionHeader(theme, '약한 십성'),
           ...sipsung.weakSipsung.map((s) => _buildListItem(theme, s)),
           const SizedBox(height: 12),
         ],
         if (sipsung.keyInteractions.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.keyInteractions'.tr()),
+          _buildSubSectionHeader(theme, '핵심 상호작용'),
           _buildParagraph(theme, sipsung.keyInteractions),
           const SizedBox(height: 12),
         ],
         if (sipsung.lifeImplications.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.lifeImplications'.tr()),
+          _buildSubSectionHeader(theme, '삶에 대한 영향'),
           _buildParagraph(theme, sipsung.lifeImplications),
         ],
       ],
@@ -1949,20 +1929,20 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildHapchungSection(AppThemeExtension theme, HapchungAnalysisSection hapchung) {
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.hapchungAnalysis'.tr(),
+      title: '합충 분석',
       children: [
         if (hapchung.majorHaps.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.majorHaps'.tr()),
+          _buildSubSectionHeader(theme, '주요 합(合)'),
           ...hapchung.majorHaps.map((h) => _buildListItem(theme, h)),
           const SizedBox(height: 12),
         ],
         if (hapchung.majorChungs.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.majorChungs'.tr()),
+          _buildSubSectionHeader(theme, '주요 충(沖)'),
           ...hapchung.majorChungs.map((c) => _buildListItem(theme, c)),
           const SizedBox(height: 12),
         ],
         if (hapchung.overallImpact.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.overallImpact'.tr()),
+          _buildSubSectionHeader(theme, '종합 영향'),
           _buildParagraph(theme, hapchung.overallImpact),
           const SizedBox(height: 12),
         ],
@@ -1987,7 +1967,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     // 잠금 상태: 미리보기 + 광고 버튼
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.aiEraInterpretation'.tr(),
+      title: 'AI 시대의 사주 해석',
       children: [
         // 미리보기 텍스트
         Container(
@@ -2006,7 +1986,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'lifetime_fortune.digitalEraSaju'.tr(),
+                      '디지털 시대에 맞는 사주 해석',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -2021,7 +2001,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'lifetime_fortune.lockedWithEmoji'.tr(),
+                      '🔒 잠김',
                       style: TextStyle(fontSize: 12, color: Colors.purple),
                     ),
                   ),
@@ -2029,7 +2009,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'lifetime_fortune.digitalEraPreview'.tr(),
+                '• 디지털 시대 직업운\n• 디지털 자산 운용법\n• 현대적 인간관계 스타일',
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.6,
@@ -2044,7 +2024,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'lifetime_fortune.adWatchForAiEra'.tr(),
+                      '광고를 시청하면 AI 시대 해석을 확인할 수 있습니다.',
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textSecondary,
@@ -2060,7 +2040,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _isLoadingAd
                       ? null
-                      : () => _showRewardedAdAndUnlock('modernInterpretation', 'lifetime_fortune.aiEraLabel'.tr()),
+                      : () => _showRewardedAdAndUnlock('modernInterpretation', 'AI 시대 해석'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple,
                     foregroundColor: Colors.white,
@@ -2080,7 +2060,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                         )
                       : Icon(Icons.play_circle_filled, size: 20),
                   label: Text(
-                    _isLoadingAd ? 'lifetime_fortune.adLoading'.tr() : 'lifetime_fortune.adWatchAndCheckAiEra'.tr(),
+                    _isLoadingAd ? '광고 로딩 중...' : '광고 보고 AI 시대 해석 확인',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -2099,20 +2079,20 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildModernInterpretationSection(AppThemeExtension theme, ModernInterpretationSection modern) {
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.aiEraInterpretation'.tr(),
+      title: 'AI 시대의 사주 해석',
       children: [
         // 커리어 (AI 시대)
         if (modern.careerInAiEra != null) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.digitalCareer'.tr()),
+          _buildSubSectionHeader(theme, '💼 디지털 시대 직업운'),
           if (modern.careerInAiEra!.traditionalPath.isNotEmpty)
             _buildParagraph(theme, modern.careerInAiEra!.traditionalPath),
           if (modern.careerInAiEra!.digitalStrengths.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildHighlightBox(theme, 'lifetime_fortune.digitalStrengths'.tr(), modern.careerInAiEra!.digitalStrengths),
+            _buildHighlightBox(theme, '디지털 강점', modern.careerInAiEra!.digitalStrengths),
           ],
           if (modern.careerInAiEra!.modernOpportunities.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('lifetime_fortune.modernOpportunities'.tr(), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textPrimary)),
+            Text('현대적 기회:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textPrimary)),
             const SizedBox(height: 4),
             ...modern.careerInAiEra!.modernOpportunities.map((o) => _buildListItem(theme, o)),
           ],
@@ -2121,16 +2101,16 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
         // 재물 (AI 시대)
         if (modern.wealthInAiEra != null) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.digitalWealth'.tr()),
+          _buildSubSectionHeader(theme, '💰 디지털 자산 운용'),
           if (modern.wealthInAiEra!.traditionalView.isNotEmpty)
             _buildParagraph(theme, modern.wealthInAiEra!.traditionalView),
           if (modern.wealthInAiEra!.riskFactors.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildHighlightBox(theme, 'lifetime_fortune.riskFactors'.tr(), modern.wealthInAiEra!.riskFactors, isWarning: true),
+            _buildHighlightBox(theme, '주의할 리스크', modern.wealthInAiEra!.riskFactors, isWarning: true),
           ],
           if (modern.wealthInAiEra!.modernOpportunities.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('lifetime_fortune.modernOpportunities'.tr(), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textPrimary)),
+            Text('현대적 기회:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textPrimary)),
             const SizedBox(height: 4),
             ...modern.wealthInAiEra!.modernOpportunities.map((o) => _buildListItem(theme, o)),
           ],
@@ -2139,16 +2119,16 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
         // 관계 (AI 시대)
         if (modern.relationshipsInAiEra != null) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.digitalRelationships'.tr()),
+          _buildSubSectionHeader(theme, '🤝 디지털 시대 인간관계'),
           if (modern.relationshipsInAiEra!.traditionalView.isNotEmpty)
             _buildParagraph(theme, modern.relationshipsInAiEra!.traditionalView),
           if (modern.relationshipsInAiEra!.modernNetworking.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildHighlightBox(theme, 'lifetime_fortune.networkingStyle'.tr(), modern.relationshipsInAiEra!.modernNetworking),
+            _buildHighlightBox(theme, '네트워킹 스타일', modern.relationshipsInAiEra!.modernNetworking),
           ],
           if (modern.relationshipsInAiEra!.collaborationStyle.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildHighlightBox(theme, 'lifetime_fortune.collaborationStyle'.tr(), modern.relationshipsInAiEra!.collaborationStyle),
+            _buildHighlightBox(theme, '협업 스타일', modern.relationshipsInAiEra!.collaborationStyle),
           ],
         ],
       ],
@@ -2187,20 +2167,20 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildSinsalGilseongSection(AppThemeExtension theme, SinsalGilseongSection sinsal) {
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.sinsalGilseong'.tr(),
+      title: '신살/길성 분석',
       children: [
         if (sinsal.majorGilseong.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.gilseongLabel'.tr()),
+          _buildSubSectionHeader(theme, '✨ 길성 (좋은 별)'),
           ...sinsal.majorGilseong.map((g) => _buildListItem(theme, g)),
           const SizedBox(height: 12),
         ],
         if (sinsal.majorSinsal.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.sinsalLabel'.tr()),
+          _buildSubSectionHeader(theme, '⚡ 신살 (주의할 별)'),
           ...sinsal.majorSinsal.map((s) => _buildListItem(theme, s)),
           const SizedBox(height: 12),
         ],
         if (sinsal.practicalImplications.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.practicalImplications'.tr()),
+          _buildSubSectionHeader(theme, '실생활 영향'),
           _buildParagraph(theme, sinsal.practicalImplications),
           const SizedBox(height: 12),
         ],
@@ -2269,7 +2249,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'lifetime_fortune.peakYears'.tr(),
+                      '나의 전성기',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -2294,9 +2274,9 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                   color: const Color(0xFFFFD700).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  'lifetime_fortune.lockedWithEmoji'.tr(),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFFF8C00)),
+                child: const Text(
+                  '🔒 잠김',
+                  style: TextStyle(fontSize: 12, color: Color(0xFFFF8C00)),
                 ),
               ),
             ],
@@ -2304,7 +2284,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           const SizedBox(height: 16),
           // 미리보기 텍스트
           Text(
-            'lifetime_fortune.peakYearsPreview'.tr(),
+            '• 전성기가 오는 이유\n• 이 시기에 해야 할 것\n• 미리 준비할 것\n• 주의사항',
             style: TextStyle(
               fontSize: 14,
               height: 1.6,
@@ -2319,7 +2299,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'lifetime_fortune.adWatchForPeakYears'.tr(),
+                  '광고를 시청하면 나의 전성기 분석을 확인할 수 있습니다.',
                   style: TextStyle(
                     fontSize: 13,
                     color: theme.textSecondary,
@@ -2335,7 +2315,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             child: ElevatedButton.icon(
               onPressed: _isLoadingAd
                   ? null
-                  : () => _showRewardedAdAndUnlock('peakYears', 'lifetime_fortune.peakYears'.tr()),
+                  : () => _showRewardedAdAndUnlock('peakYears', '나의 전성기'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFD700),
                 foregroundColor: Colors.white,
@@ -2355,7 +2335,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                     )
                   : const Icon(Icons.play_circle_filled, size: 20),
               label: Text(
-                _isLoadingAd ? 'lifetime_fortune.adLoading'.tr() : 'lifetime_fortune.adWatchAndCheckPeakYears'.tr(),
+                _isLoadingAd ? '광고 로딩 중...' : '광고 보고 나의 전성기 확인',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -2403,7 +2383,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'lifetime_fortune.peakYears'.tr(),
+                    '나의 전성기',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -2427,21 +2407,21 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
           // 왜 이 시기가 전성기인가?
           if (peakYears.why.isNotEmpty) ...[
-            _buildSubSectionHeader(theme, 'lifetime_fortune.whyThisPeriod'.tr()),
+            _buildSubSectionHeader(theme, '왜 이 시기인가요?'),
             _buildParagraph(theme, peakYears.why),
             const SizedBox(height: 14),
           ],
 
           // 무엇을 해야 하는가?
           if (peakYears.whatToDo.isNotEmpty) ...[
-            _buildSubSectionHeader(theme, 'lifetime_fortune.whatToDoInPeriod'.tr()),
+            _buildSubSectionHeader(theme, '이 시기에 해야 할 것'),
             _buildParagraph(theme, peakYears.whatToDo),
             const SizedBox(height: 14),
           ],
 
           // 무엇을 준비해야 하는가?
           if (peakYears.whatToPrepare.isNotEmpty) ...[
-            _buildSubSectionHeader(theme, 'lifetime_fortune.whatToPrepare'.tr()),
+            _buildSubSectionHeader(theme, '미리 준비할 것'),
             _buildParagraph(theme, peakYears.whatToPrepare),
             const SizedBox(height: 14),
           ],
@@ -2483,7 +2463,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildDaeunDetailSection(AppThemeExtension theme, DaeunDetailSection daeun) {
     return _buildSection(
       theme,
-      title: 'lifetime_fortune.daeunDetailAnalysis'.tr(),
+      title: '대운(大運) 상세 분석',
       children: [
         // 대운 소개
         if (daeun.intro.isNotEmpty) ...[
@@ -2499,7 +2479,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 Expanded(
                   child: _buildDaeunHighlight(
                     theme,
-                    title: 'lifetime_fortune.bestDaeun'.tr(),
+                    title: '최고의 대운',
                     period: daeun.bestDaeunPeriod,
                     reason: daeun.bestDaeunWhy,
                     isPositive: true,
@@ -2511,7 +2491,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 Expanded(
                   child: _buildDaeunHighlight(
                     theme,
-                    title: 'lifetime_fortune.cautionDaeun'.tr(),
+                    title: '주의할 대운',
                     period: daeun.worstDaeunPeriod,
                     reason: daeun.worstDaeunWhy,
                     isPositive: false,
@@ -2524,7 +2504,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
         // 대운 사이클 목록
         if (daeun.cycles.isNotEmpty) ...[
-          _buildSubSectionHeader(theme, 'lifetime_fortune.daeunFlow'.tr()),
+          _buildSubSectionHeader(theme, '대운 흐름'),
           const SizedBox(height: 8),
           ...daeun.cycles.map((cycle) => _buildDaeunCycleCard(theme, cycle)),
         ],
@@ -2720,7 +2700,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'lifetime_fortune.opportunities'.tr(),
+                          '기회',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -2748,7 +2728,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'lifetime_fortune.challenges'.tr(),
+                          '도전',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,

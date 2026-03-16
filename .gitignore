@@ -66,3 +66,4 @@ docs/03_command/README_iOS.md
 supabase/migrations/20260202_add_gemini_cache_name.sql
 supabase/migrations
 logs/security/.security-key
+docs/contracts/
