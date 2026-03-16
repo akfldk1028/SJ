@@ -18,6 +18,7 @@ import '../widgets/relation_selector_sheet.dart';
 import '../widgets/suggested_questions.dart';
 import '../providers/chat_persona_provider.dart';
 import '../providers/conversational_ad_provider.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../domain/models/chat_persona.dart';
 import '../../domain/models/ai_persona.dart';
@@ -920,10 +921,13 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
   /// 네이티브 광고를 채팅 리스트 안에 trailingWidget으로 표시
   Widget _buildChatListWithAd(WidgetRef ref, dynamic chatState, String sessionId) {
     final adState = ref.watch(conversationalAdNotifierProvider);
+    ref.watch(purchaseNotifierProvider); // 프리미엄 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
-    // 네이티브 광고 모드일 때만 채팅 리스트 끝에 광고 표시
+    // 네이티브 광고 모드일 때만 채팅 리스트 끝에 광고 표시 (프리미엄 제외)
     Widget? trailingWidget;
-    if (adState.isAdMode &&
+    if (!isPremium &&
+        adState.isAdMode &&
         adState.adType == AdMessageType.inlineInterval &&
         !adState.adWatched &&
         (adState.loadState == AdLoadState.loaded ||
@@ -943,7 +947,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       scrollController: widget.scrollController,
       isLoading: chatState.isLoading,
       trailingWidget: trailingWidget,
-      hideInlineAds: adState.isAdMode,
+      hideInlineAds: adState.isAdMode || isPremium,
     );
   }
 }

@@ -98,6 +98,10 @@ abstract class AdStrategy {
   /// 순이익: $0.005 (~6원/회), 대화 ~2-3회 추가
   static const int depletedRewardTokensVideo = 14000;
 
+  /// 토큰 소진 → 광고 로드 실패 시 소량 fallback 토큰
+  /// 유저가 완전히 막히지 않도록 최소 1회 대화 가능량 지급
+  static const int depletedFallbackTokens = 5000;
+
   /// 토큰 소진 → 네이티브 광고 보상 토큰: 0 (정책 위반 방지)
   /// v3: 네이티브 클릭 → 토큰 보상 제거 (AdMob 인센티브화 클릭 정책 위반)
   static const int depletedRewardTokensNative = 0;

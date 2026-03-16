@@ -25,6 +25,7 @@ class HomeScreen extends ConsumerWidget {
     final theme = context.appTheme;
     final myProfileAsync = ref.watch(activeProfileProvider);
     final dailyFortuneAsync = ref.watch(dailyFortuneProvider);
+    ref.watch(purchaseNotifierProvider); // 프리미엄 상태 변경 시 리빌드
     final today = DateFormat('yyyy.MM.dd (E)', 'ko_KR').format(DateTime.now());
 
     return Scaffold(
@@ -179,13 +180,16 @@ class HomeScreen extends ConsumerWidget {
                 SizedBox(height: isSmall ? 16 : 20),
 
                 // 배너 광고 (Web 제외, 프리미엄 유저 제외)
-                // 배너: AdFit 고정 (Android), iOS는 AdMob
-                if (!kIsWeb && !ref.read(purchaseNotifierProvider.notifier).isPremium)
+                // AdFit primary (Android) → AdMob fallback
+                Builder(builder: (_) {
+                  final showAds = ref.read(purchaseNotifierProvider.notifier).showAds;
+                  debugPrint('[HomeScreen] kIsWeb=$kIsWeb, showAds=$showAds');
+                  return const SizedBox.shrink();
+                }),
+                if (!kIsWeb && ref.read(purchaseNotifierProvider.notifier).showAds)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    child: AdNetworkResolver.isAdFitAvailable
-                        ? const Center(child: AdFitBannerAdWidget())
-                        : const BannerAdWidget(),
+                    child: const _HomeBannerAd(),
                   ),
 
                 const SizedBox(height: 100), // Bottom nav spacing
@@ -1008,5 +1012,37 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// 홈 배너 광고: AdFit primary (Android) → AdMob fallback
+class _HomeBannerAd extends StatefulWidget {
+  const _HomeBannerAd();
+
+  @override
+  State<_HomeBannerAd> createState() => _HomeBannerAdState();
+}
+
+class _HomeBannerAdState extends State<_HomeBannerAd> {
+  bool _adFitFailed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    debugPrint('[HomeBanner] build() called, adFitAvailable=${AdNetworkResolver.isAdFitAvailable}, adFitFailed=$_adFitFailed');
+
+    // Android에서 AdFit 가능하고 아직 실패 안 했으면 AdFit 시도
+    if (AdNetworkResolver.isAdFitAvailable && !_adFitFailed) {
+      return Center(
+        child: AdFitBannerAdWidget(
+          onFailed: () {
+            debugPrint('[HomeBanner] AdFit failed → AdMob fallback');
+            if (mounted) setState(() => _adFitFailed = true);
+          },
+        ),
+      );
+    }
+    // AdFit 미지원 or 실패 → AdMob 배너
+    debugPrint('[HomeBanner] Using AdMob banner fallback');
+    return const BannerAdWidget();
   }
 }

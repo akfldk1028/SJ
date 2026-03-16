@@ -150,7 +150,7 @@ class _InlineAdWidgetState extends ConsumerState<InlineAdWidget> {
               '광고',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
-                    fontSize: 10,
+                    fontSize: 15,
                   ),
             ),
           ),

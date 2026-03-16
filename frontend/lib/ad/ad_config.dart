@@ -29,15 +29,7 @@ class AdModeResolver {
     if (_initialized) return;
     _initialized = true;
 
-    // kDebugMode면 무조건 test
-    if (kDebugMode) {
-      _resolved = AdMode.test;
-      _isEmulator = true;
-      debugPrint('[AdModeResolver] Debug mode → test ads');
-      return;
-    }
-
-    // Release 빌드에서도 에뮬레이터 감지
+    // 에뮬레이터 감지 (Debug/Release 공통)
     try {
       if (Platform.isAndroid) {
         final info = await DeviceInfoPlugin().androidInfo;
@@ -50,8 +42,9 @@ class AdModeResolver {
       debugPrint('[AdModeResolver] Device info check failed: $e');
     }
 
+    // 에뮬레이터 → test, 실기기 → production (Debug 빌드에서도)
     _resolved = _isEmulator ? AdMode.test : AdMode.production;
-    debugPrint('[AdModeResolver] isEmulator=$_isEmulator → ${_resolved.name}');
+    debugPrint('[AdModeResolver] isEmulator=$_isEmulator, kDebugMode=$kDebugMode → ${_resolved.name}');
   }
 }
 
