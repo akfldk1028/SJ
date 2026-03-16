@@ -480,6 +480,10 @@ class NewYearFortune extends _$NewYearFortune {
   /// 분석 타임아웃 (6분 - OpenAI polling 4분 + 여유)
   static const Duration _analyzeTimeout = Duration(minutes: 6);
 
+  /// 오프라인 재시도 횟수 (무한 루프 방지)
+  static int _offlineRetryCount = 0;
+  static const int _maxOfflineRetries = 10;
+
   /// 폴링 활성화 플래그
   bool _isPolling = false;
 
@@ -502,11 +506,21 @@ class NewYearFortune extends _$NewYearFortune {
     final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
 
-    // 오프라인 모드 - 더미 데이터 반환 (UI 테스트용)
+    // 오프라인 상태면 3초 후 자동 재시도 (최대 10회)
     if (!SupabaseService.isConnected) {
-      print('[NewYearFortune] 오프라인 모드 - 더미 데이터 반환');
-      return _getDummyData();
+      if (_offlineRetryCount >= _maxOfflineRetries) {
+        print('[NewYearFortune] 오프라인 재시도 초과 ($_offlineRetryCount/$_maxOfflineRetries)');
+        _offlineRetryCount = 0;
+        return null;
+      }
+      _offlineRetryCount++;
+      print('[NewYearFortune] 오프라인 모드 - 3초 후 재시도 ($_offlineRetryCount/$_maxOfflineRetries)');
+      Future.delayed(const Duration(seconds: 3), () {
+        ref.invalidateSelf();
+      });
+      return null;
     }
+    _offlineRetryCount = 0;
 
     final queries = Yearly2026Queries(SupabaseService.client!);
     final result = await queries.getCached(activeProfile.id, includeStale: true);

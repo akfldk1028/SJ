@@ -188,11 +188,12 @@ class TokenDepletedBanner extends ConsumerWidget {
     );
 
     if (!shown) {
-      // 전면 광고 로드 안 됨 → fallback 소량 토큰 지급
+      // 전면 광고 로드 안 됨 → fallback 소량 토큰 지급 (ads_watched 미증가)
       const fallbackTokens = AdStrategy.depletedFallbackTokens;
       await TokenRewardService.grantRewardedAdTokens(
         fallbackTokens,
         screen: 'token_depleted_fallback',
+        isFallback: true,
       );
       chatNotifier.addBonusTokens(fallbackTokens, isRewardedAd: false);
       // 다음을 위해 전면 광고 재로드

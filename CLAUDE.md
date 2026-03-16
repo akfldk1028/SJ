@@ -43,6 +43,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `.claude/JH_Agent/` | 서브 에이전트 정의 |
 | `frontend/lib/AI/` | AI 모듈 (GPT-5.2 + Gemini 3.0) |
 
+### 프로젝트 메모리 (필독)
+
+> **작업 시작 전 반드시 `MEMORY.md` 인덱스를 읽고, 관련 상세 파일을 확인할 것.**
+> 이전 대화에서 축적된 버그 수정 이력, 아키텍처 결정, 외부 서비스 설정이 담겨 있음.
+
+메모리 경로: `D:\DevCache\claude-data\projects\D--Data-20-Flutter-01-SJ\memory\`
+
+| 폴더 | 내용 |
+|------|------|
+| `ads/` | 광고 네트워크, 토큰 시스템, 미디에이션, Play Store |
+| `analytics/` | PostHog 연동 (이벤트 목록, 초기화 순서) |
+| `architecture/` | 운세 로딩, 인앱결제 아키텍처 |
+| `bugs/` | 프로덕션 치명적 버그 수정 이력 |
+| `business/` | 수익성 분석 |
+| `ops/` | Supabase 모니터링 SQL 뷰 |
+
 ---
 
 ## Sub Agents (.claude/JH_Agent/) - A2A Orchestration

@@ -13,6 +13,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../core/services/posthog_service.dart';
 import 'ad_config.dart';
 import 'ad_tracking_service.dart';
 import 'adapters/ad_network_adapter.dart';
@@ -193,6 +194,10 @@ class AdService {
             await adapter.showInterstitial(onDismissed: onDismissed);
         if (shown) {
           _lastInterstitialTime = DateTime.now();
+          PosthogService.trackEvent('ad_watched', {
+            'ad_type': 'interstitial',
+            'network': adapter.name,
+          });
           debugPrint('[AdService] ${adapter.name} interstitial shown');
           return true;
         }

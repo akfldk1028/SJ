@@ -18,14 +18,15 @@ enum ChatAdType {
 ///
 /// ## 실측 데이터 (2026-02 기준, Supabase DB)
 ///
-/// ### Gemini API 비용 (실측 2026-03)
-/// - 평균 $0.47/1M 토큰 (Gemini 3 Flash Preview, input+output 혼합)
-/// - 일일 유저당 평균 API 비용: $0.03
-/// - 10,000 토큰 보상 시 API 원가: $0.0047
+/// ### Gemini API 비용 (2026-03, Gemini 3 Flash)
+/// - input: $0.50/1M tokens, output: $3.00/1M tokens
+/// - v52: tokens_used = completion only (prompt 제외)
+/// - 메시지당 ~400 completion tokens, Gemini 비용 ~$0.0012/메시지
+/// - 30K completion 보상 비용: ~$0.09 (completion) + ~$0.02 (prompt) = ~$0.11
 ///
-/// ### 유저 행동 (비프리미엄, daily_quota=20,000)
-/// - 메시지당 평균 토큰: ~5,200 (assistant 응답 기준)
-/// - 기본 쿼타 대화량: 20,000 / 5,200 = ~3.8회
+/// ### 유저 행동 (비프리미엄, daily_quota=20,000, completion-only 카운트)
+/// - 메시지당 평균 ~400 completion tokens
+/// - 기본 쿼타 대화량: 20,000 / 400 = ~50회
 /// - 광고 시청 유저 평균: 대화 19회/일, 광고 ~6번 클릭
 /// - 기본 유저 평균: 대화 5회/일
 ///
@@ -84,19 +85,18 @@ abstract class AdStrategy {
   // ==================== 토큰 보상 설정 ====================
   // ★ 여기서 보상 토큰 값 조정 ★
   //
-  // [실측] 메시지당 평균 ~5,200 토큰, 일일 쿼타 20,000
-  // 기본 대화 ~3.8회 → 광고로 추가 대화 확보
+  // [v52] completion-only 카운트 전환 (2026-03-17)
+  // - tokens_used = candidatesTokenCount (prompt 제외)
+  // - 메시지당 ~400 completion tokens (이전 ~5,200 total)
+  // - 30K completion = ~50메시지, Gemini 비용 ~$0.11
+  // - 광고 11회($0.01×11=$0.11)로 커버
   //
-  // [수익성] 네이티브 CPC ~$0.25, API 비용 $0.006/10K토큰
-  //   → 10,000 토큰 보상: 순이익 $0.244/클릭 (마진 97.6%)
-  //
+  // [Gemini 3 Flash 가격] input $0.50/1M, output $3.00/1M
   // [유저 패턴] 광고 시청 유저: 평균 6번 클릭 → 대화 19회/일
 
-  /// 토큰 소진 → 전면 광고 5초 후 충전할 토큰량
-  /// 전면 광고 eCPM $11.23 (한국 Android) → 1회 $0.011 수익
-  /// Gemini 실측 $0.47/1M tokens → 14K = $0.0066 비용
-  /// 순이익: $0.005 (~6원/회), 대화 ~2-3회 추가
-  static const int depletedRewardTokensVideo = 14000;
+  /// 토큰 소진 → 리워드 영상 후 충전할 토큰량 (모든 네트워크 공통)
+  /// 20K completion tokens ≈ 40메시지, Gemini 비용 ~$0.18 (blended)
+  static const int depletedRewardTokensVideo = 20000;
 
   /// 토큰 소진 → 광고 로드 실패 시 소량 fallback 토큰
   /// 유저가 완전히 막히지 않도록 최소 1회 대화 가능량 지급
@@ -111,14 +111,11 @@ abstract class AdStrategy {
   static const int intervalClickRewardTokens = 0;
 
   // ==================== AdFit 보상 설정 ====================
-  // AdFit은 CPC 모델 → 클릭 = 수익 → 인센티브화 보상 정책 위반 아님
-  // AdMob과 별도 보상 정책 적용
+  // AdFit 운영정책 5.2: 광고 클릭 유도/보상 약속 금지
+  // → 네이티브 클릭 토큰 보상 제거 (정책 위반)
 
-  /// AdFit 네이티브 클릭 보상 토큰 (CPC 모델이므로 보상 OK)
-  static const int adfitNativeClickRewardTokens = 10000;
-
-  /// AdFit 전면 광고 보상 토큰 (AdMob 전면과 동일)
-  static const int adfitInterstitialRewardTokens = 14000;
+  /// AdFit 네이티브 클릭 보상 토큰: 0 (AdFit 운영정책 5.2 위반 방지)
+  static const int adfitNativeClickRewardTokens = 0;
 
   // ==================== 프리미엄 기능 ====================
 

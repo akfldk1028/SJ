@@ -5,6 +5,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/services/error_logging_service.dart';
+import '../../core/services/posthog_service.dart';
 import '../data/mutations/purchase_mutations.dart';
 import '../purchase_config.dart';
 import '../purchase_service.dart';
@@ -302,6 +303,12 @@ class PurchaseNotifier extends _$PurchaseNotifier {
 
       state = AsyncData(info);
       await PurchaseMutations.recordPurchase(info);
+
+      // PostHog 이벤트
+      PosthogService.trackEvent('purchase_completed', {
+        'product_id': package.storeProduct.identifier,
+        'price': package.storeProduct.priceString,
+      });
 
       // 구매 직후 entitlement가 반영 안 된 경우 재시도 (최대 3회)
       if (info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive != true) {

@@ -16,6 +16,7 @@ import 'app.dart';
 import 'i18n/multi_file_asset_loader.dart';
 import 'purchase/purchase.dart';
 import 'core/services/app_update_service.dart';
+import 'core/services/posthog_service.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
 import 'features/profile/data/datasources/profile_local_datasource.dart';
@@ -55,6 +56,9 @@ void main() async {
   // 테마 설정 Hive Box 열기 (앱 재시작 시 테마 복원용)
   await _openHiveBoxStringSafely('theme_settings');
 
+  // 일일 운세 로컬 캐시 (앱 재시작 시 즉시 표시용)
+  await _openHiveBoxStringSafely('daily_fortune_cache');
+
   // 페르소나 설정 Hive Box 열기 (앱 재시작 시 페르소나 복원용)
   await ChatPersonaBox.ensureBoxOpen();
 
@@ -63,6 +67,15 @@ void main() async {
 
   // Supabase 초기화 (오프라인 모드 지원)
   await SupabaseService.initialize();
+
+  // PostHog Analytics 초기화
+  await PosthogService.initialize();
+
+  // PostHog 유저 식별 (Supabase auth)
+  final currentUser = SupabaseService.currentUser;
+  if (currentUser != null) {
+    PosthogService.identifyUser(currentUser.id);
+  }
 
   // 프로필 클라우드 동기화 (Supabase → Hive)
   await _syncProfilesFromCloud();

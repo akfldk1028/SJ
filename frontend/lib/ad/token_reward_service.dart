@@ -20,8 +20,9 @@ class TokenRewardService {
   ///
   /// [tokens]: 지급할 토큰 수
   /// [screen]: 광고가 표시된 화면 (로깅용, 선택)
+  /// [isFallback]: true면 광고 로드 실패 fallback → ads_watched 미증가
   /// 반환: true = 서버 저장 성공, false = 실패 (큐에 저장됨)
-  static Future<bool> grantRewardedAdTokens(int tokens, {String? screen}) async {
+  static Future<bool> grantRewardedAdTokens(int tokens, {String? screen, bool isFallback = false}) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return false;
 
@@ -30,8 +31,9 @@ class TokenRewardService {
         await Supabase.instance.client.rpc('add_ad_bonus_tokens', params: {
           'p_user_id': userId,
           'p_bonus_tokens': tokens,
+          'p_is_fallback': isFallback,
         });
-        debugPrint('[TokenRewardService] rewarded bonus saved: +$tokens tokens (screen: $screen)');
+        debugPrint('[TokenRewardService] rewarded bonus saved: +$tokens tokens (screen: $screen, fallback: $isFallback)');
         return true;
       } catch (e) {
         debugPrint('[TokenRewardService] attempt ${attempt + 1}/3 failed: $e');
@@ -42,7 +44,7 @@ class TokenRewardService {
     }
 
     // 3회 실패 → 큐에 저장 (다음 앱 시작 시 재시도)
-    await _queueFailedGrant(userId, tokens, 'add_ad_bonus_tokens', screen);
+    await _queueFailedGrant(userId, tokens, 'add_ad_bonus_tokens', screen, isFallback: isFallback);
     return false;
   }
 
@@ -78,8 +80,9 @@ class TokenRewardService {
     String userId,
     int tokens,
     String rpcName,
-    String? screen,
-  ) async {
+    String? screen, {
+    bool isFallback = false,
+  }) async {
     try {
       final box = await Hive.openBox(_failedGrantsBoxName);
       await box.add({
@@ -87,9 +90,10 @@ class TokenRewardService {
         'tokens': tokens,
         'rpcName': rpcName,
         'screen': screen,
+        'isFallback': isFallback,
         'createdAt': DateTime.now().toIso8601String(),
       });
-      debugPrint('[TokenRewardService] queued failed grant: +$tokens ($rpcName)');
+      debugPrint('[TokenRewardService] queued failed grant: +$tokens ($rpcName, fallback: $isFallback)');
     } catch (e) {
       debugPrint('[TokenRewardService] queue save failed: $e');
     }
@@ -115,10 +119,15 @@ class TokenRewardService {
         if (grant['userId'] != userId) continue;
 
         try {
-          await Supabase.instance.client.rpc(grant['rpcName'] as String, params: {
+          final params = <String, dynamic>{
             'p_user_id': userId,
             'p_bonus_tokens': grant['tokens'] as int,
-          });
+          };
+          // add_ad_bonus_tokens RPC: fallback 여부 전달
+          if (grant['rpcName'] == 'add_ad_bonus_tokens') {
+            params['p_is_fallback'] = grant['isFallback'] as bool? ?? false;
+          }
+          await Supabase.instance.client.rpc(grant['rpcName'] as String, params: params);
           keysToDelete.add(key);
           debugPrint('[TokenRewardService] retry success: +${grant['tokens']} (${grant['rpcName']})');
         } catch (e) {

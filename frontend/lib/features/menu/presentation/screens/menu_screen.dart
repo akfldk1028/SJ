@@ -12,6 +12,7 @@ import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../purchase/widgets/premium_badge_widget.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/ai_chat_cta_card.dart';
+import '../widgets/compatibility_promo_card.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
@@ -60,6 +61,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   const FortuneCategoryList(),
                   SizedBox(height: context.scaledPadding(16)),
                   const AiChatCtaCard(),
+                  SizedBox(height: context.scaledPadding(12)),
+                  const CompatibilityPromoCard(),
                   SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),

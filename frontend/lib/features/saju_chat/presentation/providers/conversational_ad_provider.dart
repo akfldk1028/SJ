@@ -284,14 +284,11 @@ class ConversationalAdNotifier extends _$ConversationalAdNotifier {
       },
       onClicked: () {
         if (kDebugMode) {
-          print('   👆 [AD] AdFit native clicked → token reward!');
+          print('   👆 [AD] AdFit native clicked → tracking only, no token reward');
         }
         AdTrackingService.instance.trackNativeClick(
           screen: 'saju_chat_${state.adType?.name ?? 'unknown'}',
-          rewardTokens: AdStrategy.adfitNativeClickRewardTokens,
-        );
-        TokenRewardService.grantNativeAdTokens(
-          AdStrategy.adfitNativeClickRewardTokens,
+          rewardTokens: 0,
         );
         _shownAdCount++;
       },

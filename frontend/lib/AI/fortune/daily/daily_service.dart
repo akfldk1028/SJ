@@ -79,6 +79,9 @@ class DailyService {
     _mutations = DailyMutations(_supabase);
   }
 
+  /// 분석 단계 콜백 (UI progress bar 연동)
+  void Function(int step)? onStepChanged;
+
   /// 일운 분석 실행
   ///
   /// [userId] 사용자 UUID
@@ -103,15 +106,18 @@ class DailyService {
 
     try {
       // 1. 캐시 확인 (전체 row 조회 - id 포함)
+      onStepChanged?.call(1); // checkingCache
       if (!forceRefresh) {
         final cachedRow = await _queries.getCached(profileId, date);
         if (cachedRow != null) {
           print('[DailyService] 📦 캐시에서 반환');
+          onStepChanged?.call(4); // completed
           return DailyResult.fromCache(cachedRow);
         }
       }
 
       // 2. 프롬프트 생성
+      onStepChanged?.call(2); // callingApi
       print('[DailyService] 📝 프롬프트 생성');
       final prompt = DailyPrompt(
         inputData: inputData,
@@ -156,6 +162,7 @@ class DailyService {
       print('[DailyService] 💰 비용: \$$totalCost');
 
       // 6. 결과 저장 (전체 프롬프트 포함)
+      onStepChanged?.call(3); // saving
       print('[DailyService] 💾 DB 저장 시작...');
       final savedRow = await _mutations.save(
         userId: userId,
@@ -174,6 +181,7 @@ class DailyService {
       print('[DailyService] ✅ DB 저장 완료! summaryId=$summaryId');
 
       // 7. 결과 반환
+      onStepChanged?.call(4); // completed
       return DailyResult(
         success: true,
         summaryId: summaryId,

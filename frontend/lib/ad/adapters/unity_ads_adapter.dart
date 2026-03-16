@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 
+import '../ad_tracking_service.dart';
 import 'ad_network_adapter.dart';
 import 'unity_ads_config.dart';
 
@@ -77,17 +78,21 @@ class UnityAdsAdapter implements AdNetworkAdapter {
       placementId: UnityAdsConfig.interstitial,
       onStart: (placementId) {
         debugPrint('[UnityAds] Interstitial started');
+        AdTrackingService.instance.trackInterstitialShow();
       },
       onClick: (placementId) {
         debugPrint('[UnityAds] Interstitial clicked');
+        AdTrackingService.instance.trackInterstitialClick();
       },
       onComplete: (placementId) {
         debugPrint('[UnityAds] Interstitial completed');
+        AdTrackingService.instance.trackInterstitialComplete();
         onDismissed?.call();
         loadInterstitial(); // 자동 재로드
       },
       onSkipped: (placementId) {
         debugPrint('[UnityAds] Interstitial skipped');
+        AdTrackingService.instance.trackInterstitialComplete();
         onDismissed?.call();
         loadInterstitial();
       },
@@ -131,12 +136,15 @@ class UnityAdsAdapter implements AdNetworkAdapter {
       placementId: UnityAdsConfig.rewarded,
       onStart: (placementId) {
         debugPrint('[UnityAds] Rewarded started');
+        AdTrackingService.instance.trackRewardedShow();
       },
       onClick: (placementId) {
         debugPrint('[UnityAds] Rewarded clicked');
+        AdTrackingService.instance.trackRewardedClick();
       },
       onComplete: (placementId) {
         debugPrint('[UnityAds] Rewarded completed — granting reward');
+        AdTrackingService.instance.trackRewardedComplete();
         onRewarded(1, 'unity_reward');
         loadRewarded(); // 자동 재로드
       },
