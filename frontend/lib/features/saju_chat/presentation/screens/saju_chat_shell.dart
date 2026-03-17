@@ -121,8 +121,9 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
   /// 세션 초기화: 세션 로드 후 없으면 기본 세션 생성
   Future<void> _initializeSession() async {
-    // 세션 로드가 완료될 때까지 잠시 대기
-    await Future.delayed(const Duration(milliseconds: 100));
+    // 세션 로드 완료 대기 (100ms 추측 대기 대신 명시적 로드)
+    final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
+    await sessionNotifier.loadSessions();
 
     if (!mounted) return;
 
@@ -137,7 +138,6 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
       }
     }
 
-    final sessionNotifier = ref.read(chatSessionNotifierProvider.notifier);
     final sessionState = ref.read(chatSessionNotifierProvider);
 
     // 활성 프로필 ID 가져오기
@@ -154,8 +154,26 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
         mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
       );
     } else if (sessionState.currentSessionId == null) {
-      // 세션이 있지만 선택되지 않았으면 첫 번째 세션 선택
-      sessionNotifier.selectSession(sessionState.sessions.first.id);
+      // 세션이 있지만 선택되지 않았으면 chatType에 맞는 세션 선택
+      if (_chatType != ChatType.general) {
+        // 특정 chatType(궁합 등)으로 진입: 같은 타입 세션 찾기 or 새로 생성
+        final matchingSession = sessionState.sessions
+            .where((s) => s.chatType == _chatType)
+            .firstOrNull;
+        if (matchingSession != null) {
+          sessionNotifier.selectSession(matchingSession.id);
+        } else {
+          final currentPersona = ref.read(chatPersonaNotifierProvider);
+          await sessionNotifier.createSession(
+            _chatType,
+            profileId,
+            chatPersona: currentPersona,
+            mbtiQuadrant: _resolveCurrentMbtiQuadrant(),
+          );
+        }
+      } else {
+        sessionNotifier.selectSession(sessionState.sessions.first.id);
+      }
     } else if (_chatType != ChatType.general) {
       // 특정 chatType으로 진입했는데 현재 세션 타입이 다르면 새 세션 생성
       final currentSession = sessionState.sessions
@@ -223,6 +241,13 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
           offset: fullMentionText.length,
         );
         _pendingTargetProfileId = widget.targetProfileId;
+        // 궁합용 CompatibilitySelection 설정 (텍스트 파싱 대신 UI 선택 데이터 직접 사용)
+        _pendingCompatibilitySelection = CompatibilitySelection(
+          relations: [relation],
+          mentionTexts: [ownerMention, targetMention],
+          includesOwner: true,
+          ownerProfileId: activeProfile.id,
+        );
       });
 
       if (kDebugMode) {
@@ -678,18 +703,30 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
         final includesOwner = pendingIncludesOwner; // 캡처
         ref.read(chatSessionNotifierProvider.notifier).clearPendingMessage();
         ref.read(chatNotifierProvider(currentSessionId).notifier)
-            .sendMessage(msg, widget.chatType, compatibilityParticipantIds: participantIds, targetProfileId: participantIds == null ? targetId : null);
+            .sendMessage(msg, widget.chatType, compatibilityParticipantIds: participantIds, includesOwner: includesOwner, targetProfileId: participantIds == null ? targetId : null);
 
         _isProcessingPendingMessage = false;
       });
     }
 
-    // 에러 발생 시 자동 소거 (팝업/배너 없이 조용히 처리)
+    // 에러 발생 시 처리: quota 에러는 SnackBar 표시 후 소거
     ref.listen(
       chatNotifierProvider(currentSessionId).select((s) => s.error),
       (previous, next) {
         if (next != null && previous != next) {
-          // 토큰 소진 에러는 배너에서 처리하므로 즉시 소거
+          // QUOTA_EXCEEDED 또는 토큰 관련 에러 → SnackBar로 사용자 피드백
+          if (next.contains('토큰') || next.contains('한도')) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(next),
+                  backgroundColor: const Color(0xFFD4AF37),
+                  duration: const Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
           ref.read(chatNotifierProvider(currentSessionId).notifier).clearError();
         }
       },
@@ -765,6 +802,10 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
     // 가로 모드 체크 (화면 높이가 400 미만이면 가로 모드로 간주)
     final isLandscape = MediaQuery.of(context).size.height < 400;
 
+    // 토큰 소진 상태 체크 (입력창/칩 비활성화 → 광고 버튼 클릭 유도)
+    final adState = ref.watch(conversationalAdNotifierProvider);
+    final isTokenDepleted = adState.isAdMode && adState.adType == AdMessageType.tokenDepleted;
+
     // 상단 요소들 (가로 모드에서는 컴팩트하게)
     final topWidgets = <Widget>[
       // const DisclaimerBanner(), // 주석처리: 사주상담 참고용 안내 배너
@@ -800,6 +841,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             padding: const EdgeInsets.only(bottom: 8),
             child: SuggestedQuestions(
               questions: suggestedQuestions,
+              enabled: !isTokenDepleted,
               onQuestionSelected: (question) {
                 print('[_ChatContent] 추천 질문 선택: $question');
                 ref
@@ -838,9 +880,14 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
             print('  participantIds: ${params.participantIds}');
             print('  targetId: ${params.targetProfileId}');
             print('  includesOwner: ${params.includesOwner}');
-            // 인터벌 광고 활성 시 메시지 전송 전에 dismiss (AdWidget 중복 방지)
-            final adState = ref.read(conversationalAdNotifierProvider);
-            if (adState.isAdMode && adState.adType == AdMessageType.inlineInterval) {
+            // 인터벌 광고 활성 시 처리
+            final adStateNow = ref.read(conversationalAdNotifierProvider);
+            if (adStateNow.isAdMode && adStateNow.adType == AdMessageType.inlineInterval) {
+              if (!adStateNow.adWatched) {
+                // 광고 미클릭 상태 → 메시지 전송 차단 (토큰 미지급)
+                return;
+              }
+              // 광고 클릭 완료 → dismiss 후 메시지 전송
               ref.read(conversationalAdNotifierProvider.notifier).dismissAd();
             }
 
@@ -850,6 +897,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                   text,
                   widget.chatType,
                   compatibilityParticipantIds: params.participantIds,
+                  includesOwner: params.includesOwner,
                   // 하위 호환: participantIds가 없을 때만 targetId 사용
                   targetProfileId: params.participantIds == null ? params.targetProfileId : null,
                 );
@@ -859,8 +907,11 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
               widget.onMentionSent!();
             }
           },
-          enabled: !chatState.isLoading,
-          hintText: widget.chatType.inputHint,
+          enabled: !chatState.isLoading && !isTokenDepleted,
+          hintText: isTokenDepleted
+              ? '위 버튼을 눌러 대화를 이어가세요'
+              : widget.chatType.inputHint,
+          hintColor: isTokenDepleted ? const Color(0xFFE91E63) : null,
         ),
       ],
     );

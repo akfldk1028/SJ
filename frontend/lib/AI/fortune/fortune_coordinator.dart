@@ -14,6 +14,8 @@
 /// ## 파일 위치
 /// `frontend/lib/AI/fortune/fortune_coordinator.dart`
 
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/services/error_logging_service.dart';
@@ -21,6 +23,7 @@ import '../core/ai_constants.dart';
 import '../services/ai_api_service.dart';
 import 'common/fortune_input_data.dart';
 import 'common/fortune_state.dart';
+import 'common/korea_date_utils.dart';
 import 'common/saju_analyses_queries.dart';
 import 'daily/daily_service.dart';
 import 'monthly/monthly_service.dart';
@@ -80,6 +83,10 @@ class FortuneCoordinator {
 
   /// v6.1 중복 분석 방지용 - 현재 분석 중인 프로필 ID 목록
   static final Set<String> _analyzingProfiles = {};
+
+  /// v7.4 Daily 전용 중복 분석 방지용 - 현재 Daily 분석 중인 프로필+날짜 키
+  /// key: "profileId_yyyy-MM-dd"
+  static final Set<String> _analyzingDaily = {};
 
   FortuneCoordinator({
     required SupabaseClient supabase,
@@ -329,38 +336,60 @@ class FortuneCoordinator {
       });
 
       // v7.0: Daily Fortune 병렬 추가 (Gemini 3.0 Flash)
-      final dailyFuture = _dailyService
-          .analyze(
-            userId: userId,
-            profileId: profileId,
-            inputData: inputData,
-          )
-          .then((result) {
-        dailyResult = result;
-        print(
-            '[FortuneCoordinator] ✅ 오늘의 일운 완료: ${result.success ? "성공" : "실패"}');
-        return result;
-      }).catchError((e, stackTrace) {
-        print('[FortuneCoordinator] ❌ 오늘의 일운 에러: $e');
-        ErrorLoggingService.logError(
-          operation: 'fortune_analysis',
-          errorMessage: e.toString(),
-          sourceFile: 'fortune_coordinator.dart',
-          stackTrace: stackTrace.toString(),
-          extraData: {'fortuneType': 'daily', 'profileId': profileId},
-        );
-        return DailyResult.error(e.toString());
-      });
+      // v7.4: _analyzingDaily에 등록하여 analyzeDailyOnly()와 중복 방지
+      // v7.5: 먼저 체크! analyzeDailyOnly()에서 이미 분석 중이면 스킵
+      final todayForDaily = KoreaDateUtils.today;
+      final dailyKeyAll = '${profileId}_${todayForDaily.year}-${todayForDaily.month.toString().padLeft(2, '0')}-${todayForDaily.day.toString().padLeft(2, '0')}';
 
-      // 모든 Future 완료 대기 (개별 저장은 이미 완료됨)
-      await Future.wait([
-        yearly2026Future,
-        monthlyFuture,
-        yearly2025Future,
-        dailyFuture,
-      ]);
+      Future<DailyResult> dailyFuture;
+      if (_analyzingDaily.contains(dailyKeyAll)) {
+        // v7.5: analyzeDailyOnly()에서 이미 분석 중 → 스킵
+        print('[FortuneCoordinator] ⏭️ Daily 이미 분석 중 - 스킵 (analyzeAllFortunes): $dailyKeyAll');
+        dailyFuture = Future.value(DailyResult.error('Daily가 이미 분석 중입니다.'));
+      } else {
+        _analyzingDaily.add(dailyKeyAll);
+        print('[FortuneCoordinator] 🔒 Daily 분석 잠금 (analyzeAllFortunes): $dailyKeyAll');
 
-      print('[FortuneCoordinator] 🏁 v7.0 모든 운세 분석 완료 (Daily 포함)');
+        dailyFuture = _dailyService
+            .analyze(
+              userId: userId,
+              profileId: profileId,
+              inputData: inputData,
+            )
+            .then((result) {
+          dailyResult = result;
+          _analyzingDaily.remove(dailyKeyAll); // v7.4: 완료 시 잠금 해제
+          print(
+              '[FortuneCoordinator] ✅ 오늘의 일운 완료: ${result.success ? "성공" : "실패"}, 잠금 해제');
+          return result;
+        }).catchError((e, stackTrace) {
+          print('[FortuneCoordinator] ❌ 오늘의 일운 에러: $e');
+          _analyzingDaily.remove(dailyKeyAll); // v7.4: 에러 시에도 잠금 해제
+          ErrorLoggingService.logError(
+            operation: 'fortune_analysis',
+            errorMessage: e.toString(),
+            sourceFile: 'fortune_coordinator.dart',
+            stackTrace: stackTrace.toString(),
+            extraData: {'fortuneType': 'daily', 'profileId': profileId},
+          );
+          return DailyResult.error(e.toString());
+        });
+      }
+
+      // v8.0: 모든 Future 완료 대기 (5분 타임아웃 - stuck task 방지)
+      // 개별 서비스는 .then()에서 이미 저장 완료됨
+      try {
+        await Future.wait([
+          yearly2026Future,
+          monthlyFuture,
+          yearly2025Future,
+          dailyFuture,
+        ]).timeout(const Duration(minutes: 5));
+      } on TimeoutException {
+        print('[FortuneCoordinator] ⚠️ Future.wait 타임아웃 (5분) - 일부 task가 stuck');
+      }
+
+      print('[FortuneCoordinator] 🏁 v8.0 모든 운세 분석 완료 (Daily 포함)');
 
       // 4. 결과 반환
       return FortuneAnalysisResults(
@@ -471,12 +500,35 @@ class FortuneCoordinator {
   ///
   /// saju_analyses를 자동으로 조회하여 분석
   /// [profileId]만 있으면 분석 가능
+  ///
+  /// ## v7.4 개선 (2026-02)
+  /// - Daily 전용 중복 분석 방지 추가 (_analyzingDaily Set)
+  /// - analyzeFortuneOnly()와 동시 실행 시 중복 방지
   Future<DailyResult> analyzeDailyOnly({
     required String userId,
     required String profileId,
     DateTime? targetDate,
     bool forceRefresh = false,
   }) async {
+    // v7.4: Daily 전용 중복 분석 방지
+    // 🔧 v7.4.1: DateTime.now() → KoreaDateUtils.today (한국 시간 기준!)
+    final date = targetDate ?? KoreaDateUtils.today;
+    final dailyKey = '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    if (_analyzingDaily.contains(dailyKey)) {
+      print('[FortuneCoordinator] ⏭️ Daily 이미 분석 중: $dailyKey (스킵)');
+      return DailyResult.error('Daily 분석이 이미 진행 중입니다.');
+    }
+
+    // v7.4: analyzeFortuneOnly()에서 이미 daily를 분석 중이면 스킵
+    if (_analyzingProfiles.contains(profileId)) {
+      print('[FortuneCoordinator] ⏭️ analyzeFortuneOnly에서 이미 분석 중: $profileId (Daily 스킵)');
+      return DailyResult.error('전체 운세 분석이 진행 중입니다.');
+    }
+
+    _analyzingDaily.add(dailyKey);
+    print('[FortuneCoordinator] 🔒 Daily 분석 시작 잠금: $dailyKey');
+
     try {
       // 1. saju_analyses 조회
       final sajuAnalyses =
@@ -522,15 +574,47 @@ class FortuneCoordinator {
       );
 
       // 4. 일운 분석
-      return _dailyService.analyze(
+      final result = await _dailyService.analyze(
         userId: userId,
         profileId: profileId,
         inputData: inputData,
         targetDate: targetDate,
         forceRefresh: forceRefresh,
       );
+      return result;
     } catch (e) {
       return DailyResult.error(e.toString());
+    } finally {
+      // v7.4: Daily 분석 완료 시 잠금 해제
+      _analyzingDaily.remove(dailyKey);
+      print('[FortuneCoordinator] 🔓 Daily 분석 완료, 잠금 해제: $dailyKey');
+    }
+  }
+
+  /// Daily 분석 중 여부 확인 (Provider에서 사용)
+  static bool isDailyAnalyzing(String profileId, DateTime date) {
+    final dailyKey = '${profileId}_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return _analyzingDaily.contains(dailyKey);
+  }
+
+  /// v7.5: 프로필 수정 시 분석 플래그 초기화 (외부 호출용)
+  ///
+  /// 프로필이 수정되면 기존 AI 캐시가 삭제되므로,
+  /// _analyzingProfiles 및 _analyzingDaily 플래그도 초기화해야 함.
+  ///
+  /// [profileId] 초기화할 프로필 ID
+  static void resetAnalyzingFlagForProfile(String profileId) {
+    final today = KoreaDateUtils.today;
+    final dailyKey = '${profileId}_${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final hadProfileFlag = _analyzingProfiles.contains(profileId);
+    final hadDailyFlag = _analyzingDaily.contains(dailyKey);
+
+    _analyzingProfiles.remove(profileId);
+    _analyzingDaily.remove(dailyKey);
+
+    if (hadProfileFlag || hadDailyFlag) {
+      print('[FortuneCoordinator] 🔄 v7.5 프로필 수정 - 분석 플래그 초기화 (profile=$hadProfileFlag, daily=$hadDailyFlag)');
     }
   }
 
@@ -680,27 +764,50 @@ class FortuneCoordinator {
       });
 
       // v7.0: Daily Fortune 병렬 추가 (Gemini 3.0 Flash)
-      final dailyFuture = _dailyService
-          .analyze(userId: userId, profileId: profileId, inputData: inputData)
-          .then((result) {
-        dailyResult = result;
-        print('[FortuneCoordinator] ✅ 오늘의 일운 완료');
-        return result;
-      }).catchError((e, stackTrace) {
-        print('[FortuneCoordinator] ❌ 일운 에러: $e');
-        ErrorLoggingService.logError(
-          operation: 'fortune_analysis',
-          errorMessage: e.toString(),
-          sourceFile: 'fortune_coordinator.dart',
-          stackTrace: stackTrace.toString(),
-          extraData: {'fortuneType': 'daily', 'method': 'analyzeFortuneOnly', 'profileId': profileId},
-        );
-        return DailyResult.error(e.toString());
-      });
+      // v7.4: _analyzingDaily에 등록하여 analyzeDailyOnly()와 중복 방지
+      // v7.5: 먼저 체크! analyzeDailyOnly()에서 이미 분석 중이면 스킵
+      final todayForDaily = KoreaDateUtils.today;
+      final dailyKey = '${profileId}_${todayForDaily.year}-${todayForDaily.month.toString().padLeft(2, '0')}-${todayForDaily.day.toString().padLeft(2, '0')}';
 
-      await Future.wait([yearly2026Future, monthlyFuture, yearly2025Future, dailyFuture]);
+      Future<DailyResult> dailyFuture;
+      if (_analyzingDaily.contains(dailyKey)) {
+        // v7.5: analyzeDailyOnly()에서 이미 분석 중 → 스킵
+        print('[FortuneCoordinator] ⏭️ Daily 이미 분석 중 - 스킵 (analyzeFortuneOnly): $dailyKey');
+        dailyFuture = Future.value(DailyResult.error('Daily가 이미 분석 중입니다.'));
+      } else {
+        _analyzingDaily.add(dailyKey);
+        print('[FortuneCoordinator] 🔒 Daily 분석 잠금 (analyzeFortuneOnly): $dailyKey');
 
-      print('[FortuneCoordinator] 🏁 v7.0 Fortune 분석 완료! (Daily 포함)');
+        dailyFuture = _dailyService
+            .analyze(userId: userId, profileId: profileId, inputData: inputData)
+            .then((result) {
+          dailyResult = result;
+          _analyzingDaily.remove(dailyKey); // v7.4: 완료 시 잠금 해제
+          print('[FortuneCoordinator] ✅ 오늘의 일운 완료, 잠금 해제: $dailyKey');
+          return result;
+        }).catchError((e, stackTrace) {
+          print('[FortuneCoordinator] ❌ 일운 에러: $e');
+          _analyzingDaily.remove(dailyKey); // v7.4: 에러 시에도 잠금 해제
+          ErrorLoggingService.logError(
+            operation: 'fortune_analysis',
+            errorMessage: e.toString(),
+            sourceFile: 'fortune_coordinator.dart',
+            stackTrace: stackTrace.toString(),
+            extraData: {'fortuneType': 'daily', 'method': 'analyzeFortuneOnly', 'profileId': profileId},
+          );
+          return DailyResult.error(e.toString());
+        });
+      }
+
+      // v8.0: 5분 타임아웃 - stuck task로 인한 무한 대기 방지
+      try {
+        await Future.wait([yearly2026Future, monthlyFuture, yearly2025Future, dailyFuture])
+            .timeout(const Duration(minutes: 5));
+      } on TimeoutException {
+        print('[FortuneCoordinator] ⚠️ Future.wait 타임아웃 (5분) - 일부 task가 stuck');
+      }
+
+      print('[FortuneCoordinator] 🏁 v8.0 Fortune 분석 완료! (Daily 포함)');
 
       return FortuneAnalysisResults(
         success: true,
@@ -728,7 +835,18 @@ class FortuneCoordinator {
 
   /// 분석 중 여부 확인 (Provider에서 사용)
   static bool isAnalyzing(String profileId) {
-    return _analyzingProfiles.contains(profileId);
+    return _analyzingProfiles.contains(profileId) ||
+        _analyzingDaily.any((key) => key.startsWith('${profileId}_'));
+  }
+
+  /// v8.0: stuck 분석 플래그 강제 리셋 (Provider safety timeout용)
+  ///
+  /// Provider에서 _isAnalyzing 타임아웃 후 FortuneCoordinator의
+  /// stuck 플래그도 함께 정리할 때 사용
+  static void resetAnalyzingFlag(String profileId) {
+    _analyzingProfiles.remove(profileId);
+    _analyzingDaily.removeWhere((key) => key.startsWith('${profileId}_'));
+    print('[FortuneCoordinator] 🔄 v8.0 stuck 플래그 강제 리셋: $profileId');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

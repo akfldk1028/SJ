@@ -7,12 +7,14 @@ class ParticipantResolution {
   final String? person1Id;
   final String? person2Id;
   final List<String> extraMentionIds;
+  final bool? includesOwner; // v12.1: "나 포함/제외" 전달
 
   const ParticipantResolution({
     required this.isCompatibilityMode,
     this.person1Id,
     this.person2Id,
     this.extraMentionIds = const [],
+    this.includesOwner,
   });
 }
 
@@ -35,6 +37,7 @@ class ParticipantResolver {
     List<String>? compatibilityParticipantIds,
     List<String>? multiParticipantIds,
     String? targetProfileId,
+    bool? includesOwner,  // v12.1: "나 포함/제외" (MentionSendHandler에서 전달)
   }) async {
     // 궁합 참가자 결정 (우선순위: compatibilityParticipantIds > multiParticipantIds)
     final effectiveParticipantIds = compatibilityParticipantIds ?? multiParticipantIds;
@@ -49,17 +52,65 @@ class ParticipantResolver {
     bool alreadySaved = false;  // Phase 59: 첫 분기에서 저장 완료 시 병합 블록 스킵
 
     if (isCompatibilityMode) {
-      person1Id = effectiveParticipantIds[0];
-      person2Id = effectiveParticipantIds[1];
-      // Phase 59: 3명째 이후 추가 참가자 처리
-      if (effectiveParticipantIds.length > 2) {
-        extraMentionIds = effectiveParticipantIds.sublist(2);
+      // ═══════════════════════════════════════════════════════════════════
+      // v12.1: 새 멘션 우선 병합 (신규 = primary pair, 기존 = extra)
+      // - 새 멘션이 person1/person2가 되어 궁합 분석 대상이 됨
+      // - 기존 참가자는 extra로 이동하여 AI가 동등하게 참조 가능
+      // - chat_mentions 순서: [신규..., 기존 중 신규에 없는 것...]
+      // ═══════════════════════════════════════════════════════════════════
+      List<String> mergedIds = List<String>.from(effectiveParticipantIds);
+
+      try {
+        final existingMentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+
+        if (existingMentions is List && existingMentions.isNotEmpty) {
+          final existingIds = existingMentions
+              .map((m) => m['target_profile_id'] as String?)
+              .where((id) => id != null)
+              .cast<String>()
+              .toList();
+
+          // 기존 참가자 중 새 멘션에 없는 사람만 뒤에 추가
+          final oldExtras = existingIds
+              .where((id) => !effectiveParticipantIds.contains(id))
+              .toList();
+
+          if (oldExtras.isNotEmpty) {
+            mergedIds = [...effectiveParticipantIds, ...oldExtras];
+            if (kDebugMode) {
+              print('   🔄 v12.1 병합: 신규 ${effectiveParticipantIds.length}명(primary) + 기존 ${oldExtras.length}명(extra) = 총 ${mergedIds.length}명');
+              print('      신규(primary): $effectiveParticipantIds');
+              print('      기존(extra): $oldExtras');
+            }
+          } else if (existingIds.length > effectiveParticipantIds.length) {
+            // 새 참가자가 모두 기존에 있지만 기존이 더 많으면 → 기존 중 신규 외 나머지 유지
+            mergedIds = [...effectiveParticipantIds, ...existingIds.where((id) => !effectiveParticipantIds.contains(id))];
+          }
+          // 새 참가자 == 기존이면 그대로 (mergedIds = effectiveParticipantIds)
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('   ⚠️ 기존 chat_mentions 조회 실패 (첫 메시지일 수 있음): $e');
+        }
       }
+
+      // 신규 멘션이 primary pair (person1/person2)
+      person1Id = mergedIds[0];
+      person2Id = mergedIds.length > 1 ? mergedIds[1] : null;
+      if (mergedIds.length > 2) {
+        extraMentionIds = mergedIds.sublist(2);
+      }
+
       if (kDebugMode) {
-        print('   ✅ 궁합 모드 활성화: person1Id=$person1Id, person2Id=$person2Id, extra=${extraMentionIds.length}명');
+        print('   ✅ 궁합 모드 활성화: person1=$person1Id, person2=$person2Id, extra=${extraMentionIds.length}명 (총 ${mergedIds.length}명)');
       }
-      // Phase 59: 첫 메시지에서 참가자들을 chat_mentions에 저장 (나중에 추가 가능하도록)
-      await _saveMergedParticipants(sessionId, effectiveParticipantIds);
+
+      // 병합된 전체 참가자를 chat_mentions에 저장 (신규 우선 순서)
+      await _saveMergedParticipants(sessionId, mergedIds);
       alreadySaved = true;
     } else if (targetProfileId != null) {
       // 하위 호환: 단일 targetProfileId만 있는 경우
@@ -215,6 +266,7 @@ class ParticipantResolver {
       person1Id: person1Id,
       person2Id: person2Id,
       extraMentionIds: extraMentionIds,
+      includesOwner: includesOwner,
     );
   }
 

@@ -52,19 +52,24 @@ class DailyQueries {
       if (response == null) return null;
 
       // 만료 체크
-      final expiresAt = response['expires_at'];
-      if (expiresAt != null) {
-        final expiry = DateTime.parse(expiresAt);
-        // 한국 시간 기준으로 만료 체크
-        if (KoreaDateUtils.nowKorea().isAfter(expiry)) {
-          print('[DailyQueries] 캐시 만료됨: expires_at=$expiresAt');
-          return null;
+      // 과거 날짜 판정 (한국 시간 기준 오늘 이전)
+      final isPastDate = targetDate.isBefore(KoreaDateUtils.today);
+
+      // 만료 체크 - 과거 날짜는 스킵 (캘린더 히스토리)
+      if (!isPastDate) {
+        final expiresAt = response['expires_at'];
+        if (expiresAt != null) {
+          final expiry = DateTime.parse(expiresAt);
+          if (KoreaDateUtils.nowKorea().isAfter(expiry)) {
+            print('[DailyQueries] 캐시 만료됨: expires_at=$expiresAt');
+            return null;
+          }
         }
       }
 
-      // 프롬프트 버전 체크 - 버전 불일치 시 캐시 무효화
+      // 프롬프트 버전 체크 - 오늘만 적용, 과거 날짜는 버전 무관 조회 (캘린더 히스토리)
       final cachedVersion = response['prompt_version'];
-      if (cachedVersion != kDailyFortunePromptVersion) {
+      if (!isPastDate && cachedVersion != kDailyFortunePromptVersion) {
         print('[DailyQueries] 프롬프트 버전 불일치: cached=$cachedVersion, current=$kDailyFortunePromptVersion');
         return null;
       }

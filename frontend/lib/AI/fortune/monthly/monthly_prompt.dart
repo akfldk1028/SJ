@@ -388,7 +388,33 @@ ${_formatSajuBase()}
       },
       "lucky": {"color": "이 달 행운색 (용신 기반)", "number": "(용신 오행 기반 숫자)"}
     },
-    "month2~month12": "위 month1과 동일한 구조로, 각 달의 간지에 맞춰 점수를 개별 계산하세요. 12개월 점수가 모두 비슷하면 안 됩니다! 최고 달과 최저 달 차이 30점 이상! highlights의 7개 카테고리 점수도 달마다, 카테고리마다 과감하게 차별화!"
+    "month2": {
+      "keyword": "2월 키워드 (3-4자, 개별 계산!)",
+      "score": "(30~95, 2월 간지+원국 기반)",
+      "reading": "(8~10문장, 2월 간지 기반 분석)",
+      "tip": "(2문장, 구체적 실천 조언)",
+      "idiom": {"phrase": "사자성어", "meaning": "의미와 조언"},
+      "highlights": {
+        "career": {"score": "(30~95)", "summary": "(2문장)"},
+        "business": {"score": "(30~95)", "summary": "(2문장)"},
+        "wealth": {"score": "(30~95)", "summary": "(2문장)"},
+        "love": {"score": "(30~95)", "summary": "(2문장)"},
+        "marriage": {"score": "(30~95)", "summary": "(2문장)"},
+        "health": {"score": "(30~95)", "summary": "(2문장)"},
+        "study": {"score": "(30~95)", "summary": "(2문장)"}
+      },
+      "lucky": {"color": "행운색", "number": "(숫자)"}
+    },
+    "month3": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month4": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month5": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month6": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month7": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month8": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month9": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month10": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month11": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}},
+    "month12": {"keyword":"...", "score":"(30~95)", "reading":"(8~10문장)", "tip":"...", "idiom":{"phrase":"...", "meaning":"..."}, "highlights":{"career":{"score":"(30~95)","summary":"..."}, "business":{"score":"(30~95)","summary":"..."}, "wealth":{"score":"(30~95)","summary":"..."}, "love":{"score":"(30~95)","summary":"..."}, "marriage":{"score":"(30~95)","summary":"..."}, "health":{"score":"(30~95)","summary":"..."}, "study":{"score":"(30~95)","summary":"..."}}, "lucky":{"color":"...", "number":"(숫자)"}}
   },
 
   "closingMessage": "${targetYear}년을 보내는 {이름}님께. 12개월 전체를 보면 {연간 흐름 요약}. {격려/응원}. (2문장)"

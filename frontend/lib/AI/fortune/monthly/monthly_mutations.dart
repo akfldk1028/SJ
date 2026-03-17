@@ -82,14 +82,20 @@ class MonthlyMutations {
     };
 
     try {
-      // Upsert: profile_id + summary_type + target_year + target_month 기준
-      // 주의: DB에 해당 UNIQUE 제약 조건 필요
+      // v50: DELETE + INSERT 패턴 사용 (UPSERT → 제거)
+      // partial index는 PostgREST upsert에서 동작 안 함
+      // (ai_summary_service.dart의 saju_base와 동일 패턴)
+      await _supabase
+          .from('ai_summaries')
+          .delete()
+          .eq('profile_id', profileId)
+          .eq('summary_type', SummaryType.monthlyFortune)
+          .eq('target_year', targetYear)
+          .eq('target_month', targetMonth);
+
       final response = await _supabase
           .from('ai_summaries')
-          .upsert(
-            data,
-            onConflict: 'profile_id,summary_type,target_year,target_month',
-          )
+          .insert(data)
           .select()
           .single();
 

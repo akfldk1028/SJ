@@ -1,8 +1,8 @@
 # Saju Chat - AI 대화 모듈
 
 > **담당자**: JH_AI, Jina
-> **최종 검증**: 2025-01-25 (v7.1)
-> **상태**: ✅ 배포 가능
+> **최종 검증**: 2026-02-08 (v0.1.2)
+> **상태**: v0.1.2+31 배포
 
 ---
 
@@ -344,6 +344,7 @@ sendMessage(
 | SSE 실패 | 비스트리밍 API로 폴백 |
 | 타임아웃 | 5분 (스트리밍), 2분 (일반) |
 | 토큰 소진 | 광고 트리거 → 보너스 토큰 |
+| QUOTA_EXCEEDED (429) | v0.1.2: state.error 설정 + 광고 모드 재트리거 + ErrorLoggingService 기록 |
 | 프로필 없음 | 페르소나 프롬프트만 사용 |
 
 ---
@@ -408,6 +409,8 @@ final isFirstMessageInSession = !state.messages.any(
 
 | 버전 | 날짜 | 변경사항 |
 |------|------|----------|
+| v0.1.2 | 2026-02-08 | Native 광고 토큰 race condition 수정, QUOTA_EXCEEDED 에러 피드백, onSend 광고 미클릭 차단, ErrorLoggingService 연동 |
+| v0.1.0 | 2026-02-02 | IAP 연동 (premium 체크), 광고 시스템 (Native/Rewarded/Banner/Interstitial) |
 | v7.1 | 2025-01-25 | 세션 복원 시 사주 정보 포함 (`_buildRestoreSystemPrompt`) |
 | v7.0 | 2025-01-20 | Intent Classification 토큰 최적화 |
 | v6.0 | 2025-01-15 | 궁합 로직 단순화 (2인만) |
@@ -415,15 +418,17 @@ final isFirstMessageInSession = !state.messages.any(
 
 ---
 
-## 검증 상태 (2025-01-25)
+## 검증 상태 (2026-02-08)
 
 | 영역 | 상태 | 비고 |
 |------|------|------|
-| 세션 시작 | ✅ | 새 세션 초기화 완료 |
-| 세션 복원 | ✅ | v7.1 사주 정보 포함 |
-| 메시지 전송 | ✅ | 스트리밍 + 에러 핸들링 |
-| 토큰 관리 | ✅ | 추적/한도/보너스 |
-| 광고 연동 | ✅ | Rewarded 토큰 충전 |
-| 궁합 모드 | ✅ | 2인 궁합 지원 |
+| 세션 시작 | OK | 새 세션 초기화 완료 |
+| 세션 복원 | OK | v7.1 사주 정보 포함 |
+| 메시지 전송 | OK | 스트리밍 + 에러 핸들링 |
+| 토큰 관리 | OK | 추적/한도/보너스 |
+| 광고 연동 | OK | Native/Rewarded 토큰 충전 (v0.1.2 race condition 수정) |
+| QUOTA_EXCEEDED | OK | v0.1.2: 에러 피드백 + 광고 재트리거 |
+| Premium 연동 | OK | isPremium 체크 → 토큰 소진/광고 스킵 |
+| 궁합 모드 | OK | 2인 궁합 지원 |
 
-**결론: 배포 가능**
+**현재 버전: v0.1.2+31**

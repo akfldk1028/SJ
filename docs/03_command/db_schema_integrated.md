@@ -1,6 +1,6 @@
 # 만톡 DB 스키마 통합 문서
 
-> 최종 업데이트: 2026-02-04 (KST)
+> 최종 업데이트: 2026-02-06 (KST)
 > 대상: Supabase PostgreSQL
 
 ---
@@ -325,11 +325,13 @@ UPDATE chat_sessions SET
 WHERE id = NEW.session_id;
 ```
 
-### 3.2 프로필 이름 동기화 트리거 (v31)
+### 3.2 프로필 이름 동기화 트리거 (v31 → v32)
 
 #### `sync_user_display_name` (saju_profiles UPDATE 시)
 
-> 2026-02-04 도입: 프로필 `display_name` 변경 시 관련 테이블 자동 동기화
+> - 2026-02-04 도입 (v31): 프로필 `display_name` 변경 시 관련 테이블 자동 동기화
+> - **2026-02-06 수정 (v32)**: `ai_summaries.profile_display_name` 동기화 제거
+>   - 이유: 앱에서 사용하지 않는 필드 + 과거 운세 기록은 생성 당시 이름 유지
 
 ```sql
 CREATE OR REPLACE FUNCTION sync_user_display_name()
@@ -337,19 +339,16 @@ RETURNS TRIGGER AS $$
 BEGIN
   IF OLD.display_name IS DISTINCT FROM NEW.display_name THEN
 
-    -- 1. ai_summaries: profile_display_name 업데이트 (해당 프로필만)
-    UPDATE ai_summaries
-    SET profile_display_name = NEW.display_name
-    WHERE profile_id = NEW.id
-      AND profile_display_name IS DISTINCT FROM NEW.display_name;
+    -- [REMOVED in v32] ai_summaries.profile_display_name 동기화 제거
+    -- 앱에서 이 필드를 사용하지 않으며, 과거 운세 기록은 생성 당시 이름 유지
 
-    -- 2. profile_relations: to_profile의 display_name 업데이트
+    -- 1. profile_relations: to_profile의 display_name 업데이트
     UPDATE profile_relations
     SET display_name = NEW.display_name
     WHERE to_profile_id = NEW.id
       AND display_name IS DISTINCT FROM NEW.display_name;
 
-    -- 3. "본인" 프로필(primary + me)일 때만 user_display_name 업데이트
+    -- 2. "본인" 프로필(primary + me)일 때만 user_display_name 업데이트
     IF NEW.profile_type = 'primary' AND NEW.relation_type = 'me' THEN
       UPDATE user_daily_token_usage
       SET user_display_name = NEW.display_name
@@ -362,7 +361,7 @@ BEGIN
         AND user_display_name IS DISTINCT FROM NEW.display_name;
     END IF;
 
-    RAISE LOG '[sync_display_name] profile_id=% type=%/% name: "%" → "%"',
+    RAISE LOG '[sync_display_name] profile_id=% type=%/% name: "%" → "%" (profile_display_name NOT synced)',
               NEW.id, NEW.profile_type, NEW.relation_type, OLD.display_name, NEW.display_name;
   END IF;
 
@@ -378,16 +377,16 @@ CREATE TRIGGER trg_sync_display_name
 
 **영향 테이블**:
 
-| 테이블 | 컬럼 | 조건 |
-|--------|------|------|
-| `ai_summaries` | `profile_display_name` | 해당 profile_id |
-| `ai_summaries` | `user_display_name` | primary+me 프로필일 때만 |
-| `user_daily_token_usage` | `user_display_name` | primary+me 프로필일 때만 |
-| `profile_relations` | `display_name` | to_profile_id 일치 |
+| 테이블 | 컬럼 | 조건 | 상태 |
+|--------|------|------|------|
+| `ai_summaries` | `profile_display_name` | 해당 profile_id | **제거됨 (v32)** |
+| `ai_summaries` | `user_display_name` | primary+me 프로필일 때만 | 유지 |
+| `user_daily_token_usage` | `user_display_name` | primary+me 프로필일 때만 | 유지 |
+| `profile_relations` | `display_name` | to_profile_id 일치 | 유지 |
 
 > **주의**: `user_display_name`과 `profile_display_name`은 다른 의미
 > - `user_display_name`: 로그인한 사용자의 "본인" 프로필 이름
-> - `profile_display_name`: 분석 대상 프로필의 이름
+> - `profile_display_name`: 분석 대상 프로필의 이름 **(v32부터 동기화 안 함)**
 
 ---
 

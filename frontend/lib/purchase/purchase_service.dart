@@ -63,37 +63,4 @@ class PurchaseService {
       }
     }
   }
-
-  /// 프리미엄 여부 (day_pass, week_pass, monthly 중 하나 활성)
-  Future<bool> get isPremium async {
-    try {
-      final info = await Purchases.getCustomerInfo();
-      return info.entitlements.all[PurchaseConfig.entitlementPremium]?.isActive ==
-          true;
-    } catch (e) {
-      if (kDebugMode) {
-        print('[PurchaseService] isPremium 체크 실패: $e');
-      }
-      return false;
-    }
-  }
-
-  /// Offerings 조회 (상품 목록)
-  Future<Offerings?> getOfferings() async {
-    try {
-      return await Purchases.getOfferings();
-    } catch (e) {
-      if (kDebugMode) {
-        print('[PurchaseService] getOfferings 실패: $e');
-      }
-      return null;
-    }
-  }
-
-  /// 구매 실행
-  Future<PurchaseResult> purchase(Package package) =>
-      Purchases.purchasePackage(package);
-
-  /// 구매 복원
-  Future<CustomerInfo> restore() => Purchases.restorePurchases();
 }

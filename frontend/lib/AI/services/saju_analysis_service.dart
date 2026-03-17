@@ -330,6 +330,13 @@ class SajuAnalysisService {
         stackTrace: stackTrace.toString(),
         extraData: {'method': '_runBothAnalysesInBackground', 'profileId': profileId},
       );
+
+      // v7.3: 에러 시에도 onComplete 콜백 호출 (_isAnalyzing 플래그 해제용)
+      if (onComplete != null) {
+        onComplete(ProfileAnalysisResult(
+          sajuBase: AnalysisResult.failure(e.toString()),
+        ));
+      }
     });
   }
 
@@ -399,27 +406,52 @@ class SajuAnalysisService {
     // ═══════════════════════════════════════════════════════════════════════
 
     // 캐시 확인 (이미 분석된 경우 스킵)
+    // v50: Gemini/fallback 결과는 캐시 히트로 안 침 (GPT-5.2 결과만 유효)
     print('[SajuAnalysisService] 🔍 saju_base 캐시 확인 중...');
     final cached = await aiQueries.getSajuBaseSummary(profileId);
     AnalysisResult sajuBaseResult;
 
-    if (cached.isSuccess && cached.data != null) {
-      print('[SajuAnalysisService] ✅ saju_base 캐시 히트 - 즉시 반환');
+    // v50: model_provider='openai' 인 GPT 결과만 캐시 히트로 인정
+    // Gemini/fallback(model_provider='google', model_name='fallback')은 무시
+    final isGptCacheHit = cached.isSuccess &&
+        cached.data != null &&
+        cached.data!.modelProvider == 'openai';
+
+    if (isGptCacheHit) {
+      print('[SajuAnalysisService] ✅ saju_base 캐시 히트 (GPT) - 즉시 반환');
       sajuBaseResult = AnalysisResult.success(
         summaryId: cached.data!.id,
         processingTimeMs: 0,
       );
     } else {
-      // Phase 분할 분석 실행 (Progressive Disclosure 지원)
-      print('[SajuAnalysisService] 📊 saju_base Phase 분할 분석 시작...');
-      final phasedResult = await runSajuBaseAnalysisWithPhases(
+      if (cached.isSuccess && cached.data != null) {
+        print('[SajuAnalysisService] ⚠️ saju_base 존재하지만 Gemini/fallback (model=${cached.data!.modelName}) - GPT 분석 강행');
+      }
+      // v43: Phase 분할 분석 실행 (reasoning_effort: low → medium 폴백)
+      print('[SajuAnalysisService] 📊 saju_base Phase 분할 분석 시작 (reasoning_effort: low)...');
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
         userId: userId,
         profileId: profileId,
         inputJson: inputJson,
+        reasoningEffort: 'low',  // v43: 속도 우선
         onPhaseComplete: (phaseResult) {
           print('[SajuAnalysisService] 🎯 Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
         },
       );
+
+      // v43: low 실패 시 medium으로 폴백
+      if (!phasedResult.overall.success) {
+        print('[SajuAnalysisService] ⚠️ reasoning_effort: low 실패 → medium으로 재시도');
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',  // v43: 폴백
+          onPhaseComplete: (phaseResult) {
+            print('[SajuAnalysisService] 🎯 [medium 재시도] Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
+          },
+        );
+      }
       sajuBaseResult = phasedResult.overall;
     }
 
@@ -544,6 +576,7 @@ class SajuAnalysisService {
       final messages = prompt.buildMessages(inputJson);
 
       // 5. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
+      // v43: reasoning_effort: low (속도 우선)
       final response = await _apiService.callOpenAI(
         messages: messages,
         model: prompt.modelName,
@@ -552,6 +585,7 @@ class SajuAnalysisService {
         logType: 'saju_base',
         userId: userId,  // 중복 task 방지용
         taskType: 'saju_base',  // v29: 병렬 실행 시 task 분리
+        reasoningEffort: 'low',  // v43: 속도 우선
       );
 
       if (!response.success) {
@@ -807,33 +841,65 @@ class SajuAnalysisService {
       return AnalysisResult.failure('사주 데이터 조회 실패');
     }
 
-    // 3. 분석 실행
+    // 3. 분석 실행 (v49: phased path 사용 — monolithic 대비 성공률 90% vs 40%)
+    final inputJson = inputData.toJson();
     if (runInBackground) {
       // Fire-and-forget
-      print('[SajuAnalysisService] 🔥 백그라운드 GPT-5.2 분석 시작');
-      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      print('[SajuAnalysisService] 🔥 백그라운드 phased 분석 시작');
+      _runPhasedAnalysisInBackground(userId, profileId, inputJson, onComplete);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
-      // 완료 대기
-      print('[SajuAnalysisService] ⏳ GPT-5.2 분석 대기 중...');
-      return await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      // 완료 대기 (phased path + low→medium fallback)
+      print('[SajuAnalysisService] ⏳ phased 분석 대기 중...');
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!phasedResult.overall.success) {
+        print('[SajuAnalysisService] ⚠️ low 실패 → medium 재시도');
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',
+        );
+      }
+      return phasedResult.overall;
     }
   }
 
-  /// saju_base 분석 백그라운드 실행
-  void _runSajuBaseAnalysisInBackground(
+  /// v49: phased 분석 백그라운드 실행 (monolithic 대비 성공률 90% vs 40%)
+  void _runPhasedAnalysisInBackground(
     String userId,
     String profileId,
     Map<String, dynamic> inputJson,
     void Function(AnalysisResult)? onComplete,
   ) {
-    _runSajuBaseAnalysis(userId, profileId, inputJson).then((result) {
-      print('[SajuAnalysisService] ✅ 백그라운드 GPT-5.2 분석 완료: ${result.success}');
-      if (onComplete != null) {
-        onComplete(result);
+    () async {
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!phasedResult.overall.success) {
+        print('[SajuAnalysisService] ⚠️ 백그라운드 low 실패 → medium 재시도');
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',
+        );
       }
+      return phasedResult.overall;
+    }().then((result) {
+      print('[SajuAnalysisService] ✅ 백그라운드 phased 분석 완료: ${result.success}');
+      onComplete?.call(result);
     }).catchError((e) {
-      print('[SajuAnalysisService] ❌ 백그라운드 GPT-5.2 분석 오류: $e');
+      print('[SajuAnalysisService] ❌ 백그라운드 phased 분석 오류: $e');
+      onComplete?.call(AnalysisResult.failure(e.toString()));
     });
   }
 
@@ -890,16 +956,31 @@ class SajuAnalysisService {
       return result;
     }
 
-    // 3. 분석 실행
+    // 3. 분석 실행 (v49: phased path — 성공률 90% vs monolithic 40%)
+    final inputJson = inputData.toJson();
     if (runInBackground) {
       // Fire-and-forget
-      print('[SajuAnalysisService] 🔥 인연 백그라운드 GPT-5.2 분석 시작');
-      _runSajuBaseAnalysisInBackground(userId, profileId, inputData.toJson(), onComplete);
+      print('[SajuAnalysisService] 🔥 인연 백그라운드 phased 분석 시작');
+      _runPhasedAnalysisInBackground(userId, profileId, inputJson, onComplete);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
-      // 완료 대기
-      print('[SajuAnalysisService] ⏳ 인연 GPT-5.2 분석 대기 중...');
-      final result = await _runSajuBaseAnalysis(userId, profileId, inputData.toJson());
+      // 완료 대기 (phased path + low→medium fallback)
+      print('[SajuAnalysisService] ⏳ 인연 phased 분석 대기 중...');
+      var phasedResult = await runSajuBaseAnalysisWithPhases(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!phasedResult.overall.success) {
+        phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'medium',
+        );
+      }
+      final result = phasedResult.overall;
       onComplete?.call(result);
       return result;
     }
@@ -1091,10 +1172,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
   ///     ↓
   /// 결과 병합 → ai_summaries 저장
   /// ```
+  /// v43: reasoningEffort 파라미터 추가 (low → medium 폴백 지원)
   Future<PhasedAnalysisResult> runSajuBaseAnalysisWithPhases({
     required String userId,
     required String profileId,
     required Map<String, dynamic> inputJson,
+    String reasoningEffort = 'low',  // v43: default "low" for saju_base
     void Function(PhaseAnalysisResult)? onPhaseComplete,
   }) async {
     final totalStopwatch = Stopwatch()..start();
@@ -1103,7 +1186,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     String? taskId;
 
     try {
-      print('[SajuAnalysisService] 🚀 Phase 분할 분석 시작');
+      print('[SajuAnalysisService] 🚀 Phase 분할 분석 시작 (reasoning_effort: $reasoningEffort)');
 
       // Task 생성 (Progressive Disclosure 지원)
       final taskResult = await aiMutations.createPhasedTask(
@@ -1119,8 +1202,8 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // ═══════════════════════════════════════════════════════════════════════
       // Phase 1: Foundation (원국, 십성, 합충, 성격, 행운)
       // ═══════════════════════════════════════════════════════════════════════
-      print('[SajuAnalysisService] 📊 Phase 1 시작 (Foundation)...');
-      final phase1Result = await _runPhase1(userId, inputJson);
+      print('[SajuAnalysisService] 📊 Phase 1 시작 (Foundation, reasoning: $reasoningEffort)...');
+      final phase1Result = await _runPhase1(userId, inputJson, reasoningEffort);
       phases.add(phase1Result);
 
       if (phase1Result.success) {
@@ -1148,10 +1231,10 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // ═══════════════════════════════════════════════════════════════════════
       // Phase 2 + 3: 병렬 실행
       // ═══════════════════════════════════════════════════════════════════════
-      print('[SajuAnalysisService] 📊 Phase 2+3 병렬 시작...');
+      print('[SajuAnalysisService] 📊 Phase 2+3 병렬 시작 (reasoning: $reasoningEffort)...');
       final phase2And3Results = await Future.wait([
-        _runPhase2(userId, inputJson, phase1Result.content!),
-        _runPhase3(userId, inputJson, phase1Result.content!),
+        _runPhase2(userId, inputJson, phase1Result.content!, reasoningEffort),
+        _runPhase3(userId, inputJson, phase1Result.content!, reasoningEffort),
       ]);
 
       final phase2Result = phase2And3Results[0];
@@ -1197,13 +1280,14 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // ═══════════════════════════════════════════════════════════════════════
       // Phase 4: Synthesis (요약, 인생주기, 전성기, 현대해석)
       // ═══════════════════════════════════════════════════════════════════════
-      print('[SajuAnalysisService] 📊 Phase 4 시작 (Synthesis)...');
+      print('[SajuAnalysisService] 📊 Phase 4 시작 (Synthesis, reasoning: $reasoningEffort)...');
       final phase4Result = await _runPhase4(
         userId,
         inputJson,
         phase1Result.content!,
         phase2Result.content ?? {},
         phase3Result.content ?? {},
+        reasoningEffort,
       );
       phases.add(phase4Result);
 
@@ -1314,9 +1398,11 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
   }
 
   /// Phase 1 분석 (Foundation)
+  /// v43: reasoningEffort 파라미터 추가
   Future<PhaseAnalysisResult> _runPhase1(
     String userId,
     Map<String, dynamic> inputJson,
+    String reasoningEffort,
   ) async {
     final stopwatch = Stopwatch()..start();
 
@@ -1332,6 +1418,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         logType: 'saju_base_phase1',
         userId: userId,
         taskType: 'saju_base_phase1',  // v29: 병렬 실행 시 task 분리
+        reasoningEffort: reasoningEffort,  // v43
       );
 
       stopwatch.stop();
@@ -1394,10 +1481,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
   }
 
   /// Phase 2 분석 (Fortune)
+  /// v43: reasoningEffort 파라미터 추가
   Future<PhaseAnalysisResult> _runPhase2(
     String userId,
     Map<String, dynamic> inputJson,
     Map<String, dynamic> phase1Result,
+    String reasoningEffort,
   ) async {
     final stopwatch = Stopwatch()..start();
 
@@ -1417,6 +1506,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         logType: 'saju_base_phase2',
         userId: userId,
         taskType: 'saju_base_phase2',  // v29: 병렬 실행 시 task 분리
+        reasoningEffort: reasoningEffort,  // v43
       );
 
       stopwatch.stop();
@@ -1470,10 +1560,12 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
   }
 
   /// Phase 3 분석 (Special)
+  /// v43: reasoningEffort 파라미터 추가
   Future<PhaseAnalysisResult> _runPhase3(
     String userId,
     Map<String, dynamic> inputJson,
     Map<String, dynamic> phase1Result,
+    String reasoningEffort,
   ) async {
     final stopwatch = Stopwatch()..start();
 
@@ -1493,6 +1585,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         logType: 'saju_base_phase3',
         userId: userId,
         taskType: 'saju_base_phase3',  // v29: 병렬 실행 시 task 분리
+        reasoningEffort: reasoningEffort,  // v43
       );
 
       stopwatch.stop();
@@ -1546,12 +1639,14 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
   }
 
   /// Phase 4 분석 (Synthesis)
+  /// v43: reasoningEffort 파라미터 추가
   Future<PhaseAnalysisResult> _runPhase4(
     String userId,
     Map<String, dynamic> inputJson,
     Map<String, dynamic> phase1Result,
     Map<String, dynamic> phase2Result,
     Map<String, dynamic> phase3Result,
+    String reasoningEffort,
   ) async {
     final stopwatch = Stopwatch()..start();
 
@@ -1576,6 +1671,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         logType: 'saju_base_phase4',
         userId: userId,
         taskType: 'saju_base_phase4',  // v29: 병렬 실행 시 task 분리
+        reasoningEffort: reasoningEffort,  // v43
       );
 
       stopwatch.stop();

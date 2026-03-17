@@ -37,7 +37,8 @@ docs/
 |------|------|------|
 | Frontend | Flutter 3.x | Dart |
 | Backend | **Supabase** | PostgreSQL + Edge Functions |
-| AI | **Gemini 3.0 Pro** | 사주 상담 (2025.11 출시) |
+| AI 분석 | **GPT-5.2** | 사주 분석 (OpenAI Responses API background mode) |
+| AI 대화 | **Gemini 3.0 Flash** | SSE 스트리밍 채팅 |
 | 상태관리 | **Riverpod 3.0** | @riverpod annotation |
 | 라우팅 | go_router | 선언적 라우팅 |
 | 로컬 저장 | Hive | 오프라인 캐시 |
