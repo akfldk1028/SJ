@@ -28,7 +28,10 @@ import '../../../saju_chart/presentation/providers/saju_analysis_repository_prov
 /// 내 프로필이 아닌 다른 사람의 사주 정보를 입력하고
 /// 나와의 관계를 설정하는 화면
 class RelationshipAddScreen extends ConsumerStatefulWidget {
-  const RelationshipAddScreen({super.key});
+  /// 어디서 진입했는지 (null: 기본, 'compatibility': 궁합 프로모 배너)
+  final String? fromSource;
+
+  const RelationshipAddScreen({super.key, this.fromSource});
 
   @override
   ConsumerState<RelationshipAddScreen> createState() =>
@@ -436,20 +439,33 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
           );
       debugPrint('✅ [_saveRelationship] Step 4 완료: 관계 생성됨 (saju_analyses 연결: from=$fromProfileAnalysisId, to=$toProfileAnalysisId)');
 
-      // 5. Provider 갱신 생략 - RelationshipScreen에서 자체 감지
-      // Note: 여기서 provider invalidate하면 ShellRoute의 RelationshipScreen이
-      // 즉시 반응하여 defunct widget 에러 발생
-      debugPrint('🔍 [_saveRelationship] Step 5: 새로고침은 RelationshipScreen에서 처리');
-      debugPrint('✅ [_saveRelationship] Step 5 완료');
+      // 5. Provider 갱신
+      // 궁합 프로모에서 왔으면 relationListProvider invalidate 필요
+      // (채팅의 _autoInsertMention이 새 인연을 찾아야 하므로)
+      // 일반 경로: RelationshipScreen에서 자체 감지
+      if (widget.fromSource == 'compatibility') {
+        ref.invalidate(relationListProvider(activeProfile.id));
+        debugPrint('✅ [_saveRelationship] Step 5: relationListProvider invalidated (궁합 프로모)');
+      } else {
+        debugPrint('✅ [_saveRelationship] Step 5: 새로고침은 RelationshipScreen에서 처리');
+      }
 
-      // 6. 성공 메시지 및 화면 닫기
+      // 6. 성공 메시지 및 네비게이션
       debugPrint('🔍 [_saveRelationship] Step 6: 성공 처리 및 네비게이션');
       if (mounted) {
-        // context.pop()으로 push에서 정상 리턴
-        // → relationship_screen의 await context.push() 완료
-        // → _onRefresh() 호출됨
-        debugPrint('✅ [_saveRelationship] 모든 단계 완료! pop으로 이전 화면 복귀');
-        context.pop();
+        if (widget.fromSource == 'compatibility') {
+          // 궁합 프로모에서 진입 → 궁합 채팅으로 바로 이동
+          debugPrint('✅ [_saveRelationship] 궁합 프로모 → 채팅 이동 (profileId=$newProfileId)');
+
+          // 현재 화면 pop → 메뉴로 돌아간 뒤 채팅으로 push
+          context.pop();
+          context.push(
+            '${Routes.sajuChat}?type=compatibility&profileId=$newProfileId&autoMention=true',
+          );
+        } else {
+          debugPrint('✅ [_saveRelationship] 모든 단계 완료! pop으로 이전 화면 복귀');
+          context.pop();
+        }
         return;
       }
     } catch (e, stackTrace) {

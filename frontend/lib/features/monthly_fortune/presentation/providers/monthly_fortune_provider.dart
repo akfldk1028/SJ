@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/fortune/monthly/monthly_queries.dart';
 import '../../../../AI/fortune/common/korea_date_utils.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
 part 'monthly_fortune_provider.g.dart';
@@ -354,6 +355,10 @@ class MonthlyFortune extends _$MonthlyFortune {
   /// 최대 재시도 횟수
   static const int _maxRetries = 3;
 
+  /// 오프라인 재시도 횟수 (무한 루프 방지)
+  static int _offlineRetryCount = 0;
+  static const int _maxOfflineRetries = 10;
+
   /// 분석 타임아웃 (6분 - OpenAI polling 4분 + 여유)
   static const Duration _analyzeTimeout = Duration(minutes: 6);
 
@@ -362,6 +367,12 @@ class MonthlyFortune extends _$MonthlyFortune {
 
   @override
   Future<MonthlyFortuneData?> build() async {
+    // Dispose 시 폴링 중단 (Future.delayed 체인 정리)
+    ref.onDispose(() {
+      _isPolling = false;
+      _isStalePolling = false;
+    });
+
     // v8.0 Safety: stuck _isAnalyzing 리셋 (타임아웃 초과 시)
     if (_isAnalyzing && _analyzeStartTime != null &&
         DateTime.now().difference(_analyzeStartTime!) > _analyzeTimeout) {
@@ -372,6 +383,22 @@ class MonthlyFortune extends _$MonthlyFortune {
 
     final activeProfile = await ref.read(activeProfileProvider.future);
     if (activeProfile == null) return null;
+
+    // 오프라인 상태면 3초 후 자동 재시도 (최대 10회)
+    if (!SupabaseService.isConnected) {
+      if (_offlineRetryCount >= _maxOfflineRetries) {
+        print('[MonthlyFortune] 오프라인 재시도 초과 ($_offlineRetryCount/$_maxOfflineRetries)');
+        _offlineRetryCount = 0;
+        return null;
+      }
+      _offlineRetryCount++;
+      print('[MonthlyFortune] 오프라인 모드 - 3초 후 재시도 ($_offlineRetryCount/$_maxOfflineRetries)');
+      Future.delayed(const Duration(seconds: 3), () {
+        ref.invalidateSelf();
+      });
+      return null;
+    }
+    _offlineRetryCount = 0; // 온라인 복귀 시 리셋
 
     // v8.0 Safety: FortuneCoordinator stuck flag 리셋
     if (!_isAnalyzing && FortuneCoordinator.isAnalyzing(activeProfile.id)) {

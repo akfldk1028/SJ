@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
 import '../providers/daily_fortune_provider.dart';
+import '../providers/daily_analysis_step_provider.dart';
 
 /// Fortune summary card - AI 데이터 연동
 /// 시간대별 오행(五行) 기반 디자인
@@ -64,6 +65,19 @@ class FortuneSummaryCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // Indeterminate progress bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      backgroundColor: theme.textMuted.withValues(alpha: 0.15),
+                      valueColor: AlwaysStoppedAnimation(theme.primaryColor),
+                      minHeight: 6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   '운세를 불러오는 중...',
                   style: TextStyle(
@@ -89,8 +103,12 @@ class FortuneSummaryCard extends ConsumerWidget {
 
   /// AI 분석 중일 때 표시하는 카드 (탭하면 수동 새로고침)
   Widget _buildAnalyzingCard(WidgetRef ref, AppThemeExtension theme) {
+    // 일일 운세 분석 단계 추적
+    final step = ref.watch(dailyAnalysisStepProvider);
+
     return GestureDetector(
       onTap: () {
+        ref.read(dailyAnalysisStepProvider.notifier).state = DailyAnalysisStep.idle;
         ref.read(dailyFortuneProvider.notifier).refresh();
       },
       child: Padding(
@@ -114,28 +132,45 @@ class FortuneSummaryCard extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: 80,
-                  height: 80,
+                  width: 60,
+                  height: 60,
                   child: AnimatedYinYangIllustration(
-                    size: 80,
+                    size: 60,
                     showGlow: true,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 Text(
-                  'AI가 운세를 분석하고 있어요',
+                  'AI가 오늘의 운세를 분석하고 있어요',
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Daily 단계별 Progress bar (error 시 숨김)
+                if (step != DailyAnalysisStep.error)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: step.progress > 0 ? step.progress : null,
+                        backgroundColor: theme.textMuted.withValues(alpha: 0.15),
+                        valueColor: AlwaysStoppedAnimation(theme.primaryColor),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 8),
                 Text(
-                  '탭하면 다시 불러옵니다',
+                  step.label,
                   style: TextStyle(
-                    color: theme.textMuted,
-                    fontSize: 14,
+                    color: step == DailyAnalysisStep.error
+                        ? theme.primaryColor
+                        : theme.textMuted,
+                    fontSize: 13,
                   ),
                 ),
               ],

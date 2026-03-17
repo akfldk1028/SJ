@@ -10,7 +10,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/conversational_ad_model.dart';
-import '../../data/services/ad_trigger_service.dart';
 import '../../domain/models/ai_persona.dart';
 import '../providers/conversational_ad_provider.dart';
 import '../providers/chat_provider.dart';
@@ -81,15 +80,14 @@ class ConversationalAdWidget extends ConsumerWidget {
                     : _createAdMessageWithoutCta(adState),
             personaEmoji: persona.emoji,
             personaName: persona.displayName,
-            onCtaPressed: isRewardedAd
-                ? isRequired
-                    ? () => _handleVideoAdPressed(ref)
-                    : () => _handleRewardedCtaPressed(ref)
+            // v3: tokenDepleted CTA는 TokenDepletedBanner에서 처리 (전면 광고)
+            onCtaPressed: isRewardedAd && !isRequired
+                ? () => _handleRewardedCtaPressed(ref)
                 : null,
             onSkipPressed: !isRequired ? () => _handleSkip(ref) : null,
-            // 토큰 소진 시 2가지 선택지 (영상 vs 네이티브)
-            secondaryCtaText: isRequired ? '📋 광고 보고 3번 대화' : null,
-            onSecondaryCtaPressed: isRequired ? () => _handleNativeAdPressed(ref) : null,
+            // v3: 네이티브 CTA 제거 (전면 광고로 전환됨)
+            secondaryCtaText: null,
+            onSecondaryCtaPressed: null,
           ),
 
         const SizedBox(height: 8),
@@ -100,6 +98,7 @@ class ConversationalAdWidget extends ConsumerWidget {
                 adState.loadState == AdLoadState.loading))
           AdNativeBubble(
             nativeAd: ref.read(conversationalAdNotifierProvider.notifier).nativeAd,
+            adWidget: ref.read(conversationalAdNotifierProvider.notifier).adFitNativeWidget,
             loadState: adState.loadState,
             onDismiss: adState.adWatched ? () => _handleAdComplete(ref) : null,
             personaEmoji: '📢',
@@ -153,7 +152,7 @@ class ConversationalAdWidget extends ConsumerWidget {
     );
   }
 
-  /// 토큰 소진 시 메시지 생성 (2버튼용 CTA 텍스트)
+  /// 토큰 소진 시 메시지 생성 (전환 텍스트만, CTA는 TokenDepletedBanner에서 처리)
   AdChatMessage _createTokenDepletedMessage(ConversationalAdModel adState) {
     return AdChatMessage(
       id: 'ad_${DateTime.now().millisecondsSinceEpoch}',
@@ -163,8 +162,8 @@ class ConversationalAdWidget extends ConsumerWidget {
       createdAt: DateTime.now(),
       adType: AdMessageType.tokenDepleted,
       transitionText: adState.transitionText,
-      ctaText: '🎬 영상 보고 5번 대화',
-      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
+      ctaText: null, // CTA는 TokenDepletedBanner에서 처리
+      rewardTokens: null,
     );
   }
 
@@ -175,32 +174,6 @@ class ConversationalAdWidget extends ConsumerWidget {
     if (success) {
       notifier.onAdWatched();
     }
-  }
-
-  /// 영상 광고 선택 (보상형 영상 → 5왕복)
-  void _handleVideoAdPressed(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    final success = await notifier.showRewardedAd(
-      rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-    );
-    if (success) {
-      notifier.onAdWatched(
-        rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-      );
-    }
-  }
-
-  /// 네이티브 광고 선택 (네이티브 광고 → 3왕복)
-  ///
-  /// adType을 inlineInterval로 전환하여 네이티브 광고 위젯이 표시되도록 함.
-  /// 토큰 지급은 광고 클릭 시 provider의 _onAdClicked()에서 처리됨.
-  void _handleNativeAdPressed(WidgetRef ref) async {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    // adType 전환: tokenDepleted → inlineInterval (네이티브 광고 표시 활성화)
-    // rewardedTokens 설정: 클릭 시 지급될 토큰 (provider._onAdClicked에서 사용)
-    notifier.switchToNativeAd(
-      rewardTokens: AdTriggerService.depletedRewardTokensNative,
-    );
   }
 
   /// 스킵 처리
@@ -306,9 +279,9 @@ class InlineAdWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '후원자 소개',
+                  '광고',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 15,
                     color: theme.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),

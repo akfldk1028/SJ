@@ -1203,7 +1203,14 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // Phase 1: Foundation (원국, 십성, 합충, 성격, 행운)
       // ═══════════════════════════════════════════════════════════════════════
       print('[SajuAnalysisService] 📊 Phase 1 시작 (Foundation, reasoning: $reasoningEffort)...');
-      final phase1Result = await _runPhase1(userId, inputJson, reasoningEffort);
+      var phase1Result = await _runPhase1(userId, inputJson, reasoningEffort);
+
+      // Phase 1 실패 시 1회 재시도
+      if (!phase1Result.success) {
+        print('[SajuAnalysisService] ⚠️ Phase 1 실패: ${phase1Result.error} → 재시도');
+        phase1Result = await _runPhase1(userId, inputJson, reasoningEffort);
+      }
+
       phases.add(phase1Result);
 
       if (phase1Result.success) {
@@ -1220,7 +1227,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         }
         onPhaseComplete?.call(phase1Result);
       } else {
-        print('[SajuAnalysisService] ❌ Phase 1 실패: ${phase1Result.error}');
+        print('[SajuAnalysisService] ❌ Phase 1 재시도도 실패: ${phase1Result.error}');
         return PhasedAnalysisResult(
           overall: AnalysisResult.failure('Phase 1 실패: ${phase1Result.error}'),
           phases: phases,
@@ -1237,8 +1244,21 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         _runPhase3(userId, inputJson, phase1Result.content!, reasoningEffort),
       ]);
 
-      final phase2Result = phase2And3Results[0];
-      final phase3Result = phase2And3Results[1];
+      var phase2Result = phase2And3Results[0];
+      var phase3Result = phase2And3Results[1];
+
+      // Phase 2 실패 시 1회 재시도
+      if (!phase2Result.success) {
+        print('[SajuAnalysisService] ⚠️ Phase 2 실패: ${phase2Result.error} → 재시도');
+        phase2Result = await _runPhase2(userId, inputJson, phase1Result.content!, reasoningEffort);
+      }
+
+      // Phase 3 실패 시 1회 재시도
+      if (!phase3Result.success) {
+        print('[SajuAnalysisService] ⚠️ Phase 3 실패: ${phase3Result.error} → 재시도');
+        phase3Result = await _runPhase3(userId, inputJson, phase1Result.content!, reasoningEffort);
+      }
+
       phases.add(phase2Result);
       phases.add(phase3Result);
 
@@ -1247,7 +1267,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         partialResult.addAll(phase2Result.content!);
         onPhaseComplete?.call(phase2Result);
       } else {
-        print('[SajuAnalysisService] ⚠️ Phase 2 실패: ${phase2Result.error}');
+        print('[SajuAnalysisService] ❌ Phase 2 재시도도 실패: ${phase2Result.error}');
       }
 
       if (phase3Result.success) {
@@ -1255,7 +1275,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         partialResult.addAll(phase3Result.content!);
         onPhaseComplete?.call(phase3Result);
       } else {
-        print('[SajuAnalysisService] ⚠️ Phase 3 실패: ${phase3Result.error}');
+        print('[SajuAnalysisService] ❌ Phase 3 재시도도 실패: ${phase3Result.error}');
       }
 
       // DB에 Phase 2+3 부분 결과 저장
@@ -1267,9 +1287,9 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
         );
       }
 
-      // Phase 2 또는 3 실패 시 계속 진행 (부분 결과)
+      // Phase 2+3 모두 실패 시 중단
       if (!phase2Result.success && !phase3Result.success) {
-        print('[SajuAnalysisService] ❌ Phase 2+3 모두 실패 - 중단');
+        print('[SajuAnalysisService] ❌ Phase 2+3 모두 재시도 후에도 실패 - 중단');
         return PhasedAnalysisResult(
           overall: AnalysisResult.failure('Phase 2+3 모두 실패'),
           phases: phases,
@@ -1281,7 +1301,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       // Phase 4: Synthesis (요약, 인생주기, 전성기, 현대해석)
       // ═══════════════════════════════════════════════════════════════════════
       print('[SajuAnalysisService] 📊 Phase 4 시작 (Synthesis, reasoning: $reasoningEffort)...');
-      final phase4Result = await _runPhase4(
+      var phase4Result = await _runPhase4(
         userId,
         inputJson,
         phase1Result.content!,
@@ -1291,12 +1311,24 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
       );
       phases.add(phase4Result);
 
+      // Phase 4 실패 시 1회 재시도
+      if (!phase4Result.success) {
+        print('[SajuAnalysisService] ⚠️ Phase 4 실패: ${phase4Result.error} → 재시도');
+        phase4Result = await _runPhase4(
+          userId, inputJson,
+          phase1Result.content!,
+          phase2Result.content ?? {},
+          phase3Result.content ?? {},
+          reasoningEffort,
+        );
+      }
+
       if (phase4Result.success) {
         print('[SajuAnalysisService] ✅ Phase 4 완료 (${phase4Result.processingTimeMs}ms)');
         partialResult.addAll(phase4Result.content!);
         onPhaseComplete?.call(phase4Result);
       } else {
-        print('[SajuAnalysisService] ⚠️ Phase 4 실패: ${phase4Result.error}');
+        print('[SajuAnalysisService] ❌ Phase 4 재시도도 실패: ${phase4Result.error}');
       }
 
       // ═══════════════════════════════════════════════════════════════════════

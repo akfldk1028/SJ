@@ -4,6 +4,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v51 변경사항 (2026-02-11):
+ * - 모델별 가격 상수 (MODEL_PRICING) + getModelCost() 함수 추가
+ *   → gpt-5-mini 등 다른 모델 사용 시 비용이 정확하게 기록됨
+ *   → 기존: gpt-5.2 가격($1.75/$14.00) 하드코딩 → 수정: 모델별 동적 계산
+ *
  * v50 변경사항 (2026-02-09):
  * - v44(locale) + v48(stuck 정리) + v49(fortune 스킵) 통합 머지
  * - locale 파라미터 추가 (default: 'ko') - 다국어 지원
@@ -38,8 +43,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * v32 변경사항 (2026-01-30):
  * - API Key 로드밸런싱 적용 (Round-Robin + Fallback)
  *
- * === 모델 변경 금지 ===
- * 이 Edge Function의 기본 모델은 반드시 gpt-5.2 유지
+ * === 기본 모델: gpt-5.2 ===
+ * 클라이언트에서 model 파라미터로 다른 모델 지정 가능 (gpt-5-mini 등)
  */
 
 const corsHeaders = {
@@ -83,8 +88,21 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 20000;
+const DAILY_QUOTA = 7000;
 const ADMIN_QUOTA = 1000000000;
+
+// v51: 모델별 가격 ($/1M tokens)
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  'gpt-5.2':     { input: 1.75,  output: 14.00 },
+  'gpt-5-mini':  { input: 0.25,  output: 2.00 },
+  'gpt-4o':      { input: 2.50,  output: 10.00 },
+  'gpt-4o-mini': { input: 0.15,  output: 0.60 },
+};
+
+function getModelCost(model: string, promptTokens: number, completionTokens: number): number {
+  const pricing = MODEL_PRICING[model] || MODEL_PRICING['gpt-5.2'];
+  return (promptTokens * pricing.input / 1000000) + (completionTokens * pricing.output / 1000000);
+}
 
 /** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
 function getTodayKST(): string {
@@ -304,7 +322,7 @@ async function processInBackground(
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
     const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
-    const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
+    const cost = getModelCost(model, promptTokens, completionTokens);
 
     // v41: warn on truncated responses
     if (finishReason === "length") {
@@ -616,7 +634,7 @@ Deno.serve(async (req) => {
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
     const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
-    const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
+    const cost = getModelCost(model, promptTokens, completionTokens);
     if (user_id && promptTokens > 0) {
       await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin, task_type);
     }

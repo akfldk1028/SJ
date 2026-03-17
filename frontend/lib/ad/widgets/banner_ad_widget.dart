@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../purchase/providers/purchase_provider.dart';
+import '../ad_config.dart';
 import '../ad_service.dart';
 
 /// 배너 광고 위젯
@@ -21,25 +22,30 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
   bool _loadAttempted = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    debugPrint('[BannerAdWidget] didChangeDependencies called');
-    _loadAd();
+    if (!_isLoading && !_isLoaded) {
+      _loadAd();
+    }
   }
 
   void _loadAd() {
+    if (!adEnabled || _isLoading) return;
+
     // 프리미엄 유저는 광고 로드 자체를 스킵
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
     if (isPremium) return;
 
+    _isLoading = true;
     final width = MediaQuery.of(context).size.width;
-    debugPrint('[BannerAdWidget] Loading banner ad with width: $width');
 
     AdService.instance.loadBannerAd(
       width: width,
       onLoaded: (ad) {
+        _isLoading = false;
         if (mounted) {
           setState(() {
             _bannerAd = ad;
@@ -48,6 +54,7 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
         }
       },
       onFailed: (error) {
+        _isLoading = false;
         debugPrint('[BannerAdWidget] Failed to load: ${error.message}');
       },
     );
@@ -61,6 +68,8 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!adEnabled) return const SizedBox.shrink();
+
     // 프리미엄 유저는 배너 광고 숨김 + 로드된 광고 해제
     ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;

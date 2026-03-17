@@ -65,3 +65,19 @@
 
 # Hive (Local Storage)
 -keep class ** extends com.google.protobuf.GeneratedMessageLite { *; }
+
+# Kakao AdFit SDK
+-keep class com.kakao.adfit.** { *; }
+-dontwarn com.kakao.adfit.**
+
+# Mintegral SDK (AdMob Bidding Mediation)
+-keep class com.mbridge.** { *; }
+-dontwarn com.mbridge.**
+
+# Liftoff / Vungle SDK (AdMob Bidding Mediation)
+-keep class com.vungle.** { *; }
+-dontwarn com.vungle.**
+
+# Unity Ads SDK (AdMob Bidding Mediation)
+-keep class com.unity3d.ads.** { *; }
+-dontwarn com.unity3d.ads.**

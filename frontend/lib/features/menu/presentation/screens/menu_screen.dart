@@ -1,6 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../ad/ad_network_resolver.dart';
+import '../../../../ad/adfit/adfit_banner_ad_widget.dart';
+import '../../../../ad/widgets/banner_ad_widget.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -8,6 +12,7 @@ import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../purchase/widgets/premium_badge_widget.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../widgets/ai_chat_cta_card.dart';
+import '../widgets/compatibility_promo_card.dart';
 import '../widgets/section_header.dart';
 import '../widgets/fortune_summary_card.dart';
 import 'package:frontend/features/saju_chart/presentation/widgets/saju_mini_card.dart';
@@ -56,9 +61,19 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   const FortuneCategoryList(),
                   SizedBox(height: context.scaledPadding(16)),
                   const AiChatCtaCard(),
+                  SizedBox(height: context.scaledPadding(12)),
+                  const CompatibilityPromoCard(),
                   SizedBox(height: context.scaledPadding(16)),
                   // 내 사주 카드
                   const SajuMiniCard(),
+                  // 배너 광고 (프리미엄 제외)
+                  if (!kIsWeb && !ref.read(purchaseNotifierProvider.notifier).isPremium) ...[
+                    SizedBox(height: context.scaledPadding(16)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: _MenuBannerAd(),
+                    ),
+                  ],
                   // 오늘의 한마디는 FortuneSummaryCard 내 시간대별 운세 아래에 배치됨
                 ],
               ),
@@ -277,5 +292,32 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     return {
       'full': '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ($weekday)',
     };
+  }
+}
+
+/// 메뉴 배너 광고: AdFit primary (Android) → AdMob fallback
+class _MenuBannerAd extends StatefulWidget {
+  const _MenuBannerAd();
+
+  @override
+  State<_MenuBannerAd> createState() => _MenuBannerAdState();
+}
+
+class _MenuBannerAdState extends State<_MenuBannerAd> {
+  bool _adFitFailed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (AdNetworkResolver.isAdFitAvailable && !_adFitFailed) {
+      return Center(
+        child: AdFitBannerAdWidget(
+          onFailed: () {
+            debugPrint('[MenuBanner] AdFit failed → AdMob fallback');
+            if (mounted) setState(() => _adFitFailed = true);
+          },
+        ),
+      );
+    }
+    return const BannerAdWidget();
   }
 }

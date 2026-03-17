@@ -11,9 +11,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../purchase/providers/purchase_provider.dart';
 import '../ad_config.dart';
-import '../ad_strategy.dart';
 import '../ad_tracking_service.dart';
-import '../token_reward_service.dart';
 
 /// 모바일 플랫폼 체크
 bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -58,7 +56,7 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
   }
 
   void _loadAd() {
-    if (!_isMobile || _loadStarted || !mounted) return;
+    if (!_isMobile || !adEnabled || _loadStarted || !mounted) return;
 
     // 프리미엄 유저는 광고 로드 자체를 스킵
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -88,11 +86,10 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
           AdTrackingService.instance.trackNativeImpression();
         },
         onAdClicked: (ad) {
-          debugPrint('[CardNativeAd] Clicked → bonus ${AdStrategy.intervalClickRewardTokens} tokens');
+          debugPrint('[CardNativeAd] Clicked → tracking only (no token reward)');
           AdTrackingService.instance.trackNativeClick(
-            rewardTokens: AdStrategy.intervalClickRewardTokens,
+            rewardTokens: 0,
           );
-          TokenRewardService.grantNativeAdTokens(AdStrategy.intervalClickRewardTokens);
         },
         onPaidEvent: (ad, valueMicros, precision, currencyCode) {
           debugPrint('[CardNativeAd] Paid: $valueMicros micros ($currencyCode, $precision)');
@@ -144,6 +141,8 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!adEnabled) return const SizedBox.shrink();
+
     // 프리미엄 유저는 네이티브 광고 숨김 + 로드된 광고 해제
     ref.watch(purchaseNotifierProvider); // 상태 변경 감지용
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -223,9 +222,9 @@ class _CardNativeAdWidgetState extends ConsumerState<CardNativeAdWidget> {
                       Text(
                         '광고',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 15,
                           color: isDark ? Colors.white60 : Colors.black45,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

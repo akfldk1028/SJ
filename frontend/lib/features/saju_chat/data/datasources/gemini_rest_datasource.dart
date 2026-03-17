@@ -32,8 +32,8 @@ class GeminiResponse {
     this.finishReason,
   });
 
-  /// 총 토큰 사용량 (AI 응답 저장용)
-  int? get tokensUsed => totalTokenCount;
+  /// 쿼타용 토큰 사용량 (completion only — prompt 제외로 쿼타 10배 효율)
+  int? get tokensUsed => candidatesTokenCount;
 }
 
 /// Gemini 3.0 REST API 데이터소스

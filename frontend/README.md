@@ -2,7 +2,7 @@
 
 AI 기반 사주 상담 Flutter 앱. 생년월일 입력 → 만세력 계산 → AI 대화형 사주 상담.
 
-**현재 버전**: v0.1.2+31 (2026-02-08)
+**현재 버전**: v0.1.6+44 (2026-03-12)
 
 ## 기술 스택
 
@@ -17,7 +17,7 @@ AI 기반 사주 상담 Flutter 앱. 생년월일 입력 → 만세력 계산 �
 | AI 대화 | **Gemini 3.0 Flash** (SSE 스트리밍 채팅) |
 | AI 이미지 | DALL-E 3, Imagen 3 |
 | 결제 | **RevenueCat** (IAP - day_pass, week_pass, monthly) |
-| 광고 | **Google AdMob** (Native, Rewarded, Banner, Interstitial) |
+| 광고 | **Google AdMob** + Liftoff/Mintegral Bidding + **카카오 AdFit** (Interstitial, Native, Banner) |
 | Local Storage | **Hive** (캐시), flutter_secure_storage (토큰) |
 | i18n | easy_localization (ko, en, ja) |
 
@@ -50,7 +50,7 @@ frontend/lib/
 │   ├── settings/          # 설정 (구독 관리, 테마)
 │   ├── splash/            # 스플래시
 │   └── onboarding/        # 온보딩
-├── ad/                    # AdMob 광고 모듈
+├── ad/                    # 광고 모듈 (AdMob + Liftoff/Mintegral Bidding + AdFit)
 ├── purchase/              # RevenueCat IAP 모듈
 ├── shared/                # 공통 위젯/익스텐션
 └── i18n/                  # 다국어 (ko, en, ja)
@@ -93,6 +93,9 @@ SUPABASE_ANON_KEY=xxx
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
+| v0.1.6+44 | 2026-03-12 | AdFit + AdMob 이중 네트워크, Liftoff/Mintegral AdMob Bidding 미디에이션 추가, 운세 즉시 UI 갱신, 칩 무료해금 제거 |
+| v0.1.5+41 | 2026-03-08 | AdMob 프로덕션 전환, 전면 광고 중심 수익화 개편, 네이티브 클릭 보상 제거 (정책 준수), onDismissed 콜백 크래시 수정, 토큰 14K 최적화 |
+| v0.1.4+40 | 2026-02-19 | Play Store 출시 |
 | v0.1.2+31 | 2026-02-08 | 운세 로딩 무한대기 수정, Native 광고 토큰 race condition 수정, QUOTA_EXCEEDED 에러 피드백, 에러 로깅 강화 |
 | v0.1.1+30 | 2026-02-07 | 다국어 세팅 (ko, en, ja) |
 | v0.1.0 | 2026-02-02 | IAP 모듈 (RevenueCat), 광고 시스템 (AdMob) |
