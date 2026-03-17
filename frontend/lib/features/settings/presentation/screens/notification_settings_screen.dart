@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,7 +78,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('알림 설정'),
+        title: Text('settings.notification'.tr()),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -113,13 +114,15 @@ class NotificationSettingsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '푸시 알림',
+                            'settings.pushNotification'.tr(),
                             style: theme.textTheme.p.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
-                            settings.pushEnabled ? '알림이 켜져 있습니다' : '알림이 꺼져 있습니다',
+                            settings.pushEnabled
+                                ? 'settings.pushEnabled'.tr()
+                                : 'settings.pushDisabled'.tr(),
                             style: theme.textTheme.small.copyWith(
                               color: theme.colorScheme.mutedForeground,
                             ),
@@ -137,7 +140,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 알림 세부 설정
-              _buildSectionHeader(context, '알림 종류'),
+              _buildSectionHeader(context, 'settings.notificationType'.tr()),
               const SizedBox(height: 8),
               Opacity(
                 opacity: settings.pushEnabled ? 1.0 : 0.5,
@@ -148,8 +151,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
                       _buildToggleRow(
                         context,
                         icon: LucideIcons.sun,
-                        title: '오늘의 운세',
-                        subtitle: '매일 아침 8시에 운세 알림',
+                        title: 'settings.dailyFortune'.tr(),
+                        subtitle: 'settings.dailyFortuneDesc'.tr(),
                         value: settings.dailyFortune,
                         onChanged: settings.pushEnabled
                             ? (v) => notifier.toggleDailyFortune(v)
@@ -159,8 +162,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
                       _buildToggleRow(
                         context,
                         icon: LucideIcons.messageCircle,
-                        title: '상담 답변',
-                        subtitle: 'AI 답변 완료 알림',
+                        title: 'settings.chatReply'.tr(),
+                        subtitle: 'settings.chatReplyDesc'.tr(),
                         value: settings.chatReply,
                         onChanged: settings.pushEnabled
                             ? (v) => notifier.toggleChatReply(v)
@@ -170,8 +173,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
                       _buildToggleRow(
                         context,
                         icon: LucideIcons.megaphone,
-                        title: '이벤트 알림',
-                        subtitle: '특별 이벤트 및 업데이트 소식',
+                        title: 'settings.eventNotice'.tr(),
+                        subtitle: 'settings.eventNoticeDesc'.tr(),
                         value: settings.eventNotice,
                         onChanged: settings.pushEnabled
                             ? (v) => notifier.toggleEventNotice(v)
@@ -184,7 +187,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 마케팅 알림
-              _buildSectionHeader(context, '마케팅 수신'),
+              _buildSectionHeader(context, 'settings.marketingConsent'.tr()),
               const SizedBox(height: 8),
               Opacity(
                 opacity: settings.pushEnabled ? 1.0 : 0.5,
@@ -193,8 +196,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   child: _buildToggleRow(
                     context,
                     icon: LucideIcons.tag,
-                    title: '마케팅 알림',
-                    subtitle: '프로모션 및 할인 정보',
+                    title: 'settings.marketingNotice'.tr(),
+                    subtitle: 'settings.marketingNoticeDesc'.tr(),
                     value: settings.marketingNotice,
                     onChanged: settings.pushEnabled
                         ? (v) => notifier.toggleMarketingNotice(v)

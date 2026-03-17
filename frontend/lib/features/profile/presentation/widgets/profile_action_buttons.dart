@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -113,8 +114,8 @@ class ProfileActionButtons extends ConsumerWidget {
           if (context.mounted) {
             ShadToaster.of(context).show(
               ShadToast(
-                title: const Text('저장 완료'),
-                description: const Text('프로필이 저장되었습니다'),
+                title: Text('profile.saveSuccess'.tr()),
+                description: Text('profile.profileSaved'.tr()),
               ),
             );
             context.pop();
@@ -126,7 +127,7 @@ class ProfileActionButtons extends ConsumerWidget {
       if (context.mounted) {
         ShadToaster.of(context).show(
           ShadToast(
-            title: const Text('저장 실패'),
+            title: Text('profile.saveFailed'.tr()),
             description: Text(e.toString()),
           ),
         );

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,7 +22,7 @@ class RelationshipListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('인연'),
+        title: Text('profile.relationTitle'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -61,11 +62,11 @@ class RelationshipListScreen extends ConsumerWidget {
               return _buildList(context, ref, relationsByCategory);
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
+            error: (err, stack) => Center(child: Text('profile.errorWithMessage'.tr(namedArgs: {'error': '$err'}))),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (err, stack) => Center(child: Text('profile.errorWithMessage'.tr(namedArgs: {'error': '$err'}))),
       ),
     );
   }
@@ -82,11 +83,11 @@ class RelationshipListScreen extends ConsumerWidget {
       child: Column(
         children: [
           // 검색 바
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: ShadInput(
-              placeholder: Text('이름으로 검색'),
-              leading: Padding(
+              placeholder: Text('profile.searchByName'.tr()),
+              leading: const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.search, size: 16),
               ),
@@ -131,7 +132,7 @@ class RelationshipListScreen extends ConsumerWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline),
-              title: Text('${relation.effectiveDisplayName}님과 사주 상담'),
+              title: Text('profile.consultWithName'.tr(namedArgs: {'name': relation.effectiveDisplayName})),
               onTap: () {
                 Navigator.pop(sheetContext);
                 parentContext.go('${Routes.sajuChat}?profileId=${relation.toProfileId}');
@@ -143,7 +144,7 @@ class RelationshipListScreen extends ConsumerWidget {
                 relation.isFavorite ? Icons.star : Icons.star_border,
                 color: relation.isFavorite ? Colors.amber[600] : null,
               ),
-              title: Text(relation.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'),
+              title: Text(relation.isFavorite ? 'profile.removeFavorite'.tr() : 'profile.addFavorite'.tr()),
               onTap: () async {
                 Navigator.pop(sheetContext);
                 try {
@@ -154,7 +155,7 @@ class RelationshipListScreen extends ConsumerWidget {
                       );
                 } catch (e) {
                   scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('오류: $e')),
+                    SnackBar(content: Text('profile.errorWithMessage'.tr(namedArgs: {'error': '$e'}))),
                   );
                 }
               },
@@ -163,7 +164,7 @@ class RelationshipListScreen extends ConsumerWidget {
             ListTile(
               leading: Icon(Icons.delete_outline, color: Colors.red[400]),
               title: Text(
-                '관계 삭제',
+                'profile.deleteRelationTitle'.tr(),
                 style: TextStyle(color: Colors.red[400]),
               ),
               onTap: () {
@@ -191,12 +192,12 @@ class RelationshipListScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('관계 삭제'),
-        content: Text('${relation.effectiveDisplayName}님과의 관계를 삭제하시겠습니까?'),
+        title: Text('profile.deleteRelationTitle'.tr()),
+        content: Text('profile.deleteRelationConfirm'.tr(namedArgs: {'name': relation.effectiveDisplayName})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
+            child: Text('common.buttonCancel'.tr()),
           ),
           TextButton(
             onPressed: () async {
@@ -216,21 +217,21 @@ class RelationshipListScreen extends ConsumerWidget {
 
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: Text('${relation.effectiveDisplayName}님과의 관계가 삭제되었습니다'),
+                    content: Text('profile.deleteRelationSuccess'.tr(namedArgs: {'name': relation.effectiveDisplayName})),
                   ),
                 );
               } catch (e) {
                 debugPrint('❌ [RelationshipListScreen] 삭제 실패: $e');
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: Text('삭제 실패: $e'),
+                    content: Text('profile.deleteRelationFailed'.tr(namedArgs: {'error': '$e'})),
                     backgroundColor: Colors.red[400],
                   ),
                 );
               }
             },
             child: Text(
-              '삭제',
+              'common.delete'.tr(),
               style: TextStyle(color: Colors.red[400]),
             ),
           ),

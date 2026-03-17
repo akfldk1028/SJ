@@ -6,7 +6,7 @@ part of 'chat_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatNotifierHash() => r'085a8f44f17d53f8962556475d7ff5e23d23d0b2';
+String _$chatNotifierHash() => r'415edaaa81306bac0ebaa970eb9b639c883ae0c2';
 
 /// Copied from Dart SDK
 class _SystemHash {

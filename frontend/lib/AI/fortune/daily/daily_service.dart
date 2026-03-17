@@ -89,12 +89,14 @@ class DailyService {
   /// [inputData] 입력 데이터 (saju_base 포함)
   /// [targetDate] 대상 날짜 (기본: 한국 시간 기준 오늘)
   /// [forceRefresh] 캐시 무시하고 재분석
+  /// [locale] 언어 코드 (ko, ja, en)
   Future<DailyResult> analyze({
     required String userId,
     required String profileId,
     required FortuneInputData inputData,
     DateTime? targetDate,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
     // 한국 시간 기준으로 기본값 설정
     final date = targetDate ?? KoreaDateUtils.today;
@@ -108,7 +110,7 @@ class DailyService {
       // 1. 캐시 확인 (전체 row 조회 - id 포함)
       onStepChanged?.call(1); // checkingCache
       if (!forceRefresh) {
-        final cachedRow = await _queries.getCached(profileId, date);
+        final cachedRow = await _queries.getCached(profileId, date, locale: locale);
         if (cachedRow != null) {
           print('[DailyService] 📦 캐시에서 반환');
           onStepChanged?.call(4); // completed
@@ -122,6 +124,7 @@ class DailyService {
       final prompt = DailyPrompt(
         inputData: inputData,
         targetDate: date,
+        locale: locale,
       );
 
       // 3. Gemini API 호출 (Google)
@@ -176,6 +179,7 @@ class DailyService {
         inputData: inputData,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(),
+        locale: locale,
       );
       final summaryId = savedRow['id']?.toString();
       print('[DailyService] ✅ DB 저장 완료! summaryId=$summaryId');
@@ -203,12 +207,14 @@ class DailyService {
     required String profileId,
     required FortuneInputData inputData,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
     return analyze(
       userId: userId,
       profileId: profileId,
       inputData: inputData,
       forceRefresh: forceRefresh,
+      locale: locale,
     );
   }
 
@@ -216,36 +222,39 @@ class DailyService {
   Future<Map<String, dynamic>?> getCached(
     String profileId, {
     DateTime? targetDate,
+    String locale = 'ko',
   }) {
     final date = targetDate ?? KoreaDateUtils.today;
-    return _queries.getContent(profileId, date);
+    return _queries.getContent(profileId, date, locale: locale);
   }
 
   /// 오늘 캐시 확인
-  Future<Map<String, dynamic>?> getTodayCached(String profileId) {
-    return _queries.getTodayContent(profileId);
+  Future<Map<String, dynamic>?> getTodayCached(String profileId, {String locale = 'ko'}) {
+    return _queries.getTodayContent(profileId, locale: locale);
   }
 
   /// 캐시 존재 여부 (한국 시간 기준)
   Future<bool> hasCached(
     String profileId, {
     DateTime? targetDate,
+    String locale = 'ko',
   }) {
     final date = targetDate ?? KoreaDateUtils.today;
-    return _queries.exists(profileId, date);
+    return _queries.exists(profileId, date, locale: locale);
   }
 
   /// 오늘 캐시 존재 여부
-  Future<bool> hasTodayCached(String profileId) {
-    return _queries.existsToday(profileId);
+  Future<bool> hasTodayCached(String profileId, {String locale = 'ko'}) {
+    return _queries.existsToday(profileId, locale: locale);
   }
 
   /// 최근 일운 목록 조회
   Future<List<Map<String, dynamic>>> getRecentDays(
     String profileId, {
     int days = 7,
+    String locale = 'ko',
   }) {
-    return _queries.getRecentDays(profileId, days: days);
+    return _queries.getRecentDays(profileId, days: days, locale: locale);
   }
 
   /// API 응답 파싱

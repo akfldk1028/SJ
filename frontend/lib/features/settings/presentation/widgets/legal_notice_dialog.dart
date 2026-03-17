@@ -1,7 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-
-import '../../../../core/constants/app_strings.dart';
 
 /// 법적 고지 다이얼로그 타입
 enum LegalNoticeType {
@@ -22,11 +21,11 @@ class LegalNoticeDialog extends StatelessWidget {
   String get _title {
     switch (type) {
       case LegalNoticeType.terms:
-        return AppStrings.settingsTerms;
+        return 'settings.terms'.tr();
       case LegalNoticeType.privacy:
-        return AppStrings.settingsPrivacy;
+        return 'settings.privacy'.tr();
       case LegalNoticeType.disclaimer:
-        return AppStrings.settingsDisclaimer;
+        return 'settings.disclaimer'.tr();
     }
   }
 
@@ -126,7 +125,7 @@ class LegalNoticeDialog extends StatelessWidget {
       actions: [
         ShadButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(AppStrings.buttonConfirm),
+          child: Text('common.buttonConfirm'.tr()),
         ),
       ],
       child: SizedBox(

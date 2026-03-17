@@ -509,6 +509,7 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
+      locale: 'ko',
     ).then((result) {
       _isAnalyzing = false;
       _analyzeStartTime = null;

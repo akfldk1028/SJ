@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 /// 메뉴 화면 앱바 - 모던 디자인
@@ -99,8 +100,8 @@ class _AppTitle extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         // 타이틀
-        const Text(
-          '사담',
+        Text(
+          'menu.appTitle'.tr(),
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,

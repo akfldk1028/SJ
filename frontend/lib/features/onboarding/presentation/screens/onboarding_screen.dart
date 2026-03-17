@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +7,6 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/services/posthog_service.dart';
 import '../../../../core/config/admin_config.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
@@ -83,6 +83,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     print('[Onboarding] ===========================');
 
     try {
+        // 한국어 외 로케일: 도시 필드가 숨겨져 있으므로 기본값 '서울' 설정
+        if (context.locale.languageCode != 'ko' && formState.birthCity.isEmpty) {
+          formNotifier.updateBirthCity('서울');
+        }
+
         // 수정 모드면 기존 프로필 ID 전달하여 업데이트
         await formNotifier.saveProfile(editingId: _editingProfileId);
         PosthogService.trackEvent(_editingProfileId != null ? 'profile_created' : 'onboarding_completed');
@@ -95,8 +100,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         if (mounted) {
              ShadToaster.of(context).show(
               ShadToast.destructive(
-                title: const Text('입력 오류'),
-                description: const Text('모든 정보를 올바르게 입력해주세요.\n(이름, 성별, 생년월일, 도시)'),
+                title: Text('onboarding.inputError'.tr()),
+                description: Text('onboarding.inputErrorDesc'.tr()),
               ),
             );
         }
@@ -115,28 +120,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         elevation: 0,
         foregroundColor: theme.textPrimary,
         title: Text(
-          '사주 정보 입력',
+          'onboarding.formTitle'.tr(),
           style: TextStyle(color: theme.textPrimary),
         ),
         centerTitle: true,
-        // TODO: Admin 버튼 - 배포 시 비활성화
-        // actions: [
-        //   if (AdminConfig.isAdminModeAvailable)
-        //     _isAdminLoading
-        //         ? const Padding(
-        //             padding: EdgeInsets.all(16),
-        //             child: SizedBox(
-        //               width: 20,
-        //               height: 20,
-        //               child: CircularProgressIndicator(strokeWidth: 2),
-        //             ),
-        //           )
-        //         : IconButton(
-        //             icon: const Icon(Icons.admin_panel_settings),
-        //             tooltip: '개발자 모드',
-        //             onPressed: () => _handleAdminLogin(context),
-        //           ),
-        // ],
+        actions: [
+          _buildLocaleButton(context, '🇰🇷', 'ko'),
+          _buildLocaleButton(context, '🇺🇸', 'en'),
+          _buildLocaleButton(context, '🇯🇵', 'ja'),
+        ],
       ),
       body: MysticBackground(
         child: SafeArea(
@@ -164,7 +156,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            '정확한 만세력을 위해\n정보를 입력해주세요.',
+                            'onboarding.formDescription'.tr(),
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -186,19 +178,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           _buildBirthSection(context),
                           const SizedBox(height: 24),
 
-                          // 4. 출생 도시
-                          const CitySearchField(),
-                          const SizedBox(height: 16),
+                          // 4. 출생 도시 (한국어만 - 도시 데이터가 한국 지역만 존재)
+                          if (context.locale.languageCode == 'ko') ...[
+                            const CitySearchField(),
+                            const SizedBox(height: 16),
 
-                          // 5. 진태양시 보정 배너
-                          const TimeCorrectionBanner(),
+                            // 5. 진태양시 보정 배너
+                            const TimeCorrectionBanner(),
+                          ],
                           const SizedBox(height: 40),
 
                           // 완료 버튼
                           ShadButton(
                             size: ShadButtonSize.lg,
                             onPressed: _onSave,
-                            child: const Text('만세력 보러가기'),
+                            child: Text('onboarding.submitButton'.tr()),
                           ),
                           const SizedBox(height: 20),
                         ],
@@ -210,6 +204,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLocaleButton(BuildContext context, String flag, String langCode) {
+    final isActive = context.locale.languageCode == langCode;
+    return Opacity(
+      opacity: isActive ? 1.0 : 0.4,
+      child: IconButton(
+        onPressed: () => context.setLocale(Locale(langCode)),
+        icon: Text(flag, style: const TextStyle(fontSize: 20)),
       ),
     );
   }

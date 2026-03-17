@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,7 +19,7 @@ class RestoreButtonWidget extends ConsumerWidget {
     return TextButton(
       onPressed: () => _handleRestore(context, ref),
       child: Text(
-        '구매 복원',
+        'purchase.restore'.tr(),
         style: TextStyle(
           color: theme.textMuted,
           fontSize: 13,
@@ -33,7 +34,7 @@ class RestoreButtonWidget extends ConsumerWidget {
     await ref.read(purchaseNotifierProvider.notifier).restore();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('구매가 복원되었습니다.')),
+        SnackBar(content: Text('purchase.restoreSuccess'.tr())),
       );
     }
   }

@@ -650,6 +650,7 @@ class NewYearFortune extends _$NewYearFortune {
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
+      locale: 'ko',
     ).then((result) {
       _isAnalyzing = false;
       _analyzeStartTime = null;

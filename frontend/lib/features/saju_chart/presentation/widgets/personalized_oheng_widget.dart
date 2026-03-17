@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -91,7 +92,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '나의 일간',
+                      'saju_chart.myDayMaster'.tr(),
                       style: shadTheme.textTheme.muted.copyWith(fontSize: 13),
                     ),
                     const SizedBox(width: 8),
@@ -110,7 +111,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${myOheng.korean} 오행 기준 나의 관계도',
+                  'saju_chart.ohengRelationByDayMaster'.tr(namedArgs: {'oheng': myOheng.korean}),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -229,7 +230,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '해석',
+                  'saju_chart.interpretation'.tr(),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -264,46 +265,41 @@ class PersonalizedOhengWidget extends StatelessWidget {
         category: SipSinCategory.bigeop,
         targetOheng: myOheng,
         relation: '${myOheng.korean} = ${myOheng.korean}',
-        meaning: '친구, 형제, 경쟁자',
+        meaning: 'saju_chart.bigeop_meaning'.tr(),
         icon: LucideIcons.users,
-        description:
-            '나와 같은 오행을 가진 사람들입니다. 서로 이해하고 공감하기 쉬워 친구나 동료가 되기 좋습니다. 하지만 같은 것을 추구하기에 경쟁 관계가 될 수도 있어요. 비겁이 강하면 독립심과 자존심이 강한 편입니다.',
+        description: 'saju_chart.bigeop_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.siksang,
         targetOheng: iGenerate,
         relation: '${myOheng.korean}생${iGenerate.korean}',
-        meaning: '표현력, 재능, 창작',
+        meaning: 'saju_chart.siksang_meaning'.tr(),
         icon: LucideIcons.sparkles,
-        description:
-            '내가 에너지를 내어 만들어내는 기운입니다. 말솜씨, 글재주, 예술적 재능으로 나타나요. 식상이 강하면 자기표현을 잘하고 끼가 많습니다. 자녀운과도 연결되어, 아이디어나 작품을 "낳는다"고 해석하기도 해요.',
+        description: 'saju_chart.siksang_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.jaeseong,
         targetOheng: iOvercome,
         relation: '${myOheng.korean}극${iOvercome.korean}',
-        meaning: '재물운, 관리능력',
+        meaning: 'saju_chart.jaeseong_meaning'.tr(),
         icon: LucideIcons.coins,
-        description:
-            '내가 컨트롤하고 다스리는 기운이에요. 돈을 벌고 관리하는 능력, 현실적인 감각과 연결됩니다. 재성이 강하면 재물에 대한 욕심이 있고 실리적입니다. 남자에게는 아내나 여자친구를 의미하기도 해요.',
+        description: 'saju_chart.jaeseong_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.gwanseong,
         targetOheng: overcomesMe,
         relation: '${overcomesMe.korean}극${myOheng.korean}',
-        meaning: '직장, 규율, 책임감',
+        meaning: 'saju_chart.gwanseong_meaning'.tr(),
         icon: LucideIcons.briefcase,
-        description:
-            '나를 제어하고 규율하는 기운입니다. 직장, 직업, 사회적 규범과 연결돼요. 관성이 적절하면 책임감 있고 사회적으로 인정받습니다. 너무 강하면 스트레스나 압박감을 느낄 수 있어요. 여자에게는 남편이나 남자친구를 의미하기도 합니다.',
+        description: 'saju_chart.gwanseong_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.inseong,
         targetOheng: generatesMe,
         relation: '${generatesMe.korean}생${myOheng.korean}',
-        meaning: '도움, 보호, 학업',
+        meaning: 'saju_chart.inseong_meaning'.tr(),
         icon: LucideIcons.shield,
-        description:
-            '나를 길러주고 보호하는 기운이에요. 어머니, 스승, 귀인의 도움과 연결됩니다. 인성이 강하면 학문을 좋아하고 사려 깊습니다. 문서운, 자격증운과도 관계가 있어 공부나 시험에 유리할 수 있어요.',
+        description: 'saju_chart.inseong_desc'.tr(),
       ),
     ];
   }

@@ -1,6 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-
-import '../../../../core/constants/app_strings.dart';
 
 /// 대화 기록 화면 (Placeholder)
 class HistoryScreen extends StatelessWidget {
@@ -10,15 +9,15 @@ class HistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.historyTitle),
+        title: Text('common.historyTitle'.tr()),
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 64),
-            SizedBox(height: 16),
-            Text(AppStrings.historyEmpty),
+            const Icon(Icons.history, size: 64),
+            const SizedBox(height: 16),
+            Text('common.historyEmpty'.tr()),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -194,7 +195,7 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     if (viewMode == ViewModeType.graph) {
       // activeProfile이 없으면 안전하게 처리
       if (activeProfile == null) {
-        return const Center(child: Text('프로필이 없습니다'));
+        return Center(child: Text('profile.noProfile'.tr()));
       }
 
       return RefreshIndicator(
@@ -253,7 +254,7 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     ViewModeType viewMode,
   ) {
     return AppBar(
-      title: const Text('인연 관계도'),
+      title: Text('profile.relationshipMap'.tr()),
       centerTitle: true,
       actions: [
         // 뷰 모드 토글
@@ -263,7 +264,7 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
                 ? Icons.account_tree_outlined
                 : Icons.list_outlined,
           ),
-          tooltip: viewMode == ViewModeType.list ? '그래프 보기' : '리스트 보기',
+          tooltip: viewMode == ViewModeType.list ? 'profile.graphView'.tr() : 'profile.listView'.tr(),
           onPressed: () {
             ref.read(viewModeProvider.notifier).state =
                 viewMode == ViewModeType.list
@@ -294,7 +295,7 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            '오류가 발생했습니다',
+            'common.errorGeneral'.tr(),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -318,18 +319,24 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     Map<String, List<ProfileRelationModel>> relationsByCategory,
   ) {
     // 카테고리 순서 정의
-    const categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+    final categoryOrder = [
+      'profile.categoryFamily'.tr(),
+      'profile.categoryLover'.tr(),
+      'profile.categoryFriend'.tr(),
+      'profile.categoryWork'.tr(),
+      'profile.categoryOther'.tr(),
+    ];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 80),
       child: Column(
         children: [
           // 검색 바
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: ShadInput(
-              placeholder: Text('이름으로 검색'),
-              leading: Padding(
+              placeholder: Text('profile.searchByName'.tr()),
+              leading: const Padding(
                 padding: EdgeInsets.all(8),
                 child: Icon(Icons.search, size: 16),
               ),
@@ -417,12 +424,12 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('관계 삭제'),
-        content: Text('$displayName님과의 관계를 삭제하시겠습니까?'),
+        title: Text('profile.deleteRelationTitle'.tr()),
+        content: Text('profile.deleteRelationConfirm'.tr(namedArgs: {'name': displayName})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
+            child: Text('common.buttonCancel'.tr()),
           ),
           TextButton(
             onPressed: () async {
@@ -459,12 +466,12 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
-                      title: const Text('삭제 실패'),
+                      title: Text('profile.deleteFailed'.tr()),
                       content: Text('$e'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('확인'),
+                          child: Text('common.buttonConfirm'.tr()),
                         ),
                       ],
                     ),
@@ -473,7 +480,7 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
               }
             },
             child: Text(
-              '삭제',
+              'common.delete'.tr(),
               style: TextStyle(color: Colors.red[400]),
             ),
           ),
@@ -604,12 +611,12 @@ class _RelationQuickViewSheet extends StatelessWidget {
                 width: double.infinity,
                 child: ShadButton(
                   onPressed: onChatPressed,
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat_bubble_outline, size: 16),
-                      SizedBox(width: 8),
-                      Text('사주 상담'),
+                      const Icon(Icons.chat_bubble_outline, size: 16),
+                      const SizedBox(width: 8),
+                      Text('profile.sajuConsult'.tr()),
                     ],
                   ),
                 ),
@@ -625,7 +632,7 @@ class _RelationQuickViewSheet extends StatelessWidget {
                   Icon(Icons.delete_outline, size: 16, color: Colors.red[400]),
                   const SizedBox(width: 8),
                   Text(
-                    '관계 삭제',
+                    'profile.deleteRelation'.tr(),
                     style: TextStyle(color: Colors.red[400]),
                   ),
                 ],
@@ -639,6 +646,10 @@ class _RelationQuickViewSheet extends StatelessWidget {
   }
 
   String _formatBirthDate(DateTime date) {
-    return '${date.year}년 ${date.month}월 ${date.day}일';
+    return 'profile.dateFormat'.tr(namedArgs: {
+      'year': date.year.toString(),
+      'month': date.month.toString(),
+      'day': date.day.toString(),
+    });
   }
 }

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,7 +39,7 @@ class CompatibilityListScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '궁합 분석 목록',
+          'compatibility.list_title'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -80,7 +81,7 @@ class CompatibilityListScreen extends ConsumerWidget {
                 size: 64, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
-              '오류가 발생했습니다',
+              'compatibility.error_occurred'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -121,7 +122,7 @@ class CompatibilityListScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              '궁합 분석 결과가 없습니다',
+              'compatibility.empty_title'.tr(),
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
@@ -130,7 +131,7 @@ class CompatibilityListScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '인맥 탭에서 상대방을 선택하고\n궁합 분석을 시작해보세요',
+              'compatibility.empty_desc'.tr(),
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textMuted,
@@ -193,21 +194,21 @@ class CompatibilityListScreen extends ConsumerWidget {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
-              '궁합 분석 삭제',
+              'compatibility.delete_title'.tr(),
               style: TextStyle(color: theme.textPrimary),
             ),
             content: Text(
-              '이 궁합 분석 결과를 삭제하시겠습니까?\n삭제된 결과는 복구할 수 없습니다.',
+              'compatibility.delete_confirm'.tr(),
               style: TextStyle(color: theme.textSecondary),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text('취소', style: TextStyle(color: theme.textMuted)),
+                child: Text('common.buttonCancel'.tr(), style: TextStyle(color: theme.textMuted)),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('삭제', style: TextStyle(color: Colors.red)),
+                child: Text('common.delete'.tr(), style: const TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -221,7 +222,7 @@ class CompatibilityListScreen extends ConsumerWidget {
           profileId: profileId,
         );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('궁합 분석이 삭제되었습니다')),
+      SnackBar(content: Text('compatibility.deleted_snackbar'.tr())),
     );
   }
 

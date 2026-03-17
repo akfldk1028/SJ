@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,7 @@ class CompatibilityScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '정통궁합',
+          'compatibility.traditional_title'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -134,14 +135,14 @@ class CompatibilityScreen extends ConsumerWidget {
                     color: Colors.white.withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.favorite, color: Colors.white, size: 14),
-                      SizedBox(width: 6),
+                      const Icon(Icons.favorite, color: Colors.white, size: 14),
+                      const SizedBox(width: 6),
                       Text(
-                        '사주 궁합 분석',
-                        style: TextStyle(
+                        'compatibility.saju_analysis_badge'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -151,9 +152,9 @@ class CompatibilityScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  '정통궁합',
-                  style: TextStyle(
+                Text(
+                  'compatibility.traditional_title'.tr(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
@@ -162,7 +163,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '두 사람의 사주로 궁합을 분석합니다',
+                  'compatibility.banner_subtitle'.tr(),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha:0.9),
                     fontSize: 14,
@@ -199,7 +200,7 @@ class CompatibilityScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '정통궁합이란?',
+                'compatibility.what_is_title'.tr(),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -210,8 +211,7 @@ class CompatibilityScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '정통궁합은 두 사람의 사주팔자를 비교 분석하여 '
-            '서로의 인연, 상성, 화합 정도를 파악하는 전통 명리학입니다.',
+            'compatibility.what_is_desc'.tr(),
             style: TextStyle(
               fontSize: 14,
               height: 1.7,
@@ -231,7 +231,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '오행의 상생상극, 일주 궁합, 천간지지 조합 등을 종합 분석합니다',
+                    'compatibility.what_is_detail'.tr(),
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -249,10 +249,10 @@ class CompatibilityScreen extends ConsumerWidget {
 
   Widget _buildCompatibilityTypes(AppThemeExtension theme) {
     final types = [
-      {'icon': Icons.favorite_rounded, 'title': '연애/결혼', 'color': const Color(0xFFEC4899)},
-      {'icon': Icons.people_rounded, 'title': '친구/동료', 'color': const Color(0xFF3B82F6)},
-      {'icon': Icons.business_center_rounded, 'title': '비즈니스', 'color': const Color(0xFF10B981)},
-      {'icon': Icons.family_restroom_rounded, 'title': '가족', 'color': const Color(0xFFF59E0B)},
+      {'icon': Icons.favorite_rounded, 'titleKey': 'compatibility.type_love', 'color': const Color(0xFFEC4899)},
+      {'icon': Icons.people_rounded, 'titleKey': 'compatibility.type_friend', 'color': const Color(0xFF3B82F6)},
+      {'icon': Icons.business_center_rounded, 'titleKey': 'compatibility.type_business', 'color': const Color(0xFF10B981)},
+      {'icon': Icons.family_restroom_rounded, 'titleKey': 'compatibility.type_family', 'color': const Color(0xFFF59E0B)},
     ];
 
     return Column(
@@ -272,7 +272,7 @@ class CompatibilityScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '궁합 유형',
+                'compatibility.type_title'.tr(),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -313,7 +313,7 @@ class CompatibilityScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      type['title'] as String,
+                      (type['titleKey'] as String).tr(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -333,12 +333,12 @@ class CompatibilityScreen extends ConsumerWidget {
 
   Widget _buildAnalysisItems(AppThemeExtension theme) {
     final items = [
-      {'icon': Icons.compare_arrows_rounded, 'title': '오행 상성', 'desc': '오행의 조화와 균형', 'color': const Color(0xFF10B981)},
-      {'icon': Icons.calendar_today_rounded, 'title': '일주 궁합', 'desc': '일간과 일지 분석', 'color': const Color(0xFF6B48FF)},
-      {'icon': Icons.sync_alt_rounded, 'title': '천간 합', 'desc': '천간의 합과 충', 'color': const Color(0xFF3B82F6)},
-      {'icon': Icons.hub_rounded, 'title': '지지 합충', 'desc': '지지의 합충형파해', 'color': const Color(0xFFF59E0B)},
-      {'icon': Icons.percent_rounded, 'title': '종합 점수', 'desc': '전체 궁합 점수', 'color': const Color(0xFFEC4899)},
-      {'icon': Icons.lightbulb_rounded, 'title': '관계 조언', 'desc': '화합을 위한 조언', 'color': const Color(0xFFEF4444)},
+      {'icon': Icons.compare_arrows_rounded, 'titleKey': 'compatibility.analysis_oheng', 'descKey': 'compatibility.analysis_oheng_desc', 'color': const Color(0xFF10B981)},
+      {'icon': Icons.calendar_today_rounded, 'titleKey': 'compatibility.analysis_ilju', 'descKey': 'compatibility.analysis_ilju_desc', 'color': const Color(0xFF6B48FF)},
+      {'icon': Icons.sync_alt_rounded, 'titleKey': 'compatibility.analysis_cheongan', 'descKey': 'compatibility.analysis_cheongan_desc', 'color': const Color(0xFF3B82F6)},
+      {'icon': Icons.hub_rounded, 'titleKey': 'compatibility.analysis_jiji', 'descKey': 'compatibility.analysis_jiji_desc', 'color': const Color(0xFFF59E0B)},
+      {'icon': Icons.percent_rounded, 'titleKey': 'compatibility.analysis_score', 'descKey': 'compatibility.analysis_score_desc', 'color': const Color(0xFFEC4899)},
+      {'icon': Icons.lightbulb_rounded, 'titleKey': 'compatibility.analysis_advice', 'descKey': 'compatibility.analysis_advice_desc', 'color': const Color(0xFFEF4444)},
     ];
 
     return Column(
@@ -358,7 +358,7 @@ class CompatibilityScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '분석 항목',
+                'compatibility.analysis_section_title'.tr(),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -407,7 +407,7 @@ class CompatibilityScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    item['title'] as String,
+                    (item['titleKey'] as String).tr(),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -417,7 +417,7 @@ class CompatibilityScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    item['desc'] as String,
+                    (item['descKey'] as String).tr(),
                     style: TextStyle(
                       fontSize: 11,
                       color: theme.textMuted,
@@ -435,10 +435,10 @@ class CompatibilityScreen extends ConsumerWidget {
 
   Widget _buildFeatures(AppThemeExtension theme) {
     final features = [
-      {'icon': Icons.people_outline_rounded, 'text': '두 사람의 사주 비교 분석'},
-      {'icon': Icons.bar_chart_rounded, 'text': '상성 점수 및 그래프'},
-      {'icon': Icons.search_rounded, 'text': '강점/약점 상세 분석'},
-      {'icon': Icons.tips_and_updates_rounded, 'text': '관계 개선을 위한 조언'},
+      {'icon': Icons.people_outline_rounded, 'textKey': 'compatibility.feature_compare'},
+      {'icon': Icons.bar_chart_rounded, 'textKey': 'compatibility.feature_graph'},
+      {'icon': Icons.search_rounded, 'textKey': 'compatibility.feature_detail'},
+      {'icon': Icons.tips_and_updates_rounded, 'textKey': 'compatibility.feature_advice'},
     ];
 
     return Container(
@@ -469,9 +469,9 @@ class CompatibilityScreen extends ConsumerWidget {
                 child: const Icon(Icons.verified_rounded, color: _primaryColor, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text(
-                '사담 정통궁합 특징',
-                style: TextStyle(
+              Text(
+                'compatibility.features_title'.tr(),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: _primaryColor,
@@ -499,7 +499,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  feature['text'] as String,
+                  (feature['textKey'] as String).tr(),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -535,21 +535,21 @@ class CompatibilityScreen extends ConsumerWidget {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.favorite_outline_rounded, color: Colors.white, size: 22),
-            SizedBox(width: 10),
+            const Icon(Icons.favorite_outline_rounded, color: Colors.white, size: 22),
+            const SizedBox(width: 10),
             Text(
-              '궁합 상담 시작하기',
-              style: TextStyle(
+              'compatibility.start_button'.tr(),
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
-            SizedBox(width: 6),
-            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 6),
+            const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,7 +35,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('사주 관계도'),
+        title: Text('saju_chart.sajuRelationGraph'.tr()),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(Routes.sajuChart),
@@ -126,7 +127,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
     // 루트 노드: 나 (일간)
     final rootNode = Node.Id({
       'type': 'root',
-      'label': '나',
+      'label': 'saju_chart.me'.tr(),
       'subLabel': chart.dayMaster,
       'oheng': chart.dayPillar.ganOheng,
     });
@@ -134,7 +135,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
     // 4개 기둥 노드
     final yearNode = Node.Id({
       'type': 'pillar',
-      'label': '년주',
+      'label': 'saju_chart.yearPillar'.tr(),
       'gan': chart.yearPillar.gan,
       'ji': chart.yearPillar.ji,
       'oheng': chart.yearPillar.ganOheng,
@@ -142,7 +143,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
 
     final monthNode = Node.Id({
       'type': 'pillar',
-      'label': '월주',
+      'label': 'saju_chart.monthPillar'.tr(),
       'gan': chart.monthPillar.gan,
       'ji': chart.monthPillar.ji,
       'oheng': chart.monthPillar.ganOheng,
@@ -150,7 +151,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
 
     final dayNode = Node.Id({
       'type': 'pillar',
-      'label': '일주',
+      'label': 'saju_chart.dayPillar'.tr(),
       'gan': chart.dayPillar.gan,
       'ji': chart.dayPillar.ji,
       'oheng': chart.dayPillar.ganOheng,
@@ -162,7 +163,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
     if (chart.hourPillar != null) {
       hourNode = Node.Id({
         'type': 'pillar',
-        'label': '시주',
+        'label': 'saju_chart.hourPillar'.tr(),
         'gan': chart.hourPillar!.gan,
         'ji': chart.hourPillar!.ji,
         'oheng': chart.hourPillar!.ganOheng,
@@ -375,7 +376,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
             ),
           ),
           Text(
-            isGan ? '천간' : '지지',
+            isGan ? 'saju_chart.heavenlyStem'.tr() : 'saju_chart.earthlyBranch'.tr(),
             style: TextStyle(
               color: isMe ? Colors.white.withOpacity(0.6) : Colors.grey[400],
               fontSize: 13,
@@ -417,11 +418,11 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildLegendItem('목', const Color(0xFF4CAF50)),
-          _buildLegendItem('화', const Color(0xFFE53935)),
-          _buildLegendItem('토', const Color(0xFFFF9800)),
-          _buildLegendItem('금', const Color(0xFF9E9E9E)),
-          _buildLegendItem('수', const Color(0xFF2196F3)),
+          _buildLegendItem('saju_chart.elementWood'.tr(), const Color(0xFF4CAF50)),
+          _buildLegendItem('saju_chart.elementFire'.tr(), const Color(0xFFE53935)),
+          _buildLegendItem('saju_chart.elementEarth'.tr(), const Color(0xFFFF9800)),
+          _buildLegendItem('saju_chart.elementMetal'.tr(), const Color(0xFF9E9E9E)),
+          _buildLegendItem('saju_chart.elementWater'.tr(), const Color(0xFF2196F3)),
         ],
       ),
     );
@@ -458,11 +459,11 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
         children: [
           Icon(Icons.person_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text('프로필이 없습니다', style: Theme.of(context).textTheme.titleLarge),
+          Text('saju_chart.noProfile'.tr(), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 24),
           ShadButton(
             onPressed: () => context.go(Routes.profileEdit),
-            child: const Text('프로필 등록하기'),
+            child: Text('saju_chart.registerProfile'.tr()),
           ),
         ],
       ),
@@ -476,11 +477,11 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
         children: [
           Icon(Icons.auto_awesome, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text('사주를 계산할 수 없습니다', style: Theme.of(context).textTheme.titleLarge),
+          Text('saju_chart.cannotCalculateSaju'.tr(), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 24),
           ShadButton(
             onPressed: () => context.go(Routes.profileEdit),
-            child: const Text('프로필 수정하기'),
+            child: Text('saju_chart.editProfile'.tr()),
           ),
         ],
       ),
@@ -494,7 +495,7 @@ class _SajuGraphScreenState extends ConsumerState<SajuGraphScreen> {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
           const SizedBox(height: 16),
-          Text('오류가 발생했습니다', style: Theme.of(context).textTheme.titleLarge),
+          Text('saju_chart.errorOccurred'.tr(), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center),
         ],

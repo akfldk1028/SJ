@@ -26,6 +26,8 @@ class MultiFileAssetLoader extends AssetLoader {
     'new_year_fortune',
     'calendar',
     'purchase',
+    'yearly_2025',
+    'lifetime_fortune',
   ];
 
   @override

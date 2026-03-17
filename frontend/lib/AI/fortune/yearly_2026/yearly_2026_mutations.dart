@@ -46,6 +46,7 @@ class Yearly2026Mutations {
     FortuneInputData? inputData,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     print('[Yearly2026Mutations] 저장 시작: profileId=$profileId');
 
@@ -76,6 +77,7 @@ class Yearly2026Mutations {
       'expires_at': expiresAt,
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
       'prompt_version': kYearly2026FortunePromptVersion, // 2026 신년운세 프롬프트 버전
+      'locale': locale,
     };
 
     try {
@@ -85,7 +87,8 @@ class Yearly2026Mutations {
           .from('ai_summaries')
           .delete()
           .eq('profile_id', profileId)
-          .eq('summary_type', SummaryType.yearlyFortune2026);
+          .eq('summary_type', SummaryType.yearlyFortune2026)
+          .eq('locale', locale);
 
       final response = await _supabase
           .from('ai_summaries')
@@ -102,7 +105,8 @@ class Yearly2026Mutations {
             .from('ai_summaries')
             .delete()
             .eq('profile_id', profileId)
-            .eq('summary_type', SummaryType.yearlyFortune2026);
+            .eq('summary_type', SummaryType.yearlyFortune2026)
+            .eq('locale', locale);
 
         final response = await _supabase
             .from('ai_summaries')
@@ -124,18 +128,19 @@ class Yearly2026Mutations {
   /// 2026 신년운세 삭제
   ///
   /// [profileId] 프로필 UUID
-  Future<void> delete(String profileId) async {
+  Future<void> delete(String profileId, {String locale = 'ko'}) async {
     await _supabase
         .from('ai_summaries')
         .delete()
         .eq('profile_id', profileId)
-        .eq('summary_type', SummaryType.yearlyFortune2026);
+        .eq('summary_type', SummaryType.yearlyFortune2026)
+        .eq('locale', locale);
   }
 
   /// 캐시 무효화 (expires_at을 과거로 설정)
   ///
   /// [profileId] 프로필 UUID
-  Future<void> invalidate(String profileId) async {
+  Future<void> invalidate(String profileId, {String locale = 'ko'}) async {
     await _supabase
         .from('ai_summaries')
         .update({
@@ -144,7 +149,8 @@ class Yearly2026Mutations {
               .toIso8601String(),
         })
         .eq('profile_id', profileId)
-        .eq('summary_type', SummaryType.yearlyFortune2026);
+        .eq('summary_type', SummaryType.yearlyFortune2026)
+        .eq('locale', locale);
   }
 
   /// 구조화된 input_data JSON 생성

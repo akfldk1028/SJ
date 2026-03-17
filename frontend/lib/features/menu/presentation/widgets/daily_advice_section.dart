@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -19,12 +20,12 @@ class DailyAdviceSection extends StatelessWidget {
 
     final themes = [
       {
-        'title': '2025\n신년운세',
+        'title': 'menu.newYearFortune'.tr(),
         'color': appTheme.isDark ? const Color(0xFF4A3C2A) : const Color(0xFFFFE4C4),
         'route': '/fortune/new-year',
       },
       {
-        'title': '2025\n토정비결',
+        'title': 'menu.traditionalFortune'.tr(),
         'color': appTheme.isDark ? const Color(0xFF3D3225) : const Color(0xFFE8D5B7),
         'route': '/fortune/traditional-saju',
       },

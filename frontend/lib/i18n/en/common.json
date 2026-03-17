@@ -35,5 +35,14 @@
   "category_health": "Health",
   "category_overall": "Overall",
   "category_family": "Family",
-  "category_social": "Social"
+  "category_social": "Social",
+  "errorPageNotFound": "Page not found: {uri}",
+  "edit": "Edit",
+  "delete": "Delete",
+  "historyTitle": "Chat History",
+  "historyEmpty": "No saved conversations",
+  "gender": "Gender",
+  "genderMale": "Male",
+  "genderFemale": "Female",
+  "adHintMessage": "Check out interesting ads to earn more chat tokens"
 }

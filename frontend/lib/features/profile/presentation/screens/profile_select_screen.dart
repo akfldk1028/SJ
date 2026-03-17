@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -41,7 +42,7 @@ class ProfileSelectScreen extends ConsumerWidget {
                   ),
                   error: (e, _) => Center(
                     child: Text(
-                      '프로필 로딩 실패: $e',
+                      'profile.loadFailed'.tr(namedArgs: {'error': e.toString()}),
                       style: TextStyle(color: theme.textMuted),
                     ),
                   ),
@@ -78,7 +79,7 @@ class _AppBar extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '프로필 선택',
+              'profile.selectTitle'.tr(),
               style: TextStyle(
                 color: theme.textPrimary,
                 fontSize: 20,
@@ -111,7 +112,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '등록된 프로필이 없습니다',
+            'profile.emptyTitle'.tr(),
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 16,
@@ -119,7 +120,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '+ 버튼을 눌러 프로필을 추가하세요',
+            'profile.emptyHint'.tr(),
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 14,
@@ -225,7 +226,7 @@ class _ProfileCard extends ConsumerWidget {
                           children: [
                             Icon(Icons.edit_outlined, size: 18, color: theme.textMuted),
                             const SizedBox(width: 8),
-                            const Text('수정'),
+                            Text('common.edit'.tr()),
                           ],
                         ),
                       ),
@@ -235,7 +236,7 @@ class _ProfileCard extends ConsumerWidget {
                         children: [
                           Icon(Icons.delete_outline, size: 18, color: Colors.red[400]),
                           const SizedBox(width: 8),
-                          Text('삭제', style: TextStyle(color: Colors.red[400])),
+                          Text('common.delete'.tr(), style: TextStyle(color: Colors.red[400])),
                         ],
                       ),
                     ),
@@ -260,8 +261,8 @@ class _ProfileCard extends ConsumerWidget {
     if (profile.relationType != RelationshipType.me) {
       ShadToaster.of(context).show(
         ShadToast(
-          title: const Text('본인 프로필만 선택 가능'),
-          description: const Text('인연 프로필은 운세 조회 대상으로 선택할 수 없습니다'),
+          title: Text('profile.onlyMeSelectable'.tr()),
+          description: Text('profile.onlyMeSelectableDesc'.tr()),
         ),
       );
       return;
@@ -290,12 +291,12 @@ class _ProfileCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('프로필 삭제'),
-        content: Text('$profileName 프로필을 삭제하시겠습니까?\n\n관련된 모든 데이터가 삭제됩니다.'),
+        title: Text('profile.deleteTitle'.tr()),
+        content: Text('profile.deleteConfirm'.tr(namedArgs: {'name': profileName})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
+            child: Text('common.buttonCancel'.tr()),
           ),
           TextButton(
             onPressed: () async {
@@ -312,8 +313,8 @@ class _ProfileCard extends ConsumerWidget {
                 if (context.mounted) {
                   ShadToaster.of(context).show(
                     ShadToast(
-                      title: const Text('삭제 완료'),
-                      description: Text('$profileName 프로필이 삭제되었습니다'),
+                      title: Text('profile.deleteSuccess'.tr()),
+                      description: Text('profile.deleteSuccessDesc'.tr(namedArgs: {'name': profileName})),
                     ),
                   );
                 }
@@ -322,7 +323,7 @@ class _ProfileCard extends ConsumerWidget {
                 if (context.mounted) {
                   ShadToaster.of(context).show(
                     ShadToast.destructive(
-                      title: const Text('삭제 실패'),
+                      title: Text('profile.deleteFailed'.tr()),
                       description: Text(e.toString()),
                     ),
                   );
@@ -330,7 +331,7 @@ class _ProfileCard extends ConsumerWidget {
               }
             },
             child: Text(
-              '삭제',
+              'common.delete'.tr(),
               style: TextStyle(color: Colors.red[400]),
             ),
           ),
@@ -419,7 +420,7 @@ class _ProfileInfo extends StatelessWidget {
         ),
         if (profile.birthTimeFormatted != null)
           Text(
-            '${profile.birthTimeFormatted} 출생',
+            '${profile.birthTimeFormatted} ${'profile.born'.tr()}',
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 12,

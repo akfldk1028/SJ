@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -65,8 +66,8 @@ class SajuDetailSheet extends ConsumerWidget {
                           theme.accentColor ?? theme.primaryColor,
                         ],
                       ).createShader(bounds),
-                      child: const Text(
-                        '나의 사주팔자',
+                      child: Text(
+                        'saju_chart.myFourPillars'.tr(),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -76,7 +77,7 @@ class SajuDetailSheet extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '만세력과 오행 분포를 확인합니다.',
+                      'saju_chart.checkManseryeokAndOheng'.tr(),
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textMuted,
@@ -114,7 +115,7 @@ class SajuDetailSheet extends ConsumerWidget {
                 if (analysis == null) {
                   return Center(
                     child: Text(
-                      '분석 정보를 불러올 수 없습니다.',
+                      'saju_chart.cannotLoadAnalysis'.tr(),
                       style: TextStyle(color: theme.textSecondary),
                     ),
                   );
@@ -129,7 +130,7 @@ class SajuDetailSheet extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. 만세력 차트 (Reference Chart)
-                      _buildSectionTitle(context, theme, '만세력 (Four Pillars)'),
+                      _buildSectionTitle(context, theme, 'saju_chart.manseryeokFourPillars'.tr()),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -163,23 +164,23 @@ class SajuDetailSheet extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             PillarDisplay(
-                              label: '시주',
+                              label: 'saju_chart.hourPillar'.tr(),
                               pillar: chart.hourPillar ??
                                   const Pillar(gan: '?', ji: '?'),
                               size: 32,
                             ),
                             PillarDisplay(
-                              label: '일주 (나)',
+                              label: 'saju_chart.dayPillarMe'.tr(),
                               pillar: chart.dayPillar,
                               size: 32,
                             ),
                             PillarDisplay(
-                              label: '월주',
+                              label: 'saju_chart.monthPillar'.tr(),
                               pillar: chart.monthPillar,
                               size: 32,
                             ),
                             PillarDisplay(
-                              label: '년주',
+                              label: 'saju_chart.yearPillar'.tr(),
                               pillar: chart.yearPillar,
                               size: 32,
                             ),
@@ -189,7 +190,7 @@ class SajuDetailSheet extends ConsumerWidget {
                       const SizedBox(height: 32),
 
                       // 2. 오행 분포 (Five Elements)
-                      _buildSectionTitle(context, theme, '오행 분석'),
+                      _buildSectionTitle(context, theme, 'saju_chart.ohengAnalysis'.tr()),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -221,15 +222,15 @@ class SajuDetailSheet extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildOhengBar(context, theme, '목(木)', oheng.mok,
+                            _buildOhengBar(context, theme, 'saju_chart.elementWoodHanjaLabel'.tr(), oheng.mok,
                                 theme.woodColor ?? const Color(0xFF7EDA98)),
-                            _buildOhengBar(context, theme, '화(火)', oheng.hwa,
+                            _buildOhengBar(context, theme, 'saju_chart.elementFireHanjaLabel'.tr(), oheng.hwa,
                                 theme.fireColor ?? const Color(0xFFE87C7C)),
-                            _buildOhengBar(context, theme, '토(土)', oheng.to,
+                            _buildOhengBar(context, theme, 'saju_chart.elementEarthHanjaLabel'.tr(), oheng.to,
                                 theme.earthColor ?? const Color(0xFFD4A574)),
-                            _buildOhengBar(context, theme, '금(金)', oheng.geum,
+                            _buildOhengBar(context, theme, 'saju_chart.elementMetalHanjaLabel'.tr(), oheng.geum,
                                 theme.metalColor ?? const Color(0xFF708090)),
-                            _buildOhengBar(context, theme, '수(水)', oheng.su,
+                            _buildOhengBar(context, theme, 'saju_chart.elementWaterHanjaLabel'.tr(), oheng.su,
                                 theme.waterColor ?? const Color(0xFF7EB8DA)),
                           ],
                         ),
@@ -276,7 +277,7 @@ class SajuDetailSheet extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '상세 분석 보기',
+                                'saju_chart.viewDetailAnalysis'.tr(),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -304,7 +305,7 @@ class SajuDetailSheet extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    '오류가 발생했습니다:\n$err',
+                    'saju_chart.errorOccurredWithMsg'.tr(namedArgs: {'msg': '$err'}),
                     style: TextStyle(color: theme.fireColor ?? Colors.red),
                     textAlign: TextAlign.center,
                   ),

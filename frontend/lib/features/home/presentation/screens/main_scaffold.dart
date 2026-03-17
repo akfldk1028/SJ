@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,21 +27,21 @@ class MainScaffold extends ConsumerWidget {
             currentIndex: _calculateSelectedIndex(context),
             onTap: (index) => _onTap(context, ref, index),
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.auto_awesome_outlined),
-                activeIcon: Icon(Icons.auto_awesome),
-                label: '내 운세',
+                icon: const Icon(Icons.auto_awesome_outlined),
+                activeIcon: const Icon(Icons.auto_awesome),
+                label: 'menu.nav_myFortune'.tr(),
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                activeIcon: Icon(Icons.people),
-                label: '인연',
+                icon: const Icon(Icons.people_outline),
+                activeIcon: const Icon(Icons.people),
+                label: 'menu.nav_relationship'.tr(),
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline),
-                activeIcon: Icon(Icons.chat_bubble),
-                label: '상담소',
+                icon: const Icon(Icons.chat_bubble_outline),
+                activeIcon: const Icon(Icons.chat_bubble),
+                label: 'menu.nav_counseling'.tr(),
               ),
             ],
           ),

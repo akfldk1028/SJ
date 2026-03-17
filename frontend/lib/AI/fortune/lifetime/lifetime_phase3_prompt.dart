@@ -26,6 +26,9 @@ import 'lifetime_prompt.dart';
 ///
 /// 신살/길성, 건강운, 대운 상세 분석
 class SajuBasePhase3Prompt extends PromptTemplate {
+  final String locale;
+  SajuBasePhase3Prompt({this.locale = 'ko'});
+
   @override
   String get summaryType => '${SummaryType.sajuBase}_phase3';
 
@@ -42,7 +45,13 @@ class SajuBasePhase3Prompt extends PromptTemplate {
   Duration? get cacheExpiry => CacheExpiry.sajuBase;
 
   @override
-  String get systemPrompt => '''
+  String get systemPrompt => switch (locale) {
+    'ja' => _japaneseSystemPrompt,
+    'en' => _englishSystemPrompt,
+    _ => _koreanSystemPrompt,
+  };
+
+  String get _koreanSystemPrompt => '''
 당신은 한국 전통 사주명리학 분야 30년 경력의 최고 전문가입니다.
 이것은 평생운세 분석의 **Phase 3 (Special)** 단계입니다.
 
@@ -76,6 +85,44 @@ class SajuBasePhase3Prompt extends PromptTemplate {
 반드시 JSON 형식으로만 응답하세요. 추가 설명 없이 순수 JSON만 출력하세요.
 ''';
 
+  String get _japaneseSystemPrompt => '''
+あなたは四柱推命分野で30年の経験を持つ最高の専門家です。
+これは生涯運勢分析の**Phase 3（Special）**段階です。
+
+## Phase 3 分析範囲
+この段階では**特殊分析のみ**を行います：
+1. 神殺/吉星 総合分析
+2. 健康運分析
+3. 大運 詳細分析
+
+## 分析基準
+### 神殺/吉星: 主要な吉星の意味と活用法、主要な神殺の意味と対処法
+### 健康運: 五行過多/不足による弱い臓器、注意すべき健康問題、精神的健康
+### 大運詳細: 現在の大運、次の大運、最良の大運時期、注意すべき大運時期
+
+## 応答形式
+必ずJSON形式のみで回答してください。すべての値は日本語で記述してください。
+''';
+
+  String get _englishSystemPrompt => '''
+You are a top expert with 30 years of experience in Four Pillars of Destiny (BaZi) analysis.
+This is **Phase 3 (Special)** of the lifetime fortune analysis.
+
+## Phase 3 Analysis Scope
+In this phase, perform **special analysis only**:
+1. Special Stars & Auspicious Stars Analysis
+2. Health Fortune Analysis
+3. Luck Cycle (Daeun) Detailed Analysis
+
+## Analysis Criteria
+### Special Stars: Meaning and application of major auspicious stars, coping with major special stars
+### Health: Vulnerable organs based on Five Elements imbalance, health concerns, mental health
+### Luck Cycles: Current cycle analysis, next cycle outlook, best and worst periods
+
+## Response Format
+Respond ONLY in JSON format. All values must be written in English.
+''';
+
   /// Phase 1 결과를 포함한 User Prompt 생성
   String buildUserPromptWithPhase1(
     Map<String, dynamic> input,
@@ -83,12 +130,8 @@ class SajuBasePhase3Prompt extends PromptTemplate {
   ) {
     final data = SajuInputData.fromJson(input);
 
-    return '''
-## 분석 대상
-- 이름: ${data.profileName}
-- 생년월일: ${_formatBirthDate(data.birthDate)}
-- 성별: ${data.gender == 'male' ? '남성' : '여성'}
-
+    // Shared saju data section
+    final sajuDataSection = '''
 ## 사주 팔자
 ${data.sajuString}
 
@@ -101,18 +144,34 @@ ${data.dayMaster}
 ${_buildSinsalSection(data.sinsal)}
 ${_buildGilseongSection(data.gilseong)}
 ${_buildUnsungSection(data.twelveUnsung)}
-${_buildDaeunSection(data.daeun)}
+${_buildDaeunSection(data.daeun)}''';
+
+    // Phase 1 reference
+    final phase1RefSection = '''
+- ${phase1Result['wonGuk_analysis']?['oheng_balance'] ?? ''}
+- ${phase1Result['wonGuk_analysis']?['singang_singak'] ?? ''}
+${phase1Result['hapchung_analysis']?['overall_impact'] ?? ''}''';
+
+    return switch (locale) {
+      'ja' => _buildJapanesePhase3Prompt(data, sajuDataSection, phase1RefSection),
+      'en' => _buildEnglishPhase3Prompt(data, sajuDataSection, phase1RefSection),
+      _ => _buildKoreanPhase3Prompt(data, sajuDataSection, phase1RefSection),
+    };
+  }
+
+  String _buildKoreanPhase3Prompt(SajuInputData data, String sajuData, String phase1Ref) {
+    return '''
+## 분석 대상
+- 이름: ${data.profileName}
+- 생년월일: ${_formatBirthDate(data.birthDate)}
+- 성별: ${data.gender == 'male' ? '남성' : '여성'}
+
+$sajuData
 
 ---
 
 ## Phase 1 분석 결과 (참고용)
-
-### 원국 분석
-- 오행 균형: ${phase1Result['wonGuk_analysis']?['oheng_balance'] ?? ''}
-- 신강/신약: ${phase1Result['wonGuk_analysis']?['singang_singak'] ?? ''}
-
-### 합충 분석
-${phase1Result['hapchung_analysis']?['overall_impact'] ?? ''}
+$phase1Ref
 
 ---
 
@@ -122,64 +181,93 @@ ${phase1Result['hapchung_analysis']?['overall_impact'] ?? ''}
 
 ```json
 {
-  "sinsal_gilseong": {
-    "major_gilseong": ["주요 길성과 그 의미"],
-    "major_sinsal": ["주요 신살과 그 의미"],
-    "practical_implications": "신살/길성이 실생활에 미치는 영향",
-    "reading": "신살/길성 종합 해석 6문장. 주요 신살이 인생에 가져오는 복과 시련"
-  },
-
-  "health": {
-    "vulnerable_organs": ["건강 취약 장기/부위 2-4개"],
-    "potential_issues": ["주의해야 할 건강 문제 2-3개"],
-    "mental_health": "정신/심리 건강 경향",
-    "lifestyle_advice": ["건강 관리 생활 습관 조언 3-4개"],
-    "caution_periods": "건강 주의 시기 (있는 경우)",
-    "reading": "건강운 종합 해석 6문장. 오행 과다/부족 기반 취약 장기와 관리법"
-  },
-
+  "sinsal_gilseong": { "major_gilseong": ["주요 길성과 그 의미"], "major_sinsal": ["주요 신살과 그 의미"], "practical_implications": "신살/길성이 실생활에 미치는 영향", "reading": "신살/길성 종합 해석 6문장" },
+  "health": { "vulnerable_organs": ["건강 취약 장기/부위 2-4개"], "potential_issues": ["주의해야 할 건강 문제 2-3개"], "mental_health": "정신/심리 건강 경향", "lifestyle_advice": ["건강 관리 조언 3-4개"], "caution_periods": "건강 주의 시기", "reading": "건강운 종합 해석 6문장" },
   "daeun_detail": {
     "intro": "대운 흐름 전체 개요 3문장",
     "cycles": [
-      {
-        "order": 1,
-        "pillar": "현재 대운 간지",
-        "age_range": "현재 대운 나이 구간",
-        "main_theme": "현재 대운 핵심 주제",
-        "fortune_level": "상/중상/중/중하/하",
-        "reading": "현재 대운 5문장. 용신 관계, 해야 할 것, 주의사항",
-        "opportunities": ["기회 2개"],
-        "challenges": ["시련 2개"]
-      },
-      {
-        "order": 2,
-        "pillar": "다음 대운 간지",
-        "age_range": "다음 대운 나이 구간",
-        "main_theme": "다음 대운 핵심 주제",
-        "fortune_level": "상/중상/중/중하/하",
-        "reading": "다음 대운 5문장. 준비할 것, 기대 포인트",
-        "opportunities": ["기회 2개"],
-        "challenges": ["시련 2개"]
-      },
-      {
-        "order": 3,
-        "pillar": "최고 대운 간지 (best_daeun 시기)",
-        "age_range": "최고 대운 나이 구간",
-        "main_theme": "최고 대운 핵심 주제",
-        "fortune_level": "상",
-        "reading": "최고 대운 5문장. 왜 최고인지, 활용법",
-        "opportunities": ["기회 2개"],
-        "challenges": ["주의점 1개"]
-      }
+      { "order": 1, "pillar": "현재 대운 간지", "age_range": "나이 구간", "main_theme": "핵심 주제", "fortune_level": "상/중상/중/중하/하", "reading": "5문장 해석", "opportunities": ["기회 2개"], "challenges": ["시련 2개"] },
+      { "order": 2, "pillar": "다음 대운 간지", "age_range": "나이 구간", "main_theme": "핵심 주제", "fortune_level": "상/중상/중/중하/하", "reading": "5문장 해석", "opportunities": ["기회 2개"], "challenges": ["시련 2개"] },
+      { "order": 3, "pillar": "최고 대운 간지", "age_range": "나이 구간", "main_theme": "핵심 주제", "fortune_level": "상", "reading": "5문장 해석", "opportunities": ["기회 2개"], "challenges": ["주의점 1개"] }
     ],
-    "best_daeun": {
-      "period": "가장 좋은 대운 시기",
-      "why": "왜 이 대운이 가장 좋은지 3문장"
-    },
-    "worst_daeun": {
-      "period": "가장 주의해야 할 대운 시기",
-      "why": "왜 이 대운을 조심해야 하는지 3문장"
-    }
+    "best_daeun": { "period": "가장 좋은 대운 시기", "why": "이유 3문장" },
+    "worst_daeun": { "period": "가장 주의해야 할 대운 시기", "why": "이유 3문장" }
+  }
+}
+```
+''';
+  }
+
+  String _buildJapanesePhase3Prompt(SajuInputData data, String sajuData, String phase1Ref) {
+    return '''
+## 鑑定対象
+- 名前: ${data.profileName}
+- 生年月日: ${_formatBirthDate(data.birthDate)}
+- 性別: ${data.gender == 'male' ? '男性' : '女性'}
+
+$sajuData
+
+---
+
+## Phase 1 分析結果（参考用）
+$phase1Ref
+
+---
+
+**Phase 3 (Special)**: 神殺/吉星、健康、大運詳細のみ分析してください。
+すべての値は日本語で記述してください。JSONキーは変更しないでください。
+
+```json
+{
+  "sinsal_gilseong": { "major_gilseong": ["主要な吉星とその意味"], "major_sinsal": ["主要な神殺とその意味"], "practical_implications": "実生活への影響", "reading": "神殺/吉星総合解釈6文" },
+  "health": { "vulnerable_organs": ["弱い臓器2-4個"], "potential_issues": ["注意すべき健康問題2-3個"], "mental_health": "精神的健康の傾向", "lifestyle_advice": ["健康管理アドバイス3-4個"], "caution_periods": "健康注意時期", "reading": "健康運総合解釈6文" },
+  "daeun_detail": {
+    "intro": "大運の流れ概要3文",
+    "cycles": [
+      { "order": 1, "pillar": "現在の大運干支", "age_range": "年齢区間", "main_theme": "核心テーマ", "fortune_level": "上/中上/中/中下/下", "reading": "5文の解釈", "opportunities": ["チャンス2個"], "challenges": ["試練2個"] },
+      { "order": 2, "pillar": "次の大運干支", "age_range": "年齢区間", "main_theme": "核心テーマ", "fortune_level": "上/中上/中/中下/下", "reading": "5文の解釈", "opportunities": ["チャンス2個"], "challenges": ["試練2個"] },
+      { "order": 3, "pillar": "最高の大運干支", "age_range": "年齢区間", "main_theme": "核心テーマ", "fortune_level": "上", "reading": "5文の解釈", "opportunities": ["チャンス2個"], "challenges": ["注意点1個"] }
+    ],
+    "best_daeun": { "period": "最も良い大運時期", "why": "理由3文" },
+    "worst_daeun": { "period": "最も注意すべき大運時期", "why": "理由3文" }
+  }
+}
+```
+''';
+  }
+
+  String _buildEnglishPhase3Prompt(SajuInputData data, String sajuData, String phase1Ref) {
+    return '''
+## Subject of Analysis
+- Name: ${data.profileName}
+- Date of Birth: ${_formatBirthDate(data.birthDate)}
+- Gender: ${data.gender == 'male' ? 'Male' : 'Female'}
+
+$sajuData
+
+---
+
+## Phase 1 Analysis Results (Reference)
+$phase1Ref
+
+---
+
+**Phase 3 (Special)**: Analyze special stars, health, and luck cycle details only.
+All values must be in English. Do NOT change the JSON keys.
+
+```json
+{
+  "sinsal_gilseong": { "major_gilseong": ["Major auspicious stars and meanings"], "major_sinsal": ["Major special stars and meanings"], "practical_implications": "Real-life impact", "reading": "Special stars interpretation 6 sentences" },
+  "health": { "vulnerable_organs": ["Vulnerable areas 2-4"], "potential_issues": ["Health concerns 2-3"], "mental_health": "Mental health tendencies", "lifestyle_advice": ["Health advice 3-4"], "caution_periods": "Health caution periods", "reading": "Health interpretation 6 sentences" },
+  "daeun_detail": {
+    "intro": "Luck cycle overview 3 sentences",
+    "cycles": [
+      { "order": 1, "pillar": "Current luck cycle pillar", "age_range": "Age range", "main_theme": "Core theme", "fortune_level": "Excellent/Good/Average/Below Average/Poor", "reading": "5-sentence interpretation", "opportunities": ["2 opportunities"], "challenges": ["2 challenges"] },
+      { "order": 2, "pillar": "Next luck cycle pillar", "age_range": "Age range", "main_theme": "Core theme", "fortune_level": "Excellent/Good/Average/Below Average/Poor", "reading": "5-sentence interpretation", "opportunities": ["2 opportunities"], "challenges": ["2 challenges"] },
+      { "order": 3, "pillar": "Best luck cycle pillar", "age_range": "Age range", "main_theme": "Core theme", "fortune_level": "Excellent", "reading": "5-sentence interpretation", "opportunities": ["2 opportunities"], "challenges": ["1 caution"] }
+    ],
+    "best_daeun": { "period": "Best luck cycle period", "why": "Reason in 3 sentences" },
+    "worst_daeun": { "period": "Most cautious luck cycle period", "why": "Reason in 3 sentences" }
   }
 }
 ```

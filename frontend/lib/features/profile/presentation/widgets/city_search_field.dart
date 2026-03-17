@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -59,7 +60,7 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '도시',
+          'onboarding.labelCity'.tr(),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: theme.textPrimary,
           ),
@@ -70,12 +71,12 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
           initialValue: _selectedCity,
           // 플레이스홀더
           placeholder: Text(
-            '도시를 선택하세요',
+            'onboarding.placeholderCity'.tr(),
             style: TextStyle(color: theme.textMuted),
           ),
           // 검색 입력 플레이스홀더
           searchPlaceholder: Text(
-            '도시명 검색...',
+            'onboarding.searchCity'.tr(),
             style: TextStyle(color: theme.textMuted),
           ),
           // 검색어 변경 시
@@ -104,9 +105,9 @@ class _CitySearchFieldState extends ConsumerState<CitySearchField> {
           options: [
             // 검색 결과가 없을 때
             if (_filteredCities.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('검색 결과가 없습니다'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text('onboarding.noSearchResults'.tr()),
               ),
             // 필터링된 도시 목록
             ..._filteredCities.map(

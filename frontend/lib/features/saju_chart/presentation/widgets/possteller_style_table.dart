@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -96,11 +97,11 @@ class PosstellerStyleTable extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _buildLabelCell(context, '구분', isHeader: true),
-          _buildHeaderCell(context, '시주'),
-          _buildHeaderCell(context, '일주'),
-          _buildHeaderCell(context, '월주'),
-          _buildHeaderCell(context, '년주'),
+          _buildLabelCell(context, 'saju_chart.category'.tr(), isHeader: true),
+          _buildHeaderCell(context, 'saju_chart.hourPillar'.tr()),
+          _buildHeaderCell(context, 'saju_chart.dayPillar'.tr()),
+          _buildHeaderCell(context, 'saju_chart.monthPillar'.tr()),
+          _buildHeaderCell(context, 'saju_chart.yearPillar'.tr()),
         ],
       ),
     );
@@ -112,7 +113,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '천간',
+      label: 'saju_chart.heavenlyStem'.tr(),
       cells: pillars.map((pillar) {
         if (pillar == null) return _buildEmptyCell(context);
         final color = _getOhengColor(pillar.ganOheng);
@@ -132,7 +133,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '지지',
+      label: 'saju_chart.earthlyBranch'.tr(),
       cells: pillars.map((pillar) {
         if (pillar == null) return _buildEmptyCell(context);
         final color = _getOhengColor(pillar.jiOheng);
@@ -152,7 +153,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '십성',
+      label: 'saju_chart.sipsung'.tr(),
       cells: pillars.asMap().entries.map((entry) {
         final index = entry.key;
         final pillar = entry.value;
@@ -160,7 +161,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
         // 일주는 '비견' 표시 (일간 자신)
         if (index == 1) {
-          return _buildSipsinCell(context, '비견', SipSin.bigyeon);
+          return _buildSipsinCell(context, 'saju_chart.bigyeon'.tr(), SipSin.bigyeon);
         }
 
         final sipsin = calculateSipSin(dayGan, pillar.gan);
@@ -175,7 +176,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '십성',
+      label: 'saju_chart.sipsung'.tr(),
       cells: pillars.map((pillar) {
         if (pillar == null) return _buildEmptyCell(context);
 
@@ -200,7 +201,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '지장간',
+      label: 'saju_chart.jijanggan'.tr(),
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         // 지장간 한글로 표시 (포스텔러 스타일)
@@ -222,7 +223,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '12운성',
+      label: 'saju_chart.twelveUnsung'.tr(),
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         final color = _getUnsungColor(r.unsung);
@@ -242,7 +243,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
     return _buildDataRow(
       context,
-      label: '12신살',
+      label: 'saju_chart.twelveSinsal'.tr(),
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         final color = _getSinsalColor(r.sinsal);

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/chat_session.dart';
@@ -130,23 +131,23 @@ class SessionListTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'rename',
           child: Row(
             children: [
-              Icon(Icons.edit, size: 18),
-              SizedBox(width: 8),
-              Text('이름 변경'),
+              const Icon(Icons.edit, size: 18),
+              const SizedBox(width: 8),
+              Text('saju_chat.rename'.tr()),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete, size: 18, color: Colors.red),
-              SizedBox(width: 8),
-              Text('삭제', style: TextStyle(color: Colors.red)),
+              const Icon(Icons.delete, size: 18, color: Colors.red),
+              const SizedBox(width: 8),
+              Text('saju_chat.delete'.tr(), style: const TextStyle(color: Colors.red)),
             ],
           ),
         ),
@@ -168,19 +169,19 @@ class SessionListTile extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('대화 이름 변경'),
+        title: Text('saju_chat.renameChatTitle'.tr()),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: '새 이름',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'saju_chat.newName'.tr(),
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text('saju_chat.cancel'.tr()),
           ),
           TextButton(
             onPressed: () {
@@ -190,7 +191,7 @@ class SessionListTile extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('변경'),
+            child: Text('saju_chat.change'.tr()),
           ),
         ],
       ),

@@ -1487,6 +1487,7 @@ class LifetimeFortune extends _$LifetimeFortune {
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
+      locale: 'ko',
       onComplete: (result) {
         _isAnalyzing = false;
         print('[LifetimeFortune] ✅ saju_base 분석 완료: ${result.success}');

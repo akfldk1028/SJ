@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,7 @@ import '../../../../shared/utils/text_formatter.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 
 /// 카테고리 정보 레코드
-typedef _CategoryInfo = ({String name, IconData icon, Color color});
+typedef _CategoryInfo = ({String nameKey, IconData icon, Color color});
 
 /// 카테고리별 운세 상세 페이지 (재물운, 애정운, 직장운, 건강운)
 class CategoryFortuneDetailScreen extends ConsumerWidget {
@@ -20,10 +21,10 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
   // ── 카테고리 정보 (Dart 3 Record) ──
 
   static const _categoryMap = <String, _CategoryInfo>{
-    'wealth': (name: '재물운', icon: Icons.account_balance_wallet_rounded, color: Color(0xFFF59E0B)),
-    'love': (name: '애정운', icon: Icons.favorite_rounded, color: Color(0xFFEC4899)),
-    'work': (name: '직장운', icon: Icons.work_rounded, color: Color(0xFF3B82F6)),
-    'health': (name: '건강운', icon: Icons.monitor_heart_rounded, color: Color(0xFF10B981)),
+    'wealth': (nameKey: 'daily_fortune.money', icon: Icons.account_balance_wallet_rounded, color: Color(0xFFF59E0B)),
+    'love': (nameKey: 'daily_fortune.love', icon: Icons.favorite_rounded, color: Color(0xFFEC4899)),
+    'work': (nameKey: 'daily_fortune.work', icon: Icons.work_rounded, color: Color(0xFF3B82F6)),
+    'health': (nameKey: 'daily_fortune.health', icon: Icons.monitor_heart_rounded, color: Color(0xFF10B981)),
   };
 
   @override
@@ -36,7 +37,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
       return Scaffold(
         backgroundColor: theme.backgroundColor,
         body: Center(
-          child: Text('알 수 없는 카테고리', style: TextStyle(color: theme.textPrimary)),
+          child: Text('daily_fortune.unknownCategory'.tr(), style: TextStyle(color: theme.textPrimary)),
         ),
       );
     }
@@ -51,7 +52,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          info.name,
+          info.nameKey.tr(),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -66,7 +67,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
             data: (fortune) {
               if (fortune == null) {
                 return Center(
-                  child: Text('운세 데이터가 없습니다', style: TextStyle(color: theme.textMuted)),
+                  child: Text('daily_fortune.noFortuneData'.tr(), style: TextStyle(color: theme.textMuted)),
                 );
               }
 
@@ -101,7 +102,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
               if (kDebugMode) print('[CategoryFortuneDetail] 오류: $e');
               return Center(
                 child: Text(
-                  '운세를 불러올 수 없습니다',
+                  'daily_fortune.cannotLoadFortune'.tr(),
                   style: TextStyle(color: theme.textMuted),
                 ),
               );
@@ -145,7 +146,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           // 카테고리명
           Text(
-            info.name,
+            info.nameKey.tr(),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -166,7 +167,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
                 ),
               ),
               Text(
-                ' / 100',
+                'daily_fortune.outOf100'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -219,7 +220,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
         children: [
           // 섹션 제목 (아이콘 제거 → 텍스트만)
           Text(
-            '오늘의 ${info.name}',
+            'daily_fortune.todayCategoryFortune'.tr(namedArgs: {'name': info.nameKey.tr()}),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -257,7 +258,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
         children: [
           // 섹션 제목 (아이콘 제거 → 텍스트만)
           Text(
-            '오늘의 팁',
+            'daily_fortune.todayTip'.tr(),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -282,11 +283,11 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
   // ── 등급 텍스트 (Dart 3 switch expression) ──
 
   String _gradeText(int score) => switch (score) {
-    >= 90 => '매우 좋음',
-    >= 80 => '좋음',
-    >= 70 => '보통 이상',
-    >= 60 => '보통',
-    >= 50 => '다소 주의',
-    _ => '주의 필요',
+    >= 90 => 'daily_fortune.gradeVeryGood'.tr(),
+    >= 80 => 'daily_fortune.gradeGoodSimple'.tr(),
+    >= 70 => 'daily_fortune.gradeAboveAverage'.tr(),
+    >= 60 => 'daily_fortune.gradeAverage'.tr(),
+    >= 50 => 'daily_fortune.gradeSomeCaution'.tr(),
+    _ => 'daily_fortune.gradeCautionNeeded'.tr(),
   };
 }

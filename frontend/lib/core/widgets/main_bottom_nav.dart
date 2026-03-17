@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
@@ -29,11 +30,11 @@ class MainBottomNav extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(context, theme, Icons.auto_awesome_rounded, '운세', 0, '/menu'),
-          _buildNavItem(context, theme, Icons.people_outline_rounded, '인맥', 1, '/relationships'),
-          _buildNavItem(context, theme, Icons.forum_rounded, 'AI 상담', 2, '/saju/chat'),
-          _buildNavItem(context, theme, Icons.calendar_month_rounded, '캘린더', 3, '/calendar'),
-          _buildNavItem(context, theme, Icons.settings_outlined, '설정', 4, '/settings'),
+          _buildNavItem(context, theme, Icons.auto_awesome_rounded, 'menu.nav_fortune'.tr(), 0, '/menu'),
+          _buildNavItem(context, theme, Icons.people_outline_rounded, 'menu.nav_relationships'.tr(), 1, '/relationships'),
+          _buildNavItem(context, theme, Icons.forum_rounded, 'menu.nav_aiChat'.tr(), 2, '/saju/chat'),
+          _buildNavItem(context, theme, Icons.calendar_month_rounded, 'menu.nav_calendar'.tr(), 3, '/calendar'),
+          _buildNavItem(context, theme, Icons.settings_outlined, 'menu.nav_settings'.tr(), 4, '/settings'),
         ],
       ),
     );

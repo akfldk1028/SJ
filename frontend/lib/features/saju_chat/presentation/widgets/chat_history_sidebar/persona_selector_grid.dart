@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,7 @@ class PersonaSelectorGrid extends ConsumerWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                '현재 페르소나',
+                'saju_chat.currentPersona'.tr(),
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),

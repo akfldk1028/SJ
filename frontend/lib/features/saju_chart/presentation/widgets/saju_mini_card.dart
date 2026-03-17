@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,7 +51,7 @@ class SajuMiniCard extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '내 사주',
+                        'saju_chart.mySaju'.tr(),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -64,7 +65,7 @@ class SajuMiniCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '${sajuChart.isLunarCalendar ? '음력' : '양력'} ${sajuChart.birthDateTime.year}',
+                          '${sajuChart.isLunarCalendar ? 'saju_chart.lunarCalendar'.tr() : 'saju_chart.solarCalendar'.tr()} ${sajuChart.birthDateTime.year}',
                           style: TextStyle(
                             fontSize: 13,
                             color: theme.primaryColor,
@@ -88,22 +89,22 @@ class SajuMiniCard extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           PillarDisplay(
-                            label: '시주',
+                            label: 'saju_chart.hourPillar'.tr(),
                             pillar: sajuChart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
                             size: pillarSize,
                           ),
                           PillarDisplay(
-                            label: '일주',
+                            label: 'saju_chart.dayPillar'.tr(),
                             pillar: sajuChart.dayPillar,
                             size: pillarSize,
                           ),
                           PillarDisplay(
-                            label: '월주',
+                            label: 'saju_chart.monthPillar'.tr(),
                             pillar: sajuChart.monthPillar,
                             size: pillarSize,
                           ),
                           PillarDisplay(
-                            label: '년주',
+                            label: 'saju_chart.yearPillar'.tr(),
                             pillar: sajuChart.yearPillar,
                             size: pillarSize,
                           ),
@@ -135,7 +136,7 @@ class SajuMiniCard extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '오행 분포',
+                              'saju_chart.ohengDistribution'.tr(),
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -203,7 +204,7 @@ class SajuMiniCard extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '상세 분석 보기',
+                            'saju_chart.viewDetailAnalysis'.tr(),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -236,7 +237,7 @@ class SajuMiniCard extends ConsumerWidget {
         ),
         child: Center(
           child: Text(
-            '프로필을 선택하여 만세력을 확인하세요',
+            'saju_chart.selectProfileToCheck'.tr(),
             style: TextStyle(color: theme.textSecondary),
           ),
         ),
@@ -271,7 +272,7 @@ class SajuMiniCard extends ConsumerWidget {
         ),
         child: Center(
           child: Text(
-            '오류가 발생했습니다: $error',
+            'saju_chart.errorWithMessage'.tr(namedArgs: {'error': error}),
             style: TextStyle(color: theme.fireColor ?? Colors.red),
           ),
         ),
@@ -307,6 +308,13 @@ class OhengRadarChart extends StatelessWidget {
         values: [mok.toDouble(), hwa.toDouble(), to.toDouble(), geum.toDouble(), su.toDouble()],
         maxValue: 4.0, // 최대값 4 기준
         theme: theme,
+        labels: [
+          'saju_chart.elementWoodHanjaLabel'.tr(),
+          'saju_chart.elementFireHanjaLabel'.tr(),
+          'saju_chart.elementEarthHanjaLabel'.tr(),
+          'saju_chart.elementMetalHanjaLabel'.tr(),
+          'saju_chart.elementWaterHanjaLabel'.tr(),
+        ],
       ),
     );
   }
@@ -316,14 +324,13 @@ class _OhengRadarPainter extends CustomPainter {
   final List<double> values;
   final double maxValue;
   final AppThemeExtension theme;
-
-  // 오행 라벨과 색상
-  static const labels = ['목(木)', '화(火)', '토(土)', '금(金)', '수(水)'];
+  final List<String> labels;
 
   _OhengRadarPainter({
     required this.values,
     required this.maxValue,
     required this.theme,
+    required this.labels,
   });
 
   @override
