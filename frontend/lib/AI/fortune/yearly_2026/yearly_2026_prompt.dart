@@ -21,6 +21,7 @@
 import '../../core/ai_constants.dart';
 import '../common/prompt_template.dart';
 import '../common/fortune_input_data.dart';
+import '../common/locale_utils.dart';
 
 /// 2026 신년운세 프롬프트 템플릿
 class Yearly2026Prompt extends PromptTemplate {
@@ -51,22 +52,15 @@ class Yearly2026Prompt extends PromptTemplate {
   Duration? get cacheExpiry => CacheExpiry.yearlyFortune2026;
 
   /// 성별 문자열 (locale-aware)
-  String get _genderString {
-    switch (locale) {
-      case 'ja':
-        return inputData.genderKorean == '남성' ? '男性' : '女性';
-      case 'en':
-        return inputData.genderKorean == '남성' ? 'Male' : 'Female';
-      default:
-        return inputData.genderKorean;
-    }
-  }
+  String get _genderString =>
+      FortuneLocaleUtils.genderString(inputData.genderKorean, locale);
 
   @override
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   /// 한국어 시스템 프롬프트
@@ -719,9 +713,9 @@ If any forbidden keys are used, the response will be **rejected**.
 
   @override
   String buildUserPrompt([Map<String, dynamic>? input]) => switch (locale) {
+    'ko' => _buildKoreanUserPrompt(),
     'ja' => _buildJapaneseUserPrompt(),
-    'en' => _buildEnglishUserPrompt(),
-    _ => _buildKoreanUserPrompt(),
+    _ => _buildEnglishUserPrompt(),
   };
 
   /// 한국어 사용자 프롬프트

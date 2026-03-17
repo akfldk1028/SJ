@@ -267,10 +267,50 @@ class PurchaseNotifier extends _$PurchaseNotifier {
     final remaining = expiry.difference(DateTime.now());
     if (remaining.isNegative) return false; // 이미 만료됨
 
-    final plan = activePlanName;
-    if (plan == '1일 이용권') return remaining.inHours < 3;
-    if (plan == '1주일 이용권') return remaining.inHours < 24;
+    final productId = _activeProductId;
+    if (productId == PurchaseConfig.productDayPass) return remaining.inHours < 3;
+    if (productId == PurchaseConfig.productWeekPass) return remaining.inHours < 24;
     return remaining.inDays < 3; // 월간 구독 등
+  }
+
+  /// 현재 활성 상품의 product ID (locale-independent 비교용)
+  String? get _activeProductId {
+    if (!isPremium) return null;
+
+    final info = state.valueOrNull;
+    if (info == null) return null;
+
+    // entitlement에서 product ID 확인
+    final entitlement = info.entitlements.all[PurchaseConfig.entitlementPremium];
+    if (entitlement?.isActive == true) {
+      return entitlement!.productIdentifier;
+    }
+
+    if (info.activeSubscriptions.contains(PurchaseConfig.productMonthly)) {
+      return PurchaseConfig.productMonthly;
+    }
+
+    // 비구독 상품 체크
+    final now = DateTime.now();
+    for (final tx in info.nonSubscriptionTransactions) {
+      final productId = tx.productIdentifier;
+      final purchaseDate = DateTime.tryParse(tx.purchaseDate);
+      if (purchaseDate == null) continue;
+
+      Duration? duration;
+      if (productId == PurchaseConfig.productDayPass) {
+        duration = const Duration(hours: 24);
+      } else if (productId == PurchaseConfig.productWeekPass) {
+        duration = const Duration(days: 7);
+      }
+
+      if (duration != null && now.isBefore(purchaseDate.add(duration))) {
+        return productId;
+      }
+    }
+
+    if (_forcePremium) return _forcePremiumProductId;
+    return null;
   }
 
   int get dailyQuota => isPremium

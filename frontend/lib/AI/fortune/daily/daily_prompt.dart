@@ -17,6 +17,7 @@
 
 import '../../core/ai_constants.dart';
 import '../common/fortune_input_data.dart';
+import '../common/locale_utils.dart';
 
 /// 일운 프롬프트 템플릿
 class DailyPrompt {
@@ -56,12 +57,12 @@ class DailyPrompt {
       case 'ja':
         const days = ['月', '火', '水', '木', '金', '土', '日'];
         return '${days[targetDate.weekday - 1]}曜日';
-      case 'en':
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        return days[targetDate.weekday - 1];
-      default:
+      case 'ko':
         const days = ['월', '화', '수', '목', '금', '토', '일'];
         return '${days[targetDate.weekday - 1]}요일';
+      default: // en 및 기타 언어
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return days[targetDate.weekday - 1];
     }
   }
 
@@ -70,34 +71,27 @@ class DailyPrompt {
     switch (locale) {
       case 'ja':
         return '${targetDate.year}年${targetDate.month}月${targetDate.day}日';
-      case 'en':
+      case 'ko':
+        return '${targetDate.year}년 ${targetDate.month}월 ${targetDate.day}일';
+      default: // en 및 기타 언어
         const months = [
           'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
         ];
         return '${months[targetDate.month - 1]} ${targetDate.day}, ${targetDate.year}';
-      default:
-        return '${targetDate.year}년 ${targetDate.month}월 ${targetDate.day}일';
     }
   }
 
   /// 성별 문자열 (locale-aware)
-  String get _genderString {
-    switch (locale) {
-      case 'ja':
-        return inputData.genderKorean == '남성' ? '男性' : '女性';
-      case 'en':
-        return inputData.genderKorean == '남성' ? 'Male' : 'Female';
-      default:
-        return inputData.genderKorean;
-    }
-  }
+  String get _genderString =>
+      FortuneLocaleUtils.genderString(inputData.genderKorean, locale);
 
-  /// 시스템 프롬프트 (locale-aware)
+  /// 시스템 프롬프트 (locale-aware, 17개 언어 지원)
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   /// 한국어 시스템 프롬프트
@@ -305,11 +299,11 @@ Combine this person's birth chart traits and today's energy to select a **differ
 Return in JSON format. Each message should flow naturally in 2-3 sentences.
 ''';
 
-  /// 사용자 프롬프트 생성 (locale-aware)
+  /// 사용자 프롬프트 생성 (locale-aware, 17개 언어 지원)
   String buildUserPrompt() => switch (locale) {
+    'ko' => _buildKoreanUserPrompt(),
     'ja' => _buildJapaneseUserPrompt(),
-    'en' => _buildEnglishUserPrompt(),
-    _ => _buildKoreanUserPrompt(),
+    _ => _buildEnglishUserPrompt(), // en + 14개 언어 (시스템 프롬프트에서 언어 지시)
   };
 
   /// 한국어 사용자 프롬프트

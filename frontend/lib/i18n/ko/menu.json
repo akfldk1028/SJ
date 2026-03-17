@@ -36,6 +36,11 @@
   "fortuneLoading": "운세를 불러오는 중...",
   "tapToReload": "탭하면 다시 불러옵니다",
   "aiAnalyzing": "AI가 운세를 분석하고 있어요",
+  "analysisIdle": "분석 준비 중...",
+  "analysisChecking": "사주 데이터 확인 중...",
+  "analysisSaving": "결과 저장 중...",
+  "analysisCompleted": "분석 완료!",
+  "analysisError": "탭하면 다시 시도합니다",
   "pleaseWait": "잠시만 기다려주세요...",
   "fortuneAnalysis": "운세 분석",
   "wealth": "재물",
@@ -84,5 +89,11 @@
   "greeting": "{name}님, 안녕하세요!",
   "viewMore": "자세히 보기",
   "luckyColorShort": "행운의 색",
-  "luckyNumberShort": "행운의 숫자"
+  "luckyNumberShort": "행운의 숫자",
+  "compatPromoRegisterTitle": "궁합이 궁금한 사람이 있나요?",
+  "compatPromoRegisterSubtitle": "상대방을 등록하면 사주 궁합을 분석해드려요",
+  "compatPromoRegister": "등록",
+  "compatPromoAnalyzeTitle": "등록된 인연과 궁합을 확인해보세요",
+  "compatPromoAnalyzeSubtitle": "두 사람의 사주로 숨겨진 인연을 분석합니다",
+  "compatPromoResultTitle": "{name}님과의 궁합"
 }

@@ -68,6 +68,7 @@
 /// - 평균 분석 1회: 약 $0.02~0.05
 
 import '../../core/ai_constants.dart';
+import '../common/locale_utils.dart';
 import '../common/prompt_template.dart';
 
 /// 기본 사주 분석 프롬프트
@@ -121,9 +122,10 @@ class SajuBasePrompt extends PromptTemplate {
 
   @override
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   String get _koreanSystemPrompt => '''
@@ -370,9 +372,9 @@ All JSON values must be written in English. Do NOT change the JSON keys.
     final data = SajuInputData.fromJson(input!);
 
     return switch (locale) {
+      'ko' => _buildKoreanUserPrompt(data),
       'ja' => _buildJapaneseUserPrompt(data),
-      'en' => _buildEnglishUserPrompt(data),
-      _ => _buildKoreanUserPrompt(data),
+      _ => _buildEnglishUserPrompt(data),
     };
   }
 

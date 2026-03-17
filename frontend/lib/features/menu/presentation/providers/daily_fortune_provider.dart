@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../../AI/fortune/common/locale_utils.dart';
 import 'package:hive/hive.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -178,8 +179,8 @@ class DailyFortune extends _$DailyFortune {
   static const String _hiveCacheBoxName = 'daily_fortune_cache';
 
   /// 프로필별 캐시 키 (프로필 전환 시 다른 운세 표시 방지)
-  static String _cacheKey(String profileId) => 'fortune_$profileId';
-  static String _cacheDateKey(String profileId) => 'fortune_date_$profileId';
+  static String _cacheKey(String profileId, String locale) => 'fortune_${profileId}_$locale';
+  static String _cacheDateKey(String profileId, String locale) => 'fortune_date_${profileId}_$locale';
 
   /// 오프라인 재시도 횟수 (static: invalidateSelf 후에도 유지되어야 함)
   static int _offlineRetryCount = 0;
@@ -200,18 +201,19 @@ class DailyFortune extends _$DailyFortune {
     final today = KoreaDateUtils.today;
     final todayKey = KoreaDateUtils.currentDateKey;
     final profileId = profile.id;
+    final locale = FortuneLocaleUtils.currentLocale;
 
     // 2. Hive 로컬 캐시 먼저 확인 (즉시 반환 → 0ms)
-    final hiveCached = _loadFromHive(profileId, todayKey);
+    final hiveCached = _loadFromHive(profileId, todayKey, locale);
     if (hiveCached != null) {
       // Hive 캐시 히트 → 즉시 표시 + 백그라운드 Supabase 갱신
-      _refreshInBackground(profileId, today, todayKey, isDisposed);
+      _refreshInBackground(profileId, today, todayKey, locale, isDisposed);
       _offlineRetryCount = 0;
       return hiveCached;
     }
 
     // 3. Supabase DB 조회
-    final result = await aiQueries.getDailyFortune(profileId, today);
+    final result = await aiQueries.getDailyFortune(profileId, today, locale: locale);
 
     // 4. DB 캐시 히트 → 반환 + Hive에 저장
     if ((result.isSuccess || result.isOffline) &&
@@ -219,7 +221,7 @@ class DailyFortune extends _$DailyFortune {
         result.data!.content.isNotEmpty) {
       _offlineRetryCount = 0;
       final data = DailyFortuneData.fromJson(result.data!.content);
-      _saveToHive(profileId, todayKey, result.data!.content);
+      _saveToHive(profileId, todayKey, locale, result.data!.content);
       return data;
     }
 
@@ -243,17 +245,17 @@ class DailyFortune extends _$DailyFortune {
     return null;
   }
 
-  /// Hive에서 프로필+날짜 매칭 캐시 로드 (동기, 즉시)
-  DailyFortuneData? _loadFromHive(String profileId, String todayKey) {
+  /// Hive에서 프로필+날짜+언어 매칭 캐시 로드 (동기, 즉시)
+  DailyFortuneData? _loadFromHive(String profileId, String todayKey, String locale) {
     try {
       if (!Hive.isBoxOpen(_hiveCacheBoxName)) return null;
       final box = Hive.box<String>(_hiveCacheBoxName);
-      final cachedDate = box.get(_cacheDateKey(profileId));
+      final cachedDate = box.get(_cacheDateKey(profileId, locale));
       if (cachedDate != todayKey) return null;
-      final jsonStr = box.get(_cacheKey(profileId));
+      final jsonStr = box.get(_cacheKey(profileId, locale));
       if (jsonStr == null) return null;
       final json = jsonDecode(jsonStr) as Map<String, dynamic>;
-      print('[DailyFortune] Hive 캐시 히트 (profile=$profileId, date=$todayKey)');
+      print('[DailyFortune] Hive 캐시 히트 (profile=$profileId, date=$todayKey, locale=$locale)');
       return DailyFortuneData.fromJson(json);
     } catch (e) {
       print('[DailyFortune] Hive 캐시 읽기 실패: $e');
@@ -262,24 +264,24 @@ class DailyFortune extends _$DailyFortune {
   }
 
   /// Hive에 프로필별 일일 운세 캐시 저장
-  void _saveToHive(String profileId, String todayKey, Map<String, dynamic> content) {
+  void _saveToHive(String profileId, String todayKey, String locale, Map<String, dynamic> content) {
     try {
       if (!Hive.isBoxOpen(_hiveCacheBoxName)) return;
       final box = Hive.box<String>(_hiveCacheBoxName);
-      box.put(_cacheDateKey(profileId), todayKey);
-      box.put(_cacheKey(profileId), jsonEncode(content));
+      box.put(_cacheDateKey(profileId, locale), todayKey);
+      box.put(_cacheKey(profileId, locale), jsonEncode(content));
     } catch (e) {
       print('[DailyFortune] Hive 캐시 저장 실패: $e');
     }
   }
 
   /// 백그라운드 Supabase 갱신 (데이터 변경 시 UI도 업데이트)
-  void _refreshInBackground(String profileId, DateTime today, String todayKey, bool isDisposed) {
+  void _refreshInBackground(String profileId, DateTime today, String todayKey, String locale, bool isDisposed) {
     if (!SupabaseService.isConnected) return;
-    aiQueries.getDailyFortune(profileId, today).then((result) {
+    aiQueries.getDailyFortune(profileId, today, locale: locale).then((result) {
       if (result.isSuccess && result.data != null && result.data!.content.isNotEmpty) {
         final newContent = result.data!.content;
-        _saveToHive(profileId, todayKey, newContent);
+        _saveToHive(profileId, todayKey, locale, newContent);
         // 데이터 변경 시 UI 업데이트
         if (!isDisposed) {
           final newData = DailyFortuneData.fromJson(newContent);
@@ -330,9 +332,11 @@ class DailyFortune extends _$DailyFortune {
       ref.read(dailyAnalysisStepProvider.notifier).state = mapped;
     };
 
+    final locale = FortuneLocaleUtils.currentLocale;
     fortuneCoordinator.analyzeDailyOnly(
       userId: user.id,
       profileId: profileId,
+      locale: locale,
     ).then((result) {
       if (isDisposed) return;
       ref.read(dailyAnalysisStepProvider.notifier).state =
@@ -366,7 +370,8 @@ Future<DailyFortuneData?> dailyFortuneForDate(Ref ref, DateTime date) async {
   final activeProfile = await ref.read(activeProfileProvider.future);
   if (activeProfile == null) return null;
 
-  final result = await aiQueries.getDailyFortune(activeProfile.id, date);
+  final locale = FortuneLocaleUtils.currentLocale;
+  final result = await aiQueries.getDailyFortune(activeProfile.id, date, locale: locale);
   if (result.isFailure || result.data == null) return null;
 
   final content = result.data!.content;

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -342,10 +343,10 @@ class CompatibilityNotifier extends _$CompatibilityNotifier {
 /// 궁합 점수에 따른 등급 계산 유틸리티
 String getCompatibilityGrade(int? score) {
   final s = score ?? 0;
-  if (s >= 80) return '최상';
-  if (s >= 60) return '상';
-  if (s >= 40) return '중';
-  return '하';
+  if (s >= 80) return 'compatibility.score_grade_best'.tr();
+  if (s >= 60) return 'compatibility.score_grade_good'.tr();
+  if (s >= 40) return 'compatibility.score_grade_medium'.tr();
+  return 'compatibility.score_grade_low'.tr();
 }
 
 /// 궁합 점수에 따른 색상 코드

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -137,7 +138,7 @@ class SinsalTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '궁성',
+                    'saju_chart.gungseong'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -148,7 +149,7 @@ class SinsalTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '지지',
+                    'saju_chart.unsungJiji'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -160,7 +161,7 @@ class SinsalTable extends StatelessWidget {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    '12신살',
+                    'saju_chart.twelveSinsal'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -172,7 +173,7 @@ class SinsalTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '길흉',
+                    'saju_chart.sinsalStrength'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -271,9 +272,9 @@ class SinsalTable extends StatelessWidget {
 
   Widget _buildFortuneLabel(String fortuneType, Color color) {
     final label = switch (fortuneType) {
-      '길' => '길(吉)',
-      '흉' => '흉(凶)',
-      '길흉혼합' => '혼합',
+      '길' => 'saju_chart.fortuneGil'.tr(),
+      '흉' => 'saju_chart.fortuneHyung'.tr(),
+      '길흉혼합' => 'saju_chart.fortuneMixed'.tr(),
       _ => '-',
     };
 
@@ -339,7 +340,7 @@ class SinsalRow extends StatelessWidget {
           SizedBox(
             width: 50,
             child: Text(
-              '12신살',
+              'saju_chart.twelveSinsal'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 13,
@@ -485,13 +486,13 @@ class SinsalDetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.star, size: 16, color: AppColors.warning),
-              SizedBox(width: 4),
+              const Icon(Icons.star, size: 16, color: AppColors.warning),
+              const SizedBox(width: 4),
               Text(
-                '특수 신살',
-                style: TextStyle(
+                'saju_chart.specialSinsal'.tr(),
+                style: const TextStyle(
                   color: AppColors.warning,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -562,7 +563,7 @@ class SinsalSummaryCard extends StatelessWidget {
               const Icon(Icons.auto_awesome, size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
               Text(
-                '신살 요약',
+                'saju_chart.sinsalSummary'.tr(),
                 style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 14,
@@ -571,7 +572,7 @@ class SinsalSummaryCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '기준: ${result.baseType}(${result.baseJi})',
+                'saju_chart.basedOn'.tr(namedArgs: {'value': '${result.baseType}(${result.baseJi})'}),
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 13,
@@ -583,11 +584,11 @@ class SinsalSummaryCard extends StatelessWidget {
           // 길흉 통계
           Row(
             children: [
-              _buildStatItem('길', result.goodSinsalCount, AppColors.success),
+              _buildStatItem('saju_chart.fortuneGil'.tr(), result.goodSinsalCount, AppColors.success),
               const SizedBox(width: 12),
-              _buildStatItem('흉', result.badSinsalCount, AppColors.error),
+              _buildStatItem('saju_chart.fortuneHyung'.tr(), result.badSinsalCount, AppColors.error),
               const SizedBox(width: 12),
-              _buildStatItem('혼합', result.mixedSinsalCount, AppColors.accent),
+              _buildStatItem('saju_chart.mixed'.tr(), result.mixedSinsalCount, AppColors.accent),
             ],
           ),
           const SizedBox(height: 16),
@@ -602,7 +603,7 @@ class SinsalSummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '주요 신살',
+                  'saju_chart.mainSinsal'.tr(),
                   style: TextStyle(
                     color: theme.textMuted,
                     fontSize: 13,
@@ -669,7 +670,7 @@ class SinsalSummaryCard extends StatelessWidget {
 
     if (result.jangsungResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        '장성살',
+        result.jangsungResult!.sinsal.korean,
         result.jangsungResult!.pillarName,
         AppColors.success,
         Icons.military_tech,
@@ -677,7 +678,7 @@ class SinsalSummaryCard extends StatelessWidget {
     }
     if (result.yeokmaResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        '역마살',
+        result.yeokmaResult!.sinsal.korean,
         result.yeokmaResult!.pillarName,
         AppColors.accent,
         Icons.flight,
@@ -685,7 +686,7 @@ class SinsalSummaryCard extends StatelessWidget {
     }
     if (result.dohwaResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        '도화살',
+        result.dohwaResult!.sinsal.korean,
         result.dohwaResult!.pillarName,
         AppColors.error,
         Icons.favorite,
@@ -693,7 +694,7 @@ class SinsalSummaryCard extends StatelessWidget {
     }
     if (result.hwagaeResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        '화개살',
+        result.hwagaeResult!.sinsal.korean,
         result.hwagaeResult!.pillarName,
         AppColors.accent,
         Icons.palette,

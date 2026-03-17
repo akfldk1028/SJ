@@ -1,0 +1,8 @@
+{
+  "loading": "Cargando datos...",
+  "ready": "¡Listo!",
+  "newJourney": "Iniciando un nuevo viaje",
+  "analyzing": "Preparando análisis de destino...",
+  "offline": "Modo sin conexión",
+  "connectionError": "Error de conexión"
+}

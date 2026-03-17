@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'app_fonts.dart';
 
@@ -36,29 +37,29 @@ enum AppThemeType {
 
 /// 앱 테마 정의 클래스
 class AppTheme {
-  /// 테마별 이름 (한국어)
+  /// 테마별 이름 (i18n)
   static String getThemeName(AppThemeType type) {
     switch (type) {
       case AppThemeType.streetLamp:
-        return '오로라 다크';
+        return 'settings.themeStreetLamp'.tr();
       case AppThemeType.streetLampLight:
-        return '오로라 라이트';
+        return 'settings.themeStreetLampLight'.tr();
       case AppThemeType.orientalDark:
-        return '동양풍 다크';
+        return 'settings.themeOrientalDark'.tr();
       case AppThemeType.orientalLight:
-        return '레드 라이트';
+        return 'settings.themeOrientalLight'.tr();
       case AppThemeType.defaultLight:
-        return '기본 라이트';
+        return 'settings.themeDefaultLight'.tr();
       case AppThemeType.darkPurple:
-        return '다크 퍼플';
+        return 'settings.themeDarkPurple'.tr();
       case AppThemeType.orientalRed:
-        return '동양 전통';
+        return 'settings.themeOrientalRed'.tr();
       case AppThemeType.natureGreen:
-        return '자연';
+        return 'settings.themeNatureGreen'.tr();
       case AppThemeType.nightSky:
-        return '밤하늘';
+        return 'settings.themeNightSky'.tr();
       case AppThemeType.sakuraPink:
-        return '벚꽃';
+        return 'settings.themeSakuraPink'.tr();
     }
   }
 

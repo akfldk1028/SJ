@@ -1,0 +1,8 @@
+{
+  "loading": "Memuat data...",
+  "ready": "Siap!",
+  "newJourney": "Memulai perjalanan baru",
+  "analyzing": "Menyiapkan analisis ramalan...",
+  "offline": "Mode offline",
+  "connectionError": "Kesalahan koneksi"
+}

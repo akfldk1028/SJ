@@ -35,7 +35,7 @@ class ProfileActionButtons extends ConsumerWidget {
     // 버튼 텍스트 결정:
     // - 인연 편집: "저장"
     // - 일반 (수정/신규): "프로필 저장"
-    final buttonText = isRelationEdit ? '저장' : '프로필 저장';
+    final buttonText = isRelationEdit ? 'common.save'.tr() : 'profile.saveProfile'.tr();
 
     return ShadButton(
       enabled: isValid,

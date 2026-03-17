@@ -19,6 +19,7 @@ import 'core/services/app_update_service.dart';
 import 'core/services/posthog_service.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
+import 'AI/fortune/common/locale_utils.dart';
 import 'features/profile/data/datasources/profile_local_datasource.dart';
 import 'features/profile/data/repositories/profile_repository_impl.dart';
 import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
@@ -26,6 +27,10 @@ import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+
+  // 앱 시작 시 locale 즉시 동기화 (MainScaffold.build 전에 fortune 로딩될 수 있으므로)
+  final platformLocale = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+  FortuneLocaleUtils.setCurrentLocale(platformLocale);
 
   // Manual 모드: 상태바만 표시, 하단 네비게이션 바 숨김
   SystemChrome.setEnabledSystemUIMode(
@@ -124,6 +129,20 @@ void main() async {
         Locale('ko'),
         Locale('en'),
         Locale('ja'),
+        Locale('zh'),
+        Locale('vi'),
+        Locale('th'),
+        Locale('id'),
+        Locale('ms'),
+        Locale('my'),
+        Locale('fr'),
+        Locale('de'),
+        Locale('es'),
+        Locale('pt'),
+        Locale('it'),
+        Locale('hi'),
+        Locale('ar'),
+        Locale('ru'),
       ],
       path: 'lib/i18n',
       fallbackLocale: const Locale('ko'),

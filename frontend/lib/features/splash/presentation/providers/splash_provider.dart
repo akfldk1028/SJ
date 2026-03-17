@@ -180,7 +180,6 @@ class Splash extends _$Splash {
               userId: userId,
               profileId: profileId,
               runInBackground: true,
-              locale: 'ko',
               onComplete: (result) {
                 if (kDebugMode) {
                   print('[Splash] ✅ Background GPT-5.2 analysis completed: ${result.success}');

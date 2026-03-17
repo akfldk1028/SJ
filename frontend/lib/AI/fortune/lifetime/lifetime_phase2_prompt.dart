@@ -18,6 +18,7 @@
 /// 30-45초
 
 import '../../core/ai_constants.dart';
+import '../common/locale_utils.dart';
 import '../common/prompt_template.dart';
 import 'lifetime_prompt.dart';
 
@@ -45,9 +46,10 @@ class SajuBasePhase2Prompt extends PromptTemplate {
 
   @override
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   String get _koreanSystemPrompt => '''
@@ -177,9 +179,9 @@ ${phase1Result['sipsung_analysis']?['key_interactions'] ?? ''}
 ${phase1Result['hapchung_analysis']?['overall_impact'] ?? ''}''';
 
     return switch (locale) {
+      'ko' => _buildKoreanPhase2Prompt(data, sajuDataSection, phase1RefSection),
       'ja' => _buildJapanesePhase2Prompt(data, sajuDataSection, phase1RefSection),
-      'en' => _buildEnglishPhase2Prompt(data, sajuDataSection, phase1RefSection),
-      _ => _buildKoreanPhase2Prompt(data, sajuDataSection, phase1RefSection),
+      _ => _buildEnglishPhase2Prompt(data, sajuDataSection, phase1RefSection),
     };
   }
 

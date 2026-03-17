@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../AI/fortune/common/locale_utils.dart';
 import '../../../../core/services/posthog_service.dart';
 import '../../../../core/config/admin_config.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -125,9 +126,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
         centerTitle: true,
         actions: [
-          _buildLocaleButton(context, '🇰🇷', 'ko'),
-          _buildLocaleButton(context, '🇺🇸', 'en'),
-          _buildLocaleButton(context, '🇯🇵', 'ja'),
+          IconButton(
+            onPressed: () => _showLanguageSheet(context),
+            icon: Text(
+              _getFlagForLocale(context.locale.languageCode),
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
         ],
       ),
       body: MysticBackground(
@@ -208,13 +213,111 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildLocaleButton(BuildContext context, String flag, String langCode) {
-    final isActive = context.locale.languageCode == langCode;
-    return Opacity(
-      opacity: isActive ? 1.0 : 0.4,
-      child: IconButton(
-        onPressed: () => context.setLocale(Locale(langCode)),
-        icon: Text(flag, style: const TextStyle(fontSize: 20)),
+  static const _supportedLanguages = [
+    ('ko', '🇰🇷', '한국어'),
+    ('en', '🇺🇸', 'English'),
+    ('ja', '🇯🇵', '日本語'),
+    ('zh', '🇨🇳', '中文(简体)'),
+    ('vi', '🇻🇳', 'Tiếng Việt'),
+    ('th', '🇹🇭', 'ภาษาไทย'),
+    ('id', '🇮🇩', 'Indonesia'),
+    ('ms', '🇲🇾', 'Melayu'),
+    ('my', '🇲🇲', 'မြန်မာ'),
+    ('fr', '🇫🇷', 'Français'),
+    ('de', '🇩🇪', 'Deutsch'),
+    ('es', '🇪🇸', 'Español'),
+    ('pt', '🇧🇷', 'Português'),
+    ('it', '🇮🇹', 'Italiano'),
+    ('hi', '🇮🇳', 'हिन्दी'),
+    ('ar', '🇸🇦', 'العربية'),
+    ('ru', '🇷🇺', 'Русский'),
+  ];
+
+  String _getFlagForLocale(String langCode) {
+    for (final lang in _supportedLanguages) {
+      if (lang.$1 == langCode) return lang.$2;
+    }
+    return '🌐';
+  }
+
+  void _showLanguageSheet(BuildContext context) {
+    final theme = context.appTheme;
+    final currentLang = context.locale.languageCode;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'settings.language'.tr(),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textPrimary,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 2.2,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: _supportedLanguages.length,
+                  itemBuilder: (_, i) {
+                    final (code, flag, name) = _supportedLanguages[i];
+                    final isActive = currentLang == code;
+                    return GestureDetector(
+                      onTap: () {
+                        context.setLocale(Locale(code));
+                        FortuneLocaleUtils.setCurrentLocale(code);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? theme.primaryColor.withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isActive
+                                ? theme.primaryColor
+                                : theme.textSecondary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$flag $name',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                            color: isActive ? theme.primaryColor : theme.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

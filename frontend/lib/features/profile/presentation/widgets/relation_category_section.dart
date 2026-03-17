@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/profile_relation_model.dart';
+import '../../data/relation_schema.dart';
 
 /// 관계 카테고리 섹션 위젯 (ProfileRelationModel 기반)
 ///
@@ -48,7 +49,7 @@ class RelationCategorySection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$categoryLabel ${relations.length}',
+                '${ProfileRelationType.localizedCategory(categoryLabel)} ${relations.length}',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: Colors.grey[600],
                       fontWeight: FontWeight.bold,
@@ -194,13 +195,13 @@ class RelationCategorySection extends StatelessWidget {
   /// 카테고리별 색상
   Color _getCategoryColor(BuildContext context) {
     switch (categoryLabel) {
-      case '가족':
+      case 'family':
         return Colors.red[400]!;
-      case '연인':
+      case 'romantic':
         return Colors.pink[400]!;
-      case '친구':
+      case 'friend':
         return Colors.blue[400]!;
-      case '직장':
+      case 'work':
         return Colors.green[400]!;
       default:
         return Colors.grey[600]!;

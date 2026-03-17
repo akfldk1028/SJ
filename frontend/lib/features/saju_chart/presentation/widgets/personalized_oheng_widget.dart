@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 
 /// 개인화된 오행 관계 설명 위젯 - shadcn_ui 기반 모던 UI
@@ -100,7 +101,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                       backgroundColor: color.withValues(alpha: 0.15),
                       foregroundColor: color,
                       child: Text(
-                        '$dayMaster(${myOheng.hanja})',
+                        '${SajuI18n.cheongan(dayMaster, context.locale.languageCode)}(${myOheng.hanja})',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -111,7 +112,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'saju_chart.ohengRelationByDayMaster'.tr(namedArgs: {'oheng': myOheng.korean}),
+                  'saju_chart.ohengRelationByDayMaster'.tr(namedArgs: {'oheng': _ohengI18nKey(myOheng).tr()}),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -130,70 +131,62 @@ class PersonalizedOhengWidget extends StatelessWidget {
     BuildContext context,
     _OhengRelation r,
   ) {
-    final color = _getOhengColor(r.targetOheng);
-    final shadTheme = ShadTheme.of(context);
+    final sourceColor = _getOhengColor(r.sourceOheng);
+    final targetColor = _getOhengColor(r.targetOheng);
 
     return ShadAccordionItem(
       value: r,
       title: Row(
         children: [
-          // 아이콘
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              r.icon,
-              size: 16,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // 십신 카테고리 + 관계
+          // 한자 관계
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    ShadBadge.secondary(
-                      backgroundColor: color.withValues(alpha: 0.15),
-                      foregroundColor: theme.isDark ? Colors.white : color,
-                      child: Text(
-                        r.category.korean,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: sourceColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: sourceColor.withValues(alpha: 0.15),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.2),
+                  ),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: r.sourceOheng.hanja,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: sourceColor,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        r.relation,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.textPrimary,
+                        TextSpan(
+                          text: ' ${r.connector} ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.textSecondary.withValues(alpha: 0.6),
+                            height: 1.2,
+                          ),
                         ),
-                      ),
+                        TextSpan(
+                          text: r.targetOheng.hanja,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: targetColor,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -212,10 +205,10 @@ class PersonalizedOhengWidget extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.only(top: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
+          color: targetColor.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: color.withValues(alpha: 0.1),
+            color: targetColor.withValues(alpha: 0.1),
           ),
         ),
         child: Column(
@@ -226,7 +219,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 Icon(
                   LucideIcons.lightbulb,
                   size: 14,
-                  color: color,
+                  color: targetColor,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -234,7 +227,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: color,
+                    color: targetColor,
                   ),
                 ),
               ],
@@ -260,44 +253,51 @@ class PersonalizedOhengWidget extends StatelessWidget {
     final overcomesMe = _findOhengThatOvercomes(myOheng);
     final generatesMe = _findOhengThatGenerates(myOheng);
 
+    final args = {'oheng': _ohengI18nKey(myOheng).tr()};
+
     return [
       _OhengRelation(
         category: SipSinCategory.bigeop,
+        sourceOheng: myOheng,
         targetOheng: myOheng,
-        relation: '${myOheng.korean} = ${myOheng.korean}',
-        meaning: 'saju_chart.bigeop_meaning'.tr(),
+        connector: '=',
+        meaning: 'saju_chart.bigeop_meaning'.tr(namedArgs: args),
         icon: LucideIcons.users,
         description: 'saju_chart.bigeop_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.siksang,
+        sourceOheng: myOheng,
         targetOheng: iGenerate,
-        relation: '${myOheng.korean}생${iGenerate.korean}',
-        meaning: 'saju_chart.siksang_meaning'.tr(),
+        connector: '生',
+        meaning: 'saju_chart.siksang_meaning'.tr(namedArgs: args),
         icon: LucideIcons.sparkles,
         description: 'saju_chart.siksang_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.jaeseong,
+        sourceOheng: myOheng,
         targetOheng: iOvercome,
-        relation: '${myOheng.korean}극${iOvercome.korean}',
-        meaning: 'saju_chart.jaeseong_meaning'.tr(),
+        connector: '克',
+        meaning: 'saju_chart.jaeseong_meaning'.tr(namedArgs: args),
         icon: LucideIcons.coins,
         description: 'saju_chart.jaeseong_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.gwanseong,
-        targetOheng: overcomesMe,
-        relation: '${overcomesMe.korean}극${myOheng.korean}',
-        meaning: 'saju_chart.gwanseong_meaning'.tr(),
+        sourceOheng: overcomesMe,
+        targetOheng: myOheng,
+        connector: '克',
+        meaning: 'saju_chart.gwanseong_meaning'.tr(namedArgs: args),
         icon: LucideIcons.briefcase,
         description: 'saju_chart.gwanseong_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.inseong,
-        targetOheng: generatesMe,
-        relation: '${generatesMe.korean}생${myOheng.korean}',
-        meaning: 'saju_chart.inseong_meaning'.tr(),
+        sourceOheng: generatesMe,
+        targetOheng: myOheng,
+        connector: '生',
+        meaning: 'saju_chart.inseong_meaning'.tr(namedArgs: args),
         icon: LucideIcons.shield,
         description: 'saju_chart.inseong_desc'.tr(),
       ),
@@ -317,6 +317,15 @@ class PersonalizedOhengWidget extends StatelessWidget {
     }
     return me;
   }
+
+  /// Oheng enum → i18n key (saju_chart.elementXxx)
+  String _ohengI18nKey(Oheng oheng) => switch (oheng) {
+    Oheng.mok => 'saju_chart.elementWood',
+    Oheng.hwa => 'saju_chart.elementFire',
+    Oheng.to => 'saju_chart.elementEarth',
+    Oheng.geum => 'saju_chart.elementMetal',
+    Oheng.su => 'saju_chart.elementWater',
+  };
 
   Color _getOhengColor(Oheng oheng) {
     switch (oheng) {
@@ -351,16 +360,18 @@ class PersonalizedOhengWidget extends StatelessWidget {
 
 class _OhengRelation {
   final SipSinCategory category;
+  final Oheng sourceOheng;
   final Oheng targetOheng;
-  final String relation;
+  final String connector; // "=", "生", "克"
   final String meaning;
   final IconData icon;
   final String description;
 
   const _OhengRelation({
     required this.category,
+    required this.sourceOheng,
     required this.targetOheng,
-    required this.relation,
+    required this.connector,
     required this.meaning,
     required this.icon,
     required this.description,

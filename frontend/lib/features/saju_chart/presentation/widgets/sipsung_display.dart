@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:ui' as ui;
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -423,7 +425,7 @@ class SipSungCategoryChart extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '$count개',
+                  'saju_chart.countUnit'.tr(namedArgs: {'count': '$count'}),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -603,7 +605,7 @@ class _SipSungRadarPainter extends CustomPainter {
       final labelPainter = TextPainter(
         text: labelSpan,
         textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       );
       labelPainter.layout();
 
@@ -619,7 +621,7 @@ class _SipSungRadarPainter extends CustomPainter {
       final valuePainter = TextPainter(
         text: valueSpan,
         textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       );
       valuePainter.layout();
 

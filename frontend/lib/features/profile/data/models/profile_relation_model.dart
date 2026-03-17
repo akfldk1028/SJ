@@ -147,10 +147,13 @@ abstract class ProfileRelationModel with _$ProfileRelationModel {
   String get effectiveDisplayName =>
       displayName ?? toProfile?.displayName ?? '알 수 없음';
 
-  /// 카테고리 라벨 (가족, 연인, 친구, 직장, 기타)
+  /// 카테고리 키 (family, romantic, friend, work, other) - 내부 로직용
   String get categoryLabel => relationTypeEnum.categoryLabel;
 
-  /// 관계 유형 표시명
+  /// 다국어 카테고리 라벨 (UI 표시용)
+  String get localizedCategoryLabel => relationTypeEnum.localizedCategoryLabel;
+
+  /// 관계 유형 표시명 (다국어)
   String get relationLabel => relationTypeEnum.displayName;
 
   /// 궁합 분석용 타입

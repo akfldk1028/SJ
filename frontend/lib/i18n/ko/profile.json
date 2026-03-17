@@ -85,5 +85,36 @@
   "zoomIn": "확대",
   "zoomOut": "축소",
   "fitToScreen": "화면 맞춤",
-  "resetView": "초기화"
+  "resetView": "초기화",
+  "saveProfile": "프로필 저장",
+  "leapMonthLabel": "윤달",
+  "leapMonthTooltipYes": "이 날짜는 윤달에 해당합니다.",
+  "leapMonthTooltipNo": "해당 연월에는 윤달이 없습니다.",
+
+  "relationTypeMe": "나",
+  "relationTypeAdmin": "관리자",
+
+  "relationFamilyParent": "부모",
+  "relationFamilyChild": "자녀",
+  "relationFamilySibling": "형제/자매",
+  "relationFamilySpouse": "배우자",
+  "relationFamilyGrandparent": "조부모",
+  "relationFamilyInLaw": "시가/처가",
+  "relationFamilyOther": "기타 가족",
+
+  "relationRomanticPartner": "연인",
+  "relationRomanticCrush": "호감 상대",
+  "relationRomanticEx": "전 연인",
+
+  "relationFriendClose": "친한 친구",
+  "relationFriendGeneral": "친구",
+
+  "relationWorkColleague": "동료",
+  "relationWorkBoss": "상사",
+  "relationWorkSubordinate": "부하",
+  "relationWorkClient": "거래처/고객",
+
+  "relationBusinessPartner": "사업 파트너",
+  "relationMentor": "멘토",
+  "relationOther": "기타"
 }

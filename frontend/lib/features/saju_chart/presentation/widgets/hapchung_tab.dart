@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -48,7 +49,7 @@ class HapchungTab extends StatelessWidget {
 
           // 합(合) 관계 섹션
           if (result.totalHaps > 0) ...[
-            _buildSectionHeader(context, '합(合) 관계', '조화와 화합의 기운', _hapColor, Icons.favorite_rounded),
+            _buildSectionHeader(context, 'saju_chart.hapRelation'.tr(), 'saju_chart.hapchungExplanationBody'.tr().split('\n').first, _hapColor, Icons.favorite_rounded),
             const SizedBox(height: 12),
             _buildHapSection(context, result),
             const SizedBox(height: 24),
@@ -56,7 +57,7 @@ class HapchungTab extends StatelessWidget {
 
           // 충(沖) 관계 섹션
           if (result.totalChungs > 0) ...[
-            _buildSectionHeader(context, '충(沖) 관계', '대립과 변화의 기운', _chungColor, Icons.flash_on_rounded),
+            _buildSectionHeader(context, 'saju_chart.chungRelation'.tr(), 'saju_chart.hapchungExplanationBody'.tr().split('\n')[1], _chungColor, Icons.flash_on_rounded),
             const SizedBox(height: 12),
             _buildChungSection(context, result),
             const SizedBox(height: 24),
@@ -64,7 +65,7 @@ class HapchungTab extends StatelessWidget {
 
           // 형파해원진 섹션 (각각 분리)
           if (result.jijiHyungs.isNotEmpty) ...[
-            _buildSectionHeader(context, '형(刑)', '벌과 시련의 기운', _hyungColor, Icons.gavel_rounded),
+            _buildSectionHeader(context, 'saju_chart.hyeongRelation'.tr(), 'saju_chart.hapchungExplanationBody'.tr().split('\n')[2], _hyungColor, Icons.gavel_rounded),
             const SizedBox(height: 12),
             ...result.jijiHyungs.map((hyung) => _buildRelationCard(
               context,
@@ -80,7 +81,7 @@ class HapchungTab extends StatelessWidget {
           ],
 
           if (result.jijiPas.isNotEmpty) ...[
-            _buildSectionHeader(context, '파(破)', '파괴와 단절의 기운', _paColor, Icons.broken_image_rounded),
+            _buildSectionHeader(context, 'saju_chart.paRelation'.tr(), 'saju_chart.hapchungExplanationBody'.tr().split('\n')[3], _paColor, Icons.broken_image_rounded),
             const SizedBox(height: 12),
             ...result.jijiPas.map((pa) => _buildRelationCard(
               context,
@@ -96,7 +97,7 @@ class HapchungTab extends StatelessWidget {
           ],
 
           if (result.jijiHaes.isNotEmpty) ...[
-            _buildSectionHeader(context, '해(害)', '해침과 방해의 기운', _haeColor, Icons.block_rounded),
+            _buildSectionHeader(context, 'saju_chart.haeRelation'.tr(), 'saju_chart.hapchungExplanationBody'.tr().split('\n')[4], _haeColor, Icons.block_rounded),
             const SizedBox(height: 12),
             ...result.jijiHaes.map((hae) => _buildRelationCard(
               context,
@@ -112,7 +113,7 @@ class HapchungTab extends StatelessWidget {
           ],
 
           if (result.wonjins.isNotEmpty) ...[
-            _buildSectionHeader(context, '원진(怨嗔)', '원망과 미움의 기운', _wonjinColor, Icons.sentiment_very_dissatisfied_rounded),
+            _buildSectionHeader(context, 'saju_chart.wonJinRelation'.tr(), 'saju_chart.hapchungExplanationBody'.tr().split('\n')[5], _wonjinColor, Icons.sentiment_very_dissatisfied_rounded),
             const SizedBox(height: 12),
             ...result.wonjins.map((wonjin) => _buildRelationCard(
               context,
@@ -160,7 +161,7 @@ class HapchungTab extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '합충형파해 분석',
+            'saju_chart.hapchungTitle'.tr(),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -170,17 +171,17 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildSummaryItem(context, '합', result.totalHaps, _hapColor, Icons.favorite_rounded),
+              _buildSummaryItem(context, 'saju_chart.hapRelation'.tr().split('(').first, result.totalHaps, _hapColor, Icons.favorite_rounded),
               _buildSummaryDivider(),
-              _buildSummaryItem(context, '충', result.totalChungs, _chungColor, Icons.flash_on_rounded),
+              _buildSummaryItem(context, 'saju_chart.chungRelation'.tr().split('(').first, result.totalChungs, _chungColor, Icons.flash_on_rounded),
               _buildSummaryDivider(),
-              _buildSummaryItem(context, '형', result.jijiHyungs.length, _hyungColor, Icons.gavel_rounded),
+              _buildSummaryItem(context, 'saju_chart.hyeongRelation'.tr().split('(').first, result.jijiHyungs.length, _hyungColor, Icons.gavel_rounded),
               _buildSummaryDivider(),
-              _buildSummaryItem(context, '파', result.jijiPas.length, _paColor, Icons.broken_image_rounded),
+              _buildSummaryItem(context, 'saju_chart.paRelation'.tr().split('(').first, result.jijiPas.length, _paColor, Icons.broken_image_rounded),
               _buildSummaryDivider(),
-              _buildSummaryItem(context, '해', result.jijiHaes.length, _haeColor, Icons.block_rounded),
+              _buildSummaryItem(context, 'saju_chart.haeRelation'.tr().split('(').first, result.jijiHaes.length, _haeColor, Icons.block_rounded),
               _buildSummaryDivider(),
-              _buildSummaryItem(context, '원진', result.wonjins.length, _wonjinColor, Icons.sentiment_very_dissatisfied_rounded),
+              _buildSummaryItem(context, 'saju_chart.wonJinRelation'.tr().split('(').first, result.wonjins.length, _wonjinColor, Icons.sentiment_very_dissatisfied_rounded),
             ],
           ),
         ],
@@ -313,7 +314,7 @@ class HapchungTab extends StatelessWidget {
       children: [
         // 천간합
         if (result.cheonganHaps.isNotEmpty) ...[
-          _buildSubSectionTitle(context, '천간합 (天干合)'),
+          _buildSubSectionTitle(context, 'saju_chart.cheonganHap'.tr()),
           const SizedBox(height: 8),
           ...result.cheonganHaps.map((hap) => _buildRelationCard(
             context,
@@ -330,7 +331,7 @@ class HapchungTab extends StatelessWidget {
 
         // 지지육합
         if (result.jijiYukhaps.isNotEmpty) ...[
-          _buildSubSectionTitle(context, '지지육합 (地支六合)'),
+          _buildSubSectionTitle(context, 'saju_chart.jijiYukhap'.tr()),
           const SizedBox(height: 8),
           ...result.jijiYukhaps.map((yukhap) => _buildRelationCard(
             context,
@@ -347,7 +348,7 @@ class HapchungTab extends StatelessWidget {
 
         // 삼합
         if (result.jijiSamhaps.isNotEmpty) ...[
-          _buildSubSectionTitle(context, '삼합 (三合)'),
+          _buildSubSectionTitle(context, 'saju_chart.samhap'.tr()),
           const SizedBox(height: 8),
           ...result.jijiSamhaps.map((samhap) => _buildSamhapCard(context, samhap: samhap)),
           const SizedBox(height: 16),
@@ -355,7 +356,7 @@ class HapchungTab extends StatelessWidget {
 
         // 방합
         if (result.jijiBanghaps.isNotEmpty) ...[
-          _buildSubSectionTitle(context, '방합 (方合)'),
+          _buildSubSectionTitle(context, 'saju_chart.banghap'.tr()),
           const SizedBox(height: 8),
           ...result.jijiBanghaps.map((banghap) => _buildBanghapCard(context, banghap: banghap)),
         ],
@@ -368,7 +369,7 @@ class HapchungTab extends StatelessWidget {
       children: [
         // 천간충
         if (result.cheonganChungs.isNotEmpty) ...[
-          _buildSubSectionTitle(context, '천간충 (天干沖)'),
+          _buildSubSectionTitle(context, 'saju_chart.cheonganChung'.tr()),
           const SizedBox(height: 8),
           ...result.cheonganChungs.map((chung) => _buildRelationCard(
             context,
@@ -385,7 +386,7 @@ class HapchungTab extends StatelessWidget {
 
         // 지지충
         if (result.jijiChungs.isNotEmpty) ...[
-          _buildSubSectionTitle(context, '지지충 (地支沖)'),
+          _buildSubSectionTitle(context, 'saju_chart.jijiChung'.tr()),
           const SizedBox(height: 8),
           ...result.jijiChungs.map((chung) => _buildRelationCard(
             context,
@@ -726,7 +727,7 @@ class HapchungTab extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '(삼합의 일부)',
+                      'saju_chart.samhapPartial'.tr(),
                       style: TextStyle(
                         color: _hapColor.withOpacity(0.6),
                         fontSize: 13,
@@ -878,7 +879,7 @@ class HapchungTab extends StatelessWidget {
                       ),
                       if (isHalfBanghap)
                         Text(
-                          '(방합의 일부)',
+                          'saju_chart.banghapPartial'.tr(),
                           style: TextStyle(
                             color: _hapColor.withOpacity(0.6),
                             fontSize: 13,
@@ -968,7 +969,7 @@ class HapchungTab extends StatelessWidget {
               Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
-                '합충형파해란?',
+                'saju_chart.hapchungExplanationTitle'.tr(),
                 style: TextStyle(
                   color: theme.primaryColor,
                   fontSize: 15,
@@ -1080,7 +1081,7 @@ class HapchungTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '합충형파해 관계가 없습니다',
+            'saju_chart.noHapchungRelation'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 16,
@@ -1089,7 +1090,7 @@ class HapchungTab extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '사주 내 간지들 간에 특별한 합충 관계가 발견되지 않았습니다.\n안정적인 구조를 가지고 있습니다.',
+            'saju_chart.noHapchungDescription'.tr(),
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 14,

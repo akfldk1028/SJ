@@ -481,7 +481,7 @@ class _CompatibilitySelectorSheetState
       if (profileId == _ownerProfileId) {
         // "나" 선택됨
         includesOwner = true;
-        mentionTexts.add('@나/${_ownerName ?? "나"}');
+        mentionTexts.add('@me/${_ownerName ?? 'saju_chat.self'.tr()}');
       } else {
         // 인연에서 찾기
         final relation = _selectedRelationModels[profileId];
@@ -717,7 +717,7 @@ class _CompatibilityRelationList extends ConsumerWidget {
     }
 
     // 카테고리 순서 정의
-    final categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+    final categoryOrder = ['family', 'romantic', 'friend', 'work', 'other'];
     final sortedCategories = categoryMap.keys.toList()
       ..sort((a, b) {
         final aIndex = categoryOrder.indexOf(a);
@@ -761,7 +761,7 @@ class _MultiRelationList extends ConsumerWidget {
         }
 
         // 카테고리 순서 정의
-        final categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+        final categoryOrder = ['family', 'romantic', 'friend', 'work', 'other'];
         final sortedCategories = categoryMap.keys.toList()
           ..sort((a, b) {
             final aIndex = categoryOrder.indexOf(a);
@@ -860,10 +860,10 @@ class _MultiCategorySection extends StatelessWidget {
 
     // 카테고리별 아이콘
     final categoryIcon = switch (category) {
-      '가족' => Icons.home_outlined,
-      '연인' => Icons.favorite_outline,
-      '친구' => Icons.people_outline,
-      '직장' => Icons.work_outline,
+      'family' => Icons.home_outlined,
+      'romantic' => Icons.favorite_outline,
+      'friend' => Icons.people_outline,
+      'work' => Icons.work_outline,
       _ => Icons.person_outline,
     };
 
@@ -882,7 +882,7 @@ class _MultiCategorySection extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                category,
+                ProfileRelationType.localizedCategory(category),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -1045,7 +1045,7 @@ class _RelationList extends ConsumerWidget {
         }
 
         // 카테고리 순서 정의
-        final categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+        final categoryOrder = ['family', 'romantic', 'friend', 'work', 'other'];
         final sortedCategories = categoryMap.keys.toList()
           ..sort((a, b) {
             final aIndex = categoryOrder.indexOf(a);
@@ -1141,10 +1141,10 @@ class _CategorySection extends StatelessWidget {
 
     // 카테고리별 아이콘
     final categoryIcon = switch (category) {
-      '가족' => Icons.home_outlined,
-      '연인' => Icons.favorite_outline,
-      '친구' => Icons.people_outline,
-      '직장' => Icons.work_outline,
+      'family' => Icons.home_outlined,
+      'romantic' => Icons.favorite_outline,
+      'friend' => Icons.people_outline,
+      'work' => Icons.work_outline,
       _ => Icons.person_outline,
     };
 
@@ -1163,7 +1163,7 @@ class _CategorySection extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                category,
+                ProfileRelationType.localizedCategory(category),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

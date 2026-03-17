@@ -77,7 +77,7 @@ class RelationshipListScreen extends ConsumerWidget {
     Map<String, List<ProfileRelationModel>> relationsByCategory,
   ) {
     // 카테고리 순서 정의
-    const categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+    const categoryOrder = ['family', 'romantic', 'friend', 'work', 'other'];
 
     return SingleChildScrollView(
       child: Column(

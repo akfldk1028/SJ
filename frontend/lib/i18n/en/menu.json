@@ -36,6 +36,11 @@
   "fortuneLoading": "Loading fortune...",
   "tapToReload": "Tap to reload",
   "aiAnalyzing": "AI is analyzing your fortune",
+  "analysisIdle": "Preparing analysis...",
+  "analysisChecking": "Checking birth chart data...",
+  "analysisSaving": "Saving results...",
+  "analysisCompleted": "Analysis complete!",
+  "analysisError": "Tap to retry",
   "pleaseWait": "Please wait a moment...",
   "fortuneAnalysis": "Fortune Analysis",
   "wealth": "Wealth",
@@ -84,5 +89,11 @@
   "greeting": "Hello, {name}!",
   "viewMore": "View More",
   "luckyColorShort": "Lucky Color",
-  "luckyNumberShort": "Lucky Number"
+  "luckyNumberShort": "Lucky Number",
+  "compatPromoRegisterTitle": "Curious about someone's compatibility?",
+  "compatPromoRegisterSubtitle": "Register them to analyze your saju compatibility",
+  "compatPromoRegister": "Register",
+  "compatPromoAnalyzeTitle": "Check compatibility with your connections",
+  "compatPromoAnalyzeSubtitle": "Analyze the hidden bond between two people's saju",
+  "compatPromoResultTitle": "Compatibility with {name}"
 }

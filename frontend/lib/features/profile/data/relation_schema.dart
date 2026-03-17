@@ -1,6 +1,7 @@
 /// Profile Relations 스키마 정의
 ///
 /// Supabase profile_relations 테이블 스키마 매핑
+import 'package:easy_localization/easy_localization.dart';
 
 /// 테이블명
 const String profileRelationsTable = 'profile_relations';
@@ -90,41 +91,48 @@ const String relationWithProfileSelectColumns = '''
 ''';
 
 /// 관계 유형 Enum
-/// family_*, romantic_*, friend_*, work_*, 기타
+/// family_*, romantic_*, friend_*, work_*, other
 enum ProfileRelationType {
   // 가족 관계
-  familyParent('family_parent', '부모'),
-  familyChild('family_child', '자녀'),
-  familySibling('family_sibling', '형제/자매'),
-  familySpouse('family_spouse', '배우자'),
-  familyGrandparent('family_grandparent', '조부모'),
-  familyInLaw('family_in_law', '시가/처가'),
-  familyOther('family_other', '기타 가족'),
+  familyParent('family_parent', 'profile.relationFamilyParent'),
+  familyChild('family_child', 'profile.relationFamilyChild'),
+  familySibling('family_sibling', 'profile.relationFamilySibling'),
+  familySpouse('family_spouse', 'profile.relationFamilySpouse'),
+  familyGrandparent('family_grandparent', 'profile.relationFamilyGrandparent'),
+  familyInLaw('family_in_law', 'profile.relationFamilyInLaw'),
+  familyOther('family_other', 'profile.relationFamilyOther'),
 
   // 연인 관계
-  romanticPartner('romantic_partner', '연인'),
-  romanticCrush('romantic_crush', '호감 상대'),
-  romanticEx('romantic_ex', '전 연인'),
+  romanticPartner('romantic_partner', 'profile.relationRomanticPartner'),
+  romanticCrush('romantic_crush', 'profile.relationRomanticCrush'),
+  romanticEx('romantic_ex', 'profile.relationRomanticEx'),
 
   // 친구 관계
-  friendClose('friend_close', '친한 친구'),
-  friendGeneral('friend_general', '친구'),
+  friendClose('friend_close', 'profile.relationFriendClose'),
+  friendGeneral('friend_general', 'profile.relationFriendGeneral'),
 
   // 직장 관계
-  workColleague('work_colleague', '동료'),
-  workBoss('work_boss', '상사'),
-  workSubordinate('work_subordinate', '부하'),
-  workClient('work_client', '거래처/고객'),
+  workColleague('work_colleague', 'profile.relationWorkColleague'),
+  workBoss('work_boss', 'profile.relationWorkBoss'),
+  workSubordinate('work_subordinate', 'profile.relationWorkSubordinate'),
+  workClient('work_client', 'profile.relationWorkClient'),
 
   // 기타
-  businessPartner('business_partner', '사업 파트너'),
-  mentor('mentor', '멘토'),
-  other('other', '기타');
+  businessPartner('business_partner', 'profile.relationBusinessPartner'),
+  mentor('mentor', 'profile.relationMentor'),
+  other('other', 'profile.relationOther');
 
+  /// DB에 저장되는 값 (예: 'family_parent')
   final String value;
-  final String displayName;
 
-  const ProfileRelationType(this.value, this.displayName);
+  /// i18n 키 (예: 'profile.relationFamilyParent')
+  final String _i18nKey;
+
+  const ProfileRelationType(this.value, this._i18nKey);
+
+  /// 다국어 표시명 (UI용, .tr() 호출 필요)
+  /// 반드시 BuildContext가 있는 위젯 트리 안에서 호출해야 합니다.
+  String get displayName => _i18nKey.tr();
 
   /// DB 값으로부터 Enum 찾기
   static ProfileRelationType fromValue(String value) {
@@ -169,14 +177,32 @@ enum ProfileRelationType {
         other,
       ];
 
-  /// 카테고리 라벨
+  /// 카테고리 키 (내부 로직용, 언어 무관)
+  /// UI 표시에는 localizedCategoryLabel을 사용
   String get categoryLabel {
-    if (value.startsWith('family_')) return '가족';
-    if (value.startsWith('romantic_')) return '연인';
-    if (value.startsWith('friend_')) return '친구';
-    if (value.startsWith('work_')) return '직장';
-    return '기타';
+    if (value.startsWith('family_')) return 'family';
+    if (value.startsWith('romantic_')) return 'romantic';
+    if (value.startsWith('friend_')) return 'friend';
+    if (value.startsWith('work_')) return 'work';
+    return 'other';
   }
+
+  /// 카테고리별 i18n 키 매핑
+  static const _categoryI18nKeys = {
+    'family': 'profile.categoryFamily',
+    'romantic': 'profile.categoryLover',
+    'friend': 'profile.categoryFriend',
+    'work': 'profile.categoryWork',
+    'other': 'profile.categoryOther',
+  };
+
+  /// 다국어 카테고리 라벨 (UI용)
+  String get localizedCategoryLabel =>
+      _categoryI18nKeys[categoryLabel]?.tr() ?? categoryLabel;
+
+  /// 카테고리 키 → 다국어 라벨 변환 (static)
+  static String localizedCategory(String categoryKey) =>
+      _categoryI18nKeys[categoryKey]?.tr() ?? categoryKey;
 
   /// 궁합 분석 타입으로 변환
   String get compatibilityType {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../data/constants/twelve_unsung.dart';
@@ -110,6 +111,7 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 천간 행
   Widget _buildCheonganRow(BuildContext context) {
     final pillars = _getPillarsOrdered();
+    final locale = context.locale.languageCode;
 
     return _buildDataRow(
       context,
@@ -119,7 +121,7 @@ class PosstellerStyleTable extends StatelessWidget {
         final color = _getOhengColor(pillar.ganOheng);
         return _buildGanJiCell(
           context,
-          hangul: pillar.gan,
+          hangul: SajuI18n.cheongan(pillar.gan, locale),
           hanja: cheonganHanja[pillar.gan] ?? '',
           color: color,
         );
@@ -130,6 +132,7 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 지지 행
   Widget _buildJijiRow(BuildContext context) {
     final pillars = _getPillarsOrdered();
+    final locale = context.locale.languageCode;
 
     return _buildDataRow(
       context,
@@ -139,7 +142,7 @@ class PosstellerStyleTable extends StatelessWidget {
         final color = _getOhengColor(pillar.jiOheng);
         return _buildGanJiCell(
           context,
-          hangul: pillar.ji,
+          hangul: SajuI18n.jiji(pillar.ji, locale),
           hanja: jijiHanja[pillar.ji] ?? '',
           color: color,
         );

@@ -318,14 +318,8 @@ class _RelationshipScreenState extends ConsumerState<RelationshipScreen> {
     WidgetRef ref,
     Map<String, List<ProfileRelationModel>> relationsByCategory,
   ) {
-    // 카테고리 순서 정의
-    final categoryOrder = [
-      'profile.categoryFamily'.tr(),
-      'profile.categoryLover'.tr(),
-      'profile.categoryFriend'.tr(),
-      'profile.categoryWork'.tr(),
-      'profile.categoryOther'.tr(),
-    ];
+    // 카테고리 순서 정의 (영문 내부 키)
+    const categoryOrder = ['family', 'romantic', 'friend', 'work', 'other'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 80),
@@ -577,7 +571,7 @@ class _RelationQuickViewSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '${relation.categoryLabel} - ${relation.relationLabel}',
+                '${relation.localizedCategoryLabel} - ${relation.relationLabel}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),

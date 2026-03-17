@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '정통사주',
+          'traditional_saju.title'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -126,14 +127,14 @@ class TraditionalSajuScreen extends ConsumerWidget {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, color: Colors.white, size: 14),
-                      SizedBox(width: 6),
+                      const Icon(Icons.auto_awesome, color: Colors.white, size: 14),
+                      const SizedBox(width: 6),
                       Text(
-                        '사주팔자 분석',
-                        style: TextStyle(
+                        'traditional_saju.sajuAnalysisBadge'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -143,9 +144,9 @@ class TraditionalSajuScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  '정통사주',
-                  style: TextStyle(
+                Text(
+                  'traditional_saju.title'.tr(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
@@ -154,7 +155,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '당신의 사주팔자를 정밀 분석합니다',
+                  'traditional_saju.subtitle'.tr(),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
@@ -191,7 +192,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '정통사주란?',
+                'traditional_saju.whatIsTitle'.tr(),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -202,8 +203,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '정통사주는 생년월일시를 기준으로 사주팔자(四柱八字)를 분석하여 '
-            '타고난 성격, 적성, 재능, 운명의 흐름을 파악하는 전통 명리학입니다.',
+            'traditional_saju.description'.tr(),
             style: TextStyle(
               fontSize: 14,
               height: 1.7,
@@ -223,7 +223,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'AI가 수천 년의 동양 철학과 현대 기술을 결합하여 분석합니다',
+                    'traditional_saju.aiNote'.tr(),
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -241,12 +241,12 @@ class TraditionalSajuScreen extends ConsumerWidget {
 
   Widget _buildAnalysisItems(AppThemeExtension theme) {
     final items = [
-      {'icon': Icons.person_outline_rounded, 'title': '성격 분석', 'desc': '타고난 성격과 기질', 'color': const Color(0xFF6B48FF)},
-      {'icon': Icons.work_outline_rounded, 'title': '적성 분석', 'desc': '직업과 재능', 'color': const Color(0xFF10B981)},
-      {'icon': Icons.favorite_outline_rounded, 'title': '인연 분석', 'desc': '대인관계와 인연', 'color': const Color(0xFFEC4899)},
-      {'icon': Icons.timeline_rounded, 'title': '대운 분석', 'desc': '10년 주기 운의 흐름', 'color': const Color(0xFFF59E0B)},
-      {'icon': Icons.calendar_month_rounded, 'title': '세운 분석', 'desc': '올해의 운세', 'color': const Color(0xFF3B82F6)},
-      {'icon': Icons.account_balance_wallet_outlined, 'title': '재물운', 'desc': '재물과 금전운', 'color': const Color(0xFFEF4444)},
+      {'icon': Icons.person_outline_rounded, 'title': 'traditional_saju.itemPersonality'.tr(), 'desc': 'traditional_saju.itemPersonalityDesc'.tr(), 'color': const Color(0xFF6B48FF)},
+      {'icon': Icons.work_outline_rounded, 'title': 'traditional_saju.itemAptitude'.tr(), 'desc': 'traditional_saju.itemAptitudeDesc'.tr(), 'color': const Color(0xFF10B981)},
+      {'icon': Icons.favorite_outline_rounded, 'title': 'traditional_saju.itemRelation'.tr(), 'desc': 'traditional_saju.itemRelationDesc'.tr(), 'color': const Color(0xFFEC4899)},
+      {'icon': Icons.timeline_rounded, 'title': 'traditional_saju.itemDaeun'.tr(), 'desc': 'traditional_saju.itemDaeunDesc'.tr(), 'color': const Color(0xFFF59E0B)},
+      {'icon': Icons.calendar_month_rounded, 'title': 'traditional_saju.itemSeun'.tr(), 'desc': 'traditional_saju.itemSeunDesc'.tr(), 'color': const Color(0xFF3B82F6)},
+      {'icon': Icons.account_balance_wallet_outlined, 'title': 'traditional_saju.itemWealth'.tr(), 'desc': 'traditional_saju.itemWealthDesc'.tr(), 'color': const Color(0xFFEF4444)},
     ];
 
     return Column(
@@ -266,7 +266,7 @@ class TraditionalSajuScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '분석 항목',
+                'traditional_saju.analysisItems'.tr(),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
@@ -343,10 +343,10 @@ class TraditionalSajuScreen extends ConsumerWidget {
 
   Widget _buildFeatures(AppThemeExtension theme) {
     final features = [
-      {'icon': Icons.smart_toy_outlined, 'text': 'GPT-5.2 기반 정밀 분석'},
-      {'icon': Icons.sync_alt_rounded, 'text': '합충형파해 자동 계산'},
-      {'icon': Icons.stars_rounded, 'text': '십성 및 신살 분석'},
-      {'icon': Icons.all_inclusive_rounded, 'text': '무제한 질문 가능'},
+      {'icon': Icons.smart_toy_outlined, 'text': 'traditional_saju.featureGpt'.tr()},
+      {'icon': Icons.sync_alt_rounded, 'text': 'traditional_saju.featureHapchung'.tr()},
+      {'icon': Icons.stars_rounded, 'text': 'traditional_saju.featureSipsung'.tr()},
+      {'icon': Icons.all_inclusive_rounded, 'text': 'traditional_saju.featureUnlimited'.tr()},
     ];
 
     return Container(
@@ -377,9 +377,9 @@ class TraditionalSajuScreen extends ConsumerWidget {
                 child: const Icon(Icons.verified_rounded, color: _primaryColor, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text(
-                '사담 정통사주 특징',
-                style: TextStyle(
+              Text(
+                'traditional_saju.featuresTitle'.tr(),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: _primaryColor,
@@ -443,21 +443,21 @@ class TraditionalSajuScreen extends ConsumerWidget {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 22),
-            SizedBox(width: 10),
+            const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 22),
+            const SizedBox(width: 10),
             Text(
-              '사주 상담 시작하기',
-              style: TextStyle(
+              'traditional_saju.startButton'.tr(),
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
-            SizedBox(width: 6),
-            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 6),
+            const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
           ],
         ),
       ),

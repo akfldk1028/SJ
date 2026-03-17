@@ -17,6 +17,7 @@
 /// 45-60초
 
 import '../../core/ai_constants.dart';
+import '../common/locale_utils.dart';
 import '../common/prompt_template.dart';
 import 'lifetime_prompt.dart';
 
@@ -44,9 +45,10 @@ class SajuBasePhase4Prompt extends PromptTemplate {
 
   @override
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   String get _koreanSystemPrompt => '''
@@ -165,9 +167,9 @@ ${phase3Result['sinsal_gilseong']?['practical_implications'] ?? ''}
 - worst: ${phase3Result['daeun_detail']?['worst_daeun']?['period'] ?? ''}''';
 
     return switch (locale) {
+      'ko' => _buildKoreanPhase4Prompt(data, phasesRef),
       'ja' => _buildJapanesePhase4Prompt(data, phasesRef),
-      'en' => _buildEnglishPhase4Prompt(data, phasesRef),
-      _ => _buildKoreanPhase4Prompt(data, phasesRef),
+      _ => _buildEnglishPhase4Prompt(data, phasesRef),
     };
   }
 

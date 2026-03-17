@@ -1,0 +1,8 @@
+{
+  "loading": "Chargement des données...",
+  "ready": "Prêt !",
+  "newJourney": "Début d'un nouveau voyage",
+  "analyzing": "Préparation de l'analyse astrologique...",
+  "offline": "Mode hors ligne",
+  "connectionError": "Erreur de connexion"
+}

@@ -4,6 +4,7 @@
 /// Phase 16-C: 길성 행 UI 위젯
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -148,7 +149,7 @@ class GilseongRow extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '길성',
+                  'saju_chart.gilseong'.tr(),
                   style: TextStyle(
                     color: theme.textMuted,
                     fontSize: 13,
@@ -263,7 +264,7 @@ class SinsalGilseongTable extends StatelessWidget {
           Icon(Icons.auto_awesome, size: 18, color: theme.primaryColor),
           const SizedBox(width: 8),
           Text(
-            '신살과 길성',
+            'saju_chart.sinsalAndGilseong'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 14,
@@ -282,7 +283,7 @@ class SinsalGilseongTable extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '길 ${gilseongResult.totalGoodCount}',
+                  'saju_chart.gilCount'.tr(namedArgs: {'count': '${gilseongResult.totalGoodCount}'}),
                   style: const TextStyle(
                     color: AppColors.success,
                     fontSize: 13,
@@ -291,7 +292,7 @@ class SinsalGilseongTable extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '흉 ${gilseongResult.totalBadCount}',
+                  'saju_chart.hyungCount'.tr(namedArgs: {'count': '${gilseongResult.totalBadCount}'}),
                   style: const TextStyle(
                     color: AppColors.error,
                     fontSize: 13,
@@ -311,7 +312,7 @@ class SinsalGilseongTable extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.all(12),
         child: Text(
-          '특수 신살 없음',
+          'saju_chart.noSpecialSinsal'.tr(),
           style: TextStyle(
             color: theme.textMuted,
             fontSize: 13,
@@ -369,10 +370,10 @@ class SinsalGilseongTable extends StatelessWidget {
     return TableRow(
       children: [
         const SizedBox(height: 32),
-        _buildHeaderCell('시주', theme),
-        _buildHeaderCell('일주', theme),
-        _buildHeaderCell('월주', theme),
-        _buildHeaderCell('년주', theme),
+        _buildHeaderCell('saju_chart.hourPillar'.tr(), theme),
+        _buildHeaderCell('saju_chart.dayPillar'.tr(), theme),
+        _buildHeaderCell('saju_chart.monthPillar'.tr(), theme),
+        _buildHeaderCell('saju_chart.yearPillar'.tr(), theme),
       ],
     );
   }
@@ -399,7 +400,7 @@ class SinsalGilseongTable extends StatelessWidget {
         color: theme.surface.withValues(alpha: 0.5),
       ),
       children: [
-        _buildRowLabel('천간', theme),
+        _buildRowLabel('saju_chart.heavenlyStem'.tr(), theme),
         _buildGanCell(hourGan, theme),
         _buildGanCell(dayGan, theme),
         _buildGanCell(monthGan, theme),
@@ -452,7 +453,7 @@ class SinsalGilseongTable extends StatelessWidget {
   TableRow _buildJiRow(AppThemeExtension theme) {
     return TableRow(
       children: [
-        _buildRowLabel('지지', theme),
+        _buildRowLabel('saju_chart.earthlyBranch'.tr(), theme),
         _buildJiCell(hourJi, theme),
         _buildJiCell(dayJi, theme),
         _buildJiCell(monthJi, theme),
@@ -503,7 +504,7 @@ class SinsalGilseongTable extends StatelessWidget {
         color: theme.surface.withValues(alpha: 0.3),
       ),
       children: [
-        _buildRowLabel('길성', theme),
+        _buildRowLabel('saju_chart.gilseong'.tr(), theme),
         ...pillars.map((p) => _buildGanGilseongCell(p, theme)),
       ],
     );
@@ -523,7 +524,7 @@ class SinsalGilseongTable extends StatelessWidget {
         color: theme.surface.withValues(alpha: 0.3),
       ),
       children: [
-        _buildRowLabel('길성', theme),
+        _buildRowLabel('saju_chart.gilseong'.tr(), theme),
         ...pillars.map((p) => _buildJiGilseongCell(p, theme)),
       ],
     );
@@ -621,7 +622,7 @@ class GilseongSummaryCard extends StatelessWidget {
               Icon(Icons.stars, size: 16, color: theme.primaryColor),
               const SizedBox(width: 6),
               Text(
-                '특수 신살',
+                'saju_chart.specialSinsal'.tr(),
                 style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 13,
@@ -631,7 +632,7 @@ class GilseongSummaryCard extends StatelessWidget {
               const Spacer(),
               // 개수
               Text(
-                '${result.allUniqueSinsals.length}개',
+                'saju_chart.countUnit'.tr(namedArgs: {'count': '${result.allUniqueSinsals.length}'}),
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 13,
@@ -643,7 +644,7 @@ class GilseongSummaryCard extends StatelessWidget {
           // 신살 목록
           if (result.allUniqueSinsals.isEmpty)
             Text(
-              '특수 신살 없음',
+              'saju_chart.noSpecialSinsal'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 13,
@@ -712,7 +713,7 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
               Icon(Icons.info_outline, size: 16, color: theme.primaryColor),
               const SizedBox(width: 6),
               Text(
-                '특수 상태',
+                'saju_chart.specialState'.tr(),
                 style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 13,
@@ -730,36 +731,36 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
               // 효신살
               if (result.hasHyosinsal)
                 _buildInfoChip(
-                  '효신살',
-                  '어머니 영향 강함',
+                  'saju_chart.hyosinsal'.tr(),
+                  'saju_chart.motherInfluenceStrong'.tr(),
                   AppColors.accent,
                 ),
               // 고신살 (남자)
               if (isMale && result.hasGosinsal)
                 _buildInfoChip(
-                  '고신살',
-                  '배우자운 주의',
+                  'saju_chart.gosinsal'.tr(),
+                  'saju_chart.spouseFortuneWarning'.tr(),
                   AppColors.error,
                 ),
               // 과숙살 (여자)
               if (!isMale && result.hasGwasuksal)
                 _buildInfoChip(
-                  '과숙살',
-                  '배우자운 주의',
+                  'saju_chart.gwasuksal'.tr(),
+                  'saju_chart.spouseFortuneWarning'.tr(),
                   AppColors.error,
                 ),
               // 천라지망
               if (result.hasCheollaJimang)
                 _buildInfoChip(
-                  '천라지망',
-                  '진술충 - 답답함',
+                  'saju_chart.cheonraJimang'.tr(),
+                  'saju_chart.jinsulchung'.tr(),
                   AppColors.error,
                 ),
               // 원진살
               if (result.wonJinsalCount > 0)
                 _buildInfoChip(
-                  '원진살 ${result.wonJinsalCount}개',
-                  '관계 갈등 주의',
+                  'saju_chart.wonJinsalCount'.tr(namedArgs: {'count': '${result.wonJinsalCount}'}),
+                  'saju_chart.relationConflictWarning'.tr(),
                   AppColors.warning,
                 ),
             ],

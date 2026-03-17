@@ -85,5 +85,36 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "fitToScreen": "Fit to screen",
-  "resetView": "Reset"
+  "resetView": "Reset",
+  "saveProfile": "Save Profile",
+  "leapMonthLabel": "Leap Month",
+  "leapMonthTooltipYes": "This date falls in a leap month.",
+  "leapMonthTooltipNo": "There is no leap month in this year/month.",
+
+  "relationTypeMe": "Me",
+  "relationTypeAdmin": "Admin",
+
+  "relationFamilyParent": "Parent",
+  "relationFamilyChild": "Child",
+  "relationFamilySibling": "Sibling",
+  "relationFamilySpouse": "Spouse",
+  "relationFamilyGrandparent": "Grandparent",
+  "relationFamilyInLaw": "In-law",
+  "relationFamilyOther": "Other Family",
+
+  "relationRomanticPartner": "Partner",
+  "relationRomanticCrush": "Crush",
+  "relationRomanticEx": "Ex-partner",
+
+  "relationFriendClose": "Close Friend",
+  "relationFriendGeneral": "Friend",
+
+  "relationWorkColleague": "Colleague",
+  "relationWorkBoss": "Boss",
+  "relationWorkSubordinate": "Subordinate",
+  "relationWorkClient": "Client",
+
+  "relationBusinessPartner": "Business Partner",
+  "relationMentor": "Mentor",
+  "relationOther": "Other"
 }

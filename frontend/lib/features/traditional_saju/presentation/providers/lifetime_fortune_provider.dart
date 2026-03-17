@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../AI/data/queries.dart';
+import '../../../../AI/fortune/common/locale_utils.dart';
 import '../../../../AI/fortune/lifetime/lifetime_queries.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../core/services/error_logging_service.dart';
@@ -113,7 +115,7 @@ class LifetimeFortuneData {
     final mySajuIntroJson = parsedJson['mySajuIntro'] as Map<String, dynamic>?;
     if (mySajuIntroJson != null) {
       mySajuIntro = MySajuIntroSection(
-        title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
+        title: mySajuIntroJson['title'] as String? ?? 'lifetime_fortune.mySajuTitle'.tr(),
         ilju: mySajuIntroJson['ilju'] as String? ?? '',
         reading: mySajuIntroJson['reading'] as String? ?? '',
       );
@@ -220,7 +222,7 @@ class LifetimeFortuneData {
     // NOTE: reading은 AI 응답에 없으므로 _buildXxxReading() 함수로 생성
     final categories = <String, CategoryFortuneData>{
       'career': CategoryFortuneData(
-        title: '직업운',
+        title: 'lifetime_fortune.careerFortune'.tr(),
         score: _calculateScore(careerJson),
         reading: careerJson['reading'] as String? ?? _buildCareerReading(career),
         advice: career.advice.isNotEmpty ? career.advice : null,
@@ -232,7 +234,7 @@ class LifetimeFortuneData {
         leadershipPotential: career.leadershipPotential.isNotEmpty ? career.leadershipPotential : null,
       ),
       'business': CategoryFortuneData(
-        title: '사업운',
+        title: 'lifetime_fortune.businessFortune'.tr(),
         score: _calculateScore(businessJson),
         reading: businessJson['reading'] as String? ?? _buildBusinessReading(business),
         advice: business.advice.isNotEmpty ? business.advice : null,
@@ -244,7 +246,7 @@ class LifetimeFortuneData {
         businessPartnerTraits: business.businessPartnerTraits.isNotEmpty ? business.businessPartnerTraits : null,
       ),
       'wealth': CategoryFortuneData(
-        title: '재물운',
+        title: 'lifetime_fortune.wealthFortune'.tr(),
         score: _calculateScore(wealthJson),
         reading: wealthJson['reading'] as String? ?? _buildWealthReading(wealth),
         advice: wealth.advice.isNotEmpty ? wealth.advice : null,
@@ -257,7 +259,7 @@ class LifetimeFortuneData {
         investmentAptitude: wealth.investmentAptitude.isNotEmpty ? wealth.investmentAptitude : null,
       ),
       'love': CategoryFortuneData(
-        title: '연애운',
+        title: 'lifetime_fortune.loveFortune'.tr(),
         score: _calculateScore(loveJson),
         reading: loveJson['reading'] as String? ?? _buildLoveReading(love),
         advice: love.advice.isNotEmpty ? love.advice : null,
@@ -270,7 +272,7 @@ class LifetimeFortuneData {
         idealPartnerTraits: love.idealPartnerTraits,
       ),
       'marriage': CategoryFortuneData(
-        title: '결혼운',
+        title: 'lifetime_fortune.marriageFortune'.tr(),
         score: _calculateScore(marriageJson),
         reading: marriageJson['reading'] as String? ?? _buildMarriageReading(marriage),
         advice: marriage.advice.isNotEmpty ? marriage.advice : null,
@@ -282,7 +284,7 @@ class LifetimeFortuneData {
         marriedLifeTendency: marriage.marriedLifeTendency.isNotEmpty ? marriage.marriedLifeTendency : null,
       ),
       'health': CategoryFortuneData(
-        title: '건강운',
+        title: 'lifetime_fortune.healthFortune'.tr(),
         score: _calculateScore(healthJson),
         reading: healthJson['reading'] as String? ?? _buildHealthReading(health),
         cautions: health.potentialIssues,            // 잠재적 문제 → 주의사항
@@ -1209,19 +1211,19 @@ class PhaseProgressData {
     final sections = <String>[];
 
     // Phase 1 결과
-    if (partialResult!.containsKey('personality')) sections.add('성격');
-    if (partialResult!.containsKey('lucky_elements')) sections.add('행운요소');
+    if (partialResult!.containsKey('personality')) sections.add('lifetime_fortune.sectionPersonality'.tr());
+    if (partialResult!.containsKey('lucky_elements')) sections.add('lifetime_fortune.sectionLucky'.tr());
 
     // Phase 2 결과
-    if (partialResult!.containsKey('wealth')) sections.add('재물운');
-    if (partialResult!.containsKey('career')) sections.add('직업운');
-    if (partialResult!.containsKey('love')) sections.add('연애운');
+    if (partialResult!.containsKey('wealth')) sections.add('lifetime_fortune.sectionWealth'.tr());
+    if (partialResult!.containsKey('career')) sections.add('lifetime_fortune.sectionCareer'.tr());
+    if (partialResult!.containsKey('love')) sections.add('lifetime_fortune.sectionLove'.tr());
 
     // Phase 3 결과
-    if (partialResult!.containsKey('health')) sections.add('건강운');
+    if (partialResult!.containsKey('health')) sections.add('lifetime_fortune.sectionHealth'.tr());
 
     // Phase 4 결과
-    if (partialResult!.containsKey('summary')) sections.add('종합');
+    if (partialResult!.containsKey('summary')) sections.add('lifetime_fortune.sectionOverall'.tr());
 
     return sections;
   }
@@ -1242,15 +1244,15 @@ class PhaseProgressData {
   String get currentAnalysisDetail {
     switch (currentPhase) {
       case 1:
-        return '원국 분석 → 성격/행운요소 도출 중';
+        return 'lifetime_fortune.analysisPhase1'.tr();
       case 2:
-        return '재물/직업/연애/결혼운 분석 중';
+        return 'lifetime_fortune.analysisPhase2'.tr();
       case 3:
-        return '건강/대운 상세 분석 중';
+        return 'lifetime_fortune.analysisPhase3'.tr();
       case 4:
-        return '인생주기/전성기/종합조언 작성 중';
+        return 'lifetime_fortune.analysisPhase4'.tr();
       default:
-        return '사주 분석 시작 준비 중';
+        return 'lifetime_fortune.analysisDefault'.tr();
     }
   }
 }
@@ -1350,7 +1352,7 @@ class LifetimeFortune extends _$LifetimeFortune {
     final queries = LifetimeQueries(Supabase.instance.client);
 
     try {
-      final result = await queries.getCached(activeProfile.id, includeStale: true);
+      final result = await queries.getCached(activeProfile.id, includeStale: true, locale: FortuneLocaleUtils.currentLocale);
 
       // 캐시가 있으면 반환
       if (result != null) {
@@ -1442,7 +1444,7 @@ class LifetimeFortune extends _$LifetimeFortune {
 
     try {
       final queries = LifetimeQueries(Supabase.instance.client);
-      final result = await queries.getCached(profileId);
+      final result = await queries.getCached(profileId, locale: FortuneLocaleUtils.currentLocale);
 
       if (result != null && result['content'] != null) {
         print('[LifetimeFortune] ✅ 폴링 성공 - 데이터 발견! UI 자동 갱신');
@@ -1487,7 +1489,6 @@ class LifetimeFortune extends _$LifetimeFortune {
       userId: user.id,
       profileId: profileId,
       runInBackground: true,
-      locale: 'ko',
       onComplete: (result) {
         _isAnalyzing = false;
         print('[LifetimeFortune] ✅ saju_base 분석 완료: ${result.success}');
@@ -1524,7 +1525,7 @@ class LifetimeFortune extends _$LifetimeFortune {
 
     try {
       final queries = LifetimeQueries(Supabase.instance.client);
-      final result = await queries.getCached(profileId);
+      final result = await queries.getCached(profileId, locale: FortuneLocaleUtils.currentLocale);
 
       // _isStale가 아닌 새 버전 데이터가 존재하면 갱신
       if (result != null && result['_isStale'] != true && result['content'] != null) {

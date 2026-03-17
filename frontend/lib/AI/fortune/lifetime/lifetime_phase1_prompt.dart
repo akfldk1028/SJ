@@ -18,6 +18,7 @@
 /// 60-90초
 
 import '../../core/ai_constants.dart';
+import '../common/locale_utils.dart';
 import '../common/prompt_template.dart';
 import 'lifetime_prompt.dart';
 
@@ -45,9 +46,10 @@ class SajuBasePhase1Prompt extends PromptTemplate {
 
   @override
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   String get _koreanSystemPrompt => '''
@@ -194,9 +196,9 @@ Respond ONLY in JSON format. All values must be written in English.
     final data = SajuInputData.fromJson(input!);
 
     return switch (locale) {
+      'ko' => _buildKoreanUserPrompt(data),
       'ja' => _buildJapaneseUserPrompt(data),
-      'en' => _buildEnglishUserPrompt(data),
-      _ => _buildKoreanUserPrompt(data),
+      _ => _buildEnglishUserPrompt(data),
     };
   }
 

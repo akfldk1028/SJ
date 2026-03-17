@@ -226,6 +226,7 @@ class FortuneCoordinator {
     required String birthDate,
     String? birthTime,
     required String gender,
+    String locale = 'ko',
   }) async {
     // v6.1 중복 분석 방지
     if (_analyzingProfiles.contains(profileId)) {
@@ -276,6 +277,7 @@ class FortuneCoordinator {
             userId: userId,
             profileId: profileId,
             inputData: inputData,
+            locale: locale,
           )
           .then((result) {
         yearly2026Result = result;
@@ -299,6 +301,7 @@ class FortuneCoordinator {
             userId: userId,
             profileId: profileId,
             inputData: inputData,
+            locale: locale,
           )
           .then((result) {
         monthlyResult = result;
@@ -322,6 +325,7 @@ class FortuneCoordinator {
             userId: userId,
             profileId: profileId,
             inputData: inputData,
+            locale: locale,
           )
           .then((result) {
         yearly2025Result = result;
@@ -360,6 +364,7 @@ class FortuneCoordinator {
               userId: userId,
               profileId: profileId,
               inputData: inputData,
+              locale: locale,
             )
             .then((result) {
           dailyResult = result;
@@ -436,12 +441,14 @@ class FortuneCoordinator {
     required String profileId,
     required FortuneInputData inputData,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) {
     return _yearly2026Service.analyze(
       userId: userId,
       profileId: profileId,
       inputData: inputData,
       forceRefresh: forceRefresh,
+      locale: locale,
     );
   }
 
@@ -453,6 +460,7 @@ class FortuneCoordinator {
     int? year,
     int? month,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) {
     return _monthlyService.analyze(
       userId: userId,
@@ -461,6 +469,7 @@ class FortuneCoordinator {
       year: year,
       month: month,
       forceRefresh: forceRefresh,
+      locale: locale,
     );
   }
 
@@ -470,12 +479,14 @@ class FortuneCoordinator {
     required String profileId,
     required FortuneInputData inputData,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) {
     return _yearly2025Service.analyze(
       userId: userId,
       profileId: profileId,
       inputData: inputData,
       forceRefresh: forceRefresh,
+      locale: locale,
     );
   }
 
@@ -491,6 +502,7 @@ class FortuneCoordinator {
     required FortuneInputData inputData,
     DateTime? targetDate,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) {
     return _dailyService.analyze(
       userId: userId,
@@ -498,6 +510,7 @@ class FortuneCoordinator {
       inputData: inputData,
       targetDate: targetDate,
       forceRefresh: forceRefresh,
+      locale: locale,
     );
   }
 
@@ -514,6 +527,7 @@ class FortuneCoordinator {
     required String profileId,
     DateTime? targetDate,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
     // v7.4: Daily 전용 중복 분석 방지
     // 🔧 v7.4.1: DateTime.now() → KoreaDateUtils.today (한국 시간 기준!)
@@ -586,6 +600,7 @@ class FortuneCoordinator {
         inputData: inputData,
         targetDate: targetDate,
         forceRefresh: forceRefresh,
+        locale: locale,
       );
       return result;
     } catch (e) {
@@ -655,6 +670,7 @@ class FortuneCoordinator {
     void Function()? onMonthlyComplete,
     void Function()? onYearly2026Complete,
     void Function()? onYearly2025Complete,
+    String locale = 'ko',
   }) async {
     // v6.1 중복 분석 방지
     if (_analyzingProfiles.contains(profileId)) {
@@ -722,7 +738,7 @@ class FortuneCoordinator {
       DailyResult? dailyResult;
 
       final yearly2026Future = _yearly2026Service
-          .analyze(userId: userId, profileId: profileId, inputData: inputData)
+          .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
           .then((result) {
         yearly2026Result = result;
         print('[FortuneCoordinator] ✅ 2026 신년운세 완료');
@@ -741,7 +757,7 @@ class FortuneCoordinator {
       });
 
       final monthlyFuture = _monthlyService
-          .analyze(userId: userId, profileId: profileId, inputData: inputData)
+          .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
           .then((result) {
         monthlyResult = result;
         print('[FortuneCoordinator] ✅ 이번달 운세 완료');
@@ -760,7 +776,7 @@ class FortuneCoordinator {
       });
 
       final yearly2025Future = _yearly2025Service
-          .analyze(userId: userId, profileId: profileId, inputData: inputData)
+          .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
           .then((result) {
         yearly2025Result = result;
         print('[FortuneCoordinator] ✅ 2025 회고운세 완료');
@@ -794,7 +810,7 @@ class FortuneCoordinator {
         print('[FortuneCoordinator] 🔒 Daily 분석 잠금 (analyzeFortuneOnly): $dailyKey');
 
         dailyFuture = _dailyService
-            .analyze(userId: userId, profileId: profileId, inputData: inputData)
+            .analyze(userId: userId, profileId: profileId, inputData: inputData, locale: locale)
             .then((result) {
           dailyResult = result;
           _analyzingDaily.remove(dailyKey); // v7.4: 완료 시 잠금 해제
@@ -877,12 +893,12 @@ class FortuneCoordinator {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /// 모든 운세 캐시 상태 확인
-  Future<Map<String, bool>> checkAllCaches(String profileId) async {
+  Future<Map<String, bool>> checkAllCaches(String profileId, {String locale = 'ko'}) async {
     final results = await Future.wait([
-      _yearly2026Service.hasCached(profileId),
-      _monthlyService.hasCached(profileId),
-      _yearly2025Service.hasCached(profileId),
-      _dailyService.hasTodayCached(profileId),
+      _yearly2026Service.hasCached(profileId, locale: locale),
+      _monthlyService.hasCached(profileId, locale: locale),
+      _yearly2025Service.hasCached(profileId, locale: locale),
+      _dailyService.hasTodayCached(profileId, locale: locale),
     ]);
 
     return {
@@ -895,13 +911,14 @@ class FortuneCoordinator {
 
   /// 모든 캐시된 운세 조회
   Future<Map<String, Map<String, dynamic>?>> getAllCached(
-    String profileId,
-  ) async {
+    String profileId, {
+    String locale = 'ko',
+  }) async {
     final results = await Future.wait([
-      _yearly2026Service.getCached(profileId),
-      _monthlyService.getCached(profileId),
-      _yearly2025Service.getCached(profileId),
-      _dailyService.getTodayCached(profileId),
+      _yearly2026Service.getCached(profileId, locale: locale),
+      _monthlyService.getCached(profileId, locale: locale),
+      _yearly2025Service.getCached(profileId, locale: locale),
+      _dailyService.getTodayCached(profileId, locale: locale),
     ]);
 
     return {
@@ -913,13 +930,13 @@ class FortuneCoordinator {
   }
 
   /// 오늘 일운 캐시 확인
-  Future<bool> hasDailyCached(String profileId) {
-    return _dailyService.hasTodayCached(profileId);
+  Future<bool> hasDailyCached(String profileId, {String locale = 'ko'}) {
+    return _dailyService.hasTodayCached(profileId, locale: locale);
   }
 
   /// 오늘 일운 캐시 조회
-  Future<Map<String, dynamic>?> getDailyCached(String profileId) {
-    return _dailyService.getTodayCached(profileId);
+  Future<Map<String, dynamic>?> getDailyCached(String profileId, {String locale = 'ko'}) {
+    return _dailyService.getTodayCached(profileId, locale: locale);
   }
 }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../AI/fortune/common/locale_utils.dart';
 import '../../../../ad/ad.dart';
 import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../router/routes.dart';
@@ -17,6 +18,9 @@ class MainScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 앱 locale 동기화 (easy_localization → FortuneLocaleUtils)
+    FortuneLocaleUtils.setCurrentLocale(context.locale.languageCode);
+
     return Scaffold(
       body: child,
       bottomNavigationBar: Column(

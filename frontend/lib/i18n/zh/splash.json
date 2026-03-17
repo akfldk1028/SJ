@@ -1,0 +1,8 @@
+{
+  "loading": "数据加载中...",
+  "ready": "准备完毕！",
+  "newJourney": "开始新的旅程",
+  "analyzing": "四柱八字分析准备中...",
+  "offline": "离线模式",
+  "connectionError": "连接错误"
+}

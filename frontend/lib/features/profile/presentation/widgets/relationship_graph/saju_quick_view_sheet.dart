@@ -300,7 +300,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      '${profile.birthTimeFormatted} 출생',
+                      '${profile.birthTimeFormatted} ${'profile.born'.tr()}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: appTheme.isDark ? Colors.grey[400] : Colors.grey[600],
                         fontSize: 12.5,
@@ -347,16 +347,16 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
           Row(
             children: [
               _buildPillarColumn(
-                context, '시주', chart.hourPillar, chart.hasUnknownBirthTime,
+                context, 'saju_chart.hourPillar'.tr(), chart.hourPillar, chart.hasUnknownBirthTime,
               ),
               const SizedBox(width: 6),
               _buildPillarColumn(
-                context, '일주', chart.dayPillar, false, isDayMaster: true,
+                context, 'saju_chart.dayPillar'.tr(), chart.dayPillar, false, isDayMaster: true,
               ),
               const SizedBox(width: 6),
-              _buildPillarColumn(context, '월주', chart.monthPillar, false),
+              _buildPillarColumn(context, 'saju_chart.monthPillar'.tr(), chart.monthPillar, false),
               const SizedBox(width: 6),
-              _buildPillarColumn(context, '년주', chart.yearPillar, false),
+              _buildPillarColumn(context, 'saju_chart.yearPillar'.tr(), chart.yearPillar, false),
             ],
           ),
 
@@ -390,7 +390,7 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '일간(나)',
+                  '${'saju_chart.dayStem'.tr()}(${'saju_chart.me'.tr()})',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: isDark ? Colors.grey[500] : Colors.grey[500],
@@ -694,15 +694,15 @@ class _SajuQuickViewSheetState extends ConsumerState<SajuQuickViewSheet> {
   String _getOhengText(String oheng) {
     switch (oheng) {
       case '목':
-        return '목(木)';
+        return 'saju_chart.elementWoodHanjaLabel'.tr();
       case '화':
-        return '화(火)';
+        return 'saju_chart.elementFireHanjaLabel'.tr();
       case '토':
-        return '토(土)';
+        return 'saju_chart.elementEarthHanjaLabel'.tr();
       case '금':
-        return '금(金)';
+        return 'saju_chart.elementMetalHanjaLabel'.tr();
       case '수':
-        return '수(水)';
+        return 'saju_chart.elementWaterHanjaLabel'.tr();
       default:
         return oheng;
     }

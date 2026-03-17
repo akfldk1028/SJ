@@ -81,7 +81,7 @@ class FirstMentionResult {
   final String? name;
 
   /// "나" 카테고리인지
-  bool get isOwnerCategory => category == '나';
+  bool get isOwnerCategory => category == '나' || category == 'me';
 
   /// 멘션이 존재하는지
   bool get hasMention => category != null && name != null;
@@ -121,8 +121,17 @@ class MentionParser {
   /// 인연 목록 (프로필 ID 매칭용)
   final List<ProfileRelationModel> relations;
 
-  /// 카테고리 매핑 (한글 → relation_type prefix)
+  /// 카테고리 매핑 (카테고리 키 → relation_type prefix)
+  /// 영문 키 + 한글 키 모두 지원 (기존 멘션 호환)
   static const categoryMapping = {
+    // 영문 키 (신규)
+    'me': 'owner',
+    'family': 'family',
+    'romantic': 'romantic',
+    'friend': 'friend',
+    'work': 'work',
+    'other': 'other',
+    // 한글 키 (기존 호환)
     '나': 'owner',
     '가족': 'family',
     '연인': 'romantic',
@@ -193,8 +202,8 @@ class MentionParser {
         print('[MentionParser] 멘션 발견: @$category/$name');
       }
 
-      // "나" 멘션인 경우
-      if (category == '나') {
+      // "나" 멘션인 경우 (한글/영문 모두 지원)
+      if (category == '나' || category == 'me') {
         includesOwner = true;
         mentions.add(ParsedMention(
           category: category,
@@ -273,17 +282,22 @@ class MentionParser {
     return null;
   }
 
-  /// 카테고리와 relation_type 매칭 확인
+  /// 카테고리와 relation_type 매칭 확인 (영문/한글 키 모두 지원)
   bool _categoryMatchesRelationType(String category, String relationType) {
     switch (category) {
+      case 'family':
       case '가족':
         return relationType.startsWith('family');
+      case 'romantic':
       case '연인':
         return relationType.startsWith('romantic');
+      case 'friend':
       case '친구':
         return relationType.startsWith('friend');
+      case 'work':
       case '직장':
         return relationType.startsWith('work');
+      case 'other':
       case '기타':
         return relationType == 'other' || relationType.startsWith('other')
             || relationType == 'business_partner' || relationType == 'mentor';

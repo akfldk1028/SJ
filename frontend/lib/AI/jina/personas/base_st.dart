@@ -26,7 +26,7 @@ class BaseStPersona extends PersonaBase {
   PersonaTone get tone => PersonaTone.polite;
 
   @override
-  int get emojiLevel => 1;
+  int get emojiLevel => 0;
 
   @override
   PersonaCategory get category => PersonaCategory.expert;

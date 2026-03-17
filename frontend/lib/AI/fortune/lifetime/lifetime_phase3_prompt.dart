@@ -19,6 +19,7 @@
 /// Phase 2와 병렬 실행 가능 (둘 다 Phase 1에만 의존)
 
 import '../../core/ai_constants.dart';
+import '../common/locale_utils.dart';
 import '../common/prompt_template.dart';
 import 'lifetime_prompt.dart';
 
@@ -46,9 +47,10 @@ class SajuBasePhase3Prompt extends PromptTemplate {
 
   @override
   String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
     'ja' => _japaneseSystemPrompt,
     'en' => _englishSystemPrompt,
-    _ => _koreanSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
   };
 
   String get _koreanSystemPrompt => '''
@@ -153,9 +155,9 @@ ${_buildDaeunSection(data.daeun)}''';
 ${phase1Result['hapchung_analysis']?['overall_impact'] ?? ''}''';
 
     return switch (locale) {
+      'ko' => _buildKoreanPhase3Prompt(data, sajuDataSection, phase1RefSection),
       'ja' => _buildJapanesePhase3Prompt(data, sajuDataSection, phase1RefSection),
-      'en' => _buildEnglishPhase3Prompt(data, sajuDataSection, phase1RefSection),
-      _ => _buildKoreanPhase3Prompt(data, sajuDataSection, phase1RefSection),
+      _ => _buildEnglishPhase3Prompt(data, sajuDataSection, phase1RefSection),
     };
   }
 

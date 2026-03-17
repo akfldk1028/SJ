@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import '../../../../AI/fortune/common/locale_utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -501,7 +503,6 @@ class ChatNotifier extends _$ChatNotifier {
         userId: user.id,
         profileId: profileId,
         runInBackground: true,
-        locale: 'ko',
         onComplete: (result) {
           if (kDebugMode) {
             print('[ChatNotifier] saju_base 백그라운드 완료: '
@@ -543,6 +544,7 @@ class ChatNotifier extends _$ChatNotifier {
     bool isThirdPartyCompatibility = false,  // v6.0 (Phase 57): 나 제외 모드
     String? relationType,  // v8.1: 관계 유형 (family_parent, romantic_partner 등)
     List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})>? additionalParticipants,  // v10.0: 3번째 이후 참가자
+    String locale = 'ko',  // v13.0: 다국어
   }) {
     final builder = SystemPromptBuilder();
     return builder.build(
@@ -559,6 +561,7 @@ class ChatNotifier extends _$ChatNotifier {
       isThirdPartyCompatibility: isThirdPartyCompatibility,  // v6.0
       relationType: relationType,  // v8.1: 관계 유형
       additionalParticipants: additionalParticipants,  // v10.0: 3번째 이후 참가자
+      locale: locale,  // v13.0: 다국어 전달
     );
   }
 
@@ -921,6 +924,9 @@ class ChatNotifier extends _$ChatNotifier {
       // isFirstMessage → isFirstMessageInSession (기존 로깅용)
       // 궁합 모드에서는 항상 사주 정보 포함 (shouldLoadSaju)
 
+      // v13.0: 현재 앱 언어 가져오기 (easy_localization 동기화된 locale 사용)
+      final locale = FortuneLocaleUtils.currentLocale;
+
       final systemPrompt = _buildFullSystemPrompt(
         basePrompt: basePrompt,
         aiSummary: aiSummary,
@@ -935,6 +941,7 @@ class ChatNotifier extends _$ChatNotifier {
         isThirdPartyCompatibility: isThirdPartyCompatibility,  // v6.0: 나 제외 모드
         relationType: isCompatibilityMode ? relationType : null,  // v8.1: 관계 유형
         additionalParticipants: additionalParticipants.isNotEmpty ? additionalParticipants : null,  // v10.0: 3번째 이후 참가자
+        locale: locale,  // v13.0: 다국어
       );
 
       // [4] 시스템 프롬프트 구성

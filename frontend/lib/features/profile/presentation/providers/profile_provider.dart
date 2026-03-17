@@ -1,3 +1,4 @@
+import '../../../../AI/fortune/common/locale_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -604,6 +605,7 @@ class ProfileForm extends _$ProfileForm {
       isActive: existingProfile?.isActive ?? (editingId == null),
       relationType: state.relationType,
       memo: state.memo,
+      locale: FortuneLocaleUtils.currentLocale,
     );
 
     if (editingId != null) {
@@ -791,9 +793,11 @@ class ProfileForm extends _$ProfileForm {
     // fire-and-forget
     // v7.3: analyzeFortuneOnly() 사용 - 프로필 정보를 내부에서 DB 조회
     // v8.1: 각 운세 타입별 완료 즉시 UI 갱신 (Future.wait 대기 안 함!)
+    final locale = FortuneLocaleUtils.currentLocale;
     fortuneCoordinator.analyzeFortuneOnly(
       userId: userId,
       profileId: profileId,
+      locale: locale,
       onDailyComplete: () {
         print('[Profile] 🔔 일운 완료 → UI 즉시 갱신');
         ref.invalidate(dailyFortuneProvider);

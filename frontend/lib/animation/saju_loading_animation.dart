@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 /// 사주팔자 8글자 로딩 애니메이션 (v2 - 역동적 + 모던)
@@ -212,9 +213,9 @@ class _SajuLoadingAnimationState extends State<SajuLoadingAnimation>
               Colors.white.withOpacity(0.6 + _glowController.value * 0.4),
             ],
           ).createShader(bounds),
-          child: const Text(
-            '당신의 사주팔자',
-            style: TextStyle(
+          child: Text(
+            'lifetime_fortune.loadingTitle'.tr(),
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w300,
               color: Colors.white,

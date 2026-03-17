@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,7 @@ class HomeScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '오늘의 운세',
+                              'menu.todayFortune'.tr(),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: theme.textMuted,
@@ -88,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
                       myProfileAsync.when(
                         data: (profile) => _buildUserChip(
                           theme,
-                          profile?.displayName ?? '프로필',
+                          profile?.displayName ?? 'menu.profile'.tr(),
                           () {
                             // 프로필 있으면 수정 모드, 없으면 신규 생성 모드
                             if (profile != null) {
@@ -98,8 +99,8 @@ class HomeScreen extends ConsumerWidget {
                             }
                           },
                         ),
-                        loading: () => _buildUserChip(theme, '로딩...', () {}),
-                        error: (_, __) => _buildUserChip(theme, '프로필', () {}),
+                        loading: () => _buildUserChip(theme, 'menu.loading'.tr(), () {}),
+                        error: (_, __) => _buildUserChip(theme, 'menu.profile'.tr(), () {}),
                       ),
                     ],
                   ),
@@ -117,7 +118,7 @@ class HomeScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '오늘의 운세',
+                        'menu.todayFortune'.tr(),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -125,7 +126,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        '전체보기',
+                        'menu.seeAll'.tr(),
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.textMuted,
@@ -163,7 +164,7 @@ class HomeScreen extends ConsumerWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Text(
-                    '오늘의 조언',
+                    'daily_fortune.todayAdvice'.tr(),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -328,19 +329,19 @@ class HomeScreen extends ConsumerWidget {
                 String gradeText;
                 String gradeEmoji;
                 if (score >= 90) {
-                  gradeText = '대길(大吉)';
+                  gradeText = 'daily_fortune.gradeGreat'.tr();
                   gradeEmoji = '🌕';
                 } else if (score >= 75) {
-                  gradeText = '길(吉)';
+                  gradeText = 'daily_fortune.gradeGood'.tr();
                   gradeEmoji = '🌔';
                 } else if (score >= 60) {
-                  gradeText = '소길(小吉)';
+                  gradeText = 'daily_fortune.gradeSmallGood'.tr();
                   gradeEmoji = '🌓';
                 } else if (score >= 45) {
-                  gradeText = '보통(普通)';
+                  gradeText = 'daily_fortune.gradeNormal'.tr();
                   gradeEmoji = '🌗';
                 } else {
-                  gradeText = '주의(注意)';
+                  gradeText = 'daily_fortune.gradeCaution'.tr();
                   gradeEmoji = '🌑';
                 }
 
@@ -357,7 +358,7 @@ class HomeScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '오늘의 총운',
+                                'daily_fortune.todayOverall'.tr(),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: theme.textMuted,
@@ -400,7 +401,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  '운세 분석 중...',
+                                  'daily_fortune.fortuneAnalyzing'.tr(),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: theme.textMuted,
@@ -428,7 +429,7 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  '종합 운세 점수',
+                                  'daily_fortune.overallScore'.tr(),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: theme.textMuted,
@@ -511,7 +512,7 @@ class HomeScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '오늘의 총운',
+                    'daily_fortune.todayOverall'.tr(),
                     style: TextStyle(
                       fontSize: 12,
                       color: theme.textMuted,
@@ -536,7 +537,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '운세 분석 중...',
+            'daily_fortune.fortuneAnalyzing'.tr(),
             style: TextStyle(fontSize: 14, color: theme.textMuted),
           ),
           const SizedBox(height: 16),
@@ -568,7 +569,7 @@ class HomeScreen extends ConsumerWidget {
           Icon(Icons.error_outline, size: 48, color: theme.textMuted),
           const SizedBox(height: 16),
           Text(
-            '운세를 불러올 수 없습니다',
+            'daily_fortune.errorLoadFortune'.tr(),
             style: TextStyle(fontSize: 14, color: theme.textMuted),
           ),
         ],
@@ -590,11 +591,11 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildCategoryList(BuildContext context, AppThemeExtension theme, AsyncValue<DailyFortuneData?> fortuneAsync, double horizontalPadding) {
     // 카테고리 키 매핑 (DB key -> 표시명)
     // NOTE: DB는 'wealth', 'work' 키 사용 (money/career X)
-    const categoryMap = [
-      {'key': 'wealth', 'icon': '💰', 'name': '재물운'},
-      {'key': 'love', 'icon': '💕', 'name': '애정운'},
-      {'key': 'work', 'icon': '💼', 'name': '직장운'},
-      {'key': 'health', 'icon': '🏥', 'name': '건강운'},
+    final categoryMap = [
+      {'key': 'wealth', 'icon': '💰', 'name': 'common.category_wealth'.tr()},
+      {'key': 'love', 'icon': '💕', 'name': 'common.category_love'.tr()},
+      {'key': 'work', 'icon': '💼', 'name': 'common.category_work'.tr()},
+      {'key': 'health', 'icon': '🏥', 'name': 'common.category_health'.tr()},
     ];
 
     // 반응형: 고정 높이 대신 IntrinsicHeight로 콘텐츠에 맞춤
@@ -657,7 +658,7 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           )
                         : Text(
-                            '$score점',
+                            'daily_fortune.scoreWithValue'.tr(namedArgs: {'score': '$score'}),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -843,7 +844,7 @@ class HomeScreen extends ConsumerWidget {
           error: (e, _) => Padding(
             padding: const EdgeInsets.all(24),
             child: Text(
-              '사자성어를 불러올 수 없습니다.',
+              'daily_fortune.errorLoadIdiom'.tr(),
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textMuted,
@@ -929,7 +930,7 @@ class HomeScreen extends ConsumerWidget {
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  '조언을 불러올 수 없습니다.',
+                  'daily_fortune.errorLoadAdvice'.tr(),
                   style: TextStyle(
                     fontSize: 14,
                     fontStyle: FontStyle.italic,
@@ -974,7 +975,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '프로필을 등록해주세요',
+                'daily_fortune.noProfile'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -983,7 +984,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '생년월일을 입력하면 사주팔자를 분석해드립니다',
+                'daily_fortune.noProfileDesc'.tr(),
                 style: TextStyle(
                   fontSize: 13,
                   color: theme.textMuted,

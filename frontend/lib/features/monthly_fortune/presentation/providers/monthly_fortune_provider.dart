@@ -1,3 +1,4 @@
+import '../../../../AI/fortune/common/locale_utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -406,12 +407,14 @@ class MonthlyFortune extends _$MonthlyFortune {
       FortuneCoordinator.resetAnalyzingFlag(activeProfile.id);
     }
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = MonthlyQueries(Supabase.instance.client);
     final result = await queries.getCached(
       activeProfile.id,
       year: KoreaDateUtils.currentYear,
       month: KoreaDateUtils.currentMonth,
       includeStale: true,
+      locale: locale,
     );
 
     // 캐시가 있으면 바로 반환
@@ -476,7 +479,8 @@ class MonthlyFortune extends _$MonthlyFortune {
     _pollAttempts++;
 
     final queries = MonthlyQueries(Supabase.instance.client);
-    final result = await queries.getCurrentMonth(profileId);
+    final locale = FortuneLocaleUtils.currentLocale;
+    final result = await queries.getCurrentMonth(profileId, locale: locale);
 
     if (result != null && result['content'] != null) {
       print('[MonthlyFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
@@ -536,10 +540,11 @@ class MonthlyFortune extends _$MonthlyFortune {
     print('[MonthlyFortune] 🚀 v6.0 Fortune만 즉시 분석 시작! (saju_base 대기 없음)');
 
     // v6.0: Fortune만 직접 분석 (saju_base 대기 없음!)
+    final locale = FortuneLocaleUtils.currentLocale;
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
-      locale: 'ko',
+      locale: locale,
     ).then((result) {
       _isAnalyzing = false;
       _analyzeStartTime = null;
@@ -576,11 +581,13 @@ class MonthlyFortune extends _$MonthlyFortune {
 
     _stalePollAttempts++;
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = MonthlyQueries(Supabase.instance.client);
     final result = await queries.getCached(
       profileId,
       year: KoreaDateUtils.currentYear,
       month: KoreaDateUtils.currentMonth,
+      locale: locale,
     );
 
     if (result != null && result['content'] != null) {

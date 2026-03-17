@@ -36,6 +36,11 @@
   "fortuneLoading": "運勢を読み込み中...",
   "tapToReload": "タップして再読み込み",
   "aiAnalyzing": "AIが運勢を分析しています",
+  "analysisIdle": "分析準備中...",
+  "analysisChecking": "四柱データ確認中...",
+  "analysisSaving": "結果保存中...",
+  "analysisCompleted": "分析完了！",
+  "analysisError": "タップして再試行",
   "pleaseWait": "しばらくお待ちください...",
   "fortuneAnalysis": "運勢分析",
   "wealth": "金運",
@@ -84,5 +89,11 @@
   "greeting": "{name}さん、こんにちは！",
   "viewMore": "詳しく見る",
   "luckyColorShort": "ラッキーカラー",
-  "luckyNumberShort": "ラッキーナンバー"
+  "luckyNumberShort": "ラッキーナンバー",
+  "compatPromoRegisterTitle": "Curious about someone's compatibility?",
+  "compatPromoRegisterSubtitle": "Register them to analyze your saju compatibility",
+  "compatPromoRegister": "Register",
+  "compatPromoAnalyzeTitle": "Check compatibility with your connections",
+  "compatPromoAnalyzeSubtitle": "Analyze the hidden bond between two people's saju",
+  "compatPromoResultTitle": "Compatibility with {name}"
 }
