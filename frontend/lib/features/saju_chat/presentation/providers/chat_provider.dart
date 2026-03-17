@@ -1234,8 +1234,8 @@ class ChatNotifier extends _$ChatNotifier {
         final selectedPersona = ref.read(chatPersonaNotifierProvider);
         ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
           tokenUsage: const TokenUsageInfo(
-            totalUsed: 20000, // Quota 초과된 상태
-            maxTokens: 20000,
+            totalUsed: 7000, // Quota 초과된 상태
+            maxTokens: 7000,
             systemPromptTokens: 0,
             historyTokens: 0,
             remaining: 0,

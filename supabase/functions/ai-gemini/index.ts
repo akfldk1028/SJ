@@ -51,7 +51,7 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 20000;
+const DAILY_QUOTA = 7000;
 const ADMIN_QUOTA = 1000000000;
 
 /** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
