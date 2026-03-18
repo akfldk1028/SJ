@@ -306,20 +306,6 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
 
-    // 각 글자별 오행 매핑 (AI가 두 사람의 오행을 정확히 비교할 수 있도록)
-    _buffer.writeln('### 글자별 오행');
-    _buffer.writeln('| 위치 | 글자 | 오행 |');
-    _buffer.writeln('|------|------|------|');
-    _buffer.writeln('| 년간 | $yearGan | ${cheonganOheng[yearGan] ?? '?'} |');
-    _buffer.writeln('| 년지 | $yearJi | ${jijiOheng[yearJi] ?? '?'} |');
-    _buffer.writeln('| 월간 | $monthGan | ${cheonganOheng[monthGan] ?? '?'} |');
-    _buffer.writeln('| 월지 | $monthJi | ${jijiOheng[monthJi] ?? '?'} |');
-    _buffer.writeln('| 일간 | $dayGan | ${cheonganOheng[dayGan] ?? '?'} |');
-    _buffer.writeln('| 일지 | $dayJi | ${jijiOheng[dayJi] ?? '?'} |');
-    _buffer.writeln('| 시간 | $hourGan | ${cheonganOheng[hourGan] ?? '?'} |');
-    _buffer.writeln('| 시지 | $hourJi | ${jijiOheng[hourJi] ?? '?'} |');
-    _buffer.writeln();
-
     // 용신
     final yongsin = sajuAnalysis.yongsin;
     _buffer.writeln('### 용신');
@@ -363,6 +349,19 @@ class SystemPromptBuilder {
     _buffer.writeln('| 지지 | $yearJiSipsin | $monthJiSipsin | $dayJiSipsin | $hourJiSipsin |');
     _buffer.writeln();
 
+    // 지장간
+    final jijanggan = sajuAnalysis.jijangganInfo;
+    _buffer.writeln('### 지장간');
+    _buffer.writeln('| 위치 | 지장간 |');
+    _buffer.writeln('|------|--------|');
+    _buffer.writeln('| 년지 | ${_formatJiJangGan(jijanggan.yearJi)} |');
+    _buffer.writeln('| 월지 | ${_formatJiJangGan(jijanggan.monthJi)} |');
+    _buffer.writeln('| 일지 | ${_formatJiJangGan(jijanggan.dayJi)} |');
+    if (jijanggan.hourJi.isNotEmpty) {
+      _buffer.writeln('| 시지 | ${_formatJiJangGan(jijanggan.hourJi)} |');
+    }
+    _buffer.writeln();
+
     // 신살
     final sinsalList = sajuAnalysis.sinsalList;
     if (sinsalList.isNotEmpty) {
@@ -378,8 +377,39 @@ class SystemPromptBuilder {
       }
       _buffer.writeln();
     }
+
+    // 대운 (10년 단위 운의 흐름)
+    final daeun = sajuAnalysis.daeun;
+    if (daeun != null && daeun.daeUnList.isNotEmpty) {
+      _buffer.writeln('### 대운 (大運)');
+      _buffer.writeln('- 대운 시작 나이: ${daeun.startAge}세');
+      _buffer.writeln('- 진행 방향: ${daeun.isForward ? '순행' : '역행'}');
+      _buffer.writeln();
+      _buffer.writeln('| 순서 | 대운 | 기간 | 천간오행 | 지지오행 |');
+      _buffer.writeln('|------|------|------|---------|---------|');
+      for (final d in daeun.daeUnList) {
+        _buffer.writeln('| ${d.order} | ${d.pillar.fullName} | ${d.ageRange} | ${d.pillar.ganOheng} | ${d.pillar.jiOheng} |');
+      }
+      _buffer.writeln();
+    }
+
+    // 현재 세운 (올해의 운)
+    final seun = sajuAnalysis.currentSeun;
+    if (seun != null) {
+      _buffer.writeln('### 세운 (歲運) — ${seun.year}년');
+      _buffer.writeln('- 세운: ${seun.pillar.fullName}');
+      _buffer.writeln('- 천간: ${seun.pillar.gan} (${seun.pillar.ganOheng})');
+      _buffer.writeln('- 지지: ${seun.pillar.ji} (${seun.pillar.jiOheng})');
+      _buffer.writeln();
+    }
   }
 
+
+  /// 지장간 포맷 헬퍼: "갑(정기·정인) 을(중기·편인) 병(여기·상관)"
+  String _formatJiJangGan(List<JiJangGanItem> items) {
+    if (items.isEmpty) return '-';
+    return items.map((i) => '${i.gan}(${i.type}·${i.sipsin.korean})').join(' ');
+  }
 
   /// 합충형파해 섹션 헬퍼
   void _addHapchungSection(Map<String, dynamic> hapchung, String key, String label) {
@@ -416,6 +446,16 @@ class SystemPromptBuilder {
     _buffer.writeln('- 두 사람의 일간(日干)을 비교하여 천간합 여부와 오행 관계를 먼저 분석하세요.');
     _buffer.writeln('- 구체적인 글자를 인용하며 분석하세요 (예: "경금 일간과 을목 일간이 을경합을 이루어...").');
     _buffer.writeln('- 위에 사주 데이터가 제공된 참가자는 바로 분석하세요. 데이터가 없는 인물이 언급되면 생년월일시를 요청하세요.');
+    _buffer.writeln();
+    _buffer.writeln('### 분석 핵심 원칙 (v4.1)');
+    _buffer.writeln('- **합이 다 좋은 게 아님**: 합화 결과가 용신 방향이면 좋은 합, 기신 방향이면 나쁜 합');
+    _buffer.writeln('- **충이 다 나쁜 게 아님**: 신강 사주에서 충은 막힌 기운을 뚫어주는 약이 될 수 있음');
+    _buffer.writeln('- **충의 강도 구분**: 왕지충(자오,묘유) > 생지충(인신,사해) > 고지충(진술,축미) 순 파괴력. 단, 지속시간은 고지충이 가장 길음');
+    _buffer.writeln('- **삼형과 충은 근본적으로 다름**: 삼형은 질기게 지속되며 합으로 해소 어려움');
+    _buffer.writeln('- **쌍방 분석 필수**: 상대→나 도움뿐 아니라 나→상대 도움도 반드시 분석');
+    _buffer.writeln('- **오행 순환 확인**: 두 사람 합쳐서 금→수→목→화→토 순환 여부 체크');
+    _buffer.writeln('- **비겁 양면성**: 비겁이 많다고 무조건 나쁘지 않음 — 재성을 극하면 돈 버는 능력');
+    _buffer.writeln('- **객관적 분석**: 나쁜 결과도 사실대로 전달하되 개선 방안 함께 제시');
   }
 
   /// v8.1: 관계 유형별 분석 지시문 추가
@@ -481,11 +521,13 @@ class SystemPromptBuilder {
         _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
         _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
       }
-      _buffer.writeln('합충형파해 관계를 적극 활용하여 깊이 있는 궁합 분석을 제공하세요.');
+      _buffer.writeln('합충형파해 관계를 적극 활용하되, 합이 무조건 좋고 충이 무조건 나쁜 것이 아님을 기억하세요.');
+      _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
     } else {
       _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
       _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
-      _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하여 깊이 있는 상담을 제공하세요.');
+      _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하되, 합/충의 용신·기신 방향을 반드시 판단하세요.');
+      _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
     }
     _buffer.writeln();
     _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
@@ -766,17 +808,17 @@ class SystemPromptBuilder {
     // 합 (긍정적 요소)
     final hap = pairHapchung['hap'] as List?;
     if (hap != null && hap.isNotEmpty) {
-      _buffer.writeln('**💚 합(合)** - 긍정적 결합:');
+      _buffer.writeln('**🔗 합(合)** (합화 결과가 용신 방향인지 기신 방향인지 판단 필요):');
       for (final item in hap) {
         _buffer.writeln('- $item');
       }
       _buffer.writeln();
     }
 
-    // 충 (가장 강한 부정적 요소)
+    // 충 (종류·강도·위치에 따라 좋을 수도 나쁠 수도 있음)
     final chung = pairHapchung['chung'] as List?;
     if (chung != null && chung.isNotEmpty) {
-      _buffer.writeln('**❌ 충(沖)** - 강한 충돌:');
+      _buffer.writeln('**⚡ 충(沖)** (충의 종류·강도·위치에 따라 좋을 수도 나쁠 수도 있음):');
       for (final item in chung) {
         _buffer.writeln('- $item');
       }

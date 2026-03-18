@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/services/posthog_service.dart';
 import '../../../../AI/services/compatibility_analysis_service.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
 // Phase 50 다중 궁합 제거됨 - 궁합은 항상 2명만
@@ -1190,6 +1191,11 @@ class ChatNotifier extends _$ChatNotifier {
         print('');
       }
 
+      // PostHog 이벤트
+      PosthogService.trackEvent('chat_message_sent', {
+        'chat_type': chatType.name,
+      });
+
       // 플래그 해제
       _isProcessingMessage = false;
       _isSendingMessage = false;
@@ -1228,8 +1234,8 @@ class ChatNotifier extends _$ChatNotifier {
         final selectedPersona = ref.read(chatPersonaNotifierProvider);
         ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
           tokenUsage: const TokenUsageInfo(
-            totalUsed: 20000, // Quota 초과된 상태
-            maxTokens: 20000,
+            totalUsed: 7000, // Quota 초과된 상태
+            maxTokens: 7000,
             systemPromptTokens: 0,
             historyTokens: 0,
             remaining: 0,

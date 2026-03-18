@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.1.4+38
+version: 0.1.6+52
 
 environment:
   sdk: ^3.10.1
@@ -75,8 +75,13 @@ dependencies:
   # UI Framework - Modern shadcn design system
   shadcn_ui: ^0.39.14
 
-  # Ads - Google AdMob
-  google_mobile_ads: ^6.0.0
+  # Ads - Google AdMob + Mediation + Direct Networks
+  google_mobile_ads: ^7.0.0
+  gma_mediation_mintegral: ^2.0.3
+  gma_mediation_liftoffmonetize: ^1.4.3
+  gma_mediation_unity: ^1.6.1
+  unity_ads_plugin: ^0.3.29
+  device_info_plus: ^11.3.3
 
   # Chat UI
   flutter_chat_ui: ^2.0.0
@@ -101,6 +106,9 @@ dependencies:
 
   # i18n - Multi-language support
   easy_localization: ^3.0.7
+
+  # Analytics - PostHog
+  posthog_flutter: ^4.0.0
 
 dev_dependencies:
   flutter_test:

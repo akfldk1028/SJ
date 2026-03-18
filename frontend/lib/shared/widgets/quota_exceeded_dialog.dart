@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../ad/ad_config.dart';
 import '../../core/services/quota_service.dart';
 
 /// Quota 초과 다이얼로그
@@ -211,14 +212,16 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
             child: Row(
               children: [
                 Icon(
-                  Icons.play_circle_outline,
+                  adEnabled ? Icons.play_circle_outline : Icons.info_outline,
                   color: theme.colorScheme.primary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '광고를 시청하면 ${_formatNumber(QuotaService.adBonusTokens)} 토큰을 추가로 받을 수 있습니다.',
+                    adEnabled
+                        ? '광고를 시청하면 ${_formatNumber(QuotaService.adBonusTokens)} 토큰을 추가로 받을 수 있습니다.'
+                        : '현재 광고 서비스 점검 중입니다. 내일 사용량이 초기화됩니다.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onPrimaryContainer,
                     ),
@@ -235,27 +238,28 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
           onPressed: _isLoading ? null : widget.onClose,
           child: const Text('나중에'),
         ),
-        // 광고 시청 버튼
-        ShadButton(
-          onPressed: _isLoading ? null : _watchAd,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+        // 광고 시청 버튼 (adEnabled일 때만)
+        if (adEnabled)
+          ShadButton(
+            onPressed: _isLoading ? null : _watchAd,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_arrow, size: 18),
+                      SizedBox(width: 4),
+                      Text('광고 보고 토큰 받기'),
+                    ],
                   ),
-                )
-              : const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.play_arrow, size: 18),
-                    SizedBox(width: 4),
-                    Text('광고 보고 토큰 받기'),
-                  ],
-                ),
-        ),
+          ),
       ],
     );
   }

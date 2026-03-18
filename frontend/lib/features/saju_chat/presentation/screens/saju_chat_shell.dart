@@ -18,6 +18,7 @@ import '../widgets/relation_selector_sheet.dart';
 import '../widgets/suggested_questions.dart';
 import '../providers/chat_persona_provider.dart';
 import '../providers/conversational_ad_provider.dart';
+import '../../../../purchase/providers/purchase_provider.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../../domain/models/chat_persona.dart';
 import '../../domain/models/ai_persona.dart';
@@ -920,36 +921,23 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
   /// 네이티브 광고를 채팅 리스트 안에 trailingWidget으로 표시
   Widget _buildChatListWithAd(WidgetRef ref, dynamic chatState, String sessionId) {
     final adState = ref.watch(conversationalAdNotifierProvider);
+    ref.watch(purchaseNotifierProvider); // 프리미엄 상태 변경 감지용
+    final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
-    // 네이티브 광고 모드일 때만 채팅 리스트 끝에 광고 표시
+    // 네이티브 광고 모드일 때만 채팅 리스트 끝에 광고 표시 (프리미엄 제외)
     Widget? trailingWidget;
-    if (adState.isAdMode &&
+    if (!isPremium &&
+        adState.isAdMode &&
         adState.adType == AdMessageType.inlineInterval &&
         !adState.adWatched &&
         (adState.loadState == AdLoadState.loaded ||
             adState.loadState == AdLoadState.loading)) {
-      final nativeAd = ref.read(conversationalAdNotifierProvider.notifier).nativeAd;
-      final theme = Theme.of(context);
-      trailingWidget = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AdNativeBubble(
-            nativeAd: nativeAd,
-            loadState: adState.loadState,
-            personaEmoji: '📢',
-          ),
-          // 안내 문구 (AdMob 정책: "클릭하세요" 금지, 보상 안내는 허용)
-          Padding(
-            padding: const EdgeInsets.only(left: 56, top: 6, bottom: 8),
-            child: Text(
-              '관심 있는 광고를 살펴보시면 대화를 이어갈 수 있어요',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
+      final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
+      trailingWidget = AdNativeBubble(
+        nativeAd: adNotifier.nativeAd,
+        adWidget: adNotifier.adFitNativeWidget,
+        loadState: adState.loadState,
+        personaEmoji: '📢',
       );
     }
 
@@ -959,7 +947,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       scrollController: widget.scrollController,
       isLoading: chatState.isLoading,
       trailingWidget: trailingWidget,
-      hideInlineAds: adState.isAdMode,
+      hideInlineAds: adState.isAdMode || isPremium,
     );
   }
 }

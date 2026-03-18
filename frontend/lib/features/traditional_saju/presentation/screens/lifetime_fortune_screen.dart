@@ -1763,7 +1763,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 광고 보고 잠금 해제 (기존 FortuneCategoryChipSection 패턴 참고)
+  /// 광고 보고 잠금 해제 (전면 광고 사용 — AdFit/AdMob)
   Future<void> _showRewardedAdAndUnlock(String cycleKey, String title) async {
     if (_isLoadingAd) return;
 
@@ -1805,76 +1805,57 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       return;
     }
 
-    // 광고가 로드되어 있는지 확인
-    if (!AdService.instance.isRewardedLoaded) {
-      await AdService.instance.loadRewardedAd(
-        onLoaded: () async {
-          final shown = await AdService.instance.showRewardedAd(
-            onRewarded: (amount, type) async {
-              if (mounted) {
-                setState(() {
-                  _unlockedCycles.add(cycleKey);
-                  _isLoadingAd = false;
-                });
+    // 전면 광고 로드 대기 (최대 8초) → 표시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
+      onDismissed: () {
+        if (mounted) {
+          setState(() {
+            _unlockedCycles.add(cycleKey);
+            _isLoadingAd = false;
+          });
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$title 운세가 해제되었습니다!'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-          );
-
-          if (!shown && mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(title);
-          }
-        },
-        onFailed: (error) {
-          if (mounted) {
-            setState(() => _isLoadingAd = false);
-            _showAdNotReadyDialog(title);
-          }
-        },
-      );
-    } else {
-      final shown = await AdService.instance.showRewardedAd(
-        onRewarded: (amount, type) async {
-          if (mounted) {
-            setState(() {
-              _unlockedCycles.add(cycleKey);
-              _isLoadingAd = false;
-            });
-
+          try {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('$title 운세가 해제되었습니다!'),
                 duration: const Duration(seconds: 2),
               ),
             );
+          } catch (_) {
+            // AdFit onDismissed가 MethodChannel에서 호출 시
+            // ScaffoldMessenger가 없을 수 있음 → 무시
           }
-        },
-      );
+        }
+      },
+    );
 
-      if (!shown && mounted) {
-        setState(() => _isLoadingAd = false);
-        _showAdNotReadyDialog(title);
-      }
+    if (!shown && mounted) {
+      setState(() => _isLoadingAd = false);
+      _showAdNotReadyDialog(title);
     }
   }
 
   void _showAdNotReadyDialog(String title) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('광고 준비 중'),
-        content: Text('$title 운세를 보려면 광고를 시청해야 합니다.\n잠시 후 다시 시도해주세요.'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('프리미엄으로 바로 보기'),
+        content: Text(
+          '$title 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('닫기'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push('/settings/premium');
+            },
+            child: const Text('프리미엄 보기'),
           ),
         ],
       ),

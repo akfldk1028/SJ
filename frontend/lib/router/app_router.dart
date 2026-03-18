@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'routes.dart';
@@ -59,6 +60,7 @@ GoRouter appRouter(Ref ref) {
   return GoRouter(
     initialLocation: Routes.splash,
     debugLogDiagnostics: true,
+    observers: [PosthogObserver()],
     routes: [
       // 독립 라우트 (네비게이션 바 없음)
       GoRoute(
@@ -98,7 +100,9 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: Routes.relationshipAdd,
         name: 'relationshipAdd',
-        builder: (context, state) => const RelationshipAddScreen(),
+        builder: (context, state) => RelationshipAddScreen(
+          fromSource: state.uri.queryParameters['from'],
+        ),
       ),
       GoRoute(
         path: Routes.sajuGraph,

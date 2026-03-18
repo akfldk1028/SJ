@@ -259,14 +259,14 @@ class UserDailyTokenUsage implements SupadartClass<UserDailyTokenUsage> {
 
   /// 쿼터 사용률 (0.0 ~ 1.0)
   double get quotaUsageRatio {
-    final quota = dailyQuota ?? 50000;
+    final quota = dailyQuota ?? 7000;
     final used = totalTokens ?? 0;
     return quota > 0 ? (used / quota).clamp(0.0, 1.0) : 0.0;
   }
 
   /// 남은 토큰
   int get remainingTokens {
-    final quota = dailyQuota ?? 50000;
+    final quota = dailyQuota ?? 7000;
     final used = totalTokens ?? 0;
     return (quota - used).clamp(0, quota);
   }

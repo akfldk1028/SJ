@@ -72,10 +72,17 @@ class MainScaffold extends ConsumerWidget {
         // 프리미엄 유저는 광고 스킵
         final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
         if (!isPremium) {
-          await AdService.instance.showInterstitialAd();
-        }
-        if (context.mounted) {
-          context.go(Routes.sajuChat);
+          final shown = await AdService.instance.showInterstitialAd(
+            onDismissed: () {
+              if (context.mounted) context.go(Routes.sajuChat);
+            },
+          );
+          // 광고 표시 실패 시 바로 네비게이션
+          if (!shown && context.mounted) {
+            context.go(Routes.sajuChat);
+          }
+        } else {
+          if (context.mounted) context.go(Routes.sajuChat);
         }
         break;
     }

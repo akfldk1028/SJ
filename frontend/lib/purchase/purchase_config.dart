@@ -27,5 +27,5 @@ abstract class PurchaseConfig {
 
   // ── Quota ──
   static const int premiumDailyQuota = 1000000000; // 무제한
-  static const int freeDailyQuota = 20000;
+  static const int freeDailyQuota = 7000;
 }

@@ -11,7 +11,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
-.mcp.json
 
 # Google Service Account Keys (sensitive)
 *.json.bak
@@ -66,6 +65,5 @@ frontend/ADMOB_PRODUCTION_TODO.md
 docs/03_command/README_iOS.md
 supabase/migrations/20260202_add_gemini_cache_name.sql
 supabase/migrations
-CREDENTIALS.md
-README_iOS.md
-.mcp.json
+logs/security/.security-key
+docs/contracts/

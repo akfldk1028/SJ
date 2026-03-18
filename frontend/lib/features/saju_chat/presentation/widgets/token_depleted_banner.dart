@@ -1,20 +1,23 @@
 /// 토큰 소진 시 2버튼 배너 (ChatInputField 바로 위)
 ///
-/// 청운도사 페르소나 헤더/전환 메시지 없이 깔끔한 2버튼만 표시.
-/// - 영상 보고 5번 대화 (Rewarded Video)
-/// - 광고 보고 3번 대화 (Native Ad → 채팅창 안에 표시)
+/// 깔끔한 2버튼만 표시:
+/// - ▶ 계속하기 (전면 광고 5초 → 토큰 20K 충전)
+/// - ✨ 프리미엄 (구매 페이지)
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../ad/ad_config.dart';
+import '../../../../ad/ad_service.dart';
+import '../../../../ad/ad_strategy.dart';
+import '../../../../ad/token_reward_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
 import '../../data/models/conversational_ad_model.dart';
-import '../../data/services/ad_trigger_service.dart';
+import '../providers/chat_provider.dart';
 import '../providers/conversational_ad_provider.dart';
-// import '../providers/chat_provider.dart'; // 영상 광고 활성화 시 복원
 
 /// 토큰 소진 시 2버튼 배너
 ///
@@ -35,10 +38,63 @@ class TokenDepletedBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    // 광고 킬스위치 OFF → 광고 버튼 없이 안내 + 프리미엄만
+    if (!adEnabled) {
+      return _buildAdDisabledBanner(context);
+    }
+
     return _buildTwoButtonBanner(context, ref);
   }
 
-  /// 2버튼 배너 (영상 광고 / 네이티브 광고)
+  /// 광고 비활성화 시 배너 (프리미엄 구매만 안내)
+  Widget _buildAdDisabledBanner(BuildContext context) {
+    final appTheme = context.appTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: appTheme.isDark
+            ? const Color(0xFF2D3A4A)
+            : const Color(0xFFFFF8E1),
+        border: Border(
+          top: BorderSide(
+            color: appTheme.isDark
+                ? const Color(0xFFD4AF37).withValues(alpha: 0.3)
+                : const Color(0xFFFFB300),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '토큰이 소진되었어요. 현재 광고 서비스 점검 중이에요',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: appTheme.isDark
+                  ? const Color(0xFFE0E0E0)
+                  : const Color(0xFF5D4037),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: AdChoiceButton(
+              label: '✨ 광고 없이 이용하기',
+              isPrimary: true,
+              onPressed: () => context.push(Routes.settingsPremium),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 2버튼 배너 (전면 광고 + 프리미엄)
   Widget _buildTwoButtonBanner(BuildContext context, WidgetRef ref) {
     final appTheme = context.appTheme;
 
@@ -74,35 +130,26 @@ class TokenDepletedBanner extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          // 2버튼 행 (광고 + 구매)
+          // 2버튼 행 (전면 광고 + 프리미엄)
           Row(
             children: [
-              // 네이티브 광고 버튼
+              // 전면 광고 → 토큰 충전
               Expanded(
                 child: AdChoiceButton(
-                  label: '📋 바로 대화 계속하기',
+                  label: '▶ 계속하기',
                   isPrimary: false,
-                  onPressed: () => _handleNativeAd(ref),
+                  onPressed: () => _handleInterstitialAndContinue(context, ref),
                 ),
               ),
               const SizedBox(width: 10),
               // 프리미엄 구매 버튼
               Expanded(
                 child: AdChoiceButton(
-                  label: '✨ 광고 없이 이용하기',
+                  label: '✨ 프리미엄',
                   isPrimary: true,
                   onPressed: () => context.push(Routes.settingsPremium),
                 ),
               ),
-              // // 영상 광고 버튼 (추후 활성화)
-              // const SizedBox(width: 10),
-              // Expanded(
-              //   child: AdChoiceButton(
-              //     label: '🎬 영상 보고 5번 대화',
-              //     isPrimary: false,
-              //     onPressed: () => _handleVideoAd(ref),
-              //   ),
-              // ),
             ],
           ),
         ],
@@ -110,40 +157,58 @@ class TokenDepletedBanner extends ConsumerWidget {
     );
   }
 
-  // /// 영상 광고 선택 (Rewarded Video → 5번 대화) - 추후 활성화
-  // void _handleVideoAd(WidgetRef ref) async {
-  //   final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-  //   final success = await notifier.showRewardedAd(
-  //     rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-  //   );
-  //   if (success) {
-  //     notifier.onAdWatched(
-  //       rewardTokens: AdTriggerService.depletedRewardTokensVideo,
-  //     );
-  //     _handleAdComplete(ref);
-  //   }
-  // }
+  /// 전면 광고 5초 → 광고 닫힌 후 서버 + 클라이언트 토큰 충전
+  ///
+  /// 더블탭 방지: adNotifier.setLoading()으로 즉시 상태 변경 → 배너 UI 비활성화
+  /// stale ref 방지: async gap 전에 notifier 캡처
+  void _handleInterstitialAndContinue(BuildContext context, WidgetRef ref) async {
+    final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
+    final chatNotifier = ref.read(chatNotifierProvider(sessionId).notifier);
 
-  /// 네이티브 광고 선택 → 채팅 리스트 안에 광고 표시
-  void _handleNativeAd(WidgetRef ref) {
-    final notifier = ref.read(conversationalAdNotifierProvider.notifier);
-    notifier.switchToNativeAd(
-      rewardTokens: AdTriggerService.depletedRewardTokensNative,
+    // 더블탭 방지: 즉시 광고 로딩 상태로 전환 → 버튼 재탭 차단
+    adNotifier.dismissAd();
+
+    // 전면 광고 로드 대기 (최대 5초) → 표시
+    // bypassInterval: true → 토큰 소진은 필수 광고이므로 쿨다운 무시
+    await AdService.instance.waitForInterstitialLoad();
+    final shown = await AdService.instance.showInterstitialAd(
+      bypassInterval: true,
+      onDismissed: () async {
+        // 광고가 닫힌 후에만 실행 (크래시 방지)
+        const tokens = AdStrategy.depletedRewardTokensVideo;
+        // 서버 측 토큰 지급
+        await TokenRewardService.grantRewardedAdTokens(
+          tokens,
+          screen: 'token_depleted_interstitial',
+        );
+        // 클라이언트 측 토큰 업데이트 (ConversationWindowManager)
+        chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
+        debugPrint('[TokenDepletedBanner] 전면 광고 완료 → +$tokens tokens (서버+클라이언트)');
+      },
     );
-  }
 
-  // /// 광고 완료 → 토큰 충전 + 광고 모드 해제 - 추후 영상 광고 활성화 시 사용
-  // void _handleAdComplete(WidgetRef ref) {
-  //   final adState = ref.read(conversationalAdNotifierProvider);
-  //   final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
-  //   if (adState.adWatched &&
-  //       adState.rewardedTokens != null &&
-  //       adState.rewardedTokens! > 0) {
-  //     ref.read(chatNotifierProvider(sessionId).notifier)
-  //         .addBonusTokens(adState.rewardedTokens!, isRewardedAd: true);
-  //   }
-  //   adNotifier.dismissAd();
-  // }
+    if (!shown) {
+      // 전면 광고 로드 안 됨 → fallback 소량 토큰 지급 (ads_watched 미증가)
+      const fallbackTokens = AdStrategy.depletedFallbackTokens;
+      await TokenRewardService.grantRewardedAdTokens(
+        fallbackTokens,
+        screen: 'token_depleted_fallback',
+        isFallback: true,
+      );
+      chatNotifier.addBonusTokens(fallbackTokens, isRewardedAd: false);
+      // 다음을 위해 전면 광고 재로드
+      AdService.instance.loadInterstitialAd();
+      debugPrint('[TokenDepletedBanner] 광고 로드 실패 → fallback +$fallbackTokens tokens');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('광고를 불러올 수 없어 소량 충전했어요. 잠시 후 다시 시도해주세요!'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 }
 
 /// 광고 선택 버튼 (2버튼 배너용)

@@ -2,6 +2,7 @@
 ///
 /// 채팅 메시지처럼 보이는 네이티브 광고 위젯
 /// Provider에서 로드된 광고를 표시
+/// AdMob NativeAd 또는 AdFit Widget 모두 지원
 /// 위젯 트리 최적화: const 생성자, 100줄 이하
 library;
 
@@ -19,11 +20,14 @@ bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
 /// 대화형 네이티브 광고 버블
 ///
-/// Provider에서 로드한 NativeAd를 전달받아 표시
+/// Provider에서 로드한 NativeAd 또는 커스텀 Widget을 전달받아 표시
 /// 채팅 버블 스타일로 자연스럽게 노출
 class AdNativeBubble extends StatefulWidget {
-  /// 로드된 네이티브 광고
+  /// 로드된 네이티브 광고 (AdMob)
   final NativeAd? nativeAd;
+
+  /// 커스텀 광고 위젯 (AdFit 등) — nativeAd보다 우선 사용
+  final Widget? adWidget;
 
   /// 광고 로드 상태
   final AdLoadState loadState;
@@ -37,6 +41,7 @@ class AdNativeBubble extends StatefulWidget {
   const AdNativeBubble({
     super.key,
     this.nativeAd,
+    this.adWidget,
     this.loadState = AdLoadState.idle,
     this.onDismiss,
     this.personaEmoji = '📢',
@@ -137,11 +142,11 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
           ),
           const SizedBox(width: 3),
           Text(
-            '후원자 소개',
+            '광고',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 15,
               color: theme.isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8962E),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -156,9 +161,13 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
     }
 
     // 로드 실패
-    if (widget.loadState == AdLoadState.failed || widget.nativeAd == null) {
+    if (widget.loadState == AdLoadState.failed ||
+        (widget.nativeAd == null && widget.adWidget == null)) {
       return _buildErrorState(theme);
     }
+
+    // 광고 컨텐츠: adWidget 우선, 없으면 NativeAd
+    final adContent = widget.adWidget ?? _getOrCreateAdWidget(widget.nativeAd!);
 
     // 광고 표시 (캐싱된 AdWidget 사용 → "already in tree" 에러 방지)
     return Container(
@@ -187,7 +196,7 @@ class _AdNativeBubbleState extends State<AdNativeBubble> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: _getOrCreateAdWidget(widget.nativeAd!),
+      child: adContent,
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/services/posthog_service.dart';
 import '../../../../core/config/admin_config.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -84,6 +85,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
         // 수정 모드면 기존 프로필 ID 전달하여 업데이트
         await formNotifier.saveProfile(editingId: _editingProfileId);
+        PosthogService.trackEvent(_editingProfileId != null ? 'profile_created' : 'onboarding_completed');
         if (mounted) {
             context.go(Routes.menu);
         }

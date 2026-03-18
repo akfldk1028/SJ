@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../purchase/providers/purchase_provider.dart';
+import '../ad_config.dart';
 import '../ad_service.dart';
 import '../ad_strategy.dart';
 
@@ -88,6 +89,8 @@ class AdController extends _$AdController {
 
   /// 전면 광고 표시 가능 여부 체크
   AdCheckResult canShowInterstitial() {
+    if (!adEnabled) return const AdCheckResult.skip('광고 킬스위치 OFF');
+
     // Web에서는 광고 미지원
     if (kIsWeb) {
       return const AdCheckResult.skip('Web 플랫폼 미지원');
@@ -121,6 +124,7 @@ class AdController extends _$AdController {
 
   /// 채팅 메시지 카운트 후 전면 광고 체크
   Future<bool> onChatMessage() async {
+    if (!adEnabled) return false;
     state = state.copyWith(chatCount: state.chatCount + 1);
 
     // N개 메시지마다 전면 광고
@@ -133,6 +137,7 @@ class AdController extends _$AdController {
 
   /// 새 세션 시작 시 전면 광고
   Future<bool> onNewSession() async {
+    if (!adEnabled) return false;
     if (!AdStrategy.showInterstitialOnNewSession) return false;
 
     // 인앱구매 광고 제거 체크
@@ -158,6 +163,7 @@ class AdController extends _$AdController {
 
   /// 새 세션 시작 시 보상형 광고 (스킵해도 채팅 진행)
   Future<bool> onNewSessionRewarded() async {
+    if (!adEnabled) return false;
     if (kIsWeb) return false;
     if (!AdStrategy.showInterstitialOnNewSession) return false;
 
@@ -227,6 +233,7 @@ class AdController extends _$AdController {
 
   /// 보상형 광고 표시 가능 여부
   bool canShowRewarded() {
+    if (!adEnabled) return false;
     if (kIsWeb) return false;
     return AdService.instance.isRewardedLoaded;
   }
@@ -247,6 +254,7 @@ class AdController extends _$AdController {
 
   /// 광고 사전 로드
   Future<void> preloadAds() async {
+    if (!adEnabled) return;
     if (kIsWeb) return;
 
     await AdService.instance.initialize();

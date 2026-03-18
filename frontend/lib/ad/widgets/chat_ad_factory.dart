@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../ad_config.dart';
 import '../ad_strategy.dart';
 import 'inline_ad_widget.dart';
 import 'native_ad_widget.dart';
@@ -57,7 +58,7 @@ abstract class ChatAdFactory {
 /// 채팅 광고 위젯 래퍼
 ///
 /// Factory에서 생성된 광고를 감싸는 위젯
-/// 공통 기능 (애니메이션, 여백 등) 제공
+/// 인센티브화 문구 제거 (AdMob 정책 위반 방지)
 class ChatAdWidget extends StatelessWidget {
   final int index;
   final ChatAdType? type;
@@ -70,28 +71,14 @@ class ChatAdWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: ChatAdFactory.create(
-            index: index,
-            type: type,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 56, top: 4, bottom: 8),
-          child: Text(
-            '관심 있는 광고를 살펴보시면 대화가 더 많아져요',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ],
+    if (!adEnabled) return const SizedBox.shrink();
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: ChatAdFactory.create(
+        index: index,
+        type: type,
+      ),
     );
   }
 }

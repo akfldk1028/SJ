@@ -19,6 +19,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/services/error_logging_service.dart';
+import '../../core/services/posthog_service.dart';
 import '../core/ai_constants.dart';
 import '../services/ai_api_service.dart';
 import 'common/fortune_input_data.dart';
@@ -87,6 +88,10 @@ class FortuneCoordinator {
   /// v7.4 Daily 전용 중복 분석 방지용 - 현재 Daily 분석 중인 프로필+날짜 키
   /// key: "profileId_yyyy-MM-dd"
   static final Set<String> _analyzingDaily = {};
+
+  /// Daily 분석 단계 콜백 (UI progress bar 연동)
+  /// step: 1=checkingCache, 2=callingApi, 3=saving, 4=completed
+  void Function(int step)? dailyServiceStepCallback;
 
   FortuneCoordinator({
     required SupabaseClient supabase,
@@ -573,7 +578,8 @@ class FortuneCoordinator {
         sajuAnalyses: sajuAnalyses,
       );
 
-      // 4. 일운 분석
+      // 4. 일운 분석 (step 콜백 연결)
+      _dailyService.onStepChanged = dailyServiceStepCallback;
       final result = await _dailyService.analyze(
         userId: userId,
         profileId: profileId,
@@ -585,7 +591,9 @@ class FortuneCoordinator {
     } catch (e) {
       return DailyResult.error(e.toString());
     } finally {
-      // v7.4: Daily 분석 완료 시 잠금 해제
+      // 콜백 및 잠금 해제 (에러 시에도 반드시 실행)
+      _dailyService.onStepChanged = null;
+      dailyServiceStepCallback = null;
       _analyzingDaily.remove(dailyKey);
       print('[FortuneCoordinator] 🔓 Daily 분석 완료, 잠금 해제: $dailyKey');
     }
@@ -643,6 +651,10 @@ class FortuneCoordinator {
   Future<FortuneAnalysisResults> analyzeFortuneOnly({
     required String userId,
     required String profileId,
+    void Function()? onDailyComplete,
+    void Function()? onMonthlyComplete,
+    void Function()? onYearly2026Complete,
+    void Function()? onYearly2025Complete,
   }) async {
     // v6.1 중복 분석 방지
     if (_analyzingProfiles.contains(profileId)) {
@@ -714,6 +726,7 @@ class FortuneCoordinator {
           .then((result) {
         yearly2026Result = result;
         print('[FortuneCoordinator] ✅ 2026 신년운세 완료');
+        if (result.success) onYearly2026Complete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2026 에러: $e');
@@ -732,6 +745,7 @@ class FortuneCoordinator {
           .then((result) {
         monthlyResult = result;
         print('[FortuneCoordinator] ✅ 이번달 운세 완료');
+        if (result.success) onMonthlyComplete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 월운 에러: $e');
@@ -750,6 +764,7 @@ class FortuneCoordinator {
           .then((result) {
         yearly2025Result = result;
         print('[FortuneCoordinator] ✅ 2025 회고운세 완료');
+        if (result.success) onYearly2025Complete?.call();
         return result;
       }).catchError((e, stackTrace) {
         print('[FortuneCoordinator] ❌ 2025 에러: $e');
@@ -784,6 +799,7 @@ class FortuneCoordinator {
           dailyResult = result;
           _analyzingDaily.remove(dailyKey); // v7.4: 완료 시 잠금 해제
           print('[FortuneCoordinator] ✅ 오늘의 일운 완료, 잠금 해제: $dailyKey');
+          if (result.success) onDailyComplete?.call();
           return result;
         }).catchError((e, stackTrace) {
           print('[FortuneCoordinator] ❌ 일운 에러: $e');
@@ -809,13 +825,20 @@ class FortuneCoordinator {
 
       print('[FortuneCoordinator] 🏁 v8.0 Fortune 분석 완료! (Daily 포함)');
 
-      return FortuneAnalysisResults(
+      final results = FortuneAnalysisResults(
         success: true,
         yearly2026: yearly2026Result?.success == true ? yearly2026Result?.content : null,
         monthly: monthlyResult?.success == true ? monthlyResult?.content : null,
         yearly2025: yearly2025Result?.success == true ? yearly2025Result?.content : null,
         daily: dailyResult?.success == true ? dailyResult?.content : null,
       );
+
+      // PostHog 이벤트
+      PosthogService.trackEvent('fortune_analyzed', {
+        'completed_count': results.completedCount,
+      });
+
+      return results;
     } catch (e, stackTrace) {
       print('[FortuneCoordinator] ❌ 에러: $e');
       ErrorLoggingService.logError(
