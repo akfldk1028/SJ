@@ -12,7 +12,7 @@
 | **앱 이름** | 사담 | 사담 |
 | **최소 버전** | iOS 13.0 | API 21 (Android 5.0) |
 | **버전** | 0.1.0+13 | 0.1.0+13 |
-| **AdMob App ID** | `ca-app-pub-7140787344231420~3931921704` | 동일 |
+| **AdMob App ID** | `ca-app-pub-7140787344231420~6791926286` | `ca-app-pub-7140787344231420~3931921704` |
 | **코드 서명** | Automatic Signing | key.properties + keystore |
 
 ---
