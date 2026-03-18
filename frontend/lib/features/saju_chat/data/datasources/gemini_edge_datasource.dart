@@ -286,10 +286,23 @@ class GeminiEdgeDatasource {
         success: true,
       );
 
+      // v35.2: 클라이언트 방어 — thinking 토큰 누출 cap (비스트리밍 경로)
+      int? rawCompletion = usage?['completion_tokens'];
+      int? cappedCompletion = rawCompletion;
+      if (cappedCompletion != null && content.isNotEmpty) {
+        final maxReasonable = (content.length * 1.5).ceil();
+        if (cappedCompletion > maxReasonable) {
+          if (kDebugMode) {
+            print('[GeminiEdge] ⚠️ 비스트리밍 토큰 cap: $cappedCompletion → $maxReasonable');
+          }
+          cappedCompletion = maxReasonable;
+        }
+      }
+
       return GeminiResponse(
         content: content,
         promptTokenCount: usage?['prompt_tokens'],
-        candidatesTokenCount: usage?['completion_tokens'],
+        candidatesTokenCount: cappedCompletion,
         totalTokenCount: usage?['total_tokens'],
         finishReason: responseData['finish_reason'],
       );
@@ -587,16 +600,30 @@ class GeminiEdgeDatasource {
       success: true,
     );
 
+    // v35.2: 클라이언트 방어 — thinking 토큰 누출 cap
+    // 서버(Edge Function)에서 cap 했어야 하지만 실패 케이스 대비
+    // 한글 최대 1.5 tokens/char 넘을 수 없음
+    int? actualCompletion = completionTokens;
+    if (actualCompletion != null && content.isNotEmpty) {
+      final maxReasonable = (content.length * 1.5).ceil();
+      if (actualCompletion > maxReasonable) {
+        if (kDebugMode) {
+          print('[GeminiEdge] ⚠️ 토큰 cap: $actualCompletion → $maxReasonable (textLen=${content.length}, ratio=${(actualCompletion / content.length).toStringAsFixed(2)})');
+        }
+        actualCompletion = maxReasonable;
+      }
+    }
+
     _lastStreamingResponse = GeminiResponse(
       content: content,
       promptTokenCount: promptTokens,
-      candidatesTokenCount: completionTokens,
+      candidatesTokenCount: actualCompletion,
       totalTokenCount: totalTokens,
       finishReason: finishReason,
     );
 
     if (kDebugMode) {
-      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $totalTokens, finishReason: $finishReason');
+      print('[GeminiEdge] 스트리밍 완료: ${content.length}자, 토큰: $actualCompletion (raw: $completionTokens), finishReason: $finishReason');
     }
   }
 
