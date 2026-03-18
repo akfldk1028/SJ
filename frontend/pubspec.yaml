@@ -82,6 +82,7 @@ dependencies:
   gma_mediation_unity: ^1.6.1
   unity_ads_plugin: ^0.3.29
   device_info_plus: ^11.3.3
+  app_tracking_transparency: ^2.0.6
 
   # Chat UI
   flutter_chat_ui: ^2.0.0

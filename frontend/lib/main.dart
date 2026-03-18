@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -92,6 +93,21 @@ void main() async {
       await PurchaseService.instance.initialize();
     } catch (e) {
       debugPrint('[PurchaseService] 초기화 실패: $e');
+    }
+  }
+
+  // iOS ATT (App Tracking Transparency) 요청 — AdMob 초기화 전 필수
+  if (isMobile && Platform.isIOS) {
+    try {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status == TrackingStatus.notDetermined) {
+        // iOS 가이드라인: 앱 시작 직후가 아닌 약간의 딜레이 후 요청
+        await Future.delayed(const Duration(seconds: 1));
+        await AppTrackingTransparency.requestTrackingAuthorization();
+      }
+      debugPrint('[ATT] status: $status');
+    } catch (e) {
+      debugPrint('[ATT] 요청 실패: $e');
     }
   }
 
