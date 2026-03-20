@@ -286,16 +286,21 @@ class GeminiEdgeDatasource {
         success: true,
       );
 
-      // v35.2: 클라이언트 방어 — thinking 토큰 누출 cap (비스트리밍 경로)
+      // v55: 클라이언트 방어 — thinking 토큰 누출 cap (비스트리밍 경로)
+      // content가 empty면 토큰 0 (빈 응답에 토큰 차감 방지)
       int? rawCompletion = usage?['completion_tokens'];
       int? cappedCompletion = rawCompletion;
-      if (cappedCompletion != null && content.isNotEmpty) {
-        final maxReasonable = (content.length * 1.5).ceil();
-        if (cappedCompletion > maxReasonable) {
-          if (kDebugMode) {
-            print('[GeminiEdge] ⚠️ 비스트리밍 토큰 cap: $cappedCompletion → $maxReasonable');
+      if (cappedCompletion != null) {
+        if (content.isEmpty) {
+          cappedCompletion = 0;
+        } else {
+          final maxReasonable = (content.length * 1.5).ceil();
+          if (cappedCompletion > maxReasonable) {
+            if (kDebugMode) {
+              print('[GeminiEdge] ⚠️ 비스트리밍 토큰 cap: $cappedCompletion → $maxReasonable');
+            }
+            cappedCompletion = maxReasonable;
           }
-          cappedCompletion = maxReasonable;
         }
       }
 
@@ -600,17 +605,22 @@ class GeminiEdgeDatasource {
       success: true,
     );
 
-    // v35.2: 클라이언트 방어 — thinking 토큰 누출 cap
+    // v55: 클라이언트 방어 — thinking 토큰 누출 cap
     // 서버(Edge Function)에서 cap 했어야 하지만 실패 케이스 대비
     // 한글 최대 1.5 tokens/char 넘을 수 없음
+    // content가 empty면 토큰 0 (빈 응답에 토큰 차감 방지)
     int? actualCompletion = completionTokens;
-    if (actualCompletion != null && content.isNotEmpty) {
-      final maxReasonable = (content.length * 1.5).ceil();
-      if (actualCompletion > maxReasonable) {
-        if (kDebugMode) {
-          print('[GeminiEdge] ⚠️ 토큰 cap: $actualCompletion → $maxReasonable (textLen=${content.length}, ratio=${(actualCompletion / content.length).toStringAsFixed(2)})');
+    if (actualCompletion != null) {
+      if (content.isEmpty) {
+        actualCompletion = 0;
+      } else {
+        final maxReasonable = (content.length * 1.5).ceil();
+        if (actualCompletion > maxReasonable) {
+          if (kDebugMode) {
+            print('[GeminiEdge] ⚠️ 토큰 cap: $actualCompletion → $maxReasonable (textLen=${content.length}, ratio=${(actualCompletion / content.length).toStringAsFixed(2)})');
+          }
+          actualCompletion = maxReasonable;
         }
-        actualCompletion = maxReasonable;
       }
     }
 

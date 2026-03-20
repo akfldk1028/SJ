@@ -1117,13 +1117,17 @@ class ChatNotifier extends _$ChatNotifier {
       // Gemini 3 candidatesTokenCount에 thinking 혼입 시 edge function 방어 실패 대비
       // 한글 최대 1.5 tokens/char, 정상 범위 0.6~1.0 tokens/char
       int? tokensUsed = _repository.getLastTokensUsed();
-      if (tokensUsed != null && fullContent.isNotEmpty) {
-        final maxReasonable = (fullContent.length * 1.5).ceil();
-        if (tokensUsed > maxReasonable) {
-          if (kDebugMode) {
-            print('[ChatProvider v55] ⚠️ thinking 토큰 누출 cap: $tokensUsed → $maxReasonable (textLen=${fullContent.length}, ratio=${(tokensUsed / fullContent.length).toStringAsFixed(2)})');
+      if (tokensUsed != null) {
+        if (fullContent.isEmpty) {
+          tokensUsed = 0; // 빈 응답에 토큰 차감 방지
+        } else {
+          final maxReasonable = (fullContent.length * 1.5).ceil();
+          if (tokensUsed > maxReasonable) {
+            if (kDebugMode) {
+              print('[ChatProvider v55] ⚠️ thinking 토큰 누출 cap: $tokensUsed → $maxReasonable (textLen=${fullContent.length}, ratio=${(tokensUsed / fullContent.length).toStringAsFixed(2)})');
+            }
+            tokensUsed = maxReasonable;
           }
-          tokensUsed = maxReasonable;
         }
       }
       final tokenUsage = _repository.getTokenUsageInfo();

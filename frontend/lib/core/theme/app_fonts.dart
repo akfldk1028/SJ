@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+// AppTextStyles와 AppText를 app_fonts.dart 하나로 접근 가능하게 re-export
+export 'app_text_styles.dart';
+
 /// 앱 폰트 설정
 ///
 /// 통일된 폰트 사용:
