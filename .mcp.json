@@ -3,7 +3,7 @@
     "supabase": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "sbp_e59041014d15681d46ccb3caa50c906dee62b1c7"]
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "sbp_3457a7cbbe6467ce8b1e40f0e5df1fe2ec2f9667"]
     },
     "context7": {
       "type": "stdio",

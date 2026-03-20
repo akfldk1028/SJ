@@ -123,6 +123,11 @@ class ChatNotifier extends _$ChatNotifier {
   /// 메시지 전송 중 플래그 (더블클릭 방지)
   bool _isSendingMessage = false;
 
+  /// 서버 쿼타 초과 플래그 (429 받으면 true, 광고 시청 시 해제)
+  bool _serverQuotaExceeded = false;
+  /// 쿼타 초과가 발생한 KST 날짜 (자정 넘기면 자동 리셋)
+  String? _quotaExceededDate;
+
   @override
   ChatState build(String sessionId) {
     // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
@@ -332,6 +337,8 @@ class ChatNotifier extends _$ChatNotifier {
   void clearSession() {
     _cachedAiSummary = null; // AI Summary 캐시 초기화
     _aiSummaryCompleter = null; // Completer lock 리셋
+    _serverQuotaExceeded = false; // 서버 쿼타 플래그 리셋
+    _quotaExceededDate = null;
     state = const ChatState();
   }
 
@@ -601,7 +608,52 @@ class ChatNotifier extends _$ChatNotifier {
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // 토큰 이미 소진 상태 체크 (광고 모드 활성화)
+    // 서버 쿼타 초과 상태 체크 (429 받은 후 플래그)
+    // - 서버에서 429 받으면 _serverQuotaExceeded = true
+    // - 광고 시청으로 보너스 토큰 추가 시 해제
+    // - AI 프리미엄 구독자는 스킵
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 자정 넘기면 서버 쿼타 리셋 → 플래그 자동 해제
+    if (_serverQuotaExceeded && _quotaExceededDate != null) {
+      final todayKst = DateTime.now().toUtc().add(const Duration(hours: 9));
+      final todayStr = '${todayKst.year}-${todayKst.month.toString().padLeft(2, '0')}-${todayKst.day.toString().padLeft(2, '0')}';
+      if (todayStr != _quotaExceededDate) {
+        _serverQuotaExceeded = false;
+        _quotaExceededDate = null;
+        if (kDebugMode) {
+          print('[CHAT] 날짜 변경 감지 → 서버 쿼타 플래그 리셋');
+        }
+      }
+    }
+
+    if (!isPremium && _serverQuotaExceeded) {
+      final selectedPersona = ref.read(chatPersonaNotifierProvider);
+      final quota = PurchaseConfig.freeDailyQuota;
+      ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
+        tokenUsage: TokenUsageInfo(
+          totalUsed: quota,
+          maxTokens: quota,
+          systemPromptTokens: 0,
+          historyTokens: 0,
+          remaining: 0,
+          usagePercent: 100,
+        ),
+        messageCount: state.messages.length,
+        persona: _mapToAiPersona(selectedPersona),
+      );
+      state = state.copyWith(
+        isLoading: false,
+        error: '일일 토큰 한도를 초과했습니다. 광고를 시청하면 추가 대화가 가능합니다.',
+      );
+      _isSendingMessage = false;
+      if (kDebugMode) {
+        print('⚠️ [CHAT] 서버 쿼타 초과 상태 — 광고 시청 필요');
+      }
+      return;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 로컬 토큰 윈도우 소진 체크 (광고 모드 활성화)
     // - 100% 소진이면 광고 모드 활성화 후 메시지 전송 중단
     // - AI 프리미엄 구독자는 스킵
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1061,7 +1113,19 @@ class ChatNotifier extends _$ChatNotifier {
       }
 
       // 스트리밍 완료 후 토큰 사용량 및 윈도우잉 정보 조회
-      final tokensUsed = _repository.getLastTokensUsed();
+      // v55: 최종 방어 — fullContent 길이 기반 hard cap
+      // Gemini 3 candidatesTokenCount에 thinking 혼입 시 edge function 방어 실패 대비
+      // 한글 최대 1.5 tokens/char, 정상 범위 0.6~1.0 tokens/char
+      int? tokensUsed = _repository.getLastTokensUsed();
+      if (tokensUsed != null && fullContent.isNotEmpty) {
+        final maxReasonable = (fullContent.length * 1.5).ceil();
+        if (tokensUsed > maxReasonable) {
+          if (kDebugMode) {
+            print('[ChatProvider v55] ⚠️ thinking 토큰 누출 cap: $tokensUsed → $maxReasonable (textLen=${fullContent.length}, ratio=${(tokensUsed / fullContent.length).toStringAsFixed(2)})');
+          }
+          tokensUsed = maxReasonable;
+        }
+      }
       final tokenUsage = _repository.getTokenUsageInfo();
       final windowResult = _repository.getLastWindowResult();
 
@@ -1236,14 +1300,18 @@ class ChatNotifier extends _$ChatNotifier {
       // QUOTA_EXCEEDED: 서버에서 일일 토큰 한도 초과 → 광고 모드 활성화
       // AI 프리미엄 구독자는 서버에서 면제되므로 여기까지 오지 않음
       if (errorMsg.contains('QUOTA_EXCEEDED')) {
+        _serverQuotaExceeded = true;
+        final nowKst = DateTime.now().toUtc().add(const Duration(hours: 9));
+        _quotaExceededDate = '${nowKst.year}-${nowKst.month.toString().padLeft(2, '0')}-${nowKst.day.toString().padLeft(2, '0')}';
         if (kDebugMode) {
-          print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화');
+          print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화 + 플래그 설정 ($_quotaExceededDate)');
         }
         final selectedPersona = ref.read(chatPersonaNotifierProvider);
+        final quota = PurchaseConfig.freeDailyQuota;
         ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
-          tokenUsage: const TokenUsageInfo(
-            totalUsed: 7000, // Quota 초과된 상태
-            maxTokens: 7000,
+          tokenUsage: TokenUsageInfo(
+            totalUsed: quota,
+            maxTokens: quota,
             systemPromptTokens: 0,
             historyTokens: 0,
             remaining: 0,
@@ -1344,6 +1412,10 @@ class ChatNotifier extends _$ChatNotifier {
   /// v27: 서버 저장은 conversational_ad_provider에서 즉시 처리
   /// → 이 메서드는 client-side(ConversationWindowManager) 보너스만 추가
   Future<void> addBonusTokens(int tokens, {bool isRewardedAd = false}) async {
+    // 서버 쿼타 초과 플래그 해제 (광고 시청으로 보너스 토큰 받았으므로)
+    _serverQuotaExceeded = false;
+    _quotaExceededDate = null;
+
     // 1. Client-side: ConversationWindowManager에 보너스 추가 (항상)
     _repository.addBonusTokens(tokens);
 

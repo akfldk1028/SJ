@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/data/query_result.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../AI/services/saju_analysis_service.dart';
+import '../../../../purchase/purchase_service.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../saju_chart/data/models/saju_analysis_db_model.dart';
@@ -140,7 +141,10 @@ class Splash extends _$Splash {
         print('[Splash] Pre-fetching for user: $userId');
       }
 
-      // 1.5. 인증 후 프로필 클라우드 동기화 (인연 프로필 포함)
+      // 1.5a. RevenueCat user ID 동기화 (첫 설치 시 $RCAnonymousID → UUID)
+      await PurchaseService.instance.syncUserId();
+
+      // 1.5b. 인증 후 프로필 클라우드 동기화 (인연 프로필 포함)
       // main.dart에서 호출 시점에는 아직 인증 안 됨 → 여기서 다시 시도
       final repository = ref.read(profileRepositoryProvider);
       await repository.syncFromCloud();
