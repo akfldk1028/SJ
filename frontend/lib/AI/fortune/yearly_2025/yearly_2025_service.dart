@@ -89,13 +89,14 @@ class Yearly2025Service {
     required String profileId,
     required FortuneInputData inputData,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
-    print('[Yearly2025Service] 🚀 분석 시작: profileId=$profileId');
+    print('[Yearly2025Service] 🚀 분석 시작: profileId=$profileId, locale=$locale');
 
     try {
       // 1. 캐시 확인 (2025 회고는 무기한이므로 보통 캐시 사용)
       if (!forceRefresh) {
-        final cachedContent = await _queries.getContent(profileId);
+        final cachedContent = await _queries.getContent(profileId, locale: locale);
         if (cachedContent != null) {
           print('[Yearly2025Service] 📦 캐시에서 반환');
           return Yearly2025Result.fromCache(cachedContent);
@@ -104,7 +105,7 @@ class Yearly2025Service {
 
       // 2. 프롬프트 생성
       print('[Yearly2025Service] 📝 프롬프트 생성');
-      final prompt = Yearly2025Prompt(inputData: inputData);
+      final prompt = Yearly2025Prompt(inputData: inputData, locale: locale);
 
       // 3. GPT-5-mini API 호출
       print('[Yearly2025Service] 🤖 API 호출 시작...');
@@ -156,6 +157,7 @@ class Yearly2025Service {
         inputData: inputData,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(),
+        locale: locale,
       );
       print('[Yearly2025Service] ✅ DB 저장 완료!');
 
@@ -175,13 +177,13 @@ class Yearly2025Service {
   }
 
   /// 캐시 확인만
-  Future<Map<String, dynamic>?> getCached(String profileId) {
-    return _queries.getContent(profileId);
+  Future<Map<String, dynamic>?> getCached(String profileId, {String locale = 'ko'}) {
+    return _queries.getContent(profileId, locale: locale);
   }
 
   /// 캐시 존재 여부
-  Future<bool> hasCached(String profileId) {
-    return _queries.exists(profileId);
+  Future<bool> hasCached(String profileId, {String locale = 'ko'}) {
+    return _queries.exists(profileId, locale: locale);
   }
 
   /// API 응답 파싱 + 구조 검증

@@ -117,6 +117,7 @@ class AiMutations extends BaseMutations {
     double? totalCostUsd,
     int? processingTimeMs,
     Duration? cacheExpiry,
+    String locale = 'ko',
   }) async {
     return safeMutation(
       mutation: (client) async {
@@ -128,6 +129,7 @@ class AiMutations extends BaseMutations {
           userId: userId,
           profileId: profileId,
           summaryType: summaryType,
+          locale: locale,
           content: content,
           inputData: inputData,
           targetDate: targetDate,
@@ -197,6 +199,7 @@ class AiMutations extends BaseMutations {
     int? processingTimeMs,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     // v41: content 유효성 검증 - raw/parse_failed/empty 저장 거부
     if (content.containsKey('raw') || content.containsKey('_parse_failed')) {
@@ -226,12 +229,13 @@ class AiMutations extends BaseMutations {
     return safeMutation(
       mutation: (client) async {
         // 1. 기존 saju_base 레코드 삭제 (있으면)
-        // Partial UNIQUE INDEX: (profile_id) WHERE summary_type = 'saju_base'
+        // Partial UNIQUE INDEX: (profile_id, locale) WHERE summary_type = 'saju_base'
         await client
             .from(AiSummaries.table_name)
             .delete()
             .eq(AiSummaries.c_profileId, profileId)
-            .eq(AiSummaries.c_summaryType, SummaryType.sajuBase);
+            .eq(AiSummaries.c_summaryType, SummaryType.sajuBase)
+            .eq(AiSummaries.c_locale, locale);
 
         // input_data에 전체 프롬프트 포함
         final inputDataJson = <String, dynamic>{};
@@ -250,6 +254,7 @@ class AiMutations extends BaseMutations {
           userId: userId,
           profileId: profileId,
           summaryType: SummaryType.sajuBase,
+          locale: locale,
           content: content,
           inputData: inputDataJson.isNotEmpty ? inputDataJson : null,
           // saju_base는 target_date 없음 (NULL)
@@ -305,6 +310,7 @@ class AiMutations extends BaseMutations {
     int? processingTimeMs,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     // input_data에 전체 프롬프트 포함
     final inputDataJson = <String, dynamic>{};
@@ -332,6 +338,7 @@ class AiMutations extends BaseMutations {
       totalCostUsd: totalCostUsd,
       processingTimeMs: processingTimeMs,
       cacheExpiry: CacheExpiry.dailyFortune,
+      locale: locale,
     );
   }
 
@@ -381,6 +388,7 @@ class AiMutations extends BaseMutations {
     Map<String, dynamic>? inputData,
     DateTime? targetDate,
     String? targetPeriod,
+    String locale = 'ko',
   }) async {
     return safeMutation(
       mutation: (client) async {
@@ -388,6 +396,7 @@ class AiMutations extends BaseMutations {
           userId: userId,
           profileId: profileId,
           summaryType: summaryType,
+          locale: locale,
           content: {'status': 'pending'},
           inputData: inputData,
           targetDate: targetDate,

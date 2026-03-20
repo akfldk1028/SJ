@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,8 +55,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   const FortuneSummaryCard(),
                   SizedBox(height: context.scaledPadding(16)),
                   // 오늘의 운세 섹션 - 내 사주 위로 이동
-                  const SectionHeader(
-                    title: '오늘의 운세',
+                  SectionHeader(
+                    title: 'menu.todayFortune'.tr(),
                   ),
                   SizedBox(height: context.scaledPadding(8)),
                   const FortuneCategoryList(),
@@ -143,7 +144,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 Row(
                   children: [
                     Text(
-                      '운세',
+                      'menu.fortune'.tr(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -198,7 +199,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '로딩...',
+                      'menu.loading'.tr(),
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textMuted,
@@ -215,7 +216,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '프로필 없음',
+                      'menu.noProfile'.tr(),
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textMuted,
@@ -234,7 +235,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '프로필 추가',
+                          'menu.addProfile'.tr(),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -253,7 +254,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '${profile.displayName}님',
+                        'menu.profileSuffix'.tr(namedArgs: {'name': profile.displayName}),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -286,11 +287,19 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   }
 
   Map<String, String> _formatDate(DateTime date) {
-    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-    final weekday = weekdays[date.weekday - 1];
+    const weekdayKeys = [
+      'menu.weekday_mon', 'menu.weekday_tue', 'menu.weekday_wed',
+      'menu.weekday_thu', 'menu.weekday_fri', 'menu.weekday_sat', 'menu.weekday_sun',
+    ];
+    final weekday = weekdayKeys[date.weekday - 1].tr();
 
     return {
-      'full': '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ($weekday)',
+      'full': 'menu.dateFormat'.tr(namedArgs: {
+        'year': '${date.year}',
+        'month': date.month.toString().padLeft(2, '0'),
+        'day': date.day.toString().padLeft(2, '0'),
+        'weekday': weekday,
+      }),
     };
   }
 }

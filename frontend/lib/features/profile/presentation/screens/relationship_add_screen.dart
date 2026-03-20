@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -63,7 +64,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          '인연 추가하기',
+          'profile.addRelationTitle'.tr(),
           style: TextStyle(color: theme.textPrimary),
         ),
         centerTitle: true,
@@ -98,7 +99,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          '새로운 인연의 사주 정보를 입력해주세요.\n궁합 및 관계 분석에 활용됩니다.',
+                          'profile.addRelationGuide'.tr(),
                           style: TextStyle(
                             color: theme.textPrimary,
                             fontSize: 14,
@@ -156,7 +157,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '관계 유형',
+          'profile.relationType'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontSize: 16,
@@ -197,11 +198,11 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
     AppThemeExtension theme,
   ) {
     final categories = {
-      '가족': ProfileRelationType.familyTypes,
-      '연인': ProfileRelationType.romanticTypes,
-      '친구': ProfileRelationType.friendTypes,
-      '직장': ProfileRelationType.workTypes,
-      '기타': ProfileRelationType.otherTypes,
+      'profile.categoryFamily'.tr(): ProfileRelationType.familyTypes,
+      'profile.categoryLover'.tr(): ProfileRelationType.romanticTypes,
+      'profile.categoryFriend'.tr(): ProfileRelationType.friendTypes,
+      'profile.categoryWork'.tr(): ProfileRelationType.workTypes,
+      'profile.categoryOther'.tr(): ProfileRelationType.otherTypes,
     };
 
     final items = <DropdownMenuItem<ProfileRelationType>>[];
@@ -248,7 +249,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '메모 (선택)',
+          'profile.memoOptional'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontSize: 16,
@@ -257,7 +258,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
         ),
         const SizedBox(height: 12),
         ShadInput(
-          placeholder: const Text('이 인연에 대한 메모를 입력하세요'),
+          placeholder: Text('profile.memoHint'.tr()),
           onChanged: (value) {
             _memo = value.isEmpty ? null : value;
           },
@@ -280,7 +281,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
         ),
         const SizedBox(width: 12),
         Text(
-          '즐겨찾기에 추가',
+          'profile.addToFavorites'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontSize: 16,
@@ -313,12 +314,12 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
                 color: Colors.white,
               ),
             )
-          : const Row(
+          : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check, size: 20),
-                SizedBox(width: 8),
-                Text('인연 추가하기'),
+                const Icon(Icons.check, size: 20),
+                const SizedBox(width: 8),
+                Text('profile.addRelationButton'.tr()),
               ],
             ),
     );
@@ -340,7 +341,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       final activeProfile = ref.read(activeProfileProvider).value;
       if (activeProfile == null) {
         debugPrint('❌ [_saveRelationship] Step 1 실패: activeProfile이 null');
-        throw Exception('내 프로필이 없습니다. 먼저 내 프로필을 등록해주세요.');
+        throw Exception('profile.noMyProfile'.tr());
       }
       debugPrint('✅ [_saveRelationship] Step 1 완료: activeProfile.id = ${activeProfile.id}');
 
@@ -476,8 +477,8 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       if (mounted) {
         ShadToaster.of(context).show(
           ShadToast.destructive(
-            title: const Text('오류'),
-            description: Text('인연 추가 실패: $e'),
+            title: Text('profile.error'.tr()),
+            description: Text('profile.addRelationFailed'.tr(namedArgs: {'error': e.toString()})),
           ),
         );
         // 에러 시에만 _isSaving 리셋

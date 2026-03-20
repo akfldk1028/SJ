@@ -21,7 +21,7 @@ extension DailyAnalysisStepX on DailyAnalysisStep {
     DailyAnalysisStep.error => 0.0,
   };
 
-  /// UI 표시 텍스트
+  /// UI 표시 텍스트 (한국어 fallback)
   String get label => switch (this) {
     DailyAnalysisStep.idle => '분석 준비 중...',
     DailyAnalysisStep.checkingCache => '사주 데이터 확인 중...',
@@ -29,6 +29,16 @@ extension DailyAnalysisStepX on DailyAnalysisStep {
     DailyAnalysisStep.saving => '결과 저장 중...',
     DailyAnalysisStep.completed => '분석 완료!',
     DailyAnalysisStep.error => '탭하면 다시 시도합니다',
+  };
+
+  /// i18n 키 (UI에서 .tr() 호출용)
+  String get labelKey => switch (this) {
+    DailyAnalysisStep.idle => 'menu.analysisIdle',
+    DailyAnalysisStep.checkingCache => 'menu.analysisChecking',
+    DailyAnalysisStep.callingApi => 'menu.aiAnalyzing',
+    DailyAnalysisStep.saving => 'menu.analysisSaving',
+    DailyAnalysisStep.completed => 'menu.analysisCompleted',
+    DailyAnalysisStep.error => 'menu.analysisError',
   };
 }
 

@@ -1,6 +1,8 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 
 /// 개인화된 오행 관계 설명 위젯 - shadcn_ui 기반 모던 UI
@@ -91,7 +93,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '나의 일간',
+                      'saju_chart.myDayMaster'.tr(),
                       style: shadTheme.textTheme.muted.copyWith(fontSize: 13),
                     ),
                     const SizedBox(width: 8),
@@ -99,7 +101,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                       backgroundColor: color.withValues(alpha: 0.15),
                       foregroundColor: color,
                       child: Text(
-                        '$dayMaster(${myOheng.hanja})',
+                        '${SajuI18n.cheongan(dayMaster, context.locale.languageCode)}(${myOheng.hanja})',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -110,7 +112,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${myOheng.korean} 오행 기준 나의 관계도',
+                  'saju_chart.ohengRelationByDayMaster'.tr(namedArgs: {'oheng': _ohengI18nKey(myOheng).tr()}),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -129,70 +131,62 @@ class PersonalizedOhengWidget extends StatelessWidget {
     BuildContext context,
     _OhengRelation r,
   ) {
-    final color = _getOhengColor(r.targetOheng);
-    final shadTheme = ShadTheme.of(context);
+    final sourceColor = _getOhengColor(r.sourceOheng);
+    final targetColor = _getOhengColor(r.targetOheng);
 
     return ShadAccordionItem(
       value: r,
       title: Row(
         children: [
-          // 아이콘
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              r.icon,
-              size: 16,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // 십신 카테고리 + 관계
+          // 한자 관계
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    ShadBadge.secondary(
-                      backgroundColor: color.withValues(alpha: 0.15),
-                      foregroundColor: theme.isDark ? Colors.white : color,
-                      child: Text(
-                        r.category.korean,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: sourceColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: sourceColor.withValues(alpha: 0.15),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.2),
+                  ),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: r.sourceOheng.hanja,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: sourceColor,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        r.relation,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.textPrimary,
+                        TextSpan(
+                          text: ' ${r.connector} ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.textSecondary.withValues(alpha: 0.6),
+                            height: 1.2,
+                          ),
                         ),
-                      ),
+                        TextSpan(
+                          text: r.targetOheng.hanja,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: targetColor,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -211,10 +205,10 @@ class PersonalizedOhengWidget extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.only(top: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
+          color: targetColor.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: color.withValues(alpha: 0.1),
+            color: targetColor.withValues(alpha: 0.1),
           ),
         ),
         child: Column(
@@ -225,15 +219,15 @@ class PersonalizedOhengWidget extends StatelessWidget {
                 Icon(
                   LucideIcons.lightbulb,
                   size: 14,
-                  color: color,
+                  color: targetColor,
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '해석',
+                  'saju_chart.interpretation'.tr(),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: color,
+                    color: targetColor,
                   ),
                 ),
               ],
@@ -259,51 +253,53 @@ class PersonalizedOhengWidget extends StatelessWidget {
     final overcomesMe = _findOhengThatOvercomes(myOheng);
     final generatesMe = _findOhengThatGenerates(myOheng);
 
+    final args = {'oheng': _ohengI18nKey(myOheng).tr()};
+
     return [
       _OhengRelation(
         category: SipSinCategory.bigeop,
+        sourceOheng: myOheng,
         targetOheng: myOheng,
-        relation: '${myOheng.korean} = ${myOheng.korean}',
-        meaning: '친구, 형제, 경쟁자',
+        connector: '=',
+        meaning: 'saju_chart.bigeop_meaning'.tr(namedArgs: args),
         icon: LucideIcons.users,
-        description:
-            '나와 같은 오행을 가진 사람들입니다. 서로 이해하고 공감하기 쉬워 친구나 동료가 되기 좋습니다. 하지만 같은 것을 추구하기에 경쟁 관계가 될 수도 있어요. 비겁이 강하면 독립심과 자존심이 강한 편입니다.',
+        description: 'saju_chart.bigeop_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.siksang,
+        sourceOheng: myOheng,
         targetOheng: iGenerate,
-        relation: '${myOheng.korean}생${iGenerate.korean}',
-        meaning: '표현력, 재능, 창작',
+        connector: '生',
+        meaning: 'saju_chart.siksang_meaning'.tr(namedArgs: args),
         icon: LucideIcons.sparkles,
-        description:
-            '내가 에너지를 내어 만들어내는 기운입니다. 말솜씨, 글재주, 예술적 재능으로 나타나요. 식상이 강하면 자기표현을 잘하고 끼가 많습니다. 자녀운과도 연결되어, 아이디어나 작품을 "낳는다"고 해석하기도 해요.',
+        description: 'saju_chart.siksang_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.jaeseong,
+        sourceOheng: myOheng,
         targetOheng: iOvercome,
-        relation: '${myOheng.korean}극${iOvercome.korean}',
-        meaning: '재물운, 관리능력',
+        connector: '克',
+        meaning: 'saju_chart.jaeseong_meaning'.tr(namedArgs: args),
         icon: LucideIcons.coins,
-        description:
-            '내가 컨트롤하고 다스리는 기운이에요. 돈을 벌고 관리하는 능력, 현실적인 감각과 연결됩니다. 재성이 강하면 재물에 대한 욕심이 있고 실리적입니다. 남자에게는 아내나 여자친구를 의미하기도 해요.',
+        description: 'saju_chart.jaeseong_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.gwanseong,
-        targetOheng: overcomesMe,
-        relation: '${overcomesMe.korean}극${myOheng.korean}',
-        meaning: '직장, 규율, 책임감',
+        sourceOheng: overcomesMe,
+        targetOheng: myOheng,
+        connector: '克',
+        meaning: 'saju_chart.gwanseong_meaning'.tr(namedArgs: args),
         icon: LucideIcons.briefcase,
-        description:
-            '나를 제어하고 규율하는 기운입니다. 직장, 직업, 사회적 규범과 연결돼요. 관성이 적절하면 책임감 있고 사회적으로 인정받습니다. 너무 강하면 스트레스나 압박감을 느낄 수 있어요. 여자에게는 남편이나 남자친구를 의미하기도 합니다.',
+        description: 'saju_chart.gwanseong_desc'.tr(),
       ),
       _OhengRelation(
         category: SipSinCategory.inseong,
-        targetOheng: generatesMe,
-        relation: '${generatesMe.korean}생${myOheng.korean}',
-        meaning: '도움, 보호, 학업',
+        sourceOheng: generatesMe,
+        targetOheng: myOheng,
+        connector: '生',
+        meaning: 'saju_chart.inseong_meaning'.tr(namedArgs: args),
         icon: LucideIcons.shield,
-        description:
-            '나를 길러주고 보호하는 기운이에요. 어머니, 스승, 귀인의 도움과 연결됩니다. 인성이 강하면 학문을 좋아하고 사려 깊습니다. 문서운, 자격증운과도 관계가 있어 공부나 시험에 유리할 수 있어요.',
+        description: 'saju_chart.inseong_desc'.tr(),
       ),
     ];
   }
@@ -321,6 +317,15 @@ class PersonalizedOhengWidget extends StatelessWidget {
     }
     return me;
   }
+
+  /// Oheng enum → i18n key (saju_chart.elementXxx)
+  String _ohengI18nKey(Oheng oheng) => switch (oheng) {
+    Oheng.mok => 'saju_chart.elementWood',
+    Oheng.hwa => 'saju_chart.elementFire',
+    Oheng.to => 'saju_chart.elementEarth',
+    Oheng.geum => 'saju_chart.elementMetal',
+    Oheng.su => 'saju_chart.elementWater',
+  };
 
   Color _getOhengColor(Oheng oheng) {
     switch (oheng) {
@@ -355,16 +360,18 @@ class PersonalizedOhengWidget extends StatelessWidget {
 
 class _OhengRelation {
   final SipSinCategory category;
+  final Oheng sourceOheng;
   final Oheng targetOheng;
-  final String relation;
+  final String connector; // "=", "生", "克"
   final String meaning;
   final IconData icon;
   final String description;
 
   const _OhengRelation({
     required this.category,
+    required this.sourceOheng,
     required this.targetOheng,
-    required this.relation,
+    required this.connector,
     required this.meaning,
     required this.icon,
     required this.description,

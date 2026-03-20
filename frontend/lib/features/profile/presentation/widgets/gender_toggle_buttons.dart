@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -21,7 +22,7 @@ class GenderToggleButtons extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '성별',
+          'onboarding.labelGender'.tr(),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: theme.textPrimary,
           ),
@@ -31,7 +32,7 @@ class GenderToggleButtons extends ConsumerWidget {
           children: [
             Expanded(
               child: _GenderButton(
-                label: '여자',
+                label: 'onboarding.genderFemale'.tr(),
                 gender: Gender.female,
                 isSelected: selectedGender == Gender.female,
                 onTap: () {
@@ -42,7 +43,7 @@ class GenderToggleButtons extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _GenderButton(
-                label: '남자',
+                label: 'onboarding.genderMale'.tr(),
                 gender: Gender.male,
                 isSelected: selectedGender == Gender.male,
                 onTap: () {

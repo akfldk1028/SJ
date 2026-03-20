@@ -1,5 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../domain/entities/pillar.dart';
 
 /// 사주 기둥(년주/월주/일주/시주) 표시 위젯
@@ -40,11 +42,18 @@ class PillarColumnWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
     final ganHanja = cheonganHanja[pillar.gan] ?? '';
     final jiHanja = jijiHanja[pillar.ji] ?? '';
     final ganOheng = pillar.ganOheng;
     final jiOheng = pillar.jiOheng;
     final animal = pillar.jiAnimal;
+    // 다국어: 한글 → locale별 변환
+    final ganDisplay = SajuI18n.cheongan(pillar.gan, locale);
+    final jiDisplay = SajuI18n.jiji(pillar.ji, locale);
+    final ganOhengDisplay = SajuI18n.oheng(ganOheng, locale);
+    final jiOhengDisplay = SajuI18n.oheng(jiOheng, locale);
+    final animalDisplay = animal != null ? SajuI18n.animal(animal, locale) : null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -98,12 +107,12 @@ class PillarColumnWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          // 천간 한글 + 오행
+          // 천간 표시명 + 오행
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                pillar.gan,
+                ganDisplay,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -116,7 +125,7 @@ class PillarColumnWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  ganOheng,
+                  ganOhengDisplay,
                   style: TextStyle(
                     fontSize: 13,
                     color: _getOhengColor(ganOheng),
@@ -151,12 +160,12 @@ class PillarColumnWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          // 지지 한글 + 오행
+          // 지지 표시명 + 오행
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                pillar.ji,
+                jiDisplay,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -169,7 +178,7 @@ class PillarColumnWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  jiOheng,
+                  jiOhengDisplay,
                   style: TextStyle(
                     fontSize: 13,
                     color: _getOhengColor(jiOheng),
@@ -183,7 +192,7 @@ class PillarColumnWidget extends StatelessWidget {
           if (animal.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              animal,
+              animalDisplay ?? animal,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
               ),
@@ -207,7 +216,7 @@ class UnknownHourPillarWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '시주',
+            'saju_chart.hourPillar'.tr(),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.grey[600],
             ),
@@ -238,7 +247,7 @@ class UnknownHourPillarWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '미상',
+            'saju_chart.unknown'.tr(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: Colors.grey[500],
@@ -270,7 +279,7 @@ class UnknownHourPillarWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '미상',
+            'saju_chart.unknown'.tr(),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: Colors.grey[500],

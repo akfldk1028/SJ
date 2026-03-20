@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,7 +91,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '궁합이 궁금한 사람이 있나요?',
+                      'menu.compatPromoRegisterTitle'.tr(),
                       style: TextStyle(
                         fontSize: context.scaledFont(14),
                         fontWeight: FontWeight.w600,
@@ -99,7 +100,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                     ),
                     SizedBox(height: context.scaledPadding(2)),
                     Text(
-                      '상대방을 등록하면 사주 궁합을 분석해드려요',
+                      'menu.compatPromoRegisterSubtitle'.tr(),
                       style: TextStyle(
                         fontSize: context.scaledFont(12),
                         color: theme.textMuted,
@@ -118,7 +119,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '등록',
+                  'menu.compatPromoRegister'.tr(),
                   style: TextStyle(
                     fontSize: context.scaledFont(12),
                     fontWeight: FontWeight.w600,
@@ -151,7 +152,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '등록된 인연과 궁합을 확인해보세요',
+                      'menu.compatPromoAnalyzeTitle'.tr(),
                       style: TextStyle(
                         fontSize: context.scaledFont(14),
                         fontWeight: FontWeight.w600,
@@ -160,7 +161,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                     ),
                     SizedBox(height: context.scaledPadding(2)),
                     Text(
-                      '두 사람의 사주로 숨겨진 인연을 분석합니다',
+                      'menu.compatPromoAnalyzeSubtitle'.tr(),
                       style: TextStyle(
                         fontSize: context.scaledFont(12),
                         color: theme.textMuted,
@@ -235,7 +236,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '$targetName님과의 궁합',
+                          'menu.compatPromoResultTitle'.tr(namedArgs: {'name': targetName}),
                           style: TextStyle(
                             fontSize: context.scaledFont(14),
                             fontWeight: FontWeight.w600,
@@ -244,7 +245,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
                         ),
                         SizedBox(height: context.scaledPadding(2)),
                         Text(
-                          '${latest.scoreGrade} 궁합 · ${latest.analysisTypeLabel}',
+                          '${latest.scoreGrade} ${'compatibility.score_suffix'.tr()} · ${latest.analysisTypeLabel}',
                           style: TextStyle(
                             fontSize: context.scaledFont(12),
                             color: scoreColor,

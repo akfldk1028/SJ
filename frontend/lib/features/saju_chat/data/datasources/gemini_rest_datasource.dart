@@ -32,7 +32,7 @@ class GeminiResponse {
     this.finishReason,
   });
 
-  /// 쿼타용 토큰 사용량 (completion only — prompt 제외로 쿼타 10배 효율)
+  /// 쿼타용 토큰 사용량 (candidatesTokenCount = output only, 공식 문서 확인)
   int? get tokensUsed => candidatesTokenCount;
 }
 

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -51,7 +52,7 @@ class SectionHeader extends StatelessWidget {
             GestureDetector(
               onTap: onSeeAll,
               child: Text(
-                '전체보기',
+                'menu.seeAll'.tr(),
                 style: TextStyle(
                   fontSize: subtitleSize,
                   color: theme.primaryColor,

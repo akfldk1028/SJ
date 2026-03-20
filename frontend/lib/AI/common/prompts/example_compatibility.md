@@ -3,11 +3,26 @@
 > `SystemPromptBuilder.build()` → Gemini에 전달되는 시스템 프롬프트 전문
 >
 > 페르소나: friendly_sister (기본) 사용 예시
+> ChatType: compatibility (궁합) → `assets/prompts/compatibility.md` 로드
 > 개인 사주 모드와 **동일한 부분**은 `[개인 모드와 동일]`로 표기
 > **궁합 모드에서 추가되는 섹션**만 상세 기술
 >
 > **실제 프로덕션 데이터 기반** (Supabase DB에서 추출, 2026-03-08)
 > 김동현 ↔ 최민철, 관계: 일반 친구 (friend_general), 점수: 87점
+>
+> **조립 순서** (system_prompt_builder.dart):
+> 1. `_addCurrentDate()` — 날짜 + 간지
+> 2. `_addPersona(personaPrompt)` — persona.buildFullSystemPrompt()
+> 3. `basePrompt` — assets/prompts/compatibility.md (PromptLoader)
+> 4. `_addProfileInfo(profile, "나 (상담 요청자)")` — 내 프로필
+> 5. `_addSajuAnalysis(sajuAnalysis, "나의 사주")` — 내 사주
+> 6. `_addAiSummary()` — GPT-5.2 (첫 메시지만)
+> 7. `_addTargetProfileInfo()` — 상대방 프로필
+> 8. `_addSajuAnalysis(targetSaju, "상대방의 사주")` — 상대방 사주
+> 9. `_addCompatibilityAnalysisResult()` — 궁합 분석 결과 (첫 메시지만)
+> 10. `_addCompatibilityInstructions()` — 궁합 지시문 (첫 메시지만)
+> 11. `_addRelationTypeContext()` — 관계유형별 지침 (첫 메시지만)
+> 12. `_addClosingInstructions()` — 마무리
 
 ---
 
@@ -26,7 +41,15 @@
 
 ---
 
-(saju_system_prompt_v4.1.md 기본 프롬프트 — 개인 모드와 동일)
+> **[3] 베이스 프롬프트**: 궁합 모드에서는 `assets/prompts/compatibility.md` (237줄) 로드
+> 궁합 모드이므로 chatType에 관계없이 항상 compatibility.md가 로드됨
+> (chat_provider.dart: `isCompatibilityMode ? ChatType.compatibility : chatType`)
+>
+> ⚠️ 참고: `lib/AI/saju_system_prompt_v4.1.md`는 참조 문서이며,
+> 런타임에 로드되지 않음. compatibility.md에 유사 내용이 포함되어 있음.
+
+[compatibility.md 전문 — 237줄, 7단계 분석 + 합충형해파 + 분석 원칙]
+[개인 모드의 general.md (60줄)보다 훨씬 상세함]
 
 ---
 

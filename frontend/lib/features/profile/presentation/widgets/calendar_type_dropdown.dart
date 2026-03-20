@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -19,7 +20,7 @@ class CalendarTypeDropdown extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '생년월일시',
+          'onboarding.labelBirthDateTime'.tr(),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: theme.textPrimary,
           ),
@@ -27,13 +28,13 @@ class CalendarTypeDropdown extends ConsumerWidget {
         const SizedBox(height: 8),
         ShadSelect<bool>(
           initialValue: formState.isLunar,
-          placeholder: const Text('양력'),
-          options: const [
-            ShadOption(value: false, child: Text('양력')),
-            ShadOption(value: true, child: Text('음력')),
+          placeholder: Text('onboarding.calendarSolar'.tr()),
+          options: [
+            ShadOption(value: false, child: Text('onboarding.calendarSolar'.tr())),
+            ShadOption(value: true, child: Text('onboarding.calendarLunar'.tr())),
           ],
           selectedOptionBuilder: (context, value) =>
-              Text(value ? '음력' : '양력'),
+              Text(value ? 'onboarding.calendarLunar'.tr() : 'onboarding.calendarSolar'.tr()),
           onChanged: (value) {
             if (value != null) {
               ref.read(profileFormProvider.notifier).updateIsLunar(value);

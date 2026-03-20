@@ -25,6 +25,7 @@ class LifetimeQueries {
   /// 캐시된 평생운세 조회
   ///
   /// [profileId] 프로필 UUID
+  /// [locale] 언어 코드 (ko, ja, en)
   /// 반환: 캐시된 데이터 또는 null
   ///
   /// 참고: saju_base는 무기한 캐시 (프로필 변경 시에만 재생성)
@@ -33,6 +34,7 @@ class LifetimeQueries {
   Future<Map<String, dynamic>?> getCached(
     String profileId, {
     bool includeStale = false,
+    String locale = 'ko',
   }) async {
     try {
       final response = await _supabase
@@ -41,6 +43,7 @@ class LifetimeQueries {
           .eq('profile_id', profileId)
           .eq('summary_type', SummaryType.sajuBase)
           .eq('status', 'completed')
+          .eq('locale', locale)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -67,28 +70,29 @@ class LifetimeQueries {
   }
 
   /// 평생운세 존재 여부 확인
-  Future<bool> exists(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<bool> exists(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     return cached != null;
   }
 
   /// v41: 무효 캐시 삭제 (raw/parse_failed content 감지 시)
-  Future<void> deleteCached(String profileId) async {
+  Future<void> deleteCached(String profileId, {String locale = 'ko'}) async {
     try {
       await _supabase
           .from('ai_summaries')
           .delete()
           .eq('profile_id', profileId)
-          .eq('summary_type', SummaryType.sajuBase);
-      print('[LifetimeQueries] saju_base 캐시 삭제 완료: $profileId');
+          .eq('summary_type', SummaryType.sajuBase)
+          .eq('locale', locale);
+      print('[LifetimeQueries] saju_base 캐시 삭제 완료: $profileId (locale=$locale)');
     } catch (e) {
       print('[LifetimeQueries] saju_base 캐시 삭제 오류: $e');
     }
   }
 
   /// 평생운세 content만 조회
-  Future<Map<String, dynamic>?> getContent(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<Map<String, dynamic>?> getContent(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     if (cached == null) return null;
 
     final content = cached['content'];

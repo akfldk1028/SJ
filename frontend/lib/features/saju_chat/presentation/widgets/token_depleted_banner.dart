@@ -5,6 +5,7 @@
 /// - ✨ 프리미엄 (구매 페이지)
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,7 +71,7 @@ class TokenDepletedBanner extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '토큰이 소진되었어요. 현재 광고 서비스 점검 중이에요',
+            'saju_chat.tokenDepletedAdMaintenance'.tr(),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -84,7 +85,7 @@ class TokenDepletedBanner extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: AdChoiceButton(
-              label: '✨ 광고 없이 이용하기',
+              label: 'saju_chat.adFreeLabel'.tr(),
               isPrimary: true,
               onPressed: () => context.push(Routes.settingsPremium),
             ),
@@ -119,7 +120,7 @@ class TokenDepletedBanner extends ConsumerWidget {
         children: [
           // 안내 텍스트
           Text(
-            '토큰이 소진되었어요! 광고를 보면 대화를 계속할 수 있어요',
+            'saju_chat.tokenDepleted'.tr(),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -136,7 +137,7 @@ class TokenDepletedBanner extends ConsumerWidget {
               // 전면 광고 → 토큰 충전
               Expanded(
                 child: AdChoiceButton(
-                  label: '▶ 계속하기',
+                  label: 'saju_chat.continueLabel'.tr(),
                   isPrimary: false,
                   onPressed: () => _handleInterstitialAndContinue(context, ref),
                 ),
@@ -145,7 +146,7 @@ class TokenDepletedBanner extends ConsumerWidget {
               // 프리미엄 구매 버튼
               Expanded(
                 child: AdChoiceButton(
-                  label: '✨ 프리미엄',
+                  label: 'saju_chat.premiumLabel'.tr(),
                   isPrimary: true,
                   onPressed: () => context.push(Routes.settingsPremium),
                 ),
@@ -201,9 +202,9 @@ class TokenDepletedBanner extends ConsumerWidget {
       debugPrint('[TokenDepletedBanner] 광고 로드 실패 → fallback +$fallbackTokens tokens');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('광고를 불러올 수 없어 소량 충전했어요. 잠시 후 다시 시도해주세요!'),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text('saju_chat.adLoadFailMessage'.tr()),
+            duration: const Duration(seconds: 3),
           ),
         );
       }

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,7 +31,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '2026 신년운세',
+          'new_year_fortune.appBarTitle'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -69,7 +70,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
             Icon(Icons.error_outline, size: 48, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
-              '신년운세를 불러오지 못했습니다',
+              'new_year_fortune.errorLoad'.tr(),
               style: TextStyle(color: theme.textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -85,7 +86,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
             ElevatedButton.icon(
               onPressed: () => ref.read(newYearFortuneProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('다시 시도'),
+              label: Text('new_year_fortune.retry'.tr()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
@@ -112,7 +113,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            '🔮 AI가 신년운세를 분석하고 있어요',
+            'new_year_fortune.analyzingTitle'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 16,
@@ -121,7 +122,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '잠시만 기다려주세요...',
+            'new_year_fortune.pleaseWait'.tr(),
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
@@ -139,7 +140,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
       children: [
         // 히어로 헤더 (타이틀 + 점수 + 키워드)
         FortuneTitleHeader(
-          title: '${fortune.year}년 신년운세',
+          title: 'new_year_fortune.yearNewYearFortune'.tr(namedArgs: {'year': '${fortune.year}'}),
           subtitle: fortune.yearGanji,
           keyword: fortune.overview.keyword.isNotEmpty ? fortune.overview.keyword : null,
           score: fortune.overview.score > 0 ? fortune.overview.score : null,
@@ -159,7 +160,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.mySajuIntro!.title.isNotEmpty
                 ? fortune.mySajuIntro!.title
-                : '나의 사주, 나는 누구인가요?',
+                : 'new_year_fortune.mySajuIntroDefault'.tr(),
             icon: Icons.person_outline,
             content: fortune.mySajuIntro!.reading,
             style: CardStyle.gradient,
@@ -169,7 +170,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
 
         // 2026년 총운 (opening 사용)
         FortuneSectionCard(
-          title: '2026년 총운',
+          title: 'new_year_fortune.yearOverallFortune'.tr(namedArgs: {'year': '${fortune.year}'}),
           icon: Icons.auto_awesome,
           style: CardStyle.elevated,
           child: Column(
@@ -198,7 +199,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.ilganAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '일간 분석',
+                  label: 'new_year_fortune.ilganAnalysis'.tr(),
                   content: fortune.overview.ilganAnalysis,
                   type: HighlightType.primary,
                   icon: Icons.person_outline,
@@ -208,7 +209,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.sinsalAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '신살 분석',
+                  label: 'new_year_fortune.sinsalAnalysis'.tr(),
                   content: fortune.overview.sinsalAnalysis,
                   type: HighlightType.info,
                   icon: Icons.star_outline,
@@ -218,7 +219,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.hapchungAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '합충 분석',
+                  label: 'new_year_fortune.hapchungAnalysis'.tr(),
                   content: fortune.overview.hapchungAnalysis,
                   type: HighlightType.info,
                   icon: Icons.sync_alt,
@@ -228,7 +229,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.yongshinAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '용신 분석',
+                  label: 'new_year_fortune.yongshinAnalysis'.tr(),
                   content: fortune.overview.yongshinAnalysis,
                   type: HighlightType.warning,
                   icon: Icons.water_drop_outlined,
@@ -238,7 +239,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.yearEnergyConclusion.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '2026년 에너지 총평',
+                  label: 'new_year_fortune.yearEnergyConclusion'.tr(namedArgs: {'year': '${fortune.year}'}),
                   content: fortune.overview.yearEnergyConclusion,
                   type: HighlightType.success,
                   icon: Icons.bolt,
@@ -248,7 +249,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.keyPoint.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '핵심 포인트',
+                  label: 'new_year_fortune.keyPoint'.tr(),
                   content: fortune.overview.keyPoint,
                   type: HighlightType.primary,
                   icon: Icons.lightbulb_outline,
@@ -262,20 +263,20 @@ class NewYearFortuneScreen extends ConsumerWidget {
         // 연도 정보 (납음, 12운성, 신살)
         if (_hasYearInfo(fortune.yearInfo)) ...[
           FortuneSectionCard(
-            title: '${fortune.year}년 ${fortune.yearInfo.alias}',
+            title: 'new_year_fortune.yearAlias'.tr(namedArgs: {'year': '${fortune.year}', 'alias': fortune.yearInfo.alias}),
             icon: Icons.calendar_today,
             style: CardStyle.outlined,
             child: Column(
               children: [
                 if (fortune.yearInfo.napeum.isNotEmpty)
-                  _buildInfoTile(theme, '납음', fortune.yearInfo.napeum, fortune.yearInfo.napeumExplain),
+                  _buildInfoTile(theme, 'new_year_fortune.napeum'.tr(), fortune.yearInfo.napeum, fortune.yearInfo.napeumExplain),
                 if (fortune.yearInfo.twelveUnsung.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _buildInfoTile(theme, '12운성', fortune.yearInfo.twelveUnsung, fortune.yearInfo.unsungExplain),
+                  _buildInfoTile(theme, 'new_year_fortune.twelveUnsung'.tr(), fortune.yearInfo.twelveUnsung, fortune.yearInfo.unsungExplain),
                 ],
                 if (fortune.yearInfo.mainSinsal.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _buildInfoTile(theme, '주요 신살', fortune.yearInfo.mainSinsal, fortune.yearInfo.sinsalExplain),
+                  _buildInfoTile(theme, 'new_year_fortune.mainSinsal'.tr(), fortune.yearInfo.mainSinsal, fortune.yearInfo.sinsalExplain),
                 ],
               ],
             ),
@@ -286,17 +287,17 @@ class NewYearFortuneScreen extends ConsumerWidget {
         // 나와 2026년의 관계 (개인 분석)
         if (_hasPersonalAnalysis(fortune.personalAnalysis)) ...[
           FortuneSectionCard(
-            title: '나와 2026년의 관계',
+            title: 'new_year_fortune.personalRelation'.tr(namedArgs: {'year': '${fortune.year}'}),
             icon: Icons.connecting_airports,
             style: CardStyle.outlined,
             child: Column(
               children: [
                 if (fortune.personalAnalysis.ilgan.isNotEmpty)
-                  _buildInfoTile(theme, '일간 분석', fortune.personalAnalysis.ilgan, fortune.personalAnalysis.ilganExplain),
+                  _buildInfoTile(theme, 'new_year_fortune.ilganAnalysis'.tr(), fortune.personalAnalysis.ilgan, fortune.personalAnalysis.ilganExplain),
                 if (fortune.personalAnalysis.fireEffect.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   FortuneHighlightBox(
-                    label: '화(火) 기운의 영향',
+                    label: 'new_year_fortune.fireEffect'.tr(),
                     content: fortune.personalAnalysis.fireEffect,
                     type: HighlightType.warning,
                     icon: Icons.local_fire_department,
@@ -305,7 +306,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.personalAnalysis.yongshinMatch.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   FortuneHighlightBox(
-                    label: '용신 조화',
+                    label: 'new_year_fortune.yongshinMatch'.tr(),
                     content: fortune.personalAnalysis.yongshinMatch,
                     type: HighlightType.info,
                   ),
@@ -313,7 +314,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.personalAnalysis.hapchungEffect.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   FortuneHighlightBox(
-                    label: '합충 영향',
+                    label: 'new_year_fortune.hapchungEffectLabel'.tr(),
                     content: fortune.personalAnalysis.hapchungEffect,
                     type: HighlightType.info,
                   ),
@@ -321,7 +322,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.personalAnalysis.sinsalEffect.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   FortuneHighlightBox(
-                    label: '신살 영향',
+                    label: 'new_year_fortune.sinsalEffect'.tr(),
                     content: fortune.personalAnalysis.sinsalEffect,
                     type: HighlightType.info,
                   ),
@@ -334,8 +335,8 @@ class NewYearFortuneScreen extends ConsumerWidget {
 
         // 분야별 운세 섹션 제목
         FortuneSectionTitle(
-          title: '2026년 분야별 운세',
-          subtitle: '탭하여 상세 운세를 확인하세요',
+          title: 'new_year_fortune.categoryFortuneTitle'.tr(namedArgs: {'year': '${fortune.year}'}),
+          subtitle: 'new_year_fortune.categoryFortuneSubtitle'.tr(),
           icon: Icons.grid_view,
         ),
         const SizedBox(height: 12),
@@ -365,7 +366,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
         // 행운 정보
         if (_hasLucky(fortune.lucky)) ...[
           FortuneSectionCard(
-            title: '2026년 행운 정보',
+            title: 'new_year_fortune.luckyInfo'.tr(namedArgs: {'year': '${fortune.year}'}),
             icon: Icons.star,
             style: CardStyle.gradient,
             child: Column(
@@ -382,7 +383,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.achievements!.title.isNotEmpty
                 ? fortune.achievements!.title
-                : '2026년에 빛날 순간들',
+                : 'new_year_fortune.achievementsDefault'.tr(namedArgs: {'year': '${fortune.year}'}),
             icon: Icons.emoji_events_outlined,
             style: CardStyle.gradient,
             child: Column(
@@ -430,7 +431,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.challenges!.title.isNotEmpty
                 ? fortune.challenges!.title
-                : '2026년의 도전, 그리고 성장',
+                : 'new_year_fortune.challengesDefault'.tr(namedArgs: {'year': '${fortune.year}'}),
             icon: Icons.trending_up,
             style: CardStyle.outlined,
             child: Column(
@@ -478,7 +479,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.lessons!.title.isNotEmpty
                 ? fortune.lessons!.title
-                : '2026년이 가르쳐줄 것들',
+                : 'new_year_fortune.lessonsDefault'.tr(namedArgs: {'year': '${fortune.year}'}),
             icon: Icons.school_outlined,
             style: CardStyle.outlined,
             child: Column(
@@ -526,7 +527,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.to2027!.title.isNotEmpty
                 ? fortune.to2027!.title
-                : '2027년으로 가져가세요',
+                : 'new_year_fortune.to2027Default'.tr(),
             icon: Icons.arrow_forward_outlined,
             style: CardStyle.gradient,
             child: Column(
@@ -543,7 +544,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.to2027!.strengths.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   FortuneHighlightBox(
-                    label: '강점',
+                    label: 'new_year_fortune.strengths'.tr(),
                     content: fortune.to2027!.strengths.join('\n'),
                     type: HighlightType.success,
                     icon: Icons.thumb_up_outlined,
@@ -552,7 +553,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.to2027!.watchOut.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   FortuneHighlightBox(
-                    label: '주의할 점',
+                    label: 'new_year_fortune.watchOut'.tr(),
                     content: fortune.to2027!.watchOut.join('\n'),
                     type: HighlightType.warning,
                     icon: Icons.warning_amber_outlined,
@@ -567,7 +568,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
         // 마무리 메시지
         if (fortune.closing.yearMessage.isNotEmpty || fortune.closing.finalAdvice.isNotEmpty) ...[
           FortuneSectionCard(
-            title: '2026년을 맞이하며',
+            title: 'new_year_fortune.closingTitle'.tr(namedArgs: {'year': '${fortune.year}'}),
             icon: Icons.celebration,
             style: CardStyle.elevated,
             child: Column(
@@ -585,7 +586,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.closing.finalAdvice.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   FortuneHighlightBox(
-                    label: '마지막 조언',
+                    label: 'new_year_fortune.finalAdvice'.tr(),
                     content: fortune.closing.finalAdvice,
                     type: HighlightType.success,
                     icon: Icons.tips_and_updates,
@@ -668,16 +669,16 @@ class NewYearFortuneScreen extends ConsumerWidget {
     final items = <Map<String, dynamic>>[];
 
     if (lucky.colors.isNotEmpty) {
-      items.add({'icon': Icons.palette, 'label': '행운의 색상', 'value': lucky.colors.join(', ')});
+      items.add({'icon': Icons.palette, 'label': 'new_year_fortune.luckyColors'.tr(), 'value': lucky.colors.join(', ')});
     }
     if (lucky.numbers.isNotEmpty) {
-      items.add({'icon': Icons.pin, 'label': '행운의 숫자', 'value': lucky.numbers.join(', ')});
+      items.add({'icon': Icons.pin, 'label': 'new_year_fortune.luckyNumbers'.tr(), 'value': lucky.numbers.join(', ')});
     }
     if (lucky.direction.isNotEmpty) {
-      items.add({'icon': Icons.explore, 'label': '좋은 방향', 'value': lucky.direction});
+      items.add({'icon': Icons.explore, 'label': 'new_year_fortune.goodDirection'.tr(), 'value': lucky.direction});
     }
     if (lucky.items.isNotEmpty) {
-      items.add({'icon': Icons.card_giftcard, 'label': '행운 아이템', 'value': lucky.items.join(', ')});
+      items.add({'icon': Icons.card_giftcard, 'label': 'new_year_fortune.luckyItems'.tr(), 'value': lucky.items.join(', ')});
     }
 
     return Wrap(
@@ -758,9 +759,9 @@ class NewYearFortuneScreen extends ConsumerWidget {
       child: ElevatedButton.icon(
         onPressed: () => context.go('/saju/chat?type=newYearFortune'),
         icon: const Icon(Icons.chat_bubble_outline, size: 20),
-        label: const Text(
-          '신년운세 AI 상담받기',
-          style: TextStyle(
+        label: Text(
+          'new_year_fortune.consultAi'.tr(),
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -801,35 +802,35 @@ class NewYearFortuneScreen extends ConsumerWidget {
 
   Map<String, CategoryData> _getDefaultCategories() {
     return {
-      'career': const CategoryData(
-        title: '직업운',
+      'career': CategoryData(
+        title: 'new_year_fortune.defaultCareer'.tr(),
         score: 0,
-        reading: '광고를 시청하면 2026년 직업운을 확인할 수 있습니다.',
+        reading: 'new_year_fortune.watchAdToView'.tr(namedArgs: {'year': '2026', 'category': 'new_year_fortune.defaultCareer'.tr()}),
       ),
-      'wealth': const CategoryData(
-        title: '재물운',
+      'wealth': CategoryData(
+        title: 'new_year_fortune.defaultWealth'.tr(),
         score: 0,
-        reading: '광고를 시청하면 2026년 재물운을 확인할 수 있습니다.',
+        reading: 'new_year_fortune.watchAdToView'.tr(namedArgs: {'year': '2026', 'category': 'new_year_fortune.defaultWealth'.tr()}),
       ),
-      'love': const CategoryData(
-        title: '애정운',
+      'love': CategoryData(
+        title: 'new_year_fortune.defaultLove'.tr(),
         score: 0,
-        reading: '광고를 시청하면 2026년 애정운을 확인할 수 있습니다.',
+        reading: 'new_year_fortune.watchAdToView'.tr(namedArgs: {'year': '2026', 'category': 'new_year_fortune.defaultLove'.tr()}),
       ),
-      'health': const CategoryData(
-        title: '건강운',
+      'health': CategoryData(
+        title: 'new_year_fortune.defaultHealth'.tr(),
         score: 0,
-        reading: '광고를 시청하면 2026년 건강운을 확인할 수 있습니다.',
+        reading: 'new_year_fortune.watchAdToView'.tr(namedArgs: {'year': '2026', 'category': 'new_year_fortune.defaultHealth'.tr()}),
       ),
-      'study': const CategoryData(
-        title: '학업운',
+      'study': CategoryData(
+        title: 'new_year_fortune.defaultStudy'.tr(),
         score: 0,
-        reading: '광고를 시청하면 2026년 학업운을 확인할 수 있습니다.',
+        reading: 'new_year_fortune.watchAdToView'.tr(namedArgs: {'year': '2026', 'category': 'new_year_fortune.defaultStudy'.tr()}),
       ),
-      'business': const CategoryData(
-        title: '사업운',
+      'business': CategoryData(
+        title: 'new_year_fortune.defaultBusiness'.tr(),
         score: 0,
-        reading: '광고를 시청하면 2026년 사업운을 확인할 수 있습니다.',
+        reading: 'new_year_fortune.watchAdToView'.tr(namedArgs: {'year': '2026', 'category': 'new_year_fortune.defaultBusiness'.tr()}),
       ),
     };
   }

@@ -1,9 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -26,7 +26,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('설정', style: TextStyle(color: appTheme.textPrimary)),
+        title: Text('settings.title'.tr(), style: TextStyle(color: appTheme.textPrimary)),
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: appTheme.textPrimary),
@@ -45,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
               // 테마 설정 섹션
-              _buildSectionHeader(context, '화면 설정'),
+              _buildSectionHeader(context, 'settings.displaySettings'.tr()),
               const SizedBox(height: 8),
               _buildThemeSelector(context, ref, currentThemeType),
               const SizedBox(height: 24),
@@ -61,14 +61,14 @@ class SettingsScreen extends ConsumerWidget {
               //       _buildSettingsTile(
               //         context,
               //         icon: LucideIcons.user,
-              //         title: AppStrings.settingsProfile,
+              //         title: 'settings.profile'.tr(),
               //         onTap: () => context.push(Routes.settingsProfile),
               //       ),
               //       const Divider(height: 1),
               //       _buildSettingsTile(
               //         context,
               //         icon: LucideIcons.bell,
-              //         title: AppStrings.settingsNotification,
+              //         title: 'settings.notification'.tr(),
               //         onTap: () => context.push(Routes.settingsNotification),
               //       ),
               //     ],
@@ -76,13 +76,13 @@ class SettingsScreen extends ConsumerWidget {
               // ),
 
               // 구독 관리 섹션
-              _buildSectionHeader(context, '구독 관리'),
+              _buildSectionHeader(context, 'settings.subscriptionManagement'.tr()),
               const SizedBox(height: 8),
               _buildPremiumTile(context, ref),
               const SizedBox(height: 24),
 
               // 정보 섹션
-              _buildSectionHeader(context, '정보'),
+              _buildSectionHeader(context, 'settings.info'.tr()),
               const SizedBox(height: 8),
               ShadCard(
                 padding: EdgeInsets.zero,
@@ -91,21 +91,21 @@ class SettingsScreen extends ConsumerWidget {
                     _buildSettingsTile(
                       context,
                       icon: LucideIcons.fileText,
-                      title: AppStrings.settingsTerms,
+                      title: 'settings.terms'.tr(),
                       onTap: () => context.push(Routes.settingsTerms),
                     ),
                     const Divider(height: 1),
                     _buildSettingsTile(
                       context,
                       icon: LucideIcons.shield,
-                      title: AppStrings.settingsPrivacy,
+                      title: 'settings.privacy'.tr(),
                       onTap: () => context.push(Routes.settingsPrivacy),
                     ),
                     const Divider(height: 1),
                     _buildSettingsTile(
                       context,
                       icon: LucideIcons.info,
-                      title: AppStrings.settingsDisclaimer,
+                      title: 'settings.disclaimer'.tr(),
                       onTap: () => context.push(Routes.settingsDisclaimer),
                     ),
                   ],
@@ -170,7 +170,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           Icon(LucideIcons.palette, size: 18),
           const SizedBox(width: 8),
-          const Text('테마 선택'),
+          Text('settings.themeSelect'.tr()),
         ],
       ),
       child: Wrap(
@@ -304,7 +304,7 @@ class SettingsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '프리미엄 이용권',
+                      'settings.premiumPass'.tr(),
                       style: TextStyle(
                         fontSize: 15,
                         color: appTheme.textPrimary,
@@ -314,7 +314,7 @@ class SettingsScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          '만료 임박 - 연장하세요!',
+                          'settings.expiringWarning'.tr(),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.redAccent.withValues(alpha: 0.8),
@@ -333,7 +333,7 @@ class SettingsScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    isExpiringSoon ? '만료 임박' : '이용중',
+                    isExpiringSoon ? 'settings.expiringSoon'.tr() : 'settings.inUse'.tr(),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -343,7 +343,7 @@ class SettingsScreen extends ConsumerWidget {
                 )
               else
                 Text(
-                  '구매하기',
+                  'settings.purchase'.tr(),
                   style: TextStyle(
                     fontSize: 13,
                     color: appTheme.textMuted,

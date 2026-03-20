@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -34,7 +35,7 @@ class ProfileActionButtons extends ConsumerWidget {
     // 버튼 텍스트 결정:
     // - 인연 편집: "저장"
     // - 일반 (수정/신규): "프로필 저장"
-    final buttonText = isRelationEdit ? '저장' : '프로필 저장';
+    final buttonText = isRelationEdit ? 'common.save'.tr() : 'profile.saveProfile'.tr();
 
     return ShadButton(
       enabled: isValid,
@@ -113,8 +114,8 @@ class ProfileActionButtons extends ConsumerWidget {
           if (context.mounted) {
             ShadToaster.of(context).show(
               ShadToast(
-                title: const Text('저장 완료'),
-                description: const Text('프로필이 저장되었습니다'),
+                title: Text('profile.saveSuccess'.tr()),
+                description: Text('profile.profileSaved'.tr()),
               ),
             );
             context.pop();
@@ -126,7 +127,7 @@ class ProfileActionButtons extends ConsumerWidget {
       if (context.mounted) {
         ShadToaster.of(context).show(
           ShadToast(
-            title: const Text('저장 실패'),
+            title: Text('profile.saveFailed'.tr()),
             description: Text(e.toString()),
           ),
         );

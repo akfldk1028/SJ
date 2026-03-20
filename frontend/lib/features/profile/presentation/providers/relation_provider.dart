@@ -78,8 +78,8 @@ Future<List<ProfileRelationModel>> userRelations(Ref ref) async {
 
 /// 카테고리별 그룹핑된 관계 Provider
 ///
-/// Map<카테고리라벨, List<관계>> 형태 반환
-/// 예: {'가족': [...], '친구': [...], '직장': [...]}
+/// Map<카테고리키, List<관계>> 형태 반환
+/// 예: {'family': [...], 'friend': [...], 'work': [...]}
 ///
 /// Note: trigger watch 제거! (defunct 에러 원인)
 /// 대신 필요 시 ref.invalidate(relationsByCategoryProvider(id))를 직접 호출

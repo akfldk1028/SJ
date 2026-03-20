@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import 'core/services/app_update_service.dart';
 import 'core/services/posthog_service.dart';
 import 'core/services/supabase_service.dart';
 import 'AI/core/ai_logger.dart';
+import 'AI/fortune/common/locale_utils.dart';
 import 'features/profile/data/datasources/profile_local_datasource.dart';
 import 'features/profile/data/repositories/profile_repository_impl.dart';
 import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
@@ -26,6 +28,10 @@ import 'features/saju_chat/presentation/providers/chat_persona_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+
+  // 앱 시작 시 locale 즉시 동기화 (MainScaffold.build 전에 fortune 로딩될 수 있으므로)
+  final platformLocale = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+  FortuneLocaleUtils.setCurrentLocale(platformLocale);
 
   // Manual 모드: 상태바만 표시, 하단 네비게이션 바 숨김
   SystemChrome.setEnabledSystemUIMode(
@@ -90,6 +96,21 @@ void main() async {
     }
   }
 
+  // iOS ATT (App Tracking Transparency) 요청 — AdMob 초기화 전 필수
+  if (isMobile && Platform.isIOS) {
+    try {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status == TrackingStatus.notDetermined) {
+        // iOS 가이드라인: 앱 시작 직후가 아닌 약간의 딜레이 후 요청
+        await Future.delayed(const Duration(seconds: 1));
+        await AppTrackingTransparency.requestTrackingAuthorization();
+      }
+      debugPrint('[ATT] status: $status');
+    } catch (e) {
+      debugPrint('[ATT] 요청 실패: $e');
+    }
+  }
+
   // AdMob SDK 초기화 (모바일만 - Android/iOS)
   if (isMobile) {
     try {
@@ -124,6 +145,20 @@ void main() async {
         Locale('ko'),
         Locale('en'),
         Locale('ja'),
+        Locale('zh'),
+        Locale('vi'),
+        Locale('th'),
+        Locale('id'),
+        Locale('ms'),
+        Locale('my'),
+        Locale('fr'),
+        Locale('de'),
+        Locale('es'),
+        Locale('pt'),
+        Locale('it'),
+        Locale('hi'),
+        Locale('ar'),
+        Locale('ru'),
       ],
       path: 'lib/i18n',
       fallbackLocale: const Locale('ko'),

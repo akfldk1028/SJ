@@ -1,3 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
+
 /// 채팅 타입 enum
 enum ChatType {
   dailyFortune,
@@ -26,15 +28,15 @@ enum ChatType {
   String get title {
     switch (this) {
       case ChatType.dailyFortune:
-        return '오늘의 운세';
+        return 'saju_chat.chatType_dailyFortune'.tr();
       case ChatType.newYearFortune:
-        return '신년운세';
+        return 'saju_chat.chatType_newYearFortune'.tr();
       case ChatType.sajuAnalysis:
-        return '사주 분석';
+        return 'saju_chat.chatType_sajuAnalysis'.tr();
       case ChatType.compatibility:
-        return '궁합 보기';
+        return 'saju_chat.chatType_compatibility'.tr();
       case ChatType.general:
-        return '사주 상담';
+        return 'saju_chat.chatType_general'.tr();
     }
   }
 
@@ -68,15 +70,15 @@ enum ChatType {
   String get inputHint {
     switch (this) {
       case ChatType.dailyFortune:
-        return '오늘의 운세를 물어보세요...';
+        return 'saju_chat.chatType_dailyFortuneHint'.tr();
       case ChatType.newYearFortune:
-        return '신년운세에 대해 물어보세요...';
+        return 'saju_chat.chatType_newYearFortuneHint'.tr();
       case ChatType.sajuAnalysis:
-        return '생년월일과 시간을 알려주세요...';
+        return 'saju_chat.chatType_sajuAnalysisHint'.tr();
       case ChatType.compatibility:
-        return '두 분의 생년월일을 알려주세요...';
+        return 'saju_chat.chatType_compatibilityHint'.tr();
       case ChatType.general:
-        return '궁금한 것을 물어보세요...';
+        return 'saju_chat.chatType_generalHint'.tr();
     }
   }
 }

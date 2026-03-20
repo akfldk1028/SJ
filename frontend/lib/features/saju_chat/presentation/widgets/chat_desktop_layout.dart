@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -87,7 +88,7 @@ class ChatDesktopLayout extends ConsumerWidget {
                         // 햄버거 메뉴 (새 채팅, 메인으로 이동, 사이드바 토글)
                         PopupMenuButton<String>(
                           icon: Icon(Icons.menu, color: appTheme.textPrimary),
-                          tooltip: '메뉴',
+                          tooltip: 'saju_chat.menu'.tr(),
                           color: appTheme.cardColor,
                           onSelected: (value) {
                             switch (value) {
@@ -109,7 +110,7 @@ class ChatDesktopLayout extends ConsumerWidget {
                                 children: [
                                   Icon(Icons.add_comment_outlined, color: appTheme.textPrimary, size: 20),
                                   const SizedBox(width: 12),
-                                  Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
+                                  Text('saju_chat.newChat'.tr(), style: TextStyle(color: appTheme.textPrimary)),
                                 ],
                               ),
                             ),
@@ -119,7 +120,7 @@ class ChatDesktopLayout extends ConsumerWidget {
                                 children: [
                                   Icon(Icons.home_outlined, color: appTheme.textPrimary, size: 20),
                                   const SizedBox(width: 12),
-                                  Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
+                                  Text('saju_chat.goToMain'.tr(), style: TextStyle(color: appTheme.textPrimary)),
                                 ],
                               ),
                             ),
@@ -135,7 +136,7 @@ class ChatDesktopLayout extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    isSidebarVisible ? '사이드바 숨기기' : '사이드바 보기',
+                                    isSidebarVisible ? 'saju_chat.sidebarHide'.tr() : 'saju_chat.sidebarShow'.tr(),
                                     style: TextStyle(color: appTheme.textPrimary),
                                   ),
                                 ],
@@ -147,7 +148,7 @@ class ChatDesktopLayout extends ConsumerWidget {
                         IconButton(
                           icon: Icon(Icons.add, color: appTheme.primaryColor),
                           onPressed: onNewChat,
-                          tooltip: '새 채팅 시작 (페르소나 변경)',
+                          tooltip: 'saju_chat.newChatTooltip'.tr(),
                         ),
                         const SizedBox(width: 4),
                         // 현재 세션 제목
@@ -164,7 +165,7 @@ class ChatDesktopLayout extends ConsumerWidget {
                         IconButton(
                           icon: Icon(Icons.group_add_outlined, color: appTheme.textPrimary),
                           onPressed: onCompatibilityChat,
-                          tooltip: '궁합 보기',
+                          tooltip: 'saju_chat.compatibilityTooltip'.tr(),
                         ),
                       ],
                     ),

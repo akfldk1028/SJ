@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,30 +19,46 @@ class PaywallScreen extends ConsumerWidget {
 
   /// 상품 표시 순서 및 메타 정보
   /// accentColor 제거 → 테마 기반 통일 색상 사용
-  static const _productMeta = {
+  /// .tr() 사용을 위해 static getter로 변경 (const 불가)
+  static Map<String, _ProductMeta> get _productMeta => {
     PurchaseConfig.productDayPass: _ProductMeta(
       icon: Icons.bolt,
       badge: null,
       highlight: false,
-      periodLabel: '/1일',
-      dailyPrice: null,
-      features: ['광고 프리', 'AI 무제한 대화', '24시간 이용'],
+      periodLabelKey: 'purchase.perDay',
+      dailyPriceKey: null,
+      featureKeys: [
+        'purchase.featureNoAds',
+        'purchase.featureAiUnlimitedChat',
+        'purchase.feature24Hour',
+      ],
     ),
     PurchaseConfig.productWeekPass: _ProductMeta(
       icon: Icons.star,
-      badge: '인기',
+      badgeKey: 'purchase.badgePopular',
       highlight: true,
-      periodLabel: '/1주',
-      dailyPrice: '일 ₩700',
-      features: ['광고 프리', 'AI 무제한 대화', '7일 이용', '일일 패스 대비 할인'],
+      periodLabelKey: 'purchase.perWeek',
+      dailyPriceKey: 'purchase.dailyPriceWeek',
+      featureKeys: [
+        'purchase.featureNoAds',
+        'purchase.featureAiUnlimitedChat',
+        'purchase.feature7Day',
+        'purchase.featureDayPassDiscount',
+      ],
     ),
     PurchaseConfig.productMonthly: _ProductMeta(
       icon: Icons.diamond_outlined,
-      badge: 'BEST',
+      badgeKey: 'purchase.badgeBest',
       highlight: false,
-      periodLabel: '/월',
-      dailyPrice: '일 ₩430',
-      features: ['광고 프리', 'AI 무제한 대화', '30일 이용', '매월 자동 갱신으로 편리', '일일 ₩430으로 가장 경제적'],
+      periodLabelKey: 'purchase.perMonth',
+      dailyPriceKey: 'purchase.dailyPriceMonth',
+      featureKeys: [
+        'purchase.featureNoAds',
+        'purchase.featureAiUnlimitedChat',
+        'purchase.feature30Day',
+        'purchase.featureAutoRenewConvenient',
+        'purchase.featureCheapestDailyDetail',
+      ],
     ),
   };
 
@@ -55,19 +72,20 @@ class PaywallScreen extends ConsumerWidget {
   /// 상품 identifier에서 메타 정보 찾기
   /// Google Play 구독은 "productId:basePlanId" 형태로 올 수 있음
   static _ProductMeta _findProductMeta(String identifier) {
+    final meta = _productMeta;
     // 정확 매칭 우선
-    if (_productMeta.containsKey(identifier)) return _productMeta[identifier]!;
+    if (meta.containsKey(identifier)) return meta[identifier]!;
     // prefix 매칭 (구독: sadam_monthly:sadam-monthly-default 등)
-    for (final entry in _productMeta.entries) {
+    for (final entry in meta.entries) {
       if (identifier.startsWith(entry.key)) return entry.value;
     }
-    return const _ProductMeta(
+    return _ProductMeta(
       icon: Icons.shopping_bag,
       badge: null,
       highlight: false,
-      periodLabel: '',
-      dailyPrice: null,
-      features: [],
+      periodLabelKey: '',
+      dailyPriceKey: null,
+      featureKeys: [],
     );
   }
 
@@ -89,7 +107,7 @@ class PaywallScreen extends ConsumerWidget {
       backgroundColor: theme.backgroundColor,
       appBar: AppBar(
         title: Text(
-          '프리미엄',
+          'purchase.title'.tr(),
           style: TextStyle(color: theme.textPrimary),
         ),
         backgroundColor: Colors.transparent,
@@ -103,14 +121,14 @@ class PaywallScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '상품 정보를 불러올 수 없습니다.',
+                'purchase.errorLoadProducts'.tr(),
                 style: TextStyle(color: theme.textSecondary),
               ),
               const SizedBox(height: 16),
               ShadButton.outline(
                 onPressed: () => ref.invalidate(offeringsProvider),
                 child: Text(
-                  '다시 시도',
+                  'common.buttonRetry'.tr(),
                   style: TextStyle(color: theme.textPrimary),
                 ),
               ),
@@ -121,7 +139,7 @@ class PaywallScreen extends ConsumerWidget {
           if (offerings == null || offerings.current == null) {
             return Center(
               child: Text(
-                '상품이 준비 중입니다.',
+                'purchase.productsLoading'.tr(),
                 style: TextStyle(color: theme.textSecondary),
               ),
             );
@@ -161,7 +179,7 @@ class PaywallScreen extends ConsumerWidget {
 
                 // 헤더
                 Text(
-                  '프리미엄 이용권',
+                  'purchase.premiumPass'.tr(),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 26,
@@ -171,7 +189,7 @@ class PaywallScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '광고 제거 + AI 무제한 대화',
+                  'purchase.premiumSubtitle'.tr(),
                   style: TextStyle(color: theme.textSecondary, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -194,7 +212,7 @@ class PaywallScreen extends ConsumerWidget {
                         Icon(Icons.flash_on, color: theme.primaryColor, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          '구매 즉시 적용',
+                          'purchase.instantApply'.tr(),
                           style: TextStyle(
                             color: theme.textSecondary,
                             fontSize: 12,
@@ -228,8 +246,7 @@ class PaywallScreen extends ConsumerWidget {
 
                 // 안내 문구
                 Text(
-                  '월간 구독은 자동 갱신되며, 설정에서 언제든 해지할 수 있습니다.\n'
-                  '1일/1주일 이용권은 기간 만료 후 자동 종료됩니다.',
+                  'purchase.termsAutoRenew'.tr(),
                   style: TextStyle(color: theme.textMuted, fontSize: 11),
                   textAlign: TextAlign.center,
                 ),
@@ -255,12 +272,12 @@ class PaywallScreen extends ConsumerWidget {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('구매 실패'),
+            title: Text('purchase.purchaseFailed'.tr()),
             content: Text('${purchaseState.error}'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('확인'),
+                child: Text('common.buttonConfirm'.tr()),
               ),
             ],
           ),
@@ -276,21 +293,21 @@ class PaywallScreen extends ConsumerWidget {
           context: context,
           barrierDismissible: false,
           builder: (_) => AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.workspace_premium, color: Color(0xFFD4AF37)),
-                SizedBox(width: 8),
-                Text('프리미엄 적용 완료'),
+                const Icon(Icons.workspace_premium, color: Color(0xFFD4AF37)),
+                const SizedBox(width: 8),
+                Text('purchase.premiumApplied'.tr()),
               ],
             ),
-            content: const Text('광고 제거 + AI 무제한 대화가\n즉시 적용되었습니다!'),
+            content: Text('purchase.premiumAppliedSubtitle'.tr()),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // 다이얼로그 닫기
                   Navigator.of(context).pop(); // PaywallScreen 닫기
                 },
-                child: const Text('확인'),
+                child: Text('common.buttonConfirm'.tr()),
               ),
             ],
           ),
@@ -310,19 +327,15 @@ class PaywallScreen extends ConsumerWidget {
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('구매 처리 중'),
-            content: const Text(
-              '구매가 처리되고 있습니다.\n'
-              '잠시 후 앱을 재시작하면 적용됩니다.\n\n'
-              '문제가 지속되면 설정 > 구매 복원을 시도해주세요.',
-            ),
+            title: Text('purchase.purchaseProcessing'.tr()),
+            content: Text('purchase.purchaseProcessingMessage'.tr()),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).pop();
                 },
-                child: const Text('확인'),
+                child: Text('common.buttonConfirm'.tr()),
               ),
             ],
           ),
@@ -334,22 +347,33 @@ class PaywallScreen extends ConsumerWidget {
 
 /// 상품 메타 정보
 /// accentColor 제거 → 테마 기반 통일 색상 사용
+/// .tr() 사용을 위해 i18n 키를 저장하고, 표시 시점에 tr() 호출
 class _ProductMeta {
   final IconData icon;
+  /// badge 텍스트: null이면 뱃지 없음, 아니면 .tr() 키
   final String? badge;
+  /// badge i18n 키 (별도 저장, badge는 null 기반 분기용)
+  final String? badgeKey;
   final bool highlight;
-  final String periodLabel;
-  final String? dailyPrice;
-  final List<String> features;
+  final String periodLabelKey;
+  final String? dailyPriceKey;
+  final List<String> featureKeys;
 
-  const _ProductMeta({
+  _ProductMeta({
     required this.icon,
-    required this.badge,
+    this.badge,
+    this.badgeKey,
     required this.highlight,
-    required this.periodLabel,
-    this.dailyPrice,
-    required this.features,
+    required this.periodLabelKey,
+    this.dailyPriceKey,
+    required this.featureKeys,
   });
+
+  String get periodLabel => periodLabelKey.isEmpty ? '' : periodLabelKey.tr();
+  String? get dailyPrice => dailyPriceKey?.tr();
+  List<String> get features => featureKeys.map((k) => k.tr()).toList();
+  String? get badgeText => badgeKey?.tr();
+  bool get hasBadge => badgeKey != null || badge != null;
 }
 
 /// 상품 카드 위젯
@@ -516,8 +540,8 @@ class _ProductCard extends StatelessWidget {
                               )
                             : Text(
                                 package.packageType == PackageType.monthly
-                                    ? '구독하기'
-                                    : '구매하기',
+                                    ? 'purchase.subscribe'.tr()
+                                    : 'purchase.purchase'.tr(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -534,7 +558,7 @@ class _ProductCard extends StatelessWidget {
         ),
 
         // 뱃지
-        if (meta.badge != null)
+        if (meta.hasBadge)
           Positioned(
             top: 0,
             right: 16,
@@ -548,7 +572,7 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                meta.badge!,
+                meta.badgeText ?? '',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,

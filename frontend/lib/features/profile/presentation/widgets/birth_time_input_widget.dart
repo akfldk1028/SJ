@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -119,7 +120,7 @@ class _BirthTimeInputWidgetState extends ConsumerState<BirthTimeInputWidget> {
               const SizedBox(width: 12),
               // 24시간제 안내 텍스트
               Text(
-                '(24시간)',
+                'onboarding.timeFormat24h'.tr(),
                 style: TextStyle(
                   color: theme.textMuted,
                   fontSize: 12,

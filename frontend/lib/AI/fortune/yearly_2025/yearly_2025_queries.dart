@@ -34,6 +34,7 @@ class Yearly2025Queries {
   Future<Map<String, dynamic>?> getCached(
     String profileId, {
     bool includeStale = false,
+    String locale = 'ko',
   }) async {
     try {
       // target_year 필드로 직접 필터링
@@ -43,6 +44,7 @@ class Yearly2025Queries {
           .eq('profile_id', profileId)
           .eq('summary_type', SummaryType.yearlyFortune2025)
           .eq('target_year', targetYear)
+          .eq('locale', locale)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -67,14 +69,14 @@ class Yearly2025Queries {
   }
 
   /// 2025 회고 운세 존재 여부 확인
-  Future<bool> exists(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<bool> exists(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     return cached != null;
   }
 
   /// 2025 회고 운세 content만 조회
-  Future<Map<String, dynamic>?> getContent(String profileId) async {
-    final cached = await getCached(profileId);
+  Future<Map<String, dynamic>?> getContent(String profileId, {String locale = 'ko'}) async {
+    final cached = await getCached(profileId, locale: locale);
     if (cached == null) return null;
 
     final content = cached['content'];

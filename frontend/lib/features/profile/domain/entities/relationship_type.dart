@@ -1,23 +1,27 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 enum RelationshipType {
   @JsonValue('me')
-  me('나'),
+  me('profile.relationTypeMe'),
   @JsonValue('family')
-  family('가족'),
+  family('profile.categoryFamily'),
   @JsonValue('friend')
-  friend('친구'),
+  friend('profile.categoryFriend'),
   @JsonValue('lover')
-  lover('연인'),
+  lover('profile.categoryLover'),
   @JsonValue('work')
-  work('동료'),
+  work('profile.relationWorkColleague'),
   @JsonValue('other')
-  other('기타'),
+  other('profile.categoryOther'),
   @JsonValue('admin')
-  admin('관리자'); // 개발자 모드 전용 - UI에서 숨김 처리
+  admin('profile.relationTypeAdmin'); // 개발자 모드 전용 - UI에서 숨김 처리
 
-  final String label;
-  const RelationshipType(this.label);
+  final String _i18nKey;
+  const RelationshipType(this._i18nKey);
+
+  /// 다국어 표시 라벨 (UI용)
+  String get label => _i18nKey.tr();
 
   String toJson() => name;
   static RelationshipType fromJson(String json) => values.byName(json);

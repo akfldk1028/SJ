@@ -5,6 +5,7 @@
 /// - 한 번 저장되면 이후에는 빠르게 로드됨
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -46,7 +47,7 @@ class DeepAnalysisLoadingBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '상세 사주 분석 중...',
+                  'saju_chat.deepAnalysisTitle'.tr(),
                   style: TextStyle(
                     fontSize: 14,
                     color: appTheme.textPrimary,
@@ -55,7 +56,7 @@ class DeepAnalysisLoadingBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '합충형파해, 십성, 신살 등 정밀 분석 진행 (약 1~2분 소요)',
+                  'saju_chat.deepAnalysisSubtitle'.tr(),
                   style: TextStyle(
                     fontSize: 12,
                     color: appTheme.textSecondary,

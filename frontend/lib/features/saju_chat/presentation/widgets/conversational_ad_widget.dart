@@ -5,6 +5,7 @@
 /// 위젯 트리 최적화: Consumer로 선택적 리빌드
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -222,8 +223,8 @@ class ConversationalAdWidget extends ConsumerWidget {
         icon: const Icon(Icons.chat_bubble_outline, size: 18),
         label: Text(
           adState.rewardedTokens != null && adState.rewardedTokens! > 0
-              ? '대화 재개 (+${adState.rewardedTokens} 토큰 획득!)'
-              : '대화 재개하기',
+              ? 'saju_chat.resumeChatWithTokens'.tr(namedArgs: {'tokens': '${adState.rewardedTokens}'})
+              : 'saju_chat.resumeChat'.tr(),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: theme.primaryColor,
@@ -279,7 +280,7 @@ class InlineAdWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '광고',
+                  'common.ad'.tr(),
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -288,7 +289,7 @@ class InlineAdWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '관심 있으신 정보가 있을지도 몰라요',
+                  'saju_chat.adSponsorInfo'.tr(),
                   style: TextStyle(
                     fontSize: 13,
                     color: theme.textPrimary,

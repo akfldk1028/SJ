@@ -9,6 +9,7 @@ import '../../../domain/entities/relationship_type.dart';
 import '../../../domain/entities/gender.dart';
 import '../../../data/mock/mock_profiles.dart';
 import '../../../data/models/profile_relation_model.dart';
+import '../../../data/relation_schema.dart';
 // Note: Provider imports 제거됨 - props 기반 데이터 전달 방식으로 변경
 import '../../../../../router/routes.dart';
 import 'me_node_widget.dart';
@@ -497,7 +498,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
 
     // Group 노드 (탭하면 확장/축소) - shadcn_ui 스타일
     if (nodeId.startsWith('group_')) {
-      final categoryLabel = nodeId.substring(6); // 예: "친구", "가족"
+      final categoryLabel = nodeId.substring(6); // 예: "friend", "family"
       final relations = relationsByCategory[categoryLabel] ?? [];
       final relationType = _categoryToRelationType(categoryLabel);
       final isCollapsed = _controller.isNodeCollapsed(node);
@@ -534,16 +535,16 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     return const SizedBox.shrink();
   }
 
-  /// 카테고리 라벨을 RelationshipType으로 변환
-  RelationshipType _categoryToRelationType(String categoryLabel) {
-    switch (categoryLabel) {
-      case '가족':
+  /// 카테고리 키를 RelationshipType으로 변환
+  RelationshipType _categoryToRelationType(String categoryKey) {
+    switch (categoryKey) {
+      case 'family':
         return RelationshipType.family;
-      case '친구':
+      case 'friend':
         return RelationshipType.friend;
-      case '연인':
+      case 'romantic':
         return RelationshipType.lover;
-      case '직장':
+      case 'work':
         return RelationshipType.work;
       default:
         return RelationshipType.other;
@@ -616,7 +617,7 @@ class _RelationshipGraphViewState extends ConsumerState<RelationshipGraphView> {
     graph.addNode(meNode);
 
     // 카테고리 순서 정의
-    const categoryOrder = ['가족', '연인', '친구', '직장', '기타'];
+    const categoryOrder = ['family', 'romantic', 'friend', 'work', 'other'];
 
     // 카테고리별 그룹 노드 및 관계 노드 생성
     for (final category in categoryOrder) {
@@ -751,7 +752,7 @@ class _ShadcnGroupNodeWidget extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            '$categoryLabel $count',
+            '${ProfileRelationType.localizedCategory(categoryLabel)} $count',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -905,13 +906,13 @@ class _ShadcnRelationNodeWidget extends StatelessWidget {
 
   Color _getAvatarColor(String category) {
     switch (category) {
-      case '가족':
+      case 'family':
         return const Color(0xFFEF5350);
-      case '연인':
+      case 'romantic':
         return const Color(0xFFEC407A);
-      case '친구':
+      case 'friend':
         return const Color(0xFF26A69A);
-      case '직장':
+      case 'work':
         return const Color(0xFF42A5F5);
       default:
         return const Color(0xFF78909C);

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -180,7 +181,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       children: [
         // 섹션 제목
         Text(
-          widget.title ?? '월별 상세 운세',
+          widget.title ?? 'common.monthlyDetailedFortune'.tr(),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -190,7 +191,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
         const SizedBox(height: 8),
 
         Text(
-          '월을 선택하면 광고 시청 후 상세 운세를 확인할 수 있습니다',
+          'common.monthSelectGuide'.tr(),
           style: TextStyle(
             fontSize: 13,
             color: theme.textSecondary,
@@ -238,7 +239,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           ),
           const SizedBox(height: 12),
           Text(
-            '$_selectedMonth월 운세를 확인하려면\n광고를 시청해주세요',
+            'common.monthFortuneLockedGuide'.tr(namedArgs: {'month': '$_selectedMonth'}),
             style: TextStyle(
               fontSize: 15,
               color: theme.textSecondary,
@@ -250,7 +251,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           ElevatedButton.icon(
             onPressed: _isLoadingAd ? null : () => _showNativeAdAndUnlockMonth(_selectedMonth!),
             icon: const Icon(Icons.play_circle_outline, size: 20),
-            label: Text(_isLoadingAd ? '광고 로딩 중...' : '광고 보고 해금하기'),
+            label: Text(_isLoadingAd ? 'common.adLoading'.tr() : 'common.adWatchToUnlock'.tr()),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.primaryColor,
               foregroundColor: Colors.white,
@@ -282,7 +283,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           ),
           const SizedBox(height: 12),
           Text(
-            '위에서 월을 선택하면\n해당 월의 상세 운세를 확인할 수 있습니다',
+            'common.selectMonthGuide'.tr(),
             style: TextStyle(
               fontSize: 15,
               color: theme.textSecondary,
@@ -345,7 +346,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
                       const SizedBox(width: 4),
                     ],
                     Text(
-                      '$month월',
+                      'common.monthLabel'.tr(namedArgs: {'month': '$month'}),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -396,7 +397,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$month월 운세가 해제되었습니다!'),
+              content: Text('common.unlocked'.tr(namedArgs: {'name': 'common.monthLabel'.tr(namedArgs: {'month': '$month'})})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -415,7 +416,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$month월 운세가 해제되었습니다! (웹 테스트)'),
+              content: Text('common.unlockedWebTest'.tr(namedArgs: {'name': 'common.monthLabel'.tr(namedArgs: {'month': '$month'})})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -427,7 +428,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
     // 광고 킬스위치 OFF → 바로 점검 중 다이얼로그
     if (!adEnabled) {
       setState(() => _isLoadingAd = false);
-      _showAdNotReadyDialog('$month월');
+      _showAdNotReadyDialog('common.monthLabel'.tr(namedArgs: {'month': '$month'}));
       return;
     }
 
@@ -441,7 +442,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           setState(() => _isLoadingAd = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$month월 운세가 해제되었습니다!'),
+              content: Text('common.unlocked'.tr(namedArgs: {'name': 'common.monthLabel'.tr(namedArgs: {'month': '$month'})})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -451,7 +452,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
 
     if (!shown && mounted) {
       setState(() => _isLoadingAd = false);
-      _showAdNotReadyDialog('$month월');
+      _showAdNotReadyDialog('common.monthLabel'.tr(namedArgs: {'month': '$month'}));
     }
   }
 
@@ -470,7 +471,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           Row(
             children: [
               Text(
-                '$month월 운세 요약',
+                'common.monthFortuneSummary'.tr(namedArgs: {'month': '$month'}),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -486,7 +487,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${quarter.score}점',
+                    'common.scoreUnit'.tr(namedArgs: {'score': '${quarter.score}'}),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -499,7 +500,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           if (quarter.theme.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              '테마: ${quarter.theme}',
+              'common.themeLabel'.tr(namedArgs: {'theme': quarter.theme}),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -528,7 +529,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '분야별 상세 운세',
+          'common.categoryDetailedFortune'.tr(),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -649,7 +650,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
             ),
             const SizedBox(height: 8),
             Text(
-              '위의 분야를 선택하면 상세 운세를 확인할 수 있습니다',
+              'common.selectCategoryGuide'.tr(),
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textSecondary,
@@ -700,7 +701,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
               ),
               const SizedBox(width: 8),
               Text(
-                '${_selectedMonth ?? ""}월 $categoryName',
+                'common.monthCategoryLabel'.tr(namedArgs: {'month': '${_selectedMonth ?? ""}', 'category': categoryName}),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,

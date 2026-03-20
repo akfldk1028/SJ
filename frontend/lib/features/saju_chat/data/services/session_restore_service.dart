@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import '../../../../AI/fortune/common/locale_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -259,6 +261,7 @@ class SessionRestoreService {
           ? await _loadSystemPrompt(ChatType.compatibility)
           : await _loadSystemPrompt(ChatType.general);
       final builder = SystemPromptBuilder();
+      final locale = FortuneLocaleUtils.currentLocale;
       final fullPrompt = builder.build(
         basePrompt: restoreBasePrompt,
         aiSummary: aiSummary,
@@ -272,6 +275,7 @@ class SessionRestoreService {
         isThirdPartyCompatibility: isThirdPartyCompatibility,
         relationType: relationType,  // v8.1: 관계 유형
         additionalParticipants: additionalParticipants.isNotEmpty ? additionalParticipants : null,  // v10.0
+        locale: locale,  // v13.0: 다국어
       );
 
       if (kDebugMode) {

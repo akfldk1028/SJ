@@ -1,7 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../domain/entities/gender.dart';
 
 /// 성별 선택 위젯
@@ -21,21 +21,21 @@ class GenderSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppStrings.gender,
+          'common.gender'.tr(),
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: AppSizes.paddingS),
         SegmentedButton<Gender>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: Gender.male,
-              label: Text(AppStrings.genderMale),
-              icon: Icon(Icons.male),
+              label: Text('common.genderMale'.tr()),
+              icon: const Icon(Icons.male),
             ),
             ButtonSegment(
               value: Gender.female,
-              label: Text(AppStrings.genderFemale),
-              icon: Icon(Icons.female),
+              label: Text('common.genderFemale'.tr()),
+              icon: const Icon(Icons.female),
             ),
           ],
           selected: selectedGender != null ? {selectedGender!} : const {},

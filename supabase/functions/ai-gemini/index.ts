@@ -2,7 +2,26 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v31)
+ * Gemini API 호출 Edge Function (v35.2)
+ *
+ * v35.2 변경사항 (2026-03-17):
+ * - BUG FIX: 스트리밍 candidatesTokenCount에 thinking 토큰 간헐적 혼입 (쿼타 2.5~3배 과다)
+ *   → Gemini 3 Flash: thinkingLevel "minimal" 적용 (generationConfig 내부, 공식 문서 준수)
+ *     ※ thinkingBudget은 Gemini 2.5 전용, thinkingLevel은 Gemini 3 전용
+ *     ※ Gemini 3 Flash는 thinking 완전 비활성화 불가 ("minimal"이 최저)
+ *   → 방어1: thoughts 차감 (thoughtsTokenCount 보고 시)
+ *   → 방어2: 텍스트 길이 기반 상한선 (1.5 tokens/char 초과 시 cap)
+ *   → 영향: 쿼타 과다 소진 방지
+ *
+ * v34 변경사항 (2026-03-17):
+ * - non-streaming: thinkingConfig { thinkingLevel: "low" } 추가 (운세 JSON에 heavy thinking 불필요)
+ * - non-streaming: thought 필터링 강화 (thoughtSignature 스킵 + JSON 추출 fallback)
+ *   → "thought" 텍스트가 content에 혼입되어 JSON 파싱 실패하던 버그 수정
+ *
+ * v33 변경사항 (2026-03-17):
+ * - REVERT v32: candidatesTokenCount는 thinking 미포함 (공식 문서 확인)
+ *   → thoughtsTokenCount 차감 제거 (v32가 오히려 과소 차감 유발)
+ *   → 로그에 thoughtsTokenCount 추가하여 실제 값 추적
  *
  * v31 변경사항 (2026-02-08):
  * - BUG FIX: checkAndUpdateQuota catch 블록 fail-open → fail-closed
@@ -51,7 +70,7 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 7000;
+const DAILY_QUOTA = 5000;
 const ADMIN_QUOTA = 1000000000;
 
 /** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
@@ -390,7 +409,10 @@ async function handleStreamingRequest(
     requestBody = {
       cachedContent: cacheName,
       contents,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
+      // v35.2: Gemini 3 Flash → thinkingLevel: "minimal" (generationConfig 내부, 공식 문서 준수)
+      // thinkingBudget은 Gemini 2.5 전용, thinkingLevel은 Gemini 3 전용
+      // "minimal"은 Gemini 3 Flash에서 가장 낮은 thinking (완전 비활성화 불가)
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -398,13 +420,13 @@ async function handleStreamingRequest(
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
       ],
     };
-    console.log(`[ai-gemini-stream v26] Using cached content: ${cacheName}`);
+    console.log(`[ai-gemini-stream v35.2] Using cached content: ${cacheName}`);
   } else {
     geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
     requestBody = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -431,7 +453,7 @@ async function handleStreamingRequest(
     const fallbackBody = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -439,7 +461,7 @@ async function handleStreamingRequest(
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
       ],
     };
-    console.log(`[ai-gemini v27] [FALLBACK] Retrying without cache: model=${model}`);
+    console.log(`[ai-gemini v35.2] [FALLBACK] Retrying without cache: model=${model}`);
     geminiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -454,6 +476,8 @@ async function handleStreamingRequest(
   let totalPromptTokens = 0;
   let totalCompletionTokens = 0;
   let totalCachedTokens = 0;
+  let totalThoughtsTokens = 0;
+  let totalTextLength = 0; // v35.2: 응답 텍스트 총 길이 (토큰 보정용)
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
@@ -485,13 +509,15 @@ async function handleStreamingRequest(
               if (part.text) text += part.text;
             }
           }
-          // v26: usageMetadata 캡처 (마지막 청크에 포함, cachedContentTokenCount 추가)
+          // v33: usageMetadata 캡처 (candidatesTokenCount는 thinking 미포함 — 공식 문서 확인)
           if (data.usageMetadata) {
             totalPromptTokens = data.usageMetadata.promptTokenCount || 0;
             totalCompletionTokens = data.usageMetadata.candidatesTokenCount || 0;
             totalCachedTokens = data.usageMetadata.cachedContentTokenCount || 0;
+            totalThoughtsTokens = data.usageMetadata.thoughtsTokenCount || 0;
           }
           if (text) {
+            totalTextLength += text.length; // v35.2: 텍스트 길이 누적
             const sseData = JSON.stringify({ text, done: false, finish_reason: finishReason });
             controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
           }
@@ -520,8 +546,30 @@ async function handleStreamingRequest(
             processSSELine(line);
           }
         }
-        console.log(`[ai-gemini-stream v26] Stream done. prompt=${totalPromptTokens}, completion=${totalCompletionTokens}, cached=${totalCachedTokens}`);
-        const doneData = JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, total_tokens: totalPromptTokens + totalCompletionTokens, cached_tokens: totalCachedTokens } });
+        // v35.2: thinking 토큰 누출 방어 (3단계)
+        // Gemini 3 Flash Preview에서 candidatesTokenCount에 thinking 토큰 간헐적 혼입
+        // 정상 비율: 한글 0.7~0.8 tokens/char, 최대 1.5 tokens/char
+        let actualCompletionTokens = totalCompletionTokens;
+        const tokensPerChar = totalTextLength > 0 ? totalCompletionTokens / totalTextLength : 0;
+
+        // 방어1: thoughts 차감 (thoughts가 보고된 경우)
+        if (totalThoughtsTokens > 0 && totalCompletionTokens > totalThoughtsTokens) {
+          actualCompletionTokens = totalCompletionTokens - totalThoughtsTokens;
+          console.log(`[ai-gemini v35.2] Defense1: thoughts subtraction. reported=${totalCompletionTokens}, thoughts=${totalThoughtsTokens}, result=${actualCompletionTokens}`);
+        }
+
+        // 방어2: 텍스트 길이 기반 상한선 (tokens/char > 1.5이면 비정상)
+        // 한글은 최대 1.0~1.2 tokens/char, 영어 혼합해도 1.5 넘을 수 없음
+        if (totalTextLength > 0) {
+          const maxReasonableTokens = Math.ceil(totalTextLength * 1.5);
+          if (actualCompletionTokens > maxReasonableTokens) {
+            console.log(`[ai-gemini v35.2] Defense2: cap by text length. completion=${actualCompletionTokens}, textLen=${totalTextLength}, cap=${maxReasonableTokens}, ratio=${tokensPerChar.toFixed(2)}`);
+            actualCompletionTokens = maxReasonableTokens;
+          }
+        }
+
+        console.log(`[ai-gemini-stream v35.2] Stream done. prompt=${totalPromptTokens}, completion=${actualCompletionTokens} (raw=${totalCompletionTokens}), thoughts=${totalThoughtsTokens}, textLen=${totalTextLength}, ratio=${tokensPerChar.toFixed(2)}, cached=${totalCachedTokens}`);
+        const doneData = JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: actualCompletionTokens, thoughts_tokens: totalThoughtsTokens, total_tokens: totalPromptTokens + actualCompletionTokens, cached_tokens: totalCachedTokens } });
         controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
         // v26: gemini_cost_usd 기록 (fallback + context caching 할인 포함)
         if (userId) {
@@ -615,7 +663,12 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         contents,
         systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-        generationConfig: { temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"] },
+        generationConfig: {
+          temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
+          stopSequences: ["[/SUGGESTED_QUESTIONS]"],
+          // v34: non-streaming(운세)에는 thinking "low" — JSON 생성에 heavy thinking 불필요
+          thinkingConfig: { thinkingLevel: "low" },
+        },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
           { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -633,23 +686,46 @@ Deno.serve(async (req) => {
     const candidate = data.candidates?.[0];
     if (!candidate) throw new Error("No response from Gemini");
     if (candidate.finishReason === "SAFETY") throw new Error("Response blocked due to safety settings");
-    // v25: thought 파트 필터링 (스트리밍과 동일하게)
+    // v34: thought 파트 필터링 (thought=true만 스킵, thoughtSignature 있는 text는 유지)
     let content = "";
     const parts = candidate.content?.parts;
     if (Array.isArray(parts)) {
       for (const part of parts) {
-        if (part.thought === true) continue;
-        if (part.text) content += part.text;
+        if (part.thought === true) continue; // thinking 파트만 스킵
+        if (part.text) content += part.text;  // thoughtSignature 있어도 text는 수집
+      }
+    }
+    // v34: JSON 추출 안전장치 — thought 텍스트가 섞여 들어온 경우 JSON 블록만 추출
+    if (content && !content.trimStart().startsWith('{') && !content.trimStart().startsWith('[')) {
+      const jsonBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      const jsonMatch = jsonBlockMatch ? jsonBlockMatch[1] : content.match(/\{[\s\S]*\}/)?.[0];
+      if (jsonMatch) {
+        console.log(`[ai-gemini v34] Extracted JSON from mixed content (original started with: "${content.substring(0, 30)}...")`);
+        content = jsonMatch;
       }
     }
     const usageMetadata = data.usageMetadata || {};
     const promptTokens = usageMetadata.promptTokenCount || 0;
-    const completionTokens = usageMetadata.candidatesTokenCount || 0;
+    const rawCompletionTokens = usageMetadata.candidatesTokenCount || 0;
+    const thoughtsTokens = usageMetadata.thoughtsTokenCount || 0;
     const totalTokens = usageMetadata.totalTokenCount || 0;
+    // v35.3: 비스트리밍 경로에도 thinking 누출 방어 (스트리밍 fallback 시 이 경로를 탐)
+    let completionTokens = rawCompletionTokens;
+    if (thoughtsTokens > 0 && completionTokens > thoughtsTokens) {
+      completionTokens = completionTokens - thoughtsTokens;
+      console.log(`[ai-gemini v35.3] Non-stream defense1: ${rawCompletionTokens} - ${thoughtsTokens} = ${completionTokens}`);
+    }
+    if (content.length > 0) {
+      const maxReasonable = Math.ceil(content.length * 1.5);
+      if (completionTokens > maxReasonable) {
+        console.log(`[ai-gemini v35.3] Non-stream defense2: cap ${completionTokens} → ${maxReasonable} (textLen=${content.length})`);
+        completionTokens = maxReasonable;
+      }
+    }
     // Gemini 3.0 Flash: $0.50/$3.00
-    const cost = (promptTokens * 0.50 / 1000000) + (completionTokens * 3.00 / 1000000);
-    if (user_id) await recordGeminiCost(supabase, user_id, promptTokens, completionTokens, cost);
-    console.log(`[ai-gemini v25] Success: prompt=${promptTokens}, completion=${completionTokens}, isAdmin=${isAdmin}`);
+    const cost = (promptTokens * 0.50 / 1000000) + (rawCompletionTokens * 3.00 / 1000000);
+    if (user_id) await recordGeminiCost(supabase, user_id, promptTokens, rawCompletionTokens, cost);
+    console.log(`[ai-gemini v35.3] Success: prompt=${promptTokens}, completion=${completionTokens} (raw=${rawCompletionTokens}), thoughts=${thoughtsTokens}, textLen=${content.length}, isAdmin=${isAdmin}`);
     return new Response(
       JSON.stringify({ success: true, content, usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens }, model, finish_reason: candidate.finishReason, is_admin: isAdmin }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

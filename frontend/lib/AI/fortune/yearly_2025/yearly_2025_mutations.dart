@@ -48,6 +48,7 @@ class Yearly2025Mutations {
     FortuneInputData? inputData,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     print('[Yearly2025Mutations] 저장 시작: profileId=$profileId');
 
@@ -74,6 +75,7 @@ class Yearly2025Mutations {
       'expires_at': null, // 무기한 캐시
       'updated_at': KoreaDateUtils.nowKoreaIso8601,
       'prompt_version': kYearly2025FortunePromptVersion, // 2025 회고 프롬프트 버전
+      'locale': locale,
     };
 
     try {
@@ -83,7 +85,8 @@ class Yearly2025Mutations {
           .from('ai_summaries')
           .delete()
           .eq('profile_id', profileId)
-          .eq('summary_type', SummaryType.yearlyFortune2025);
+          .eq('summary_type', SummaryType.yearlyFortune2025)
+          .eq('locale', locale);
 
       final response = await _supabase
           .from('ai_summaries')
@@ -100,7 +103,8 @@ class Yearly2025Mutations {
             .from('ai_summaries')
             .delete()
             .eq('profile_id', profileId)
-            .eq('summary_type', SummaryType.yearlyFortune2025);
+            .eq('summary_type', SummaryType.yearlyFortune2025)
+            .eq('locale', locale);
 
         final response = await _supabase
             .from('ai_summaries')
@@ -120,12 +124,13 @@ class Yearly2025Mutations {
   }
 
   /// 2025 회고 운세 삭제
-  Future<void> delete(String profileId) async {
+  Future<void> delete(String profileId, {String locale = 'ko'}) async {
     await _supabase
         .from('ai_summaries')
         .delete()
         .eq('profile_id', profileId)
-        .eq('summary_type', SummaryType.yearlyFortune2025);
+        .eq('summary_type', SummaryType.yearlyFortune2025)
+        .eq('locale', locale);
   }
 
   /// 구조화된 input_data JSON 생성

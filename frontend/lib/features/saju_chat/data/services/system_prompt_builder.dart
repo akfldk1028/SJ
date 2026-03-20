@@ -56,6 +56,7 @@ class SystemPromptBuilder {
     bool isThirdPartyCompatibility = false,
     String? relationType,  // v8.1: 관계 유형 (family_parent, romantic_partner 등)
     List<({SajuProfile profile, SajuAnalysis? sajuAnalysis})>? additionalParticipants,
+    String locale = 'ko',  // v13.0: 다국어 채팅 지원
   }) {
     _buffer.clear();
 
@@ -155,6 +156,7 @@ class SystemPromptBuilder {
     _addClosingInstructions(
       isCompatibilityMode: isCompatibilityMode,
       totalParticipants: totalParticipants,
+      locale: locale,
     );
 
     return _buffer.toString();
@@ -463,15 +465,15 @@ class SystemPromptBuilder {
   /// AI가 관계 유형에 맞는 분석과 후속 질문을 생성하도록 지시
   void _addRelationTypeContext(String relationType) {
     final type = ProfileRelationType.fromValue(relationType);
-    final category = type.categoryLabel;  // 가족/연인/친구/직장/기타
+    final category = type.categoryLabel;  // family/romantic/friend/work/other
 
     _buffer.writeln();
     _buffer.writeln('## 관계 유형별 분석 지침');
-    _buffer.writeln('두 사람의 관계: **${type.displayName}** ($category)');
+    _buffer.writeln('두 사람의 관계: **${type.displayName}** (${type.localizedCategoryLabel})');
     _buffer.writeln();
 
     switch (category) {
-      case '가족':
+      case 'family':
         _buffer.writeln('### 분석 초점');
         _buffer.writeln('- 세대 간 소통, 가치관 차이, 서로 보완하는 역할');
         _buffer.writeln('- 부모자녀 소통법, 가족 갈등 해소, 건강운 상호영향');
@@ -479,20 +481,20 @@ class SystemPromptBuilder {
         _buffer.writeln('### 후속 질문 방향');
         _buffer.writeln('- 가족 소통법, 세대차이 극복, 건강운, 가족 화합 등');
         _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
-      case '연인':
+      case 'romantic':
         _buffer.writeln('### 분석 초점');
         _buffer.writeln('- 감정 교감, 결혼 적합성, 성격 충돌, 속궁합');
         _buffer.writeln();
         _buffer.writeln('### 후속 질문 방향');
         _buffer.writeln('- 결혼 시기, 속궁합, 성격 차이 극복, 장기 전망 등');
         _buffer.writeln('- 속궁합, 잠자리 궁합 등 친밀감 관련 질문 자연스럽게 가능');
-      case '친구':
+      case 'friend':
         _buffer.writeln('### 분석 초점');
         _buffer.writeln('- 우정의 깊이, 신뢰도, 동업/협업 가능성, 장기 인연');
         _buffer.writeln();
         _buffer.writeln('### 후속 질문 방향');
         _buffer.writeln('- 우정 유지법, 동업 가능성, 신뢰 문제, 오래갈 인연인지 등');
-      case '직장':
+      case 'work':
         _buffer.writeln('### 분석 초점');
         _buffer.writeln('- 업무 시너지, 리더십 궁합, 의사결정 스타일, 승진/이직 영향');
         _buffer.writeln();
@@ -507,7 +509,7 @@ class SystemPromptBuilder {
 
   /// 마무리 지시문 추가
   /// [totalParticipants]: 전체 참가자 수 (person1 + person2 + additional)
-  void _addClosingInstructions({bool isCompatibilityMode = false, int totalParticipants = 2}) {
+  void _addClosingInstructions({bool isCompatibilityMode = false, int totalParticipants = 2, String locale = 'ko'}) {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
@@ -531,6 +533,25 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
     _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
+
+    // v13.0: 다국어 지시
+    if (locale != 'ko') {
+      final langMap = {
+        'en': 'English', 'ja': '日本語', 'zh': '中文(简体)', 'vi': 'Tiếng Việt',
+        'th': 'ภาษาไทย', 'id': 'Bahasa Indonesia', 'ms': 'Bahasa Melayu',
+        'my': 'မြန်မာဘာသာ', 'fr': 'Français', 'de': 'Deutsch',
+        'es': 'Español', 'pt': 'Português', 'it': 'Italiano',
+        'ru': 'Русский', 'hi': 'हिन्दी', 'ar': 'العربية',
+      };
+      final langName = langMap[locale] ?? locale;
+      _buffer.writeln();
+      _buffer.writeln('**CRITICAL LANGUAGE INSTRUCTION:**');
+      _buffer.writeln('**The user\'s language is: $langName (locale: $locale)**');
+      _buffer.writeln('**You MUST respond ENTIRELY in $langName. Not Korean, not any other language.**');
+      _buffer.writeln('**All saju data above is in Korean - translate all terminology into natural $langName expressions.**');
+      _buffer.writeln('**[SUGGESTED_QUESTIONS] chips must also be written in $langName.**');
+      _buffer.writeln('**If unsure about a saju term, use the original term in parentheses: e.g. "Day Master (日主)"**');
+    }
   }
 
   /// Gemini 궁합 분석 결과 추가

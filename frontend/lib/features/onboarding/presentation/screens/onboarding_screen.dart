@@ -1,12 +1,13 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../AI/fortune/common/locale_utils.dart';
 import '../../../../core/services/posthog_service.dart';
 import '../../../../core/config/admin_config.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
@@ -83,6 +84,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     print('[Onboarding] ===========================');
 
     try {
+        // 한국어 외 로케일: 도시 필드가 숨겨져 있으므로 기본값 '서울' 설정
+        if (context.locale.languageCode != 'ko' && formState.birthCity.isEmpty) {
+          formNotifier.updateBirthCity('서울');
+        }
+
         // 수정 모드면 기존 프로필 ID 전달하여 업데이트
         await formNotifier.saveProfile(editingId: _editingProfileId);
         PosthogService.trackEvent(_editingProfileId != null ? 'profile_created' : 'onboarding_completed');
@@ -95,8 +101,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         if (mounted) {
              ShadToaster.of(context).show(
               ShadToast.destructive(
-                title: const Text('입력 오류'),
-                description: const Text('모든 정보를 올바르게 입력해주세요.\n(이름, 성별, 생년월일, 도시)'),
+                title: Text('onboarding.inputError'.tr()),
+                description: Text('onboarding.inputErrorDesc'.tr()),
               ),
             );
         }
@@ -115,28 +121,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         elevation: 0,
         foregroundColor: theme.textPrimary,
         title: Text(
-          '사주 정보 입력',
+          'onboarding.formTitle'.tr(),
           style: TextStyle(color: theme.textPrimary),
         ),
         centerTitle: true,
-        // TODO: Admin 버튼 - 배포 시 비활성화
-        // actions: [
-        //   if (AdminConfig.isAdminModeAvailable)
-        //     _isAdminLoading
-        //         ? const Padding(
-        //             padding: EdgeInsets.all(16),
-        //             child: SizedBox(
-        //               width: 20,
-        //               height: 20,
-        //               child: CircularProgressIndicator(strokeWidth: 2),
-        //             ),
-        //           )
-        //         : IconButton(
-        //             icon: const Icon(Icons.admin_panel_settings),
-        //             tooltip: '개발자 모드',
-        //             onPressed: () => _handleAdminLogin(context),
-        //           ),
-        // ],
+        actions: [
+          IconButton(
+            onPressed: () => _showLanguageSheet(context),
+            icon: Text(
+              _getFlagForLocale(context.locale.languageCode),
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+        ],
       ),
       body: MysticBackground(
         child: SafeArea(
@@ -164,7 +161,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            '정확한 만세력을 위해\n정보를 입력해주세요.',
+                            'onboarding.formDescription'.tr(),
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -186,19 +183,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           _buildBirthSection(context),
                           const SizedBox(height: 24),
 
-                          // 4. 출생 도시
-                          const CitySearchField(),
-                          const SizedBox(height: 16),
+                          // 4. 출생 도시 (한국어만 - 도시 데이터가 한국 지역만 존재)
+                          if (context.locale.languageCode == 'ko') ...[
+                            const CitySearchField(),
+                            const SizedBox(height: 16),
 
-                          // 5. 진태양시 보정 배너
-                          const TimeCorrectionBanner(),
+                            // 5. 진태양시 보정 배너
+                            const TimeCorrectionBanner(),
+                          ],
                           const SizedBox(height: 40),
 
                           // 완료 버튼
                           ShadButton(
                             size: ShadButtonSize.lg,
                             onPressed: _onSave,
-                            child: const Text('만세력 보러가기'),
+                            child: Text('onboarding.submitButton'.tr()),
                           ),
                           const SizedBox(height: 20),
                         ],
@@ -208,6 +207,115 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ),
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const _supportedLanguages = [
+    ('ko', '🇰🇷', '한국어'),
+    ('en', '🇺🇸', 'English'),
+    ('ja', '🇯🇵', '日本語'),
+    ('zh', '🇨🇳', '中文(简体)'),
+    ('vi', '🇻🇳', 'Tiếng Việt'),
+    ('th', '🇹🇭', 'ภาษาไทย'),
+    ('id', '🇮🇩', 'Indonesia'),
+    ('ms', '🇲🇾', 'Melayu'),
+    ('my', '🇲🇲', 'မြန်မာ'),
+    ('fr', '🇫🇷', 'Français'),
+    ('de', '🇩🇪', 'Deutsch'),
+    ('es', '🇪🇸', 'Español'),
+    ('pt', '🇧🇷', 'Português'),
+    ('it', '🇮🇹', 'Italiano'),
+    ('hi', '🇮🇳', 'हिन्दी'),
+    ('ar', '🇸🇦', 'العربية'),
+    ('ru', '🇷🇺', 'Русский'),
+  ];
+
+  String _getFlagForLocale(String langCode) {
+    for (final lang in _supportedLanguages) {
+      if (lang.$1 == langCode) return lang.$2;
+    }
+    return '🌐';
+  }
+
+  void _showLanguageSheet(BuildContext context) {
+    final theme = context.appTheme;
+    final currentLang = context.locale.languageCode;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'settings.language'.tr(),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textPrimary,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 2.2,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: _supportedLanguages.length,
+                  itemBuilder: (_, i) {
+                    final (code, flag, name) = _supportedLanguages[i];
+                    final isActive = currentLang == code;
+                    return GestureDetector(
+                      onTap: () {
+                        context.setLocale(Locale(code));
+                        FortuneLocaleUtils.setCurrentLocale(code);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? theme.primaryColor.withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isActive
+                                ? theme.primaryColor
+                                : theme.textSecondary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$flag $name',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                            color: isActive ? theme.primaryColor : theme.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),

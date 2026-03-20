@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -180,7 +181,7 @@ class JiJangGanRow extends StatelessWidget {
         SizedBox(
           width: 50,
           child: Text(
-            '지장간',
+            'saju_chart.jijanggan'.tr(),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: theme.textMuted,
                   fontSize: 13,

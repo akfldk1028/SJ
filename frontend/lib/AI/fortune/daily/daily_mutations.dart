@@ -48,6 +48,7 @@ class DailyMutations {
     FortuneInputData? inputData,
     String? systemPrompt,
     String? userPrompt,
+    String locale = 'ko',
   }) async {
     final dateString = _formatDate(targetDate);
     print('[DailyMutations] 저장 시작: profileId=$profileId, date=$dateString');
@@ -72,6 +73,7 @@ class DailyMutations {
       'profile_id': profileId,
       'summary_type': SummaryType.dailyFortune,
       'target_date': dateString,
+      'locale': locale,
       'content': content,
       'input_data': inputDataJson.isNotEmpty ? inputDataJson : null,
       'model_name': modelName,
@@ -90,7 +92,7 @@ class DailyMutations {
       // v7.6: Insert-first 패턴 (Delete GAP 제거)
       // 기존 행이 없으면: Insert 한 번으로 완료 (GAP 없음)
       // 기존 행이 있으면: 23505 → Delete → Insert (기존 행이 존재하는 동안 GAP 없음)
-      // idx_ai_summaries_unique_daily: (profile_id, target_date) WHERE summary_type = 'daily_fortune'
+      // idx_ai_summaries_unique_daily: (profile_id, target_date, locale) WHERE summary_type = 'daily_fortune'
       final response = await _supabase
           .from('ai_summaries')
           .insert(data)
@@ -108,7 +110,8 @@ class DailyMutations {
             .delete()
             .eq('profile_id', profileId)
             .eq('summary_type', SummaryType.dailyFortune)
-            .eq('target_date', dateString);
+            .eq('target_date', dateString)
+            .eq('locale', locale);
 
         final response = await _supabase
             .from('ai_summaries')

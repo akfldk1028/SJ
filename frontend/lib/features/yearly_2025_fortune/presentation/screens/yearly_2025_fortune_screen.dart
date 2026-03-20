@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,7 +31,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '2025년 운세',
+          'yearly_2025.appBarTitle'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -69,7 +70,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
             Icon(Icons.error_outline, size: 48, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
-              '2025년 운세를 불러오지 못했습니다',
+              'yearly_2025.errorLoad'.tr(),
               style: TextStyle(color: theme.textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -85,7 +86,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
             ElevatedButton.icon(
               onPressed: () => ref.read(yearly2025FortuneProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('다시 시도'),
+              label: Text('yearly_2025.retry'.tr()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
@@ -112,7 +113,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            '🔮 AI가 2025년 운세를 분석하고 있어요',
+            'yearly_2025.analyzingTitle'.tr(),
             style: TextStyle(
               color: theme.textPrimary,
               fontSize: 16,
@@ -121,7 +122,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '잠시만 기다려주세요...',
+            'yearly_2025.pleaseWait'.tr(),
             style: TextStyle(color: theme.textMuted, fontSize: 14),
           ),
         ],
@@ -139,7 +140,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
       children: [
         // 히어로 헤더 (회고 스타일)
         FortuneTitleHeader(
-          title: '${fortune.year}년 회고',
+          title: 'yearly_2025.yearReview'.tr(namedArgs: {'year': '${fortune.year}'}),
           subtitle: fortune.yearGanji,
           keyword: fortune.overview.keyword.isNotEmpty ? fortune.overview.keyword : null,
           score: fortune.overview.score > 0 ? fortune.overview.score : null,
@@ -159,7 +160,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.mySajuIntro!.title.isNotEmpty
                 ? fortune.mySajuIntro!.title
-                : '나의 사주, 나는 누구인가요?',
+                : 'yearly_2025.mySajuIntroDefault'.tr(),
             icon: Icons.person_outline,
             content: fortune.mySajuIntro!.reading,
             style: CardStyle.gradient,
@@ -169,7 +170,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
 
         // 2025년 총운
         FortuneSectionCard(
-          title: '2025년 총운',
+          title: 'yearly_2025.yearOverall'.tr(),
           icon: Icons.auto_awesome,
           style: CardStyle.elevated,
           child: Column(
@@ -188,7 +189,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.ilganAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '일간 분석',
+                  label: 'yearly_2025.ilganAnalysis'.tr(),
                   content: fortune.overview.ilganAnalysis,
                   type: HighlightType.info,
                   icon: Icons.person_outline,
@@ -198,7 +199,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.sinsalAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FortuneHighlightBox(
-                  label: '신살 분석',
+                  label: 'yearly_2025.sinsalAnalysis'.tr(),
                   content: fortune.overview.sinsalAnalysis,
                   type: HighlightType.info,
                   icon: Icons.stars,
@@ -208,7 +209,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.hapchungAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FortuneHighlightBox(
-                  label: '합충 분석',
+                  label: 'yearly_2025.hapchungAnalysis'.tr(),
                   content: fortune.overview.hapchungAnalysis,
                   type: HighlightType.warning,
                   icon: Icons.sync_alt,
@@ -216,7 +217,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               ] else if (fortune.overview.hapchungEffect.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FortuneHighlightBox(
-                  label: '합충 영향',
+                  label: 'yearly_2025.hapchungEffect'.tr(),
                   content: fortune.overview.hapchungEffect,
                   type: HighlightType.warning,
                 ),
@@ -225,7 +226,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.yongshinAnalysis.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 FortuneHighlightBox(
-                  label: '용신 분석',
+                  label: 'yearly_2025.yongshinAnalysis'.tr(),
                   content: fortune.overview.yongshinAnalysis,
                   type: HighlightType.success,
                   icon: Icons.favorite_border,
@@ -235,7 +236,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.yearEnergy.isNotEmpty && fortune.overview.ilganAnalysis.isEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '올해의 기운',
+                  label: 'yearly_2025.yearEnergy'.tr(),
                   content: fortune.overview.yearEnergy,
                   type: HighlightType.info,
                   icon: Icons.bolt,
@@ -245,7 +246,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.yearEnergyConclusion.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '2025년 총평',
+                  label: 'yearly_2025.yearSummary'.tr(),
                   content: fortune.overview.yearEnergyConclusion,
                   type: HighlightType.primary,
                   icon: Icons.check_circle_outline,
@@ -253,7 +254,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               ] else if (fortune.overview.conclusion.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 FortuneHighlightBox(
-                  label: '결론',
+                  label: 'yearly_2025.conclusion'.tr(),
                   content: fortune.overview.conclusion,
                   type: HighlightType.primary,
                   icon: Icons.check_circle_outline,
@@ -269,7 +270,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.achievements.title.isNotEmpty
                 ? fortune.achievements.title
-                : '2025년의 빛나는 순간들',
+                : 'yearly_2025.achievementsDefault'.tr(),
             icon: Icons.star,
             style: CardStyle.outlined,
             child: Column(
@@ -299,7 +300,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.challenges.title.isNotEmpty
                 ? fortune.challenges.title
-                : '2025년의 시련, 그리고 성장',
+                : 'yearly_2025.challengesDefault'.tr(),
             icon: Icons.trending_up,
             style: CardStyle.outlined,
             child: Column(
@@ -326,9 +327,9 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
 
         // 분야별 운세 섹션
         if (fortune.categories.isNotEmpty) ...[
-          const FortuneSectionTitle(
-            title: '2025년 분야별 운세',
-            subtitle: '탭하여 상세 운세를 확인하세요',
+          FortuneSectionTitle(
+            title: 'yearly_2025.categoryTitle'.tr(),
+            subtitle: 'yearly_2025.categorySubtitle'.tr(),
             icon: Icons.grid_view,
           ),
           const SizedBox(height: 12),
@@ -352,7 +353,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.lessons.title.isNotEmpty
                 ? fortune.lessons.title
-                : '2025년이 가르쳐준 것들',
+                : 'yearly_2025.lessonsDefault'.tr(),
             icon: Icons.lightbulb_outline,
             style: CardStyle.gradient,
             child: Column(
@@ -382,7 +383,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           FortuneSectionCard(
             title: fortune.to2026.title.isNotEmpty
                 ? fortune.to2026.title
-                : '2026년으로 가져가세요',
+                : 'yearly_2025.toNextYearDefault'.tr(),
             icon: Icons.arrow_forward,
             style: CardStyle.elevated,
             child: Column(
@@ -401,7 +402,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildStrengthsAndCautions(
                     theme,
-                    '강점',
+                    'yearly_2025.strengths'.tr(),
                     fortune.to2026.strengths,
                     Icons.add_circle_outline,
                     Colors.green,
@@ -411,7 +412,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _buildStrengthsAndCautions(
                     theme,
-                    '주의할 점',
+                    'yearly_2025.watchOut'.tr(),
                     fortune.to2026.watchOut,
                     Icons.warning_amber,
                     Colors.orange,
@@ -426,7 +427,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
         // 마무리 메시지
         if (fortune.closingMessage.isNotEmpty) ...[
           FortuneSectionCard(
-            title: '2025년을 마무리하며',
+            title: 'yearly_2025.closingTitle'.tr(),
             icon: Icons.favorite_border,
             style: CardStyle.gradient,
             content: fortune.closingMessage,
@@ -590,9 +591,9 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
       child: ElevatedButton.icon(
         onPressed: () => context.go('/saju/chat?type=yearly2025Fortune'),
         icon: const Icon(Icons.chat_bubble_outline, size: 20),
-        label: const Text(
-          'AI에게 2025년 상담받기',
-          style: TextStyle(
+        label: Text(
+          'yearly_2025.consultAi'.tr(),
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),

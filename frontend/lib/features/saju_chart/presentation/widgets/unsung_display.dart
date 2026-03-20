@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -135,7 +136,7 @@ class UnsungTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '궁성',
+                    'saju_chart.unsungGungseong'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -146,7 +147,7 @@ class UnsungTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '지지',
+                    'saju_chart.unsungJiji'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -158,7 +159,7 @@ class UnsungTable extends StatelessWidget {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    '12운성',
+                    'saju_chart.twelveUnsung'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -170,7 +171,7 @@ class UnsungTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '강도',
+                    'saju_chart.sinsalStrength'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -335,7 +336,7 @@ class UnsungRow extends StatelessWidget {
           SizedBox(
             width: 50,
             child: Text(
-              '12운성',
+              'saju_chart.twelveUnsung'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 13,

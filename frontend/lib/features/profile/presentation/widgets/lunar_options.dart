@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -50,7 +51,7 @@ class LunarOptions extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '윤달',
+              'profile.leapMonthLabel'.tr(),
               style: TextStyle(
                 color: formState.canSelectLeapMonth
                     ? theme.textTheme.bodyMedium?.color
@@ -60,8 +61,8 @@ class LunarOptions extends ConsumerWidget {
             const SizedBox(width: 4),
             Tooltip(
               message: formState.canSelectLeapMonth
-                  ? '이 날짜는 윤달에 해당합니다.'
-                  : '해당 연월에는 윤달이 없습니다.',
+                  ? 'profile.leapMonthTooltipYes'.tr()
+                  : 'profile.leapMonthTooltipNo'.tr(),
               child: Icon(
                 Icons.info_outline,
                 size: 16,

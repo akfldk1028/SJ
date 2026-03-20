@@ -88,7 +88,7 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 7000;
+const DAILY_QUOTA = 5000;
 const ADMIN_QUOTA = 1000000000;
 
 // v51: 모델별 가격 ($/1M tokens)

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +41,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          '궁합 분석 결과',
+          'compatibility.detail_title'.tr(),
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,
@@ -64,7 +65,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     Icon(Icons.refresh_rounded,
                         size: 20, color: theme.textPrimary),
                     const SizedBox(width: 12),
-                    Text('재분석', style: TextStyle(color: theme.textPrimary)),
+                    Text('compatibility.menu_reanalyze'.tr(), style: TextStyle(color: theme.textPrimary)),
                   ],
                 ),
               ),
@@ -75,7 +76,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     const Icon(Icons.delete_rounded,
                         size: 20, color: Colors.red),
                     const SizedBox(width: 12),
-                    const Text('삭제', style: TextStyle(color: Colors.red)),
+                    Text('compatibility.menu_delete'.tr(), style: const TextStyle(color: Colors.red)),
                   ],
                 ),
               ),
@@ -114,19 +115,19 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           backgroundColor: theme.cardColor,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('궁합 분석 삭제', style: TextStyle(color: theme.textPrimary)),
+          title: Text('compatibility.delete_title'.tr(), style: TextStyle(color: theme.textPrimary)),
           content: Text(
-            '이 궁합 분석 결과를 삭제하시겠습니까?',
+            'compatibility.delete_confirm_short'.tr(),
             style: TextStyle(color: theme.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text('취소', style: TextStyle(color: theme.textMuted)),
+              child: Text('common.buttonCancel'.tr(), style: TextStyle(color: theme.textMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('삭제', style: TextStyle(color: Colors.red)),
+              child: Text('common.delete'.tr(), style: const TextStyle(color: Colors.red)),
             ),
           ],
         ),
@@ -140,13 +141,13 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (context.mounted) {
           context.pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('궁합 분석이 삭제되었습니다')),
+            SnackBar(content: Text('compatibility.deleted_snackbar'.tr())),
           );
         }
       }
     } else if (action == 'reanalyze') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('재분석을 시작합니다...')),
+        SnackBar(content: Text('compatibility.reanalyze_started'.tr())),
       );
       final result =
           await ref.read(compatibilityNotifierProvider.notifier).reanalyze(
@@ -158,11 +159,11 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (result.success) {
           ref.invalidate(compatibilityByIdWithDetailsProvider(analysisId));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('재분석이 완료되었습니다')),
+            SnackBar(content: Text('compatibility.reanalyze_complete'.tr())),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('재분석 실패: ${result.error}')),
+            SnackBar(content: Text('compatibility.reanalyze_failed'.tr(namedArgs: {'error': result.error ?? ''}))),
           );
         }
       }
@@ -179,7 +180,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
             Icon(Icons.error_outline_rounded, size: 64, color: theme.textMuted),
             const SizedBox(height: 16),
             Text(
-              '오류가 발생했습니다',
+              'compatibility.error_occurred'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -206,7 +207,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           Icon(Icons.search_off_rounded, size: 64, color: theme.textMuted),
           const SizedBox(height: 16),
           Text(
-            '분석 결과를 찾을 수 없습니다',
+            'compatibility.not_found'.tr(),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -250,7 +251,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (analysis.strengths != null && analysis.strengths!.isNotEmpty) ...[
           _buildListSection(
             theme,
-            title: '강점',
+            title: 'compatibility.strengths_title'.tr(),
             icon: Icons.thumb_up_rounded,
             iconColor: Colors.green,
             items: analysis.strengths!,
@@ -263,7 +264,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
             analysis.challenges!.isNotEmpty) ...[
           _buildListSection(
             theme,
-            title: '주의할 점',
+            title: 'compatibility.cautions_title'.tr(),
             icon: Icons.lightbulb_rounded,
             iconColor: Colors.amber,
             items: analysis.challenges!,
@@ -344,7 +345,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '일주 분석',
+                        'compatibility.day_pillar_title'.tr(),
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -353,7 +354,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '나와 상대의 일간 관계',
+                        'compatibility.day_pillar_subtitle'.tr(),
                         style: TextStyle(
                           fontSize: 12,
                           color: const Color(0xFF9B7ED6),
@@ -372,7 +373,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                   theme,
                   icon: Icons.person_rounded,
                   iconColor: const Color(0xFFD4637B),
-                  title: '나의 일간',
+                  title: 'compatibility.my_day_gan'.tr(),
                   content: interpretation.myDayGanIntro,
                 ),
                 const SizedBox(height: 14),
@@ -384,7 +385,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                   theme,
                   icon: Icons.person_outline_rounded,
                   iconColor: const Color(0xFF6B7F99),
-                  title: '상대의 일간',
+                  title: 'compatibility.target_day_gan'.tr(),
                   content: interpretation.targetDayGanIntro,
                 ),
                 const SizedBox(height: 14),
@@ -418,7 +419,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '천간합 (天干合)',
+                            'compatibility.cheongan_hap_title'.tr(),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -448,7 +449,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                   theme,
                   icon: Icons.spa_rounded,
                   iconColor: const Color(0xFF4CAF50),
-                  title: '오행 관계',
+                  title: 'compatibility.oheng_relation'.tr(),
                   content: interpretation.ohengAnalysis!,
                 ),
                 const SizedBox(height: 14),
@@ -594,7 +595,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           // 등급
           Text(
-            '${analysis.scoreGrade} 궁합',
+            '${analysis.scoreGrade} ${'compatibility.score_suffix'.tr()}',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -628,7 +629,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                   _buildCountBadge(
                     icon: Icons.brightness_5_rounded,
                     count: analysis.positiveCount,
-                    label: '合',
+                    label: '\u5408',
                     color: const Color(0xFFD4637B),
                   ),
                 if (analysis.positiveCount > 0 && analysis.negativeCount > 0)
@@ -637,7 +638,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                   _buildCountBadge(
                     icon: Icons.contrast_rounded,
                     count: analysis.negativeCount,
-                    label: '沖',
+                    label: '\u6C96',
                     color: const Color(0xFF6B7F99),
                   ),
               ],
@@ -666,7 +667,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 6),
           Text(
-            '$label $count개',
+            '$label ${'compatibility.count_suffix'.tr(namedArgs: {'count': count.toString()})}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -702,7 +703,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '종합 요약',
+                'compatibility.summary_title'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -738,40 +739,40 @@ class CompatibilityDetailScreen extends ConsumerWidget {
     // 긍정적 관계 (합) - 합력 순: 방합 > 삼합 > 육합 > 천간합 > 반합
     // 통일된 accent color 사용 (모던/미니멀)
     const hapColor = Color(0xFFD4637B); // 따뜻한 로즈
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '方合 방합',
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '\u65B9\u5408 \uBC29\uD569',
         _filterFullBanghap(_toStringList(ph['banghap'])),
         hapColor, Icons.panorama_fish_eye);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '三合 삼합',
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '\u4E09\u5408 \uC0BC\uD569',
         _toStringList(ph['samhap']), hapColor, Icons.change_history_rounded);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '六合 육합',
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '\u516D\u5408 \uC721\uD569',
         _toStringList(ph['yukhap']), hapColor, Icons.link_rounded);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '天干合 천간합',
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '\u5929\u5E72\u5408 \uCC9C\uAC04\uD569',
         _toStringList(ph['cheongan_hap']), hapColor, Icons.sync_alt_rounded);
-    _addCategoryIfNotEmpty(positiveWidgets, theme, '半合 반합',
+    _addCategoryIfNotEmpty(positiveWidgets, theme, '\u534A\u5408 \uBC18\uD569',
         _toStringList(ph['banhap']), hapColor, Icons.pie_chart_outline_rounded);
 
     // 부정적 관계 - 통일된 색상
     const chungColor = Color(0xFF6B7F99); // 차분한 슬레이트
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '天干沖 천간충',
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '\u5929\u5E72\u6C96 \uCC9C\uAC04\uCDA9',
         _toStringList(ph['cheongan_chung']), chungColor, Icons.compare_arrows_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '地支沖 지지충',
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '\u5730\u652F\u6C96 \uC9C0\uC9C0\uCDA9',
         _toStringList(ph['chung']), chungColor, Icons.swap_horiz_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '刑 형',
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '\u5211 \uD615',
         _toStringList(ph['hyung']), chungColor, Icons.gavel_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '害 해',
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '\u5BB3 \uD574',
         _toStringList(ph['hae']), chungColor, Icons.remove_circle_outline_rounded);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '破 파',
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '\u7834 \uD30C',
         _toStringList(ph['pa']), chungColor, Icons.radio_button_unchecked);
-    _addCategoryIfNotEmpty(negativeWidgets, theme, '怨嗔 원진',
+    _addCategoryIfNotEmpty(negativeWidgets, theme, '\u6028\u55D4 \uC6D0\uC9C4',
         _toStringList(ph['wonjin']), chungColor, Icons.block_rounded);
 
     // Fallback: sub-categories 없으면 hap/chung 필드 사용
     if (positiveWidgets.isEmpty) {
       // hap에서도 "일부" 방합 제외
       final hapFiltered = _toStringList(ph['hap'])
-          .where((e) => !e.contains('일부'))
+          .where((e) => !e.contains('\uC77C\uBD80'))
           .toList();
-      _addCategoryIfNotEmpty(positiveWidgets, theme, '합 (合)',
+      _addCategoryIfNotEmpty(positiveWidgets, theme, 'compatibility.hap_fallback'.tr(),
           hapFiltered, const Color(0xFFEC4899), Icons.favorite_rounded);
     }
 
@@ -784,8 +785,8 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (positiveWidgets.isNotEmpty)
           _buildGroupCard(
             theme,
-            title: '合 조화',
-            subtitle: '방합 · 삼합 · 육합 · 천간합 · 반합',
+            title: 'compatibility.hap_harmony_title'.tr(),
+            subtitle: 'compatibility.hap_harmony_subtitle'.tr(),
             icon: Icons.brightness_5_rounded,
             accentColor: const Color(0xFFD4637B),
             children: positiveWidgets,
@@ -795,8 +796,8 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         if (negativeWidgets.isNotEmpty)
           _buildGroupCard(
             theme,
-            title: '沖 긴장',
-            subtitle: '충 · 형 · 해 · 파 · 원진',
+            title: 'compatibility.chung_tension_title'.tr(),
+            subtitle: 'compatibility.chung_tension_subtitle'.tr(),
             icon: Icons.contrast_rounded,
             accentColor: const Color(0xFF6B7F99),
             children: negativeWidgets,
@@ -807,7 +808,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
 
   /// 방합: "일부" 포함된 항목 제외 (세 글자 완전 방합만)
   List<String> _filterFullBanghap(List<String> entries) {
-    return entries.where((e) => !e.contains('일부')).toList();
+    return entries.where((e) => !e.contains('\uC77C\uBD80')).toList();
   }
 
   void _addCategoryIfNotEmpty(
@@ -1003,7 +1004,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '×${item.count}',
+                            '\u00D7${item.count}',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -1196,9 +1197,9 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     color: _primaryColor, size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                '관계 조언',
-                style: TextStyle(
+              Text(
+                'compatibility.advice_title'.tr(),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: _primaryColor,

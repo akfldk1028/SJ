@@ -89,6 +89,7 @@ import '../fortune/common/fortune_input_data.dart';
 import '../fortune/daily/daily_service.dart';
 import '../fortune/fortune_coordinator.dart';
 import '../fortune/common/prompt_template.dart';
+import '../fortune/common/locale_utils.dart';
 import '../fortune/lifetime/lifetime_prompt.dart';
 import '../fortune/lifetime/lifetime_phase1_prompt.dart';
 import '../fortune/lifetime/lifetime_phase2_prompt.dart';
@@ -571,8 +572,8 @@ class SajuAnalysisService {
         return await _waitForExistingTask(pendingTask.data!, profileId);
       }
 
-      // 4. 프롬프트 생성
-      final prompt = SajuBasePrompt();
+      // 4. 프롬프트 생성 (locale-aware)
+      final prompt = SajuBasePrompt(locale: FortuneLocaleUtils.currentLocale);
       final messages = prompt.buildMessages(inputJson);
 
       // 5. GPT API 호출 (userId 전달 → ai_tasks에 user_id 저장)
@@ -607,6 +608,7 @@ class SajuAnalysisService {
         processingTimeMs: stopwatch.elapsedMilliseconds,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(inputJson),
+        locale: FortuneLocaleUtils.currentLocale,
       );
 
       stopwatch.stop();
@@ -1439,7 +1441,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase1Prompt();
+      final prompt = SajuBasePhase1Prompt(locale: FortuneLocaleUtils.currentLocale);
       final messages = prompt.buildMessages(inputJson);
 
       final response = await _apiService.callOpenAI(
@@ -1523,7 +1525,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase2Prompt();
+      final prompt = SajuBasePhase2Prompt(locale: FortuneLocaleUtils.currentLocale);
       final userPrompt = prompt.buildUserPromptWithPhase1(inputJson, phase1Result);
       final messages = [
         {'role': 'system', 'content': prompt.systemPrompt},
@@ -1602,7 +1604,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase3Prompt();
+      final prompt = SajuBasePhase3Prompt(locale: FortuneLocaleUtils.currentLocale);
       final userPrompt = prompt.buildUserPromptWithPhase1(inputJson, phase1Result);
       final messages = [
         {'role': 'system', 'content': prompt.systemPrompt},
@@ -1683,7 +1685,7 @@ extension SajuAnalysisServicePhasedExtension on SajuAnalysisService {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final prompt = SajuBasePhase4Prompt();
+      final prompt = SajuBasePhase4Prompt(locale: FortuneLocaleUtils.currentLocale);
       final userPrompt = prompt.buildUserPromptWithAllPhases(
         inputJson,
         phase1Result,

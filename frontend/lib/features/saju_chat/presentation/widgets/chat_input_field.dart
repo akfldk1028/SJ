@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -220,7 +221,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
                     fontSize: 15,
                   ),
                   decoration: InputDecoration(
-                    hintText: widget.hintText ?? '메시지를 입력하세요...',
+                    hintText: widget.hintText ?? 'saju_chat.defaultInputHint'.tr(),
                     hintStyle: TextStyle(
                       color: widget.hintColor ?? theme.textMuted,
                       fontSize: 15,

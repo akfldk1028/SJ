@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -25,7 +26,7 @@ class BirthTimeOptions extends ConsumerWidget {
           },
         ),
         const SizedBox(width: 8),
-        Text('시간 모름', style: TextStyle(color: theme.textPrimary)),
+        Text('onboarding.timeUnknown'.tr(), style: TextStyle(color: theme.textPrimary)),
       ],
     );
   }

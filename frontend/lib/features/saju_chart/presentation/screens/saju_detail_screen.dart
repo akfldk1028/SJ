@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -41,7 +42,7 @@ class SajuDetailScreen extends ConsumerWidget {
                   ),
                   Expanded(
                     child: Text(
-                      '사주 상세 분석',
+                      'saju_chart.detailAnalysis'.tr(),
                       style: TextStyle(
                         color: theme.textPrimary,
                         fontSize: 18,
@@ -62,7 +63,7 @@ class SajuDetailScreen extends ConsumerWidget {
                 if (analysis == null) {
                   return Center(
                     child: Text(
-                      '분석 정보를 불러올 수 없습니다.',
+                      'saju_chart.cannotLoadAnalysis'.tr(),
                       style: TextStyle(color: theme.textSecondary),
                     ),
                   );
@@ -80,7 +81,7 @@ class SajuDetailScreen extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    '오류가 발생했습니다:\n$err',
+                    'saju_chart.errorOccurredWithMsg'.tr(namedArgs: {'msg': '$err'}),
                     style: TextStyle(color: theme.fireColor ?? Colors.red),
                     textAlign: TextAlign.center,
                   ),

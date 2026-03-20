@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -217,10 +218,10 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
       if (relation == null || !mounted) return false;
 
       // 멘션 텍스트 생성 (나 + 상대방)
-      final ownerMention = '@나/${activeProfile.displayName}';
-      final categoryLabel = relation.categoryLabel;
+      final ownerMention = '@me/${activeProfile.displayName}';
+      final categoryKey = relation.categoryLabel;
       final displayName = relation.effectiveDisplayName;
-      final targetMention = '@$categoryLabel/$displayName';
+      final targetMention = '@$categoryKey/$displayName';
       final fullMentionText = '[나 포함] $ownerMention $targetMention ';
 
       // 새 세션 생성 (initialMessage 없이 - 자동 전송 안 함)
@@ -444,8 +445,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 새 채팅
             ListTile(
               leading: Icon(Icons.add_comment_outlined, color: appTheme.primaryColor),
-              title: Text('새 채팅', style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('새로운 대화 시작', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('saju_chat.newChat'.tr(), style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('saju_chat.newChatSubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _handleNewChat();
@@ -454,8 +455,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 채팅 기록
             ListTile(
               leading: Icon(Icons.history, color: appTheme.textPrimary),
-              title: Text('채팅 기록', style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('이전 대화 기록 보기', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('saju_chat.chatHistory'.tr(), style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('saju_chat.chatHistorySubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _scaffoldKey.currentState?.openDrawer();
@@ -465,8 +466,8 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
             // 메인으로 돌아가기
             ListTile(
               leading: Icon(Icons.home_outlined, color: appTheme.textPrimary),
-              title: Text('메인으로', style: TextStyle(color: appTheme.textPrimary)),
-              subtitle: Text('메인 화면으로 이동', style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
+              title: Text('saju_chat.goToMain'.tr(), style: TextStyle(color: appTheme.textPrimary)),
+              subtitle: Text('saju_chat.goToMainSubtitle'.tr(), style: TextStyle(color: appTheme.textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 context.go(Routes.menu);
@@ -604,14 +605,14 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '무엇이든 물어보세요',
+                    'saju_chat.askAnything'.tr(),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: appTheme.textPrimary,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '사주, 운세, 궁합 등 궁금한 것을 입력해주세요',
+                    'saju_chat.askAnythingSubtitle'.tr(),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: appTheme.textMuted,
                         ),
@@ -910,7 +911,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
           },
           enabled: !chatState.isLoading && !isTokenDepleted,
           hintText: isTokenDepleted
-              ? '위 버튼을 눌러 대화를 이어가세요'
+              ? 'saju_chat.tokenDepletedInputHint'.tr()
               : widget.chatType.inputHint,
           hintColor: isTokenDepleted ? const Color(0xFFE91E63) : null,
         ),

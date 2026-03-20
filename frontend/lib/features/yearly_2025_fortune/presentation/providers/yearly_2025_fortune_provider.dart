@@ -1,3 +1,5 @@
+import '../../../../AI/fortune/common/locale_utils.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,7 +52,7 @@ class Yearly2025FortuneData {
     final mySajuIntroJson = json['mySajuIntro'] as Map<String, dynamic>?;
     if (mySajuIntroJson != null) {
       mySajuIntro = MySajuIntroSection(
-        title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
+        title: mySajuIntroJson['title'] as String? ?? 'lifetime_fortune.mySajuTitle'.tr(),
         reading: mySajuIntroJson['reading'] as String? ?? '',
       );
     }
@@ -76,7 +78,7 @@ class Yearly2025FortuneData {
     // achievements 파싱
     final achievementsJson = json['achievements'] as Map<String, dynamic>? ?? {};
     final achievements = AchievementsSection(
-      title: achievementsJson['title'] as String? ?? '2025년의 빛나는 순간들',
+      title: achievementsJson['title'] as String? ?? 'yearly_2025.achievementsTitle'.tr(),
       reading: achievementsJson['reading'] as String? ?? '',
       highlights: _parseStringList(achievementsJson['highlights']),
     );
@@ -84,7 +86,7 @@ class Yearly2025FortuneData {
     // challenges 파싱
     final challengesJson = json['challenges'] as Map<String, dynamic>? ?? {};
     final challenges = ChallengesSection(
-      title: challengesJson['title'] as String? ?? '2025년의 시련, 그리고 성장',
+      title: challengesJson['title'] as String? ?? 'yearly_2025.challengesTitle'.tr(),
       reading: challengesJson['reading'] as String? ?? '',
       growthPoints: _parseStringList(challengesJson['growthPoints']),
     );
@@ -116,7 +118,7 @@ class Yearly2025FortuneData {
     // lessons 파싱
     final lessonsJson = json['lessons'] as Map<String, dynamic>? ?? {};
     final lessons = LessonsSection(
-      title: lessonsJson['title'] as String? ?? '2025년이 가르쳐준 것들',
+      title: lessonsJson['title'] as String? ?? 'yearly_2025.lessonsTitle'.tr(),
       reading: lessonsJson['reading'] as String? ?? '',
       keyLessons: _parseStringList(lessonsJson['keyLessons']),
     );
@@ -124,7 +126,7 @@ class Yearly2025FortuneData {
     // to2026 파싱
     final to2026Json = json['to2026'] as Map<String, dynamic>? ?? {};
     final to2026 = To2026Section(
-      title: to2026Json['title'] as String? ?? '2026년으로 가져가세요',
+      title: to2026Json['title'] as String? ?? 'yearly_2025.carryTo2026Title'.tr(),
       reading: to2026Json['reading'] as String? ?? '',
       strengths: _parseStringList(to2026Json['strengths']),
       watchOut: _parseStringList(to2026Json['watchOut']),
@@ -381,8 +383,9 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     }
     _offlineRetryCount = 0;
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = Yearly2025Queries(SupabaseService.client!);
-    final result = await queries.getCached(activeProfile.id, includeStale: true);
+    final result = await queries.getCached(activeProfile.id, includeStale: true, locale: locale);
 
     // 캐시가 있으면 바로 반환
     if (result != null) {
@@ -443,8 +446,9 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       return;
     }
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = Yearly2025Queries(SupabaseService.client!);
-    final result = await queries.getCached(profileId);
+    final result = await queries.getCached(profileId, locale: locale);
 
     if (result != null && result['content'] != null) {
       print('[Yearly2025Fortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
@@ -506,9 +510,11 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     print('[Yearly2025Fortune] 🚀 v6.0 Fortune만 즉시 분석 시작! (saju_base 대기 없음)');
 
     // v6.0: Fortune만 직접 분석 (saju_base 대기 없음!)
+    final locale = FortuneLocaleUtils.currentLocale;
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
+      locale: locale,
     ).then((result) {
       _isAnalyzing = false;
       _analyzeStartTime = null;
@@ -550,8 +556,9 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
       return;
     }
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = Yearly2025Queries(SupabaseService.client!);
-    final result = await queries.getCached(profileId);
+    final result = await queries.getCached(profileId, locale: locale);
 
     if (result != null && result['content'] != null) {
       print('[Yearly2025Fortune] fresh 데이터 발견! UI 자동 갱신 ($_stalePollAttempts회)');
@@ -579,8 +586,8 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
     return Yearly2025FortuneData(
       year: 2025,
       yearGanji: '을사(乙巳)',
-      mySajuIntro: const MySajuIntroSection(
-        title: '나의 사주, 나는 누구인가요?',
+      mySajuIntro: MySajuIntroSection(
+        title: 'lifetime_fortune.mySajuTitle'.tr(),
         reading: '당신은 타고난 창의력과 직관력을 가진 사람입니다. 목(木)의 기운이 강해 성장과 발전을 향한 열망이 크며, 새로운 것에 대한 호기심이 남다릅니다. 다만 때로는 너무 앞서나가려는 성향이 있어 주변과의 조화를 이루는 것이 중요합니다.',
       ),
       overview: const OverviewSection(
@@ -596,8 +603,8 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
         hapchungEffect: '',
         conclusion: '전반적으로 긍정적인 흐름이 예상되며, 적극적인 자세로 기회를 잡는다면 뜻깊은 한 해가 될 것입니다.',
       ),
-      achievements: const AchievementsSection(
-        title: '2025년의 빛나는 순간들',
+      achievements: AchievementsSection(
+        title: 'yearly_2025.achievementsTitle'.tr(),
         reading: '올해는 그동안 준비해온 일들이 결실을 맺는 시기입니다. 특히 창의적인 프로젝트나 새로운 도전에서 좋은 성과를 거둘 수 있습니다.',
         highlights: [
           '3월~5월 사이 중요한 성과 달성',
@@ -605,8 +612,8 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
           '재정적 안정 기반 마련',
         ],
       ),
-      challenges: const ChallengesSection(
-        title: '2025년의 시련, 그리고 성장',
+      challenges: ChallengesSection(
+        title: 'yearly_2025.challengesTitle'.tr(),
         reading: '성장에는 언제나 도전이 따릅니다. 올해 마주할 어려움들은 당신을 더 강하게 만들어 줄 것입니다.',
         growthPoints: [
           '인내심을 기르는 것이 중요',
@@ -615,26 +622,26 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
         ],
       ),
       categories: {
-        'career': const CategorySection(
-          title: '직장/취업운',
+        'career': CategorySection(
+          title: 'lifetime_fortune.jobFortune'.tr(),
           icon: '💼',
           score: 82,
           reading: '직장에서의 인정과 승진 기회가 높아지는 해입니다. 특히 하반기에 좋은 소식이 있을 수 있으며, 이직을 고려 중이라면 신중하게 판단하세요.',
         ),
-        'wealth': const CategorySection(
-          title: '재물운',
+        'wealth': CategorySection(
+          title: 'lifetime_fortune.wealthFortune'.tr(),
           icon: '💰',
           score: 75,
           reading: '안정적인 재정 흐름이 예상됩니다. 큰 투자보다는 착실한 저축이 유리하며, 하반기에 예상치 못한 수입이 있을 수 있습니다.',
         ),
-        'love': const CategorySection(
-          title: '연애운',
+        'love': CategorySection(
+          title: 'lifetime_fortune.loveFortune'.tr(),
           icon: '💕',
           score: 80,
           reading: '싱글이라면 봄에 좋은 인연을 만날 수 있습니다. 연인이 있다면 관계가 더욱 깊어지는 해가 될 것입니다.',
         ),
-        'health': const CategorySection(
-          title: '건강운',
+        'health': CategorySection(
+          title: 'lifetime_fortune.healthFortune'.tr(),
           icon: '🏥',
           score: 70,
           reading: '전반적으로 양호하나, 과로를 피하고 규칙적인 생활 습관을 유지하는 것이 중요합니다. 특히 소화기 건강에 신경 쓰세요.',
@@ -662,8 +669,8 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
           reading: '한 해를 마무리하며 다음 해를 준비하는 시기입니다. 성찰과 반성을 통해 더 나은 내년을 계획하세요.',
         ),
       ),
-      lessons: const LessonsSection(
-        title: '2025년이 가르쳐준 것들',
+      lessons: LessonsSection(
+        title: 'yearly_2025.lessonsTitle'.tr(),
         reading: '올해를 통해 얻게 될 소중한 교훈들입니다.',
         keyLessons: [
           '꾸준함의 가치',
@@ -671,8 +678,8 @@ class Yearly2025Fortune extends _$Yearly2025Fortune {
           '자기 자신에 대한 믿음',
         ],
       ),
-      to2026: const To2026Section(
-        title: '2026년으로 가져가세요',
+      to2026: To2026Section(
+        title: 'yearly_2025.carryTo2026Title'.tr(),
         reading: '2025년의 경험을 바탕으로 2026년을 준비하세요.',
         strengths: [
           '쌓아온 경험과 지식',

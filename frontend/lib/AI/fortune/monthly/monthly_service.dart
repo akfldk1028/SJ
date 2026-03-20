@@ -88,6 +88,7 @@ class MonthlyService {
     int? year,
     int? month,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
     // 한국 시간 기준으로 기본값 설정
     final targetYear = year ?? KoreaDateUtils.currentYear;
@@ -102,6 +103,7 @@ class MonthlyService {
           profileId,
           year: targetYear,
           month: targetMonth,
+          locale: locale,
         );
         if (cachedContent != null) {
           print('[MonthlyService] 📦 캐시에서 반환');
@@ -115,6 +117,7 @@ class MonthlyService {
         inputData: inputData,
         targetYear: targetYear,
         targetMonth: targetMonth,
+        locale: locale,
       );
 
       // 3. GPT-5-mini API 호출
@@ -169,6 +172,7 @@ class MonthlyService {
         inputData: inputData,
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.buildUserPrompt(),
+        locale: locale,
       );
       print('[MonthlyService] ✅ DB 저장 완료!');
 
@@ -193,12 +197,14 @@ class MonthlyService {
     required String profileId,
     required FortuneInputData inputData,
     bool forceRefresh = false,
+    String locale = 'ko',
   }) async {
     return analyze(
       userId: userId,
       profileId: profileId,
       inputData: inputData,
       forceRefresh: forceRefresh,
+      locale: locale,
     );
   }
 
@@ -207,11 +213,13 @@ class MonthlyService {
     String profileId, {
     int? year,
     int? month,
+    String locale = 'ko',
   }) {
     return _queries.getContent(
       profileId,
       year: year ?? KoreaDateUtils.currentYear,
       month: month ?? KoreaDateUtils.currentMonth,
+      locale: locale,
     );
   }
 
@@ -220,11 +228,13 @@ class MonthlyService {
     String profileId, {
     int? year,
     int? month,
+    String locale = 'ko',
   }) {
     return _queries.exists(
       profileId,
       year: year ?? KoreaDateUtils.currentYear,
       month: month ?? KoreaDateUtils.currentMonth,
+      locale: locale,
     );
   }
 

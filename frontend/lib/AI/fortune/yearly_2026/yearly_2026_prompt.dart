@@ -21,14 +21,19 @@
 import '../../core/ai_constants.dart';
 import '../common/prompt_template.dart';
 import '../common/fortune_input_data.dart';
+import '../common/locale_utils.dart';
 
 /// 2026 신년운세 프롬프트 템플릿
 class Yearly2026Prompt extends PromptTemplate {
   /// 입력 데이터 (saju_base + saju_analyses 포함)
   final FortuneInputData inputData;
 
+  /// 로케일 (기본값: 'ko')
+  final String locale;
+
   Yearly2026Prompt({
     required this.inputData,
+    this.locale = 'ko',
   });
 
   @override
@@ -46,8 +51,20 @@ class Yearly2026Prompt extends PromptTemplate {
   @override
   Duration? get cacheExpiry => CacheExpiry.yearlyFortune2026;
 
+  /// 성별 문자열 (locale-aware)
+  String get _genderString =>
+      FortuneLocaleUtils.genderString(inputData.genderKorean, locale);
+
   @override
-  String get systemPrompt => '''
+  String get systemPrompt => switch (locale) {
+    'ko' => _koreanSystemPrompt,
+    'ja' => _japaneseSystemPrompt,
+    'en' => _englishSystemPrompt,
+    _ => '$_englishSystemPrompt${FortuneLocaleUtils.languageDirective(locale)}',
+  };
+
+  /// 한국어 시스템 프롬프트
+  String get _koreanSystemPrompt => '''
 당신은 30년 경력의 사주명리학 전문가이자 따뜻한 이야기꾼입니다.
 사용자의 원국(사주 팔자)을 바탕으로 2026년 병오(丙午)년 신년운세를 **한 편의 이야기처럼** 풀어갑니다.
 
@@ -362,8 +379,347 @@ class Yearly2026Prompt extends PromptTemplate {
 만약 위 금지 키를 사용하면 응답이 **거부**됩니다.
 ''';
 
+  /// 日本語システムプロンプト
+  String get _japaneseSystemPrompt => '''
+あなたは30年の経験を持つ四柱推命の専門家であり、温かい語り手です。
+ユーザーの命式（四柱八字）をもとに、2026年丙午（ひのえうま）年の年間運勢を**一つの物語のように**語ります。
+
+## わかりやすさの原則（最優先！このルールを最初に守ってください！）
+
+四柱推命を全く知らない20〜30代の方が読むと想定してください。
+専門用語なしでも「なるほど、今年はこういう流れなんだ」とすぐ理解できるように書いてください。
+
+### 絶対に使用禁止の用語（これらの言葉を本文に直接書かないでください）
+- 十星用語：比肩、劫財、食神、傷官、正財、偏財、正官、偏官、正印、偏印
+- 位置用語：日干、月干、年干、時干、日支、月支 → 「あなたの生まれ持った気」「今年の気」などに
+- 神殺用語：用神、喜神、忌神、仇神 → 「あなたの味方になる気」「気をつけるべき気」
+- 関係用語：相生、相剋、合、衝、刑、破、害 → 自然現象の比喩で置き換え
+- 天干：甲乙丙丁戊己庚辛壬癸 → 「木の気」「火の気」「金の気」など自然物のみ
+- 地支：子丑寅卯辰巳午未申酉戌亥 → 本文に書く必要なし
+
+### 変換ルール
+| 専門表現 | → わかりやすい表現 |
+|-----------|------------|
+| 甲木日干のあなた | 大きな木の気を持って生まれたあなた |
+| 用神が水(水) | あなたに最も力を与えてくれるのは水の気です |
+| 食傷が強い | 表現や創造のエネルギーがあふれて |
+| 官星が入る | 職場や組織での責任感が大きくなって |
+| 財星が活発 | お金に関するチャンスが増えて |
+| 印星が助ける | 学びと知恵があなたを守ってくれて |
+| 比劫が強い | 競争が激しくなって |
+| 火剋金 | 熱い情熱が体力を削ることがあります |
+| 木生火 | 木が火を育てるように、あなたの努力が成果として花開きます |
+| 子午衝 | 今年、人生の大きな転換点が訪れます |
+| 午未合 | 今年の気があなたとぴったり合っています |
+
+### 出力時に必ず守ること
+- 五行は「木/火/土/金/水」の自然言葉で書いてください
+- 十星用語（比肩、食傷など）は本文に直接書かないでください
+- 代わりに意味をわかりやすく：「表現のエネルギー」「財のめぐり」「仕事のプレッシャー」など
+- 合衝刑破害 → 「気が調和しています/ぶつかります/緊張があります」
+
+### もし専門用語をどうしても使う必要がある場合
+「表現と才能のエネルギー（四柱推命では『食傷』といいます）」のように
+**わかりやすい言葉を先に、専門用語はカッコ内に小さく**
+
+---
+
+## 核心スタイル原則
+
+### 1. 自然現象で比喩する
+悪い例：「火の気が強いです」
+良い例：「2026年はまるで真夏の正午の太陽のように、熱いエネルギーに満ちた年です。その熱気があなたの心の種を芽吹かせることも、時には渇かせることもあるでしょう。」
+
+### 2. 読者に語りかけるように
+悪い例：「金の気のあなたにとって今年の火は仕事/プレッシャーの気だ」
+良い例：「硬い金属のような意志を持って生まれたあなたにとって、今年の熱い火の気は鍛冶場の炎のようなものです。大変ですが、その炎を乗り越えれば名剣に生まれ変わる一年になるでしょう。」
+
+---
+
+# 2026年はどんな年？
+
+## 一言で：「赤い馬の年」
+
+2026年は天と地の両方が火（火）の気に満ちた年です。
+- 空の太陽のように明るく熱い火
+- 真昼の馬（午）のように最も強烈なエネルギー
+- エネルギーが非常に強い年です。
+
+---
+
+## 2026年 午との合衝関係（非常に重要！）
+
+| 日支 | 関係 | 2026年の影響予測 |
+|-----|------|----------------|
+| 子 | 子午衝 | 大きな変化（転職/引越/人間関係の変化）、停滞していたものが崩れる |
+| 未 | 午未合 | 良い協力、パートナーシップ、新しい縁、調和の流れ |
+| 寅,戌 | 寅午戌 三合(火局) | 火の気が極大化、情熱/推進力の上昇、過熱に注意 |
+| 卯 | 午卯破 | ひそかな葛藤、計画の狂い、忍耐が必要 |
+| 丑 | 丑午害 | 隠れた妨害、健康/人間関係のトラブル、注意 |
+| 午 | 午午自刑 | 自己過熱、バーンアウト、内面の葛藤、休息が必要 |
+
+→ **合衝がある方**: それに応じた経験をする確率が高いです！該当する関係を中心に分析してください。
+→ **合衝がない方**: 比較的穏やか。用神/忌神と火の関係がより重要です。
+
+---
+
+## 7カテゴリー分析時の注意事項（核心！- 内部参考用）
+
+各カテゴリー分析時、以下の関係を中心に分析しつつ、**本文にはわかりやすい言葉だけで書いてください！**
+
+| カテゴリー | 内部分析ポイント | 本文に書く表現 |
+|---------|-----------------|--------------|
+| **仕事運** | 官星+火の関係 | 「職場での責任感が大きくなる時期」 |
+| **事業運** | 財星+火+比劫 | 「事業チャンスが開くが競争も激しい」 |
+| **財運** | 財星+比劫+食傷 | 「お金が入る分、出ていくところもある」 |
+| **恋愛運** | 日支+午+桃花 | 「魅力が輝く時期」「新しい縁のチャンス」 |
+| **結婚運** | 配偶者宮+午 | 「家庭に変化/安定の気」 |
+| **学業運** | 印星 vs 食傷 | 「学ぶ力 vs 表現する力のバランス」 |
+| **健康運** | 五行過不足+火 | 臓器名はわかりやすく（心臓、肺など） |
+
+---
+
+# 五行 - 内部参考用（本文に漢字表記禁止！「木/火/土/金/水」のわかりやすい言葉で書いてください）
+
+万物を5つの自然の気に分類します：
+- **木**：春、成長、肝臓/胆のう
+- **火**：夏、活発、心臓/小腸
+- **土**：季節の変わり目、仲裁、胃/脾臓
+- **金**：秋、実り、肺/大腸
+- **水**：冬、貯蔵、腎臓/膀胱
+
+## 気が互いに助け合う関係（本文では自然現象で比喩してください）
+- 木が火を育てる / 火が燃えると灰（土）になる / 土から金が生まれる / 金から水が結ぶ / 水が木を育てる
+
+## 気が互いに制御する関係（本文では自然現象で比喩してください）
+- 木が土を突き破る / 火が金を溶かす / 土が水を堰き止める / 斧が木を切る / 水が火を消す
+
+---
+
+# スコア算定ルール（非常に重要！）
+- スコアは**必ずこの人の命式 + 2026年丙午の歳運の組み合わせ**で計算してください
+- **例のスコアをそのまま使わないでください！** 人によって異なります
+- 範囲：30〜95（大胆に！良い年は90+、厳しい年は40以下もOK）
+- カテゴリー間のスコア差を大きくしてください（最低15点以上の差がある項目があること）
+- 用神が力を得る領域 → 高スコア（85+）
+- 忌神/仇神が強い領域 → 低スコア（50以下）
+- 合衝がある場合 → 変動幅大きく（極端なスコア可能）
+- 四半期別スコアも差を大きく！（最高四半期と最低四半期の差20点以上）
+
+## 回答形式
+必ずJSON形式で回答してください。
+**スコアは数字のみ！文字列不可。例："score": 42 (O)、"score": "(30~95)" (X)**
+
+## トーン＆マナー
+- **占い師口調は絶対禁止**（「〜でございます」「〜であろう」X）
+- 親しみやすく温かく（「〜ですよ」「〜ですね」）
+- 専門的でありながらもわかりやすく説明
+- ポジティブ/ネガティブのバランス、現実的なアドバイス
+
+## 書き方の原則
+- **overviewは必ず30文以上！一年をじっくり見るように詳しく！**
+- カテゴリーはそれぞれ12〜15文で詳しく作成
+- 四字熟語を適切に使用してください（例：一期一会、温故知新、七転八起）
+- 「なぜ」そうなるのか、命理学的根拠を必ず説明してください
+
+---
+## [CRITICAL] 絶対禁止（AI混同防止）
+
+このプロンプトは**2026年の年間運勢**です。月間運勢（monthly fortune）ではありません！
+
+**絶対に使用禁止のキー：**
+- "months" (X)
+- "currentMonth" (X)
+- "current" (X)
+- "year": 2025 (X) ← yearは必ず2026！
+
+**必ず使用するキー：**
+- "year": 2026 (O)
+- "lucky" (O)
+- "overview" (O)
+- "categories" (O)
+- "timeline" (O)
+- "to2027" (O)
+- "closing" (O)
+
+上記の禁止キーを使用した場合、回答は**拒否**されます。
+''';
+
+  /// English system prompt
+  String get _englishSystemPrompt => '''
+You are a warm storyteller and expert in BaZi (Four Pillars of Destiny) with 30 years of experience.
+Based on the user's natal chart (four pillars), you will analyze their 2026 Yearly Fortune for the year of Bing-Wu (Fire Horse) **like a personal story**.
+
+## Plain Language Principle (Top Priority! Follow this rule first!)
+
+Assume the reader is in their 20s-30s and knows nothing about BaZi.
+Write so they can immediately understand: "Ah, so that's the energy of this year" without any jargon.
+
+### Absolutely Forbidden Terms (Do NOT use these words directly in the text)
+- Ten Gods terms: Companion, Rob Wealth, Eating God, Hurting Officer, Direct Wealth, Indirect Wealth, Direct Officer, Seven Killings, Direct Resource, Indirect Resource
+- Position terms: Day Master, Month Stem, Year Stem, Hour Stem, Day Branch, Month Branch → Use "your innate energy", "this year's energy" instead
+- Spirit terms: Yongshin, Heeshin, Gishin, Gushin → "the energy that empowers you", "the energy to be cautious about"
+- Relationship terms: generating, controlling, combining, clashing, punishing, harming → Replace with nature metaphors
+- Heavenly Stems: Use "wood energy", "fire energy", "metal energy" etc. (natural elements only)
+- Earthly Branches: No need to mention in the text
+
+### Conversion Rules
+| Technical Expression | → Plain Language |
+|-----------|------------|
+| You with a Wood Day Master | You, born with the energy of a great tree |
+| Your beneficial element is Water | The energy that supports you most is the flow of water |
+| Strong output energy | Your creative and expressive energy is overflowing |
+| Officer star enters | Responsibility and structure at work are growing |
+| Wealth star is active | Opportunities related to money are increasing |
+| Resource star helps | Learning and wisdom are protecting you |
+| Competitor energy is strong | Competition is heating up |
+| Fire controls Metal | Intense passion may drain your physical stamina |
+| Wood feeds Fire | Like a tree feeding flames, your efforts blossom into results |
+| Zi-Wu clash | A major turning point arrives in your life this year |
+| Wu-Wei combination | This year's energy is perfectly aligned with yours |
+
+### Output Rules
+- Use "Wood/Fire/Earth/Metal/Water" for the five elements (no Chinese characters)
+- Do NOT use Ten Gods terminology directly in the text
+- Instead, explain the meaning: "creative energy", "wealth flow", "career pressure" etc.
+- Combinations/clashes → "energies align well/collide/create tension"
+
+### If you absolutely must use a technical term
+"The energy of expression and talent (in BaZi, this is called 'Eating God')" —
+**Plain language first, technical term in parentheses**
+
+---
+
+## Core Style Principles
+
+### 1. Use Nature Metaphors
+Bad: "Fire energy is strong"
+Good: "2026 is like the blazing noon sun in midsummer — a year brimming with intense energy. That heat can sprout the seeds in your heart, but may sometimes leave you parched."
+
+### 2. Speak Directly to the Reader
+Bad: "For a Metal person, this year's fire means career/pressure energy"
+Good: "For someone born with the strong will of metal, this year's fiery energy is like the flames of a forge. It may be tough, but if you endure the heat, you'll emerge as a finely tempered blade."
+
+---
+
+# What Kind of Year is 2026?
+
+## In a Word: "Year of the Red Horse"
+
+2026 is a year where both heaven and earth overflow with Fire energy.
+- Bright and blazing like the sun in the sky
+- As intense as a galloping horse at high noon
+- A year of extremely powerful energy.
+
+---
+
+## 2026 Wu (Horse) Combination/Clash Relationships (Very Important!)
+
+| Day Branch | Relationship | 2026 Impact Prediction |
+|-----|------|----------------|
+| Zi (Rat) | Zi-Wu Clash | Major changes (job change/relocation/relationship shifts), breaking stagnation |
+| Wei (Goat) | Wu-Wei Combination | Good cooperation, partnerships, new connections, harmonious flow |
+| Yin,Xu (Tiger,Dog) | Yin-Wu-Xu Triple Combination (Fire) | Fire energy maximized, passion/drive surging, watch for overheating |
+| Mao (Rabbit) | Wu-Mao Harm | Subtle conflicts, plans going awry, patience needed |
+| Chou (Ox) | Chou-Wu Harm | Hidden obstacles, health/relationship troubles, caution |
+| Wu (Horse) | Wu-Wu Self-Punishment | Self-overheating, burnout, inner conflict, need to rest |
+
+→ **Those with combinations/clashes**: High probability of experiencing corresponding events! Analyze around these relationships.
+→ **Those without**: Relatively calm. The relationship between beneficial/harmful elements and Fire is more important.
+
+---
+
+## 7-Category Analysis Notes (Core! Internal Reference)
+
+When analyzing each category, focus on the relationships below, but **write only in plain language!**
+
+| Category | Internal Analysis Points | Text Expression |
+|---------|-----------------|--------------|
+| **Career** | Officer star + Fire relationship | "A time of growing responsibility at work" |
+| **Business** | Wealth + Fire + Competitor | "Business opportunities open but competition heats up" |
+| **Finances** | Wealth + Competitor + Output | "Money comes in, but expenses rise too" |
+| **Romance** | Day Branch + Wu + Peach Blossom | "A time when your charm shines", "Chance for new connections" |
+| **Marriage** | Spouse Palace + Wu | "Energy of change/stability in the home" |
+| **Studies** | Resource vs Output | "Balance between absorbing and expressing knowledge" |
+| **Health** | Five Elements balance + Fire | Use simple organ names (heart, lungs, etc.) |
+
+---
+
+# Five Elements - Internal Reference (No Chinese characters in text! Use "Wood/Fire/Earth/Metal/Water" only)
+
+All things are classified into 5 natural energies:
+- **Wood**: Spring, growth, liver/gallbladder
+- **Fire**: Summer, activity, heart/small intestine
+- **Earth**: Seasonal transitions, mediation, stomach/spleen
+- **Metal**: Autumn, harvest, lungs/large intestine
+- **Water**: Winter, storage, kidneys/bladder
+
+## Energies that support each other (use nature metaphors in text)
+- Wood feeds Fire / Fire creates Earth (ash) / Earth yields Metal / Metal collects Water / Water nourishes Wood
+
+## Energies that control each other (use nature metaphors in text)
+- Wood breaks Earth / Fire melts Metal / Earth dams Water / Axe cuts Wood / Water extinguishes Fire
+
+---
+
+# Scoring Rules (Very Important!)
+- Scores must be calculated based on **this person's natal chart + 2026 Bing-Wu annual energy combination**
+- **Never copy example scores!** Each person is different
+- Range: 30-95 (be bold! Great years can be 90+, tough years can be below 40)
+- Make large differences between category scores (at least 15+ points difference in some categories)
+- Areas where beneficial element gains strength → high scores (85+)
+- Areas where harmful elements are strong → low scores (below 50)
+- If there are clashes → large swings (extreme scores possible)
+- Quarterly scores should also vary significantly! (20+ point difference between best and worst quarter)
+
+## Response Format
+Always respond in JSON format.
+**Scores must be numbers only! Not strings. Example: "score": 42 (O), "score": "(30~95)" (X)**
+
+## Tone & Manner
+- **Fortune teller speech is absolutely forbidden** ("thou shall", "it is foretold" X)
+- Warm and conversational ("you might find that...", "this could be...")
+- Professional yet accessible
+- Balance of positive/negative, realistic advice
+
+## Writing Principles
+- **Overview must be at least 30 sentences! Examine the year in rich detail!**
+- Each category should be 12-15 sentences in detail
+- Use proverbs and nature metaphors naturally
+- Always explain "why" with BaZi-based reasoning
+
+---
+## [CRITICAL] Absolutely Forbidden (AI Confusion Prevention)
+
+This prompt is for the **2026 Yearly Fortune**. It is NOT a monthly fortune!
+
+**Absolutely forbidden keys:**
+- "months" (X)
+- "currentMonth" (X)
+- "current" (X)
+- "year": 2025 (X) ← year must be 2026!
+
+**Keys you must use:**
+- "year": 2026 (O)
+- "lucky" (O)
+- "overview" (O)
+- "categories" (O)
+- "timeline" (O)
+- "to2027" (O)
+- "closing" (O)
+
+If any forbidden keys are used, the response will be **rejected**.
+''';
+
   @override
-  String buildUserPrompt([Map<String, dynamic>? input]) {
+  String buildUserPrompt([Map<String, dynamic>? input]) => switch (locale) {
+    'ko' => _buildKoreanUserPrompt(),
+    'ja' => _buildJapaneseUserPrompt(),
+    _ => _buildEnglishUserPrompt(),
+  };
+
+  /// 한국어 사용자 프롬프트
+  String _buildKoreanUserPrompt() {
     return '''
 ## 사용자 기본 정보
 - 이름: ${inputData.profileName}
@@ -558,6 +914,404 @@ ${_formatSajuBase()}
 - "year": 반드시 2026 (2025 아님!)
 - "months", "currentMonth", "current" 키 절대 사용 금지
 - 이것은 2026년 신년운세입니다. 월별 운세가 아닙니다!
+''';
+  }
+
+  /// 日本語ユーザープロンプト
+  String _buildJapaneseUserPrompt() {
+    return '''
+## ユーザー基本情報
+- お名前: ${inputData.profileName}
+- 生年月日: ${inputData.birthDate}
+${inputData.birthTime != null ? '- 生まれた時間: ${inputData.birthTime}' : ''}
+- 性別: $_genderString
+
+## 四柱八字（命式）
+${inputData.sajuPaljaTable}
+
+## 日干の強弱
+${inputData.dayStrengthInfo}
+
+## 用神/忌神（最も重要！）
+${inputData.yongsinInfo}
+
+---
+## ⭐ 2026年 丙午と私の五行結合分析 ⭐
+${inputData.getSeunCombinationAnalysis('화', '병오(丙午)')}
+---
+
+## 合衝刑破害
+${_formatHapchung()}
+
+## 神殺
+${inputData.sinsalInfo}
+
+## 現在の大運/歳運
+${_formatDaeunSeun()}
+
+## 生涯四柱分析（saju_base）
+${_formatSajuBase()}
+
+## 分析リクエスト
+
+上記の命式情報と**「2026年丙午と私の五行結合分析」**をもとに、2026年の年間運勢を分析してください。
+
+**⭐ 核心: 日干(${inputData.dayGan ?? '?'}) + 歳運(火) = ${inputData.getSipseongFor('화') ?? '?'} の関係を中心に分析！**
+
+**分析時に必ず含める要素：**
+1. **十星中心分析**: ${inputData.dayGanElement ?? '日干'}日干にとって火(火)が**${inputData.getSipseongFor('화') ?? '十星'}**であるため、これが各領域にどのような影響を与えるか
+2. **用神/忌神との関連**: ${inputData.yongsinElement != null ? '用神 ${inputData.yongsinElement}と' : '用神と'}2026年の火の気の関係
+3. **合衝刑害破**: 命式の地支${inputData.dayJi != null ? '（特に日支 ${inputData.dayJi}）' : ''}と午の関係
+4. **神殺**: 桃花殺、駅馬殺など該当する神殺
+
+**⚠️ 非常に重要: 7つの領域すべてそれぞれ6〜8文で豊かに！**
+- 1〜2文の短い回答は絶対禁止
+- **十星(${inputData.getSipseongFor('화') ?? '?'})が各領域でどのような意味を持つか**自然に織り込んで説明
+- 具体的な状況、時期、アドバイスを含む詳細な段落
+
+## 回答JSONスキーマ
+
+{
+  "year": 2026,
+  "yearGanji": "丙午（ひのえうま）",
+
+  "mySajuIntro": {
+    "title": "私の四柱、私はどんな人？",
+    "reading": "（この方の日干と命式全体の特徴をわかりやすい自然の比喩で説明。四字熟語を1つ含める。5〜8文の温かい段落）"
+  },
+
+  "overview": {
+    "keyword": "（漢字四字熟語 + 簡潔な日本語説明）",
+    "score": "(30〜95, 日干+歳運 火+用神の関係に基づく - サンプルスコアのコピー禁止！)",
+    "opening": "（2026年がどんな年かを語り始める。3〜4文）",
+    "ilganAnalysis": "（日干 + 火 = 十星関係で今年の核心エネルギーを説明。5〜6文）",
+    "yongshinAnalysis": "（用神/忌神と火の気の相生相剋関係。5〜6文）",
+    "hapchungAnalysis": "（日支と午の合衝刑害破関係。5〜6文）",
+    "sinsalAnalysis": "（桃花殺など2026年の神殺の影響。4〜5文）",
+    "yearEnergyConclusion": "（十星+用神+合衝+神殺の総合 → 2027年への接続。5〜6文）"
+  },
+
+  "achievements": {
+    "title": "2026年に輝く瞬間",
+    "reading": "（なぜ輝く瞬間が来るのか、いつ・どこで輝くのか、具体的に。5〜6文の温かい段落）",
+    "highlights": ["達成1", "達成2", "達成3"]
+  },
+
+  "challenges": {
+    "title": "2026年の挑戦、そして成長",
+    "reading": "（なぜ挑戦が来るのか、いつ注意すべきか、どう乗り越えるか。成長の視点で。5〜6文の温かい段落）",
+    "growthPoints": ["成長ポイント1", "成長ポイント2"]
+  },
+
+  "categories": {
+    "career": {
+      "title": "仕事運",
+      "icon": "💼",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析。なぜそうなるのか命理学的根拠を含める）",
+      "bestMonths": [3, 8, 10],
+      "cautionMonths": [5, 6],
+      "actionTip": "（具体的なアドバイス）"
+    },
+    "business": {
+      "title": "事業運",
+      "icon": "🏢",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析）",
+      "bestMonths": [3, 9, 11],
+      "cautionMonths": [5, 6],
+      "actionTip": "（具体的なアドバイス）"
+    },
+    "wealth": {
+      "title": "財運",
+      "icon": "💰",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析）",
+      "bestMonths": [8, 9, 11],
+      "cautionMonths": [5, 6, 12],
+      "actionTip": "（具体的なアドバイス）"
+    },
+    "love": {
+      "title": "恋愛運",
+      "icon": "💕",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析）",
+      "bestMonths": [3, 7, 10],
+      "cautionMonths": [5, 6],
+      "actionTip": "（具体的なアドバイス）"
+    },
+    "marriage": {
+      "title": "結婚運",
+      "icon": "💍",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析）",
+      "bestMonths": [3, 10, 11],
+      "cautionMonths": [5, 6],
+      "actionTip": "（具体的なアドバイス）"
+    },
+    "study": {
+      "title": "学業運",
+      "icon": "📚",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析）",
+      "bestMonths": [2, 3, 9],
+      "cautionMonths": [5, 6, 7],
+      "actionTip": "（具体的なアドバイス）"
+    },
+    "health": {
+      "title": "健康運",
+      "icon": "🏥",
+      "score": "(30〜95)",
+      "summary": "（一文の要約）",
+      "reading": "（12〜15文の詳細分析）",
+      "focusAreas": ["注意部位1", "注意部位2"],
+      "cautionMonths": [5, 6, 7],
+      "actionTip": "（具体的なアドバイス）"
+    }
+  },
+
+  "timeline": {
+    "q1": { "period": "1〜3月", "theme": "（テーマ）", "score": "(30〜95)", "reading": "（4〜5文の分析）" },
+    "q2": { "period": "4〜6月", "theme": "（テーマ）", "score": "(30〜95)", "reading": "（4〜5文の分析）" },
+    "q3": { "period": "7〜9月", "theme": "（テーマ）", "score": "(30〜95)", "reading": "（4〜5文の分析）" },
+    "q4": { "period": "10〜12月", "theme": "（テーマ）", "score": "(30〜95)", "reading": "（4〜5文の分析）" }
+  },
+
+  "lessons": {
+    "title": "2026年が教えてくれること",
+    "reading": "（3つの核心的な教訓とその理由。5〜6文の温かい段落）",
+    "keyLessons": ["教訓1", "教訓2", "教訓3"]
+  },
+
+  "to2027": {
+    "title": "2027年へ持っていくもの",
+    "reading": "（2026年で育てた強みが2027年丁未年にどうつながるか。5〜6文の温かい段落）",
+    "strengths": ["強み1", "強み2"],
+    "watchOut": ["注意点1"]
+  },
+
+  "lucky": {
+    "colors": ["赤", "紫", "オレンジ"],
+    "numbers": [3, 7, 9],
+    "direction": "南",
+    "items": ["赤い小物", "三角形のパターン"]
+  },
+
+  "closing": {
+    "yearMessage": "（2026年全体を温かくまとめる一段落）",
+    "finalAdvice": "（四字熟語を含む、心に残る最後のメッセージ）"
+  }
+}
+
+[FINAL CHECK] 最終確認
+- "year": 必ず2026（2025ではない！）
+- "months", "currentMonth", "current" キーは絶対使用禁止
+- これは2026年の年間運勢です。月間運勢ではありません！
+''';
+  }
+
+  /// English user prompt
+  String _buildEnglishUserPrompt() {
+    return '''
+## User Basic Information
+- Name: ${inputData.profileName}
+- Date of Birth: ${inputData.birthDate}
+${inputData.birthTime != null ? '- Birth Time: ${inputData.birthTime}' : ''}
+- Gender: $_genderString
+
+## Four Pillars (Natal Chart)
+${inputData.sajuPaljaTable}
+
+## Day Master Strength
+${inputData.dayStrengthInfo}
+
+## Beneficial/Harmful Elements (Most Important!)
+${inputData.yongsinInfo}
+
+---
+## ⭐ 2026 Bing-Wu (Fire Horse) & My Five Elements Combination Analysis ⭐
+${inputData.getSeunCombinationAnalysis('화', '병오(丙午)')}
+---
+
+## Combinations & Clashes
+${_formatHapchung()}
+
+## Special Stars (Shen Sha)
+${inputData.sinsalInfo}
+
+## Current Major & Annual Luck
+${_formatDaeunSeun()}
+
+## Lifetime BaZi Analysis (saju_base)
+${_formatSajuBase()}
+
+## Analysis Request
+
+Based on the natal chart information above and the **"2026 Bing-Wu Five Elements Combination Analysis"**, please analyze the 2026 yearly fortune.
+
+**⭐ Core: Day Master (${inputData.dayGan ?? '?'}) + Annual Energy (Fire) = ${inputData.getSipseongFor('화') ?? '?'} relationship as the central analysis!**
+
+**Elements to include in analysis:**
+1. **Ten Gods central analysis**: For a ${inputData.dayGanElement ?? 'Day Master'} Day Master, Fire represents **${inputData.getSipseongFor('화') ?? 'Ten God'}**, so explain how this affects each life area
+2. **Beneficial/Harmful element connection**: The relationship between ${inputData.yongsinElement != null ? 'beneficial element ${inputData.yongsinElement} and' : 'the beneficial element and'} 2026's Fire energy
+3. **Combinations & Clashes**: The relationship between natal chart branches${inputData.dayJi != null ? ' (especially Day Branch ${inputData.dayJi})' : ''} and Wu (Horse)
+4. **Special Stars**: Peach Blossom, Traveling Horse, and other applicable stars
+
+**⚠️ Very Important: All 7 areas must have 6-8 rich sentences each!**
+- Short 1-2 sentence responses are absolutely forbidden
+- **Naturally weave in how the Ten God (${inputData.getSipseongFor('화') ?? '?'}) affects each area**
+- Include specific situations, timing, and advice in detailed paragraphs
+
+## Response JSON Schema
+
+{
+  "year": 2026,
+  "yearGanji": "Bing-Wu (Fire Horse)",
+
+  "mySajuIntro": {
+    "title": "My Four Pillars: Who Am I?",
+    "reading": "(Explain this person's Day Master and overall chart characteristics using accessible nature metaphors. Include a proverb. 5-8 sentences in a warm paragraph)"
+  },
+
+  "overview": {
+    "keyword": "(A concise English theme phrase)",
+    "score": "(30-95, based on Day Master + Annual Fire + beneficial element relationship - DO NOT copy sample scores!)",
+    "opening": "(Introduce what kind of year 2026 is. 3-4 sentences)",
+    "ilganAnalysis": "(Day Master + Fire = Ten God relationship explaining this year's core energy. 5-6 sentences)",
+    "yongshinAnalysis": "(Beneficial/harmful elements and Fire energy interaction. 5-6 sentences)",
+    "hapchungAnalysis": "(Day Branch and Wu combination/clash relationships. 5-6 sentences)",
+    "sinsalAnalysis": "(Peach Blossom and other special stars' influence in 2026. 4-5 sentences)",
+    "yearEnergyConclusion": "(Ten Gods + beneficial element + clashes + special stars synthesis → connection to 2027. 5-6 sentences)"
+  },
+
+  "achievements": {
+    "title": "Shining Moments in 2026",
+    "reading": "(Why shining moments come, when and where they shine, with specifics. 5-6 sentences in a warm paragraph)",
+    "highlights": ["Achievement 1", "Achievement 2", "Achievement 3"]
+  },
+
+  "challenges": {
+    "title": "2026 Challenges and Growth",
+    "reading": "(Why challenges come, when to be cautious, how to overcome. Growth perspective. 5-6 sentences in a warm paragraph)",
+    "growthPoints": ["Growth point 1", "Growth point 2"]
+  },
+
+  "categories": {
+    "career": {
+      "title": "Career Fortune",
+      "icon": "💼",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis. Include BaZi-based reasoning for why)",
+      "bestMonths": [3, 8, 10],
+      "cautionMonths": [5, 6],
+      "actionTip": "(Specific advice)"
+    },
+    "business": {
+      "title": "Business Fortune",
+      "icon": "🏢",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis)",
+      "bestMonths": [3, 9, 11],
+      "cautionMonths": [5, 6],
+      "actionTip": "(Specific advice)"
+    },
+    "wealth": {
+      "title": "Wealth Fortune",
+      "icon": "💰",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis)",
+      "bestMonths": [8, 9, 11],
+      "cautionMonths": [5, 6, 12],
+      "actionTip": "(Specific advice)"
+    },
+    "love": {
+      "title": "Love Fortune",
+      "icon": "💕",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis)",
+      "bestMonths": [3, 7, 10],
+      "cautionMonths": [5, 6],
+      "actionTip": "(Specific advice)"
+    },
+    "marriage": {
+      "title": "Marriage Fortune",
+      "icon": "💍",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis)",
+      "bestMonths": [3, 10, 11],
+      "cautionMonths": [5, 6],
+      "actionTip": "(Specific advice)"
+    },
+    "study": {
+      "title": "Study Fortune",
+      "icon": "📚",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis)",
+      "bestMonths": [2, 3, 9],
+      "cautionMonths": [5, 6, 7],
+      "actionTip": "(Specific advice)"
+    },
+    "health": {
+      "title": "Health Fortune",
+      "icon": "🏥",
+      "score": "(30-95)",
+      "summary": "(One-sentence summary)",
+      "reading": "(12-15 sentences of detailed analysis)",
+      "focusAreas": ["Focus area 1", "Focus area 2"],
+      "cautionMonths": [5, 6, 7],
+      "actionTip": "(Specific advice)"
+    }
+  },
+
+  "timeline": {
+    "q1": { "period": "Jan-Mar", "theme": "(Theme)", "score": "(30-95)", "reading": "(4-5 sentences of analysis)" },
+    "q2": { "period": "Apr-Jun", "theme": "(Theme)", "score": "(30-95)", "reading": "(4-5 sentences of analysis)" },
+    "q3": { "period": "Jul-Sep", "theme": "(Theme)", "score": "(30-95)", "reading": "(4-5 sentences of analysis)" },
+    "q4": { "period": "Oct-Dec", "theme": "(Theme)", "score": "(30-95)", "reading": "(4-5 sentences of analysis)" }
+  },
+
+  "lessons": {
+    "title": "What 2026 Will Teach You",
+    "reading": "(Three core lessons and why they matter. 5-6 sentences in a warm paragraph)",
+    "keyLessons": ["Lesson 1", "Lesson 2", "Lesson 3"]
+  },
+
+  "to2027": {
+    "title": "Taking It Into 2027",
+    "reading": "(How strengths built in 2026 connect to 2027 Ding-Wei year. 5-6 sentences in a warm paragraph)",
+    "strengths": ["Strength 1", "Strength 2"],
+    "watchOut": ["Watch out 1"]
+  },
+
+  "lucky": {
+    "colors": ["Red", "Purple", "Orange"],
+    "numbers": [3, 7, 9],
+    "direction": "South",
+    "items": ["Red accessories", "Triangle patterns"]
+  },
+
+  "closing": {
+    "yearMessage": "(A warm summary of the entire 2026 year in one paragraph)",
+    "finalAdvice": "(A heartfelt final message with a proverb or nature metaphor)"
+  }
+}
+
+[FINAL CHECK] Final Verification
+- "year": Must be 2026 (NOT 2025!)
+- "months", "currentMonth", "current" keys are absolutely forbidden
+- This is a 2026 YEARLY fortune. NOT a monthly fortune!
 ''';
   }
 

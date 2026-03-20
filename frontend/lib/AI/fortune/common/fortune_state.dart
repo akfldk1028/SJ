@@ -58,7 +58,7 @@ extension FortuneStateExtension on FortuneState {
   /// 분석 가능 상태인지 확인
   bool get canAnalyze => this == FortuneState.ready;
 
-  /// 상태별 UI 메시지
+  /// 상태별 UI 메시지 (한국어 fallback)
   String get displayMessage {
     switch (this) {
       case FortuneState.initial:
@@ -73,6 +73,24 @@ extension FortuneStateExtension on FortuneState {
         return '분석 완료';
       case FortuneState.error:
         return '오류 발생';
+    }
+  }
+
+  /// i18n 키 (UI에서 .tr() 호출용)
+  String get displayMessageKey {
+    switch (this) {
+      case FortuneState.initial:
+        return 'menu.analysisIdle';
+      case FortuneState.waitingForSajuBase:
+        return 'menu.aiAnalyzing';
+      case FortuneState.ready:
+        return 'menu.analysisCompleted';
+      case FortuneState.analyzing:
+        return 'menu.aiAnalyzing';
+      case FortuneState.completed:
+        return 'menu.analysisCompleted';
+      case FortuneState.error:
+        return 'menu.analysisError';
     }
   }
 }

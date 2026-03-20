@@ -1,3 +1,5 @@
+import '../../../../AI/fortune/common/locale_utils.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -57,7 +59,7 @@ class NewYearFortuneData {
     final mySajuIntroJson = json['mySajuIntro'] as Map<String, dynamic>?;
     if (mySajuIntroJson != null) {
       mySajuIntro = MySajuIntroSection(
-        title: mySajuIntroJson['title'] as String? ?? '나의 사주, 나는 누구인가요?',
+        title: mySajuIntroJson['title'] as String? ?? 'lifetime_fortune.mySajuTitle'.tr(),
         reading: mySajuIntroJson['reading'] as String? ?? '',
       );
     }
@@ -522,8 +524,9 @@ class NewYearFortune extends _$NewYearFortune {
     }
     _offlineRetryCount = 0;
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = Yearly2026Queries(SupabaseService.client!);
-    final result = await queries.getCached(activeProfile.id, includeStale: true);
+    final result = await queries.getCached(activeProfile.id, includeStale: true, locale: locale);
 
     // 캐시가 있으면 바로 반환
     if (result != null) {
@@ -584,8 +587,9 @@ class NewYearFortune extends _$NewYearFortune {
       return;
     }
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = Yearly2026Queries(SupabaseService.client!);
-    final result = await queries.getCached(profileId);
+    final result = await queries.getCached(profileId, locale: locale);
 
     if (result != null && result['content'] != null) {
       print('[NewYearFortune] 폴링 성공 - 데이터 발견! UI 자동 갱신 (${_pollAttempts}회)');
@@ -647,9 +651,11 @@ class NewYearFortune extends _$NewYearFortune {
     print('[NewYearFortune] 🚀 v6.0 Fortune만 즉시 분석 시작! (saju_base 대기 없음)');
 
     // v6.0: Fortune만 직접 분석 (saju_base 대기 없음!)
+    final locale = FortuneLocaleUtils.currentLocale;
     fortuneCoordinator.analyzeFortuneOnly(
       userId: user.id,
       profileId: profileId,
+      locale: locale,
     ).then((result) {
       _isAnalyzing = false;
       _analyzeStartTime = null;
@@ -691,8 +697,9 @@ class NewYearFortune extends _$NewYearFortune {
       return;
     }
 
+    final locale = FortuneLocaleUtils.currentLocale;
     final queries = Yearly2026Queries(SupabaseService.client!);
-    final result = await queries.getCached(profileId);
+    final result = await queries.getCached(profileId, locale: locale);
 
     if (result != null && result['content'] != null) {
       print('[NewYearFortune] fresh 데이터 발견! UI 자동 갱신 ($_stalePollAttempts회)');
@@ -720,8 +727,8 @@ class NewYearFortune extends _$NewYearFortune {
     return NewYearFortuneData(
       year: 2026,
       yearGanji: '병오(丙午)',
-      mySajuIntro: const MySajuIntroSection(
-        title: '나의 사주, 나는 누구인가요?',
+      mySajuIntro: MySajuIntroSection(
+        title: 'lifetime_fortune.mySajuTitle'.tr(),
         reading: '당신은 타고난 창의력과 직관력을 가진 사람입니다. 목(木)의 기운이 강해 성장과 발전을 향한 열망이 크며, 새로운 것에 대한 호기심이 남다릅니다.',
       ),
       yearInfo: const YearInfoSection(
@@ -748,49 +755,49 @@ class NewYearFortune extends _$NewYearFortune {
         keyPoint: '상반기에 기회를 잡고, 하반기에는 안정을 추구하세요.',
       ),
       categories: {
-        'career': const CategorySection(
-          title: '직장/취업운',
+        'career': CategorySection(
+          title: 'lifetime_fortune.jobFortune'.tr(),
           icon: '💼',
           score: 85,
           summary: '승진과 인정의 기회',
           reading: '직장에서 능력을 인정받고 승진의 기회가 있습니다. 특히 봄에 좋은 소식이 기대됩니다.',
-          bestMonths: [3, 4, 9],
-          cautionMonths: [6, 7],
+          bestMonths: const [3, 4, 9],
+          cautionMonths: const [6, 7],
           actionTip: '상사와의 관계를 잘 유지하고, 팀워크를 중시하세요.',
-          focusAreas: ['리더십 개발', '전문성 강화'],
+          focusAreas: const ['리더십 개발', '전문성 강화'],
         ),
-        'wealth': const CategorySection(
-          title: '재물운',
+        'wealth': CategorySection(
+          title: 'lifetime_fortune.wealthFortune'.tr(),
           icon: '💰',
           score: 78,
           summary: '안정적인 재정 흐름',
           reading: '큰 횡재보다는 꾸준한 수입이 예상됩니다. 투자는 신중하게 접근하세요.',
-          bestMonths: [2, 5, 11],
-          cautionMonths: [8],
+          bestMonths: const [2, 5, 11],
+          cautionMonths: const [8],
           actionTip: '저축을 늘리고 충동 구매를 자제하세요.',
-          focusAreas: ['저축 습관', '재테크 공부'],
+          focusAreas: const ['저축 습관', '재테크 공부'],
         ),
-        'love': const CategorySection(
-          title: '연애운',
+        'love': CategorySection(
+          title: 'lifetime_fortune.loveFortune'.tr(),
           icon: '💕',
           score: 80,
           summary: '로맨틱한 만남',
           reading: '싱글이라면 봄에 좋은 인연을 만날 수 있습니다. 연인이 있다면 관계가 더욱 깊어집니다.',
-          bestMonths: [3, 5, 10],
-          cautionMonths: [7],
+          bestMonths: const [3, 5, 10],
+          cautionMonths: const [7],
           actionTip: '적극적으로 표현하고, 상대방의 이야기에 귀 기울이세요.',
-          focusAreas: ['소통 능력', '감정 표현'],
+          focusAreas: const ['소통 능력', '감정 표현'],
         ),
-        'health': const CategorySection(
-          title: '건강운',
+        'health': CategorySection(
+          title: 'lifetime_fortune.healthFortune'.tr(),
           icon: '🏥',
           score: 72,
           summary: '규칙적인 생활 필요',
           reading: '화(火) 기운이 강해 심장과 혈압 관리에 신경 쓰세요. 규칙적인 운동이 도움됩니다.',
-          bestMonths: [4, 9, 12],
-          cautionMonths: [6, 7],
+          bestMonths: const [4, 9, 12],
+          cautionMonths: const [6, 7],
           actionTip: '충분한 수면과 균형 잡힌 식단을 유지하세요.',
-          focusAreas: ['심혈관 건강', '스트레스 관리'],
+          focusAreas: const ['심혈관 건강', '스트레스 관리'],
         ),
       },
       timeline: const TimelineSection(

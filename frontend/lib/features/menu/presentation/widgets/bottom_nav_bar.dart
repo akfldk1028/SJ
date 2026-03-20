@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -41,28 +42,28 @@ class BottomNavBar extends StatelessWidget {
             children: [
               _BottomNavItem(
                 icon: Icons.home_rounded,
-                label: '홈',
+                label: 'menu.bottomHome'.tr(),
                 isSelected: selectedIndex == 0,
                 onTap: () => onTap(0),
                 theme: theme,
               ),
               _BottomNavItem(
                 icon: Icons.person_rounded,
-                label: '프로필',
+                label: 'menu.bottomProfile'.tr(),
                 isSelected: selectedIndex == 1,
                 onTap: () => onTap(1),
                 theme: theme,
               ),
               _BottomNavItem(
                 icon: Icons.history_rounded,
-                label: '히스토리',
+                label: 'menu.bottomHistory'.tr(),
                 isSelected: selectedIndex == 2,
                 onTap: () => onTap(2),
                 theme: theme,
               ),
               _BottomNavItem(
                 icon: Icons.settings_rounded,
-                label: '설정',
+                label: 'menu.bottomSettings'.tr(),
                 isSelected: selectedIndex == 3,
                 onTap: () => onTap(3),
                 theme: theme,

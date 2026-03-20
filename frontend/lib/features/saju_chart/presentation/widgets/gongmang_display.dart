@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -33,7 +34,7 @@ class GongmangJijiDisplay extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            '공망 지지',
+            'saju_chart.gongmangJijiLabel'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -82,7 +83,7 @@ class GongmangBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isGongmang ? AppColors.error : AppColors.success;
-    final text = isGongmang ? '공망' : '정상';
+    final text = isGongmang ? 'saju_chart.gongmang'.tr() : 'saju_chart.normal'.tr();
     final fontSize = _getFontSize();
     final padding = _getPadding();
 
@@ -156,7 +157,7 @@ class GongmangTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '궁성',
+                    'saju_chart.gungseong'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -167,7 +168,7 @@ class GongmangTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '지지',
+                    'saju_chart.unsungJiji'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -179,7 +180,7 @@ class GongmangTable extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '상태',
+                    'saju_chart.status'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -191,7 +192,7 @@ class GongmangTable extends StatelessWidget {
                 Expanded(
                   flex: 4,
                   child: Text(
-                    '해석',
+                    'saju_chart.interpretationLabel'.tr(),
                     style: TextStyle(
                       color: theme.textMuted,
                       fontSize: 13,
@@ -336,7 +337,7 @@ class GongmangRow extends StatelessWidget {
           SizedBox(
             width: 50,
             child: Text(
-              '공망',
+              'saju_chart.gongmang'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 13,
@@ -444,7 +445,7 @@ class GongmangDetailCard extends StatelessWidget {
           // 상태 텍스트
           Center(
             child: Text(
-              result.isGongmang ? '空亡(공망)' : '正常(정상)',
+              result.isGongmang ? 'saju_chart.gongmangHanja'.tr() : 'saju_chart.normalHanja'.tr(),
               style: TextStyle(
                 color: color,
                 fontSize: 16,
@@ -507,7 +508,7 @@ class GongmangSummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '공망 요약',
+                'saju_chart.gongmangSummary'.tr(),
                 style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 14,
@@ -522,7 +523,7 @@ class GongmangSummaryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '일주: ${result.dayGapja}',
+                  'saju_chart.gongmangDayPillar'.tr(namedArgs: {'dayGan': result.dayGapja.isNotEmpty ? result.dayGapja[0] : '', 'dayJi': result.dayGapja.length > 1 ? result.dayGapja[1] : ''}),
                   style: TextStyle(
                     color: theme.textMuted,
                     fontSize: 13,
@@ -545,7 +546,7 @@ class GongmangSummaryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '소속 순(旬)',
+                      'saju_chart.belongingSun'.tr(),
                       style: TextStyle(
                         color: theme.textMuted,
                         fontSize: 13,
@@ -567,7 +568,7 @@ class GongmangSummaryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '공망 지지',
+                      'saju_chart.gongmangJijiLabel'.tr(),
                       style: TextStyle(
                         color: theme.textMuted,
                         fontSize: 13,
@@ -591,14 +592,14 @@ class GongmangSummaryCard extends StatelessWidget {
           Row(
             children: [
               _buildStatItem(
-                '공망 궁',
-                '${result.gongmangCount}개',
+                'saju_chart.gongmangGung'.tr(),
+                'saju_chart.countUnit'.tr(namedArgs: {'count': '${result.gongmangCount}'}),
                 hasGongmang ? AppColors.error : AppColors.success,
               ),
               const SizedBox(width: 12),
               _buildStatItem(
-                '정상 궁',
-                '${result.allResults.length - result.gongmangCount}개',
+                'saju_chart.normalGung'.tr(),
+                'saju_chart.countUnit'.tr(namedArgs: {'count': '${result.allResults.length - result.gongmangCount}'}),
                 AppColors.success,
               ),
             ],
@@ -701,7 +702,7 @@ class GongmangSummaryCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '공망 궁성',
+          'saju_chart.gongmangGungseong'.tr(),
           style: TextStyle(
             color: theme.textMuted,
             fontSize: 13,

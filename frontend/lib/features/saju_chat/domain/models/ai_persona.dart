@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import '../../../../AI/jina/personas/persona_registry.dart';
 import '../../../../AI/jina/personas/persona_base.dart';
 
@@ -32,13 +33,13 @@ enum MbtiQuadrant {
   String get displayName {
     switch (this) {
       case MbtiQuadrant.NF:
-        return '감성형';
+        return 'saju_chat.mbti_NF'.tr();
       case MbtiQuadrant.NT:
-        return '분석형';
+        return 'saju_chat.mbti_NT'.tr();
       case MbtiQuadrant.SF:
-        return '친근형';
+        return 'saju_chat.mbti_SF'.tr();
       case MbtiQuadrant.ST:
-        return '현실형';
+        return 'saju_chat.mbti_ST'.tr();
     }
   }
 
@@ -46,13 +47,13 @@ enum MbtiQuadrant {
   String get description {
     switch (this) {
       case MbtiQuadrant.NF:
-        return '따뜻하고 공감적인 상담';
+        return 'saju_chat.mbti_NF_desc'.tr();
       case MbtiQuadrant.NT:
-        return '논리적이고 체계적인 분석';
+        return 'saju_chat.mbti_NT_desc'.tr();
       case MbtiQuadrant.SF:
-        return '친근하고 유쾌한 대화';
+        return 'saju_chat.mbti_SF_desc'.tr();
       case MbtiQuadrant.ST:
-        return '직설적이고 현실적인 조언';
+        return 'saju_chat.mbti_ST_desc'.tr();
     }
   }
 }
@@ -130,23 +131,23 @@ enum AiPersona {
   String get displayName {
     switch (this) {
       case AiPersona.grandma:
-        return '점순이 할머니';
+        return 'saju_chat.persona_grandma'.tr();
       case AiPersona.master:
-        return '청운 도사';
+        return 'saju_chat.persona_master'.tr();
       case AiPersona.cute:
-        return '복돌이';
+        return 'saju_chat.persona_cute'.tr();
       case AiPersona.professional:
-        return 'AI 상담사';
+        return 'saju_chat.persona_professional'.tr();
       case AiPersona.babyMonk:
-        return '아기동자';
+        return 'saju_chat.persona_babyMonk'.tr();
       case AiPersona.scenarioWriter:
-        return '송작가';
+        return 'saju_chat.persona_scenarioWriter'.tr();
       case AiPersona.bookOfSaju:
-        return '명리의 서';
+        return 'saju_chat.persona_bookOfSaju'.tr();
       case AiPersona.yinYangGrandpa:
-        return '음양 할배';
+        return 'saju_chat.persona_yinYangGrandpa'.tr();
       case AiPersona.sewerSaju:
-        return '시궁창 술사';
+        return 'saju_chat.persona_sewerSaju'.tr();
     }
   }
 
@@ -178,23 +179,23 @@ enum AiPersona {
   String get description {
     switch (this) {
       case AiPersona.grandma:
-        return '따뜻하고 정감있는 말투';
+        return 'saju_chat.persona_grandma_desc'.tr();
       case AiPersona.master:
-        return '위엄있고 철학적인 말투';
+        return 'saju_chat.persona_master_desc'.tr();
       case AiPersona.cute:
-        return '귀엽고 친근한 말투';
+        return 'saju_chat.persona_cute_desc'.tr();
       case AiPersona.professional:
-        return '전문적이고 정중한 말투';
+        return 'saju_chat.persona_professional_desc'.tr();
       case AiPersona.babyMonk:
-        return '반말과 팩폭, 꼬마도사';
+        return 'saju_chat.persona_babyMonk_desc'.tr();
       case AiPersona.scenarioWriter:
-        return '사주 스토리텔러';
+        return 'saju_chat.persona_scenarioWriter_desc'.tr();
       case AiPersona.bookOfSaju:
-        return '살아있는 사주 고서';
+        return 'saju_chat.persona_bookOfSaju_desc'.tr();
       case AiPersona.yinYangGrandpa:
-        return '어둠 속 빛, 반전의 대가';
+        return 'saju_chat.persona_yinYangGrandpa_desc'.tr();
       case AiPersona.sewerSaju:
-        return '네 사주의 구린내를 맡아주는 팩폭 장인';
+        return 'saju_chat.persona_sewerSaju_desc'.tr();
     }
   }
 
