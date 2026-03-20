@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -54,11 +55,11 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         ),
         title: Text(
           '오늘의 운세',
-          style: TextStyle(
+          style: AppTextStyles.heading3.copyWith(
             color: theme.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         centerTitle: true,
       ),
@@ -95,16 +96,14 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           Text(
             'AI가 오늘의 운세를 분석하고 있어요',
-            style: TextStyle(
+            style: AppTextStyles.title.copyWith(
               color: theme.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '잠시만 기다려주세요...',
-            style: TextStyle(color: theme.textMuted, fontSize: 14),
+            style: AppTextStyles.bodySmall.copyWith(color: theme.textMuted),
           ),
         ],
       ),
@@ -200,9 +199,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 dateStr,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                style: AppTextStyles.smallBold.copyWith(
                   color: theme.textSecondary,
                 ),
               ),
@@ -215,9 +212,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             const SizedBox(width: 6),
             Text(
               greeting,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.captionBold.copyWith(
                 color: theme.textSecondary,
               ),
             ),
@@ -246,9 +241,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 _getScoreGrade(score),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                style: AppTextStyles.captionBold.copyWith(
                   color: Colors.white,
                 ),
               ),
@@ -278,7 +271,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
               children: [
                 Text(
                   '$score',
-                  style: TextStyle(
+                  style: AppTextStyles.display.copyWith(
                     fontSize: 40,
                     fontWeight: FontWeight.w700,
                     color: scoreColor,
@@ -287,9 +280,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
                 ),
                 Text(
                   '점',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  style: AppTextStyles.label.copyWith(
                     color: scoreColor.withValues(alpha: 0.7),
                   ),
                 ),
@@ -334,10 +325,10 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
       children: [
         Text(
           '$score',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color),
+          style: AppTextStyles.heading2.copyWith(fontWeight: FontWeight.w700, color: color),
         ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: theme.textMuted)),
+        Text(label, style: AppTextStyles.tiny.copyWith(color: theme.textMuted)),
       ],
     );
   }
@@ -352,7 +343,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 16),
           child: Text(
             '카테고리별 운세',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.textPrimary),
+            style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
         ),
         LayoutBuilder(
@@ -493,7 +484,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 16),
           child: Text(
             '오늘의 행운',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.textPrimary),
+            style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
         ),
         for (int i = 0; i < items.length; i += 2) ...[
@@ -540,7 +531,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             child: Icon(item.icon, color: color, size: 18),
           ),
           const SizedBox(height: 12),
-          Text(item.label, style: TextStyle(fontSize: 11, color: theme.textMuted)),
+          Text(item.label, style: AppTextStyles.tiny.copyWith(color: theme.textMuted)),
           const SizedBox(height: 2),
           Text(
             item.value,
@@ -570,7 +561,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         children: [
           Text(
             '오늘의 조언',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: theme.textPrimary),
+            style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
           const SizedBox(height: 16),
           _buildAdviceRow(
@@ -610,9 +601,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.captionBold.copyWith(
               color: theme.textMuted,
             ),
           ),
@@ -663,9 +652,7 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
             SizedBox(width: 10),
             Text(
               'AI에게 더 자세히 물어보기',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.title.copyWith(
                 color: Colors.white,
               ),
             ),

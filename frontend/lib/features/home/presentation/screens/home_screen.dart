@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 
 import '../../../../ad/ad_network_resolver.dart';
 import '../../../../ad/adfit/adfit_banner_ad_widget.dart';
@@ -57,8 +58,7 @@ class HomeScreen extends ConsumerWidget {
                           children: [
                             Text(
                               '오늘의 운세',
-                              style: TextStyle(
-                                fontSize: 11,
+                              style: AppTextStyles.tiny.copyWith(
                                 color: theme.textMuted,
                                 letterSpacing: 1,
                               ),
@@ -69,9 +69,7 @@ class HomeScreen extends ConsumerWidget {
                                 Flexible(
                                   child: Text(
                                     today,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                    style: AppTextStyles.label.copyWith(
                                       color: theme.textPrimary,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -118,16 +116,13 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       Text(
                         '오늘의 운세',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                        style: AppTextStyles.bodyLarge.copyWith(
                           color: theme.textPrimary,
                         ),
                       ),
                       Text(
                         '전체보기',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.small.copyWith(
                           color: theme.textMuted,
                         ),
                       ),
@@ -164,9 +159,7 @@ class HomeScreen extends ConsumerWidget {
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Text(
                     '오늘의 조언',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                    style: AppTextStyles.bodyLarge.copyWith(
                       color: theme.textPrimary,
                     ),
                   ),
@@ -262,8 +255,7 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(width: 6),
             Text(
               name,
-              style: TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.small.copyWith(
                 color: theme.textPrimary,
               ),
             ),
@@ -358,8 +350,7 @@ class HomeScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 '오늘의 총운',
-                                style: TextStyle(
-                                  fontSize: 12,
+                                style: AppTextStyles.small.copyWith(
                                   color: theme.textMuted,
                                   letterSpacing: 1,
                                 ),
@@ -369,9 +360,7 @@ class HomeScreen extends ConsumerWidget {
                                   ? _buildShimmerBox(theme, 80, 22)
                                   : Text(
                                       gradeText,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w500,
+                                      style: AppTextStyles.heading3.copyWith(
                                         color: theme.textPrimary,
                                       ),
                                     ),
@@ -401,8 +390,7 @@ class HomeScreen extends ConsumerWidget {
                                 const SizedBox(height: 16),
                                 Text(
                                   '운세 분석 중...',
-                                  style: TextStyle(
-                                    fontSize: 14,
+                                  style: AppTextStyles.bodySmall.copyWith(
                                     color: theme.textMuted,
                                   ),
                                 ),
@@ -429,8 +417,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                                 Text(
                                   '종합 운세 점수',
-                                  style: TextStyle(
-                                    fontSize: 14,
+                                  style: AppTextStyles.bodySmall.copyWith(
                                     color: theme.textMuted,
                                   ),
                                 ),
@@ -470,18 +457,17 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: 20),
                       Text(
                         fortune?.idiom.korean ?? '사자성어없음',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
+                        style: AppTextStyles.heading1.copyWith(
                           color: theme.textPrimary,
                           letterSpacing: 4,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${fortune?.idiom.chinese ?? ''} · ${fortune?.idiom.meaning ?? ''}',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.small.copyWith(
                           color: theme.textMuted,
                         ),
                       ),
@@ -512,8 +498,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     '오늘의 총운',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: AppTextStyles.small.copyWith(
                       color: theme.textMuted,
                       letterSpacing: 1,
                     ),
@@ -537,7 +522,7 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             '운세 분석 중...',
-            style: TextStyle(fontSize: 14, color: theme.textMuted),
+            style: AppTextStyles.bodySmall.copyWith(color: theme.textMuted),
           ),
           const SizedBox(height: 16),
           Row(
@@ -569,7 +554,7 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             '운세를 불러올 수 없습니다',
-            style: TextStyle(fontSize: 14, color: theme.textMuted),
+            style: AppTextStyles.bodySmall.copyWith(color: theme.textMuted),
           ),
         ],
       ),
@@ -641,8 +626,7 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       cat['name']!,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.small.copyWith(
                         color: theme.textSecondary,
                       ),
                     ),
@@ -658,9 +642,7 @@ class HomeScreen extends ConsumerWidget {
                           )
                         : Text(
                             '$score점',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                            style: AppTextStyles.label.copyWith(
                               color: theme.primaryColor,
                             ),
                           ),
@@ -772,20 +754,18 @@ class HomeScreen extends ConsumerWidget {
                   // 한글 (크게 강조)
                   Text(
                     idiom.korean,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
+                    style: AppTextStyles.display.copyWith(
                       color: theme.textPrimary,
                       letterSpacing: 8,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   const SizedBox(height: 8),
                   // 한자
                   Text(
                     idiom.chinese,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
+                    style: AppTextStyles.heading3.copyWith(
                       color: theme.textSecondary.withValues(alpha: 0.7),
                       letterSpacing: 4,
                     ),
@@ -804,9 +784,7 @@ class HomeScreen extends ConsumerWidget {
                   // 뜻풀이
                   Text(
                     idiom.meaning,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    style: AppTextStyles.label.copyWith(
                       color: theme.textSecondary,
                     ),
                     textAlign: TextAlign.center,
@@ -815,8 +793,7 @@ class HomeScreen extends ConsumerWidget {
                   // 오늘의 메시지
                   Text(
                     idiom.message,
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: AppTextStyles.caption.copyWith(
                       color: theme.textMuted,
                       height: 1.7,
                     ),
@@ -844,8 +821,7 @@ class HomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             child: Text(
               '사자성어를 불러올 수 없습니다.',
-              style: TextStyle(
-                fontSize: 14,
+              style: AppTextStyles.bodySmall.copyWith(
                 color: theme.textMuted,
               ),
               textAlign: TextAlign.center,
@@ -904,8 +880,7 @@ class HomeScreen extends ConsumerWidget {
                         )
                       : Text(
                           '"$advice"',
-                          style: TextStyle(
-                            fontSize: 14,
+                          style: AppTextStyles.bodySmall.copyWith(
                             fontStyle: FontStyle.italic,
                             color: theme.textSecondary,
                             height: 1.8,
@@ -930,8 +905,7 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   '조언을 불러올 수 없습니다.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: AppTextStyles.bodySmall.copyWith(
                     fontStyle: FontStyle.italic,
                     color: theme.textMuted,
                   ),
@@ -975,17 +949,14 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 '프로필을 등록해주세요',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                style: AppTextStyles.bodyLarge.copyWith(
                   color: theme.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 '생년월일을 입력하면 사주팔자를 분석해드립니다',
-                style: TextStyle(
-                  fontSize: 13,
+                style: AppTextStyles.caption.copyWith(
                   color: theme.textMuted,
                 ),
               ),

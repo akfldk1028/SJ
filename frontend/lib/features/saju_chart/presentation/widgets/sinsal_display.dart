@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/twelve_sinsal.dart';
@@ -138,10 +139,8 @@ class SinsalTable extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     '궁성',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -149,10 +148,8 @@ class SinsalTable extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     '지지',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -161,10 +158,8 @@ class SinsalTable extends StatelessWidget {
                   flex: 3,
                   child: Text(
                     '12신살',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -173,10 +168,8 @@ class SinsalTable extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     '길흉',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -216,10 +209,8 @@ class SinsalTable extends StatelessWidget {
             flex: 2,
             child: Text(
               item.pillarName,
-              style: TextStyle(
+              style: AppTextStyles.captionBold.copyWith(
                 color: theme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -237,9 +228,8 @@ class SinsalTable extends StatelessWidget {
                 child: Center(
                   child: Text(
                     item.jiji,
-                    style: TextStyle(
+                    style: AppTextStyles.bodyLarge.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -285,9 +275,8 @@ class SinsalTable extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: AppTextStyles.captionBold.copyWith(
           color: color,
-          fontSize: 13,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -340,9 +329,8 @@ class SinsalRow extends StatelessWidget {
             width: 50,
             child: Text(
               '12신살',
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textMuted,
-                fontSize: 13,
               ),
             ),
           ),
@@ -355,9 +343,8 @@ class SinsalRow extends StatelessWidget {
                         )
                       : Text(
                           '-',
-                          style: TextStyle(
+                          style: AppTextStyles.caption.copyWith(
                             color: theme.textMuted,
-                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -401,9 +388,8 @@ class SinsalDetailCard extends StatelessWidget {
                 ),
                 child: Text(
                   result.pillarName,
-                  style: TextStyle(
+                  style: AppTextStyles.captionBold.copyWith(
                     color: color,
-                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -411,9 +397,8 @@ class SinsalDetailCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${result.jiji}(地支)',
-                style: TextStyle(
+                style: AppTextStyles.bodySmall.copyWith(
                   color: theme.textSecondary,
-                  fontSize: 14,
                 ),
               ),
               const Spacer(),
@@ -429,9 +414,9 @@ class SinsalDetailCard extends StatelessWidget {
           Center(
             child: Text(
               result.sinsal.hanja,
-              style: TextStyle(
-                color: color,
+              style: AppTextStyles.display.copyWith(
                 fontSize: 48,
+                color: color,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -441,9 +426,8 @@ class SinsalDetailCard extends StatelessWidget {
           Center(
             child: Text(
               result.sinsal.meaning,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textSecondary,
-                fontSize: 13,
               ),
             ),
           ),
@@ -457,9 +441,8 @@ class SinsalDetailCard extends StatelessWidget {
             ),
             child: Text(
               interpretation,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textSecondary,
-                fontSize: 13,
                 height: 1.6,
               ),
             ),
@@ -485,15 +468,14 @@ class SinsalDetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.star, size: 16, color: AppColors.warning),
-              SizedBox(width: 4),
+              const Icon(Icons.star, size: 16, color: AppColors.warning),
+              const SizedBox(width: 4),
               Text(
                 '특수 신살',
-                style: TextStyle(
+                style: AppTextStyles.captionBold.copyWith(
                   color: AppColors.warning,
-                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -512,10 +494,8 @@ class SinsalDetailCard extends StatelessWidget {
                 ),
                 child: Text(
                   '${special.korean} (${special.hanja})',
-                  style: const TextStyle(
+                  style: AppTextStyles.captionBold.copyWith(
                     color: AppColors.warning,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
               );
@@ -563,18 +543,16 @@ class SinsalSummaryCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '신살 요약',
-                style: TextStyle(
+                style: AppTextStyles.label.copyWith(
                   color: theme.textPrimary,
-                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const Spacer(),
               Text(
                 '기준: ${result.baseType}(${result.baseJi})',
-                style: TextStyle(
+                style: AppTextStyles.caption.copyWith(
                   color: theme.textMuted,
-                  fontSize: 13,
                 ),
               ),
             ],
@@ -603,17 +581,15 @@ class SinsalSummaryCard extends StatelessWidget {
               children: [
                 Text(
                   '주요 신살',
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textMuted,
-                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   result.summary,
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 13,
                     height: 1.5,
                   ),
                 ),
@@ -645,17 +621,15 @@ class SinsalSummaryCard extends StatelessWidget {
           children: [
             Text(
               '$count',
-              style: TextStyle(
+              style: AppTextStyles.heading2.copyWith(
                 color: color,
-                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               label,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: color,
-                fontSize: 13,
               ),
             ),
           ],
@@ -727,10 +701,8 @@ class SinsalSummaryCard extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             '$name($pillar)',
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -31,11 +32,11 @@ class NewYearFortuneScreen extends ConsumerWidget {
         ),
         title: Text(
           '2026 신년운세',
-          style: TextStyle(
+          style: AppTextStyles.heading3.copyWith(
             color: theme.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         centerTitle: true,
         actions: [
@@ -70,13 +71,13 @@ class NewYearFortuneScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               '신년운세를 불러오지 못했습니다',
-              style: TextStyle(color: theme.textSecondary, fontSize: 16),
+              style: AppTextStyles.bodyLarge.copyWith(color: theme.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               '$error',
-              style: TextStyle(color: theme.textMuted, fontSize: 12),
+              style: AppTextStyles.small.copyWith(color: theme.textMuted),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -113,16 +114,14 @@ class NewYearFortuneScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           Text(
             '🔮 AI가 신년운세를 분석하고 있어요',
-            style: TextStyle(
+            style: AppTextStyles.title.copyWith(
               color: theme.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '잠시만 기다려주세요...',
-            style: TextStyle(color: theme.textMuted, fontSize: 14),
+            style: AppTextStyles.bodySmall.copyWith(color: theme.textMuted),
           ),
         ],
       ),
@@ -179,8 +178,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.opening.isNotEmpty)
                 Text(
                   fortune.overview.opening,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -188,8 +186,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               else if (fortune.overview.summary.isNotEmpty)
                 Text(
                   fortune.overview.summary,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -390,8 +387,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.achievements!.reading,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -408,8 +404,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             highlight,
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: AppTextStyles.bodySmall.copyWith(
                               color: theme.textSecondary,
                               height: 1.5,
                             ),
@@ -438,8 +433,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.challenges!.reading,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -456,8 +450,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             point,
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: AppTextStyles.bodySmall.copyWith(
                               color: theme.textSecondary,
                               height: 1.5,
                             ),
@@ -486,8 +479,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.lessons!.reading,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -504,8 +496,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             lesson,
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: AppTextStyles.bodySmall.copyWith(
                               color: theme.textSecondary,
                               height: 1.5,
                             ),
@@ -534,8 +525,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.to2027!.reading,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -576,8 +566,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.closing.yearMessage.isNotEmpty)
                   Text(
                     fortune.closing.yearMessage,
-                    style: TextStyle(
-                      fontSize: 15,
+                    style: AppTextStyles.body.copyWith(
                       color: theme.textSecondary,
                       height: 1.8,
                     ),
@@ -627,9 +616,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                  style: AppTextStyles.smallBold.copyWith(
                     color: theme.primaryColor,
                   ),
                 ),
@@ -638,8 +625,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               Expanded(
                 child: Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.textPrimary,
                   ),
@@ -651,8 +637,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
             const SizedBox(height: 10),
             Text(
               explain,
-              style: TextStyle(
-                fontSize: 14,
+              style: AppTextStyles.bodySmall.copyWith(
                 color: theme.textSecondary,
                 height: 1.6,
               ),
@@ -716,16 +701,13 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: AppTextStyles.tiny.copyWith(
                     color: theme.textMuted,
                   ),
                 ),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: AppTextStyles.label.copyWith(
                     color: theme.textPrimary,
                   ),
                 ),
@@ -758,12 +740,9 @@ class NewYearFortuneScreen extends ConsumerWidget {
       child: ElevatedButton.icon(
         onPressed: () => context.go('/saju/chat?type=newYearFortune'),
         icon: const Icon(Icons.chat_bubble_outline, size: 20),
-        label: const Text(
+        label: Text(
           '신년운세 AI 상담받기',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTextStyles.title,
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,

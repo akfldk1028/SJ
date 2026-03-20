@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/daeun.dart';
@@ -120,9 +121,8 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
             const SizedBox(width: 10),
             Text(
               '${tab.label}이란?',
-              style: TextStyle(
+              style: AppTextStyles.heading3.copyWith(
                 color: theme.textPrimary,
-                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -130,16 +130,15 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
         ),
         content: Text(
           tab.description,
-          style: TextStyle(
+          style: AppTextStyles.body.copyWith(
             color: theme.textSecondary,
-            fontSize: 15,
             height: 1.7,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+            child: Text('확인', style: AppTextStyles.body.copyWith(color: theme.primaryColor)),
           ),
         ],
       ),
@@ -219,14 +218,10 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
               indicatorColor: theme.primaryColor,
               indicatorWeight: 2.5,
               labelPadding: const EdgeInsets.symmetric(horizontal: 14),
-              labelStyle: const TextStyle(
-                fontSize: 15,
+              labelStyle: AppTextStyles.body.copyWith(
                 fontWeight: FontWeight.w700,
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-              ),
+              unselectedLabelStyle: AppTextStyles.body,
               tabs: _tabs
                   .map((tab) => Tab(
                         height: 48,
@@ -264,10 +259,8 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
                   Expanded(
                     child: Text(
                       '${_tabs[_tabController.index].label} - 터치하여 자세한 설명 보기',
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: AppTextStyles.captionBold.copyWith(
                         color: theme.primaryColor,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -464,11 +457,10 @@ class _ManseryeokTab extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.textSecondary,
-            fontSize: 16,
-          ),
+      style: AppTextStyles.title.copyWith(
+        fontWeight: FontWeight.bold,
+        color: theme.textSecondary,
+      ),
     );
   }
 
@@ -482,11 +474,9 @@ class _ManseryeokTab extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+              style: AppTextStyles.label.copyWith(
+                color: color,
+              ),
             ),
           ),
           Expanded(
@@ -515,10 +505,9 @@ class _ManseryeokTab extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             '$count개',
-            style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+            style: AppTextStyles.label.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -590,9 +579,8 @@ class _SipSungTab extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '십성(十星)이란?',
-                style: TextStyle(
+                style: AppTextStyles.heading3.copyWith(
                   color: theme.primaryColor,
-                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -602,9 +590,8 @@ class _SipSungTab extends StatelessWidget {
           Text(
             '일간(日干, 나)을 기준으로 다른 간지와의 관계를 나타낸 것입니다. '
             '오행의 상생상극 관계와 음양 조화에 따라 10가지 관계가 정해집니다.',
-            style: TextStyle(
+            style: AppTextStyles.body.copyWith(
               color: theme.textSecondary,
-              fontSize: 15,
               height: 1.6,
             ),
           ),
@@ -615,9 +602,8 @@ class _SipSungTab extends StatelessWidget {
             '• 재성(財星): 내가 극하는 오행 - 재물, 아버지(남), 아내(남)\n'
             '• 관성(官星): 나를 극하는 오행 - 직장, 명예, 남편(여)\n'
             '• 인성(印星): 나를 생하는 오행 - 학문, 문서, 어머니',
-            style: TextStyle(
+            style: AppTextStyles.bodySmall.copyWith(
               color: theme.textMuted,
-              fontSize: 14,
               height: 1.7,
             ),
           ),
@@ -629,11 +615,10 @@ class _SipSungTab extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.textSecondary,
-            fontSize: 16,
-          ),
+      style: AppTextStyles.title.copyWith(
+        fontWeight: FontWeight.bold,
+        color: theme.textSecondary,
+      ),
     );
   }
 
@@ -663,9 +648,8 @@ class _SipSungTab extends StatelessWidget {
             width: 60,
             child: Text(
               '천간',
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textMuted,
-                fontSize: 13,
               ),
             ),
           ),
@@ -678,9 +662,8 @@ class _SipSungTab extends StatelessWidget {
                         )
                       : Text(
                           '-',
-                          style: TextStyle(
+                          style: AppTextStyles.caption.copyWith(
                             color: theme.textMuted,
-                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -784,9 +767,8 @@ class _UnsungTab extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '12운성(十二運星)이란?',
-                style: TextStyle(
+                style: AppTextStyles.heading3.copyWith(
                   color: theme.primaryColor,
-                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -796,9 +778,8 @@ class _UnsungTab extends StatelessWidget {
           Text(
             '12운성은 일간(日干)의 기운이 각 지지(地支)에서 어떤 상태인지를 나타냅니다. '
             '마치 사람의 일생처럼 탄생(장생)부터 죽음(사)까지의 순환을 12단계로 표현합니다.',
-            style: TextStyle(
+            style: AppTextStyles.body.copyWith(
               color: theme.textSecondary,
-              fontSize: 15,
               height: 1.6,
             ),
           ),
@@ -845,19 +826,16 @@ class _UnsungTab extends StatelessWidget {
           ),
           child: Text(
             name,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
             ),
           ),
         ),
         const SizedBox(height: 2),
         Text(
           desc,
-          style: TextStyle(
+          style: AppTextStyles.caption.copyWith(
             color: theme.textMuted,
-            fontSize: 13,
           ),
         ),
       ],
@@ -896,9 +874,8 @@ class _UnsungTab extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '궁성(宮星)이란?',
-                style: TextStyle(
+                style: AppTextStyles.heading3.copyWith(
                   color: tealColor,
-                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -908,9 +885,8 @@ class _UnsungTab extends StatelessWidget {
           Text(
             '궁성은 사주팔자의 4개 기둥(년주, 월주, 일주, 시주)이 각각 나타내는 삶의 영역입니다. '
             '각 궁성의 운성을 통해 그 영역에서의 기운 상태를 파악할 수 있습니다.',
-            style: TextStyle(
+            style: AppTextStyles.body.copyWith(
               color: theme.textSecondary,
-              fontSize: 15,
               height: 1.6,
             ),
           ),
@@ -951,10 +927,8 @@ class _UnsungTab extends StatelessWidget {
           ),
           child: Text(
             pillar,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: tealColor,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
           ),
@@ -969,10 +943,8 @@ class _UnsungTab extends StatelessWidget {
           ),
           child: Text(
             palace,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: theme.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
@@ -981,9 +953,8 @@ class _UnsungTab extends StatelessWidget {
         Expanded(
           child: Text(
             meaning,
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textMuted,
-              fontSize: 13,
             ),
           ),
         ),
@@ -1008,17 +979,15 @@ class _UnsungTab extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
+              style: AppTextStyles.body.copyWith(
                 color: theme.textPrimary,
-                fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               subtitle,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textMuted,
-                fontSize: 13,
               ),
             ),
           ],
@@ -1051,9 +1020,8 @@ class _UnsungTab extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 '12운성 요약',
-                style: TextStyle(
+                style: AppTextStyles.heading3.copyWith(
                   color: theme.textPrimary,
-                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1074,9 +1042,8 @@ class _UnsungTab extends StatelessWidget {
                 Expanded(
                   child: Text(
                     result.summary,
-                    style: TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -1141,10 +1108,8 @@ class _UnsungTab extends StatelessWidget {
                   ),
                   child: Text(
                     item.pillarName,
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -1159,9 +1124,8 @@ class _UnsungTab extends StatelessWidget {
                   ),
                   child: Text(
                     '${item.dayGan}→${item.jiji}',
-                    style: TextStyle(
+                    style: AppTextStyles.label.copyWith(
                       color: color,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1188,9 +1152,8 @@ class _UnsungTab extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         unsungName,
-                        style: const TextStyle(
+                        style: AppTextStyles.label.copyWith(
                           color: Colors.white,
-                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1217,10 +1180,8 @@ class _UnsungTab extends StatelessWidget {
                       ),
                       child: Text(
                         item.unsung.hanja,
-                        style: TextStyle(
+                        style: AppTextStyles.captionBold.copyWith(
                           color: theme.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -1228,10 +1189,8 @@ class _UnsungTab extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item.unsung.meaning,
-                        style: TextStyle(
+                        style: AppTextStyles.label.copyWith(
                           color: theme.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -1253,9 +1212,8 @@ class _UnsungTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           UnsungService.getDetailedInterpretation(item.unsung),
-                          style: TextStyle(
+                          style: AppTextStyles.caption.copyWith(
                             color: theme.textSecondary,
-                            fontSize: 13,
                             height: 1.5,
                           ),
                         ),
@@ -1402,9 +1360,8 @@ class _SinsalTab extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '신살(神殺)이란?',
-                style: TextStyle(
+                style: AppTextStyles.heading3.copyWith(
                   color: purpleColor,
-                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1414,9 +1371,8 @@ class _SinsalTab extends StatelessWidget {
           Text(
             '신살은 사주팔자에 나타나는 특별한 기운으로, 길한 영향(길신)과 흉한 영향(흉신)을 분석합니다. '
             '12신살은 년지를 기준으로 각 지지의 특성을 파악하는 대표적인 신살 체계입니다.',
-            style: TextStyle(
+            style: AppTextStyles.body.copyWith(
               color: theme.textSecondary,
-              fontSize: 15,
               height: 1.6,
             ),
           ),
@@ -1458,9 +1414,8 @@ class _SinsalTab extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(
+          style: AppTextStyles.caption.copyWith(
             color: theme.textSecondary,
-            fontSize: 13,
           ),
         ),
       ],
@@ -1484,17 +1439,15 @@ class _SinsalTab extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
+              style: AppTextStyles.body.copyWith(
                 color: theme.textPrimary,
-                fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               subtitle,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textMuted,
-                fontSize: 13,
               ),
             ),
           ],
@@ -1552,9 +1505,8 @@ class _SinsalTab extends StatelessWidget {
                 Expanded(
                   child: Text(
                     result.summary,
-                    style: TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -1579,19 +1531,16 @@ class _SinsalTab extends StatelessWidget {
         children: [
           Text(
             '$count',
-            style: TextStyle(
+            style: AppTextStyles.heading1.copyWith(
               color: color,
-              fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -1700,9 +1649,8 @@ class _SinsalTab extends StatelessWidget {
                   children: [
                     Text(
                       sinsalName,
-                      style: TextStyle(
+                      style: AppTextStyles.bodyLarge.copyWith(
                         color: color,
-                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1715,10 +1663,8 @@ class _SinsalTab extends StatelessWidget {
                       ),
                       child: Text(
                         fortuneType,
-                        style: TextStyle(
+                        style: AppTextStyles.captionBold.copyWith(
                           color: fortuneColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -1731,10 +1677,8 @@ class _SinsalTab extends StatelessWidget {
                       ),
                       child: Text(
                         pillarName,
-                        style: TextStyle(
+                        style: AppTextStyles.captionBold.copyWith(
                           color: theme.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -1743,9 +1687,8 @@ class _SinsalTab extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textSecondary,
-                    fontSize: 13,
                     height: 1.4,
                   ),
                 ),
@@ -1805,10 +1748,8 @@ class _SinsalTab extends StatelessWidget {
                   ),
                   child: Text(
                     item.pillarName,
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -1825,9 +1766,8 @@ class _SinsalTab extends StatelessWidget {
                   child: Center(
                     child: Text(
                       item.jiji,
-                      style: TextStyle(
+                      style: AppTextStyles.bodyLarge.copyWith(
                         color: color,
-                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1855,10 +1795,8 @@ class _SinsalTab extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         sinsalName,
-                        style: const TextStyle(
+                        style: AppTextStyles.captionBold.copyWith(
                           color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -1875,10 +1813,8 @@ class _SinsalTab extends StatelessWidget {
                   ),
                   child: Text(
                     fortuneType == '길' ? '길(吉)' : fortuneType == '흉' ? '흉(凶)' : '혼합',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: fortuneColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -1894,18 +1830,15 @@ class _SinsalTab extends StatelessWidget {
               children: [
                 Text(
                   item.sinsal.meaning,
-                  style: TextStyle(
+                  style: AppTextStyles.label.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   TwelveSinsalService.getDetailedInterpretation(item.sinsal),
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textSecondary,
-                    fontSize: 13,
                     height: 1.5,
                   ),
                 ),
@@ -1981,9 +1914,8 @@ class _GongmangTab extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '공망(空亡)이란?',
-                style: TextStyle(
+                style: AppTextStyles.heading3.copyWith(
                   color: grayBlue,
-                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1993,9 +1925,8 @@ class _GongmangTab extends StatelessWidget {
           Text(
             '공망은 \'비어있다\'는 의미로, 일주를 기준으로 특정 지지가 빈 상태를 말합니다. '
             '공망에 해당하는 궁성은 그 영역의 기운이 약해지거나 허무하게 될 수 있습니다.',
-            style: TextStyle(
+            style: AppTextStyles.body.copyWith(
               color: theme.textSecondary,
-              fontSize: 15,
               height: 1.6,
             ),
           ),
@@ -2013,9 +1944,8 @@ class _GongmangTab extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '공망은 반드시 나쁜 것만은 아닙니다. 흉한 것이 공망이면 오히려 흉함이 줄어들기도 합니다.',
-                    style: TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       color: theme.textSecondary,
-                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -2045,17 +1975,15 @@ class _GongmangTab extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
+              style: AppTextStyles.body.copyWith(
                 color: theme.textPrimary,
-                fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               subtitle,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textMuted,
-                fontSize: 13,
               ),
             ),
           ],
@@ -2098,10 +2026,8 @@ class _GongmangTab extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       '일주: ${result.dayGapja}',
-                      style: TextStyle(
+                      style: AppTextStyles.captionBold.copyWith(
                         color: theme.primaryColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -2116,10 +2042,8 @@ class _GongmangTab extends StatelessWidget {
                 ),
                 child: Text(
                   '${result.sunInfo.sunName} 소속',
-                  style: TextStyle(
+                  style: AppTextStyles.captionBold.copyWith(
                     color: theme.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -2132,9 +2056,8 @@ class _GongmangTab extends StatelessWidget {
             children: [
               Text(
                 '공망 지지',
-                style: TextStyle(
+                style: AppTextStyles.caption.copyWith(
                   color: theme.textMuted,
-                  fontSize: 13,
                 ),
               ),
               const SizedBox(width: 20),
@@ -2174,9 +2097,8 @@ class _GongmangTab extends StatelessWidget {
       child: Center(
         child: Text(
           jiji,
-          style: TextStyle(
+          style: AppTextStyles.heading1.copyWith(
             color: AppColors.error,
-            fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -2228,9 +2150,8 @@ class _GongmangTab extends StatelessWidget {
                 Expanded(
                   child: Text(
                     result.summary,
-                    style: TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -2260,10 +2181,8 @@ class _GongmangTab extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               '${r.pillarName} (${r.jiji})',
-                              style: TextStyle(
+                              style: AppTextStyles.captionBold.copyWith(
                                 color: AppColors.error,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -2289,19 +2208,16 @@ class _GongmangTab extends StatelessWidget {
         children: [
           Text(
             '$count',
-            style: TextStyle(
+            style: AppTextStyles.heading1.copyWith(
               color: color,
-              fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -2355,9 +2271,8 @@ class _GongmangTab extends StatelessWidget {
                   ),
                   child: Text(
                     item.pillarName,
-                    style: TextStyle(
+                    style: AppTextStyles.label.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -2378,9 +2293,8 @@ class _GongmangTab extends StatelessWidget {
                   child: Center(
                     child: Text(
                       item.jiji,
-                      style: TextStyle(
+                      style: AppTextStyles.heading3.copyWith(
                         color: isGongmang ? color : theme.textPrimary,
-                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -2412,10 +2326,8 @@ class _GongmangTab extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         isGongmang ? '공망' : '정상',
-                        style: const TextStyle(
+                        style: AppTextStyles.captionBold.copyWith(
                           color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -2434,9 +2346,8 @@ class _GongmangTab extends StatelessWidget {
                 if (isGongmang) ...[
                   Text(
                     item.interpretation,
-                    style: TextStyle(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: theme.textPrimary,
-                      fontSize: 14,
                       height: 1.5,
                     ),
                   ),
@@ -2456,9 +2367,8 @@ class _GongmangTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             GongmangService.getDetailedInterpretation(item),
-                            style: TextStyle(
+                            style: AppTextStyles.caption.copyWith(
                               color: theme.textSecondary,
-                              fontSize: 13,
                               height: 1.5,
                             ),
                           ),
@@ -2473,9 +2383,8 @@ class _GongmangTab extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '공망에 해당하지 않아 정상적인 기운을 발휘합니다.',
-                        style: TextStyle(
+                        style: AppTextStyles.caption.copyWith(
                           color: theme.textSecondary,
-                          fontSize: 13,
                         ),
                       ),
                     ],

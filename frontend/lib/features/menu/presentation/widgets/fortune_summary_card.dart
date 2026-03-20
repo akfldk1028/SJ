@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
@@ -80,17 +81,15 @@ class FortuneSummaryCard extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   '운세를 불러오는 중...',
-                  style: TextStyle(
+                  style: AppTextStyles.bodySmall.copyWith(
                     color: theme.textMuted,
-                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '탭하면 다시 불러옵니다',
-                  style: TextStyle(
+                  style: AppTextStyles.small.copyWith(
                     color: theme.textMuted.withValues(alpha: 0.6),
-                    fontSize: 12,
                   ),
                 ),
               ],
@@ -142,10 +141,8 @@ class FortuneSummaryCard extends ConsumerWidget {
                 const SizedBox(height: 14),
                 Text(
                   'AI가 오늘의 운세를 분석하고 있어요',
-                  style: TextStyle(
+                  style: AppTextStyles.title.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -166,11 +163,10 @@ class FortuneSummaryCard extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   step.label,
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: step == DailyAnalysisStep.error
                         ? theme.primaryColor
                         : theme.textMuted,
-                    fontSize: 13,
                   ),
                 ),
               ],
@@ -374,10 +370,8 @@ class FortuneSummaryCard extends ConsumerWidget {
                             const SizedBox(width: 6),
                             Text(
                               '${timeTheme.period} 운세',
-                              style: TextStyle(
+                              style: AppTextStyles.smallBold.copyWith(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
@@ -403,9 +397,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                         padding: const EdgeInsets.only(left: 8, bottom: 10),
                         child: Text(
                           _getGradeText(score),
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
+                          style: AppTextStyles.heading2.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
@@ -417,18 +409,17 @@ class FortuneSummaryCard extends ConsumerWidget {
                     SizedBox(height: context.scaledPadding(12)),
                     Text(
                       idiom.korean,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
+                      style: AppTextStyles.heading2.copyWith(
                         color: Colors.white,
                         letterSpacing: 4,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${idiom.chinese} · ${idiom.meaning}',
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.small.copyWith(
                         color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
@@ -446,9 +437,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             message,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
+                            style: AppTextStyles.bodySmall.copyWith(
                               color: Colors.white.withValues(alpha: 0.9),
                               height: 1.5,
                             ),
@@ -551,8 +540,7 @@ class FortuneSummaryCard extends ConsumerWidget {
               children: [
                 Text(
                   '운세 분석',
-                  style: TextStyle(
-                    fontSize: context.scaledFont(15),
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.textPrimary,
                   ),
@@ -661,17 +649,13 @@ class FortuneSummaryCard extends ConsumerWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: context.scaledFont(13),
-                  fontWeight: FontWeight.w500,
+                style: AppTextStyles.captionBold.copyWith(
                   color: theme.textSecondary,
                 ),
               ),
               Text(
                 '$score',
-                style: TextStyle(
-                  fontSize: context.scaledFont(24),
-                  fontWeight: FontWeight.w600,
+                style: AppTextStyles.heading1.copyWith(
                   color: color,
                 ),
               ),
@@ -700,9 +684,7 @@ class FortuneSummaryCard extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               '오늘의 행운',
-              style: TextStyle(
-                fontSize: context.scaledFont(13),
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.captionBold.copyWith(
                 color: theme.textPrimary,
               ),
             ),
@@ -820,17 +802,14 @@ class FortuneSummaryCard extends ConsumerWidget {
               children: [
                 Text(
                   item['label'] as String,
-                  style: TextStyle(
-                    fontSize: context.scaledFont(10),
+                  style: AppTextStyles.tiny.copyWith(
                     color: theme.textMuted,
                   ),
                 ),
                 SizedBox(height: context.scaledPadding(2)),
                 Text(
                   item['value'] as String,
-                  style: TextStyle(
-                    fontSize: context.scaledFont(13),
-                    fontWeight: FontWeight.w600,
+                  style: AppTextStyles.captionBold.copyWith(
                     color: theme.textPrimary,
                   ),
                 ),
@@ -922,8 +901,7 @@ class FortuneSummaryCard extends ConsumerWidget {
                 SizedBox(width: context.scaledPadding(12)),
                 Text(
                   'AI가 메시지를 준비하고 있어요...',
-                  style: TextStyle(
-                    fontSize: context.scaledFont(14),
+                  style: AppTextStyles.bodySmall.copyWith(
                     color: theme.textMuted,
                   ),
                 ),

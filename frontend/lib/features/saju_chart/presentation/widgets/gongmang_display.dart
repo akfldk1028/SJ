@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/gongmang_table.dart';
@@ -34,9 +35,8 @@ class GongmangJijiDisplay extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             '공망 지지',
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
           const Spacer(),
@@ -53,9 +53,8 @@ class GongmangJijiDisplay extends StatelessWidget {
                   child: Center(
                     child: Text(
                       jiji,
-                      style: const TextStyle(
+                      style: AppTextStyles.heading3.copyWith(
                         color: AppColors.error,
-                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -157,10 +156,8 @@ class GongmangTable extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     '궁성',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -168,10 +165,8 @@ class GongmangTable extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     '지지',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -180,10 +175,8 @@ class GongmangTable extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     '상태',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -192,10 +185,8 @@ class GongmangTable extends StatelessWidget {
                   flex: 4,
                   child: Text(
                     '해석',
-                    style: TextStyle(
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -232,10 +223,8 @@ class GongmangTable extends StatelessWidget {
             flex: 2,
             child: Text(
               item.pillarName,
-              style: TextStyle(
+              style: AppTextStyles.captionBold.copyWith(
                 color: theme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -258,11 +247,10 @@ class GongmangTable extends StatelessWidget {
                 child: Center(
                   child: Text(
                     item.jiji,
-                    style: TextStyle(
+                    style: AppTextStyles.bodyLarge.copyWith(
                       color: item.isGongmang
                           ? AppColors.error
                           : theme.textPrimary,
-                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -285,11 +273,10 @@ class GongmangTable extends StatelessWidget {
             flex: 4,
             child: Text(
               item.isGongmang ? item.interpretation : '-',
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: item.isGongmang
                     ? AppColors.error
                     : theme.textMuted,
-                fontSize: 13,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -337,9 +324,8 @@ class GongmangRow extends StatelessWidget {
             width: 50,
             child: Text(
               '공망',
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textMuted,
-                fontSize: 13,
               ),
             ),
           ),
@@ -352,9 +338,8 @@ class GongmangRow extends StatelessWidget {
                         )
                       : Text(
                           '-',
-                          style: TextStyle(
+                          style: AppTextStyles.caption.copyWith(
                             color: theme.textMuted,
-                            fontSize: 13,
                           ),
                         ),
                 ),
@@ -398,9 +383,8 @@ class GongmangDetailCard extends StatelessWidget {
                 ),
                 child: Text(
                   result.pillarName,
-                  style: TextStyle(
+                  style: AppTextStyles.captionBold.copyWith(
                     color: color,
-                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -408,9 +392,8 @@ class GongmangDetailCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${result.jiji}(地支)',
-                style: TextStyle(
+                style: AppTextStyles.bodySmall.copyWith(
                   color: theme.textSecondary,
-                  fontSize: 14,
                 ),
               ),
               const Spacer(),
@@ -445,9 +428,8 @@ class GongmangDetailCard extends StatelessWidget {
           Center(
             child: Text(
               result.isGongmang ? '空亡(공망)' : '正常(정상)',
-              style: TextStyle(
+              style: AppTextStyles.bodyLarge.copyWith(
                 color: color,
-                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -462,9 +444,8 @@ class GongmangDetailCard extends StatelessWidget {
             ),
             child: Text(
               interpretation,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: theme.textSecondary,
-                fontSize: 13,
                 height: 1.6,
               ),
             ),
@@ -508,9 +489,8 @@ class GongmangSummaryCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '공망 요약',
-                style: TextStyle(
+                style: AppTextStyles.label.copyWith(
                   color: theme.textPrimary,
-                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -523,9 +503,8 @@ class GongmangSummaryCard extends StatelessWidget {
                 ),
                 child: Text(
                   '일주: ${result.dayGapja}',
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textMuted,
-                    fontSize: 13,
                   ),
                 ),
               ),
@@ -546,17 +525,15 @@ class GongmangSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       '소속 순(旬)',
-                      style: TextStyle(
+                      style: AppTextStyles.caption.copyWith(
                         color: theme.textMuted,
-                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       result.sunInfo.sunName,
-                      style: TextStyle(
+                      style: AppTextStyles.label.copyWith(
                         color: theme.textPrimary,
-                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -568,9 +545,8 @@ class GongmangSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       '공망 지지',
-                      style: TextStyle(
+                      style: AppTextStyles.caption.copyWith(
                         color: theme.textMuted,
-                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -623,9 +599,8 @@ class GongmangSummaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     result.summary,
-                    style: TextStyle(
+                    style: AppTextStyles.caption.copyWith(
                       color: mainColor,
-                      fontSize: 13,
                       height: 1.4,
                     ),
                   ),
@@ -655,9 +630,8 @@ class GongmangSummaryCard extends StatelessWidget {
       child: Center(
         child: Text(
           jiji,
-          style: const TextStyle(
+          style: AppTextStyles.bodySmall.copyWith(
             color: AppColors.error,
-            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -677,17 +651,15 @@ class GongmangSummaryCard extends StatelessWidget {
           children: [
             Text(
               value,
-              style: TextStyle(
+              style: AppTextStyles.heading3.copyWith(
                 color: color,
-                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               label,
-              style: TextStyle(
+              style: AppTextStyles.caption.copyWith(
                 color: color,
-                fontSize: 13,
               ),
             ),
           ],
@@ -702,9 +674,8 @@ class GongmangSummaryCard extends StatelessWidget {
       children: [
         Text(
           '공망 궁성',
-          style: TextStyle(
+          style: AppTextStyles.caption.copyWith(
             color: theme.textMuted,
-            fontSize: 13,
           ),
         ),
         const SizedBox(height: 8),
@@ -731,10 +702,8 @@ class GongmangSummaryCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           '${r.pillarName}(${r.jiji})',
-                          style: const TextStyle(
+                          style: AppTextStyles.captionBold.copyWith(
                             color: AppColors.error,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -769,18 +738,15 @@ class GongmangTypeBadge extends StatelessWidget {
         children: [
           Text(
             type.korean,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(width: 4),
           Text(
             '(${type.hanja})',
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: color.withOpacity(0.7),
-              fontSize: 13,
             ),
           ),
         ],

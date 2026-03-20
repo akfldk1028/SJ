@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -41,11 +42,11 @@ class CompatibilityDetailScreen extends ConsumerWidget {
         ),
         title: Text(
           '궁합 분석 결과',
-          style: TextStyle(
+          style: AppTextStyles.heading3.copyWith(
             color: theme.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         centerTitle: true,
         actions: [
@@ -180,16 +181,14 @@ class CompatibilityDetailScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               '오류가 발생했습니다',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.title.copyWith(
                 color: theme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error,
-              style: TextStyle(fontSize: 14, color: theme.textMuted),
+              style: AppTextStyles.bodySmall.copyWith(color: theme.textMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -207,9 +206,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             '분석 결과를 찾을 수 없습니다',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.title.copyWith(
               color: theme.textPrimary,
             ),
           ),
@@ -345,8 +342,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     children: [
                       Text(
                         '일주 분석',
-                        style: TextStyle(
-                          fontSize: 17,
+                        style: AppTextStyles.heading3.copyWith(
                           fontWeight: FontWeight.w700,
                           color: theme.textPrimary,
                         ),
@@ -354,10 +350,8 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         '나와 상대의 일간 관계',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.smallBold.copyWith(
                           color: const Color(0xFF9B7ED6),
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -419,8 +413,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             '천간합 (天干合)',
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: AppTextStyles.label.copyWith(
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFFD4637B),
                             ),
@@ -430,8 +423,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 10),
                       Text(
                         interpretation.ganHapAnalysis!,
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: AppTextStyles.caption.copyWith(
                           height: 1.6,
                           color: theme.textSecondary,
                         ),
@@ -473,11 +465,9 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         interpretation.advice,
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: AppTextStyles.captionBold.copyWith(
                           height: 1.6,
                           color: theme.textPrimary,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -517,17 +507,14 @@ class CompatibilityDetailScreen extends ConsumerWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                style: AppTextStyles.captionBold.copyWith(
                   color: iconColor,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 content,
-                style: TextStyle(
-                  fontSize: 13,
+                style: AppTextStyles.caption.copyWith(
                   height: 1.6,
                   color: theme.textSecondary,
                 ),
@@ -583,7 +570,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
             child: Center(
               child: Text(
                 '$score',
-                style: const TextStyle(
+                style: AppTextStyles.display.copyWith(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -595,8 +582,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           // 등급
           Text(
             '${analysis.scoreGrade} 궁합',
-            style: TextStyle(
-              fontSize: 22,
+            style: AppTextStyles.heading2.copyWith(
               fontWeight: FontWeight.bold,
               color: scoreColor,
             ),
@@ -611,9 +597,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
             ),
             child: Text(
               analysis.analysisTypeLabel,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.captionBold.copyWith(
                 color: scoreColor,
               ),
             ),
@@ -667,9 +651,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(width: 6),
           Text(
             '$label $count개',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.label.copyWith(
               color: color,
             ),
           ),
@@ -703,8 +685,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 '종합 요약',
-                style: TextStyle(
-                  fontSize: 16,
+                style: AppTextStyles.title.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.textPrimary,
                 ),
@@ -714,8 +695,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           Text(
             summary,
-            style: TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.bodySmall.copyWith(
               height: 1.7,
               color: theme.textSecondary,
             ),
@@ -874,8 +854,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        fontSize: 17,
+                      style: AppTextStyles.heading3.copyWith(
                         fontWeight: FontWeight.w700,
                         color: theme.textPrimary,
                       ),
@@ -883,10 +862,8 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.smallBold.copyWith(
                         color: accentColor,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -929,8 +906,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: AppTextStyles.label.copyWith(
                     fontWeight: FontWeight.w700,
                     color: color,
                   ),
@@ -976,8 +952,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                             children: [
                               TextSpan(
                                 text: item.name,
-                                style: TextStyle(
-                                  fontSize: 14,
+                                style: AppTextStyles.label.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: theme.textPrimary,
                                 ),
@@ -985,8 +960,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                               if (item.hanja != null)
                                 TextSpan(
                                   text: ' (${item.hanja})',
-                                  style: TextStyle(
-                                    fontSize: 12,
+                                  style: AppTextStyles.small.copyWith(
                                     color: theme.textMuted,
                                   ),
                                 ),
@@ -1004,8 +978,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                           ),
                           child: Text(
                             '×${item.count}',
-                            style: TextStyle(
-                              fontSize: 11,
+                            style: AppTextStyles.tiny.copyWith(
                               fontWeight: FontWeight.w700,
                               color: color,
                             ),
@@ -1019,8 +992,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                       padding: const EdgeInsets.only(left: 16),
                       child: Text(
                         explanation,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.small.copyWith(
                           height: 1.5,
                           color: theme.textMuted,
                         ),
@@ -1124,8 +1096,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16,
+                style: AppTextStyles.title.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.textPrimary,
                 ),
@@ -1151,8 +1122,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         item,
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: AppTextStyles.bodySmall.copyWith(
                           height: 1.5,
                           color: theme.textSecondary,
                         ),
@@ -1196,10 +1166,9 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                     color: _primaryColor, size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '관계 조언',
-                style: TextStyle(
-                  fontSize: 16,
+                style: AppTextStyles.title.copyWith(
                   fontWeight: FontWeight.w700,
                   color: _primaryColor,
                 ),
@@ -1209,8 +1178,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           Text(
             advice,
-            style: TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.bodySmall.copyWith(
               height: 1.7,
               color: theme.textPrimary,
             ),

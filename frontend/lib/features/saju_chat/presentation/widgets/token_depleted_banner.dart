@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../ad/ad_config.dart';
@@ -71,9 +72,7 @@ class TokenDepletedBanner extends ConsumerWidget {
         children: [
           Text(
             '토큰이 소진되었어요. 현재 광고 서비스 점검 중이에요',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+            style: AppTextStyles.captionBold.copyWith(
               color: appTheme.isDark
                   ? const Color(0xFFE0E0E0)
                   : const Color(0xFF5D4037),
@@ -120,9 +119,7 @@ class TokenDepletedBanner extends ConsumerWidget {
           // 안내 텍스트
           Text(
             '토큰이 소진되었어요! 광고를 보면 대화를 계속할 수 있어요',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+            style: AppTextStyles.captionBold.copyWith(
               color: appTheme.isDark
                   ? const Color(0xFFE0E0E0)
                   : const Color(0xFF5D4037),
@@ -245,10 +242,7 @@ class AdChoiceButton extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTextStyles.captionBold,
         textAlign: TextAlign.center,
       ),
     );

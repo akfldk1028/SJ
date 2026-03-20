@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
@@ -81,18 +82,16 @@ class FortuneDisplay extends StatelessWidget {
               children: [
                 Text(
                   '대운수 : ${daeun.startAge}(${daeun.daeUnList.isNotEmpty ? daeun.daeUnList.first.pillar.ji : ""}${daeun.daeUnList.isNotEmpty ? jijiHanja[daeun.daeUnList.first.pillar.ji] ?? "" : ""})',
-                  style: TextStyle(
+                  style: AppTextStyles.title.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   daeun.isForward ? '순행 (順行)' : '역행 (逆行)',
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textSecondary,
-                    fontSize: 13,
                   ),
                 ),
               ],
@@ -142,15 +141,15 @@ class FortuneDisplay extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(child: Text(
               '$title이란?',
-              style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppTextStyles.heading3.copyWith(color: theme.textPrimary, fontWeight: FontWeight.bold),
             )),
           ],
         ),
-        content: Text(desc, style: TextStyle(color: theme.textSecondary, fontSize: 15, height: 1.7)),
+        content: Text(desc, style: AppTextStyles.body.copyWith(color: theme.textSecondary, height: 1.7)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('확인', style: TextStyle(color: theme.primaryColor, fontSize: 15)),
+            child: Text('확인', style: AppTextStyles.body.copyWith(color: theme.primaryColor)),
           ),
         ],
       ),
@@ -160,9 +159,8 @@ class FortuneDisplay extends StatelessWidget {
   Widget _buildSubtitle(BuildContext context, String text, AppThemeExtension theme) {
     return Text(
       text,
-      style: TextStyle(
+      style: AppTextStyles.caption.copyWith(
         color: theme.textMuted,
-        fontSize: 13,
       ),
     );
   }
@@ -233,16 +231,14 @@ class DaeunSlider extends StatelessWidget {
           // 나이 + 십성
           Text(
             '${daeun.startAge}',
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textMuted,
-              fontSize: 13,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
@@ -257,9 +253,8 @@ class DaeunSlider extends StatelessWidget {
             child: Center(
               child: Text(
                 cheonganHanja[daeun.pillar.gan] ?? daeun.pillar.gan,
-                style: TextStyle(
+                style: AppTextStyles.heading2.copyWith(
                   color: ganColor,
-                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -277,9 +272,8 @@ class DaeunSlider extends StatelessWidget {
             child: Center(
               child: Text(
                 jijiHanja[daeun.pillar.ji] ?? daeun.pillar.ji,
-                style: TextStyle(
+                style: AppTextStyles.heading2.copyWith(
                   color: jiColor,
-                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -289,9 +283,8 @@ class DaeunSlider extends StatelessWidget {
           // 지지 십성
           Text(
             jiSipsin.korean.substring(0, 2),
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
         ],
@@ -376,16 +369,14 @@ class SeunSlider extends StatelessWidget {
           // 연도
           Text(
             '${seun.year}',
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textMuted,
-              fontSize: 13,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
@@ -400,9 +391,8 @@ class SeunSlider extends StatelessWidget {
             child: Center(
               child: Text(
                 cheonganHanja[seun.pillar.gan] ?? seun.pillar.gan,
-                style: TextStyle(
+                style: AppTextStyles.heading2.copyWith(
                   color: ganColor,
-                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -420,9 +410,8 @@ class SeunSlider extends StatelessWidget {
             child: Center(
               child: Text(
                 jijiHanja[seun.pillar.ji] ?? seun.pillar.ji,
-                style: TextStyle(
+                style: AppTextStyles.heading2.copyWith(
                   color: jiColor,
-                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -432,9 +421,8 @@ class SeunSlider extends StatelessWidget {
           // 지지 십성
           Text(
             jiSipsin.korean.substring(0, 2),
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
         ],
@@ -561,16 +549,14 @@ class WolunSlider extends StatelessWidget {
           // 월
           Text(
             '$month월',
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textMuted,
-              fontSize: 13,
             ),
           ),
           Text(
             ganSipsin.korean.substring(0, 2),
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
           const SizedBox(height: 4),
@@ -585,9 +571,8 @@ class WolunSlider extends StatelessWidget {
             child: Center(
               child: Text(
                 cheonganHanja[pillar.gan] ?? pillar.gan,
-                style: TextStyle(
+                style: AppTextStyles.heading2.copyWith(
                   color: ganColor,
-                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -605,9 +590,8 @@ class WolunSlider extends StatelessWidget {
             child: Center(
               child: Text(
                 jijiHanja[pillar.ji] ?? pillar.ji,
-                style: TextStyle(
+                style: AppTextStyles.heading2.copyWith(
                   color: jiColor,
-                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -617,9 +601,8 @@ class WolunSlider extends StatelessWidget {
           // 지지 십성
           Text(
             jiSipsin.korean.substring(0, 2),
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
         ],

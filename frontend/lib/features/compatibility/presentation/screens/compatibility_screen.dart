@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/mystic_background.dart';
@@ -27,11 +28,11 @@ class CompatibilityScreen extends ConsumerWidget {
         ),
         title: Text(
           '정통궁합',
-          style: TextStyle(
+          style: AppTextStyles.heading3.copyWith(
             color: theme.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         centerTitle: true,
       ),
@@ -141,31 +142,28 @@ class CompatibilityScreen extends ConsumerWidget {
                       SizedBox(width: 6),
                       Text(
                         '사주 궁합 분석',
-                        style: TextStyle(
+                        style: AppTextStyles.smallBold.copyWith(
                           color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   '정통궁합',
-                  style: TextStyle(
+                  style: AppTextStyles.display.copyWith(
                     color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '두 사람의 사주로 궁합을 분석합니다',
-                  style: TextStyle(
+                  style: AppTextStyles.bodySmall.copyWith(
                     color: Colors.white.withValues(alpha:0.9),
-                    fontSize: 14,
                   ),
                 ),
               ],
@@ -200,8 +198,7 @@ class CompatibilityScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 '정통궁합이란?',
-                style: TextStyle(
-                  fontSize: 17,
+                style: AppTextStyles.heading3.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.textPrimary,
                 ),
@@ -212,8 +209,7 @@ class CompatibilityScreen extends ConsumerWidget {
           Text(
             '정통궁합은 두 사람의 사주팔자를 비교 분석하여 '
             '서로의 인연, 상성, 화합 정도를 파악하는 전통 명리학입니다.',
-            style: TextStyle(
-              fontSize: 14,
+            style: AppTextStyles.bodySmall.copyWith(
               height: 1.7,
               color: theme.textSecondary,
             ),
@@ -232,10 +228,8 @@ class CompatibilityScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     '오행의 상생상극, 일주 궁합, 천간지지 조합 등을 종합 분석합니다',
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textSecondary,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -273,8 +267,7 @@ class CompatibilityScreen extends ConsumerWidget {
               const SizedBox(width: 10),
               Text(
                 '궁합 유형',
-                style: TextStyle(
-                  fontSize: 17,
+                style: AppTextStyles.heading3.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.textPrimary,
                 ),
@@ -314,9 +307,7 @@ class CompatibilityScreen extends ConsumerWidget {
                     const SizedBox(height: 10),
                     Text(
                       type['title'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      style: AppTextStyles.smallBold.copyWith(
                         color: theme.textPrimary,
                       ),
                       textAlign: TextAlign.center,
@@ -359,8 +350,7 @@ class CompatibilityScreen extends ConsumerWidget {
               const SizedBox(width: 10),
               Text(
                 '분석 항목',
-                style: TextStyle(
-                  fontSize: 17,
+                style: AppTextStyles.heading3.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.textPrimary,
                 ),
@@ -408,9 +398,7 @@ class CompatibilityScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     item['title'] as String,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                    style: AppTextStyles.captionBold.copyWith(
                       color: theme.textPrimary,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -418,8 +406,7 @@ class CompatibilityScreen extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     item['desc'] as String,
-                    style: TextStyle(
-                      fontSize: 11,
+                    style: AppTextStyles.tiny.copyWith(
                       color: theme.textMuted,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -469,11 +456,9 @@ class CompatibilityScreen extends ConsumerWidget {
                 child: const Icon(Icons.verified_rounded, color: _primaryColor, size: 18),
               ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 '사담 정통궁합 특징',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                style: AppTextStyles.title.copyWith(
                   color: _primaryColor,
                 ),
               ),
@@ -500,9 +485,7 @@ class CompatibilityScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Text(
                   feature['text'] as String,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  style: AppTextStyles.label.copyWith(
                     color: theme.textPrimary,
                   ),
                 ),
@@ -542,8 +525,7 @@ class CompatibilityScreen extends ConsumerWidget {
             SizedBox(width: 10),
             Text(
               '궁합 상담 시작하기',
-              style: TextStyle(
-                fontSize: 17,
+              style: AppTextStyles.heading3.copyWith(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),

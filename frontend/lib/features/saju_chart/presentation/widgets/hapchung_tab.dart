@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/saju_chart.dart';
@@ -161,8 +162,7 @@ class HapchungTab extends StatelessWidget {
         children: [
           Text(
             '합충형파해 분석',
-            style: TextStyle(
-              fontSize: 16,
+            style: AppTextStyles.title.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.textPrimary,
             ),
@@ -226,18 +226,15 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             label,
-            style: TextStyle(
+            style: AppTextStyles.captionBold.copyWith(
               color: count > 0 ? color : theme.textMuted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             '$count',
-            style: TextStyle(
+            style: AppTextStyles.heading3.copyWith(
               color: count > 0 ? color : theme.textMuted,
-              fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -287,17 +284,15 @@ class HapchungTab extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: AppTextStyles.title.copyWith(
                     color: color,
-                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textMuted,
-                    fontSize: 13,
                   ),
                 ),
               ],
@@ -412,10 +407,8 @@ class HapchungTab extends StatelessWidget {
       ),
       child: Text(
         title,
-        style: TextStyle(
+        style: AppTextStyles.captionBold.copyWith(
           color: theme.textSecondary,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -528,9 +521,8 @@ class HapchungTab extends StatelessWidget {
                   ),
                   child: Text(
                     type,
-                    style: const TextStyle(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: Colors.white,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -541,10 +533,8 @@ class HapchungTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       hanjaName,
-                      style: TextStyle(
+                      style: AppTextStyles.captionBold.copyWith(
                         color: color.withOpacity(0.7),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -577,10 +567,8 @@ class HapchungTab extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '$pillar1주 ↔ $pillar2주',
-                      style: TextStyle(
+                      style: AppTextStyles.captionBold.copyWith(
                         color: theme.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -588,9 +576,8 @@ class HapchungTab extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   description,
-                  style: TextStyle(
+                  style: AppTextStyles.bodySmall.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 14,
                     height: 1.4,
                   ),
                 ),
@@ -616,9 +603,8 @@ class HapchungTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             explanation,
-                            style: TextStyle(
+                            style: AppTextStyles.caption.copyWith(
                               color: theme.textMuted,
-                              fontSize: 13,
                               height: 1.5,
                             ),
                           ),
@@ -654,9 +640,8 @@ class HapchungTab extends StatelessWidget {
       child: Center(
         child: Text(
           char,
-          style: TextStyle(
+          style: AppTextStyles.heading2.copyWith(
             color: color,
-            fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -714,9 +699,8 @@ class HapchungTab extends StatelessWidget {
                   ),
                   child: Text(
                     label,
-                    style: const TextStyle(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: Colors.white,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -727,9 +711,8 @@ class HapchungTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '(삼합의 일부)',
-                      style: TextStyle(
+                      style: AppTextStyles.caption.copyWith(
                         color: _hapColor.withOpacity(0.6),
-                        fontSize: 13,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -755,10 +738,8 @@ class HapchungTab extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${samhap.pillars.join(", ")}주',
-                      style: TextStyle(
+                      style: AppTextStyles.captionBold.copyWith(
                         color: theme.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -766,9 +747,8 @@ class HapchungTab extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   samhap.description,
-                  style: TextStyle(
+                  style: AppTextStyles.bodySmall.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 14,
                     height: 1.4,
                   ),
                 ),
@@ -788,9 +768,8 @@ class HapchungTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             halfExplanation,
-                            style: TextStyle(
+                            style: AppTextStyles.caption.copyWith(
                               color: theme.textMuted,
-                              fontSize: 13,
                               height: 1.4,
                             ),
                           ),
@@ -857,9 +836,8 @@ class HapchungTab extends StatelessWidget {
                   ),
                   child: Text(
                     label,
-                    style: const TextStyle(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: Colors.white,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -871,17 +849,15 @@ class HapchungTab extends StatelessWidget {
                     children: [
                       Text(
                         '${banghap.direction}방 ${banghap.season}',
-                        style: TextStyle(
+                        style: AppTextStyles.caption.copyWith(
                           color: theme.textMuted,
-                          fontSize: 13,
                         ),
                       ),
                       if (isHalfBanghap)
                         Text(
                           '(방합의 일부)',
-                          style: TextStyle(
+                          style: AppTextStyles.caption.copyWith(
                             color: _hapColor.withOpacity(0.6),
-                            fontSize: 13,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -903,9 +879,8 @@ class HapchungTab extends StatelessWidget {
               children: [
                 Text(
                   banghap.description,
-                  style: TextStyle(
+                  style: AppTextStyles.bodySmall.copyWith(
                     color: theme.textPrimary,
-                    fontSize: 14,
                     height: 1.4,
                   ),
                 ),
@@ -925,9 +900,8 @@ class HapchungTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             halfExplanation,
-                            style: TextStyle(
+                            style: AppTextStyles.caption.copyWith(
                               color: theme.textMuted,
-                              fontSize: 13,
                               height: 1.4,
                             ),
                           ),
@@ -969,9 +943,8 @@ class HapchungTab extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '합충형파해란?',
-                style: TextStyle(
+                style: AppTextStyles.body.copyWith(
                   color: theme.primaryColor,
-                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -982,9 +955,8 @@ class HapchungTab extends StatelessWidget {
             '사주팔자의 간지(干支)들 사이의 관계를 분석합니다. '
             '합(合)은 화합과 조화를, 충(沖)은 대립과 변화를 의미합니다. '
             '형(刑)·파(破)·해(害)·원진은 갈등과 어려움을 나타냅니다.',
-            style: TextStyle(
+            style: AppTextStyles.caption.copyWith(
               color: theme.textSecondary,
-              fontSize: 13,
               height: 1.5,
             ),
           ),
@@ -1029,9 +1001,8 @@ class HapchungTab extends StatelessWidget {
                 ),
                 child: Text(
                   term,
-                  style: TextStyle(
+                  style: AppTextStyles.captionBold.copyWith(
                     color: color,
-                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
@@ -1041,9 +1012,8 @@ class HapchungTab extends StatelessWidget {
               Expanded(
                 child: Text(
                   description,
-                  style: TextStyle(
+                  style: AppTextStyles.caption.copyWith(
                     color: theme.textSecondary,
-                    fontSize: 13,
                   ),
                 ),
               ),
@@ -1081,18 +1051,15 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             '합충형파해 관계가 없습니다',
-            style: TextStyle(
+            style: AppTextStyles.title.copyWith(
               color: theme.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '사주 내 간지들 간에 특별한 합충 관계가 발견되지 않았습니다.\n안정적인 구조를 가지고 있습니다.',
-            style: TextStyle(
+            style: AppTextStyles.bodySmall.copyWith(
               color: theme.textMuted,
-              fontSize: 14,
               height: 1.5,
             ),
             textAlign: TextAlign.center,

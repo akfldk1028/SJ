@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/theme/app_text_styles.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -31,11 +32,11 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
         ),
         title: Text(
           '2025년 운세',
-          style: TextStyle(
+          style: AppTextStyles.heading3.copyWith(
             color: theme.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
         centerTitle: true,
         actions: [
@@ -70,13 +71,13 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               '2025년 운세를 불러오지 못했습니다',
-              style: TextStyle(color: theme.textSecondary, fontSize: 16),
+              style: AppTextStyles.bodyLarge.copyWith(color: theme.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               '$error',
-              style: TextStyle(color: theme.textMuted, fontSize: 12),
+              style: AppTextStyles.small.copyWith(color: theme.textMuted),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -113,16 +114,14 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           Text(
             '🔮 AI가 2025년 운세를 분석하고 있어요',
-            style: TextStyle(
+            style: AppTextStyles.title.copyWith(
               color: theme.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '잠시만 기다려주세요...',
-            style: TextStyle(color: theme.textMuted, fontSize: 14),
+            style: AppTextStyles.bodySmall.copyWith(color: theme.textMuted),
           ),
         ],
       ),
@@ -178,8 +177,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.opening.isNotEmpty)
                 Text(
                   fortune.overview.opening,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.body.copyWith(
                     color: theme.textSecondary,
                     height: 1.8,
                   ),
@@ -278,8 +276,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.achievements.reading.isNotEmpty)
                   Text(
                     fortune.achievements.reading,
-                    style: TextStyle(
-                      fontSize: 15,
+                    style: AppTextStyles.body.copyWith(
                       color: theme.textSecondary,
                       height: 1.8,
                     ),
@@ -308,8 +305,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.challenges.reading.isNotEmpty)
                   Text(
                     fortune.challenges.reading,
-                    style: TextStyle(
-                      fontSize: 15,
+                    style: AppTextStyles.body.copyWith(
                       color: theme.textSecondary,
                       height: 1.8,
                     ),
@@ -361,8 +357,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.lessons.reading.isNotEmpty)
                   Text(
                     fortune.lessons.reading,
-                    style: TextStyle(
-                      fontSize: 15,
+                    style: AppTextStyles.body.copyWith(
                       color: theme.textSecondary,
                       height: 1.8,
                     ),
@@ -391,8 +386,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.to2026.reading.isNotEmpty)
                   Text(
                     fortune.to2026.reading,
-                    style: TextStyle(
-                      fontSize: 15,
+                    style: AppTextStyles.body.copyWith(
                       color: theme.textSecondary,
                       height: 1.8,
                     ),
@@ -463,8 +457,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
             Expanded(
               child: Text(
                 item,
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTextStyles.bodySmall.copyWith(
                   color: theme.textSecondary,
                   height: 1.6,
                 ),
@@ -497,9 +490,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
             const SizedBox(width: 6),
             Text(
               lesson,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.captionBold.copyWith(
                 color: theme.textPrimary,
               ),
             ),
@@ -536,9 +527,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                style: AppTextStyles.label.copyWith(
                   color: color,
                 ),
               ),
@@ -554,8 +543,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     item,
-                    style: TextStyle(
-                      fontSize: 14,
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: theme.textSecondary,
                       height: 1.5,
                     ),
@@ -590,12 +578,9 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
       child: ElevatedButton.icon(
         onPressed: () => context.go('/saju/chat?type=yearly2025Fortune'),
         icon: const Icon(Icons.chat_bubble_outline, size: 20),
-        label: const Text(
+        label: Text(
           'AI에게 2025년 상담받기',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTextStyles.title,
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
