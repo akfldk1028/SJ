@@ -3,7 +3,7 @@ import pygetwindow as gw
 import time
 import os
 
-SCREENSHOT_DIR = "L:/SJ/SJ/screenshots"
+SCREENSHOT_DIR = "D:/SJ/SJ/screenshots"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 def get_app_window():
