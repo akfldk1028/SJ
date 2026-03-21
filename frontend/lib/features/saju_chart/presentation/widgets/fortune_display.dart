@@ -36,7 +36,7 @@ class FortuneDisplay extends StatelessWidget {
             DaeunSlider(
               daeunResult: analysis.daeun!,
               dayGan: analysis.chart.dayPillar.gan,
-              currentAge: _calculateCurrentAge(analysis.chart.birthDateTime),
+              currentAge: _calculateCurrentAge(analysis.chart.correctedDateTime),
             ),
             const SizedBox(height: 24),
           ],
@@ -45,7 +45,7 @@ class FortuneDisplay extends StatelessWidget {
           _buildSectionTitle(context, 'saju_chart.fortune_yeunun'.tr(), theme),
           const SizedBox(height: 12),
           SeunSlider(
-            birthYear: analysis.chart.birthDateTime.year,
+            birthYear: analysis.chart.correctedDateTime.year,
             dayGan: analysis.chart.dayPillar.gan,
             currentYear: DateTime.now().year,
           ),
@@ -55,7 +55,7 @@ class FortuneDisplay extends StatelessWidget {
           _buildSectionTitle(context, 'saju_chart.fortune_wolun'.tr(), theme),
           const SizedBox(height: 12),
           WolunSlider(
-            birthYear: analysis.chart.birthDateTime.year,
+            birthYear: analysis.chart.correctedDateTime.year,
             dayGan: analysis.chart.dayPillar.gan,
             currentYear: DateTime.now().year,
           ),

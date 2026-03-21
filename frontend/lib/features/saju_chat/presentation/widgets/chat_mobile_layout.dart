@@ -65,11 +65,32 @@ class ChatMobileLayout extends ConsumerWidget {
             onPressed: onNewChat,
             tooltip: 'saju_chat.newChatTooltip'.tr(),
           ),
-          // 궁합 버튼 (2명 선택)
-          IconButton(
-            icon: const Icon(Icons.group_add_outlined),
-            onPressed: onCompatibilityChat,
-            tooltip: 'saju_chat.compatibilityTooltip'.tr(),
+          // 궁합 버튼 (2명 선택) + 라벨
+          Tooltip(
+            message: 'saju_chat.compatibilityTooltip'.tr(),
+            child: InkWell(
+              onTap: onCompatibilityChat,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.group_add_outlined, size: 22, color: appTheme.textPrimary),
+                    Text(
+                      'saju_chat.addRelationLabel'.tr(),
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: appTheme.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
