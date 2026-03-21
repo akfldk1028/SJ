@@ -159,6 +159,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
               if (fortune.overview.opening.isNotEmpty)
                 Text(
                   fortune.overview.opening,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -344,6 +345,7 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
               const SizedBox(height: 12),
               Text(
                 reading,
+                textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontSize: 14,
                   color: theme.textSecondary,

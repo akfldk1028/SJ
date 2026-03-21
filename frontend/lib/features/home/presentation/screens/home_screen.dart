@@ -905,6 +905,7 @@ class HomeScreen extends ConsumerWidget {
                         )
                       : Text(
                           '"$advice"',
+                          textAlign: TextAlign.justify,
                           style: TextStyle(
                             fontSize: 14,
                             fontStyle: FontStyle.italic,

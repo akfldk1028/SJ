@@ -251,10 +251,19 @@ class AdService {
   }
 
   /// 보상형 광고 표시 (기본)
+  ///
+  /// [screen]: 광고가 표시된 화면 (ad_events.screen에 기록)
+  /// [purpose]: 광고 목적 (ad_events.purpose에 기록, 기본: general)
   Future<bool> showRewardedAd({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
+    AdPurpose purpose = AdPurpose.general,
   }) async {
-    return showRewardedAdWithUnlock(onRewarded: onRewarded);
+    return showRewardedAdWithUnlock(
+      onRewarded: onRewarded,
+      overrideScreen: screen,
+      overridePurpose: purpose,
+    );
   }
 
   /// 보상형 광고 표시 + 기능 해금 추적
@@ -265,22 +274,30 @@ class AdService {
     int? targetYear,
     int? targetMonth,
     String? profileId,
+    String? overrideScreen,
+    AdPurpose? overridePurpose,
   }) async {
     if (!adEnabled) return false;
 
     // screen 문자열 생성 (추적용)
-    String? screen;
-    if (featureType != null && featureKey != null && targetYear != null) {
+    // overrideScreen이 있으면 우선 사용 (token_depleted 등 직접 지정)
+    String? screen = overrideScreen;
+    if (screen == null && featureType != null && featureKey != null && targetYear != null) {
       screen = '${featureType.toDbString()}_${featureKey}_$targetYear';
       if (targetMonth != null && targetMonth > 0) {
         screen += '_${targetMonth.toString().padLeft(2, '0')}';
       }
     }
 
+    // purpose 결정: override > featureType 기반 > general
+    final purpose = overridePurpose
+        ?? (featureType != null ? AdPurpose.featureUnlock : AdPurpose.general);
+
     // 우선순위 순으로 어댑터 시도
     for (final adapter in _adapters) {
       if (adapter.isRewardedLoaded) {
         final shown = await adapter.showRewarded(
+          screen: screen,
           onRewarded: (amount, type) async {
             debugPrint(
                 '[AdService] Reward earned via ${adapter.name}: $amount $type');
@@ -292,9 +309,7 @@ class AdService {
               rewardType: type,
               screen: screen,
               profileId: profileId,
-              purpose: featureType != null
-                  ? AdPurpose.featureUnlock
-                  : AdPurpose.general,
+              purpose: purpose,
             );
 
             // 2. 기능 해금

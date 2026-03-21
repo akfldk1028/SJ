@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../ad/ad_config.dart';
 import '../../../../ad/ad_service.dart';
 import '../../../../ad/ad_strategy.dart';
+import '../../../../ad/ad_tracking_service.dart';
 import '../../../../ad/token_reward_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../router/routes.dart';
@@ -139,7 +140,7 @@ class TokenDepletedBanner extends ConsumerWidget {
                 child: AdChoiceButton(
                   label: 'saju_chat.continueLabel'.tr(),
                   isPrimary: false,
-                  onPressed: () => _handleInterstitialAndContinue(context, ref),
+                  onPressed: () => _handleRewardedAndContinue(context, ref),
                 ),
               ),
               const SizedBox(width: 10),
@@ -158,38 +159,34 @@ class TokenDepletedBanner extends ConsumerWidget {
     );
   }
 
-  /// 전면 광고 5초 → 광고 닫힌 후 서버 + 클라이언트 토큰 충전
+  /// 보상형 광고 → 광고 완료 후 서버 + 클라이언트 토큰 충전
   ///
-  /// 더블탭 방지: adNotifier.setLoading()으로 즉시 상태 변경 → 배너 UI 비활성화
+  /// AdService 어댑터 패턴 사용 (AdMob 1순위 → Unity 2순위 fallback)
   /// stale ref 방지: async gap 전에 notifier 캡처
-  void _handleInterstitialAndContinue(BuildContext context, WidgetRef ref) async {
+  void _handleRewardedAndContinue(BuildContext context, WidgetRef ref) async {
     final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
     final chatNotifier = ref.read(chatNotifierProvider(sessionId).notifier);
 
-    // 더블탭 방지: 즉시 광고 로딩 상태로 전환 → 버튼 재탭 차단
-    adNotifier.dismissAd();
+    const tokens = AdStrategy.depletedRewardTokensVideo;
 
-    // 전면 광고 로드 대기 (최대 5초) → 표시
-    // bypassInterval: true → 토큰 소진은 필수 광고이므로 쿨다운 무시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () async {
-        // 광고가 닫힌 후에만 실행 (크래시 방지)
-        const tokens = AdStrategy.depletedRewardTokensVideo;
-        // 서버 측 토큰 지급
+    // 보상형 광고 로드 대기 (AdMob → Unity 어댑터 fallback)
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAd(
+      screen: 'token_depleted_rewarded',
+      purpose: AdPurpose.tokenBonus,
+      onRewarded: (amount, type) async {
+        // 보상 획득 → 서버 + 클라이언트 토큰 지급
         await TokenRewardService.grantRewardedAdTokens(
           tokens,
-          screen: 'token_depleted_interstitial',
+          screen: 'token_depleted_rewarded',
         );
-        // 클라이언트 측 토큰 업데이트 (ConversationWindowManager)
         chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
-        debugPrint('[TokenDepletedBanner] 전면 광고 완료 → +$tokens tokens (서버+클라이언트)');
+        debugPrint('[TokenDepletedBanner] 보상형 광고 완료 → +$tokens tokens (서버+클라이언트)');
       },
     );
 
     if (!shown) {
-      // 전면 광고 로드 안 됨 → fallback 소량 토큰 지급 (ads_watched 미증가)
+      // 보상형 광고 로드 실패 (AdMob + Unity 모두) → fallback 소량 토큰 지급
       const fallbackTokens = AdStrategy.depletedFallbackTokens;
       await TokenRewardService.grantRewardedAdTokens(
         fallbackTokens,
@@ -197,9 +194,8 @@ class TokenDepletedBanner extends ConsumerWidget {
         isFallback: true,
       );
       chatNotifier.addBonusTokens(fallbackTokens, isRewardedAd: false);
-      // 다음을 위해 전면 광고 재로드
-      AdService.instance.loadInterstitialAd();
-      debugPrint('[TokenDepletedBanner] 광고 로드 실패 → fallback +$fallbackTokens tokens');
+      AdService.instance.loadRewardedAd();
+      debugPrint('[TokenDepletedBanner] 보상형 광고 실패 → fallback +$fallbackTokens tokens');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -209,6 +205,9 @@ class TokenDepletedBanner extends ConsumerWidget {
         );
       }
     }
+
+    // 광고 모드 종료
+    adNotifier.dismissAd();
   }
 }
 

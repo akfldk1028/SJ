@@ -121,6 +121,7 @@ class _SajuDetailTabsState extends ConsumerState<SajuDetailTabs>
         ),
         content: Text(
           description,
+          textAlign: TextAlign.justify,
           style: TextStyle(
             color: theme.textSecondary,
             fontSize: 15,
@@ -579,6 +580,7 @@ class _SipSungTab extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             'saju_chart.sipsungDetailBody'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -592,6 +594,7 @@ class _SipSungTab extends StatelessWidget {
             '${'saju_chart.sipsungJaeseongDesc'.tr()}\n'
             '${'saju_chart.sipsungGwanseongDesc'.tr()}\n'
             '${'saju_chart.sipsungInseongDesc'.tr()}',
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: theme.textMuted,
               fontSize: 14,
@@ -772,6 +775,7 @@ class _UnsungTab extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'saju_chart.unsungDetailBody'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -883,6 +887,7 @@ class _UnsungTab extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'saju_chart.gungseongDetailBody'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -1388,6 +1393,7 @@ class _SinsalTab extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'saju_chart.sinsalDetailBody'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,
@@ -1966,6 +1972,7 @@ class _GongmangTab extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'saju_chart.gongmangDetailBody'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 15,

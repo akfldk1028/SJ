@@ -1,0 +1,19 @@
+{
+  "catCareer": "Sự nghiệp",
+  "catWork": "Công việc",
+  "catBusiness": "Kinh doanh",
+  "catWealth": "Tài lộc",
+  "catLove": "Tình yêu",
+  "catMarriage": "Hôn nhân",
+  "catStudy": "Học tập",
+  "catHealth": "Sức khỏe",
+  "catOverall": "Tổng quan",
+  "catFamily": "Gia đình",
+  "catSocial": "Xã hội",
+  "phaseBasic": "Đang phân tích tính cách...",
+  "phaseWealth": "Đang phân tích tài lộc, sự nghiệp và tình yêu...",
+  "phaseHealth": "Đang phân tích sức khỏe và đường đời...",
+  "phaseFinal": "Phân tích cuối cùng...",
+  "phaseReady": "Đang chuẩn bị phân tích...",
+  "errorMonthly": "Phân tích vận trình tháng thất bại.\nVui lòng thử lại sau."
+}

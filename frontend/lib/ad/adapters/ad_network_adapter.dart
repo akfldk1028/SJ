@@ -15,7 +15,7 @@ abstract class AdNetworkAdapter {
   Future<bool> loadInterstitial();
 
   /// 전면 광고 표시. [onDismissed]는 광고 닫힌 후 호출.
-  Future<bool> showInterstitial({void Function()? onDismissed});
+  Future<bool> showInterstitial({void Function()? onDismissed, String? screen});
 
   /// 전면 광고 로드 완료 여부
   bool get isInterstitialLoaded;
@@ -28,6 +28,7 @@ abstract class AdNetworkAdapter {
   /// 보상형 광고 표시. 보상 획득 시 [onRewarded](amount, type) 호출.
   Future<bool> showRewarded({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
   });
 
   /// 보상형 광고 로드 완료 여부

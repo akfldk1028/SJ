@@ -1,0 +1,19 @@
+{
+  "catCareer": "Carreira",
+  "catWork": "Trabalho",
+  "catBusiness": "Negócios",
+  "catWealth": "Riqueza",
+  "catLove": "Amor",
+  "catMarriage": "Casamento",
+  "catStudy": "Estudos",
+  "catHealth": "Saúde",
+  "catOverall": "Geral",
+  "catFamily": "Família",
+  "catSocial": "Social",
+  "phaseBasic": "Analisando personalidade...",
+  "phaseWealth": "Analisando riqueza, carreira e amor...",
+  "phaseHealth": "Analisando saúde e caminho de vida...",
+  "phaseFinal": "Análise final...",
+  "phaseReady": "Preparando análise...",
+  "errorMonthly": "Falha ao analisar a fortuna mensal.\nPor favor, tente novamente mais tarde."
+}

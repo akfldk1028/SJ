@@ -923,11 +923,11 @@ class SajuCharacterInfo {
     this.season,
   });
 
-  /// 지지 → 동물 하드코딩 매핑
-  static const _jijiAnimalMap = {
-    '자': '쥐', '축': '소', '인': '호랑이', '묘': '토끼',
-    '진': '용', '사': '뱀', '오': '말', '미': '양',
-    '신': '원숭이', '유': '닭', '술': '개', '해': '돼지',
+  /// 지지 → 동물 i18n 키 매핑
+  static Map<String, String> get _jijiAnimalMap => {
+    '자': 'year_info.rat'.tr(), '축': 'year_info.ox'.tr(), '인': 'year_info.tiger'.tr(), '묘': 'year_info.rabbit'.tr(),
+    '진': 'year_info.dragon'.tr(), '사': 'year_info.snake'.tr(), '오': 'year_info.horse'.tr(), '미': 'year_info.goat'.tr(),
+    '신': 'year_info.monkey'.tr(), '유': 'year_info.rooster'.tr(), '술': 'year_info.dog'.tr(), '해': 'year_info.pig'.tr(),
   };
 
   factory SajuCharacterInfo.fromJson(Map<String, dynamic> json) {
@@ -1190,15 +1190,15 @@ class PhaseProgressData {
   String get phaseDescription {
     switch (currentPhase) {
       case 1:
-        return '기본 성격 분석 중...';
+        return 'fortune_common.phaseBasic'.tr();
       case 2:
-        return '재물/직업/애정운 분석 중...';
+        return 'fortune_common.phaseWealth'.tr();
       case 3:
-        return '건강/대운 분석 중...';
+        return 'fortune_common.phaseHealth'.tr();
       case 4:
-        return '종합 분석 중...';
+        return 'fortune_common.phaseFinal'.tr();
       default:
-        return '분석 준비 중...';
+        return 'fortune_common.phaseReady'.tr();
     }
   }
 

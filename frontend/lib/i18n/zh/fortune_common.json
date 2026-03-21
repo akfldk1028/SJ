@@ -1,0 +1,19 @@
+{
+  "catCareer": "事业",
+  "catWork": "工作",
+  "catBusiness": "商业",
+  "catWealth": "财运",
+  "catLove": "爱情",
+  "catMarriage": "婚姻",
+  "catStudy": "学业",
+  "catHealth": "健康",
+  "catOverall": "综合",
+  "catFamily": "家庭",
+  "catSocial": "社交",
+  "phaseBasic": "正在分析性格...",
+  "phaseWealth": "正在分析财运、事业、爱情...",
+  "phaseHealth": "正在分析健康与人生走向...",
+  "phaseFinal": "最终分析中...",
+  "phaseReady": "正在准备分析...",
+  "errorMonthly": "月度运势分析失败。\n请稍后再试。"
+}

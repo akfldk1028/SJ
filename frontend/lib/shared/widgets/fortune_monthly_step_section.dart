@@ -432,11 +432,10 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       return;
     }
 
-    // 전면 광고 로드 대기 (최대 5초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () async {
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAdWithUnlock(
+      onRewarded: (amount, type) async {
         await _unlockMonth(month);
         if (mounted) {
           setState(() => _isLoadingAd = false);
@@ -672,7 +671,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -717,7 +716,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${category.score}점',
+                    'common.scoreUnit'.tr(namedArgs: {'score': '${category.score}'}),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -733,6 +732,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           if (category.summary != null && category.summary!.isNotEmpty) ...[
             Text(
               category.summary!,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -747,6 +747,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           if (category.reading.isNotEmpty)
             Text(
               category.reading,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 color: theme.textSecondary,
@@ -758,7 +759,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           if (category.bestMonths != null && category.bestMonths!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '좋은 달: ${category.bestMonths!.map((m) => '$m월').join(', ')}',
+              'common.bestMonths'.tr(namedArgs: {'months': category.bestMonths!.map((m) => 'common.monthLabel'.tr(namedArgs: {'month': '$m'})).join(', ')}),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.green.shade700,
@@ -768,7 +769,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
           ],
           if (category.cautionMonths != null && category.cautionMonths!.isNotEmpty)
             Text(
-              '주의할 달: ${category.cautionMonths!.map((m) => '$m월').join(', ')}',
+              'common.cautionMonths'.tr(namedArgs: {'months': category.cautionMonths!.map((m) => 'common.monthLabel'.tr(namedArgs: {'month': '$m'})).join(', ')}),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.orange.shade700,
@@ -847,8 +848,8 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
             ],
             Text(
               isNextUnlocked
-                  ? '다음: $nextCategoryName'
-                  : '광고 보고 $nextCategoryName 확인하기',
+                  ? 'common.nextLabel'.tr(namedArgs: {'name': nextCategoryName})
+                  : 'common.watchAdToViewCategory'.tr(namedArgs: {'name': nextCategoryName}),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -885,7 +886,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$categoryName 운세가 해제되었습니다!'),
+              content: Text('common.unlocked'.tr(namedArgs: {'name': categoryName})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -904,7 +905,7 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$categoryName 운세가 해제되었습니다! (웹 테스트)'),
+              content: Text('common.unlockedWebTest'.tr(namedArgs: {'name': categoryName})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -920,17 +921,16 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
       return;
     }
 
-    // 전면 광고 로드 대기 (최대 5초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () async {
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAdWithUnlock(
+      onRewarded: (amount, type) async {
         await _unlockStep(step);
         if (mounted) {
           setState(() => _isLoadingAd = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$categoryName 운세가 해제되었습니다!'),
+              content: Text('common.unlocked'.tr(namedArgs: {'name': categoryName})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -948,21 +948,21 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('프리미엄으로 바로 보기'),
+        title: Text('common.premiumViewNow'.tr()),
         content: Text(
-          '$categoryName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+          'common.premiumAdNotAvailable'.tr(namedArgs: {'name': categoryName}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('닫기'),
+            child: Text('common.close'.tr()),
           ),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.push(Routes.settingsPremium);
             },
-            child: const Text('프리미엄 보기'),
+            child: Text('common.viewPremium'.tr()),
           ),
         ],
       ),
@@ -970,14 +970,14 @@ class _FortuneMonthlyStepSectionState extends ConsumerState<FortuneMonthlyStepSe
   }
 
   String _getCategoryName(String key) {
-    const names = {
-      'career': '직업운',
-      'business': '사업운',
-      'wealth': '재물운',
-      'love': '애정운',
-      'marriage': '결혼운',
-      'study': '학업운',
-      'health': '건강운',
+    final names = {
+      'career': 'fortune_common.catCareer'.tr(),
+      'business': 'fortune_common.catBusiness'.tr(),
+      'wealth': 'fortune_common.catWealth'.tr(),
+      'love': 'fortune_common.catLove'.tr(),
+      'marriage': 'fortune_common.catMarriage'.tr(),
+      'study': 'fortune_common.catStudy'.tr(),
+      'health': 'fortune_common.catHealth'.tr(),
     };
     return names[key] ?? key;
   }

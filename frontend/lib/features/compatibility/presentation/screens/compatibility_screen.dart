@@ -212,6 +212,7 @@ class CompatibilityScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             'compatibility.what_is_desc'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               height: 1.7,

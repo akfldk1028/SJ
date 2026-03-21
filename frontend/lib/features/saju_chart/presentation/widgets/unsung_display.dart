@@ -443,6 +443,7 @@ class UnsungDetailCard extends StatelessWidget {
             ),
             child: Text(
               interpretation,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 13,

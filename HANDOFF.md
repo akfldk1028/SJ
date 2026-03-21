@@ -1,139 +1,129 @@
-# HANDOFF — 다국어 17개 언어 + 하드코딩 정리 + 앱번들
+# HANDOFF — 운세 화면 하드코딩 i18n + iOS 심사 + 레이아웃
 
-> 작성: 2026-03-17 21:30 | v0.1.6+53 | 앱번들 빌드 완료
+> 작성: 2026-03-21 16:30 | DK-DD 브랜치 | 미커밋 상태
 
 ---
 
 ## Goal
 
-SaDam(사담) 앱 전세계 배포를 위한 17개 언어 완전 대응:
-1. ~~JSON 번역 파일 17개 언어 생성~~ **완료**
-2. ~~Dart 하드코딩 한국어 → `.tr()` 교체~~ **대부분 완료**
-3. ~~AI 채팅(Gemini) 다국어 응답~~ **완료**
-4. ~~페르소나/MBTI/ChatType i18n~~ **완료**
-5. ~~Supabase locale CHECK 17개 확장~~ **완료**
-6. ~~pg_cron 좀비 task 자동 정리~~ **완료**
-7. 🔴 운세 화면 하드코딩 한국어 잔존 — **미완료**
+1. 운세 화면 한국어 하드코딩 → `.tr()` i18n 전환 (17개 언어)
+2. iOS App Store 심사 통과 (4.3(b) 이의 신청 완료, Apple 응답 대기)
+3. 레이아웃/가독성 개선
 
 ---
 
 ## Current Progress
 
-### 완료 (이번 세션)
+### ✅ 이번 세션 완료
 
-**14개 언어 네이티브 번역** — 238개 JSON 파일 (7개 에이전트 병렬)
-- 검증 통과: JSON 파싱 0에러, 키 누락 0, {변수} 불일치 0
+**iOS App Store 심사 대응**
+- 2.1 회신 완료 (영상 + 6가지 답변)
+- 4.3(b) 이의 신청 3건 (Resolution Center 2건 + App Review Board 1건)
+- RevenueCat S2S URL 설정 완료
+- IAP 심사 스크린샷 3개 상품 업로드 (paywall_review_1.png, paywall_review_2.png)
+- 메모리: `memory/project/ios_app_store_rejection.md`
 
-**페르소나/MBTI/ChatType i18n** (chat_type.dart, ai_persona.dart)
-- `MbtiQuadrant.displayName/description` → `.tr()` (mbti_NF, mbti_NT 등)
-- `AiPersona.displayName/description` → `.tr()` (persona_grandma 등)
-- `ChatType.title/inputHint` → `.tr()` (chatType_general 등)
-- 17개 언어 JSON에 37개 신규 키 추가 완료
+**코드 수정 완료 (미커밋)**
+- `paywall_screen.dart` — 이용약관 + 개인정보 처리방침 링크 추가 (Guideline 3.1.2)
+- `ios/Runner/17개 .lproj/InfoPlist.strings` — ATT Purpose String 다국어
 
-**AI 프롬프트 다국어 강화**
-- `system_prompt_builder.dart` — CRITICAL LANGUAGE INSTRUCTION (langMap 17개 언어명)
-- `prompt_loader.dart` — fallback "한국어로" → "사용자가 보낸 언어로"
-- `saju_prompts.dart` — 다국어 지시 추가
-- `chat_provider.dart` + `session_restore_service.dart` — `FortuneLocaleUtils.currentLocale` 사용
+**i18n JSON 생성 (17개 언어 전부)**
+- `year_info.json` — 오행, 음양, 12간지, 특수연도 (청뱀/붉은말/청룡의 해)
+- `fortune_common.json` — 운세 카테고리 칩 (직업/사업/재물/애정/결혼/학업/건강운), 분석 상태 메시지
 
-**Supabase DB**
-- 5개 테이블 locale CHECK → 17개 언어 확장
-- `pg_cron` job `cleanup-zombie-tasks` — 5분마다 10분 넘은 stuck task 자동 정리
-- `cleanup_zombie_tasks()` 함수 생성
+**Dart 코드 i18n 변환 완료 (7개 파일)**
+- `fortune_year_info_card.dart` — 전체 (오행, 띠, 음양, 특수연도, 12간지)
+- `fortune_title_header.dart` — '총운' + 키워드 overflow
+- `fortune_category_chip_section.dart` — `_getCategoryName()` 칩 11개
+- `fortune_monthly_chip_section.dart` — `_getCategoryName()` 칩 8개
+- `fortune_monthly_step_section.dart` — `_getCategoryName()` 칩 7개
+- `lifetime_fortune_provider.dart` — 분석 상태 5개 + 12간지 매핑
+- `monthly_fortune_provider.dart` — 에러 메시지
 
-**프로필 저장 시 locale 전달**
-- `profile_provider.dart` — `locale: FortuneLocaleUtils.currentLocale`
+**레이아웃 개선**
+- `FortuneHighlightBox` — 아이콘을 제목 옆으로 이동, 텍스트 전체 너비 사용 (Row→Column)
+- `FortuneSectionCard` 헤더 — 아이콘 컴팩트화 (padding 10→8, size 20→18)
+- `FortuneKeywordBadge` — `Flexible` + overflow 방지
+- `FortuneTitleHeader` standard/hero — 키워드 overflow 방지
 
-**ja 누락 키 추가**
-- `ja/saju_chat.json` — 6개 토큰 관련 키
-- `ja/yearly_2025.json` — 4개 제목 키
-- `ja/lifetime_fortune.json` — 25개 키
-
-**앱 번들**
-- `v0.1.6+53` — `app-release.aab` (67MB) 빌드 완료
-- 경로: `frontend/build/app/outputs/bundle/release/app-release.aab`
-- 보상형 광고 토큰: 5000 (변경 없음, `ad_strategy.dart:99`)
-
-### 메모리 업데이트
-- `architecture/i18n_expansion.md` — 전체 재작성 (v0.1.6+53 기준)
-- `project/global_deployment_goal.md` — 전세계 배포 목표 기록
-- `MEMORY.md` — 인덱스 정리
+### 🔴 미완료 — 다음 세션에서 해야 할 것
 
 ---
 
-## 🔴 남은 문제 — 운세 화면 한국어 하드코딩
+## Next Steps (우선순위 순)
 
-### 스크린샷 증거
-- `docs/Image/화면 캡처 2026-03-17 212421.png`
-  - **"탭하여 상세 운세를 확인하세요"** — 하드코딩
-  - **"직업운/사업운/재물운/애정운/결혼운/학업운/건강운"** — 하드코딩 버튼
-- `docs/Image/화면 캡처 2026-03-17 205509.png`
-  - **"2025년", "목용의 해", "오행/띠/음양", "총운"** — DB 저장된 AI 분석 결과 (한국어 캐시)
-  - **"목(양) 기운과 용띠의 특성이..."** — AI 분석 결과
+### 1. 🔴 운세 위젯 3개 파일 한국어 하드코딩 전환 (긴급)
 
-### 원인 분류
+코드 리뷰에서 발견된 잔존 하드코딩. 각 파일에 20~30개씩.
 
-**1. 코드 하드코딩 (수정 필요)**
-파일 위치를 grep으로 찾아서 `.tr()` 교체 필요:
-```bash
-grep -rn "직업운\|사업운\|재물운\|애정운\|결혼운\|학업운\|건강운\|탭하여" frontend/lib/features/
-```
+**fortune_monthly_chip_section.dart** — 하드코딩 목록:
+- `'월별 운세'`, `'탭하여 각 달의 운세를 확인하세요'`
+- `'$monthNum월'`, `'$monthNum월 운세'`
+- `'키워드: ${month.keyword}'`
+- `'분야별 요약'`, `'분야별 상세 운세'`
+- `'행운'`, `'이달의 사자성어'`
+- `'$monthNum월 운세를 분석하고 있습니다...'`
+- SnackBar/Dialog 한국어 텍스트
 
-예상 파일:
-- `new_year_fortune/presentation/screens/` 또는 `widgets/`
-- `yearly_2025_fortune/presentation/`
-- 카테고리 이름은 이미 `lifetime_fortune.json`에 `careerFortune`, `wealthFortune` 등 키가 있으므로 해당 키 사용
+**fortune_category_chip_section.dart** — 하드코딩 목록:
+- `'분야별 운세'`, `'탭하여 상세 운세를 확인하세요'`
+- `'${cat.score}점'` (여러 곳)
+- `'조언'`, `'타이밍'`, `'강점:'`, `'주의할 점:'`
+- `'적합한 분야:'`, `'피해야 할 분야:'`, `'주의사항'`
+- `'집중 영역:'`, `'실천 팁'`
+- 카테고리별 상세: `'업무 스타일'`, `'리더십 잠재력'`, `'연애 패턴'` 등
+- SnackBar/Dialog 텍스트 (프리미엄 안내)
 
-**2. DB 캐시된 AI 분석 결과 (한국어)**
-- 기존 유저의 `ai_summaries.content`가 한국어로 저장됨
-- locale 변경 시 새로 분석해야 올바른 언어로 나옴
-- `ai_summaries` 테이블에 `locale` 컬럼이 있으므로, locale이 다르면 새 레코드 생성됨
-- **해결**: 언어 변경 시 기존 캐시와 locale이 다르면 자동 재분석 트리거
+**fortune_monthly_step_section.dart** — 하드코딩 목록:
+- `'좋은 달:'`, `'주의할 달:'`
+- `'다음: $nextCategoryName'`
+- `'광고 보고 $nextCategoryName 확인하기'`
+- `'${category.score}점'`
+- `'$categoryName 운세가 해제되었습니다!'`
+- Dialog 텍스트 (`'프리미엄으로 바로 보기'`, `'닫기'`, `'프리미엄 보기'`)
 
-**3. 카테고리 매핑 (운세 provider)**
-- 운세 분석 결과의 카테고리 키가 한국어("직업/취업운")인 경우가 있음
-- `yearly_2025_fortune_provider.dart`의 dummy data는 이미 `.tr()`로 교체함
-- 하지만 실제 AI 응답의 카테고리 제목이 한국어일 수 있음
+**fortune_keyword_badge.dart** — `'$score점'` 하드코딩
+
+**작업 방법:**
+1. `fortune_common.json`에 키 추가 (ko + en)
+2. 에이전트로 15개 언어 번역
+3. Dart 파일에서 `.tr()` 교체
+
+### 2. 프리미엄 다이얼로그 공통 함수 추출
+- 3개 파일에서 동일한 프리미엄 안내 다이얼로그 반복
+- `shared/utils/premium_dialog.dart`로 추출 가능
+
+### 3. mock 데이터 i18n (후순위)
+- `new_year_fortune_provider.dart` 700~830줄 — fallback/mock 데이터 한국어
+- 실서비스에서는 AI 응답으로 대체되므로 우선순위 낮음
+
+### 4. 데이터 레이어 하드코딩 (150+ 키)
+- `hapchung_explanations.dart`
+- `compatibility_interpreter.dart`
+- `sipsin_relations.dart`
+
+### 5. 버전업 + Google Play 앱번들
+- 현재 `0.1.6+56` → 버전 올리고 빌드
+
+### 6. iOS App Store 응답 대기
+- 4.3(b) 이의 응답 예상: 1~3 영업일
+- 거절 시 → 추가 대응 필요
+- 메모리: `memory/project/ios_app_store_rejection.md` 참조
 
 ---
 
 ## What Worked
 
-- **7개 에이전트 병렬 번역** — 238파일 약 10분에 완료
-- **python3 검증 스크립트** — JSON 파싱 + 키 매칭 + 변수 체크 자동화
-- **Supabase MCP** — DB constraint 변경, pg_cron 설정, task 상태 확인
-- **FortuneLocaleUtils.currentLocale** — 앱 전역 locale 싱글톤으로 통일
+- **에이전트 병렬 번역** — year_info.json, fortune_common.json 각각 15개 언어를 백그라운드 에이전트로 생성
+- **Playwright 브라우저 자동화** — App Store Connect + RevenueCat 대시보드 조작
+- **Sequential Thinking MCP** — Apple 이의 신청 전략 수립에 효과적
+- **코드 리뷰 에이전트** — 빌드 에러/import 누락 사전 검출
 
 ## What Didn't Work
 
-- **`platformDispatcher.locale`** → easy_localization의 앱 내 언어와 불일치 가능. `FortuneLocaleUtils.currentLocale`로 교체함
-- **에뮬레이터 wipe 후 테스트** — 프로필 없는 새 유저라 task 생성 안 됨. 온보딩 + 프로필 등록 필수
-- **"영어로만" 사고** — 17개 언어 대응인데 영어만 생각하면 안 됨. langMap으로 구체적 언어명 전달 필수
-
----
-
-## Next Steps
-
-### 1. 🔴 운세 화면 하드코딩 정리 (긴급)
-```bash
-# 먼저 하드코딩 위치 찾기
-grep -rn "직업운\|사업운\|재물운\|애정운\|결혼운\|학업운\|건강운" frontend/lib/features/new_year_fortune/ frontend/lib/features/yearly_2025_fortune/
-grep -rn "탭하여\|총운\|목용의" frontend/lib/features/
-```
-→ 찾은 것들을 `saju_chart.json`이나 `new_year_fortune.json`의 기존 키로 교체
-
-### 2. 십성 UI 리디자인
-- `sipsin_relations.dart` 하드코딩 → i18n
-- `oheng_analysis_display.dart` UI 개선
-
-### 3. 데이터 레이어 하드코딩 (150+ 키)
-- `hapchung_explanations.dart`
-- `compatibility_interpreter.dart`
-
-### 4. 에뮬레이터 다국어 테스트
-- 각 언어 전환 후 주요 화면 확인
-- 텍스트 오버플로우 (독일어/러시아어)
-- RTL 아랍어 레이아웃
+- **하드코딩 전수조사 에이전트** — 프롬프트 길이 초과로 실패. `grep`으로 직접 검색이 더 빠름
+- **카톡 이미지 → IAP 스크린샷** — 카톡 압축으로 크기 안 맞음. Python Pillow로 리사이즈 필요 (1290x2796)
+- **App Store Connect 파일 업로드** — 파일 선택기 열릴 때 다른 모달이 남아있으면 실패. 순차적으로 처리 필요
 
 ---
 
@@ -141,16 +131,14 @@ grep -rn "탭하여\|총운\|목용의" frontend/lib/features/
 
 | 파일 | 역할 |
 |------|------|
-| `frontend/lib/main.dart:128-146` | 17개 locale 등록 |
-| `frontend/lib/i18n/{locale}/*.json` | 번역 파일 289개 (17×17) |
-| `frontend/lib/AI/fortune/common/locale_utils.dart` | `FortuneLocaleUtils` 앱 전역 locale |
-| `frontend/lib/features/saju_chat/data/services/system_prompt_builder.dart` | AI 프롬프트 locale 지시 |
-| `frontend/lib/features/saju_chat/domain/models/ai_persona.dart` | 페르소나 i18n |
-| `frontend/lib/features/saju_chat/domain/models/chat_type.dart` | 채팅타입 i18n |
-| `frontend/lib/ad/ad_strategy.dart:99` | `depletedRewardTokensVideo = 5000` |
-| `frontend/build/app/outputs/bundle/release/app-release.aab` | 릴리스 번들 v0.1.6+53 |
+| `frontend/lib/i18n/{locale}/year_info.json` | 연도 정보 i18n (17개 언어) |
+| `frontend/lib/i18n/{locale}/fortune_common.json` | 운세 카테고리/상태 i18n (17개 언어) |
+| `frontend/lib/shared/widgets/fortune_*.dart` | 운세 공유 위젯 (수정 완료) |
+| `frontend/lib/purchase/widgets/paywall_screen.dart` | 페이월 (이용약관 링크 추가) |
+| `frontend/ios/Runner/*.lproj/InfoPlist.strings` | ATT 다국어 (17개) |
+| `docs/Image/paywall_review_*.png` | IAP 심사 스크린샷 (1290x2796) |
 
 ## Memory 참조
-- `memory/architecture/i18n_expansion.md` — 다국어 전체 구조 (v0.1.6+53 최종)
-- `memory/project/global_deployment_goal.md` — 전세계 배포 목표
-- `memory/architecture/gemini_token_system.md` — 토큰 시스템
+- `memory/project/ios_app_store_rejection.md` — iOS 심사 전체 이력
+- `memory/i18n/fortune_hardcoding_fix.md` — 하드코딩 수정 진행 상태
+- `memory/architecture/i18n_expansion.md` — 다국어 전체 구조

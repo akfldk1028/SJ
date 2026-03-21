@@ -1,0 +1,19 @@
+{
+  "catCareer": "Karriere",
+  "catWork": "Arbeit",
+  "catBusiness": "Geschäft",
+  "catWealth": "Wohlstand",
+  "catLove": "Liebe",
+  "catMarriage": "Ehe",
+  "catStudy": "Studium",
+  "catHealth": "Gesundheit",
+  "catOverall": "Gesamt",
+  "catFamily": "Familie",
+  "catSocial": "Soziales",
+  "phaseBasic": "Persönlichkeit wird analysiert...",
+  "phaseWealth": "Wohlstand, Karriere und Liebe werden analysiert...",
+  "phaseHealth": "Gesundheit und Lebensweg werden analysiert...",
+  "phaseFinal": "Abschlussanalyse...",
+  "phaseReady": "Analyse wird vorbereitet...",
+  "errorMonthly": "Die monatliche Horoskop-Analyse ist fehlgeschlagen.\nBitte versuchen Sie es später erneut."
+}
