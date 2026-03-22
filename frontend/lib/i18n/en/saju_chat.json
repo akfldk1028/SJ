@@ -147,5 +147,19 @@
   "persona_scenarioWriter_desc": "Saju storyteller",
   "persona_bookOfSaju_desc": "A living ancient saju text",
   "persona_yinYangGrandpa_desc": "Light in darkness, master of twists",
-  "persona_sewerSaju_desc": "Brutal honesty about your destiny"
+  "persona_sewerSaju_desc": "Brutal honesty about your destiny",
+
+  "persona_default": "Default",
+  "persona_default_desc": "Default consultation",
+  "persona_default_detail": "Default AI counselor.",
+  "persona_sewerSaju_short": "Sewer",
+  "persona_sewerSaju_descChat": "Brutal truth master",
+  "persona_nf_detail": "A warm and empathetic counselor.\n\nReads your heart first and delivers fortune readings with warm emotion. Recommended when you need comfort and empathy.",
+  "persona_nt_detail": "A logical and systematic analyst.\n\nProvides evidence-based readings by precisely analyzing five elements, ten gods, and compatibility. Recommended for in-depth fortune analysis.",
+  "persona_sf_detail": "A friendly and cheerful counselor, like a close friend.\n\nExplains fortune easily and enjoyably in a comfortable conversation. Recommended for casual fortune readings.",
+  "persona_st_detail": "A counselor who gives direct and realistic advice.\n\nGets straight to the point without sugar-coating, interpreting fortune from a practical perspective. Recommended when you want clear answers.",
+  "persona_babyMonk_detail": "A little master, Baby Monk. Reads fortune boldly in casual speech with truth-bombs that hit the mark.\n\nRecommended for honest fortune readings in a light atmosphere.",
+  "persona_scenarioWriter_detail": "A storyteller who weaves fortune into a narrative.",
+  "persona_yinYangGrandpa_detail": "Yin-Yang Grandpa finds light in darkness and shadows in light — a master of dramatic twists.\n\nAcknowledges hard facts head-on, then dramatically reveals hidden strengths to offer hope. Recommended when you need comfort and surprising twists.",
+  "persona_sewerSaju_detail": "Sewer Sorcerer is a brutal truth master who fearlessly exposes the dark side of your fortune.\n\nMakes you face reality with sharp wit and refreshing honesty. Warning: not for the faint-hearted!"
 }

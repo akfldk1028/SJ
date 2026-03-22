@@ -95,6 +95,7 @@ import '../fortune/lifetime/lifetime_phase1_prompt.dart';
 import '../fortune/lifetime/lifetime_phase2_prompt.dart';
 import '../fortune/lifetime/lifetime_phase3_prompt.dart';
 import '../fortune/lifetime/lifetime_phase4_prompt.dart';
+import '../fortune/lifetime/lifetime_unified_prompt.dart';
 import 'ai_api_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -402,18 +403,18 @@ class SajuAnalysisService {
     });
 
     // ═══════════════════════════════════════════════════════════════════════
-    // GPT-5.2 평생사주 분석 (Phase 분할 + Progressive Disclosure) ⭐
-    // v8.2: 각 Phase 완료 시 ai_tasks.partial_result 업데이트 → UI 즉시 표시
+    // v61: 통합 1회 호출 (json_schema strict) ⭐
+    // Phase 4개 분할 → 1회 통합 호출로 전환
+    // json_schema strict: 100% valid JSON 보장
+    // 실패 시 기존 Phase 분할로 fallback
     // ═══════════════════════════════════════════════════════════════════════
 
     // 캐시 확인 (이미 분석된 경우 스킵)
-    // v50: Gemini/fallback 결과는 캐시 히트로 안 침 (GPT-5.2 결과만 유효)
     print('[SajuAnalysisService] 🔍 saju_base 캐시 확인 중...');
     final cached = await aiQueries.getSajuBaseSummary(profileId);
     AnalysisResult sajuBaseResult;
 
     // v50: model_provider='openai' 인 GPT 결과만 캐시 히트로 인정
-    // Gemini/fallback(model_provider='google', model_name='fallback')은 무시
     final isGptCacheHit = cached.isSuccess &&
         cached.data != null &&
         cached.data!.modelProvider == 'openai';
@@ -428,32 +429,34 @@ class SajuAnalysisService {
       if (cached.isSuccess && cached.data != null) {
         print('[SajuAnalysisService] ⚠️ saju_base 존재하지만 Gemini/fallback (model=${cached.data!.modelName}) - GPT 분석 강행');
       }
-      // v43: Phase 분할 분석 실행 (reasoning_effort: low → medium 폴백)
-      print('[SajuAnalysisService] 📊 saju_base Phase 분할 분석 시작 (reasoning_effort: low)...');
-      var phasedResult = await runSajuBaseAnalysisWithPhases(
+      // v61: 통합 1회 호출 (json_schema strict)
+      print('[SajuAnalysisService] 📊 v61 통합 1회 호출 시작 (json_schema strict)...');
+      sajuBaseResult = await _runUnifiedSajuBaseAnalysis(
         userId: userId,
         profileId: profileId,
         inputJson: inputJson,
-        reasoningEffort: 'low',  // v43: 속도 우선
-        onPhaseComplete: (phaseResult) {
-          print('[SajuAnalysisService] 🎯 Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
-        },
+        reasoningEffort: 'low',
       );
 
-      // v43: low 실패 시 medium으로 폴백
-      if (!phasedResult.overall.success) {
-        print('[SajuAnalysisService] ⚠️ reasoning_effort: low 실패 → medium으로 재시도');
-        phasedResult = await runSajuBaseAnalysisWithPhases(
+      // v61: 통합 호출 실패 시 Phase 분할로 fallback
+      if (!sajuBaseResult.success) {
+        print('[SajuAnalysisService] ⚠️ 통합 호출 실패 → Phase 분할 fallback');
+        var phasedResult = await runSajuBaseAnalysisWithPhases(
           userId: userId,
           profileId: profileId,
           inputJson: inputJson,
-          reasoningEffort: 'medium',  // v43: 폴백
-          onPhaseComplete: (phaseResult) {
-            print('[SajuAnalysisService] 🎯 [medium 재시도] Phase ${phaseResult.phase} 완료 (${phaseResult.processingTimeMs}ms)');
-          },
+          reasoningEffort: 'low',
         );
+        if (!phasedResult.overall.success) {
+          phasedResult = await runSajuBaseAnalysisWithPhases(
+            userId: userId,
+            profileId: profileId,
+            inputJson: inputJson,
+            reasoningEffort: 'medium',
+          );
+        }
+        sajuBaseResult = phasedResult.overall;
       }
-      sajuBaseResult = phasedResult.overall;
     }
 
     print('[SajuAnalysisService] 📊 saju_base 결과: success=${sajuBaseResult.success}');
@@ -843,36 +846,87 @@ class SajuAnalysisService {
       return AnalysisResult.failure('사주 데이터 조회 실패');
     }
 
-    // 3. 분석 실행 (v49: phased path 사용 — monolithic 대비 성공률 90% vs 40%)
+    // 3. v61: 통합 1회 호출 우선, 실패 시 phased fallback
     final inputJson = inputData.toJson();
     if (runInBackground) {
       // Fire-and-forget
-      print('[SajuAnalysisService] 🔥 백그라운드 phased 분석 시작');
-      _runPhasedAnalysisInBackground(userId, profileId, inputJson, onComplete);
+      print('[SajuAnalysisService] 🔥 백그라운드 통합 분석 시작');
+      _runUnifiedAnalysisInBackground(userId, profileId, inputJson, onComplete);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
-      // 완료 대기 (phased path + low→medium fallback)
-      print('[SajuAnalysisService] ⏳ phased 분석 대기 중...');
-      var phasedResult = await runSajuBaseAnalysisWithPhases(
+      // 완료 대기 (v61: 통합 → phased fallback)
+      print('[SajuAnalysisService] ⏳ 통합 분석 대기 중...');
+      var result = await _runUnifiedSajuBaseAnalysis(
         userId: userId,
         profileId: profileId,
         inputJson: inputJson,
         reasoningEffort: 'low',
       );
-      if (!phasedResult.overall.success) {
-        print('[SajuAnalysisService] ⚠️ low 실패 → medium 재시도');
-        phasedResult = await runSajuBaseAnalysisWithPhases(
+      if (!result.success) {
+        print('[SajuAnalysisService] ⚠️ 통합 실패 → phased fallback');
+        var phasedResult = await runSajuBaseAnalysisWithPhases(
           userId: userId,
           profileId: profileId,
           inputJson: inputJson,
-          reasoningEffort: 'medium',
+          reasoningEffort: 'low',
         );
+        if (!phasedResult.overall.success) {
+          phasedResult = await runSajuBaseAnalysisWithPhases(
+            userId: userId,
+            profileId: profileId,
+            inputJson: inputJson,
+            reasoningEffort: 'medium',
+          );
+        }
+        result = phasedResult.overall;
       }
-      return phasedResult.overall;
+      return result;
     }
   }
 
-  /// v49: phased 분석 백그라운드 실행 (monolithic 대비 성공률 90% vs 40%)
+  /// v61: 통합 분석 백그라운드 실행 (통합 → phased fallback)
+  void _runUnifiedAnalysisInBackground(
+    String userId,
+    String profileId,
+    Map<String, dynamic> inputJson,
+    void Function(AnalysisResult)? onComplete,
+  ) {
+    () async {
+      var result = await _runUnifiedSajuBaseAnalysis(
+        userId: userId,
+        profileId: profileId,
+        inputJson: inputJson,
+        reasoningEffort: 'low',
+      );
+      if (!result.success) {
+        print('[SajuAnalysisService] ⚠️ 백그라운드 통합 실패 → phased fallback');
+        var phasedResult = await runSajuBaseAnalysisWithPhases(
+          userId: userId,
+          profileId: profileId,
+          inputJson: inputJson,
+          reasoningEffort: 'low',
+        );
+        if (!phasedResult.overall.success) {
+          phasedResult = await runSajuBaseAnalysisWithPhases(
+            userId: userId,
+            profileId: profileId,
+            inputJson: inputJson,
+            reasoningEffort: 'medium',
+          );
+        }
+        result = phasedResult.overall;
+      }
+      return result;
+    }().then((result) {
+      print('[SajuAnalysisService] ✅ 백그라운드 통합 분석 완료: ${result.success}');
+      onComplete?.call(result);
+    }).catchError((e) {
+      print('[SajuAnalysisService] ❌ 백그라운드 통합 분석 오류: $e');
+      onComplete?.call(AnalysisResult.failure(e.toString()));
+    });
+  }
+
+  /// v49: phased 분석 백그라운드 실행 (legacy fallback)
   void _runPhasedAnalysisInBackground(
     String userId,
     String profileId,
@@ -958,31 +1012,39 @@ class SajuAnalysisService {
       return result;
     }
 
-    // 3. 분석 실행 (v49: phased path — 성공률 90% vs monolithic 40%)
+    // 3. v61: 통합 1회 호출 → phased fallback
     final inputJson = inputData.toJson();
     if (runInBackground) {
       // Fire-and-forget
-      print('[SajuAnalysisService] 🔥 인연 백그라운드 phased 분석 시작');
-      _runPhasedAnalysisInBackground(userId, profileId, inputJson, onComplete);
+      print('[SajuAnalysisService] 🔥 인연 백그라운드 통합 분석 시작');
+      _runUnifiedAnalysisInBackground(userId, profileId, inputJson, onComplete);
       return AnalysisResult.success(summaryId: 'pending', processingTimeMs: 0);
     } else {
-      // 완료 대기 (phased path + low→medium fallback)
-      print('[SajuAnalysisService] ⏳ 인연 phased 분석 대기 중...');
-      var phasedResult = await runSajuBaseAnalysisWithPhases(
+      // 완료 대기 (v61: 통합 → phased fallback)
+      print('[SajuAnalysisService] ⏳ 인연 통합 분석 대기 중...');
+      var result = await _runUnifiedSajuBaseAnalysis(
         userId: userId,
         profileId: profileId,
         inputJson: inputJson,
         reasoningEffort: 'low',
       );
-      if (!phasedResult.overall.success) {
-        phasedResult = await runSajuBaseAnalysisWithPhases(
+      if (!result.success) {
+        var phasedResult = await runSajuBaseAnalysisWithPhases(
           userId: userId,
           profileId: profileId,
           inputJson: inputJson,
-          reasoningEffort: 'medium',
+          reasoningEffort: 'low',
         );
+        if (!phasedResult.overall.success) {
+          phasedResult = await runSajuBaseAnalysisWithPhases(
+            userId: userId,
+            profileId: profileId,
+            inputJson: inputJson,
+            reasoningEffort: 'medium',
+          );
+        }
+        result = phasedResult.overall;
       }
-      final result = phasedResult.overall;
       onComplete?.call(result);
       return result;
     }
@@ -1056,6 +1118,128 @@ class SajuAnalysisService {
     // 타임아웃
     print('[SajuAnalysisService] ⏰ 기존 task 대기 타임아웃 (180초)');
     return AnalysisResult.failure('기존 분석 대기 타임아웃');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // v61: 통합 1회 호출 (json_schema strict)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 통합 평생사주 분석 (1회 호출 + json_schema strict)
+  ///
+  /// ## v61 변경사항
+  /// - Phase 4개 분할 → 1회 통합 호출
+  /// - json_schema strict: 100% valid JSON 보장
+  /// - gpt-5-mini에서 JSON 깨짐 문제 해결
+  ///
+  /// ## 장점
+  /// - 4배 비용 절감 (1회 호출)
+  /// - 속도 개선 (Phase 간 대기 없음)
+  /// - JSON 구조 보장 (strict mode)
+  Future<AnalysisResult> _runUnifiedSajuBaseAnalysis({
+    required String userId,
+    required String profileId,
+    required Map<String, dynamic> inputJson,
+    String reasoningEffort = 'low',
+  }) async {
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      print('[SajuAnalysisService] 🚀 v61 통합 분석 시작 (json_schema strict, reasoning: $reasoningEffort)');
+
+      // 프롬프트 생성 (locale-aware)
+      final prompt = SajuBaseUnifiedPrompt(locale: FortuneLocaleUtils.currentLocale);
+      final messages = prompt.buildMessages(inputJson);
+
+      // API 호출 (json_schema strict 모드)
+      final response = await _apiService.callOpenAI(
+        messages: messages,
+        model: prompt.modelName,
+        maxTokens: prompt.maxTokens,
+        temperature: prompt.temperature,
+        logType: 'saju_base_unified',
+        userId: userId,
+        taskType: 'saju_base',
+        reasoningEffort: reasoningEffort,
+        responseFormat: prompt.responseFormat,  // json_schema strict!
+      );
+
+      if (!response.success) {
+        throw Exception(response.error ?? 'Unified API 호출 실패');
+      }
+
+      final content = response.content!;
+
+      // 유효성 검증 - 핵심 키 존재 확인
+      if (content.containsKey('_parse_failed') || content.containsKey('raw')) {
+        throw Exception('JSON 파싱 실패');
+      }
+
+      final requiredKeys = ['mySajuIntro', 'wonGuk_analysis', 'personality', 'wealth', 'health', 'summary'];
+      final missingKeys = requiredKeys.where((k) => !content.containsKey(k)).toList();
+      if (missingKeys.isNotEmpty) {
+        throw Exception('필수 키 누락: ${missingKeys.join(', ')}');
+      }
+
+      // ai_summaries에 저장
+      final saveResult = await aiMutations.saveSajuBaseSummary(
+        userId: userId,
+        profileId: profileId,
+        content: content,
+        inputData: inputJson,
+        modelName: '${prompt.modelName}-unified',
+        promptTokens: response.promptTokens,
+        completionTokens: response.completionTokens,
+        cachedTokens: response.cachedTokens,
+        totalCostUsd: response.totalCostUsd,
+        processingTimeMs: stopwatch.elapsedMilliseconds,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.buildUserPrompt(inputJson),
+        locale: FortuneLocaleUtils.currentLocale,
+      );
+
+      stopwatch.stop();
+
+      if (saveResult.isSuccess) {
+        print('[SajuAnalysisService] ✅ v61 통합 분석 완료! (${stopwatch.elapsedMilliseconds}ms, prompt=${response.promptTokens}, completion=${response.completionTokens})');
+
+        await AiLogger.logProfileAnalysis(
+          profileId: profileId,
+          profileName: inputJson['name'] as String? ?? '',
+          analysisType: 'saju_base_unified',
+          provider: 'openai',
+          model: prompt.modelName,
+          success: true,
+          content: jsonEncode(content),
+          tokens: {
+            'prompt': response.promptTokens,
+            'completion': response.completionTokens,
+            'cached': response.cachedTokens,
+          },
+          costUsd: response.totalCostUsd,
+          processingTimeMs: stopwatch.elapsedMilliseconds,
+        );
+
+        return AnalysisResult.success(
+          summaryId: saveResult.data!.id,
+          processingTimeMs: stopwatch.elapsedMilliseconds,
+        );
+      } else {
+        throw Exception('저장 실패: ${saveResult.errorMessage}');
+      }
+    } catch (e, stackTrace) {
+      stopwatch.stop();
+      print('[SajuAnalysisService] ❌ v61 통합 분석 실패: $e');
+
+      ErrorLoggingService.logError(
+        operation: 'saju_base_unified',
+        errorMessage: e.toString(),
+        sourceFile: 'saju_analysis_service.dart',
+        stackTrace: stackTrace.toString(),
+        extraData: {'method': '_runUnifiedSajuBaseAnalysis', 'profileId': profileId},
+      );
+
+      return AnalysisResult.failure(e.toString());
+    }
   }
 }
 

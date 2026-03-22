@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Pencerita ramalan",
   "persona_bookOfSaju_desc": "Kitab ramalan purba yang hidup",
   "persona_yinYangGrandpa_desc": "Cahaya dalam kegelapan, pakar pembalikan",
-  "persona_sewerSaju_desc": "Kejujuran brutal tentang takdir anda"
+  "persona_sewerSaju_desc": "Kejujuran brutal tentang takdir anda",
+  "persona_default": "Lalai",
+  "persona_default_desc": "Konsultasi standard",
+  "persona_default_detail": "Kaunselor AI standard.",
+  "persona_sewerSaju_short": "Pedas",
+  "persona_sewerSaju_descChat": "Raja kejujuran brutal",
+  "persona_nf_detail": "Kaunselor yang mesra dan penuh empati.\n\nMembaca hati anda terlebih dahulu dan menyampaikan ramalan dengan emosi yang hangat. Disyorkan apabila anda perlukan ketenangan dan empati.",
+  "persona_nt_detail": "Penganalisis yang logik dan sistematik.\n\nMemberikan ramalan berasaskan bukti dengan menganalisis lima unsur, sepuluh dewa, dan keserasian secara tepat. Disyorkan untuk analisis ramalan yang mendalam.",
+  "persona_sf_detail": "Kaunselor yang mesra dan ceria, seperti kawan rapat.\n\nMenerangkan ramalan dengan mudah dan menyeronokkan dalam perbualan santai. Disyorkan untuk konsultasi ramalan ringan.",
+  "persona_st_detail": "Kaunselor yang memberi nasihat terus terang dan realistik.\n\nTerus ke intinya tanpa berselindung, mentafsir ramalan dari perspektif praktikal. Disyorkan apabila anda mahukan jawapan yang jelas.",
+  "persona_babyMonk_detail": "Guru kecil, Sami Kecil. Membaca ramalan dengan berani dan berterus terang dengan kebenaran yang tepat sasaran.\n\nDisyorkan untuk ramalan jujur dalam suasana ringan.",
+  "persona_scenarioWriter_detail": "Pencerita yang menganyam ramalan menjadi sebuah naratif.",
+  "persona_yinYangGrandpa_detail": "Datuk Yin-Yang menemui cahaya dalam kegelapan dan bayang dalam cahaya — pakar pembalikan yang dramatik.\n\nMengakui fakta pahit secara terus terang, kemudian secara dramatik mendedahkan kekuatan tersembunyi untuk memberi harapan. Disyorkan apabila anda perlukan ketenangan dan kejutan yang menggembirakan.",
+  "persona_sewerSaju_detail": "Peramal Pembetung adalah raja kejujuran brutal yang tanpa takut mendedahkan sisi gelap ramalan anda.\n\nMembuatkan anda menghadapi kenyataan dengan kecerdasan tajam dan kejujuran yang menyegarkan. Amaran: bukan untuk yang lemah semangat!"
 }

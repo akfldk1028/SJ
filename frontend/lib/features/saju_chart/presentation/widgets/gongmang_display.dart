@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/gongmang_table.dart';
 import '../../domain/services/gongmang_service.dart';
 
@@ -757,6 +758,7 @@ class GongmangTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
     final color = _getTypeColor(type);
 
     return Container(
@@ -770,7 +772,7 @@ class GongmangTypeBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            type.korean,
+            SajuI18n.specialSinsal(type.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: 13,

@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/services/hapchung_service.dart';
 
@@ -23,6 +24,7 @@ class HapchungTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final result = HapchungService.analyzeSaju(
       yearGan: chart.yearPillar.gan,
       monthGan: chart.monthPillar.gan,
@@ -69,12 +71,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.jijiHyungs.map((hyung) => _buildRelationCard(
               context,
-              type: '형',
+              type: SajuI18n.relationType('형', locale),
+              koreanType: '형',
               char1: hyung.ji1,
               char2: hyung.ji2,
               pillar1: hyung.pillar1,
               pillar2: hyung.pillar2,
-              description: hyung.description,
+              description: SajuI18n.hapchungDesc(hyung.description, locale),
               color: _hyungColor,
             )),
             const SizedBox(height: 24),
@@ -85,12 +88,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.jijiPas.map((pa) => _buildRelationCard(
               context,
-              type: '파',
+              type: SajuI18n.relationType('파', locale),
+              koreanType: '파',
               char1: pa.ji1,
               char2: pa.ji2,
               pillar1: pa.pillar1,
               pillar2: pa.pillar2,
-              description: pa.description,
+              description: SajuI18n.hapchungDesc(pa.description, locale),
               color: _paColor,
             )),
             const SizedBox(height: 24),
@@ -101,12 +105,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.jijiHaes.map((hae) => _buildRelationCard(
               context,
-              type: '해',
+              type: SajuI18n.relationType('해', locale),
+              koreanType: '해',
               char1: hae.ji1,
               char2: hae.ji2,
               pillar1: hae.pillar1,
               pillar2: hae.pillar2,
-              description: hae.description,
+              description: SajuI18n.hapchungDesc(hae.description, locale),
               color: _haeColor,
             )),
             const SizedBox(height: 24),
@@ -117,12 +122,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.wonjins.map((wonjin) => _buildRelationCard(
               context,
-              type: '원진',
+              type: SajuI18n.relationType('원진', locale),
+              koreanType: '원진',
               char1: wonjin.ji1,
               char2: wonjin.ji2,
               pillar1: wonjin.pillar1,
               pillar2: wonjin.pillar2,
-              description: wonjin.description,
+              description: SajuI18n.hapchungDesc(wonjin.description, locale),
               color: _wonjinColor,
             )),
             const SizedBox(height: 24),
@@ -310,6 +316,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildHapSection(BuildContext context, HapchungAnalysisResult result) {
+    final locale = context.locale.languageCode;
     return Column(
       children: [
         // 천간합
@@ -318,12 +325,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.cheonganHaps.map((hap) => _buildRelationCard(
             context,
-            type: '합',
+            type: SajuI18n.relationType('합', locale),
+            koreanType: '합',
             char1: hap.gan1,
             char2: hap.gan2,
             pillar1: hap.pillar1,
             pillar2: hap.pillar2,
-            description: hap.description,
+            description: SajuI18n.hapchungDesc(hap.description, locale),
             color: _hapColor,
           )),
           const SizedBox(height: 16),
@@ -335,12 +343,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.jijiYukhaps.map((yukhap) => _buildRelationCard(
             context,
-            type: '육합',
+            type: SajuI18n.relationType('육합', locale),
+            koreanType: '육합',
             char1: yukhap.ji1,
             char2: yukhap.ji2,
             pillar1: yukhap.pillar1,
             pillar2: yukhap.pillar2,
-            description: yukhap.description,
+            description: SajuI18n.hapchungDesc(yukhap.description, locale),
             color: _hapColor,
           )),
           const SizedBox(height: 16),
@@ -365,6 +374,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildChungSection(BuildContext context, HapchungAnalysisResult result) {
+    final locale = context.locale.languageCode;
     return Column(
       children: [
         // 천간충
@@ -373,12 +383,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.cheonganChungs.map((chung) => _buildRelationCard(
             context,
-            type: '충',
+            type: SajuI18n.relationType('충', locale),
+            koreanType: '충',
             char1: chung.gan1,
             char2: chung.gan2,
             pillar1: chung.pillar1,
             pillar2: chung.pillar2,
-            description: chung.description,
+            description: SajuI18n.hapchungDesc(chung.description, locale),
             color: _chungColor,
           )),
           const SizedBox(height: 16),
@@ -390,12 +401,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.jijiChungs.map((chung) => _buildRelationCard(
             context,
-            type: '충',
+            type: SajuI18n.relationType('충', locale),
+            koreanType: '충',
             char1: chung.ji1,
             char2: chung.ji2,
             pillar1: chung.pillar1,
             pillar2: chung.pillar2,
-            description: chung.description,
+            description: SajuI18n.hapchungDesc(chung.description, locale),
             color: _chungColor,
           )),
         ],
@@ -481,11 +493,13 @@ class HapchungTab extends StatelessWidget {
     required String pillar2,
     required String description,
     required Color color,
+    String? koreanType,
   }) {
-    // 형/파/해/원진인 경우 한자 이름과 설명 생성
-    final bool showHanjaName = ['형', '파', '해', '원진'].contains(type);
-    final hanjaName = showHanjaName ? _getHanjaName(type, char1, char2) : null;
-    final explanation = _getRelationExplanation(type, char1, char2);
+    // 형/파/해/원진인 경우 한자 이름과 설명 생성 (원본 한글 키로 판별)
+    final koType = koreanType ?? type;
+    final bool showHanjaName = ['형', '파', '해', '원진'].contains(koType);
+    final hanjaName = showHanjaName ? _getHanjaName(koType, char1, char2) : null;
+    final explanation = _getRelationExplanation(koType, char1, char2);
 
     final theme = context.appTheme;
     return Container(
@@ -667,7 +681,11 @@ class HapchungTab extends StatelessWidget {
 
   Widget _buildSamhapCard(BuildContext context, {required SamhapResult samhap}) {
     final theme = context.appTheme;
-    final label = samhap.isFullSamhap ? '삼합' : samhap.displayLabel;
+    final locale = context.locale.languageCode;
+    final label = SajuI18n.relationType(
+      samhap.isFullSamhap ? '삼합' : samhap.displayLabel,
+      locale,
+    );
     final isHalfSamhap = !samhap.isFullSamhap;
 
     // 반합 설명
@@ -766,7 +784,7 @@ class HapchungTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  samhap.description,
+                  SajuI18n.hapchungDesc(samhap.description, context.locale.languageCode),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,
@@ -810,7 +828,8 @@ class HapchungTab extends StatelessWidget {
 
   Widget _buildBanghapCard(BuildContext context, {required BanghapResult banghap}) {
     final theme = context.appTheme;
-    final label = banghap.displayLabel;
+    final locale = context.locale.languageCode;
+    final label = SajuI18n.relationType(banghap.displayLabel, locale);
     final isHalfBanghap = !banghap.isFullBanghap;
 
     // 반방합 설명
@@ -903,7 +922,7 @@ class HapchungTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  banghap.description,
+                  SajuI18n.hapchungDesc(banghap.description, context.locale.languageCode),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,

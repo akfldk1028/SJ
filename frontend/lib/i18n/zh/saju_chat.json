@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "命理故事讲述者",
   "persona_bookOfSaju_desc": "活着的命理古籍",
   "persona_yinYangGrandpa_desc": "暗中之光，逆转大师",
-  "persona_sewerSaju_desc": "对你的命运毫不留情的真话"
+  "persona_sewerSaju_desc": "对你的命运毫不留情的真话",
+  "persona_default": "默认",
+  "persona_default_desc": "默认咨询",
+  "persona_default_detail": "默认AI咨询师。",
+  "persona_sewerSaju_short": "毒舌",
+  "persona_sewerSaju_descChat": "毒舌真话王",
+  "persona_nf_detail": "温暖而富有共情力的咨询师。\n\n先读懂你的内心，再用温情传递命理解读。当你需要安慰和共鸣时推荐使用。",
+  "persona_nt_detail": "逻辑严密、体系分明的分析师。\n\n精准分析五行、十神与合婚，提供有据可依的命理解读。需要深度命理分析时推荐使用。",
+  "persona_sf_detail": "像亲密好友一样亲切开朗的咨询师。\n\n用轻松的聊天方式，让命理变得简单有趣。想轻松看命时推荐使用。",
+  "persona_st_detail": "直截了当、务实建议的咨询师。\n\n不绕弯子直击核心，从实用角度解读命运。想要明确答案时推荐使用。",
+  "persona_babyMonk_detail": "小师父小和尚，用大白话大胆看命，一针见血直击要害。\n\n想在轻松氛围中听到真话时推荐使用。",
+  "persona_scenarioWriter_detail": "将命运编织成故事的讲述者。",
+  "persona_yinYangGrandpa_detail": "阴阳爷爷在黑暗中寻找光明，在光明中洞察暗影——逆转乾坤的大师。\n\n正面承认残酷现实，再戏剧性地揭示隐藏的优势，给人希望。需要安慰和惊喜逆转时推荐使用。",
+  "persona_sewerSaju_detail": "毒舌占卜师是毫不留情揭露你命运阴暗面的真话王。\n\n用犀利的机智和痛快的坦率让你直面现实。警告：心理承受力弱者慎入！"
 }

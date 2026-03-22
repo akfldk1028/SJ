@@ -57,15 +57,21 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
   bool _isLoading = false;
 
   /// 광고 시청 처리
+  ///
+  /// DEPRECATED: 이 다이얼로그는 dead code. 실제 토큰 지급은
+  /// TokenDepletedBanner._handleRewardedAndContinue()에서 처리.
+  /// 가짜 2초 딜레이로 서버 토큰 지급하던 취약점 제거.
   Future<void> _watchAd() async {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: 실제 광고 SDK 연동 (Google AdMob 등)
-      // 현재는 시뮬레이션: 2초 대기 후 보너스 토큰 추가
-      await Future.delayed(const Duration(seconds: 2));
+      // 실제 보상형 광고 없이 토큰 지급 불가 — 다이얼로그 닫기만 처리
+      if (!mounted) return;
+      Navigator.of(context).pop(false);
+      return;
 
-      // 보너스 토큰 추가
+      // === 아래 코드는 더 이상 실행되지 않음 (보안 취약점 제거) ===
+      // ignore: dead_code
       final result = await QuotaService.addAdBonusTokens();
 
       if (!mounted) return;

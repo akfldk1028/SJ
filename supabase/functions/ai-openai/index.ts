@@ -143,7 +143,7 @@ interface OpenAIRequest {
   model: string;
   max_tokens?: number;
   temperature?: number;
-  response_format?: { type: "json_object" | "text" };
+  response_format?: { type: string; json_schema?: Record<string, unknown> };
   user_id?: string;
   run_in_background?: boolean;
   task_type?: string;

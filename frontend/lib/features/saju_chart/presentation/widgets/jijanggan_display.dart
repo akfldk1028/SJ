@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../domain/services/jijanggan_service.dart';
 import 'sipsung_display.dart';
@@ -28,6 +29,7 @@ class JiJangGanDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final padding = _getPadding();
     final fontSize = _getFontSize();
 
@@ -53,13 +55,13 @@ class JiJangGanDisplay extends StatelessWidget {
           // 지장간 목록 (여기 → 중기 → 정기 순)
           ...result.jijangganList
               .where((jjg) => jjg.type == JiJangGanType.yeoGi)
-              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize)),
+              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize, locale)),
           ...result.jijangganList
               .where((jjg) => jjg.type == JiJangGanType.jungGi)
-              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize)),
+              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize, locale)),
           ...result.jijangganList
               .where((jjg) => jjg.type == JiJangGanType.jeongGi)
-              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize)),
+              .map((jjg) => _buildJiJangGanItem(context, theme, jjg, fontSize, locale)),
         ],
       ),
     );
@@ -70,9 +72,11 @@ class JiJangGanDisplay extends StatelessWidget {
     AppThemeExtension theme,
     JiJangGanSipSin jjg,
     double fontSize,
+    String locale,
   ) {
     final color = _getOhengColor(jjg.oheng, theme);
-    final typeLabel = jjg.type.korean.substring(0, 1); // 여/중/정
+    final localizedType = SajuI18n.jijangganType(jjg.type.korean, locale);
+    final typeLabel = localizedType.substring(0, 1); // 여/중/정 or R/M/M
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -251,6 +255,7 @@ class JiJangGanDetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -292,13 +297,13 @@ class JiJangGanDetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // 지장간 상세
-          ...result.jijangganList.map((jjg) => _buildDetailItem(context, theme, jjg)),
+          ...result.jijangganList.map((jjg) => _buildDetailItem(context, theme, jjg, locale)),
         ],
       ),
     );
   }
 
-  Widget _buildDetailItem(BuildContext context, AppThemeExtension theme, JiJangGanSipSin jjg) {
+  Widget _buildDetailItem(BuildContext context, AppThemeExtension theme, JiJangGanSipSin jjg, String locale) {
     final color = _getOhengColor(jjg.oheng, theme);
     final strengthPercent = (jjg.strength / 30 * 100).round(); // 30일 기준
 
@@ -315,7 +320,7 @@ class JiJangGanDetailCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              jjg.type.korean,
+              SajuI18n.jijangganType(jjg.type.korean, locale),
               style: TextStyle(
                 color: theme.textMuted,
                 fontSize: 13,

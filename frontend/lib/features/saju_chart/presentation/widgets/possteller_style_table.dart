@@ -153,6 +153,7 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 천간 십성 행 (포스텔러 스타일)
   Widget _buildCheonganSipsinRow(BuildContext context, String dayGan) {
     final pillars = _getPillarsOrdered();
+    final locale = context.locale.languageCode;
 
     return _buildDataRow(
       context,
@@ -168,7 +169,7 @@ class PosstellerStyleTable extends StatelessWidget {
         }
 
         final sipsin = calculateSipSin(dayGan, pillar.gan);
-        return _buildSipsinCell(context, sipsin.korean, sipsin);
+        return _buildSipsinCell(context, SajuI18n.sipsin(sipsin.korean, locale), sipsin);
       }).toList(),
     );
   }
@@ -176,6 +177,7 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 지지 십성 행 (포스텔러 스타일 - 정기 기준)
   Widget _buildJijiSipsinRow(BuildContext context, String dayGan) {
     final pillars = _getPillarsOrdered();
+    final locale = context.locale.languageCode;
 
     return _buildDataRow(
       context,
@@ -188,13 +190,14 @@ class PosstellerStyleTable extends StatelessWidget {
         if (jeongGi == null) return _buildEmptyCell(context);
 
         final sipsin = calculateSipSin(dayGan, jeongGi);
-        return _buildSipsinCell(context, sipsin.korean, sipsin);
+        return _buildSipsinCell(context, SajuI18n.sipsin(sipsin.korean, locale), sipsin);
       }).toList(),
     );
   }
 
   /// 지장간 행
   Widget _buildJijangganRow(BuildContext context, JiJangGanAnalysisResult result) {
+    final locale = context.locale.languageCode;
     final results = [
       result.hourResult,
       result.dayResult,
@@ -207,8 +210,10 @@ class PosstellerStyleTable extends StatelessWidget {
       label: 'saju_chart.jijanggan'.tr(),
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
-        // 지장간 한글로 표시 (포스텔러 스타일)
-        final jijangganStr = r.jijangganString;
+        // 지장간 locale별 표시
+        final sorted = [...r.jijangganList]..sort((a, b) =>
+            a.type.strengthRank.compareTo(b.type.strengthRank));
+        final jijangganStr = sorted.map((j) => SajuI18n.cheongan(j.gan, locale)).join();
         final theme = context.appTheme;
         return _buildTextCell(context, jijangganStr, theme.textSecondary);
       }).toList(),
@@ -217,6 +222,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 12운성 행
   Widget _buildUnsungRow(BuildContext context, UnsungAnalysisResult result) {
+    final locale = context.locale.languageCode;
     final results = [
       result.hourUnsung,
       result.dayUnsung,
@@ -230,13 +236,14 @@ class PosstellerStyleTable extends StatelessWidget {
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         final color = _getUnsungColor(r.unsung);
-        return _buildBadgeCell(context, r.unsung.korean, color);
+        return _buildBadgeCell(context, SajuI18n.unsung(r.unsung.korean, locale), color);
       }).toList(),
     );
   }
 
   /// 12신살 행
   Widget _buildSinsalRow(BuildContext context, TwelveSinsalAnalysisResult result) {
+    final locale = context.locale.languageCode;
     final results = [
       result.hourResult,
       result.dayResult,
@@ -250,7 +257,7 @@ class PosstellerStyleTable extends StatelessWidget {
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         final color = _getSinsalColor(r.sinsal);
-        return _buildBadgeCell(context, r.sinsal.korean, color);
+        return _buildBadgeCell(context, SajuI18n.sinsal(r.sinsal.korean, locale), color);
       }).toList(),
       isLast: true,
     );
@@ -292,17 +299,28 @@ class PosstellerStyleTable extends StatelessWidget {
     );
   }
 
-  /// 라벨 셀 (구분 열)
+  /// 라벨 셀 (구분 열) — locale에 따라 너비 조정
   Widget _buildLabelCell(BuildContext context, String text, {bool isHeader = false}) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
+    final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+    final labelWidth = compact
+        ? (isCjk ? 50.0 : 70.0)
+        : (isCjk ? 60.0 : 80.0);
+
     return SizedBox(
-      width: compact ? 50 : 60,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isHeader ? theme.textMuted : theme.textSecondary,
-          fontSize: compact ? 12 : 13,
-          fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
+      width: labelWidth,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isHeader ? theme.textMuted : theme.textSecondary,
+            fontSize: compact ? 12 : 13,
+            fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
+          ),
+          maxLines: 2,
         ),
       ),
     );
@@ -313,12 +331,16 @@ class PosstellerStyleTable extends StatelessWidget {
     final theme = context.appTheme;
     return Expanded(
       child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            color: theme.textMuted,
-            fontSize: compact ? 12 : 13,
-            fontWeight: FontWeight.w500,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            text,
+            style: TextStyle(
+              color: theme.textMuted,
+              fontSize: compact ? 12 : 13,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
           ),
         ),
       ),
@@ -368,10 +390,12 @@ class PosstellerStyleTable extends StatelessWidget {
     final color = sipsin != null ? _getSipsinColor(sipsin) : theme.textSecondary;
 
     return Expanded(
-      child: Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
+          width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 6 : 8,
+            horizontal: compact ? 4 : 6,
             vertical: compact ? 3 : 4,
           ),
           decoration: BoxDecoration(
@@ -379,12 +403,16 @@ class PosstellerStyleTable extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             border: Border.all(color: color.withOpacity(0.3)),
           ),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: compact ? 12 : 13,
-              fontWeight: FontWeight.w600,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontSize: compact ? 12 : 13,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
             ),
           ),
         ),
@@ -412,10 +440,12 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 뱃지 셀 (12운성, 12신살용)
   Widget _buildBadgeCell(BuildContext context, String text, Color color) {
     return Expanded(
-      child: Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
+          width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 6 : 8,
+            horizontal: compact ? 4 : 6,
             vertical: compact ? 3 : 4,
           ),
           decoration: BoxDecoration(
@@ -423,12 +453,16 @@ class PosstellerStyleTable extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: color.withOpacity(0.4)),
           ),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: compact ? 12 : 13,
-              fontWeight: FontWeight.w600,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontSize: compact ? 12 : 13,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
             ),
           ),
         ),

@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Người kể chuyện Tứ Trụ",
   "persona_bookOfSaju_desc": "Cuốn sách Tứ Trụ cổ còn sống",
   "persona_yinYangGrandpa_desc": "Ánh sáng trong bóng tối, bậc thầy đảo ngược",
-  "persona_sewerSaju_desc": "Sự thật phũ phàng về số mệnh của bạn"
+  "persona_sewerSaju_desc": "Sự thật phũ phàng về số mệnh của bạn",
+  "persona_default": "Mặc định",
+  "persona_default_desc": "Tư vấn mặc định",
+  "persona_default_detail": "Nhà tư vấn AI mặc định.",
+  "persona_sewerSaju_short": "Khẩu độc",
+  "persona_sewerSaju_descChat": "Bậc thầy sự thật phũ phàng",
+  "persona_nf_detail": "Nhà tư vấn ấm áp và giàu lòng đồng cảm.\n\nĐọc thấu trái tim bạn trước, rồi truyền tải luận giải Tứ Trụ bằng cảm xúc ấm áp. Phù hợp khi bạn cần sự an ủi và đồng cảm.",
+  "persona_nt_detail": "Nhà phân tích logic và có hệ thống.\n\nPhân tích chính xác Ngũ Hành, Thập Thần và hợp tuổi, đưa ra luận giải có căn cứ. Phù hợp khi cần phân tích vận mệnh chuyên sâu.",
+  "persona_sf_detail": "Nhà tư vấn thân thiện và vui vẻ như một người bạn thân.\n\nGiải thích vận mệnh một cách dễ hiểu và thú vị trong cuộc trò chuyện thoải mái. Phù hợp khi muốn xem vận mệnh nhẹ nhàng.",
+  "persona_st_detail": "Nhà tư vấn đưa ra lời khuyên thẳng thắn và thực tế.\n\nĐi thẳng vào vấn đề không vòng vo, giải mã vận mệnh từ góc nhìn thực dụng. Phù hợp khi bạn muốn câu trả lời rõ ràng.",
+  "persona_babyMonk_detail": "Tiểu sư phụ, Tiểu hòa thượng. Xem vận mệnh bạo dạn bằng giọng suồng sã với những câu nói trúng tim đen.\n\nPhù hợp khi muốn nghe sự thật trong không khí nhẹ nhàng.",
+  "persona_scenarioWriter_detail": "Người kể chuyện dệt vận mệnh thành câu chuyện.",
+  "persona_yinYangGrandpa_detail": "Ông Âm Dương tìm ánh sáng trong bóng tối và bóng tối trong ánh sáng — bậc thầy đảo ngược tình thế.\n\nThừa nhận sự thật khắc nghiệt, rồi hé lộ những thế mạnh ẩn giấu một cách kịch tính để mang lại hy vọng. Phù hợp khi bạn cần an ủi và những bất ngờ ngoạn mục.",
+  "persona_sewerSaju_detail": "Thầy bói khẩu độc là bậc thầy sự thật phũ phàng, không ngại phơi bày mặt tối trong số mệnh của bạn.\n\nBuộc bạn đối mặt thực tế bằng sự sắc sảo và thẳng thắn sảng khoái. Cảnh báo: không dành cho người yếu tim!"
 }

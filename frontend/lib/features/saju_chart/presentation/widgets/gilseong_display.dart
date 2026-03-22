@@ -8,6 +8,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/twelve_sinsal.dart';
 import '../../domain/services/gilseong_service.dart';
 
@@ -30,6 +31,7 @@ class SpecialSinsalBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
     final color = _getSinsalColor(sinsal);
     final fontSize = _getFontSize();
     final padding = _getPadding();
@@ -45,7 +47,7 @@ class SpecialSinsalBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            sinsal.korean,
+            SajuI18n.specialSinsal(sinsal.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: fontSize,
@@ -61,7 +63,7 @@ class SpecialSinsalBadge extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
               child: Text(
-                sinsal.fortuneType.korean,
+                SajuI18n.fortuneType(sinsal.fortuneType.korean, locale),
                 style: TextStyle(
                   color: color,
                   fontSize: fontSize * 0.7,

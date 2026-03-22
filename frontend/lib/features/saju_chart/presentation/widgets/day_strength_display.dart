@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/day_strength.dart';
 import '../../domain/entities/saju_analysis.dart';
@@ -102,6 +103,7 @@ class DayStrengthDisplay extends StatelessWidget {
 
   /// 신강/신약 상태 카드
   Widget _buildDayStrengthCard(BuildContext context, AppThemeExtension theme) {
+    final locale = context.locale.languageCode;
     final dayStrength = analysis.dayStrength;
     final level = dayStrength.level;
 
@@ -140,7 +142,7 @@ class DayStrengthDisplay extends StatelessWidget {
                   text: 'saju_chart.singang_dayGanDesc'.tr(namedArgs: {'dayGan': analysis.chart.dayPillar.gan}),
                 ),
                 TextSpan(
-                  text: level.korean,
+                  text: SajuI18n.singangLevel(level.korean, locale),
                   style: TextStyle(
                     color: _getStrengthColor(level),
                     fontWeight: FontWeight.bold,
@@ -300,6 +302,7 @@ class DayStrengthDisplay extends StatelessWidget {
 
   /// 용신 카드
   Widget _buildYongsinCard(BuildContext context, AppThemeExtension theme) {
+    final locale = context.locale.languageCode;
     final yongsin = analysis.yongsin;
 
     // 조후용신 계산 (월지 기반)
@@ -319,12 +322,14 @@ class DayStrengthDisplay extends StatelessWidget {
           _buildYongsinBadge(
             label: 'saju_chart.singang_johu'.tr(),
             oheng: johuYongsin,
+            locale: locale,
           ),
           const SizedBox(width: 24),
           // 억부용신
           _buildYongsinBadge(
             label: 'saju_chart.singang_eokbu'.tr(),
             oheng: yongsin.yongsin,
+            locale: locale,
           ),
         ],
       ),
@@ -334,6 +339,7 @@ class DayStrengthDisplay extends StatelessWidget {
   Widget _buildYongsinBadge({
     required String label,
     required Oheng oheng,
+    required String locale,
     AppThemeExtension? theme,
   }) {
     final color = _getOhengColor(oheng);
@@ -356,7 +362,7 @@ class DayStrengthDisplay extends StatelessWidget {
             border: Border.all(color: color.withValues(alpha: 0.5)),
           ),
           child: Text(
-            oheng.korean,
+            SajuI18n.oheng(oheng.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: 16,
@@ -370,6 +376,7 @@ class DayStrengthDisplay extends StatelessWidget {
 
   /// 일간 강약 분석 요소 카드
   Widget _buildStrengthFactorsCard(BuildContext context, AppThemeExtension theme) {
+    final locale = context.locale.languageCode;
     final details = analysis.dayStrength.details;
 
     return Container(
@@ -381,7 +388,7 @@ class DayStrengthDisplay extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildFactorRow('saju_chart.singang_wolryeong'.tr(), details.monthStatus.korean,
+          _buildFactorRow('saju_chart.singang_wolryeong'.tr(), SajuI18n.monthStatus(details.monthStatus.korean, locale),
               details.monthStatus == MonthStatus.deukwol, theme),
           _buildFactorRow('saju_chart.bigeop'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.bigeopCount}'}),
               details.bigeopCount > 1, theme),

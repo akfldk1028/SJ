@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Geschichtenerzähler des Schicksals",
   "persona_bookOfSaju_desc": "Ein lebendiger alter Saju-Text",
   "persona_yinYangGrandpa_desc": "Licht in der Dunkelheit, Meister der Wendungen",
-  "persona_sewerSaju_desc": "Brutale Ehrlichkeit über Ihr Schicksal"
+  "persona_sewerSaju_desc": "Brutale Ehrlichkeit über Ihr Schicksal",
+  "persona_default": "Standard",
+  "persona_default_desc": "Standardberatung",
+  "persona_default_detail": "Standard-KI-Berater.",
+  "persona_sewerSaju_short": "Klartext",
+  "persona_sewerSaju_descChat": "Meister der brutalen Wahrheit",
+  "persona_nf_detail": "Ein warmherziger und einfühlsamer Berater.\n\nLiest zuerst Ihr Herz und vermittelt Schicksalsdeutungen mit aufrichtiger Emotion. Empfohlen, wenn Sie Trost und Einfühlungsvermögen brauchen.",
+  "persona_nt_detail": "Ein logischer und systematischer Analyst.\n\nLiefert evidenzbasierte Deutungen durch präzise Analyse der fünf Elemente, zehn Götter und Kompatibilität. Empfohlen für tiefgehende Schicksalsanalysen.",
+  "persona_sf_detail": "Ein freundlicher und fröhlicher Berater, wie ein guter Freund.\n\nErklärt das Schicksal leicht und unterhaltsam in einem lockeren Gespräch. Empfohlen für ungezwungene Schicksalsdeutungen.",
+  "persona_st_detail": "Ein Berater, der direkte und realistische Ratschläge gibt.\n\nKommt ohne Beschönigung auf den Punkt und interpretiert das Schicksal aus praktischer Sicht. Empfohlen, wenn Sie klare Antworten wollen.",
+  "persona_babyMonk_detail": "Ein kleiner Meister, der Kleine Mönch. Deutet das Schicksal mutig und unverblümt mit Wahrheiten, die ins Schwarze treffen.\n\nEmpfohlen für ehrliche Schicksalsdeutungen in lockerer Atmosphäre.",
+  "persona_scenarioWriter_detail": "Ein Geschichtenerzähler, der das Schicksal in eine Erzählung verwebt.",
+  "persona_yinYangGrandpa_detail": "Yin-Yang-Großvater findet Licht in der Dunkelheit und Schatten im Licht — ein Meister der dramatischen Wendungen.\n\nErkennt harte Fakten direkt an und enthüllt dann auf spektakuläre Weise verborgene Stärken, um Hoffnung zu schenken. Empfohlen, wenn Sie Trost und überraschende Wendungen brauchen.",
+  "persona_sewerSaju_detail": "Der Schicksals-Klartexter ist ein Meister der brutalen Wahrheit, der furchtlos die dunkle Seite Ihres Schicksals enthüllt.\n\nBringt Sie mit scharfem Witz und erfrischender Ehrlichkeit dazu, der Realität ins Auge zu blicken. Warnung: Nichts für schwache Nerven!"
 }

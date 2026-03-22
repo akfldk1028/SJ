@@ -25,6 +25,7 @@ import 'day_strength_display.dart';
 import 'oheng_analysis_display.dart';
 import 'gilseong_display.dart';
 import '../../domain/entities/pillar.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/services/gilseong_service.dart';
 
@@ -1083,7 +1084,8 @@ class _UnsungTab extends StatelessWidget {
   }
 
   Widget _buildUnsungItemCard(BuildContext context, UnsungResult item, AppThemeExtension theme) {
-    final unsungName = item.unsung.korean;
+    final locale = context.locale.languageCode;
+    final unsungName = SajuI18n.unsung(item.unsung.korean, locale);
     final color = _unsungColors[unsungName] ?? theme.textSecondary;
     final icon = _unsungIcons[unsungName] ?? Icons.circle;
 
@@ -1207,7 +1209,7 @@ class _UnsungTab extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        item.unsung.meaning,
+                        SajuI18n.unsungMeaning(item.unsung.meaning, locale),
                         style: TextStyle(
                           color: theme.textPrimary,
                           fontSize: 14,
@@ -1629,7 +1631,8 @@ class _SinsalTab extends StatelessWidget {
     required String description,
     required AppThemeExtension theme,
   }) {
-    final sinsalName = sinsal.korean;
+    final locale = context.locale.languageCode;
+    final sinsalName = SajuI18n.sinsal(sinsal.korean, locale);
     final color = _sinsalColors[sinsalName] ?? theme.primaryColor;
     final icon = _sinsalIcons[sinsalName] ?? Icons.star_rounded;
     final fortuneType = sinsal.fortuneType;
@@ -1751,7 +1754,8 @@ class _SinsalTab extends StatelessWidget {
   }
 
   Widget _buildSinsalItemCard(BuildContext context, TwelveSinsalResult item, AppThemeExtension theme) {
-    final sinsalName = item.sinsal.korean;
+    final locale = context.locale.languageCode;
+    final sinsalName = SajuI18n.sinsal(item.sinsal.korean, locale);
     final color = _sinsalColors[sinsalName] ?? theme.textSecondary;
     final icon = _sinsalIcons[sinsalName] ?? Icons.circle;
     final fortuneType = item.sinsal.fortuneType;
@@ -1873,7 +1877,7 @@ class _SinsalTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.sinsal.meaning,
+                  SajuI18n.sinsalMeaning(item.sinsal.meaning, locale),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,

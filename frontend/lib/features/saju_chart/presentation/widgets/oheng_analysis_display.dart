@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/saju_analysis.dart';
 
@@ -15,6 +16,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -27,11 +29,11 @@ class OhengAnalysisDisplay extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildOhengDonutChart(context, theme),
+                child: _buildOhengDonutChart(context, theme, locale),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildSipsinDonutChart(context, theme),
+                child: _buildSipsinDonutChart(context, theme, locale),
               ),
             ],
           ),
@@ -46,13 +48,13 @@ class OhengAnalysisDisplay extends StatelessWidget {
           // 십성 분포 테이블
           _buildSectionTitle(context, 'saju_chart.sipsungTab'.tr(), theme),
           const SizedBox(height: 12),
-          _buildSipsinTable(context, theme),
+          _buildSipsinTable(context, theme, locale),
           const SizedBox(height: 24),
 
           // 오행 상생상극 관계도
-          _buildSectionTitle(context, 'saju_chart.myOheng'.tr(namedArgs: {'oheng': _getDayGanOheng().korean}), theme),
+          _buildSectionTitle(context, 'saju_chart.myOheng'.tr(namedArgs: {'oheng': SajuI18n.oheng(_getDayGanOheng().korean, locale)}), theme),
           const SizedBox(height: 12),
-          _buildOhengRelationDiagram(context, theme),
+          _buildOhengRelationDiagram(context, theme, locale),
         ],
       ),
     );
@@ -118,7 +120,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 오행 도넛 차트
-  Widget _buildOhengDonutChart(BuildContext context, AppThemeExtension theme) {
+  Widget _buildOhengDonutChart(BuildContext context, AppThemeExtension theme, String locale) {
     final oheng = analysis.ohengDistribution;
     final total = oheng.total;
     final strongest = oheng.strongest;
@@ -153,7 +155,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      strongest.korean,
+                      SajuI18n.oheng(strongest.korean, locale),
                       style: TextStyle(
                         color: _getOhengColor(strongest),
                         fontSize: 24,
@@ -178,7 +180,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 십성 도넛 차트
-  Widget _buildSipsinDonutChart(BuildContext context, AppThemeExtension theme) {
+  Widget _buildSipsinDonutChart(BuildContext context, AppThemeExtension theme, String locale) {
     final sipsinDist = _calculateSipsinDistribution();
     final total = sipsinDist.values.fold(0, (a, b) => a + b);
     final strongest = sipsinDist.entries
@@ -186,7 +188,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
         .key;
 
     final data = sipsinDist.entries.where((e) => e.value > 0).map((e) {
-      return _ChartData(e.key.korean, e.value, _getSipsinColor(e.key));
+      return _ChartData(SajuI18n.sipsin(e.key.korean, locale), e.value, _getSipsinColor(e.key));
     }).toList();
 
     return Container(
@@ -211,7 +213,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      strongest.korean,
+                      SajuI18n.sipsin(strongest.korean, locale),
                       style: TextStyle(
                         color: _getSipsinColor(strongest),
                         fontSize: 18,
@@ -292,7 +294,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 십성 분포 테이블
-  Widget _buildSipsinTable(BuildContext context, AppThemeExtension theme) {
+  Widget _buildSipsinTable(BuildContext context, AppThemeExtension theme, String locale) {
     final sipsinDist = _calculateSipsinDistribution();
     final total = sipsinDist.values.fold(0, (a, b) => a + b);
 
@@ -314,7 +316,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                 SizedBox(
                   width: 80,
                   child: Text(
-                    '${sipsin.korean}(${sipsin.hanja})',
+                    '${SajuI18n.sipsin(sipsin.korean, locale)}(${sipsin.hanja})',
                     style: TextStyle(
                       color: theme.textSecondary,
                       fontSize: 13,
@@ -340,7 +342,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
   }
 
   /// 오행 상생상극 관계도
-  Widget _buildOhengRelationDiagram(BuildContext context, AppThemeExtension theme) {
+  Widget _buildOhengRelationDiagram(BuildContext context, AppThemeExtension theme, String locale) {
     final oheng = analysis.ohengDistribution;
     final total = oheng.total;
 
@@ -373,6 +375,7 @@ class OhengAnalysisDisplay extends StatelessWidget {
                 dayGanOheng: _getDayGanOheng(),
                 surfaceColor: theme.surfaceElevated,
                 textSecondaryColor: theme.textSecondary,
+                locale: locale,
               ),
             ),
           ),
@@ -528,12 +531,14 @@ class _OhengPentagonPainter extends CustomPainter {
   final Oheng dayGanOheng;
   final Color surfaceColor;
   final Color textSecondaryColor;
+  final String locale;
 
   _OhengPentagonPainter({
     required this.distribution,
     required this.dayGanOheng,
     required this.surfaceColor,
     required this.textSecondaryColor,
+    required this.locale,
   });
 
   @override
@@ -618,7 +623,7 @@ class _OhengPentagonPainter extends CustomPainter {
         text: TextSpan(
           children: [
             TextSpan(
-              text: '${oheng.korean}(${_getSipsinCategory(oheng)})\n',
+              text: '${SajuI18n.oheng(oheng.korean, locale)}(${_getSipsinCategory(oheng)})\n',
               style: TextStyle(
                 color: _getOhengColor(oheng),
                 fontSize: 13,
@@ -681,7 +686,7 @@ class _OhengPentagonPainter extends CustomPainter {
   String _getSipsinCategory(Oheng oheng) {
     // 일간 기준 십성 카테고리
     final dayOheng = dayGanOheng;
-    if (oheng == dayOheng) return '비겁';
+    if (oheng == dayOheng) return SajuI18n.sipsinCategory('비겁', locale);
 
     // 상생상극 관계로 카테고리 결정
     final saengSeq = [Oheng.mok, Oheng.hwa, Oheng.to, Oheng.geum, Oheng.su];
@@ -690,11 +695,11 @@ class _OhengPentagonPainter extends CustomPainter {
 
     final diff = (targetIdx - dayIdx + 5) % 5;
     return switch (diff) {
-      0 => '비겁',
-      1 => '식상',
-      2 => '재성',
-      3 => '관성',
-      4 => '인성',
+      0 => SajuI18n.sipsinCategory('비겁', locale),
+      1 => SajuI18n.sipsinCategory('식상', locale),
+      2 => SajuI18n.sipsinCategory('재성', locale),
+      3 => SajuI18n.sipsinCategory('관성', locale),
+      4 => SajuI18n.sipsinCategory('인성', locale),
       _ => '',
     };
   }

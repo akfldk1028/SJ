@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/daeun.dart';
@@ -214,6 +215,7 @@ class DaeunSlider extends StatelessWidget {
 
   Widget _buildDaeunCard(BuildContext context, DaeUn daeun, bool isCurrent) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final ganSipsin = calculateSipSin(dayGan, daeun.pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(daeun.pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(daeun.pillar.ganOheng);
@@ -243,7 +245,7 @@ class DaeunSlider extends StatelessWidget {
             ),
           ),
           Text(
-            ganSipsin.korean.substring(0, 2),
+            SajuI18n.sipsin(ganSipsin.korean, locale),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -292,7 +294,7 @@ class DaeunSlider extends StatelessWidget {
           const SizedBox(height: 4),
           // 지지 십성
           Text(
-            jiSipsin.korean.substring(0, 2),
+            SajuI18n.sipsin(jiSipsin.korean, locale),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -357,6 +359,7 @@ class SeunSlider extends StatelessWidget {
 
   Widget _buildSeunCard(BuildContext context, SeUn seun, bool isCurrent) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final ganSipsin = calculateSipSin(dayGan, seun.pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(seun.pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(seun.pillar.ganOheng);
@@ -386,7 +389,7 @@ class SeunSlider extends StatelessWidget {
             ),
           ),
           Text(
-            ganSipsin.korean.substring(0, 2),
+            SajuI18n.sipsin(ganSipsin.korean, locale),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -435,7 +438,7 @@ class SeunSlider extends StatelessWidget {
           const SizedBox(height: 4),
           // 지지 십성
           Text(
-            jiSipsin.korean.substring(0, 2),
+            SajuI18n.sipsin(jiSipsin.korean, locale),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -542,6 +545,7 @@ class WolunSlider extends StatelessWidget {
     final pillar = wolun['pillar'] as Pillar;
     final month = wolun['month'] as int;
 
+    final locale = context.locale.languageCode;
     final ganSipsin = calculateSipSin(dayGan, pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(pillar.ganOheng);
@@ -571,7 +575,7 @@ class WolunSlider extends StatelessWidget {
             ),
           ),
           Text(
-            ganSipsin.korean.substring(0, 2),
+            SajuI18n.sipsin(ganSipsin.korean, locale),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -620,7 +624,7 @@ class WolunSlider extends StatelessWidget {
           const SizedBox(height: 4),
           // 지지 십성
           Text(
-            jiSipsin.korean.substring(0, 2),
+            SajuI18n.sipsin(jiSipsin.korean, locale),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
