@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -428,21 +429,21 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('프리미엄으로 바로 보기'),
+        title: Text('common.premiumViewNow'.tr()),
         content: Text(
-          '$weekName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+          'common.premiumAdNotAvailable'.tr(namedArgs: {'name': weekName}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('닫기'),
+            child: Text('common.close'.tr()),
           ),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.push(Routes.settingsPremium);
             },
-            child: const Text('프리미엄 보기'),
+            child: Text('common.viewPremium'.tr()),
           ),
         ],
       ),

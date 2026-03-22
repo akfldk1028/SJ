@@ -2,6 +2,7 @@
 /// 천간의 지지에 따른 기운의 강약을 12단계로 분석
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import '../../data/constants/twelve_unsung.dart';
 import '../entities/saju_chart.dart';
 
@@ -109,9 +110,9 @@ class UnsungAnalysisResult {
     final bad = badUnsungCount;
     final avg = averageStrength.toStringAsFixed(1);
 
-    if (good >= 3) return '전반적으로 기운이 왕성합니다 (평균강도: $avg)';
-    if (bad >= 3) return '전반적으로 기운이 약합니다 (평균강도: $avg)';
-    return '기운의 균형이 적절합니다 (평균강도: $avg)';
+    if (good >= 3) return 'saju_detail.unsung_summary_strong'.tr(namedArgs: {'avg': avg});
+    if (bad >= 3) return 'saju_detail.unsung_summary_weak'.tr(namedArgs: {'avg': avg});
+    return 'saju_detail.unsung_summary_balanced'.tr(namedArgs: {'avg': avg});
   }
 }
 
@@ -182,10 +183,10 @@ class UnsungService {
 
     // 궁성별 추가 해석
     final pillarMeaning = switch (pillarName) {
-      '년주' => '조상운/유년기',
-      '월주' => '부모운/청년기',
-      '일주' => '본인/중년기',
-      '시주' => '자녀운/말년기',
+      '년주' => 'saju_detail.unsung_pillar_year'.tr(),
+      '월주' => 'saju_detail.unsung_pillar_month'.tr(),
+      '일주' => 'saju_detail.unsung_pillar_day'.tr(),
+      '시주' => 'saju_detail.unsung_pillar_hour'.tr(),
       _ => '',
     };
 
@@ -195,42 +196,18 @@ class UnsungService {
   /// 12운성별 통변 해석
   static String getDetailedInterpretation(TwelveUnsung unsung) {
     return switch (unsung) {
-      TwelveUnsung.jangSaeng =>
-        '장생은 새로 태어나는 기운입니다. 창의성이 뛰어나고 새로운 시작에 유리합니다. '
-            '독립심이 강하고 자수성가하는 경향이 있습니다.',
-      TwelveUnsung.mokYok =>
-        '목욕은 씻김과 정화의 단계입니다. 감성적이고 예술적 기질이 있으나 '
-            '불안정하고 변화가 많을 수 있습니다. 도화적 성격이 나타날 수 있습니다.',
-      TwelveUnsung.gwanDae =>
-        '관대는 관을 쓰는 성인의 단계입니다. 사회적 인정을 받고 자신감이 충만합니다. '
-            '책임감이 강하고 명예를 중시합니다.',
-      TwelveUnsung.geonRok =>
-        '건록은 녹을 세우는 단계로 가장 활발한 시기입니다. 실력을 발휘하고 '
-            '재물을 모으기에 좋습니다. 직장운이나 사업운이 강합니다.',
-      TwelveUnsung.jeWang =>
-        '제왕은 황제처럼 최고 전성기의 기운입니다. 리더십이 강하고 주도적입니다. '
-            '다만 너무 강해서 독선적이거나 외로울 수 있습니다.',
-      TwelveUnsung.soe =>
-        '쇠는 쇠퇴가 시작되는 단계입니다. 전성기를 지나 내면의 성숙을 이루는 시기입니다. '
-            '경험에서 오는 지혜가 있습니다.',
-      TwelveUnsung.byung =>
-        '병은 기력이 약해지는 단계입니다. 내향적이고 깊은 사색을 하는 시기입니다. '
-            '건강 관리에 신경 써야 합니다.',
-      TwelveUnsung.sa =>
-        '사는 기운이 정지하는 단계입니다. 완고하고 고집이 있으나 '
-            '한 분야에 깊이 파고드는 집중력이 있습니다.',
-      TwelveUnsung.myo =>
-        '묘는 무덤으로 잠재된 에너지의 창고입니다. 비밀스러운 능력과 '
-            '재물을 저장하는 힘이 있습니다. 고집이 세고 비밀이 많습니다.',
-      TwelveUnsung.jeol =>
-        '절은 끊어지고 단절되는 단계입니다. 기존 것이 종료되고 '
-            '완전히 새로운 시작을 준비하는 시기입니다.',
-      TwelveUnsung.tae =>
-        '태는 잉태의 단계로 새 생명이 준비되는 시기입니다. '
-            '새로운 가능성과 계획이 싹트는 단계입니다.',
-      TwelveUnsung.yang =>
-        '양은 양육되는 단계입니다. 점진적으로 성장하며 '
-            '보호와 양육을 받는 시기입니다.',
+      TwelveUnsung.jangSaeng => 'saju_detail.unsung_detail_jangsaeng'.tr(),
+      TwelveUnsung.mokYok => 'saju_detail.unsung_detail_mokyok'.tr(),
+      TwelveUnsung.gwanDae => 'saju_detail.unsung_detail_gwandae'.tr(),
+      TwelveUnsung.geonRok => 'saju_detail.unsung_detail_geonrok'.tr(),
+      TwelveUnsung.jeWang => 'saju_detail.unsung_detail_jewang'.tr(),
+      TwelveUnsung.soe => 'saju_detail.unsung_detail_soe'.tr(),
+      TwelveUnsung.byung => 'saju_detail.unsung_detail_byung'.tr(),
+      TwelveUnsung.sa => 'saju_detail.unsung_detail_sa'.tr(),
+      TwelveUnsung.myo => 'saju_detail.unsung_detail_myo'.tr(),
+      TwelveUnsung.jeol => 'saju_detail.unsung_detail_jeol'.tr(),
+      TwelveUnsung.tae => 'saju_detail.unsung_detail_tae'.tr(),
+      TwelveUnsung.yang => 'saju_detail.unsung_detail_yang'.tr(),
     };
   }
 

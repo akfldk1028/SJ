@@ -63,12 +63,14 @@ class OhengAnalysisDisplay extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Row(
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.textPrimary,
-              ),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
+          ),
         ),
         const SizedBox(width: 8),
         GestureDetector(
@@ -266,14 +268,16 @@ class OhengAnalysisDisplay extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 60,
+                  width: 80,
                   child: Text(
                     item.label,
                     style: TextStyle(
                       color: item.color,
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -314,13 +318,15 @@ class OhengAnalysisDisplay extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 80,
+                  width: 110,
                   child: Text(
                     '${SajuI18n.sipsin(sipsin.korean, locale)}(${sipsin.hanja})',
                     style: TextStyle(
                       color: theme.textSecondary,
-                      fontSize: 13,
+                      fontSize: 12,
                     ),
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(

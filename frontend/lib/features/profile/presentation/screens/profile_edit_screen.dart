@@ -13,8 +13,6 @@ import '../widgets/birth_date_input_widget.dart';
 import '../widgets/birth_time_input_widget.dart';
 import '../widgets/birth_time_options.dart';
 import '../widgets/lunar_options.dart';
-import '../widgets/city_search_field.dart';
-import '../widgets/time_correction_banner.dart';
 import '../widgets/profile_action_buttons.dart';
 import '../widgets/relationship_type_dropdown.dart';
 import '../providers/profile_provider.dart';
@@ -151,9 +149,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 const SizedBox(height: 24),
                 _BirthDateSection(key: ValueKey('birth_$_formKey')),
                 const SizedBox(height: 24),
-                CitySearchField(key: ValueKey('city_$_formKey')),
-                const SizedBox(height: 16),
-                const TimeCorrectionBanner(),
                 const SizedBox(height: 32),
                 ProfileActionButtons(
                   editingProfileId: widget.profileId,

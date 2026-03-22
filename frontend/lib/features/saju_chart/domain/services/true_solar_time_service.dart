@@ -60,9 +60,101 @@ class TrueSolarTimeService {
     '여수시': 127.66,
     '목포': 126.39,
     '목포시': 126.39,
+    // ═══════════════════════════════════════════════════════════════
+    // 해외 17개 지원 언어 수도 (경도)
+    // ═══════════════════════════════════════════════════════════════
+    '도쿄': 139.69,     // ja — UTC+9
+    '오사카': 135.50,
+    '베이징': 116.39,   // zh — UTC+8
+    '상하이': 121.47,
+    '하노이': 105.85,   // vi — UTC+7
+    '방콕': 100.50,     // th — UTC+7
+    '자카르타': 106.85,  // id — UTC+7
+    '쿠알라룸푸르': 101.69, // ms — UTC+8
+    '양곤': 96.17,      // my — UTC+6:30
+    '파리': 2.35,       // fr — UTC+1
+    '베를린': 13.40,    // de — UTC+1
+    '마드리드': -3.70,  // es — UTC+1 (CET)
+    '리스본': -9.14,    // pt — UTC+0
+    '로마': 12.50,      // it — UTC+1
+    '뉴델리': 77.21,    // hi — UTC+5:30
+    '리야드': 46.72,    // ar — UTC+3
+    '모스크바': 37.62,  // ru — UTC+3
+    '런던': -0.12,      // en — UTC+0
     // 기본값
     'default': 127.0,
   };
+
+  /// 도시별 표준 자오선 (시간대 기준 경도)
+  /// 진태양시 = (표준자오선 - 도시경도) × 4분
+  static const Map<String, double> cityStandardMeridian = {
+    // 한국 도시: KST = UTC+9 = 135°E
+    '서울': 135.0, '서울특별시': 135.0,
+    '부산': 135.0, '부산광역시': 135.0,
+    '대구': 135.0, '대구광역시': 135.0,
+    '인천': 135.0, '인천광역시': 135.0,
+    '광주': 135.0, '광주광역시': 135.0,
+    '대전': 135.0, '대전광역시': 135.0,
+    '울산': 135.0, '울산광역시': 135.0,
+    '세종': 135.0, '세종특별자치시': 135.0,
+    '제주': 135.0, '제주특별자치도': 135.0, '제주시': 135.0,
+    '창원': 135.0, '창원시': 135.0,
+    '수원': 135.0, '수원시': 135.0,
+    '성남': 135.0, '성남시': 135.0,
+    '고양': 135.0, '고양시': 135.0,
+    '용인': 135.0, '용인시': 135.0,
+    '청주': 135.0, '청주시': 135.0,
+    '전주': 135.0, '전주시': 135.0,
+    '포항': 135.0, '포항시': 135.0,
+    '강릉': 135.0, '강릉시': 135.0,
+    '춘천': 135.0, '춘천시': 135.0,
+    '원주': 135.0, '원주시': 135.0,
+    '제천': 135.0, '제천시': 135.0,
+    '평택': 135.0, '평택시': 135.0,
+    '김해': 135.0, '김해시': 135.0,
+    '진주': 135.0, '진주시': 135.0,
+    '여수': 135.0, '여수시': 135.0,
+    '목포': 135.0, '목포시': 135.0,
+    // 해외 수도
+    '도쿄': 135.0, '오사카': 135.0,          // JST = UTC+9
+    '베이징': 120.0, '상하이': 120.0,         // CST = UTC+8
+    '하노이': 105.0,                          // ICT = UTC+7
+    '방콕': 105.0,                            // ICT = UTC+7
+    '자카르타': 105.0,                         // WIB = UTC+7
+    '쿠알라룸푸르': 120.0,                      // MYT = UTC+8
+    '양곤': 97.5,                             // MMT = UTC+6:30
+    '파리': 15.0, '베를린': 15.0,              // CET = UTC+1
+    '마드리드': 15.0, '로마': 15.0,             // CET = UTC+1
+    '리스본': 0.0,                             // WET = UTC+0
+    '뉴델리': 82.5,                            // IST = UTC+5:30
+    '리야드': 45.0,                            // AST = UTC+3
+    '모스크바': 45.0,                           // MSK = UTC+3
+    '런던': 0.0,                               // GMT = UTC+0
+  };
+
+  /// locale → 기본 도시 매핑 (17개 언어 전부)
+  static String defaultCityForLocale(String locale) {
+    return switch (locale) {
+      'ko' => '서울',
+      'ja' => '도쿄',
+      'zh' => '베이징',
+      'vi' => '하노이',
+      'th' => '방콕',
+      'id' => '자카르타',
+      'ms' => '쿠알라룸푸르',
+      'my' => '양곤',
+      'fr' => '파리',
+      'de' => '베를린',
+      'es' => '마드리드',
+      'pt' => '리스본',
+      'it' => '로마',
+      'hi' => '뉴델리',
+      'ar' => '리야드',
+      'ru' => '모스크바',
+      'en' => '런던',
+      _ => '서울',
+    };
+  }
 
   /// 도시 별칭 매핑
   /// 짧은 이름 → 정식 이름 매핑
@@ -169,11 +261,11 @@ class TrueSolarTimeService {
     return results;
   }
 
-  /// 표준 경도 (동경 135도)
+  /// 기본 표준 경도 (동경 135도, KST)
   static const double standardLongitude = 135.0;
 
   /// 진태양시 계산
-  /// 1. 경도 보정: (135 - 실제경도) × 4분
+  /// 1. 경도 보정: (표준자오선 - 실제경도) × 4분
   /// 2. 균시차 적용 (선택적, 정밀 계산 시 사용)
   ///
   /// [localTime] 입력된 출생 시각 (지방시)
@@ -185,10 +277,11 @@ class TrueSolarTimeService {
     bool applyEquationOfTime = false,
   }) {
     final longitude = cityLongitude[city] ?? cityLongitude['default']!;
+    final meridian = cityStandardMeridian[city] ?? standardLongitude;
 
     // 경도 보정 계산
     // 경도 1도 차이 = 4분 시간 차이
-    final correctionMinutes = (standardLongitude - longitude) * 4;
+    final correctionMinutes = (meridian - longitude) * 4;
 
     // 보정된 시간
     DateTime correctedTime = localTime.subtract(
@@ -234,7 +327,8 @@ class TrueSolarTimeService {
   /// 경도 보정 시간 계산 (분 단위)
   static double getLongitudeCorrectionMinutes(String city) {
     final longitude = getLongitude(city);
-    return (standardLongitude - longitude) * 4;
+    final meridian = cityStandardMeridian[city] ?? standardLongitude;
+    return (meridian - longitude) * 4;
   }
 
   /// 도시명 정규화 (별칭 → 정식 이름)

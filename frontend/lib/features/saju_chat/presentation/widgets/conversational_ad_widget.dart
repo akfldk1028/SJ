@@ -81,12 +81,12 @@ class ConversationalAdWidget extends ConsumerWidget {
                     : _createAdMessageWithoutCta(adState),
             personaEmoji: persona.emoji,
             personaName: persona.displayName,
-            // v3: tokenDepleted CTA는 TokenDepletedBanner에서 처리 (전면 광고)
+            // v3: tokenDepleted CTA는 TokenDepletedBanner에서 처리 (보상형 광고)
             onCtaPressed: isRewardedAd && !isRequired
                 ? () => _handleRewardedCtaPressed(ref)
                 : null,
             onSkipPressed: !isRequired ? () => _handleSkip(ref) : null,
-            // v3: 네이티브 CTA 제거 (전면 광고로 전환됨)
+            // v3: 네이티브 CTA 제거 (보상형 광고로 전환됨)
             secondaryCtaText: null,
             onSecondaryCtaPressed: null,
           ),

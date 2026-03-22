@@ -335,13 +335,15 @@ class SinsalRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 50,
+            width: 80,
             child: Text(
               'saju_chart.twelveSinsal'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 13,
+                fontSize: 12,
               ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           ...items.map((item) => Expanded(
@@ -489,12 +491,14 @@ class SinsalDetailCard extends StatelessWidget {
             children: [
               const Icon(Icons.star, size: 16, color: AppColors.warning),
               const SizedBox(width: 4),
-              Text(
-                'saju_chart.specialSinsal'.tr(),
-                style: const TextStyle(
-                  color: AppColors.warning,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.specialSinsal'.tr(),
+                  style: const TextStyle(
+                    color: AppColors.warning,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

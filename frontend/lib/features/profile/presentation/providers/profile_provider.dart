@@ -30,6 +30,9 @@ import '../../../../AI/services/saju_analysis_service.dart';
 import '../../../../AI/services/ai_api_service.dart';
 import '../../../../AI/fortune/fortune_coordinator.dart';
 import '../../../../AI/data/mutations.dart';
+import '../../data/data.dart' show relationMutations;
+import '../../data/relation_refresh_state.dart';
+import 'relation_provider.dart';
 
 part 'profile_provider.g.dart';
 
@@ -82,12 +85,17 @@ class ProfileList extends _$ProfileList {
   }
 
   /// 프로필 삭제
+  ///
+  /// DB CASCADE로 profile_relations도 자동 삭제됨
+  /// Flutter Provider만 갱신하면 됨
   Future<void> deleteProfile(String id) async {
     final repository = ref.read(profileRepositoryProvider);
     await repository.delete(id);
     await refresh();
     ref.invalidate(allProfilesProvider);
     ref.invalidate(activeProfileProvider); // 활성 프로필일 수 있으므로 함께 갱신
+    ref.invalidate(userRelationsProvider); // 인연 탭 동기화 (CASCADE 삭제 반영)
+    RelationRefreshState.markNeedsRefresh(); // 인연 관계도 로컬 캐시 갱신
   }
 
   /// 활성 프로필 설정
@@ -259,21 +267,18 @@ class ProfileFormState {
       print('[isValid] FAIL: birthDate is null');
       return false;
     }
-    if (birthCity.isEmpty) {
-      print('[isValid] FAIL: birthCity is empty');
-      return false;
-    }
-
-    // 도시가 유효한 목록에 있는지 확인
-    if (!TrueSolarTimeService.cityLongitude.containsKey(birthCity)) {
-      print('[isValid] FAIL: birthCity "$birthCity" not in cityLongitude');
-      return false;
-    }
+    // birthCity는 선택 사항 (없으면 '서울' 기본값 사용)
 
     // 생년월일 범위 체크
     final now = DateTime.now();
     if (birthDate!.year < 1900 || birthDate!.isAfter(now)) {
       print('[isValid] FAIL: birthDate out of range - $birthDate');
+      return false;
+    }
+
+    // 출생시간: "시간 모름" 체크하지 않았으면 시간 입력 필수
+    if (!birthTimeUnknown && birthTimeMinutes == null) {
+      print('[isValid] FAIL: birthTimeMinutes is null but birthTimeUnknown is false');
       return false;
     }
 
@@ -588,6 +593,29 @@ class ProfileForm extends _$ProfileForm {
       existingProfile = await repository.getById(editingId);
     }
 
+    // "나" 프로필 중복 생성 방지: 신규인데 이미 primary가 있으면 → other로 강제
+    var effectiveRelationType = state.relationType;
+    if (editingId == null &&
+        (effectiveRelationType == RelationshipType.me ||
+         effectiveRelationType == RelationshipType.admin)) {
+      final existingActive = await repository.getActive();
+      if (existingActive != null) {
+        print('[ProfileForm] "나" 중복 방지: me → friend로 변경');
+        effectiveRelationType = RelationshipType.friend;
+      }
+    }
+
+    // "me"가 아닌 관계 유형이면 관계인 프로필로 처리
+    // 단, 기존 프로필 수정 시에는 기존 profileType을 유지 (me→family 변경 방어)
+    final isRelationProfile = editingId == null &&
+        effectiveRelationType != RelationshipType.me &&
+        effectiveRelationType != RelationshipType.admin;
+
+    // 도시 필드 숨김 → locale 기반 기본 도시 자동 설정
+    final birthCity = state.birthCity.isNotEmpty
+        ? state.birthCity
+        : TrueSolarTimeService.defaultCityForLocale(FortuneLocaleUtils.currentLocale);
+
     final profile = SajuProfile(
       id: editingId ?? const Uuid().v4(),
       displayName: state.displayName,
@@ -598,12 +626,13 @@ class ProfileForm extends _$ProfileForm {
       birthTimeMinutes: state.birthTimeUnknown ? null : state.birthTimeMinutes,
       birthTimeUnknown: state.birthTimeUnknown,
       useYaJasi: state.useYaJasi,
-      birthCity: state.birthCity,
+      birthCity: birthCity,
       timeCorrection: state.timeCorrection,
       createdAt: existingProfile?.createdAt ?? now,
       updatedAt: now,
-      isActive: existingProfile?.isActive ?? (editingId == null),
-      relationType: state.relationType,
+      isActive: isRelationProfile ? false : (existingProfile?.isActive ?? (editingId == null)),
+      relationType: effectiveRelationType,
+      profileType: isRelationProfile ? 'other' : (existingProfile?.profileType ?? 'primary'),
       memo: state.memo,
       locale: FortuneLocaleUtils.currentLocale,
     );
@@ -626,14 +655,28 @@ class ProfileForm extends _$ProfileForm {
       // DB 캐시 삭제 후 분석 플래그도 초기화해야 새 분석 실행됨
       DailyFortune.resetAnalyzedFlagForProfile(editingId);
       FortuneCoordinator.resetAnalyzingFlagForProfile(editingId);
+
+      // 프로필 수정 시 profile_relations.display_name 동기화
+      // 메뉴에서 이름 변경 → 인연 탭에도 반영
+      await _syncRelationDisplayName(profile);
     } else {
       await repository.save(profile);
+    }
+
+    // 관계인 프로필이면 profile_relations 자동 생성
+    if (isRelationProfile && editingId == null) {
+      await _autoCreateRelation(ref, profile);
     }
 
     // 프로필 목록 새로 고침
     ref.invalidate(profileListProvider);
     ref.invalidate(activeProfileProvider);
     ref.invalidate(allProfilesProvider);
+
+    // 인연 관련 Provider 동기화 (인연 탭 + 궁합 동기화)
+    ref.invalidate(userRelationsProvider);
+    // 인연 관계도 화면의 로컬 캐시 갱신 플래그
+    RelationRefreshState.markNeedsRefresh();
 
     // Note: Fortune providers 무효화는 _triggerAiAnalysis() 완료 콜백에서 수행
     // (분석 완료 전 무효화하면 캐시 없음 → 영원히 로딩 상태)
@@ -643,6 +686,63 @@ class ProfileForm extends _$ProfileForm {
     await _saveAnalysisToDb(ref, profile);
 
     return profile;
+  }
+
+  /// 관계인 프로필 저장 시 profile_relations 자동 생성
+  ///
+  /// 프로필 편집 화면에서 me가 아닌 관계(family, friend 등) 선택 시
+  /// profile_relations 레코드가 없으면 멘션(@family/이름)이 동작하지 않으므로 자동 생성
+  Future<void> _autoCreateRelation(Ref ref, SajuProfile profile) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      // 현재 활성 프로필 (나) 조회
+      final activeProfile = await ref.read(activeProfileProvider.future);
+      if (activeProfile == null) return;
+
+      // RelationshipType → profile_relations의 relation_type 매핑
+      final relationType = switch (profile.relationType) {
+        RelationshipType.family => 'family_other',
+        RelationshipType.friend => 'friend_general',
+        RelationshipType.lover => 'romantic_partner',
+        RelationshipType.work => 'work_colleague',
+        _ => 'other',
+      };
+
+      await relationMutations.create(
+        userId: user.id,
+        fromProfileId: activeProfile.id,
+        toProfileId: profile.id,
+        relationType: relationType,
+        displayName: profile.displayName,
+        memo: profile.memo,
+      );
+      print('[ProfileForm] 관계 자동 생성 완료: ${activeProfile.displayName} → ${profile.displayName} ($relationType)');
+    } catch (e) {
+      print('[ProfileForm] 관계 자동 생성 실패 (무시): $e');
+      // 실패해도 프로필 저장 자체는 성공했으므로 무시
+    }
+  }
+
+  /// 프로필 수정 시 profile_relations.display_name 동기화
+  ///
+  /// saju_profiles.display_name이 변경되면
+  /// to_profile_id가 이 프로필인 모든 relation의 display_name도 갱신
+  Future<void> _syncRelationDisplayName(SajuProfile profile) async {
+    try {
+      final result = await relationMutations.syncDisplayNameByProfileId(
+        profile.id,
+        profile.displayName,
+      );
+      if (result.isSuccess) {
+        print('[ProfileForm] 관계 display_name 동기화 완료: ${profile.displayName}');
+      } else {
+        print('[ProfileForm] 관계 display_name 동기화 실패: ${result.errorMessage}');
+      }
+    } catch (e) {
+      print('[ProfileForm] 관계 display_name 동기화 실패 (무시): $e');
+    }
   }
 
   /// 사주 분석 결과를 DB에 저장

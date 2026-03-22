@@ -103,15 +103,15 @@ class AdController extends _$AdController {
     }
 
     // 일일 한도 체크
-    if (state.interstitialCount >= AdStrategy.interstitialDailyLimit) {
+    if (state.interstitialCount >= AdStrategy.rewardedDailyLimit) {
       return const AdCheckResult.skip('일일 한도 초과');
     }
 
     // 쿨다운 체크
     final now = DateTime.now().millisecondsSinceEpoch;
     final elapsed = (now - state.lastInterstitialTime) ~/ 1000;
-    if (elapsed < AdStrategy.interstitialCooldownSeconds) {
-      return AdCheckResult.skip('쿨다운 중 (${AdStrategy.interstitialCooldownSeconds - elapsed}초)');
+    if (elapsed < AdStrategy.rewardedCooldownSeconds) {
+      return AdCheckResult.skip('쿨다운 중 (${AdStrategy.rewardedCooldownSeconds - elapsed}초)');
     }
 
     // 광고 로드 상태 체크
@@ -128,7 +128,7 @@ class AdController extends _$AdController {
     state = state.copyWith(chatCount: state.chatCount + 1);
 
     // N개 메시지마다 전면 광고
-    if (state.chatCount % AdStrategy.interstitialMessageInterval == 0) {
+    if (state.chatCount % AdStrategy.rewardedMessageInterval == 0) {
       return await showInterstitial();
     }
 
@@ -138,7 +138,7 @@ class AdController extends _$AdController {
   /// 새 세션 시작 시 전면 광고
   Future<bool> onNewSession() async {
     if (!adEnabled) return false;
-    if (!AdStrategy.showInterstitialOnNewSession) return false;
+    if (!AdStrategy.showRewardedOnNewSession) return false;
 
     // 인앱구매 광고 제거 체크
     final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
@@ -147,7 +147,7 @@ class AdController extends _$AdController {
       return false;
     }
 
-    if (state.newSessionAdCount >= AdStrategy.newSessionInterstitialDailyLimit) {
+    if (state.newSessionAdCount >= AdStrategy.newSessionRewardedDailyLimit) {
       debugPrint('[AdController] 새 세션 광고 일일 한도 초과');
       return false;
     }
@@ -165,7 +165,7 @@ class AdController extends _$AdController {
   Future<bool> onNewSessionRewarded() async {
     if (!adEnabled) return false;
     if (kIsWeb) return false;
-    if (!AdStrategy.showInterstitialOnNewSession) return false;
+    if (!AdStrategy.showRewardedOnNewSession) return false;
 
     // 인앱구매 광고 제거 체크
     final purchaseNotifier = ref.read(purchaseNotifierProvider.notifier);
@@ -175,7 +175,7 @@ class AdController extends _$AdController {
     }
 
     // 일일 한도 체크
-    if (state.newSessionAdCount >= AdStrategy.newSessionInterstitialDailyLimit) {
+    if (state.newSessionAdCount >= AdStrategy.newSessionRewardedDailyLimit) {
       debugPrint('[AdController] 새 세션 광고 일일 한도 초과');
       return false;
     }
@@ -223,7 +223,7 @@ class AdController extends _$AdController {
         lastInterstitialTime: DateTime.now().millisecondsSinceEpoch,
       );
       await _saveState();
-      debugPrint('[AdController] 전면 광고 표시 완료 (${state.interstitialCount}/${AdStrategy.interstitialDailyLimit})');
+      debugPrint('[AdController] 보상형 광고 표시 완료 (${state.interstitialCount}/${AdStrategy.rewardedDailyLimit})');
     }
 
     return result;

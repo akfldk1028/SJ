@@ -46,12 +46,16 @@ class SpecialSinsalBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            SajuI18n.specialSinsal(sinsal.korean, locale),
-            style: TextStyle(
-              color: color,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              SajuI18n.specialSinsal(sinsal.korean, locale),
+              style: TextStyle(
+                color: color,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (showFortuneType) ...[
@@ -147,16 +151,18 @@ class GilseongRow extends StatelessWidget {
           // 헤더 (길성 라벨)
           if (showHeader)
             SizedBox(
-              width: 40,
+              width: 80,
               child: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   'saju_chart.gilseong'.tr(),
                   style: TextStyle(
                     color: theme.textMuted,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
@@ -265,15 +271,16 @@ class SinsalGilseongTable extends StatelessWidget {
         children: [
           Icon(Icons.auto_awesome, size: 18, color: theme.primaryColor),
           const SizedBox(width: 8),
-          Text(
-            'saju_chart.sinsalAndGilseong'.tr(),
-            style: TextStyle(
-              color: theme.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              'saju_chart.sinsalAndGilseong'.tr(),
+              style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          const Spacer(),
           // 통계
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -345,7 +352,7 @@ class SinsalGilseongTable extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Table(
         columnWidths: const {
-          0: FixedColumnWidth(50),
+          0: FixedColumnWidth(55),
           1: FlexColumnWidth(),
           2: FlexColumnWidth(),
           3: FlexColumnWidth(),
@@ -383,14 +390,17 @@ class SinsalGilseongTable extends StatelessWidget {
   Widget _buildHeaderCell(String text, AppThemeExtension theme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         child: Text(
           text,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
+          textAlign: TextAlign.center,
+          maxLines: 5,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
@@ -413,13 +423,15 @@ class SinsalGilseongTable extends StatelessWidget {
 
   Widget _buildRowLabel(String text, AppThemeExtension theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
       child: Text(
         text,
         style: TextStyle(
           color: theme.textMuted,
-          fontSize: 13,
+          fontSize: 11,
         ),
+        maxLines: 5,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -623,15 +635,16 @@ class GilseongSummaryCard extends StatelessWidget {
             children: [
               Icon(Icons.stars, size: 16, color: theme.primaryColor),
               const SizedBox(width: 6),
-              Text(
-                'saju_chart.specialSinsal'.tr(),
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.specialSinsal'.tr(),
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const Spacer(),
               // 개수
               Text(
                 'saju_chart.countUnit'.tr(namedArgs: {'count': '${result.allUniqueSinsals.length}'}),
@@ -714,12 +727,14 @@ class ExtendedSinsalInfoCard extends StatelessWidget {
             children: [
               Icon(Icons.info_outline, size: 16, color: theme.primaryColor),
               const SizedBox(width: 6),
-              Text(
-                'saju_chart.specialState'.tr(),
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.specialState'.tr(),
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

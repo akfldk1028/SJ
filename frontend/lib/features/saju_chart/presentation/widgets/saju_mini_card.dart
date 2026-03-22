@@ -88,25 +88,33 @@ class SajuMiniCard extends ConsumerWidget {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          PillarDisplay(
-                            label: 'saju_chart.hourPillar'.tr(),
-                            pillar: sajuChart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
-                            size: pillarSize,
+                          Flexible(
+                            child: PillarDisplay(
+                              label: 'saju_chart.hourPillar'.tr(),
+                              pillar: sajuChart.hourPillar ?? const Pillar(gan: '?', ji: '?'),
+                              size: pillarSize,
+                            ),
                           ),
-                          PillarDisplay(
-                            label: 'saju_chart.dayPillar'.tr(),
-                            pillar: sajuChart.dayPillar,
-                            size: pillarSize,
+                          Flexible(
+                            child: PillarDisplay(
+                              label: 'saju_chart.dayPillar'.tr(),
+                              pillar: sajuChart.dayPillar,
+                              size: pillarSize,
+                            ),
                           ),
-                          PillarDisplay(
-                            label: 'saju_chart.monthPillar'.tr(),
-                            pillar: sajuChart.monthPillar,
-                            size: pillarSize,
+                          Flexible(
+                            child: PillarDisplay(
+                              label: 'saju_chart.monthPillar'.tr(),
+                              pillar: sajuChart.monthPillar,
+                              size: pillarSize,
+                            ),
                           ),
-                          PillarDisplay(
-                            label: 'saju_chart.yearPillar'.tr(),
-                            pillar: sajuChart.yearPillar,
-                            size: pillarSize,
+                          Flexible(
+                            child: PillarDisplay(
+                              label: 'saju_chart.yearPillar'.tr(),
+                              pillar: sajuChart.yearPillar,
+                              size: pillarSize,
+                            ),
                           ),
                         ],
                       );

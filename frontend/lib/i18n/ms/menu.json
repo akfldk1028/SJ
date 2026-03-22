@@ -95,5 +95,6 @@
   "compatPromoRegister": "Daftar",
   "compatPromoAnalyzeTitle": "Semak keserasian dengan kenalan anda",
   "compatPromoAnalyzeSubtitle": "Analisis ikatan tersembunyi antara saju dua orang",
-  "compatPromoResultTitle": "Keserasian dengan {name}"
+  "compatPromoResultTitle": "Keserasian dengan {name}",
+  "defaultPartner": "Pasangan"
 }

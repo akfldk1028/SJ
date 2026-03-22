@@ -42,17 +42,17 @@ const Map<String, Map<String, String>> _jijiI18n = {
 
 /// 오행 한글 → 다국어 표시명
 const Map<String, Map<String, String>> _ohengI18n = {
-  '목': {'ko': '목', 'ja': '木',  'zh': '木', 'en': 'Wood'},
-  '화': {'ko': '화', 'ja': '火',  'zh': '火', 'en': 'Fire'},
-  '토': {'ko': '토', 'ja': '土',  'zh': '土', 'en': 'Earth'},
-  '금': {'ko': '금', 'ja': '金',  'zh': '金', 'en': 'Metal'},
-  '수': {'ko': '수', 'ja': '水',  'zh': '水', 'en': 'Water'},
+  '목': {'ko': '목', 'ja': '木', 'zh': '木', 'en': 'Wood', 'de': 'Holz', 'fr': 'Bois', 'es': 'Madera', 'it': 'Legno', 'pt': 'Madeira', 'ru': 'Дерево', 'ar': 'خشب', 'hi': 'लकड़ी', 'id': 'Kayu', 'ms': 'Kayu', 'vi': 'Mộc', 'th': 'ไม้', 'my': 'သစ်'},
+  '화': {'ko': '화', 'ja': '火', 'zh': '火', 'en': 'Fire', 'de': 'Feuer', 'fr': 'Feu', 'es': 'Fuego', 'it': 'Fuoco', 'pt': 'Fogo', 'ru': 'Огонь', 'ar': 'نار', 'hi': 'अग्नि', 'id': 'Api', 'ms': 'Api', 'vi': 'Hỏa', 'th': 'ไฟ', 'my': 'မီး'},
+  '토': {'ko': '토', 'ja': '土', 'zh': '土', 'en': 'Earth', 'de': 'Erde', 'fr': 'Terre', 'es': 'Tierra', 'it': 'Terra', 'pt': 'Terra', 'ru': 'Земля', 'ar': 'تراب', 'hi': 'पृथ्वी', 'id': 'Tanah', 'ms': 'Tanah', 'vi': 'Thổ', 'th': 'ดิน', 'my': 'မြေ'},
+  '금': {'ko': '금', 'ja': '金', 'zh': '金', 'en': 'Metal', 'de': 'Metall', 'fr': 'Métal', 'es': 'Metal', 'it': 'Metallo', 'pt': 'Metal', 'ru': 'Металл', 'ar': 'معدن', 'hi': 'धातु', 'id': 'Logam', 'ms': 'Logam', 'vi': 'Kim', 'th': 'โลหะ', 'my': 'သတ္တု'},
+  '수': {'ko': '수', 'ja': '水', 'zh': '水', 'en': 'Water', 'de': 'Wasser', 'fr': 'Eau', 'es': 'Agua', 'it': 'Acqua', 'pt': 'Água', 'ru': 'Вода', 'ar': 'ماء', 'hi': 'जल', 'id': 'Air', 'ms': 'Air', 'vi': 'Thủy', 'th': 'น้ำ', 'my': 'ရေ'},
 };
 
 /// 음양 한글 → 다국어 표시명
 const Map<String, Map<String, String>> _eumyangI18n = {
-  '양': {'ko': '양', 'ja': '陽',  'zh': '阳', 'en': 'Yang'},
-  '음': {'ko': '음', 'ja': '陰',  'zh': '阴', 'en': 'Yin'},
+  '양': {'ko': '양', 'ja': '陽', 'zh': '阳', 'en': 'Yang', 'de': 'Yang', 'fr': 'Yang', 'es': 'Yang', 'it': 'Yang', 'pt': 'Yang', 'ru': 'Ян', 'ar': 'يانغ', 'hi': 'यांग', 'id': 'Yang', 'ms': 'Yang', 'vi': 'Dương', 'th': 'หยาง', 'my': 'ယန်'},
+  '음': {'ko': '음', 'ja': '陰', 'zh': '阴', 'en': 'Yin', 'de': 'Yin', 'fr': 'Yin', 'es': 'Yin', 'it': 'Yin', 'pt': 'Yin', 'ru': 'Инь', 'ar': 'ين', 'hi': 'यिन', 'id': 'Yin', 'ms': 'Yin', 'vi': 'Âm', 'th': 'หยิน', 'my': 'ယင်'},
 };
 
 /// 띠 동물 한글 → 다국어 표시명
@@ -900,14 +900,42 @@ const Map<String, Map<String, String>> _specialSinsalI18n = {
   '괴강살':   {'ko': '괴강살',   'ja': '魁罡殺',   'zh': '魁罡杀',   'en': 'Power Star'},
   '양인살':   {'ko': '양인살',   'ja': '羊刃殺',   'zh': '羊刃杀',   'en': 'Goat Blade'},
   '도화살':   {'ko': '도화살',   'ja': '桃花殺',   'zh': '桃花杀',   'en': 'Peach Blossom'},
-  '천라지망': {'ko': '천라지망', 'ja': '天羅地網', 'zh': '天罗地网', 'en': 'Heaven Net Earth Snare'},
-  '원진살':   {'ko': '원진살',   'ja': '怨嗔殺',   'zh': '怨嗔杀',   'en': 'Grudge Spirit'},
-  '효신살':   {'ko': '효신살',   'ja': '梟神殺',   'zh': '枭神杀',   'en': 'Filial Spirit'},
-  '고신살':   {'ko': '고신살',   'ja': '孤辰殺',   'zh': '孤辰杀',   'en': 'Solitary Spirit'},
-  '과숙살':   {'ko': '과숙살',   'ja': '寡宿殺',   'zh': '寡宿杀',   'en': 'Overripe Spirit'},
+  '천라지망': {'ko': '천라지망', 'ja': '天羅地網', 'zh': '天罗地网', 'en': 'Sky Net'},
+  '원진살':   {'ko': '원진살',   'ja': '怨嗔殺',   'zh': '怨嗔杀',   'en': 'Grudge'},
+  '효신살':   {'ko': '효신살',   'ja': '梟神殺',   'zh': '枭神杀',   'en': 'Owl Spirit'},
+  '고신살':   {'ko': '고신살',   'ja': '孤辰殺',   'zh': '孤辰杀',   'en': 'Solitary'},
+  '과숙살':   {'ko': '과숙살',   'ja': '寡宿殺',   'zh': '寡宿杀',   'en': 'Lonely Star'},
   '백호살':   {'ko': '백호살',   'ja': '白虎殺',   'zh': '白虎杀',   'en': 'White Tiger'},
   '공망':     {'ko': '공망',     'ja': '空亡',     'zh': '空亡',     'en': 'Void'},
   '정상':     {'ko': '정상',     'ja': '正常',     'zh': '正常',     'en': 'Normal'},
+  // 추가 특수 신살
+  '천덕귀인': {'ko': '천덕귀인', 'ja': '天德貴人', 'zh': '天德贵人', 'en': 'Sky Virtue'},
+  '월덕귀인': {'ko': '월덕귀인', 'ja': '月德貴人', 'zh': '月德贵人', 'en': 'Moon Virtue'},
+  '학당귀인': {'ko': '학당귀인', 'ja': '學堂貴人', 'zh': '学堂贵人', 'en': 'Scholar'},
+  '천문성':   {'ko': '천문성',   'ja': '天門星',   'zh': '天门星',   'en': 'Sky Gate'},
+  '태극귀인': {'ko': '태극귀인', 'ja': '太極貴人', 'zh': '太极贵人', 'en': 'Taegeuk'},
+  '백호대살': {'ko': '백호대살', 'ja': '白虎大殺', 'zh': '白虎大杀', 'en': 'Great Tiger'},
+  '현침살':   {'ko': '현침살',   'ja': '懸針殺',   'zh': '悬针杀',   'en': 'Needle'},
+  '홍염살':   {'ko': '홍염살',   'ja': '紅艶煞',   'zh': '红艳煞',   'en': 'Red Flame'},
+  '귀문관살': {'ko': '귀문관살', 'ja': '鬼門關殺', 'zh': '鬼门关杀', 'en': 'Ghost Gate'},
+  '금여':     {'ko': '금여',     'ja': '金輿',     'zh': '金舆',     'en': 'Gold Carriage'},
+  '삼기귀인': {'ko': '삼기귀인', 'ja': '三奇貴人', 'zh': '三奇贵人', 'en': 'Three Wonders'},
+  '복성귀인': {'ko': '복성귀인', 'ja': '福星貴人', 'zh': '福星贵人', 'en': 'Fortune Star'},
+  '낙정관살': {'ko': '낙정관살', 'ja': '落井關殺', 'zh': '落井关杀', 'en': 'Falling Well'},
+  '문곡귀인': {'ko': '문곡귀인', 'ja': '文曲貴人', 'zh': '文曲贵人', 'en': 'Literary Star'},
+  '천의귀인': {'ko': '천의귀인', 'ja': '天醫貴人', 'zh': '天医贵人', 'en': 'Healer'},
+  '천주귀인': {'ko': '천주귀인', 'ja': '天廚貴人', 'zh': '天厨贵人', 'en': 'Sky Chef'},
+  '암록귀인': {'ko': '암록귀인', 'ja': '暗祿貴人', 'zh': '暗禄贵人', 'en': 'Hidden Fortune'},
+  '홍란살':   {'ko': '홍란살',   'ja': '紅鸞煞',   'zh': '红鸾煞',   'en': 'Red Phoenix'},
+  '천희살':   {'ko': '천희살',   'ja': '天喜煞',   'zh': '天喜煞',   'en': 'Sky Joy'},
+  '건록':     {'ko': '건록',     'ja': '健祿',     'zh': '健禄',     'en': 'Strong Root'},
+  '비인살':   {'ko': '비인살',   'ja': '飛刃殺',   'zh': '飞刃杀',   'en': 'Flying Blade'},
+  '황은대사': {'ko': '황은대사', 'ja': '皇恩大赦', 'zh': '皇恩大赦', 'en': 'Royal Mercy'},
+  '금여록':   {'ko': '금여록',   'ja': '金輿祿',   'zh': '金舆禄',   'en': 'Gold Fortune'},
+  '역마':     {'ko': '역마',     'ja': '驛馬',     'zh': '驿马',     'en': 'Travel Star'},
+  '화개살':   {'ko': '화개살',   'ja': '華蓋殺',   'zh': '华盖杀',   'en': 'Canopy'},
+  '관귀학관': {'ko': '관귀학관', 'ja': '官貴學館', 'zh': '官贵学馆', 'en': 'Noble Academy'},
+  '협록':     {'ko': '협록',     'ja': '夾祿',     'zh': '夹禄',     'en': 'Hidden Wealth'},
 };
 
 /// 월령 상태 한글 → 다국어
@@ -1144,8 +1172,84 @@ const Map<String, Map<String, String>> _relationTypeI18n = {
   '합': {'ko': '합', 'en': 'Harmony', 'ja': '合', 'zh': '合'},
 };
 
+/// 궁성(柱) 이름 한글 → 다국어
+const Map<String, Map<String, String>> _pillarNameI18n = {
+  '년주': {'ko': '년주', 'en': 'Year Pillar', 'ja': '年柱', 'zh': '年柱',
+    'vi': 'Trụ Năm', 'th': 'เสาปี', 'id': 'Pilar Tahun', 'ms': 'Tiang Tahun',
+    'fr': 'Pilier Année', 'de': 'Jahressäule', 'es': 'Pilar Año', 'pt': 'Pilar Ano',
+    'it': 'Pilastro Anno', 'hi': 'वर्ष स्तंभ', 'ar': 'عمود السنة', 'ru': 'Столп Года', 'my': 'နှစ်တိုင်'},
+  '월주': {'ko': '월주', 'en': 'Month Pillar', 'ja': '月柱', 'zh': '月柱',
+    'vi': 'Trụ Tháng', 'th': 'เสาเดือน', 'id': 'Pilar Bulan', 'ms': 'Tiang Bulan',
+    'fr': 'Pilier Mois', 'de': 'Monatssäule', 'es': 'Pilar Mes', 'pt': 'Pilar Mês',
+    'it': 'Pilastro Mese', 'hi': 'माह स्तंभ', 'ar': 'عمود الشهر', 'ru': 'Столп Месяца', 'my': 'လတိုင်'},
+  '일주': {'ko': '일주', 'en': 'Day Pillar', 'ja': '日柱', 'zh': '日柱',
+    'vi': 'Trụ Ngày', 'th': 'เสาวัน', 'id': 'Pilar Hari', 'ms': 'Tiang Hari',
+    'fr': 'Pilier Jour', 'de': 'Tagessäule', 'es': 'Pilar Día', 'pt': 'Pilar Dia',
+    'it': 'Pilastro Giorno', 'hi': 'दिन स्तंभ', 'ar': 'عمود اليوم', 'ru': 'Столп Дня', 'my': 'နေ့တိုင်'},
+  '시주': {'ko': '시주', 'en': 'Hour Pillar', 'ja': '時柱', 'zh': '时柱',
+    'vi': 'Trụ Giờ', 'th': 'เสาชั่วโมง', 'id': 'Pilar Jam', 'ms': 'Tiang Jam',
+    'fr': 'Pilier Heure', 'de': 'Stundensäule', 'es': 'Pilar Hora', 'pt': 'Pilar Hora',
+    'it': 'Pilastro Ora', 'hi': 'घंटा स्तंभ', 'ar': 'عمود الساعة', 'ru': 'Столп Часа', 'my': 'နာရီတိုင်'},
+  '년지': {'ko': '년지', 'en': 'Year Branch', 'ja': '年支', 'zh': '年支',
+    'vi': 'Chi Năm', 'th': 'กิ่งปี', 'id': 'Cabang Tahun', 'ms': 'Cabang Tahun',
+    'fr': 'Branche Année', 'de': 'Jahreszweig', 'es': 'Rama Año', 'pt': 'Ramo Ano',
+    'it': 'Ramo Anno', 'hi': 'वर्ष शाखा', 'ar': 'فرع السنة', 'ru': 'Ветвь Года', 'my': 'နှစ်အကိုင်း'},
+  '월지': {'ko': '월지', 'en': 'Month Branch', 'ja': '月支', 'zh': '月支',
+    'vi': 'Chi Tháng', 'th': 'กิ่งเดือน', 'id': 'Cabang Bulan', 'ms': 'Cabang Bulan',
+    'fr': 'Branche Mois', 'de': 'Monatszweig', 'es': 'Rama Mes', 'pt': 'Ramo Mês',
+    'it': 'Ramo Mese', 'hi': 'माह शाखा', 'ar': 'فرع الشهر', 'ru': 'Ветвь Месяца', 'my': 'လအကိုင်း'},
+  '일지': {'ko': '일지', 'en': 'Day Branch', 'ja': '日支', 'zh': '日支',
+    'vi': 'Chi Ngày', 'th': 'กิ่งวัน', 'id': 'Cabang Hari', 'ms': 'Cabang Hari',
+    'fr': 'Branche Jour', 'de': 'Tageszweig', 'es': 'Rama Día', 'pt': 'Ramo Dia',
+    'it': 'Ramo Giorno', 'hi': 'दिन शाखा', 'ar': 'فرع اليوم', 'ru': 'Ветвь Дня', 'my': 'နေ့အကိုင်း'},
+  '시지': {'ko': '시지', 'en': 'Hour Branch', 'ja': '時支', 'zh': '时支',
+    'vi': 'Chi Giờ', 'th': 'กิ่งชั่วโมง', 'id': 'Cabang Jam', 'ms': 'Cabang Jam',
+    'fr': 'Branche Heure', 'de': 'Stundenzweig', 'es': 'Rama Hora', 'pt': 'Ramo Hora',
+    'it': 'Ramo Ora', 'hi': 'घंटा शाखा', 'ar': 'فرع الساعة', 'ru': 'Ветвь Часа', 'my': 'နာရီအကိုင်း'},
+};
+
 // ============================================================================
 // 공개 API
+/// 방향 한글 → 다국어
+const Map<String, Map<String, String>> _directionI18n = {
+  '동': {'ko': '동', 'en': 'East', 'ja': '東', 'zh': '东',
+    'vi': 'Đông', 'th': 'ตะวันออก', 'id': 'Timur', 'ms': 'Timur',
+    'fr': 'Est', 'de': 'Osten', 'es': 'Este', 'pt': 'Leste',
+    'it': 'Est', 'hi': 'पूर्व', 'ar': 'شرق', 'ru': 'Восток', 'my': 'အရှေ့'},
+  '서': {'ko': '서', 'en': 'West', 'ja': '西', 'zh': '西',
+    'vi': 'Tây', 'th': 'ตะวันตก', 'id': 'Barat', 'ms': 'Barat',
+    'fr': 'Ouest', 'de': 'Westen', 'es': 'Oeste', 'pt': 'Oeste',
+    'it': 'Ovest', 'hi': 'पश्चिम', 'ar': 'غرب', 'ru': 'Запад', 'my': 'အနောက်'},
+  '남': {'ko': '남', 'en': 'South', 'ja': '南', 'zh': '南',
+    'vi': 'Nam', 'th': 'ใต้', 'id': 'Selatan', 'ms': 'Selatan',
+    'fr': 'Sud', 'de': 'Süden', 'es': 'Sur', 'pt': 'Sul',
+    'it': 'Sud', 'hi': 'दक्षिण', 'ar': 'جنوب', 'ru': 'Юг', 'my': 'တောင်'},
+  '북': {'ko': '북', 'en': 'North', 'ja': '北', 'zh': '北',
+    'vi': 'Bắc', 'th': 'เหนือ', 'id': 'Utara', 'ms': 'Utara',
+    'fr': 'Nord', 'de': 'Norden', 'es': 'Norte', 'pt': 'Norte',
+    'it': 'Nord', 'hi': 'उत्तर', 'ar': 'شمال', 'ru': 'Север', 'my': 'မြောက်'},
+};
+
+/// 계절 한글 → 다국어
+const Map<String, Map<String, String>> _seasonI18n = {
+  '봄': {'ko': '봄', 'en': 'Spring', 'ja': '春', 'zh': '春',
+    'vi': 'Xuân', 'th': 'ฤดูใบไม้ผลิ', 'id': 'Musim Semi', 'ms': 'Musim Bunga',
+    'fr': 'Printemps', 'de': 'Frühling', 'es': 'Primavera', 'pt': 'Primavera',
+    'it': 'Primavera', 'hi': 'वसंत', 'ar': 'ربيع', 'ru': 'Весна', 'my': 'နွေဦး'},
+  '여름': {'ko': '여름', 'en': 'Summer', 'ja': '夏', 'zh': '夏',
+    'vi': 'Hạ', 'th': 'ฤดูร้อน', 'id': 'Musim Panas', 'ms': 'Musim Panas',
+    'fr': 'Été', 'de': 'Sommer', 'es': 'Verano', 'pt': 'Verão',
+    'it': 'Estate', 'hi': 'ग्रीष्म', 'ar': 'صيف', 'ru': 'Лето', 'my': 'နွေရာသီ'},
+  '가을': {'ko': '가을', 'en': 'Autumn', 'ja': '秋', 'zh': '秋',
+    'vi': 'Thu', 'th': 'ฤดูใบไม้ร่วง', 'id': 'Musim Gugur', 'ms': 'Musim Luruh',
+    'fr': 'Automne', 'de': 'Herbst', 'es': 'Otoño', 'pt': 'Outono',
+    'it': 'Autunno', 'hi': 'शरद', 'ar': 'خريف', 'ru': 'Осень', 'my': 'ဆောင်းဦး'},
+  '겨울': {'ko': '겨울', 'en': 'Winter', 'ja': '冬', 'zh': '冬',
+    'vi': 'Đông', 'th': 'ฤดูหนาว', 'id': 'Musim Dingin', 'ms': 'Musim Sejuk',
+    'fr': 'Hiver', 'de': 'Winter', 'es': 'Invierno', 'pt': 'Inverno',
+    'it': 'Inverno', 'hi': 'शीत', 'ar': 'شتاء', 'ru': 'Зима', 'my': 'ဆောင်းရာသီ'},
+};
+
 // ============================================================================
 
 /// 사주 용어 다국어 변환 유틸리티
@@ -1276,6 +1380,24 @@ class SajuI18n {
   /// 예: ('충', 'en') → 'Clash'
   static String relationType(String korean, String locale) {
     return _lookup(_relationTypeI18n, korean, locale);
+  }
+
+  /// 궁성(柱) 이름 한글 → locale별 표시명
+  /// 예: ('년주', 'en') → 'Year Pillar'
+  static String pillarName(String korean, String locale) {
+    return _lookup(_pillarNameI18n, korean, locale);
+  }
+
+  /// 방향 한글 → locale별 표시명
+  /// 예: ('동', 'en') → 'East'
+  static String direction(String korean, String locale) {
+    return _lookup(_directionI18n, korean, locale);
+  }
+
+  /// 계절 한글 → locale별 표시명
+  /// 예: ('봄', 'en') → 'Spring'
+  static String season(String korean, String locale) {
+    return _lookup(_seasonI18n, korean, locale);
   }
 
   // 내부 조회 헬퍼

@@ -411,7 +411,7 @@ class SajuAnalysisService {
 
     // 캐시 확인 (이미 분석된 경우 스킵)
     print('[SajuAnalysisService] 🔍 saju_base 캐시 확인 중...');
-    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    final cached = await aiQueries.getSajuBaseSummary(profileId, locale: FortuneLocaleUtils.currentLocale);
     AnalysisResult sajuBaseResult;
 
     // v50: model_provider='openai' 인 GPT 결과만 캐시 히트로 인정
@@ -467,7 +467,7 @@ class SajuAnalysisService {
     if (sajuBaseResult.success) {
       // GPT 분석 결과 조회하여 Gemini 입력에 추가
       print('[SajuAnalysisService] 🔍 saju_base 결과 조회 중...');
-      final sajuBaseData = await aiQueries.getSajuBaseSummary(profileId);
+      final sajuBaseData = await aiQueries.getSajuBaseSummary(profileId, locale: FortuneLocaleUtils.currentLocale);
       if (sajuBaseData.isSuccess && sajuBaseData.data != null) {
         enrichedInputJson['saju_base_analysis'] = sajuBaseData.data!.content;
         print('[SajuAnalysisService] ✅ GPT 분석 결과를 Gemini 입력에 추가');
@@ -513,7 +513,7 @@ class SajuAnalysisService {
       print('[SajuAnalysisService] 평생 사주 분석 시작...');
 
       // 1. L1 캐시 확인 (동일 프로필 - 이미 분석된 경우 스킵)
-      final cached = await aiQueries.getSajuBaseSummary(profileId);
+      final cached = await aiQueries.getSajuBaseSummary(profileId, locale: FortuneLocaleUtils.currentLocale);
       if (cached.isSuccess && cached.data != null) {
         print('[SajuAnalysisService] ✅ L1 캐시 히트 - 즉시 반환');
         return AnalysisResult.success(
@@ -830,7 +830,7 @@ class SajuAnalysisService {
     print('[SajuAnalysisService] 🚀 ensureSajuBaseAnalysis 시작: $profileId');
 
     // 1. 캐시 확인 (이미 분석된 경우 스킵)
-    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    final cached = await aiQueries.getSajuBaseSummary(profileId, locale: FortuneLocaleUtils.currentLocale);
     if (cached.isSuccess && cached.data != null) {
       print('[SajuAnalysisService] ✅ saju_base 캐시 존재 - 스킵');
       return AnalysisResult.success(
@@ -992,7 +992,7 @@ class SajuAnalysisService {
     print('[SajuAnalysisService] 👫 인연 프로필 분석 시작: $profileId');
 
     // 1. 캐시 확인 (이미 분석된 경우 스킵)
-    final cached = await aiQueries.getSajuBaseSummary(profileId);
+    final cached = await aiQueries.getSajuBaseSummary(profileId, locale: FortuneLocaleUtils.currentLocale);
     if (cached.isSuccess && cached.data != null) {
       print('[SajuAnalysisService] ✅ 인연 saju_base 캐시 존재 - 스킵');
       final result = AnalysisResult.success(
@@ -1086,7 +1086,7 @@ class SajuAnalysisService {
         case 'completed':
           print('[SajuAnalysisService] ✅ 기존 task 완료됨! 결과 조회...');
           // 완료된 분석 결과 조회
-          final cached = await aiQueries.getSajuBaseSummary(profileId);
+          final cached = await aiQueries.getSajuBaseSummary(profileId, locale: FortuneLocaleUtils.currentLocale);
           if (cached.isSuccess && cached.data != null) {
             return AnalysisResult.success(
               summaryId: cached.data!.id,

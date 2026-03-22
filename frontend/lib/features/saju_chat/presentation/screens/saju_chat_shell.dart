@@ -111,7 +111,11 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
     _scrollController = ScrollController();
     _scrollController.addListener(_onScrollChanged);
     _inputController = MentionTextEditingController();
-    _initializeSession();
+    // PostFrameCallback으로 지연: initState에서 provider 수정 시 에러 방지
+    // "Tried to modify a provider while the widget tree was building"
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _initializeSession();
+    });
   }
 
   @override
@@ -131,6 +135,9 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
 
     // autoMention 모드: 세션 생성을 _autoInsertMention()에서 처리
     // 실패 시 아래 일반 세션 생성 로직으로 fallback
+    if (kDebugMode) {
+      print('[SajuChatShell] _initializeSession: autoMention=${widget.autoMention}, targetProfileId=${widget.targetProfileId}, chatType=${widget.chatType}');
+    }
     if (widget.autoMention && widget.targetProfileId != null) {
       final success = await _autoInsertMention();
       if (success) return;
@@ -206,16 +213,36 @@ class _SajuChatShellState extends ConsumerState<SajuChatShell> {
   /// targetProfileId로 인연 정보를 찾아 [나 포함] @나/이름 @카테고리/이름 형태로
   /// 입력 필드에 삽입합니다. 사용자가 직접 질문을 추가해서 전송합니다.
   Future<bool> _autoInsertMention() async {
+    if (kDebugMode) {
+      print('[SajuChatShell] _autoInsertMention 시작: targetProfileId=${widget.targetProfileId}');
+    }
     final activeProfile = await ref.read(activeProfileProvider.future);
-    if (activeProfile == null || !mounted) return false;
+    if (activeProfile == null || !mounted) {
+      if (kDebugMode) {
+        print('[SajuChatShell] autoMention 실패: activeProfile=${activeProfile?.id}, mounted=$mounted');
+      }
+      return false;
+    }
 
     try {
-      // 인연 목록에서 해당 프로필 찾기
+      // 인연 목록에서 해당 프로필 찾기 (캐시 무효화 후 최신 데이터 조회)
+      ref.invalidate(relationListProvider(activeProfile.id));
       final relations = await ref.read(relationListProvider(activeProfile.id).future);
+      if (kDebugMode) {
+        print('[SajuChatShell] autoMention: activeProfile=${activeProfile.id}, relations=${relations.length}개');
+        for (final r in relations) {
+          print('  - ${r.toProfileId} (${r.effectiveDisplayName})');
+        }
+      }
       final relation = relations
           .where((r) => r.toProfileId == widget.targetProfileId)
           .firstOrNull;
-      if (relation == null || !mounted) return false;
+      if (relation == null || !mounted) {
+        if (kDebugMode) {
+          print('[SajuChatShell] autoMention: relation 없음 (targetProfileId=${widget.targetProfileId}, relations=${relations.length}개)');
+        }
+        return false;
+      }
 
       // 멘션 텍스트 생성 (나 + 상대방)
       final ownerMention = '@me/${activeProfile.displayName}';
@@ -717,7 +744,7 @@ class _ChatContentState extends ConsumerState<_ChatContent> {
       (previous, next) {
         if (next != null && previous != next) {
           // QUOTA_EXCEEDED 또는 토큰 관련 에러 → SnackBar로 사용자 피드백
-          if (next.contains('토큰') || next.contains('한도')) {
+          if (next.contains('토큰') || next.contains('한도') || next.contains('token') || next.contains('quota') || next.contains('QUOTA_EXCEEDED')) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

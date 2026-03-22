@@ -56,28 +56,20 @@ class PosstellerStyleTable extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 헤더 행 (구분 | 시주 | 일주 | 월주 | 년주)
           _buildHeaderRow(context),
           _buildDivider(),
-          // 천간 행
           _buildCheonganRow(context),
           _buildDivider(),
-          // 천간 십성 행 (포스텔러 스타일)
           _buildCheonganSipsinRow(context, dayGan),
           _buildDivider(),
-          // 지지 행
           _buildJijiRow(context),
           _buildDivider(),
-          // 지지 십성 행 (포스텔러 스타일 - 정기 기준)
           _buildJijiSipsinRow(context, dayGan),
           _buildDivider(),
-          // 지장간 행
           _buildJijangganRow(context, jijangganResult),
           _buildDivider(),
-          // 12운성 행
           _buildUnsungRow(context, unsungResult),
           _buildDivider(),
-          // 12신살 행
           _buildSinsalRow(context, sinsalResult),
         ],
       ),
@@ -121,7 +113,8 @@ class PosstellerStyleTable extends StatelessWidget {
         final color = _getOhengColor(pillar.ganOheng);
         return _buildGanJiCell(
           context,
-          hangul: SajuI18n.cheongan(pillar.gan, locale),
+          korean: pillar.gan,
+          localeName: SajuI18n.cheongan(pillar.gan, locale),
           hanja: cheonganHanja[pillar.gan] ?? '',
           color: color,
         );
@@ -142,7 +135,8 @@ class PosstellerStyleTable extends StatelessWidget {
         final color = _getOhengColor(pillar.jiOheng);
         return _buildGanJiCell(
           context,
-          hangul: SajuI18n.jiji(pillar.ji, locale),
+          korean: pillar.ji,
+          localeName: SajuI18n.jiji(pillar.ji, locale),
           hanja: jijiHanja[pillar.ji] ?? '',
           color: color,
         );
@@ -305,86 +299,90 @@ class PosstellerStyleTable extends StatelessWidget {
     final locale = context.locale.languageCode;
     final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
     final labelWidth = compact
-        ? (isCjk ? 50.0 : 70.0)
-        : (isCjk ? 60.0 : 80.0);
+        ? (isCjk ? 50.0 : 80.0)
+        : (isCjk ? 60.0 : 90.0);
 
     return SizedBox(
       width: labelWidth,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isHeader ? theme.textMuted : theme.textSecondary,
-            fontSize: compact ? 12 : 13,
-            fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
-          ),
-          maxLines: 2,
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isHeader ? theme.textMuted : theme.textSecondary,
+          fontSize: compact ? 11 : 12,
+          fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
         ),
+        maxLines: 5,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
 
-  /// 헤더 셀
+  /// 헤더 셀 — 2줄 허용, 글씨 크기 통일
   Widget _buildHeaderCell(BuildContext context, String text) {
     final theme = context.appTheme;
     return Expanded(
-      child: Center(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            text,
-            style: TextStyle(
-              color: theme.textMuted,
-              fontSize: compact ? 12 : 13,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: theme.textMuted,
+            fontSize: compact ? 11 : 12,
+            fontWeight: FontWeight.w500,
           ),
+          textAlign: TextAlign.center,
+          maxLines: 5,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
-  /// 천간/지지 셀 (한글 + 한자)
+  /// 천간/지지 셀
+  /// CJK(한/중/일): 한자 큰 글씨 + locale명 작은 글씨
+  /// 나머지: 한글 큰 글씨 + locale명 작은 글씨
   Widget _buildGanJiCell(
     BuildContext context, {
-    required String hangul,
-    required String hanja,
+    required String korean,     // 원본 한글 (갑, 을, 자, 축...)
+    required String localeName, // locale별 이름 (Gap, Gye...)
+    required String hanja,      // 한자 (甲, 乙...)
     required Color color,
   }) {
+    final locale = context.locale.languageCode;
+    final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+    final bigChar = isCjk ? hanja : korean;
+    final smallChar = isCjk ? korean : localeName;
+    final showSmall = bigChar != smallChar;
+
     return Expanded(
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 한자 (큰 글씨)
-            if (showHanja && hanja.isNotEmpty)
-              Text(
-                hanja,
-                style: TextStyle(
-                  color: color,
-                  fontSize: compact ? 20 : 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            // 한글 (작은 글씨)
             Text(
-              showHanja ? hangul : '$hangul($hanja)',
+              bigChar.isNotEmpty ? bigChar : korean,
               style: TextStyle(
-                color: color.withOpacity(showHanja ? 0.8 : 1.0),
-                fontSize: compact ? 12 : 13,
-                fontWeight: FontWeight.w600,
+                color: color,
+                fontSize: compact ? 18 : 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            if (showSmall)
+              Text(
+                smallChar,
+                style: TextStyle(
+                  color: color.withOpacity(0.7),
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  /// 십성 셀
+  /// 십성 셀 — 글씨 크기 통일, 2줄 허용
   Widget _buildSipsinCell(BuildContext context, String text, SipSin? sipsin) {
     final theme = context.appTheme;
     final color = sipsin != null ? _getSipsinColor(sipsin) : theme.textSecondary;
@@ -395,7 +393,7 @@ class PosstellerStyleTable extends StatelessWidget {
         child: Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 4 : 6,
+            horizontal: compact ? 3 : 4,
             vertical: compact ? 3 : 4,
           ),
           decoration: BoxDecoration(
@@ -403,17 +401,17 @@ class PosstellerStyleTable extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             border: Border.all(color: color.withOpacity(0.3)),
           ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontSize: compact ? 12 : 13,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
+          child: Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),
@@ -437,7 +435,7 @@ class PosstellerStyleTable extends StatelessWidget {
     );
   }
 
-  /// 뱃지 셀 (12운성, 12신살용)
+  /// 뱃지 셀 (12운성, 12신살용) — 글씨 크기 통일, 2줄 허용
   Widget _buildBadgeCell(BuildContext context, String text, Color color) {
     return Expanded(
       child: Padding(
@@ -445,7 +443,7 @@ class PosstellerStyleTable extends StatelessWidget {
         child: Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 4 : 6,
+            horizontal: compact ? 3 : 4,
             vertical: compact ? 3 : 4,
           ),
           decoration: BoxDecoration(
@@ -453,17 +451,17 @@ class PosstellerStyleTable extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: color.withOpacity(0.4)),
           ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontSize: compact ? 12 : 13,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
+          child: Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),

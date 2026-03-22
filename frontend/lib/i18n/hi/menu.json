@@ -95,5 +95,6 @@
   "compatPromoRegister": "पंजीकरण",
   "compatPromoAnalyzeTitle": "अपने संपर्कों के साथ अनुकूलता जांचें",
   "compatPromoAnalyzeSubtitle": "दो लोगों की कुंडली के बीच छिपे बंधन का विश्लेषण करें",
-  "compatPromoResultTitle": "{name} के साथ अनुकूलता"
+  "compatPromoResultTitle": "{name} के साथ अनुकूलता",
+  "defaultPartner": "साथी"
 }

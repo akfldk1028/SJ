@@ -31,6 +31,7 @@ class MultiFileAssetLoader extends AssetLoader {
     'yearly_2025',
     'lifetime_fortune',
     'traditional_saju',
+    'saju_detail',
   ];
 
   @override

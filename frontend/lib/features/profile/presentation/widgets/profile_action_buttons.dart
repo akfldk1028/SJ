@@ -5,8 +5,11 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/profile_provider.dart';
+import '../providers/relation_provider.dart';
 // 사주 분석 헬퍼 (모듈화)
 import '../../data/relation_saju_helper.dart';
+import '../../data/data.dart' show relationMutations;
+import '../../data/relation_refresh_state.dart';
 // 광고 Provider
 import '../../../../ad/providers/ad_provider.dart';
 
@@ -73,7 +76,7 @@ class ProfileActionButtons extends ConsumerWidget {
             birthDate: formState.birthDate!,
             birthTimeMinutes: formState.birthTimeMinutes,
             birthTimeUnknown: formState.birthTimeUnknown,
-            birthCity: formState.birthCity,
+            birthCity: formState.birthCity.isNotEmpty ? formState.birthCity : '서울',
             isLunar: formState.isLunar,
             isLeapMonth: formState.isLeapMonth,
             useYaJasi: formState.useYaJasi,
@@ -154,7 +157,7 @@ class ProfileActionButtons extends ConsumerWidget {
       'is_leap_month': formState.isLeapMonth,
       'birth_time_minutes': formState.birthTimeUnknown ? null : formState.birthTimeMinutes,
       'birth_time_unknown': formState.birthTimeUnknown,
-      'birth_city': formState.birthCity,
+      'birth_city': formState.birthCity.isNotEmpty ? formState.birthCity : '서울',
       'use_ya_jasi': formState.useYaJasi,
       'relation_type': formState.relationType.name,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -177,7 +180,15 @@ class ProfileActionButtons extends ConsumerWidget {
     debugPrint('✅ [ProfileActionButtons] Supabase UPDATE 완료');
     debugPrint('  - 검증 결과: $verifyResult');
 
-    // Provider 무효화는 navigation 후 새 화면에서 처리
-    // (여기서 하면 defunct widget rebuild 에러 발생)
+    // profile_relations.display_name 동기화 (인연 탭 동기화)
+    final syncResult = await relationMutations.syncDisplayNameByProfileId(
+      profileId,
+      formState.displayName,
+    );
+    debugPrint('🔄 [ProfileActionButtons] relation display_name 동기화: ${syncResult.isSuccess}');
+
+    // 인연 관련 Provider 무효화 (인연 탭 갱신)
+    ref.invalidate(userRelationsProvider);
+    RelationRefreshState.markNeedsRefresh(); // 인연 관계도 로컬 캐시 갱신
   }
 }

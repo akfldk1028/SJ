@@ -124,13 +124,15 @@ class SipSungRow extends StatelessWidget {
       children: [
         if (label != null) ...[
           SizedBox(
-            width: 60,
+            width: 80,
             child: Text(
               label!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: theme.textMuted,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -287,13 +289,13 @@ class SipSungCategoryChart extends StatelessWidget {
     SipSinCategory.inseong: Icons.school_rounded,        // 인성 - 학문
   };
 
-  // 카테고리별 설명
-  static const _categoryDescriptions = {
-    SipSinCategory.bigeop: '자아, 형제, 경쟁',
-    SipSinCategory.siksang: '표현, 재능, 자녀',
-    SipSinCategory.jaeseong: '재물, 아버지, 여자',
-    SipSinCategory.gwanseong: '명예, 직장, 남자',
-    SipSinCategory.inseong: '학문, 어머니, 문서',
+  // 카테고리별 설명 i18n 키
+  static const _categoryDescriptionKeys = {
+    SipSinCategory.bigeop: 'saju_chart.bigeop_short',
+    SipSinCategory.siksang: 'saju_chart.siksang_short',
+    SipSinCategory.jaeseong: 'saju_chart.jaeseong_short',
+    SipSinCategory.gwanseong: 'saju_chart.gwanseong_short',
+    SipSinCategory.inseong: 'saju_chart.inseong_short',
   };
 
   @override
@@ -337,7 +339,7 @@ class SipSungCategoryChart extends StatelessWidget {
             final count = distribution[category] ?? 0;
             final color = _categoryColors[category]!;
             final icon = _categoryIcons[category]!;
-            final description = _categoryDescriptions[category]!;
+            final description = _categoryDescriptionKeys[category]!.tr();
             final ratio = total > 0 ? count / total : 0.0;
 
             return _buildCategoryCard(

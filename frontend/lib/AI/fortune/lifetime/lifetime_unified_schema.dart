@@ -368,14 +368,26 @@ Map<String, dynamic> get _unifiedSchema => {
 // 재사용 서브 스키마 (사주팔자 글자 정보)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// 오행 enum (색상 매핑용 — 항상 한국어 값 사용)
+Map<String, dynamic> get _ohengEnum => {
+  'type': 'string',
+  'enum': ['목', '화', '토', '금', '수'],
+};
+
+/// 음양 enum
+Map<String, dynamic> get _yinYangEnum => {
+  'type': 'string',
+  'enum': ['양', '음'],
+};
+
 /// 천간 글자 (animal 없음)
 Map<String, dynamic> get _sajuCharacterGan => {
   'type': 'object',
   'properties': {
     'character': {'type': 'string'},
     'reading': {'type': 'string'},
-    'oheng': {'type': 'string'},
-    'yin_yang': {'type': 'string'},
+    'oheng': _ohengEnum,
+    'yin_yang': _yinYangEnum,
     'meaning': {'type': 'string'},
   },
   'required': ['character', 'reading', 'oheng', 'yin_yang', 'meaning'],
@@ -389,8 +401,8 @@ Map<String, dynamic> get _sajuCharacterJi => {
     'character': {'type': 'string'},
     'reading': {'type': 'string'},
     'animal': {'type': 'string'},
-    'oheng': {'type': 'string'},
-    'yin_yang': {'type': 'string'},
+    'oheng': _ohengEnum,
+    'yin_yang': _yinYangEnum,
     'meaning': {'type': 'string'},
   },
   'required': ['character', 'reading', 'animal', 'oheng', 'yin_yang', 'meaning'],
@@ -404,8 +416,8 @@ Map<String, dynamic> get _sajuCharacterJiSeason => {
     'character': {'type': 'string'},
     'reading': {'type': 'string'},
     'season': {'type': 'string'},
-    'oheng': {'type': 'string'},
-    'yin_yang': {'type': 'string'},
+    'oheng': _ohengEnum,
+    'yin_yang': _yinYangEnum,
     'meaning': {'type': 'string'},
   },
   'required': ['character', 'reading', 'season', 'oheng', 'yin_yang', 'meaning'],

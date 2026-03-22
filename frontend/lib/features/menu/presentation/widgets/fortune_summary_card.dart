@@ -426,13 +426,17 @@ class FortuneSummaryCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '${idiom.chinese} · ${idiom.meaning}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
+                    Builder(builder: (ctx) {
+                      final locale = ctx.locale.languageCode;
+                      final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+                      return Text(
+                        '${isCjk ? idiom.chinese : idiom.korean} · ${idiom.meaning}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      );
+                    }),
                   ],
                   SizedBox(height: context.scaledPadding(16)),
                   // 메시지 텍스트

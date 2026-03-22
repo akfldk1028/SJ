@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../ad/ad_config.dart';
@@ -107,7 +108,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+            content: Text('common.errorOccurred'.tr(namedArgs: {'error': '$e'})),
             backgroundColor: Colors.red,
           ),
         );
@@ -138,7 +139,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
             size: 28,
           ),
           const SizedBox(width: 12),
-          const Text('일일 사용량 초과'),
+          Text('common.dailyQuotaExceeded'.tr()),
         ],
       ),
       content: Column(
@@ -164,7 +165,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '사용량',
+                      'common.usageLabel'.tr(),
                       style: theme.textTheme.bodyMedium,
                     ),
                     Text(
@@ -242,7 +243,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
         // 닫기 버튼
         TextButton(
           onPressed: _isLoading ? null : widget.onClose,
-          child: const Text('나중에'),
+          child: Text('common.later'.tr()),
         ),
         // 광고 시청 버튼 (adEnabled일 때만)
         if (adEnabled)
@@ -262,7 +263,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
                     children: [
                       Icon(Icons.play_arrow, size: 18),
                       SizedBox(width: 4),
-                      Text('광고 보고 토큰 받기'),
+                      Text('common.watchAdForTokens'.tr()),
                     ],
                   ),
           ),

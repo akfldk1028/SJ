@@ -65,22 +65,22 @@ abstract class AdStrategy {
   /// 6 = 3번째 대화 후부터 광고 시작
   static const int inlineAdMinMessages = 4;
 
-  // ==================== 전면 광고 ====================
+  // ==================== 보상형 광고 ====================
 
-  /// 전면 광고 표시 간격 (메시지 수)
-  static const int interstitialMessageInterval = 5;
+  /// 보상형 광고 표시 간격 (메시지 수)
+  static const int rewardedMessageInterval = 5;
 
-  /// 하루 최대 전면 광고 횟수
-  static const int interstitialDailyLimit = 15;
+  /// 하루 최대 보상형 광고 횟수
+  static const int rewardedDailyLimit = 15;
 
-  /// 전면 광고 쿨다운 (초)
-  static const int interstitialCooldownSeconds = 60;
+  /// 보상형 광고 쿨다운 (초)
+  static const int rewardedCooldownSeconds = 60;
 
-  /// 새 세션 시작 시 전면 광고 표시 여부
-  static const bool showInterstitialOnNewSession = true;
+  /// 새 세션 시작 시 보상형 광고 표시 여부
+  static const bool showRewardedOnNewSession = true;
 
-  /// 새 세션 전면 광고 하루 최대 횟수
-  static const int newSessionInterstitialDailyLimit = 5;
+  /// 새 세션 보상형 광고 하루 최대 횟수
+  static const int newSessionRewardedDailyLimit = 5;
 
   // ==================== 토큰 보상 설정 ====================
   // ★ 여기서 보상 토큰 값 조정 ★

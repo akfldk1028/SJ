@@ -83,7 +83,7 @@ class DailyFortuneCard extends StatelessWidget {
                   context,
                   icon: Icons.palette_outlined,
                   label: 'menu.luckyColorShort'.tr(),
-                  value: luckyColor ?? '파랑',
+                  value: luckyColor ?? '-',
                 ),
                 const SizedBox(width: 24),
                 _buildLuckyItem(

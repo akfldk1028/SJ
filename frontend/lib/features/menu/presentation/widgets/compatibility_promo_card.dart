@@ -197,7 +197,7 @@ class _CompatibilityPromoContent extends ConsumerWidget {
         final latest = analyses.first;
         final score = latest.overallScore ?? 0;
         final scoreColor = _getScoreColor(score);
-        final targetName = latest.profile2?.displayName ?? '상대방';
+        final targetName = latest.profile2?.displayName ?? 'menu.defaultPartner'.tr();
 
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
