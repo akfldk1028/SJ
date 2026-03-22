@@ -329,7 +329,7 @@ class AdService {
             }
 
             // 3. 유저 콜백
-            onRewarded(amount, type);
+            onRewarded(amount, type);  // void Function — do not await
           },
         );
         if (shown) {

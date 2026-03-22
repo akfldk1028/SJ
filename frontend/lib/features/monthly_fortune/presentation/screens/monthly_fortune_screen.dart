@@ -6,10 +6,10 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
-import '../../../../shared/widgets/fortune_monthly_chip_section.dart';
+import '../../../../shared/widgets/fortune_monthly_chip_section.dart' hide CategoryData;
+import '../../../../shared/widgets/fortune_category_chip_section.dart';
 import '../../../../shared/widgets/fortune_title_header.dart';
 import '../../../../shared/widgets/fortune_section_card.dart';
-import '../../../../shared/widgets/fortune_score_gauge.dart';
 import '../providers/monthly_fortune_provider.dart';
 
 /// 월별 운세 상세 화면 - 개선된 UI/UX
@@ -197,14 +197,25 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         ),
         const SizedBox(height: 24),
 
-        // 분야별 운세 (카드 그리드)
+        // 분야별 운세 (광고 잠금 칩)
         if (fortune.categories.isNotEmpty) ...[
           FortuneSectionTitle(
             title: 'monthly_fortune.categoryFortuneTitle'.tr(),
             icon: Icons.grid_view,
           ),
           const SizedBox(height: 12),
-          _buildCategoryGrid(theme, fortune.categories),
+          FortuneCategoryChipSection(
+            fortuneType: 'monthly',
+            title: '',
+            categories: fortune.categories.map((key, cat) => MapEntry(
+              key,
+              CategoryData(
+                title: cat.title,
+                score: cat.score,
+                reading: cat.reading,
+              ),
+            )),
+          ),
           const SizedBox(height: 24),
         ],
 
@@ -248,114 +259,6 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         _buildConsultButton(context, theme),
         const SizedBox(height: 40),
       ],
-    );
-  }
-
-  /// 펼쳐진 카테고리 키
-  String? _expandedCategoryKey;
-
-  /// 분야별 운세 리스트 (탭하여 펼치기)
-  Widget _buildCategoryGrid(AppThemeExtension theme, Map<String, CategorySection> categories) {
-    return Column(
-      children: categories.entries.map((entry) {
-        final cat = entry.value;
-        final categoryName = _getCategoryName(entry.key);
-        final icon = _getCategoryIcon(entry.key);
-        final isExpanded = _expandedCategoryKey == entry.key;
-        return _buildCategoryCard(theme, entry.key, categoryName, cat.score, cat.reading, icon, isExpanded);
-      }).toList(),
-    );
-  }
-
-  Widget _buildCategoryCard(AppThemeExtension theme, String key, String title, int score, String reading, IconData icon, bool isExpanded) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _expandedCategoryKey = isExpanded ? null : key;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isExpanded
-              ? theme.primaryColor.withValues(alpha: 0.06)
-              : theme.cardColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isExpanded
-                ? theme.primaryColor.withValues(alpha: 0.4)
-                : theme.textMuted.withValues(alpha: 0.15),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: theme.isDark ? 0.2 : 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: theme.primaryColor),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.textPrimary,
-                    ),
-                  ),
-                ),
-                if (score > 0)
-                  FortuneScoreGauge(
-                    score: score,
-                    size: 32,
-                    style: GaugeStyle.compact,
-                    showLabel: false,
-                  ),
-                const SizedBox(width: 4),
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
-                  color: theme.textSecondary,
-                ),
-              ],
-            ),
-            if (!isExpanded) ...[
-              const SizedBox(height: 8),
-              Text(
-                reading,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.textSecondary,
-                  height: 1.4,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            if (isExpanded) ...[
-              const SizedBox(height: 12),
-              Text(
-                reading,
-                textAlign: TextAlign.justify,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: theme.textSecondary,
-                  height: 1.7,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
@@ -497,32 +400,6 @@ class _MonthlyFortuneScreenState extends ConsumerState<MonthlyFortuneScreen> {
         ),
       ),
     );
-  }
-
-  String _getCategoryName(String key) {
-    final names = {
-      'career': 'monthly_fortune.career'.tr(),
-      'business': 'monthly_fortune.business'.tr(),
-      'wealth': 'monthly_fortune.wealth'.tr(),
-      'love': 'monthly_fortune.loveCategory'.tr(),
-      'marriage': 'monthly_fortune.marriage'.tr(),
-      'study': 'monthly_fortune.study'.tr(),
-      'health': 'monthly_fortune.healthCategory'.tr(),
-    };
-    return names[key] ?? key;
-  }
-
-  IconData _getCategoryIcon(String key) {
-    const icons = {
-      'career': Icons.work_outline,
-      'business': Icons.business_center_outlined,
-      'wealth': Icons.account_balance_wallet_outlined,
-      'love': Icons.favorite_outline,
-      'marriage': Icons.people_outline,
-      'study': Icons.school_outlined,
-      'health': Icons.health_and_safety_outlined,
-    };
-    return icons[key] ?? Icons.category;
   }
 
   /// 12개월 데이터 생성 (v5.0: highlights, lucky 포함)

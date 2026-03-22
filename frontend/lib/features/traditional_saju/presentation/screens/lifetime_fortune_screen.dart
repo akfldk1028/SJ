@@ -1807,11 +1807,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       return;
     }
 
-    // 전면 광고 로드 대기 (최대 8초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () {
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAd(
+      screen: 'lifetime_fortune_$cycleKey',
+      onRewarded: (amount, type) {
         if (mounted) {
           setState(() {
             _unlockedCycles.add(cycleKey);
@@ -1825,10 +1825,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 duration: const Duration(seconds: 2),
               ),
             );
-          } catch (_) {
-            // AdFit onDismissed가 MethodChannel에서 호출 시
-            // ScaffoldMessenger가 없을 수 있음 → 무시
-          }
+          } catch (_) {}
         }
       },
     );
