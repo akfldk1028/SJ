@@ -136,10 +136,12 @@ class UnityAdsAdapter implements AdNetworkAdapter {
     // Completer: 광고 종료(완료/스킵/실패) 후에야 리턴
     // → 호출자가 rewardGranted 플래그를 정확히 판단 가능
     final completer = Completer<void>();
+    bool adStarted = false;
 
     UnityAds.showVideoAd(
       placementId: UnityAdsConfig.rewarded,
       onStart: (placementId) {
+        adStarted = true;
         debugPrint('[UnityAds] Rewarded started');
         AdTrackingService.instance.trackRewardedShow(screen: screen);
       },
@@ -155,7 +157,7 @@ class UnityAdsAdapter implements AdNetworkAdapter {
         if (!completer.isCompleted) completer.complete();
       },
       onSkipped: (placementId) {
-        debugPrint('[UnityAds] Rewarded skipped — no reward');
+        debugPrint('[UnityAds] Rewarded skipped — ad was shown');
         loadRewarded();
         if (!completer.isCompleted) completer.complete();
       },
@@ -167,7 +169,7 @@ class UnityAdsAdapter implements AdNetworkAdapter {
     );
 
     await completer.future;
-    return true;
+    return adStarted; // onFailed(광고 안 뜸) → false, onComplete/onSkipped → true
   }
 
   // ==================== Lifecycle ====================

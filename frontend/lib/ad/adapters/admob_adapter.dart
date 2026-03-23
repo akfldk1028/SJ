@@ -34,6 +34,9 @@ class AdMobAdapter implements AdNetworkAdapter {
   // 보상형 광고 dismiss 대기 Completer
   Completer<void>? _rewardedDismissCompleter;
 
+  // 보상형 광고 실제 표시 여부 (onAdShowedFullScreenContent → true)
+  bool _adShowed = false;
+
   @override
   bool get isInterstitialLoaded => _isInterstitialLoaded;
 
@@ -168,6 +171,7 @@ class AdMobAdapter implements AdNetworkAdapter {
           // 풀스크린 콘텐츠 콜백
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
+              _adShowed = true;
               debugPrint('[AdMobAdapter] Rewarded showed');
               AdTrackingService.instance.trackRewardedShow(screen: _pendingRewardedScreen);
             },
@@ -229,6 +233,7 @@ class AdMobAdapter implements AdNetworkAdapter {
 
     _pendingRewardedScreen = screen;
     _rewardedDismissCompleter = Completer<void>();
+    _adShowed = false;
 
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
@@ -240,7 +245,7 @@ class AdMobAdapter implements AdNetworkAdapter {
 
     // 광고 dismiss/실패 후에야 리턴 → 호출자가 rewardGranted 정확히 판단
     await _rewardedDismissCompleter!.future;
-    return true;
+    return _adShowed; // onAdFailedToShow → false, 정상 표시 → true
   }
 
   // ==================== Lifecycle ====================

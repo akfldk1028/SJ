@@ -1,135 +1,147 @@
-# HANDOFF — 사주 상세 UI 다국어 레이아웃 대수술 (진행 중)
+# HANDOFF — SaDam→MOL 사주 8글자 딥 매핑 v3
 
-> 작성: 2026-03-22 23:20 | DK-DD 브랜치 | v64+ 다국어 UI
+> 작성: 2026-03-23 | DK-DD 브랜치
 
 ---
 
 ## Goal
 
-사담(SaDam) 앱의 사주 상세 9탭 + 홈 화면에서 **다국어 레이아웃 전면 수정**.
-독일어/인도네시아어 등 긴 언어에서 UI가 깨지는 문제 해결.
+SaDam 사주 앱의 사주 데이터를 MOL 에이전트 커뮤니티로 자동 이관하여, **사주 8글자 + 딥 데이터(격국/십신/합충/신살/지장간/대운)**를 전부 반영한 AI 에이전트 페르소나를 생성하는 시스템.
 
-**핵심 규칙 (DK 확정, 메모리에 저장됨)**:
-- CJK(한/중/일) → 한자 표시
-- 나머지 14개 언어 → 한자 대신 **한글** 표시 (외국인이 한글 좋아함)
-- FittedBox 절대 금지 (글씨 크기가 셀마다 달라짐)
-- maxLines 넉넉하게 (5 이상), 높이를 늘려서 대응
+**v2.2 완료** → **v3 구현 필요** (8글자 딥 매핑)
 
 ---
 
-## 완료된 작업 (이번 세션)
+## Current Progress (v2.2 완료)
 
-### 1. FittedBox 전면 제거 ✅
-모든 사주 상세 위젯에서 FittedBox(scaleDown) 16개 제거.
-대신 `maxLines` + `overflow: TextOverflow.ellipsis` + 통일된 폰트 사이즈 적용.
+### 인프라 (전부 작동 확인)
+- SaDam trigger `trg_saju_to_mol` → MOL Edge Function `saju-to-agent` v2.2 (version 6)
+- SaDam trigger `trg_ai_summary_to_mol` → MOL Edge Function `saju-enrich-agent` v3
+- 시크릿: MOL secrets CLI 설정 완료 + SaDam `app_secrets` 테이블 (SECURITY DEFINER)
+- 시크릿 값: `ascsoefc86NlWG5kimbr70wFipKwv3e8XeyHX7UAHsY`
+- 트리거 함수: `app_secrets` 테이블에서 시크릿 읽도록 수정 완료
 
-**수정 파일**: possteller_style_table, fortune_display, pillar_column_widget, sinsal_display, gilseong_display, gongmang_display, day_strength_display, sipsung_display, oheng_analysis_display, pillar_display
+### DB 스키마
+- MOL `agent_saju_origin`: 8글자 + 격국/용신/십신/합충/신살/십이운성 + **대운/지장간/길성/십이신살/세운** (5개 컬럼 추가)
+- MOL `agents`: personality(jsonb), speaking_style(jsonb), persona(text), archetype(varchar)
+- MOL `agent_ai_knowledge`: ai_summaries 이관 (COALESCE 인덱스 대응 완료)
+- MOL `agent_chat_archive`: chat 이관
 
-### 2. 한자→한글 CJK 분기 ✅
-- `possteller_style_table.dart` — _buildGanJiCell: CJK=한자, 나머지=한글 큰 글씨 + locale 이름 작은 글씨
-- `pillar_display.dart` — _buildCharWithHanja: 동일 CJK 분기
-- `fortune_display.dart` — 대운/세운/월운 카드: `_buildGanJiBox()` + `_buildGanJiText()` 헬퍼
-- `personalized_oheng_widget.dart` — 오행 관계 카드: 水→Wasser 등 locale별 표시
-- `home_screen.dart` — 사자성어: CJK=한자, 나머지=한글
-- `calendar_screen.dart`, `fortune_summary_card.dart` — 동일 적용
+### v2.2 매핑 (현재)
+```
+personality = oheng_ratio(8글자 균등) + day_master_bonus(일간) + season_bonus(월지 계절)
+archetype = DAY_MASTER_ARCHETYPE[일간]
+```
+**문제**: 8글자 오행 비율만 봄. 격국/십신/합충/신살/지장간/일간강약 미사용.
 
-### 3. 번역 축약 ✅ (17개 언어)
-기둥 이름 짧게 줄임 (모든 언어):
-- de: "Stundenpfeiler"→"Stunde", "Himmelsstamm"→"Stamm"
-- en: "Hour Pillar"→"Hour"
-- fr/es/it/pt/ru/ar/hi/id/ms/th/my — 전부 축약 완료
-
-**수정 파일**: 17개 `saju_chart.json`
-
-### 4. 오행 i18n 17개 언어 추가 ✅
-`_ohengI18n` 맵: 기존 en만 → 17개 언어 전부 추가 (Holz, Feuer, Erde, Metall, Wasser 등)
-
-### 5. 특수 신살 i18n 30+ 항목 추가 ✅
-`_specialSinsalI18n`: 11개 → 40+개로 확장 (월덕귀인, 천덕귀인, 태극귀인, 현침살, 천문성, 학당귀인, 백호대살 등 전부 영어 번역)
-
-### 6. Row overflow 수정 ✅
-- 합충 카드: Row→Wrap, 흰배경→테마색, 한글 description 숨김
-- 신살 상세 카드: Wrap→Column 2줄 고정 (1행: 궁성+지지, 2행: 신살+길흉)
-- 공망 카드: Row+Spacer→Column (overflow 제거)
-- 공망 "normalEnergyDesc" Row: Expanded 추가
-- 설명 카드 제목 5곳: Expanded + maxLines:3 추가
-- 운성 요약 제목: Expanded 추가
-
-### 7. maxLines 전면 증가 ✅
-모든 위젯 파일에서 maxLines: 2 → 5로 변경 (총 30+곳)
-fortune_display SizedBox height: 28→42, 전체 높이 205→230
-
-### 8. fortuneType 한글 누출 수정 ✅
-`_buildKeySinsalCard`에서 `fortuneType` 한글 → `SajuI18n.fortuneType()` 호출로 변경
-
-### 9. 공망 summary "월지" 한글 누출 수정 ✅
-`result.summary` 대신 UI에서 `gongmangPillars.map(SajuI18n.pillarName)` 직접 조합
-
----
-
-## 남은 문제 (Next Steps)
-
-### Priority 1: 신살 summary 한글 하드코딩
-- **증상**: "역마살(월지), 화개살(년지)" 한글 그대로 표시
-- **원인**: `twelve_sinsal_service.dart:225-230` — `summary` getter가 한글로 조합
-- **해결**: UI(saju_detail_tabs.dart)에서 `result.summary` 사용처를 찾아서, `SajuI18n.sinsal()` + `SajuI18n.pillarName()`으로 locale 변환
-- **파일**: `saju_detail_tabs.dart` 1528행 근처
-
-### Priority 2: `_pillarNameI18n` Dart맵 축약 안 됨
-- **증상**: "Cabang Tahun" (인도네시아어) 등 Dart 맵의 기둥 이름이 아직 길음
-- **원인**: JSON `saju_chart.json`은 축약했지만, `cheongan_jiji_i18n.dart`의 `_pillarNameI18n` 맵은 안 바꿈
-- **해결**: `_pillarNameI18n`에서 '년지'→'Tahun', '월지'→'Bulan' 등 축약
-- **파일**: `cheongan_jiji_i18n.dart` 1193~1208행
-
-### Priority 3: 합충 description 한글 잔여
-- **증상**: hapchung_service.dart에서 `'$gan1$gan2충'` 한글 생성
-- **현재 처리**: regex로 한글만인 description 숨김 (임시)
-- **해결**: hapchung_service에서 description을 i18n 키로 바꾸거나, UI에서 SajuI18n.hapchungDesc() 적용
-
-### Priority 4: Stat box "Tidak Menguntungkan" 레이아웃
-- **증상**: 인도네시아어 "Tidak Menguntungkan"이 stat box에 안 맞음
-- **해결**: stat box 내 텍스트 fontSize 줄이거나 maxLines 증가
-
-### Priority 5: 합충 카드 locale+한글(한자) 병기
-- **DK 피드백**: "locale 하고 진(한자) 이렇게. 외국인은 한글을 좋아해"
-- 합충 _buildCharacterBox에서 locale명 + 한글(한자) 2줄 표시
+### E2E 검증 완료 (5명)
+| 이름 | 일간 | Archetype | O/C/E/A/N |
+|------|------|-----------|-----------|
+| 배종환 | 癸 이슬 | lurker | 0.36/0.63/0.31/0.94/0.46 |
+| dd | 戊 산 | character | 0.63/0.15/0.63/0.94/0.36 |
+| 조현희 | 己 정원 | connector | 0.63/0.63/0.05/0.83/0.63 |
+| 김지훈 | 乙 덩굴 | connector | 0.88/0.42/0.42/0.57/0.42 |
+| 정인영 | 己 정원 | connector | 0.47/0.42/0.42/1.00/0.00 |
 
 ---
 
 ## What Worked
-1. **CJK 분기 패턴** — `final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh'` → 한자/한글 분기. 깔끔하고 모든 위젯에서 재사용
-2. **Column 2줄 고정** — Wrap보다 깔끔 (Wrap은 들쭉날쭉)
-3. **maxLines 5 + Expanded** — overflow 근본 해결
-4. **번역 축약** — "Stundenpfeiler"→"Stunde" 같은 축약이 가장 효과적
+1. **`extractHanja()`** — DB의 "계(癸)" 형식에서 한자 추출. 정규식 `\((.)\)`
+2. **agents INSERT 시 id/api_key_hash 직접 생성** — `crypto.randomUUID()` + `sha256Hex()`
+3. **Supabase MCP로 배포** — `mcp__supabase__deploy_edge_function` 직접 사용
+4. **Supabase CLI로 시크릿 설정** — `npx supabase secrets set --project-ref`
+5. **app_secrets 테이블** — `ALTER DATABASE` 권한 없어서 테이블로 대체, SECURITY DEFINER
+6. **saju-enrich-agent insert fallback** — COALESCE 함수 인덱스라 upsert 안 됨 → insert + 23505 무시
 
 ## What Didn't Work
-1. **FittedBox** — 셀마다 글씨 크기 달라져서 최악. 절대 쓰지 말 것
-2. **Wrap** — 자동 줄바꿈이 들쭉날쭉해서 보기 흉함. Column 2줄 고정이 나음
-3. **maxLines: 1** — 독일어 같은 긴 언어에서 무조건 잘림. 최소 2, 가능하면 5
-4. **Spacer() in Row** — 요소가 넓으면 overflow 원인. 제거하거나 Expanded로 대체
+1. **v2 handleNewSaju가 origin 읽기만 함** — 트리거 첫 호출 시 origin 없음. INSERT 먼저 해야 함
+2. **`ALTER DATABASE SET app.mol_webhook_secret`** — Supabase 관리형이라 superuser 권한 없음
+3. **`onConflict: 'source_hash,knowledge_type,coalesce_target_date'`** — COALESCE 함수 인덱스는 Supabase upsert 불가
+4. **curl에서 한글/한자** — Windows cp949 인코딩 문제. Python urllib 사용해야 함
+5. **백그라운드 에이전트 Bash 권한** — 서브에이전트에 Bash 없음. 직접 실행해야 함
 
 ---
 
-## 수정 파일 목록 (이번 세션)
+## Next Steps: v3 딥 매핑 구현
 
-| 파일 | 변경 |
+### 플랜 파일: `D:\DevCache\claude-data\plans\calm-riding-jellyfish.md`
+
+### 7 Layer 매핑 설계
+
+**Layer 1: 기둥별 가중 오행** (v2는 균등)
+```
+년간/년지: 0.10, 월간/월지: 0.30, 일간/일지: 0.40, 시간/시지: 0.20
+```
+
+**Layer 2: 지장간(Hidden Stems)** → 내면 Big Five
+```
+지지 속 숨겨진 천간의 오행 → "hidden_personality" (외면과 별도)
+子:癸 | 丑:己癸辛 | 寅:甲丙戊 | 卯:乙 | 辰:戊乙癸 | 巳:丙庚戊
+午:丁己 | 未:己丁乙 | 申:庚壬戊 | 酉:辛 | 戌:戊辛丁 | 亥:壬甲
+```
+
+**Layer 3: 십신(Ten Gods)** → 대인관계 패턴
+```
+비겁 → A 감소, 식상 → O 증가, 재성 → C 증가, 관성 → C+N 증가, 인성 → A 증가
+```
+
+**Layer 4: 격국** → archetype 정교화
+```
+식신격→creator, 편재격→provocateur, 비견격→expert, 정관격→character
+편관격→critic, 정인격→connector, 편인격→lurker
+```
+
+**Layer 5: 일간 강약** → 자신감/독립성
+```
+신강(>50): E+0.10 A-0.05 | 신약(<40): N+0.10 A+0.05
+```
+
+**Layer 6: 합충** → 내적 갈등/조화
+```
+충 개수 → N+(충*0.03) | 합 개수 → A+(합*0.03) | 형 → N+0.05
+```
+
+**Layer 7: 신살** → 특수 trait
+```
+도화살→E+0.10 | 역마살→O+0.10 | 화개살→O+0.10 | 양인살→C+0.10 | 천을귀인→A+0.05
+```
+
+### 최종 공식
+```
+personality = weighted_oheng * 0.35 + day_master * 0.20 + sipsin * 0.15
+            + strength * 0.10 + hapchung * 0.10 + sinsal * 0.10
+archetype = gyeokguk_archetype || day_master_archetype
+hidden_personality = jijanggan_oheng (내면 별도)
+```
+
+### 구현 순서
+1. `mol-saju-to-agent/index.ts`에 7 layer 매핑 구현
+2. 5명 테스트 케이스로 v2 vs v3 비교
+3. MOL 재배포 + recalculate 실행
+4. 메모리 업데이트
+
+---
+
+## 핵심 파일 위치
+
+| 파일 | 용도 |
 |------|------|
-| `possteller_style_table.dart` | FittedBox 4곳 제거, CJK 한자/한글 분기, maxLines 5 |
-| `pillar_display.dart` | CJK 분기, 라벨 11px, maxLines 5 |
-| `fortune_display.dart` | 한글 큰 글씨, CJK 분기, 카드 96px, height 42/230 |
-| `personalized_oheng_widget.dart` | 오행명 locale별, 한자 CJK 분기 |
-| `home_screen.dart` | 사자성어 CJK 분기 2곳 |
-| `calendar_screen.dart` | 사자성어 CJK 분기 |
-| `fortune_summary_card.dart` | 사자성어 CJK 분기 |
-| `saju_detail_tabs.dart` | Row→Column, Expanded 추가 6곳, maxLines 5, fortuneType i18n, gongmang summary locale |
-| `hapchung_tab.dart` | 흰배경→테마, 한글 description 숨김, maxLines 5 |
-| `gilseong_display.dart` | FittedBox 제거, SpecialSinsalBadge overflow, maxLines 5 |
-| `sinsal_display.dart` | 라벨 80px, maxLines 5 |
-| `gongmang_display.dart` | 라벨 80px, maxLines 5 |
-| `day_strength_display.dart` | FittedBox→Flexible, maxLines 5 |
-| `sipsung_display.dart` | FittedBox 제거, maxLines 5 |
-| `oheng_analysis_display.dart` | FittedBox 제거, 너비 110px, maxLines 5 |
-| `pillar_column_widget.dart` | FittedBox 4곳 제거, maxLines 5 |
-| `saju_detail_sheet.dart` | 오행바 라벨 70px, maxLines 2 |
-| `cheongan_jiji_i18n.dart` | 오행 17개 언어, 특수신살 40+, 음양 17개 언어 |
-| 17개 `saju_chart.json` | 기둥 이름 축약 |
+| `supabase/functions/mol-saju-to-agent/index.ts` | v2.2 Edge Function 코드 (v3로 교체) |
+| `docs/manseryeok_logic.md` | 만세력 계산 기술 문서 |
+| `frontend/lib/features/saju_chart/data/constants/` | 천간/지지/오행/지장간 데이터 |
+| `frontend/lib/features/saju_chart/domain/services/` | 사주 계산 서비스들 |
+
+## 프로젝트 연결
+- SaDam Supabase: `kfciluyxkomskyxjaeat` (싱가포르)
+- MOL Supabase: `ccqwgtemeqprpzvjghbo` (도쿄)
+
+## 메모리
+- `memory/mol/saju_agent_bridge_status.md` — 전체 시스템 상태
+- `memory/mol/saju_bigfive_mapping_v2_verified.md` — v2 매핑 공식 + 5명 검증
+- `memory/mol/arxiv_research_results.md` — 학술 논문 조사 결과
+- `memory/mol/saju_bigfive_mapping_research.md` — 일간/오행 매핑 리서치
+
+## 학술 참고
+- **Big5-Scaler** (arxiv 2508.06149) — 숫자 기반 프롬프트가 가장 효과적
+- **Persona Alchemy** (2505.18351) — SCT 4요소 프레임워크
+- **BaZi→Big Five 직접 논문은 없음** — 학계 최초 시도

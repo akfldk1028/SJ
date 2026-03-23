@@ -135,8 +135,9 @@ void main() async {
   }
 
   // Google Play In-App Update 체크 (Android만)
+  // forceImmediate: 전체 화면 강제 업데이트 (빌드 56 등 구버전 보상형 광고 미작동 방지)
   if (isMobile && Platform.isAndroid) {
-    AppUpdateService.instance.checkForUpdate();
+    AppUpdateService.instance.checkForUpdate(forceImmediate: true);
   }
 
   runApp(

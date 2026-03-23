@@ -189,16 +189,9 @@ class TokenDepletedBanner extends ConsumerWidget {
     );
 
     if (!shown) {
-      // 보상형 광고 로드 실패 (AdMob + Unity 모두) → fallback 소량 토큰 지급
-      const fallbackTokens = AdStrategy.depletedFallbackTokens;
-      await TokenRewardService.grantRewardedAdTokens(
-        fallbackTokens,
-        screen: 'token_depleted_fallback',
-        isFallback: true,
-      );
-      chatNotifier.addBonusTokens(fallbackTokens, isRewardedAd: false);
+      // 광고 로드/표시 실패 → 토큰 미지급, 배너 유지 (다시 시도 가능)
       AdService.instance.loadRewardedAd();
-      debugPrint('[TokenDepletedBanner] 보상형 광고 실패 → fallback +$fallbackTokens tokens');
+      debugPrint('[TokenDepletedBanner] 보상형 광고 실패 → 토큰 미지급, 배너 유지');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -207,15 +200,16 @@ class TokenDepletedBanner extends ConsumerWidget {
           ),
         );
       }
-    } else {
-      // 광고 표시 완료 (끝까지 봤든 중간에 닫았든) → 토큰 지급
-      await TokenRewardService.grantRewardedAdTokens(
-        tokens,
-        screen: 'token_depleted_rewarded',
-      );
-      chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
-      debugPrint('[TokenDepletedBanner] 보상형 광고 종료 → +$tokens tokens 지급');
+      return; // 배너 유지 — dismissAd 호출하지 않음
     }
+
+    // 광고 표시 완료 (끝까지 봤든 중간에 닫았든) → 토큰 지급
+    await TokenRewardService.grantRewardedAdTokens(
+      tokens,
+      screen: 'token_depleted_rewarded',
+    );
+    chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
+    debugPrint('[TokenDepletedBanner] 보상형 광고 종료 → +$tokens tokens 지급');
 
     // 광고 모드 종료
     adNotifier.dismissAd();

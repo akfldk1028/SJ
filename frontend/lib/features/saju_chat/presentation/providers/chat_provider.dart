@@ -647,7 +647,15 @@ class ChatNotifier extends _$ChatNotifier {
       }
     }
 
-    if (!isPremium && _serverQuotaExceeded) {
+    // v68: quotaExceededGlobal 추가 — 세션 전환해도 쿼타 초과 모달 유지
+    // ChatNotifier는 세션별 autoDispose라 인스턴스 변수가 리셋됨
+    // static quotaExceededGlobal로 세션 간 쿼타 상태 공유 → 불필요한 429 요청 방지
+    if (!isPremium && (_serverQuotaExceeded || quotaExceededGlobal)) {
+      // 인스턴스 플래그도 동기화 (global에서 감지된 경우)
+      if (!_serverQuotaExceeded && quotaExceededGlobal) {
+        _serverQuotaExceeded = true;
+        _quotaExceededDate = _quotaExceededGlobalDate;
+      }
       final selectedPersona = ref.read(chatPersonaNotifierProvider);
       final quota = PurchaseConfig.freeDailyQuota;
       ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
@@ -668,7 +676,7 @@ class ChatNotifier extends _$ChatNotifier {
       );
       _isSendingMessage = false;
       if (kDebugMode) {
-        print('⚠️ [CHAT] 서버 쿼타 초과 상태 — 광고 시청 필요');
+        print('⚠️ [CHAT] 서버 쿼타 초과 상태 — 광고 시청 필요 (global: $quotaExceededGlobal, instance: $_serverQuotaExceeded)');
       }
       return;
     }

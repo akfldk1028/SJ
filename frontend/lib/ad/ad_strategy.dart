@@ -95,8 +95,8 @@ abstract class AdStrategy {
   // [유저 패턴] 광고 시청 유저: 평균 6번 클릭 → 대화 19회/일
 
   /// 토큰 소진 → 리워드 영상 후 충전할 토큰량 (모든 네트워크 공통)
-  /// 5K completion tokens ≈ 9메시지, API 비용 ~$0.07
-  static const int depletedRewardTokensVideo = 5000;
+  /// 4K completion tokens ≈ 7메시지, API 비용 ~$0.056
+  static const int depletedRewardTokensVideo = 4000;
 
   /// 토큰 소진 → 광고 로드 실패 시 최소 fallback 토큰
   /// 500 tokens ≈ 1회 대화 (악용 방지: 비행기모드→로드실패→무료토큰 반복 차단)
