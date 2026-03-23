@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/utils/text_formatter.dart';
 import '../../../../shared/widgets/fortune_shimmer_loading.dart';
 import '../../../../shared/widgets/fortune_category_chip_section.dart';
@@ -252,7 +253,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     final isComplete = progress.currentPhase >= progress.totalPhases;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: context.horizontalPadding, vertical: 16),
       children: [
         // 진행 상황 배너 (완료되지 않은 경우)
         if (!isComplete) ...[
@@ -638,7 +639,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   Widget _buildContent(BuildContext context, AppThemeExtension theme, LifetimeFortuneData fortune) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: context.horizontalPadding, vertical: 16),
       children: [
         // ========== 1단계: 소개 (나는 누구?) ==========
         _buildTitle(theme),
@@ -931,6 +932,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
         const SizedBox(height: 6),
         Text(
           content,
+          textAlign: TextAlign.justify,
           style: TextStyle(
             fontSize: 15,
             color: theme.textSecondary,
@@ -944,6 +946,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildParagraph(AppThemeExtension theme, String text) {
     return Text(
       FortuneTextFormatter.formatParagraph(text),
+      textAlign: TextAlign.justify,
       style: TextStyle(
         fontSize: 15,
         color: theme.textSecondary,
@@ -1162,6 +1165,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               ),
               child: Text(
                 chars.overallReading,
+                textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.6,
@@ -1350,6 +1354,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               // 설명
               Text(
                 info.meaning,
+                textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.7,
@@ -1538,6 +1543,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           if (isUnlocked) ...[
             Text(
               content,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 color: theme.textSecondary,
@@ -1583,6 +1589,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               const SizedBox(height: 4),
               Text(
                 entry.value,
+                textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontSize: 14,
                   color: theme.textSecondary,
@@ -2005,6 +2012,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
               const SizedBox(height: 12),
               Text(
                 'lifetime_fortune.digitalEraPreview'.tr(),
+                textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.6,
@@ -2188,6 +2196,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             ),
             child: Text(
               sinsal.reading,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 height: 1.7,
@@ -2280,6 +2289,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           // 미리보기 텍스트
           Text(
             'lifetime_fortune.peakYearsPreview'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               height: 1.6,
@@ -2675,6 +2685,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             const SizedBox(height: 10),
             Text(
               cycle.reading,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 14,
                 height: 1.6,

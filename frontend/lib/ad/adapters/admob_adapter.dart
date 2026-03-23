@@ -25,6 +25,10 @@ class AdMobAdapter implements AdNetworkAdapter {
   // 보류 중인 콜백 (show 시 설정, dismiss 시 호출)
   void Function()? _pendingInterstitialDismissed;
 
+  // 보류 중인 screen (show 시 설정, 콜백에서 사용)
+  String? _pendingInterstitialScreen;
+  String? _pendingRewardedScreen;
+
   @override
   bool get isInterstitialLoaded => _isInterstitialLoaded;
 
@@ -73,16 +77,17 @@ class AdMobAdapter implements AdNetworkAdapter {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Interstitial showed');
-              AdTrackingService.instance.trackInterstitialShow();
+              AdTrackingService.instance.trackInterstitialShow(screen: _pendingInterstitialScreen);
             },
             onAdDismissedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Interstitial dismissed');
-              AdTrackingService.instance.trackInterstitialComplete();
+              AdTrackingService.instance.trackInterstitialComplete(screen: _pendingInterstitialScreen);
               ad.dispose();
               _interstitialAd = null;
               _isInterstitialLoaded = false;
               _pendingInterstitialDismissed?.call();
               _pendingInterstitialDismissed = null;
+              _pendingInterstitialScreen = null;
               // 자동 재로드
               loadInterstitial();
             },
@@ -94,6 +99,7 @@ class AdMobAdapter implements AdNetworkAdapter {
               _isInterstitialLoaded = false;
               _pendingInterstitialDismissed?.call(); // show 실패해도 콜백 호출
               _pendingInterstitialDismissed = null;
+              _pendingInterstitialScreen = null;
               loadInterstitial();
             },
             onAdImpression: (ad) {
@@ -120,10 +126,11 @@ class AdMobAdapter implements AdNetworkAdapter {
   }
 
   @override
-  Future<bool> showInterstitial({void Function()? onDismissed}) async {
+  Future<bool> showInterstitial({void Function()? onDismissed, String? screen}) async {
     if (!_isInterstitialLoaded || _interstitialAd == null) return false;
 
     _pendingInterstitialDismissed = onDismissed;
+    _pendingInterstitialScreen = screen;
     await _interstitialAd!.show();
     return true;
   }
@@ -157,14 +164,15 @@ class AdMobAdapter implements AdNetworkAdapter {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Rewarded showed');
-              AdTrackingService.instance.trackRewardedShow();
+              AdTrackingService.instance.trackRewardedShow(screen: _pendingRewardedScreen);
             },
             onAdDismissedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Rewarded dismissed');
-              AdTrackingService.instance.trackRewardedComplete();
+              AdTrackingService.instance.trackRewardedComplete(screen: _pendingRewardedScreen);
               ad.dispose();
               _rewardedAd = null;
               _isRewardedLoaded = false;
+              _pendingRewardedScreen = null;
               // 지연 후 재로드
               Future.delayed(
                 const Duration(seconds: AdSettings.rewardedReloadDelay),
@@ -177,6 +185,7 @@ class AdMobAdapter implements AdNetworkAdapter {
               ad.dispose();
               _rewardedAd = null;
               _isRewardedLoaded = false;
+              _pendingRewardedScreen = null;
             },
             onAdImpression: (ad) {
               debugPrint('[AdMobAdapter] Rewarded impression');
@@ -203,9 +212,11 @@ class AdMobAdapter implements AdNetworkAdapter {
   @override
   Future<bool> showRewarded({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
   }) async {
     if (!_isRewardedLoaded || _rewardedAd == null) return false;
 
+    _pendingRewardedScreen = screen;
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
         debugPrint(
@@ -227,5 +238,7 @@ class AdMobAdapter implements AdNetworkAdapter {
     _isInterstitialLoaded = false;
     _isRewardedLoaded = false;
     _pendingInterstitialDismissed = null;
+    _pendingInterstitialScreen = null;
+    _pendingRewardedScreen = null;
   }
 }

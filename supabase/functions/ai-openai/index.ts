@@ -4,6 +4,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v56 변경사항 (2026-03-22):
+ * - BUG FIX: MODEL_PRICING에 gpt-5.2-thinking 누락 → gpt-5.2 가격($1.75/$14.00) fallback 적용
+ *   → 실제 saju_analysis는 gpt-5-mini phase 1-4로 실행되는데, parent task(gpt-5.2-thinking)가
+ *     gpt-5.2 가격으로 비용 기록 → DB gpt_cost_usd가 실제 비용의 ~7배 부풀림
+ *   → 수정1: gpt-5.2-thinking을 MODEL_PRICING에 명시적 추가
+ *   → 수정2: fallback을 gpt-5.2 → gpt-5-mini로 변경 (알 수 없는 모델은 저가로 추산)
+ *
  * v51 변경사항 (2026-02-11):
  * - 모델별 가격 상수 (MODEL_PRICING) + getModelCost() 함수 추가
  *   → gpt-5-mini 등 다른 모델 사용 시 비용이 정확하게 기록됨
@@ -91,16 +98,19 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const DAILY_QUOTA = 5000;
 const ADMIN_QUOTA = 1000000000;
 
-// v51: 모델별 가격 ($/1M tokens)
+// v56: 모델별 가격 ($/1M tokens)
+// ※ 새 모델 추가 시 반드시 여기에 등록! 미등록 모델은 gpt-5-mini 가격으로 fallback
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  'gpt-5.2':     { input: 1.75,  output: 14.00 },
-  'gpt-5-mini':  { input: 0.25,  output: 2.00 },
-  'gpt-4o':      { input: 2.50,  output: 10.00 },
-  'gpt-4o-mini': { input: 0.15,  output: 0.60 },
+  'gpt-5.2':           { input: 1.75,  output: 14.00 },
+  'gpt-5.2-thinking':  { input: 1.75,  output: 14.00 },  // v56: parent orchestrator용 (실제 토큰=0이지만 명시)
+  'gpt-5-mini':        { input: 0.25,  output: 2.00 },
+  'gpt-4o':            { input: 2.50,  output: 10.00 },
+  'gpt-4o-mini':       { input: 0.15,  output: 0.60 },
 };
 
 function getModelCost(model: string, promptTokens: number, completionTokens: number): number {
-  const pricing = MODEL_PRICING[model] || MODEL_PRICING['gpt-5.2'];
+  // v56: fallback을 gpt-5.2 → gpt-5-mini로 변경 (미등록 모델은 저가로 추산)
+  const pricing = MODEL_PRICING[model] || MODEL_PRICING['gpt-5-mini'];
   return (promptTokens * pricing.input / 1000000) + (completionTokens * pricing.output / 1000000);
 }
 

@@ -235,6 +235,7 @@ class PersonalizedOhengWidget extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               r.description,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 13,
                 height: 1.7,

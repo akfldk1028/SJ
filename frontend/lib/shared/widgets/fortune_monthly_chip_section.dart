@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -265,7 +266,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
       children: [
         // 섹션 제목
         Text(
-          widget.title ?? '월별 운세',
+          widget.title ?? 'common.monthlyFortune'.tr(),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -276,7 +277,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
 
         // 안내 텍스트
         Text(
-          '탭하여 각 달의 운세를 확인하세요',
+          'common.tapToViewMonthlyFortune'.tr(),
           style: TextStyle(
             fontSize: 13,
             color: theme.textSecondary,
@@ -297,7 +298,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
             return _buildMonthChip(
               theme: theme,
               monthKey: key,
-              monthName: '$monthNum월',
+              monthName: 'common.monthLabel'.tr(namedArgs: {'month': monthNum}),
               isUnlocked: isUnlocked,
               isExpanded: isExpanded,
             );
@@ -404,7 +405,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -417,7 +418,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           Row(
             children: [
               Text(
-                '$monthNum월 운세',
+                'common.monthFortune'.tr(namedArgs: {'month': monthNum}),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -433,7 +434,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${month.score}점',
+                    'common.scoreUnit'.tr(namedArgs: {'score': '${month.score}'}),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -459,7 +460,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           // 키워드
           if (month.keyword.isNotEmpty) ...[
             Text(
-              '키워드: ${month.keyword}',
+              'common.keyword'.tr(namedArgs: {'keyword': month.keyword}),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -474,6 +475,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           if (month.reading.isNotEmpty) ...[
             Text(
               month.reading,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textSecondary,
@@ -494,7 +496,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
             const Divider(),
             const SizedBox(height: 12),
             Text(
-              '분야별 요약',
+              'common.categorySummary'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -512,7 +514,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
             const Divider(),
             const SizedBox(height: 12),
             Text(
-              '분야별 상세 운세',
+              'common.categoryDetailedFortune'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -550,6 +552,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
                   Expanded(
                     child: Text(
                       month.tip,
+                      textAlign: TextAlign.justify,
                       style: TextStyle(
                         fontSize: 14,
                         color: theme.textPrimary,
@@ -570,7 +573,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
   Widget _buildLoadingContent(AppThemeExtension theme, String monthNum) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -581,7 +584,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           Row(
             children: [
               Text(
-                '$monthNum월 운세',
+                'common.monthFortune'.tr(namedArgs: {'month': monthNum}),
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -603,7 +606,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           const CircularProgressIndicator(),
           const SizedBox(height: 16),
           Text(
-            '$monthNum월 운세를 분석하고 있습니다...',
+            'common.analyzingInProgress'.tr(namedArgs: {'name': 'common.monthLabel'.tr(namedArgs: {'month': monthNum})}),
             style: TextStyle(
               fontSize: 14,
               color: theme.textSecondary,
@@ -649,7 +652,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${category.score}점',
+                    'common.scoreUnit'.tr(namedArgs: {'score': '${category.score}'}),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -663,6 +666,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
             const SizedBox(height: 8),
             Text(
               category.reading,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 13,
                 color: theme.textSecondary,
@@ -676,15 +680,15 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
   }
 
   String _getCategoryName(String key) {
-    const names = {
-      'career': '직업운',
-      'work': '직장운',  // DB 키와 일치
-      'business': '사업운',
-      'wealth': '재물운',
-      'love': '애정운',
-      'marriage': '결혼운',
-      'study': '학업운',
-      'health': '건강운',
+    final names = {
+      'career': 'fortune_common.catCareer'.tr(),
+      'work': 'fortune_common.catWork'.tr(),
+      'business': 'fortune_common.catBusiness'.tr(),
+      'wealth': 'fortune_common.catWealth'.tr(),
+      'love': 'fortune_common.catLove'.tr(),
+      'marriage': 'fortune_common.catMarriage'.tr(),
+      'study': 'fortune_common.catStudy'.tr(),
+      'health': 'fortune_common.catHealth'.tr(),
     };
     return names[key] ?? key;
   }
@@ -760,7 +764,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${highlight.score}점',
+                          'common.scoreUnit'.tr(namedArgs: {'score': '${highlight.score}'}),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -774,6 +778,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
                   const SizedBox(height: 6),
                   Text(
                     highlight.summary,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -814,7 +819,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
               Icon(Icons.format_quote, size: 20, color: theme.primaryColor),
               const SizedBox(width: 8),
               Text(
-                '이달의 사자성어',
+                'common.monthlyIdiom'.tr(),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -862,7 +867,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           Icon(Icons.auto_awesome, size: 18, color: Colors.purple.shade300),
           const SizedBox(width: 10),
           Text(
-            '행운',
+            'common.lucky'.tr(),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -929,7 +934,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
     if (_isLoadingAd) return;
 
     final monthNum = monthKey.replaceAll('month', '');
-    final monthName = '$monthNum월';
+    final monthName = 'common.monthLabel'.tr(namedArgs: {'month': monthNum});
 
     // 프리미엄 유저는 광고 없이 바로 해제
     final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
@@ -942,7 +947,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$monthName 운세가 해제되었습니다!'),
+              content: Text('common.unlocked'.tr(namedArgs: {'name': monthName})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -967,7 +972,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
         try {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$monthName 운세가 해제되었습니다! (웹 테스트)'),
+              content: Text('common.unlockedWebTest'.tr(namedArgs: {'name': monthName})),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -986,11 +991,10 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
       return;
     }
 
-    // 전면 광고 로드 대기 (최대 8초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () async {
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAdWithUnlock(
+      onRewarded: (amount, type) async {
         await _unlockMonthAndFetchDetails(monthKey);
 
         if (mounted) {
@@ -1003,7 +1007,7 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
           try {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('$monthName 운세를 분석합니다...'),
+                content: Text('common.analyzing'.tr(namedArgs: {'name': monthName})),
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -1018,8 +1022,6 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
         _loadingMonthKey = null;
       });
       _showPurchaseDialog(monthName);
-      // 다음을 위해 재로드
-      AdService.instance.loadInterstitialAd();
     }
   }
 
@@ -1028,21 +1030,21 @@ class _FortuneMonthlyChipSectionState extends ConsumerState<FortuneMonthlyChipSe
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('프리미엄으로 바로 보기'),
+        title: Text('common.premiumViewNow'.tr()),
         content: Text(
-          '$monthName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+          'common.premiumAdNotAvailable'.tr(namedArgs: {'name': monthName}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('닫기'),
+            child: Text('common.close'.tr()),
           ),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.push(Routes.settingsPremium);
             },
-            child: const Text('프리미엄 보기'),
+            child: Text('common.viewPremium'.tr()),
           ),
         ],
       ),

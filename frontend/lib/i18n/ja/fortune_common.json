@@ -1,0 +1,19 @@
+{
+  "catCareer": "キャリア",
+  "catWork": "仕事",
+  "catBusiness": "事業",
+  "catWealth": "金運",
+  "catLove": "恋愛",
+  "catMarriage": "結婚",
+  "catStudy": "学業",
+  "catHealth": "健康",
+  "catOverall": "総合",
+  "catFamily": "家庭",
+  "catSocial": "対人関係",
+  "phaseBasic": "性格を分析中...",
+  "phaseWealth": "金運・仕事運・恋愛運を分析中...",
+  "phaseHealth": "健康運・人生の流れを分析中...",
+  "phaseFinal": "最終分析中...",
+  "phaseReady": "分析を準備中...",
+  "errorMonthly": "月間運勢の分析に失敗しました。\nしばらくしてからもう一度お試しください。"
+}

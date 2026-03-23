@@ -180,6 +180,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               if (fortune.overview.opening.isNotEmpty)
                 Text(
                   fortune.overview.opening,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -189,6 +190,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               else if (fortune.overview.summary.isNotEmpty)
                 Text(
                   fortune.overview.summary,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -391,6 +393,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.achievements!.reading,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -439,6 +442,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.challenges!.reading,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -487,6 +491,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.lessons!.reading,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -535,6 +540,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
               children: [
                 Text(
                   fortune.to2027!.reading,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -577,6 +583,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
                 if (fortune.closing.yearMessage.isNotEmpty)
                   Text(
                     fortune.closing.yearMessage,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 15,
                       color: theme.textSecondary,
@@ -652,6 +659,7 @@ class NewYearFortuneScreen extends ConsumerWidget {
             const SizedBox(height: 10),
             Text(
               explain,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 14,
                 color: theme.textSecondary,

@@ -2,8 +2,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../router/routes.dart';
 import '../../../profile/data/models/profile_relation_model.dart';
 import '../../../profile/data/relation_schema.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
@@ -353,6 +355,38 @@ class _CompatibilitySelectorSheetState
                         ),
                       ),
                     ],
+                  ),
+                ),
+                // 인연추가 버튼
+                InkWell(
+                  onTap: () {
+                    final router = GoRouter.of(context);
+                    Navigator.pop(context);
+                    router.push(Routes.relationshipAdd);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.person_add_outlined,
+                          color: appTheme.primaryColor,
+                          size: 22,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'saju_chat.addRelationLabel'.tr(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: appTheme.primaryColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

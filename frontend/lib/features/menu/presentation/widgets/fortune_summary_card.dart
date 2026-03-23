@@ -990,6 +990,7 @@ class FortuneSummaryCard extends ConsumerWidget {
           SizedBox(height: context.scaledPadding(16)),
           Text(
             affirmation,
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: messageSize,
               height: 1.6,

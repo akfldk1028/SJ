@@ -389,11 +389,10 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
       return;
     }
 
-    // 전면 광고 로드 대기 (최대 8초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () async {
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAdWithUnlock(
+      onRewarded: (amount, type) async {
         await _unlockWeek(weekKey);
 
         if (mounted) {
@@ -421,8 +420,6 @@ class _FortuneWeeklyChipSectionState extends ConsumerState<FortuneWeeklyChipSect
         _loadingWeekKey = null;
       });
       _showPurchaseDialog(weekName);
-      // 다음을 위해 재로드
-      AdService.instance.loadInterstitialAd();
     }
   }
 

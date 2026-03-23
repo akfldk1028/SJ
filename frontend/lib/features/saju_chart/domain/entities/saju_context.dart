@@ -139,7 +139,7 @@ class SajuContext {
   // ============================================================================
 
   /// 생년
-  int get birthYear => chart.birthDateTime.year;
+  int get birthYear => chart.correctedDateTime.year;
 
   // ============================================================================
   // 필드 접근 인터페이스 (RuleCondition 평가용)

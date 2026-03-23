@@ -69,6 +69,7 @@ class DailyFortuneCard extends StatelessWidget {
             // Fortune message
             Text(
               fortuneMessage ?? _getDefaultFortuneMessage(),
+              textAlign: TextAlign.justify,
               style: theme.textTheme.p.copyWith(
                 height: 1.6,
               ),

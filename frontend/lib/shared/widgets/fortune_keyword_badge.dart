@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -58,12 +59,16 @@ class FortuneKeywordBadge extends StatelessWidget {
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 6),
           ],
-          Text(
-            keyword,
-            style: TextStyle(
-              fontSize: fontSize ?? 14,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              keyword,
+              style: TextStyle(
+                fontSize: fontSize ?? 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -91,12 +96,16 @@ class FortuneKeywordBadge extends StatelessWidget {
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 6),
           ],
-          Text(
-            keyword,
-            style: TextStyle(
-              fontSize: fontSize ?? 14,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              keyword,
+              style: TextStyle(
+                fontSize: fontSize ?? 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -131,12 +140,16 @@ class FortuneKeywordBadge extends StatelessWidget {
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 8),
           ],
-          Text(
-            keyword,
-            style: TextStyle(
-              fontSize: fontSize ?? 15,
-              fontWeight: FontWeight.w700,
-              color: theme.textPrimary,
+          Flexible(
+            child: Text(
+              keyword,
+              style: TextStyle(
+                fontSize: fontSize ?? 15,
+                fontWeight: FontWeight.w700,
+                color: theme.textPrimary,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -171,12 +184,16 @@ class FortuneKeywordBadge extends StatelessWidget {
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 8),
           ],
-          Text(
-            keyword,
-            style: TextStyle(
-              fontSize: fontSize ?? 14,
-              fontWeight: FontWeight.w600,
-              color: theme.textPrimary,
+          Flexible(
+            child: Text(
+              keyword,
+              style: TextStyle(
+                fontSize: fontSize ?? 14,
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -199,12 +216,16 @@ class FortuneKeywordBadge extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          keyword,
-          style: TextStyle(
-            fontSize: fontSize ?? 14,
-            fontWeight: FontWeight.w600,
-            color: theme.textPrimary,
+        Flexible(
+          child: Text(
+            keyword,
+            style: TextStyle(
+              fontSize: fontSize ?? 14,
+              fontWeight: FontWeight.w600,
+              color: theme.textPrimary,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -272,7 +293,7 @@ class FortuneKeywordScoreBadge extends StatelessWidget {
             const SizedBox(width: 12),
             // 점수
             Text(
-              '$score점',
+              'common.scoreUnit'.tr(namedArgs: {'score': '$score'}),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

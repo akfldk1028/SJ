@@ -29,7 +29,7 @@ class VungleAdapter implements AdNetworkAdapter {
   Future<bool> loadInterstitial() async => false;
 
   @override
-  Future<bool> showInterstitial({void Function()? onDismissed}) async => false;
+  Future<bool> showInterstitial({void Function()? onDismissed, String? screen}) async => false;
 
   @override
   bool get isRewardedLoaded => false;
@@ -40,6 +40,7 @@ class VungleAdapter implements AdNetworkAdapter {
   @override
   Future<bool> showRewarded({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
   }) async => false;
 
   @override

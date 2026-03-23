@@ -187,6 +187,7 @@ class TodayMessageCard extends ConsumerWidget {
             SizedBox(height: context.scaledPadding(16)),
             Text(
               message,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: messageSize,
                 height: 1.6,

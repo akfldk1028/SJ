@@ -7,6 +7,7 @@ import '../../../../AI/fortune/common/locale_utils.dart';
 import '../../../../ad/ad.dart';
 import '../../../../purchase/providers/purchase_provider.dart';
 import '../../../../router/routes.dart';
+import '../../../saju_chat/presentation/providers/chat_provider.dart';
 
 class MainScaffold extends ConsumerWidget {
   final Widget child;
@@ -76,7 +77,9 @@ class MainScaffold extends ConsumerWidget {
       case 2:
         // 프리미엄 유저는 광고 스킵
         final isPremium = ref.read(purchaseNotifierProvider.notifier).isPremium;
-        if (!isPremium) {
+        // 쿼타 초과 상태면 전면 광고 스킵 → 채팅 화면의 depleted banner에서 처리
+        // (탭 전환 광고는 토큰 안 줘서 유저가 "광고 봤는데 왜 안 풀려?" 혼란)
+        if (!isPremium && !ChatNotifier.quotaExceededGlobal) {
           final shown = await AdService.instance.showInterstitialAd(
             onDismissed: () {
               if (context.mounted) context.go(Routes.sajuChat);

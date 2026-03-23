@@ -2,7 +2,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
- * Gemini API 호출 Edge Function (v35.2)
+ * Gemini API 호출 Edge Function (v36)
+ *
+ * v36 변경사항 (2026-03-21):
+ * - BUG FIX: Gemini 3 Flash Preview 반복 출력 방어 (공식 known issue)
+ *   → 같은 문자 연속 20회 이상 감지 시 스트림 즉시 종료
+ *   → 같은 2~4자 패턴 10회 이상 반복 감지 시 스트림 즉시 종료
+ *   → 토큰 낭비 방지 + 클라이언트에 REPETITION_DETECTED 에러 전송
+ *   → 참고: https://discuss.ai.google.dev/t/gemini-3-flash-preview-infinite-reasoning-loop-causing-max-token-exhaustion-raw-logic-leak/114528
+ *   → 참고: https://ai.google.dev/gemini-api/docs/troubleshooting (Repetitive output 섹션)
  *
  * v35.2 변경사항 (2026-03-17):
  * - BUG FIX: 스트리밍 candidatesTokenCount에 thinking 토큰 간헐적 혼입 (쿼타 2.5~3배 과다)
@@ -485,8 +493,34 @@ async function handleStreamingRequest(
       const decoder = new TextDecoder();
       let buffer = "";
 
-      // v25: SSE 라인 파싱 헬퍼 (thought 필터링 포함)
+      // v36: 반복 출력 감지 상태 (Gemini known issue 방어)
+      let accumulatedText = ""; // 스트리밍 누적 텍스트 (최근 200자만 유지)
+      let repetitionDetected = false;
+
+      /**
+       * v36: 반복 패턴 감지
+       * - 같은 문자 연속 20회 이상 (예: ㄴㄴㄴㄴㄴㄴ..., \b\b\b..., \n\n\n...)
+       * - 같은 2~4자 패턴 10회 이상 반복 (예: "아니요아니요아니요...")
+       */
+      function detectRepetition(text: string): boolean {
+        if (text.length < 20) return false;
+        // 검사 대상: 최근 100자
+        const tail = text.slice(-100);
+
+        // 감지1: 같은 문자 연속 20회
+        const singleCharRepeat = /(.)\1{19,}/;
+        if (singleCharRepeat.test(tail)) return true;
+
+        // 감지2: 같은 2~4자 패턴 10회 반복
+        const patternRepeat = /(.{2,4})\1{9,}/;
+        if (patternRepeat.test(tail)) return true;
+
+        return false;
+      }
+
+      // v25: SSE 라인 파싱 헬퍼 (thought 필터링 + v36 반복 감지 포함)
       function processSSELine(line: string) {
+        if (repetitionDetected) return; // v36: 이미 감지되면 이후 청크 무시
         if (!line.startsWith("data: ")) return;
         const jsonStr = line.slice(6).trim();
         if (!jsonStr || jsonStr === "[DONE]") return;
@@ -517,6 +551,25 @@ async function handleStreamingRequest(
             totalThoughtsTokens = data.usageMetadata.thoughtsTokenCount || 0;
           }
           if (text) {
+            // v36: 누적 텍스트에 추가 (최근 200자만 유지 — 메모리 절약)
+            accumulatedText += text;
+            if (accumulatedText.length > 200) {
+              accumulatedText = accumulatedText.slice(-200);
+            }
+
+            // v36: 반복 패턴 감지
+            if (detectRepetition(accumulatedText)) {
+              repetitionDetected = true;
+              console.error(`[ai-gemini v36] REPETITION DETECTED! Aborting stream. Last 50 chars: "${accumulatedText.slice(-50)}"`);
+              // 클라이언트에 에러 알림
+              const repData = JSON.stringify({ text: "\n\n[AI 응답에 오류가 발생했습니다. 다시 질문해주세요.]", done: false, finish_reason: "REPETITION_DETECTED" });
+              controller.enqueue(encoder.encode(`data: ${repData}\n\n`));
+              // 즉시 done 전송
+              const doneData = JSON.stringify({ text: "", done: true, error: "REPETITION_DETECTED", usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, thoughts_tokens: totalThoughtsTokens, total_tokens: totalPromptTokens + totalCompletionTokens, cached_tokens: totalCachedTokens } });
+              controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
+              return;
+            }
+
             totalTextLength += text.length; // v35.2: 텍스트 길이 누적
             const sseData = JSON.stringify({ text, done: false, finish_reason: finishReason });
             controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
@@ -528,6 +581,12 @@ async function handleStreamingRequest(
 
       try {
         while (true) {
+          // v36: 반복 감지되면 reader 취소 + 루프 탈출 (토큰 낭비 방지)
+          if (repetitionDetected) {
+            console.log("[ai-gemini v36] Cancelling reader due to repetition detection");
+            await reader.cancel();
+            break;
+          }
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
@@ -535,16 +594,28 @@ async function handleStreamingRequest(
           buffer = lines.pop() || "";
           for (const line of lines) {
             processSSELine(line);
+            if (repetitionDetected) break; // v36: 즉시 탈출
           }
         }
         // v25 BUG FIX: 잔여 버퍼 처리 (usageMetadata가 마지막 청크에 있음)
         // decoder flush (stream: false로 잔여 바이트 방출)
-        buffer += decoder.decode(new Uint8Array(), { stream: false });
-        if (buffer.trim()) {
-          const remainingLines = buffer.split("\n");
-          for (const line of remainingLines) {
-            processSSELine(line);
+        if (!repetitionDetected) {
+          buffer += decoder.decode(new Uint8Array(), { stream: false });
+          if (buffer.trim()) {
+            const remainingLines = buffer.split("\n");
+            for (const line of remainingLines) {
+              processSSELine(line);
+            }
           }
+        }
+        // v36: 반복 감지 시 done/cost는 이미 processSSELine에서 전송됨 — 후처리 스킵
+        if (repetitionDetected) {
+          if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
+            const nonCachedPrompt = totalPromptTokens - totalCachedTokens;
+            const cost = (nonCachedPrompt * 0.50 / 1000000) + (totalCachedTokens * 0.05 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
+            await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
+          }
+          return; // controller.close()는 finally에서 처리
         }
         // v35.2: thinking 토큰 누출 방어 (3단계)
         // Gemini 3 Flash Preview에서 candidatesTokenCount에 thinking 토큰 간헐적 혼입
@@ -647,7 +718,7 @@ Deno.serve(async (req) => {
       }
     }
     if (stream) {
-      console.log(`[ai-gemini v26] Streaming mode: model=${model}, session_id=${session_id || 'none'}`);
+      console.log(`[ai-gemini v36] Streaming mode: model=${model}, session_id=${session_id || 'none'}`);
       return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin, session_id);
     }
     console.log(`[ai-gemini v23] Non-streaming: model=${model}, isAdmin=${isAdmin}`);

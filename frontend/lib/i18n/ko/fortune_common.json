@@ -1,0 +1,19 @@
+{
+  "catCareer": "직업운",
+  "catWork": "직장운",
+  "catBusiness": "사업운",
+  "catWealth": "재물운",
+  "catLove": "애정운",
+  "catMarriage": "결혼운",
+  "catStudy": "학업운",
+  "catHealth": "건강운",
+  "catOverall": "총운",
+  "catFamily": "가정운",
+  "catSocial": "대인운",
+  "phaseBasic": "기본 성격 분석 중...",
+  "phaseWealth": "재물/직업/애정운 분석 중...",
+  "phaseHealth": "건강/대운 분석 중...",
+  "phaseFinal": "종합 분석 중...",
+  "phaseReady": "분석 준비 중...",
+  "errorMonthly": "월별 운세 분석에 실패했습니다.\n잠시 후 다시 시도해주세요."
+}
