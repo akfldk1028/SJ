@@ -74,7 +74,7 @@ class SystemPromptBuilder {
 
     // 2. 페르소나 지시문
     if (personaPrompt != null && personaPrompt.isNotEmpty) {
-      _addPersona(personaPrompt);
+      _addPersona(personaPrompt, locale: locale);
     }
 
     // 3. 기본 프롬프트
@@ -193,12 +193,31 @@ class SystemPromptBuilder {
   }
 
   /// 페르소나 지시문 추가
-  void _addPersona(String personaPrompt) {
-    _buffer.writeln('## 캐릭터 설정');
-    _buffer.writeln();
-    _buffer.writeln(personaPrompt);
-    _buffer.writeln();
-    _buffer.writeln('---');
+  void _addPersona(String personaPrompt, {String locale = 'ko'}) {
+    if (locale != 'ko') {
+      final langMap = {
+        'en': 'English', 'ja': '日本語', 'zh': '中文(简体)', 'vi': 'Tiếng Việt',
+        'th': 'ภาษาไทย', 'id': 'Bahasa Indonesia', 'ms': 'Bahasa Melayu',
+        'my': 'မြန်မာဘာသာ', 'fr': 'Français', 'de': 'Deutsch',
+        'es': 'Español', 'pt': 'Português', 'it': 'Italiano',
+        'ru': 'Русский', 'hi': 'हिन्दी', 'ar': 'العربية',
+      };
+      final langName = langMap[locale] ?? locale;
+      _buffer.writeln('## Character & Personality Setting');
+      _buffer.writeln('> The following character instructions are written in Korean for reference.');
+      _buffer.writeln('> Follow the personality and tone described below, but you MUST respond in **$langName**.');
+      _buffer.writeln();
+      _buffer.writeln(personaPrompt);
+      _buffer.writeln();
+      _buffer.writeln('> END CHARACTER SETTING — Remember: respond in **$langName**, not Korean.');
+      _buffer.writeln('---');
+    } else {
+      _buffer.writeln('## 캐릭터 설정');
+      _buffer.writeln();
+      _buffer.writeln(personaPrompt);
+      _buffer.writeln();
+      _buffer.writeln('---');
+    }
     _buffer.writeln();
   }
 
@@ -677,26 +696,48 @@ class SystemPromptBuilder {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
-    if (isCompatibilityMode) {
-      if (totalParticipants > 2) {
-        // v12.1: 3명 이상 참가자 → 모든 참가자 동등 참조
-        _buffer.writeln('위 $totalParticipants명 모든 참가자의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
-        _buffer.writeln('위에 프로필과 사주 데이터가 제공된 참가자는 즉시 해당 데이터를 활용하여 분석하세요.');
-        _buffer.writeln('데이터가 제공되지 않은 인물이 언급되면, 해당 인물의 생년월일시와 성별을 요청하세요.');
+    if (locale != 'ko') {
+      // 비한국어: 영어로 마무리 지시 (AI가 한국어에 끌리지 않게)
+      if (isCompatibilityMode) {
+        if (totalParticipants > 2) {
+          _buffer.writeln('Use ALL $totalParticipants participants\' data above for personalized compatibility analysis.');
+          _buffer.writeln('If a mentioned person has no data provided, ask for their birth date/time and gender.');
+        } else {
+          _buffer.writeln('Use both people\'s data above for personalized compatibility analysis.');
+          _buffer.writeln('You already have their birth dates and saju data — do NOT ask again.');
+        }
+        _buffer.writeln('Actively use hapchung (合沖刑破害) relationships. Hap is not always good, chung is not always bad.');
+        _buffer.writeln('Deliver negative results honestly, but always suggest improvements.');
       } else {
-        _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
-        _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+        _buffer.writeln('Use the user\'s data above for personalized consultation.');
+        _buffer.writeln('You already know their birth date — do NOT ask again.');
+        _buffer.writeln('Actively use hapchung, sipsung, sinsal data. Always judge yongshin/gishin direction for hap/chung.');
+        _buffer.writeln('Deliver negative results honestly, but always suggest improvements.');
       }
-      _buffer.writeln('합충형파해 관계를 적극 활용하되, 합이 무조건 좋고 충이 무조건 나쁜 것이 아님을 기억하세요.');
-      _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      _buffer.writeln();
+      _buffer.writeln('**Current year: ${DateTime.now().year}. Always base your answers on this year.**');
     } else {
-      _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
-      _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
-      _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하되, 합/충의 용신·기신 방향을 반드시 판단하세요.');
-      _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      // 한국어: 기존 지시
+      if (isCompatibilityMode) {
+        if (totalParticipants > 2) {
+          _buffer.writeln('위 $totalParticipants명 모든 참가자의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+          _buffer.writeln('위에 프로필과 사주 데이터가 제공된 참가자는 즉시 해당 데이터를 활용하여 분석하세요.');
+          _buffer.writeln('데이터가 제공되지 않은 인물이 언급되면, 해당 인물의 생년월일시와 성별을 요청하세요.');
+        } else {
+          _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+          _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+        }
+        _buffer.writeln('합충형파해 관계를 적극 활용하되, 합이 무조건 좋고 충이 무조건 나쁜 것이 아님을 기억하세요.');
+        _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      } else {
+        _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
+        _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
+        _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하되, 합/충의 용신·기신 방향을 반드시 판단하세요.');
+        _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      }
+      _buffer.writeln();
+      _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
     }
-    _buffer.writeln();
-    _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
 
     // v13.0: 다국어 지시
     if (locale != 'ko') {

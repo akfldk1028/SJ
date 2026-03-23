@@ -383,6 +383,7 @@
   "fortuneHyung": "凶",
   "fortuneMixed": "吉凶混合",
   "sinsalSummary": "神殺要約",
+  "noKeySinsal": "主要な神殺なし",
   "basedOn": "基準: {value}",
   "sinsalStrength": "強度",
 

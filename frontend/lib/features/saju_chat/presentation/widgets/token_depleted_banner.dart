@@ -163,29 +163,28 @@ class TokenDepletedBanner extends ConsumerWidget {
   ///
   /// AdService 어댑터 패턴 사용 (AdMob 1순위 → Unity 2순위 fallback)
   /// stale ref 방지: async gap 전에 notifier 캡처
+  ///
+  /// [v65 수정] showRewardedAd는 Completer로 광고 종료 후 리턴.
+  /// 토큰 지급은 리턴 후 단일 지점에서 처리 (이중 지급 방지).
+  /// onRewarded 콜백은 AdService 내부 tracking만 담당.
   void _handleRewardedAndContinue(BuildContext context, WidgetRef ref) async {
     final adNotifier = ref.read(conversationalAdNotifierProvider.notifier);
     final chatNotifier = ref.read(chatNotifierProvider(sessionId).notifier);
 
     const tokens = AdStrategy.depletedRewardTokensVideo;
 
-    // onRewarded 호출 여부 추적 (끝까지 본 경우에만 호출됨)
-    bool rewardGranted = false;
-
     // 보상형 광고 로드 대기 (AdMob → Unity 어댑터 fallback)
     await AdService.instance.waitForRewardedLoad();
+
+    // showRewardedAd: Completer로 광고 종료(완료/스킵/실패) 후 리턴
+    // onRewarded: SDK 보상 콜백 → AdService 내부에서 ad_events 추적만 담당
+    // 토큰 지급은 아래에서 통합 처리 (이중 지급 방지)
     final shown = await AdService.instance.showRewardedAd(
       screen: 'token_depleted_rewarded',
       purpose: AdPurpose.tokenBonus,
-      onRewarded: (amount, type) async {
-        // 끝까지 시청 → 서버 + 클라이언트 토큰 지급
-        rewardGranted = true;
-        await TokenRewardService.grantRewardedAdTokens(
-          tokens,
-          screen: 'token_depleted_rewarded',
-        );
-        chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
-        debugPrint('[TokenDepletedBanner] 보상형 광고 완료 → +$tokens tokens (서버+클라이언트)');
+      onRewarded: (amount, type) {
+        // SDK tracking은 AdService 내부에서 자동 처리됨
+        debugPrint('[TokenDepletedBanner] SDK 보상 콜백: $amount $type');
       },
     );
 
@@ -208,14 +207,14 @@ class TokenDepletedBanner extends ConsumerWidget {
           ),
         );
       }
-    } else if (!rewardGranted) {
-      // 광고는 표시됐지만 중간에 닫음 → 그래도 토큰 지급
+    } else {
+      // 광고 표시 완료 (끝까지 봤든 중간에 닫았든) → 토큰 지급
       await TokenRewardService.grantRewardedAdTokens(
         tokens,
-        screen: 'token_depleted_rewarded_early_close',
+        screen: 'token_depleted_rewarded',
       );
       chatNotifier.addBonusTokens(tokens, isRewardedAd: true);
-      debugPrint('[TokenDepletedBanner] 보상형 광고 중간 닫힘 → 그래도 +$tokens tokens 지급');
+      debugPrint('[TokenDepletedBanner] 보상형 광고 종료 → +$tokens tokens 지급');
     }
 
     // 광고 모드 종료

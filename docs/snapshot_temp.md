@@ -1,0 +1,392 @@
+- generic [ref=e1]:
+  - generic:
+    - generic:
+      - img
+      - progressbar
+      - generic: Google Play Console 로드 중
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - link "Google Play Console 로고" [ref=e7] [cursor=pointer]:
+          - /url: /console/u/0/developers/7261787464894807222/app-list
+          - button "Google Play Console 로고" [ref=e8]
+        - generic [ref=e9]:
+          - button "읽지 않은 알림 알림 센터 열기" [ref=e45]:
+            - img [ref=e49]: notifications_unread
+            - generic [ref=e51]: 읽지 않은 알림
+          - generic [ref=e10]:
+            - button "사담 - AI 사주 채팅" [ref=e376] [cursor=pointer]:
+              - generic [ref=e380]:
+                - img [ref=e382]
+                - generic [ref=e386]: 사담 - AI 사주 채팅
+            - button "개발자 계정 전환" [ref=e14] [cursor=pointer]:
+              - img "개발자 계정 전환" [ref=e16]
+    - navigation [ref=e53]:
+      - link "모든 앱" [ref=e388] [cursor=pointer]:
+        - /url: /console/u/0/developers/7261787464894807222/app-list
+        - img [ref=e390]: keyboard_backspace
+        - generic [ref=e391]: 모든 앱
+      - list [ref=e54]:
+        - listitem "대시보드" [ref=e394]:
+          - button "대시보드" [ref=e395] [cursor=pointer]:
+            - img [ref=e398]: dashboard
+            - generic [ref=e399]: 대시보드
+        - listitem "통계" [ref=e402]:
+          - button "통계" [ref=e403] [cursor=pointer]:
+            - img [ref=e406]: bar_chart
+            - generic [ref=e407]: 통계
+        - listitem "게시 개요" [ref=e410]:
+          - button "게시 개요" [ref=e411] [cursor=pointer]:
+            - img [ref=e414]: overview
+            - generic [ref=e415]: 게시 개요
+        - listitem "테스트 및 출시" [ref=e418]:
+          - button "테스트 및 출시" [ref=e419] [cursor=pointer]:
+            - img [ref=e422]: rocket_launch
+            - generic [ref=e423]: 테스트 및 출시
+        - listitem "모니터링 및 개선" [ref=e426]:
+          - button "모니터링 및 개선" [ref=e427] [cursor=pointer]:
+            - img [ref=e430]: vital_signs
+            - generic [ref=e431]: 모니터링 및 개선
+        - listitem "사용자 늘리기" [ref=e434]:
+          - button "사용자 늘리기" [ref=e435] [cursor=pointer]:
+            - img [ref=e438]: finance_mode
+            - generic [ref=e439]: 사용자 늘리기
+          - list [ref=e677]:
+            - generic [ref=e679]:
+              - listitem "앱 정보" [ref=e681]:
+                - button "앱 정보" [ref=e682] [cursor=pointer]:
+                  - generic [ref=e683]: 앱 정보
+                  - img [ref=e685]: expand_less
+                - list [ref=e942]:
+                  - generic [ref=e944]:
+                    - listitem "스토어 등록정보" [ref=e946]:
+                      - button "스토어 등록정보" [ref=e947] [cursor=pointer]:
+                        - generic [ref=e948]: 스토어 등록정보
+                    - listitem "스토어 등록정보 실험" [ref=e950]:
+                      - button "스토어 등록정보 실험" [ref=e951] [cursor=pointer]:
+                        - generic [ref=e952]: 스토어 등록정보 실험
+                    - listitem "스토어 설정" [ref=e954]:
+                      - button "스토어 설정" [ref=e955] [cursor=pointer]:
+                        - generic [ref=e956]: 스토어 설정
+              - listitem "스토어 실적" [ref=e687]:
+                - button "스토어 실적" [ref=e688] [cursor=pointer]:
+                  - generic [ref=e689]: 스토어 실적
+                  - img [ref=e691]: expand_more
+              - listitem "번역" [ref=e693]:
+                - button "번역" [ref=e694] [cursor=pointer]:
+                  - generic [ref=e695]: 번역
+                  - img [ref=e697]: expand_more
+              - listitem "딥 링크" [ref=e699]:
+                - button "딥 링크" [ref=e700] [cursor=pointer]:
+                  - generic [ref=e701]: 딥 링크
+        - listitem "Play를 통한 수익 창출" [ref=e442]:
+          - button "Play를 통한 수익 창출" [ref=e443] [cursor=pointer]:
+            - img [ref=e446]: sell
+            - generic [ref=e447]: Play를 통한 수익 창출
+    - generic [ref=e22]:
+      - generic [ref=e1153]:
+        - generic [ref=e1157]:
+          - link "스토어 등록정보 페이지로 돌아가기" [ref=e1160] [cursor=pointer]:
+            - /url: /console/u/0/developers/7261787464894807222/app/4972466533290433317/store-listings
+            - img [ref=e1164]: keyboard_backspace
+            - generic [ref=e1165]: 스토어 등록정보
+          - generic [ref=e1168]:
+            - heading "기본 스토어 등록정보" [level=1] [ref=e1174]
+            - generic [ref=e1179]:
+              - list [ref=e1183]:
+                - listitem [ref=e1184]:
+                  - generic [ref=e1186]:
+                    - img [ref=e1190]: check_circle
+                    - generic [ref=e1191]: 현재 게시 중
+                - listitem [ref=e1192]:
+                  - generic [ref=e1197]: 초안 변경사항
+              - img [ref=e1199]: brightness_1
+              - text: 앱 이름, 아이콘, 스크린샷 등을 수정하여 앱이 Google Play에서 사용자에게 어떻게 표시되는지 설명하세요.
+              - button "기본 스토어 등록정보에 관한 세부정보 더보기" [ref=e1200] [cursor=pointer]: 더보기
+        - generic [ref=e1203]:
+          - generic [ref=e1207]:
+            - button "베트남어 – vi" [ref=e5420] [cursor=pointer]:
+              - generic [ref=e1216]: 베트남어 – vi
+              - img [ref=e1218]: arrow_drop_down
+            - button "번역 관리" [ref=e1222] [cursor=pointer]:
+              - generic [ref=e1225]: 번역 관리
+              - img [ref=e1227]: arrow_drop_down
+          - paragraph [ref=e1230]: "* – 필수 입력란입니다. 베트남어 – vi의 모든 입력란을 작성해 주세요."
+          - generic [ref=e5422]:
+            - heading "등록정보 애셋" [level=2] [ref=e5434]
+            - paragraph [ref=e5438]:
+              - generic [ref=e5440]:
+                - text: 스토어 등록정보와 관련된 일반적인 문제를 피하려면
+                - link "메타데이터 정책" [ref=e5441] [cursor=pointer]:
+                  - /url: https://play.google.com/about/storelisting-promotional/metadata
+                - text: 및
+                - link "고객센터 도움말" [ref=e5442] [cursor=pointer]:
+                  - /url: https://support.google.com/googleplay/android-developer/answer/9866151
+                - text: 을 확인하세요. 앱을 제출하기 전에 모든
+                - link "프로그램 정책" [ref=e5443] [cursor=pointer]:
+                  - /url: https://play.google.com/about/developer-content-policy
+                - text: 을 검토하세요.
+                - text: 앱 검토팀에
+                - link "사전 알림" [ref=e5444] [cursor=pointer]:
+                  - /url: https://support.google.com/googleplay/android-developer/answer/6320428
+                - text: 을 보낼 자격이 있다면 스토어 등록정보를 게시하기 전에 연락해 주세요.
+            - generic [ref=e5448]:
+              - group "앱 이름" [ref=e5450]:
+                - generic [ref=e5453]: 앱 이름 *
+                - generic [ref=e5459]:
+                  - textbox "앱 이름" [ref=e5461]: Sadam - Korea AI Saju Chat
+                  - generic [ref=e5462]:
+                    - alert [ref=e5800]: 앱의 이름을 추가하세요.
+                    - generic [ref=e5464]:
+                      - generic [ref=e5465]: 26/30
+                      - generic [ref=e5466]: 26자(영문 기준)로 구성된 텍스트입니다. /30
+              - group "간단한 설명" [ref=e5468]:
+                - generic [ref=e5471]: 간단한 설명 *
+                - generic [ref=e5477]:
+                  - textbox "간단한 앱 설명" [ref=e5479]: Bói Saju Hàn Quốc bằng AI. Trò chuyện để khám phá vận mệnh!
+                  - generic [ref=e5480]:
+                    - alert [ref=e5816]: 앱의 간단한 설명을 추가하세요.
+                    - generic [ref=e5482]:
+                      - generic [ref=e5483]: 59/80
+                      - generic [ref=e5484]: 59자(영문 기준)로 구성된 텍스트입니다. /80
+              - group "자세한 설명" [ref=e5486]:
+                - generic [ref=e5489]: 자세한 설명 *
+                - generic [ref=e5495]:
+                  - textbox "자세한 앱 설명" [active] [ref=e5498]: "Sadam là dịch vụ bói toán trò chuyện được hỗ trợ bởi AI dựa trên Saju (Tứ Trụ Định Mệnh) — hệ thống chiêm tinh truyền thống của Hàn Quốc với lịch sử hơn 1.000 năm. Khác với các ứng dụng tử vi thông thường cho báo cáo dài dòng, Sadam cho phép bạn trò chuyện tự nhiên với thầy bói AI hiểu lá số sinh của bạn. [Tính Năng Chính] - Phân tích Saju: Tính toán lá số sinh chính xác dựa trên lịch truyền thống Hàn Quốc Manseryeok (1900-2100) - Tư vấn qua Chat AI: Hỏi bất cứ điều gì về tình yêu, sự nghiệp, tài lộc, sức khỏe và hơn thế - Nhiều Nhân cách AI: Chọn phong cách thầy bói yêu thích của bạn - Vận mệnh Hàng ngày & Hàng tháng: Dự đoán cá nhân dựa trên lá số sinh của bạn [Saju là gì?] Saju (Tứ Trụ Định Mệnh) là hệ thống bói toán truyền thống Hàn Quốc, tương tự như Bát Tự của Trung Quốc. Nó phân tích năng lượng vũ trụ tại thời điểm chính xác bạn sinh ra bằng các trụ năm, tháng, ngày và giờ để tiết lộ những hiểu biết về tính cách, mối quan hệ, sự nghiệp và con đường đời của bạn. [Phân Tích Saju Bao Gồm] - Tính toán Tứ Trụ (Cheongan & Jiji) - Phân tích cân bằng Ngũ Hành (Oheng) - Hiểu biết tính cách Thập Tinh (Sipsung) - Chu kỳ đời Thập Nhị Vận (12 Unsung) - Phân tích tương hợp với người khác Nhà phát triển: Donghyeon Kim (ClickAround) Liên hệ: clickaround8@gmail.com"
+                  - generic [ref=e5499]:
+                    - paragraph [ref=e5500]
+                    - generic [ref=e5501]:
+                      - generic [ref=e5502]: 1279/4000
+                      - generic [ref=e5503]: 1279자(영문 기준)로 구성된 텍스트입니다. /4000
+            - heading "그래픽" [level=2] [ref=e5515]
+            - paragraph [ref=e5519]:
+              - generic [ref=e5521]:
+                - text: 앱 아이콘, 스크린샷, 동영상을 관리하여 Google Play에서 앱을 홍보하세요. 새로운 그래픽을 업로드하기 전에
+                - link "콘텐츠 가이드라인" [ref=e5522] [cursor=pointer]:
+                  - /url: https://support.google.com/googleplay/android-developer/answer/9866151#zippy=%2Capp-icon
+                - text: 을 검토하세요. 현지화된 그래픽 없이 스토어 등록정보에 번역을 추가하면 기본 언어의 그래픽이 사용됩니다.
+            - generic [ref=e5526]:
+              - group "앱 아이콘" [ref=e5528]:
+                - generic [ref=e5531]: 앱 아이콘
+                - generic [ref=e5536]:
+                  - generic [ref=e5539]:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img "앱 아이콘"
+                        - generic:
+                          - button "삭제":
+                            - generic:
+                              - img: delete
+                          - button "세부정보 보기":
+                            - generic:
+                              - img: arrow_right_alt
+                    - generic [ref=e5540]:
+                      - generic "아이콘 1/1" [ref=e5541]: 1/1
+                      - button "애셋 추가" [ref=e5543]:
+                        - generic [ref=e5546]: 애셋 추가
+                  - paragraph [ref=e5548]:
+                    - generic [ref=e5550]:
+                      - text: 앱 아이콘은 PNG 또는 JPEG, 최대 1MB, 512 x 512px이어야 하며
+                      - link "디자인 사양" [ref=e5551] [cursor=pointer]:
+                        - /url: https://developer.android.com/google-play/resources/icon-design-specifications
+                      - text: 및
+                      - link "메타데이터 정책" [ref=e5552] [cursor=pointer]:
+                        - /url: https://support.google.com/googleplay/android-developer/answer/9898842
+                      - text: 을 준수해야 합니다.
+              - group "그래픽 이미지" [ref=e5554]:
+                - generic [ref=e5557]: 그래픽 이미지
+                - generic [ref=e5562]:
+                  - generic [ref=e5565]:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img "그래픽 이미지"
+                        - generic:
+                          - button "삭제":
+                            - generic:
+                              - img: delete
+                          - button "세부정보 보기":
+                            - generic:
+                              - img: arrow_right_alt
+                    - generic [ref=e5566]:
+                      - generic "이미지 1/1" [ref=e5567]: 1/1
+                      - button "애셋 추가" [ref=e5569]:
+                        - generic [ref=e5572]: 애셋 추가
+                  - paragraph [ref=e5574]:
+                    - generic [ref=e5575]: 그래픽 이미지는 PNG 또는 JPEG, 최대 15MB, 1024px X 500px이어야 합니다.
+              - group "동영상" [ref=e5577]:
+                - generic [ref=e5580]: 동영상
+                - generic [ref=e5586]:
+                  - generic [ref=e5587]:
+                    - generic:
+                      - generic:
+                        - generic: https://www.youtube.com/watch?v=
+                    - textbox "앱 홍보용 YouTube 동영상 URL" [ref=e5588]
+                  - paragraph [ref=e5590]: YouTube URL을 입력하여 동영상을 추가합니다. 이 동영상은 공개 또는 일부 공개여야 하며 광고는 사용 중지되어 있고 연령 제한이 없어야 합니다.
+            - heading "전화" [level=3] [ref=e5602]
+            - group "휴대전화 스크린샷" [ref=e5608]:
+              - generic [ref=e5611]: 휴대전화 스크린샷
+              - generic [ref=e5616]:
+                - generic [ref=e5619]:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img "휴대전화 스크린샷"
+                      - generic:
+                        - button "삭제":
+                          - generic:
+                            - img: delete
+                        - button "세부정보 보기":
+                          - generic:
+                            - img: arrow_right_alt
+                    - generic:
+                      - generic:
+                        - img "휴대전화 스크린샷"
+                      - generic:
+                        - button "삭제":
+                          - generic:
+                            - img: delete
+                        - button "세부정보 보기":
+                          - generic:
+                            - img: arrow_right_alt
+                    - generic:
+                      - generic:
+                        - img "휴대전화 스크린샷"
+                      - generic:
+                        - button "삭제":
+                          - generic:
+                            - img: delete
+                        - button "세부정보 보기":
+                          - generic:
+                            - img: arrow_right_alt
+                    - generic:
+                      - generic:
+                        - img "휴대전화 스크린샷"
+                      - generic:
+                        - button "삭제":
+                          - generic:
+                            - img: delete
+                        - button "세부정보 보기":
+                          - generic:
+                            - img: arrow_right_alt
+                  - generic [ref=e5620]:
+                    - generic "스크린샷 4/8" [ref=e5621]: 4/8
+                    - button "애셋 추가" [ref=e5623]:
+                      - generic [ref=e5626]: 애셋 추가
+                - paragraph [ref=e5628]:
+                  - generic [ref=e5629]: 휴대전화 스크린샷을 2~8장 업로드하세요. 스크린샷은 PNG 또는 JPEG, 장당 최대 8MB, 가로세로 비율 16:9 또는 9:16, 가로세로 길이는 320px X 3840px 사이여야 합니다.
+            - heading "태블릿" [level=3] [ref=e5641]
+            - generic [ref=e5645]:
+              - group "7인치 태블릿 스크린샷" [ref=e5647]:
+                - generic [ref=e5650]: 7인치 태블릿 스크린샷
+                - generic [ref=e5655]:
+                  - generic [ref=e5658]:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img "7인치 태블릿 스크린샷"
+                        - generic:
+                          - button "삭제":
+                            - generic:
+                              - img: delete
+                          - button "세부정보 보기":
+                            - generic:
+                              - img: arrow_right_alt
+                    - generic [ref=e5659]:
+                      - generic "스크린샷 1/8" [ref=e5660]: 1/8
+                      - button "애셋 추가" [ref=e5662]:
+                        - generic [ref=e5665]: 애셋 추가
+                  - paragraph [ref=e5667]:
+                    - generic [ref=e5668]: 7인치 태블릿 스크린샷을 최대 8장 업로드하세요. 스크린샷은 PNG 또는 JPEG, 장당 최대 8MB, 가로세로 비율 16:9 또는 9:16, 가로세로 길이는 320px X 3840px 사이여야 합니다.
+              - group "10인치 태블릿 스크린샷" [ref=e5670]:
+                - generic [ref=e5673]: 10인치 태블릿 스크린샷
+                - generic [ref=e5678]:
+                  - generic [ref=e5681]:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img "10인치 태블릿 스크린샷"
+                        - generic:
+                          - button "삭제":
+                            - generic:
+                              - img: delete
+                          - button "세부정보 보기":
+                            - generic:
+                              - img: arrow_right_alt
+                    - generic [ref=e5682]:
+                      - generic "스크린샷 1/8" [ref=e5683]: 1/8
+                      - button "애셋 추가" [ref=e5685]:
+                        - generic [ref=e5688]: 애셋 추가
+                  - paragraph [ref=e5690]:
+                    - generic [ref=e5691]: 10인치 태블릿 스크린샷을 최대 8장 업로드하세요. 스크린샷은 PNG 또는 JPEG, 장당 최대 8MB, 가로세로 비율 16:9 또는 9:16, 가로세로 길이는 1,080px X 7,680px이어야 합니다.
+            - heading "Chromebook" [level=3] [ref=e5703]
+            - group "Chromebook 스크린샷" [ref=e5709]:
+              - generic [ref=e5712]: Chromebook 스크린샷
+              - generic [ref=e5717]:
+                - button "애셋 추가" [ref=e5722]:
+                  - generic [ref=e5725]: 애셋 추가
+                - paragraph [ref=e5727]:
+                  - generic [ref=e5728]: 스크린샷을 4~8장 업로드하세요. 스크린샷은 PNG 또는 JPEG, 장당 최대 8MB, 가로세로 비율 16:9 또는 9:16, 가로세로 길이는 1,080px X 7,680px이어야 합니다.
+            - heading "Android XR" [level=3] [ref=e5740]
+            - generic [ref=e5744]:
+              - group "Android XR 스크린샷" [ref=e5746]:
+                - generic [ref=e5749]: Android XR 스크린샷
+                - generic [ref=e5754]:
+                  - button "애셋 추가" [ref=e5759]:
+                    - generic [ref=e5762]: 애셋 추가
+                  - paragraph [ref=e5764]:
+                    - generic [ref=e5765]: 스크린샷을 4~8장 업로드하세요. 스크린샷은 PNG 또는 JPEG, 장당 최대 8MB, 가로세로 비율 16:9 또는 9:16, 가로세로 길이는 720px X 7680px이어야 합니다.
+              - group "공간 XR 동영상" [ref=e5767]:
+                - generic [ref=e5770]: 공간 XR 동영상
+                - generic [ref=e5775]:
+                  - generic [ref=e5777]:
+                    - generic:
+                      - generic:
+                        - generic: https://www.youtube.com/watch?v=
+                    - textbox "https://www.youtube.com/watch?v=" [ref=e5778]
+                  - paragraph [ref=e5780]:
+                    - generic [ref=e5782]:
+                      - text: YouTube URL을 입력하여 몰입형 미리보기로
+                      - link "공간 XR 동영상" [ref=e5783] [cursor=pointer]:
+                        - /url: https://support.google.com/googleplay/android-developer/answer/9866151#zippy=%2Cpreview-video
+                      - text: 을 추가하세요. 이 동영상은 360°, 180° 또는 3D 동영상이어야 하고, 공개 또는 일부 공개 상태여야 하고, 광고는 사용 중지되어 있어야 하며, 연령 제한이 없어야 합니다.
+              - group "비공간 XR 동영상" [ref=e5785]:
+                - generic [ref=e5788]: 비공간 XR 동영상
+                - generic [ref=e5793]:
+                  - generic [ref=e5795]:
+                    - generic:
+                      - generic:
+                        - generic: https://www.youtube.com/watch?v=
+                    - textbox "https://www.youtube.com/watch?v=" [ref=e5796]
+                  - paragraph [ref=e5798]:
+                    - generic [ref=e5799]: YouTube URL을 입력하여 비공간 XR 동영상을 추가하세요. 이 동영상은 공개 또는 일부 공개여야 하며, 광고는 사용 중지되어 있고, 연령 제한이 없어야 합니다.
+        - generic [ref=e1732]:
+          - generic [ref=e1733]:
+            - img [ref=e5311]: check_circle
+            - generic [ref=e1734]: 변경사항이 저장되었습니다. 게시 개요에서 전송하여 검토를 받으세요.
+          - generic [ref=e1736]:
+            - button "삭제" [ref=e5802]:
+              - generic [ref=e5805]: 삭제
+            - generic [ref=e1743]:
+              - button "임시보관함에 저장" [ref=e5807]:
+                - generic [ref=e5810]: 임시보관함에 저장
+              - button "저장" [ref=e5812]:
+                - generic [ref=e5815]: 저장
+      - generic [ref=e30]:
+        - generic [ref=e668]:
+          - link "제품 업데이트" [ref=e669] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "상태 대시보드" [ref=e670] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "도움말" [ref=e671] [cursor=pointer]:
+            - /url: /console/u/0/developers/7261787464894807222/help-and-support?app=4972466533290433317
+        - generic [ref=e672]:
+          - generic [ref=e673]: © 2026 Google
+          - link "개인 정보 보호" [ref=e674] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "개발자 배포 계약" [ref=e675] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "서비스 약관" [ref=e676] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/
+  - status [ref=e2266]

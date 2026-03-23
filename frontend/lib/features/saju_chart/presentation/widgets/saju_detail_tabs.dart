@@ -9,6 +9,7 @@ import '../../domain/entities/saju_analysis.dart';
 import '../../domain/services/hapchung_service.dart';
 import '../../domain/services/jijanggan_service.dart';
 import '../../domain/services/unsung_service.dart';
+import '../../data/constants/twelve_sinsal.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
 import '../../domain/services/gongmang_service.dart';
 import '../providers/saju_chart_provider.dart';
@@ -1542,7 +1543,7 @@ class _SinsalTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // 요약 텍스트
+          // 요약 텍스트 (locale-aware)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1554,14 +1555,37 @@ class _SinsalTab extends StatelessWidget {
                 Icon(Icons.auto_awesome_rounded, color: theme.primaryColor, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    result.summary,
-                    style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
+                  child: Builder(builder: (ctx) {
+                    final loc = ctx.locale.languageCode;
+                    final parts = <String>[];
+                    if (result.jangsungResult != null) {
+                      parts.add('${SajuI18n.sinsal('장성', loc)}(${SajuI18n.pillarName(result.jangsungResult!.pillarName, loc)})');
+                    }
+                    final bananResult = result.findSinsal(TwelveSinsal.banan);
+                    if (bananResult != null) {
+                      parts.add('${SajuI18n.sinsal('반안', loc)}(${SajuI18n.pillarName(bananResult.pillarName, loc)})');
+                    }
+                    if (result.yeokmaResult != null) {
+                      parts.add('${SajuI18n.sinsal('역마', loc)}(${SajuI18n.pillarName(result.yeokmaResult!.pillarName, loc)})');
+                    }
+                    if (result.dohwaResult != null) {
+                      parts.add('${SajuI18n.specialSinsal('도화살', loc)}(${SajuI18n.pillarName(result.dohwaResult!.pillarName, loc)})');
+                    }
+                    if (result.hwagaeResult != null) {
+                      parts.add('${SajuI18n.specialSinsal('화개살', loc)}(${SajuI18n.pillarName(result.hwagaeResult!.pillarName, loc)})');
+                    }
+                    final localSummary = parts.isEmpty
+                        ? 'saju_chart.noKeySinsal'.tr()
+                        : parts.join(', ');
+                    return Text(
+                      localSummary,
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    );
+                  }),
                 ),
               ],
             ),
@@ -1573,7 +1597,7 @@ class _SinsalTab extends StatelessWidget {
 
   Widget _buildStatBox(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
@@ -1594,9 +1618,12 @@ class _SinsalTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1719,10 +1746,10 @@ class _SinsalTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        fortuneType,
+                        SajuI18n.fortuneType(fortuneType, locale),
                         style: TextStyle(
                           color: fortuneColor,
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -2301,7 +2328,7 @@ class _GongmangTab extends StatelessWidget {
 
   Widget _buildStatBox(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
@@ -2322,9 +2349,12 @@ class _GongmangTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

@@ -573,7 +573,7 @@ class HapchungTab extends StatelessWidget {
                 ] else
                   const Spacer(),
                 // 간지 표시 (천간 또는 지지)
-                _buildCharacterBox(_localizeGanJi(char1, locale), color),
+                _buildCharacterBox(_localizeGanJi(char1, locale), color, koreanChar: char1),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
@@ -582,7 +582,7 @@ class HapchungTab extends StatelessWidget {
                     size: 24,
                   ),
                 ),
-                _buildCharacterBox(_localizeGanJi(char2, locale), color),
+                _buildCharacterBox(_localizeGanJi(char2, locale), color, koreanChar: char2),
               ],
             ),
           ),
@@ -609,8 +609,8 @@ class HapchungTab extends StatelessWidget {
                     ),
                   ],
                 ),
-                // description이 i18n 번역된 경우에만 표시 (한글 원문이면 숨김)
-                if (description.isNotEmpty && !RegExp(r'^[\uAC00-\uD7A3()]+$').hasMatch(description)) ...[
+                // description 표시: 한국어는 항상 표시, 비한국어는 번역된 경우만
+                if (description.isNotEmpty && (locale == 'ko' || !RegExp(r'^[\uAC00-\uD7A3()\s]+$').hasMatch(description))) ...[
                   const SizedBox(height: 6),
                   Text(
                     description,
@@ -674,10 +674,47 @@ class HapchungTab extends StatelessWidget {
     return SajuI18n.jiji(korean, locale);
   }
 
-  Widget _buildCharacterBox(String char, Color color) {
+  Widget _buildCharacterBox(String localizedChar, Color color, {String? koreanChar}) {
     return Builder(
       builder: (context) {
-        final theme = context.appTheme;
+        final loc = context.locale.languageCode;
+        final isCjk = loc == 'ko' || loc == 'ja' || loc == 'zh';
+        // Non-CJK: show locale name + 한글(한자)
+        if (!isCjk && koreanChar != null && localizedChar != koreanChar) {
+          final hanja = _getHanjaForChar(koreanChar);
+          return Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  localizedChar,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  hanja != null ? '$koreanChar($hanja)' : koreanChar,
+                  style: TextStyle(
+                    color: color.withOpacity(0.7),
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        // CJK: show 한자 or 한글 only
         return Container(
           width: 44,
           height: 44,
@@ -688,7 +725,7 @@ class HapchungTab extends StatelessWidget {
           ),
           child: Center(
             child: Text(
-              char,
+              localizedChar,
               style: TextStyle(
                 color: color,
                 fontSize: 20,
@@ -699,6 +736,17 @@ class HapchungTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// 한글 간지 → 한자 반환 (천간/지지)
+  String? _getHanjaForChar(String korean) {
+    // 천간에서 찾기
+    final cheonganHanja = SajuI18n.cheongan(korean, 'ja');
+    if (cheonganHanja != korean) return cheonganHanja;
+    // 지지에서 찾기
+    final jijiHanja = SajuI18n.jiji(korean, 'ja');
+    if (jijiHanja != korean) return jijiHanja;
+    return null;
   }
 
   Widget _buildSamhapCard(BuildContext context, {required SamhapResult samhap}) {
@@ -779,7 +827,7 @@ class HapchungTab extends StatelessWidget {
                   const Spacer(),
                 ...samhap.jijis.map((ji) => Padding(
                   padding: const EdgeInsets.only(left: 6),
-                  child: _buildCharacterBox(SajuI18n.jiji(ji, context.locale.languageCode), _hapColor),
+                  child: _buildCharacterBox(SajuI18n.jiji(ji, context.locale.languageCode), _hapColor, koreanChar: ji),
                 )),
               ],
             ),
@@ -932,7 +980,7 @@ class HapchungTab extends StatelessWidget {
                 ),
                 ...banghap.jijis.map((ji) => Padding(
                   padding: const EdgeInsets.only(left: 6),
-                  child: _buildCharacterBox(SajuI18n.jiji(ji, context.locale.languageCode), _hapColor),
+                  child: _buildCharacterBox(SajuI18n.jiji(ji, context.locale.languageCode), _hapColor, koreanChar: ji),
                 )),
               ],
             ),

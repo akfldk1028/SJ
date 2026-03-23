@@ -383,6 +383,7 @@
   "fortuneHyung": "흉(凶)",
   "fortuneMixed": "길흉혼합",
   "sinsalSummary": "신살 요약",
+  "noKeySinsal": "주요 신살 없음",
   "basedOn": "기준: {value}",
   "sinsalStrength": "강도",
 

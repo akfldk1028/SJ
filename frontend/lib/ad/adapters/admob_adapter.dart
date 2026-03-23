@@ -5,6 +5,8 @@
 /// 네트워크별 트래킹(onPaidEvent, impression, click)은 어댑터 내부에서 처리.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -28,6 +30,9 @@ class AdMobAdapter implements AdNetworkAdapter {
   // 보류 중인 screen (show 시 설정, 콜백에서 사용)
   String? _pendingInterstitialScreen;
   String? _pendingRewardedScreen;
+
+  // 보상형 광고 dismiss 대기 Completer
+  Completer<void>? _rewardedDismissCompleter;
 
   @override
   bool get isInterstitialLoaded => _isInterstitialLoaded;
@@ -173,6 +178,9 @@ class AdMobAdapter implements AdNetworkAdapter {
               _rewardedAd = null;
               _isRewardedLoaded = false;
               _pendingRewardedScreen = null;
+              if (!(_rewardedDismissCompleter?.isCompleted ?? true)) {
+                _rewardedDismissCompleter?.complete();
+              }
               // 지연 후 재로드
               Future.delayed(
                 const Duration(seconds: AdSettings.rewardedReloadDelay),
@@ -186,6 +194,9 @@ class AdMobAdapter implements AdNetworkAdapter {
               _rewardedAd = null;
               _isRewardedLoaded = false;
               _pendingRewardedScreen = null;
+              if (!(_rewardedDismissCompleter?.isCompleted ?? true)) {
+                _rewardedDismissCompleter?.complete();
+              }
             },
             onAdImpression: (ad) {
               debugPrint('[AdMobAdapter] Rewarded impression');
@@ -217,6 +228,8 @@ class AdMobAdapter implements AdNetworkAdapter {
     if (!_isRewardedLoaded || _rewardedAd == null) return false;
 
     _pendingRewardedScreen = screen;
+    _rewardedDismissCompleter = Completer<void>();
+
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
         debugPrint(
@@ -224,6 +237,9 @@ class AdMobAdapter implements AdNetworkAdapter {
         onRewarded(reward.amount.toInt(), reward.type);
       },
     );
+
+    // 광고 dismiss/실패 후에야 리턴 → 호출자가 rewardGranted 정확히 판단
+    await _rewardedDismissCompleter!.future;
     return true;
   }
 
