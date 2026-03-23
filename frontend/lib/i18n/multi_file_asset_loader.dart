@@ -28,6 +28,8 @@ class MultiFileAssetLoader extends AssetLoader {
     'purchase',
     'yearly_2025',
     'lifetime_fortune',
+    'fortune_common',
+    'year_info',
   ];
 
   @override
