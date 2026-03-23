@@ -95,5 +95,6 @@
   "compatPromoRegister": "Зарегистрировать",
   "compatPromoAnalyzeTitle": "Проверьте совместимость с Вашими близкими",
   "compatPromoAnalyzeSubtitle": "Проанализируйте скрытую связь между судьбами двух людей",
-  "compatPromoResultTitle": "Совместимость с {name}"
+  "compatPromoResultTitle": "Совместимость с {name}",
+  "defaultPartner": "Партнёр"
 }

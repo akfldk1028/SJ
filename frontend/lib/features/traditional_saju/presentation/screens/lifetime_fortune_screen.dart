@@ -974,6 +974,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           Expanded(
             child: Text(
               text,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 color: theme.textSecondary,
@@ -1190,27 +1191,33 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     ];
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: columns.map((column) {
         final (label, gan, ji) = column;
+        final isDay = label == 'lifetime_fortune.pillarDay'.tr();
         return Expanded(
-          child: Column(
-            children: [
-              // 기둥 라벨
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textSecondary,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Column(
+              children: [
+                // 기둥 라벨
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 8),
-              // 천간
-              _buildCharacterCard(theme, gan, isGan: true, isDay: label == 'lifetime_fortune.pillarDay'.tr()),
-              const SizedBox(height: 6),
-              // 지지
-              _buildCharacterCard(theme, ji, isGan: false, isDay: label == 'lifetime_fortune.pillarDay'.tr()),
-            ],
+                const SizedBox(height: 8),
+                // 천간
+                _buildCharacterCard(theme, gan, isGan: true, isDay: isDay),
+                const SizedBox(height: 6),
+                // 지지
+                _buildCharacterCard(theme, ji, isGan: false, isDay: isDay),
+              ],
+            ),
           ),
         );
       }).toList(),
@@ -1221,11 +1228,17 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
   Widget _buildCharacterCard(AppThemeExtension theme, SajuCharacterInfo info, {required bool isGan, required bool isDay}) {
     // 오행별 색상
     final ohengColor = _getOhengColor(info.oheng);
+    // reading에서 짧은 이름만 추출 (AI가 설명까지 넣을 수 있음)
+    final shortReading = _extractShortReading(info.reading);
+
+    // 지지 카드에는 animal 표시 영역 확보 (높이 통일)
+    final hasAnimalSlot = !isGan;
 
     return GestureDetector(
       onTap: () => _showCharacterDetail(theme, info, isGan: isGan, isDay: isDay),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
           color: ohengColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
@@ -1235,27 +1248,42 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              info.character,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: ohengColor,
+            // 한자 (큰 글씨, 오행 색상)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                info.character,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: ohengColor,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              info.reading,
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.textSecondary,
+            const SizedBox(height: 2),
+            // reading (짧은 이름만)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                shortReading,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: ohengColor.withValues(alpha: 0.8),
+                ),
               ),
             ),
-            if (info.animal != null && info.animal!.isNotEmpty) ...[
+            // 동물/계절 표시 (지지만) — 없어도 빈 공간으로 높이 통일
+            if (hasAnimalSlot) ...[
               const SizedBox(height: 2),
               Text(
-                info.animal!,
+                (info.animal != null && info.animal!.isNotEmpty)
+                    ? info.animal!
+                    : (info.season != null && info.season!.isNotEmpty)
+                        ? info.season!
+                        : ' ',
                 style: TextStyle(
                   fontSize: 10,
                   color: theme.textMuted,
@@ -1268,22 +1296,49 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
     );
   }
 
-  /// 오행별 색상
+  /// reading 텍스트에서 짧은 이름만 추출
+  /// AI가 "Byeong\nYang Fire — hour stem" 같이 길게 넣을 수 있음
+  /// → 첫 줄, 첫 단어만 사용 (한국어/일본어/중국어는 그대로)
+  String _extractShortReading(String reading) {
+    if (reading.isEmpty) return reading;
+    // 한국어/일본어/중국어 1~2글자면 그대로
+    if (reading.length <= 3) return reading;
+    // 줄바꿈 있으면 첫 줄만
+    final firstLine = reading.split('\n').first.trim();
+    // 괄호, 대시, 콤마 앞까지만
+    final cleaned = firstLine.split(RegExp(r'[\s—–\-,\(]')).first.trim();
+    // 너무 길면 (10자 초과) 잘라냄
+    if (cleaned.length > 10) return cleaned.substring(0, 10);
+    return cleaned.isNotEmpty ? cleaned : firstLine;
+  }
+
+  /// 오행별 색상 (17개 언어 대응 — AI가 locale 언어로 oheng을 반환)
+  /// ko, en, ja, zh, ar, de, es, fr, hi, id, it, ms, my, pt, ru, th, vi
+  static final _ohengMap = <String, Color>{
+    // 목 (Wood) — 초록
+    for (final w in ['목', 'wood', '木', 'kayu', 'madera', 'bois', 'holz', 'legno',
+        'madeira', 'дерево', 'gỗ', 'mộc', 'ไม้', 'もく', 'خشب', 'लकड़ी', 'သစ်သား', 'သစ်'])
+      w: const Color(0xFF00C853),
+    // 화 (Fire) — 빨강
+    for (final w in ['화', 'fire', '火', 'api', 'fuego', 'feu', 'feuer', 'fuoco',
+        'fogo', 'огонь', 'lửa', 'hoả', 'ไฟ', 'か', 'نار', 'आग', 'မီး'])
+      w: const Color(0xFFFF5252),
+    // 토 (Earth) — 노랑
+    for (final w in ['토', 'earth', '土', 'tanah', 'bumi', 'tierra', 'terre', 'erde',
+        'terra', 'земля', 'đất', 'thổ', 'ดิน', 'ど', 'تراب', 'पृथ्वी', 'မြေ'])
+      w: const Color(0xFFFFB300),
+    // 금 (Metal) — 슬레이트 그레이
+    for (final w in ['금', 'metal', '金', 'logam', 'métal', 'metall', 'metallo',
+        'металл', 'kim loại', 'kim', 'โลหะ', 'きん', 'معدن', 'धातु', 'သတ္တု', 'သံ'])
+      w: const Color(0xFF708090),
+    // 수 (Water) — 파랑
+    for (final w in ['수', 'water', '水', 'air', 'agua', 'eau', 'wasser', 'acqua',
+        'água', 'вода', 'nước', 'thuỷ', 'น้ำ', 'すい', 'ماء', 'पानी', 'ရေ'])
+      w: const Color(0xFF2196F3),
+  };
+
   Color _getOhengColor(String oheng) {
-    switch (oheng) {
-      case '목':
-        return const Color(0xFF00C853);  // 초록
-      case '화':
-        return const Color(0xFFFF5252);  // 빨강
-      case '토':
-        return const Color(0xFFFFB300);  // 노랑
-      case '금':
-        return const Color(0xFF708090);  // 슬레이트 그레이 (은색 계열)
-      case '수':
-        return const Color(0xFF2196F3);  // 파랑
-      default:
-        return const Color(0xFF9E9E9E);  // 회색
-    }
+    return _ohengMap[oheng.toLowerCase().trim()] ?? const Color(0xFF9E9E9E);
   }
 
   /// 글자 상세 다이얼로그
@@ -1615,6 +1670,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 Expanded(
                   child: Text(
                     detail.tip,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1807,11 +1863,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       return;
     }
 
-    // 전면 광고 로드 대기 (최대 8초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () {
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAd(
+      screen: 'lifetime_fortune_$cycleKey',
+      onRewarded: (amount, type) {
         if (mounted) {
           setState(() {
             _unlockedCycles.add(cycleKey);
@@ -1825,10 +1881,7 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                 duration: const Duration(seconds: 2),
               ),
             );
-          } catch (_) {
-            // AdFit onDismissed가 MethodChannel에서 호출 시
-            // ScaffoldMessenger가 없을 수 있음 → 무시
-          }
+          } catch (_) {}
         }
       },
     );
@@ -2565,13 +2618,12 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
             const SizedBox(height: 4),
             Text(
               reason,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 12,
                 height: 1.4,
                 color: theme.textSecondary,
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],
@@ -2581,26 +2633,21 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
 
   /// 대운 사이클 개별 카드
   Widget _buildDaeunCycleCard(AppThemeExtension theme, DaeunCycleItem cycle) {
-    // 운세 수준에 따른 색상
+    // 운세 수준에 따른 색상 (다국어 대응)
+    final levelLower = cycle.fortuneLevel.toLowerCase().trim();
     Color levelColor;
-    switch (cycle.fortuneLevel) {
-      case '상':
-        levelColor = Colors.green;
-        break;
-      case '중상':
-        levelColor = Colors.teal;
-        break;
-      case '중':
-        levelColor = Colors.blue;
-        break;
-      case '중하':
-        levelColor = Colors.orange;
-        break;
-      case '하':
-        levelColor = Colors.red;
-        break;
-      default:
-        levelColor = theme.textSecondary;
+    if (['상', 'high', 'very favorable', 'excellent', 'tinggi', 'sangat baik', 'très bon', 'sehr gut', 'excelente', 'отлично', 'rất tốt', 'ดีมาก', '上', 'عالي', 'उत्तम'].any((k) => levelLower.contains(k))) {
+      levelColor = Colors.green;
+    } else if (['중상', 'above average', 'good', 'baik', 'bon', 'gut', 'bueno', 'bom', 'хорошо', 'tốt', 'ดี', '中上', 'جيد', 'अच्छा'].any((k) => levelLower.contains(k))) {
+      levelColor = Colors.teal;
+    } else if (['중하', 'below average', 'challenging', 'kurang', 'moyen-bas', 'unterdurchschnittlich', 'bajo', 'ниже среднего', 'trung bình thấp', 'ต่ำกว่า', '中下', 'أقل', 'औसत से नीचे'].any((k) => levelLower.contains(k))) {
+      levelColor = Colors.orange;
+    } else if (['하', 'low', 'difficult', 'rendah', 'bas', 'niedrig', 'difícil', 'низко', 'thấp', 'ต่ำ', '下', 'منخفض', 'निम्न'].any((k) => levelLower.contains(k))) {
+      levelColor = Colors.red;
+    } else if (['중', 'average', 'moderate', 'sedang', 'moyen', 'durchschnittlich', 'medio', 'средне', 'trung bình', 'ปานกลาง', '中', 'متوسط', 'मध्यम', 'neutral'].any((k) => levelLower.contains(k))) {
+      levelColor = Colors.blue;
+    } else {
+      levelColor = theme.textSecondary;
     }
 
     return Container(
@@ -2614,11 +2661,10 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더
+          // 헤더: pillar 뱃지 + fortuneLevel
           Row(
             children: [
               Container(
-                constraints: const BoxConstraints(maxWidth: 120),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: levelColor.withValues(alpha: 0.15),
@@ -2631,54 +2677,47 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                     fontWeight: FontWeight.bold,
                     color: levelColor,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      cycle.mainTheme,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textPrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      cycle.ageRange,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: levelColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  cycle.fortuneLevel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: levelColor,
+              if (cycle.fortuneLevel.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: levelColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: levelColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    cycle.fortuneLevel,
+                    style: TextStyle(fontSize: 11, color: levelColor, fontWeight: FontWeight.w500),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
+          // mainTheme (별도 줄)
+          if (cycle.mainTheme.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              cycle.mainTheme,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
+              ),
+            ),
+          ],
+          if (cycle.ageRange.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              cycle.ageRange,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.textSecondary,
+              ),
+            ),
+          ],
 
           // 해석
           if (cycle.reading.isNotEmpty) ...[
@@ -2715,12 +2754,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                         ),
                         const SizedBox(height: 4),
                         ...cycle.opportunities.take(2).map((o) => Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
+                          padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             '• $o',
-                            style: TextStyle(fontSize: 12, color: theme.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.justify,
+                            style: TextStyle(fontSize: 12, color: theme.textSecondary, height: 1.4),
                           ),
                         )),
                       ],
@@ -2743,12 +2781,11 @@ class _LifetimeFortuneScreenState extends ConsumerState<LifetimeFortuneScreen> {
                         ),
                         const SizedBox(height: 4),
                         ...cycle.challenges.take(2).map((c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
+                          padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             '• $c',
-                            style: TextStyle(fontSize: 12, color: theme.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.justify,
+                            style: TextStyle(fontSize: 12, color: theme.textSecondary, height: 1.4),
                           ),
                         )),
                       ],

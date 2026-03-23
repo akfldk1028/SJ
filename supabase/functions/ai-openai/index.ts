@@ -4,6 +4,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v62 변경사항 (2026-03-22):
+ * - 스케일링: collectStreamResponse() SSE 라인 버퍼링 수정
+ *   → 청크 경계에서 불완전한 SSE 라인이 JSON.parse 실패하던 문제 해결
+ *   → json_schema + stream:true 안정화 (수만 명 동시 사용 대비)
+ *   → buffer 패턴: 마지막 불완전 라인 보관 → 다음 청크에서 결합
+ *   → 루프 종료 후 잔여 버퍼 파싱 추가
+ *
  * v56 변경사항 (2026-03-22):
  * - BUG FIX: MODEL_PRICING에 gpt-5.2-thinking 누락 → gpt-5.2 가격($1.75/$14.00) fallback 적용
  *   → 실제 saju_analysis는 gpt-5-mini phase 1-4로 실행되는데, parent task(gpt-5.2-thinking)가
@@ -143,7 +150,7 @@ interface OpenAIRequest {
   model: string;
   max_tokens?: number;
   temperature?: number;
-  response_format?: { type: "json_object" | "text" };
+  response_format?: { type: string; json_schema?: Record<string, unknown> };
   user_id?: string;
   run_in_background?: boolean;
   task_type?: string;
@@ -160,48 +167,30 @@ interface UsageInfo {
   };
 }
 
-async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from("saju_profiles")
-      .select("relation_type")
-      .eq("user_id", userId)
-      .eq("profile_type", "primary")
-      .single();
-    if (error || !data) return false;
-    return data.relation_type === "admin";
-  } catch {
-    return false;
-  }
-}
-
-async function checkQuota(
+// v62: isAdmin + checkQuota를 1 RPC로 통합 (DB 쿼리 3~4개 → 1개)
+// 수만 명 스케일링 대비: DB 연결 수 50% 감소
+async function checkUserAccess(
   supabase: ReturnType<typeof createClient>,
-  userId: string,
-  isAdmin: boolean
-): Promise<{ allowed: boolean; remaining: number; quotaLimit: number }> {
-  const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
+  userId: string
+): Promise<{ isAdmin: boolean; allowed: boolean; remaining: number; quotaLimit: number }> {
   const today = getTodayKST();
   try {
-    const { data: usage } = await supabase
-      .from("user_daily_token_usage")
-      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned, native_tokens_earned")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-    // v42: chatting_tokens만 쿼터 대상, bonus_tokens + rewarded_tokens_earned + native_tokens_earned 포함
-    const currentUsage = usage?.chatting_tokens || 0;
-    const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
-    const bonusTokens = usage?.bonus_tokens || 0;
-    const rewardedTokens = usage?.rewarded_tokens_earned || 0;
-    const nativeTokens = usage?.native_tokens_earned || 0;
-    const effectiveQuota = baseQuota + bonusTokens + rewardedTokens + nativeTokens;
-    const remaining = effectiveQuota - currentUsage;
-    if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
-    if (currentUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
-    return { allowed: true, remaining, quotaLimit: effectiveQuota };
+    const { data, error } = await supabase.rpc('check_user_access', {
+      p_user_id: userId,
+      p_today: today,
+    });
+    if (error || !data) {
+      console.warn(`[ai-openai v62] check_user_access RPC error: ${error?.message}`);
+      return { isAdmin: false, allowed: true, remaining: DAILY_QUOTA, quotaLimit: DAILY_QUOTA };
+    }
+    return {
+      isAdmin: data.is_admin || false,
+      allowed: data.allowed ?? true,
+      remaining: data.remaining ?? DAILY_QUOTA,
+      quotaLimit: data.quota_limit ?? DAILY_QUOTA,
+    };
   } catch {
-    return { allowed: true, remaining: quotaLimit, quotaLimit };
+    return { isAdmin: false, allowed: true, remaining: DAILY_QUOTA, quotaLimit: DAILY_QUOTA };
   }
 }
 
@@ -212,6 +201,7 @@ function getTokenColumnForTaskType(taskType: string): string {
   return 'saju_analysis_tokens';
 }
 
+// v62: 원자적 UPSERT RPC — race condition 제거, DB 쿼리 2→1개
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -224,37 +214,26 @@ async function recordTokenUsage(
   const today = getTodayKST();
   const totalTokens = promptTokens + completionTokens;
   const tokenColumn = getTokenColumnForTaskType(taskType);
-  console.log(`[ai-openai v50] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
+  console.log(`[ai-openai v62] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
   try {
-    const { data: existing } = await supabase
-      .from("user_daily_token_usage")
-      .select(`id, ${tokenColumn}, gpt_cost_usd`)
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-    if (existing) {
-      const updateData: Record<string, unknown> = {
-        gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
-        // daily_quota는 덮어쓰지 않음 (광고 보상으로 증가된 값 보존)
-        updated_at: new Date().toISOString(),
-      };
-      updateData[tokenColumn] = (existing[tokenColumn] || 0) + totalTokens;
-      await supabase.from("user_daily_token_usage").update(updateData).eq("id", existing.id);
-    } else {
-      const insertData: Record<string, unknown> = {
-        user_id: userId,
-        usage_date: today,
-        gpt_cost_usd: cost,
-        daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
-      };
-      insertData[tokenColumn] = totalTokens;
-      await supabase.from("user_daily_token_usage").insert(insertData);
-    }
+    await supabase.rpc('increment_token_usage', {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_column_name: tokenColumn,
+      p_tokens: totalTokens,
+      p_gpt_cost: cost,
+      p_gemini_cost: 0,
+      p_daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+    });
   } catch (error) {
-    console.error("[ai-openai v50] Failed to record token usage:", error);
+    console.error("[ai-openai v62] Failed to record token usage:", error);
   }
 }
 
+// v62: SSE 라인 버퍼링 수정 — 청크 경계에서 불완전한 라인 보존
+// 수만 명 스케일링 대비: json_schema + stream:true 안정화
+// 이전(v59): chunk.split("\n") 시 마지막 불완전 라인이 JSON.parse 실패
+// 수정: buffer에 불완전 라인 보관 → 다음 청크에서 결합
 async function collectStreamResponse(response: Response): Promise<{ content: string; usage: UsageInfo | null; finishReason: string | null }> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("No response body");
@@ -262,30 +241,48 @@ async function collectStreamResponse(response: Response): Promise<{ content: str
   let content = "";
   let usage: UsageInfo | null = null;
   let finishReason: string | null = null;
+  let buffer = "";  // v62: 불완전 라인 버퍼
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n");
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";  // v62: 마지막 불완전 라인은 버퍼에 보관
     for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta;
-          if (delta) {
-            if (delta.content) content += delta.content;
-          }
-          // v41: capture actual finish_reason
-          if (parsed.choices?.[0]?.finish_reason) {
-            finishReason = parsed.choices[0].finish_reason;
-          }
-          if (parsed.usage) usage = parsed.usage;
-        } catch { /* ignore */ }
-      }
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data: ")) continue;
+      const data = trimmed.slice(6);
+      if (data === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta;
+        if (delta) {
+          if (delta.content) content += delta.content;
+        }
+        // v41: capture actual finish_reason
+        if (parsed.choices?.[0]?.finish_reason) {
+          finishReason = parsed.choices[0].finish_reason;
+        }
+        if (parsed.usage) usage = parsed.usage;
+      } catch { /* ignore — 다음 청크에서 완성될 수 있음 */ }
     }
   }
+
+  // v62: 루프 종료 후 잔여 버퍼 처리
+  if (buffer.trim().startsWith("data: ")) {
+    const data = buffer.trim().slice(6);
+    if (data !== "[DONE]") {
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta;
+        if (delta?.content) content += delta.content;
+        if (parsed.choices?.[0]?.finish_reason) finishReason = parsed.choices[0].finish_reason;
+        if (parsed.usage) usage = parsed.usage;
+      } catch { /* ignore */ }
+    }
+  }
+
   return { content, usage, finishReason };
 }
 
@@ -383,39 +380,36 @@ Deno.serve(async (req) => {
 
     if (!messages || messages.length === 0) throw new Error("messages is required");
 
-    // Admin 여부 확인
+    // v62: isAdmin + checkQuota를 1 RPC로 통합 (DB 쿼리 3~4개 → 1개)
     let isAdmin = false;
     if (user_id) {
-      isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-openai v50] User ${user_id} isAdmin: ${isAdmin}`);
+      const access = await checkUserAccess(supabase, user_id);
+      isAdmin = access.isAdmin;
+      console.log(`[ai-openai v62] User ${user_id} isAdmin: ${isAdmin}, allowed: ${access.allowed}`);
 
       // v39: 운세 분석은 쿼터 면제 (핵심 콘텐츠, 1회성 캐시)
-      // 채팅만 쿼터 제한 적용
       const isQuotaExempt = QUOTA_EXEMPT_TASK_TYPES.has(task_type);
 
-      if (!isAdmin && !isQuotaExempt) {
-        const quota = await checkQuota(supabase, user_id, isAdmin);
-        if (!quota.allowed) {
-          console.log(`[ai-openai v50] Quota exceeded for user ${user_id} (task_type: ${task_type}, locale: ${locale})`);
-          const quotaMessages: Record<string, string> = {
-            ko: "오늘 사용 가능한 토큰을 모두 사용했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.",
-            ja: "本日のトークンをすべて使用しました。広告を視聴すると追加トークンを獲得できます。",
-            en: "You've used all available tokens for today. Watch an ad to earn additional tokens.",
-          };
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: "QUOTA_EXCEEDED",
-              message: quotaMessages[locale] || quotaMessages.ko,
-              tokens_used: DAILY_QUOTA - quota.remaining,
-              quota_limit: quota.quotaLimit,
-              ads_required: true,
-            }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      if (!isAdmin && !isQuotaExempt && !access.allowed) {
+        console.log(`[ai-openai v62] Quota exceeded for user ${user_id} (task_type: ${task_type}, locale: ${locale})`);
+        const quotaMessages: Record<string, string> = {
+          ko: "오늘 사용 가능한 토큰을 모두 사용했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.",
+          ja: "本日のトークンをすべて使用しました。広告を視聴すると追加トークンを獲得できます。",
+          en: "You've used all available tokens for today. Watch an ad to earn additional tokens.",
+        };
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "QUOTA_EXCEEDED",
+            message: quotaMessages[locale] || quotaMessages.ko,
+            tokens_used: DAILY_QUOTA - access.remaining,
+            quota_limit: access.quotaLimit,
+            ads_required: true,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       } else if (isQuotaExempt) {
-        console.log(`[ai-openai v50] Quota check SKIPPED for ${task_type} (fortune exempt)`);
+        console.log(`[ai-openai v62] Quota check SKIPPED for ${task_type} (fortune exempt)`);
       }
     }
 
@@ -528,7 +522,10 @@ Deno.serve(async (req) => {
         model, input: inputText, background: true, store: true, max_output_tokens: max_tokens,
         reasoning: { effort: reasoning_effort },  // v43: reasoning_effort 지원
       };
-      if (response_format?.type === "json_object") {
+      // v62: json_schema strict 모드도 Background에서 지원
+      if (response_format?.type === "json_schema") {
+        responsesApiBody.text = { format: response_format };
+      } else if (response_format?.type === "json_object") {
         responsesApiBody.text = { format: { type: "json_object" } };
       }
 

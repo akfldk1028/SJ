@@ -16,14 +16,13 @@ import '../../../profile/domain/entities/relationship_type.dart';
 import '../../../profile/domain/entities/saju_profile.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 
+import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../../../profile/presentation/widgets/birth_date_input_widget.dart';
 import '../../../profile/presentation/widgets/birth_time_input_widget.dart';
 import '../../../profile/presentation/widgets/birth_time_options.dart';
 import '../../../profile/presentation/widgets/calendar_type_dropdown.dart';
-import '../../../profile/presentation/widgets/city_search_field.dart';
 import '../../../profile/presentation/widgets/gender_toggle_buttons.dart';
 import '../../../profile/presentation/widgets/profile_name_input.dart';
-import '../../../profile/presentation/widgets/time_correction_banner.dart';
 
 /// 앱 최초 실행 시 사주 정보 입력 화면 (온보딩)
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -84,9 +83,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     print('[Onboarding] ===========================');
 
     try {
-        // 한국어 외 로케일: 도시 필드가 숨겨져 있으므로 기본값 '서울' 설정
-        if (context.locale.languageCode != 'ko' && formState.birthCity.isEmpty) {
-          formNotifier.updateBirthCity('서울');
+        // 도시 필드 제거됨 → locale 기반 기본 도시 자동 설정
+        if (formState.birthCity.isEmpty) {
+          final defaultCity = TrueSolarTimeService.defaultCityForLocale(
+            context.locale.languageCode,
+          );
+          formNotifier.updateBirthCity(defaultCity);
         }
 
         // 수정 모드면 기존 프로필 ID 전달하여 업데이트
@@ -183,14 +185,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           _buildBirthSection(context),
                           const SizedBox(height: 24),
 
-                          // 4. 출생 도시 (한국어만 - 도시 데이터가 한국 지역만 존재)
-                          if (context.locale.languageCode == 'ko') ...[
-                            const CitySearchField(),
-                            const SizedBox(height: 16),
-
-                            // 5. 진태양시 보정 배너
-                            const TimeCorrectionBanner(),
-                          ],
                           const SizedBox(height: 40),
 
                           // 완료 버튼

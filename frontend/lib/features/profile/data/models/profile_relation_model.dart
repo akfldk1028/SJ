@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../relation_schema.dart';
 
@@ -283,6 +284,8 @@ abstract class ProfileRelationTarget with _$ProfileRelationTarget {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
   }
 
-  /// 달력 유형 라벨
-  String get calendarTypeLabel => isLunar ? (isLeapMonth ? '음력 윤달' : '음력') : '양력';
+  /// 달력 유형 라벨 — i18n
+  String get calendarTypeLabel => isLunar
+      ? (isLeapMonth ? '${'profile.calendarLunar'.tr()} ${'profile.leapMonthLabel'.tr()}' : 'profile.calendarLunar'.tr())
+      : 'profile.calendarSolar'.tr();
 }

@@ -13,6 +13,8 @@ class MultiFileAssetLoader extends AssetLoader {
   /// 로드할 JSON 파일명 목록 (확장자 제외)
   static const List<String> _fileNames = [
     'common',
+    'fortune_common',
+    'year_info',
     'splash',
     'onboarding',
     'profile',
@@ -28,8 +30,8 @@ class MultiFileAssetLoader extends AssetLoader {
     'purchase',
     'yearly_2025',
     'lifetime_fortune',
-    'fortune_common',
-    'year_info',
+    'traditional_saju',
+    'saju_detail',
   ];
 
   @override

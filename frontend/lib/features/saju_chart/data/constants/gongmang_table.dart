@@ -5,6 +5,8 @@
 /// 순(旬)별로 2개의 지지가 공망이 됨
 library;
 
+import 'package:easy_localization/easy_localization.dart';
+
 // ============================================================================
 // 공망 정의
 // ============================================================================
@@ -462,9 +464,9 @@ GongmangTypeResult determineGongmangTypeAdvanced({
 
   // 대상이 공망이 아니면 해당 없음 (일반적인 탈공)
   if (!gongmangJijis.contains(targetJi)) {
-    return const GongmangTypeResult(
+    return GongmangTypeResult(
       type: GongmangType.talGong,
-      reason: '공망 지지가 아님',
+      reason: 'saju_detail.gongmang_reason_not_gongmang'.tr(),
     );
   }
 
@@ -472,14 +474,14 @@ GongmangTypeResult determineGongmangTypeAdvanced({
   if (currentDaeunJi == targetJi) {
     return GongmangTypeResult(
       type: GongmangType.talGong,
-      reason: '대운에서 $targetJi가 들어와 공망이 채워짐',
+      reason: 'saju_detail.gongmang_reason_daeun_fill'.tr(namedArgs: {'ji': targetJi}),
       relatedJi: currentDaeunJi,
     );
   }
   if (currentSaeunJi == targetJi) {
     return GongmangTypeResult(
       type: GongmangType.talGong,
-      reason: '세운에서 $targetJi가 들어와 공망이 채워짐',
+      reason: 'saju_detail.gongmang_reason_saeun_fill'.tr(namedArgs: {'ji': targetJi}),
       relatedJi: currentSaeunJi,
     );
   }
@@ -492,7 +494,7 @@ GongmangTypeResult determineGongmangTypeAdvanced({
     if (hasChung(targetJi, otherJi)) {
       return GongmangTypeResult(
         type: GongmangType.haeGongChung,
-        reason: '$targetJi와 $otherJi가 충(沖)하여 공망이 해소됨',
+        reason: 'saju_detail.gongmang_reason_chung_resolve'.tr(namedArgs: {'ji1': targetJi, 'ji2': otherJi}),
         relatedJi: otherJi,
       );
     }
@@ -505,7 +507,7 @@ GongmangTypeResult determineGongmangTypeAdvanced({
     if (hasYukhap(targetJi, otherJi)) {
       return GongmangTypeResult(
         type: GongmangType.haeGongHap,
-        reason: '$targetJi와 $otherJi가 육합(六合)하여 공망이 채워짐',
+        reason: 'saju_detail.gongmang_reason_yukhap_fill'.tr(namedArgs: {'ji1': targetJi, 'ji2': otherJi}),
         relatedJi: otherJi,
       );
     }
@@ -514,7 +516,7 @@ GongmangTypeResult determineGongmangTypeAdvanced({
     if (hasSamhap(targetJi, otherJi)) {
       return GongmangTypeResult(
         type: GongmangType.haeGongHap,
-        reason: '$targetJi와 $otherJi가 삼합(三合) 관계로 공망이 완화됨',
+        reason: 'saju_detail.gongmang_reason_samhap_ease'.tr(namedArgs: {'ji1': targetJi, 'ji2': otherJi}),
         relatedJi: otherJi,
       );
     }
@@ -527,7 +529,7 @@ GongmangTypeResult determineGongmangTypeAdvanced({
     if (hasHyung(targetJi, otherJi)) {
       return GongmangTypeResult(
         type: GongmangType.haeGongHyung,
-        reason: '$targetJi와 $otherJi가 형(刑)하여 공망이 약하게 해소됨',
+        reason: 'saju_detail.gongmang_reason_hyung_resolve'.tr(namedArgs: {'ji1': targetJi, 'ji2': otherJi}),
         relatedJi: otherJi,
       );
     }
@@ -536,19 +538,18 @@ GongmangTypeResult determineGongmangTypeAdvanced({
   // 3. 해공이 없으면 진공/반공 판단 (음양 일치 여부)
   if (isSameYinYang(dayGan, targetJi)) {
     // 일간과 공망지지의 음양이 일치 → 진공
-    final ganType = isYangGan(dayGan) ? '양간' : '음간';
-    final jiType = isYangJi(targetJi) ? '양지' : '음지';
+    final ganType = isYangGan(dayGan) ? 'Yang' : 'Yin';
+    final jiType = isYangJi(targetJi) ? 'Yang' : 'Yin';
     return GongmangTypeResult(
       type: GongmangType.jinGong,
-      reason: '$dayGan($ganType)와 $targetJi($jiType)의 음양 일치로 진공',
+      reason: 'saju_detail.gongmang_reason_jingong'.tr(namedArgs: {'gan': dayGan, 'ganType': ganType, 'ji': targetJi, 'jiType': jiType}),
     );
   } else {
-    // 일간과 공망지지의 음양이 불일치 → 반공
-    final ganType = isYangGan(dayGan) ? '양간' : '음간';
-    final jiType = isYangJi(targetJi) ? '양지' : '음지';
+    final ganType = isYangGan(dayGan) ? 'Yang' : 'Yin';
+    final jiType = isYangJi(targetJi) ? 'Yang' : 'Yin';
     return GongmangTypeResult(
       type: GongmangType.banGong,
-      reason: '$dayGan($ganType)와 $targetJi($jiType)의 음양 불일치로 반공',
+      reason: 'saju_detail.gongmang_reason_bangong'.tr(namedArgs: {'gan': dayGan, 'ganType': ganType, 'ji': targetJi, 'jiType': jiType}),
     );
   }
 }

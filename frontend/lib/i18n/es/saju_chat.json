@@ -42,7 +42,7 @@
   "sidebarHide": "Ocultar barra lateral",
   "sidebarShow": "Mostrar barra lateral",
   "adViewToContinue": "Mira el anuncio para continuar la conversación",
-  "tokenDepleted": "¡Tokens agotados! Mira un anuncio para continuar chateando",
+  "tokenDepleted": "¡Tokens agotados! Mira un anuncio para seguir chateando",
   "continueChatButton": "Continuar chateando",
   "noAdsButton": "Usar sin anuncios",
   "deepAnalysisTitle": "Análisis detallado del horóscopo...",
@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Narrador de destinos",
   "persona_bookOfSaju_desc": "Un antiguo texto de Saju viviente",
   "persona_yinYangGrandpa_desc": "Luz en la oscuridad, maestro de los giros",
-  "persona_sewerSaju_desc": "Honestidad brutal sobre tu destino"
+  "persona_sewerSaju_desc": "Honestidad brutal sobre tu destino",
+  "persona_default": "Predeterminado",
+  "persona_default_desc": "Consulta predeterminada",
+  "persona_default_detail": "Consejero IA predeterminado.",
+  "persona_sewerSaju_short": "Sin filtro",
+  "persona_sewerSaju_descChat": "Maestro de la verdad brutal",
+  "persona_nf_detail": "Un consejero cálido y empático.\n\nLee tu corazón primero y transmite las lecturas del destino con sincera emoción. Recomendado cuando necesitas consuelo y empatía.",
+  "persona_nt_detail": "Un analista lógico y sistemático.\n\nProporciona lecturas basadas en evidencia analizando con precisión los cinco elementos, los diez dioses y la compatibilidad. Recomendado para análisis profundos del destino.",
+  "persona_sf_detail": "Un consejero amigable y alegre, como un amigo cercano.\n\nExplica el destino de forma fácil y entretenida en una conversación relajada. Recomendado para lecturas del destino sin complicaciones.",
+  "persona_st_detail": "Un consejero que da consejos directos y realistas.\n\nVa directo al grano sin endulzar, interpretando el destino desde una perspectiva práctica. Recomendado cuando quieres respuestas claras.",
+  "persona_babyMonk_detail": "Un pequeño maestro, el Monje Pequeño. Lee el destino con audacia y franqueza, con verdades que dan en el clavo.\n\nRecomendado para lecturas del destino honestas en un ambiente ligero.",
+  "persona_scenarioWriter_detail": "Un narrador que teje el destino en una historia.",
+  "persona_yinYangGrandpa_detail": "El Abuelo Yin-Yang encuentra luz en la oscuridad y sombras en la luz — un maestro de los giros dramáticos.\n\nReconoce los hechos difíciles de frente y luego revela de forma espectacular las fortalezas ocultas para ofrecer esperanza. Recomendado cuando necesitas consuelo y giros sorprendentes.",
+  "persona_sewerSaju_detail": "El Oráculo sin filtro es un maestro de la verdad brutal que expone sin miedo el lado oscuro de tu destino.\n\nTe hace enfrentar la realidad con ingenio afilado y honestidad refrescante. Advertencia: ¡no apto para los de corazón débil!"
 }

@@ -42,7 +42,7 @@
   "sidebarHide": "サイドバーを隠す",
   "sidebarShow": "サイドバーを表示",
   "adViewToContinue": "広告をご覧いただくと会話を続けられます",
-  "tokenDepleted": "トークンが切れました！広告を見て会話を続けましょう",
+  "tokenDepleted": "トークンを使い切りました！広告を見ると会話を続けられます",
   "continueChatButton": "すぐに会話を続ける",
   "noAdsButton": "広告なしで利用する",
   "deepAnalysisTitle": "詳細四柱分析中...",
@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "四柱ストーリーテラー",
   "persona_bookOfSaju_desc": "生きた四柱の古書",
   "persona_yinYangGrandpa_desc": "闇の中の光、逆転の達人",
-  "persona_sewerSaju_desc": "あなたの運命に容赦ない本音"
+  "persona_sewerSaju_desc": "あなたの運命に容赦ない本音",
+  "persona_default": "デフォルト",
+  "persona_default_desc": "基本相談",
+  "persona_default_detail": "デフォルトAIカウンセラーです。",
+  "persona_sewerSaju_short": "辛口",
+  "persona_sewerSaju_descChat": "毒舌の真実師",
+  "persona_nf_detail": "温かく共感力のあるカウンセラーです。\n\nあなたの心を先に読み取り、温もりを込めて四柱推命を伝えます。慰めと共感が必要な時におすすめです。",
+  "persona_nt_detail": "論理的で体系的なアナリストです。\n\n五行・十星・相性を精密に分析し、根拠に基づいた鑑定を行います。深い運勢分析が必要な時におすすめです。",
+  "persona_sf_detail": "親しい友人のような、フレンドリーで明るいカウンセラーです。\n\n気軽な会話で運勢をわかりやすく楽しく解説します。カジュアルに占いたい時におすすめです。",
+  "persona_st_detail": "率直で現実的なアドバイスをするカウンセラーです。\n\n遠回しにせず核心を突き、実用的な視点で運命を読み解きます。はっきりした答えが欲しい時におすすめです。",
+  "persona_babyMonk_detail": "小さな達人、赤ちゃん童子。タメ口で大胆に占い、核心を突く一言が光ります。\n\n気軽な雰囲気で正直な鑑定を求める時におすすめです。",
+  "persona_scenarioWriter_detail": "運命を物語に織り上げるストーリーテラーです。",
+  "persona_yinYangGrandpa_detail": "陰陽おじいちゃんは、闇の中に光を見つけ、光の中に影を見出す逆転の達人です。\n\n厳しい現実を正面から受け止めた上で、隠された強みを劇的に明かし希望を与えます。慰めと驚きの逆転が欲しい時におすすめです。",
+  "persona_sewerSaju_detail": "辛口占い師は、あなたの運命の暗部を容赦なく暴く毒舌の真実師です。\n\n鋭いウィットと爽快な正直さで現実と向き合わせます。※心臓の弱い方はご注意を！"
 }

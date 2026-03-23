@@ -65,22 +65,22 @@ abstract class AdStrategy {
   /// 6 = 3번째 대화 후부터 광고 시작
   static const int inlineAdMinMessages = 4;
 
-  // ==================== 전면 광고 ====================
+  // ==================== 보상형 광고 ====================
 
-  /// 전면 광고 표시 간격 (메시지 수)
-  static const int interstitialMessageInterval = 5;
+  /// 보상형 광고 표시 간격 (메시지 수)
+  static const int rewardedMessageInterval = 5;
 
-  /// 하루 최대 전면 광고 횟수
-  static const int interstitialDailyLimit = 15;
+  /// 하루 최대 보상형 광고 횟수
+  static const int rewardedDailyLimit = 15;
 
-  /// 전면 광고 쿨다운 (초)
-  static const int interstitialCooldownSeconds = 60;
+  /// 보상형 광고 쿨다운 (초)
+  static const int rewardedCooldownSeconds = 60;
 
-  /// 새 세션 시작 시 전면 광고 표시 여부
-  static const bool showInterstitialOnNewSession = true;
+  /// 새 세션 시작 시 보상형 광고 표시 여부
+  static const bool showRewardedOnNewSession = true;
 
-  /// 새 세션 전면 광고 하루 최대 횟수
-  static const int newSessionInterstitialDailyLimit = 5;
+  /// 새 세션 보상형 광고 하루 최대 횟수
+  static const int newSessionRewardedDailyLimit = 5;
 
   // ==================== 토큰 보상 설정 ====================
   // ★ 여기서 보상 토큰 값 조정 ★
@@ -95,12 +95,12 @@ abstract class AdStrategy {
   // [유저 패턴] 광고 시청 유저: 평균 6번 클릭 → 대화 19회/일
 
   /// 토큰 소진 → 리워드 영상 후 충전할 토큰량 (모든 네트워크 공통)
-  /// 5K completion tokens ≈ 9메시지, API 비용 ~$0.07
-  static const int depletedRewardTokensVideo = 5000;
+  /// 4K completion tokens ≈ 7메시지, API 비용 ~$0.056
+  static const int depletedRewardTokensVideo = 4000;
 
-  /// 토큰 소진 → 광고 로드 실패 시 소량 fallback 토큰
-  /// 최소 2~3회 대화 가능량 지급
-  static const int depletedFallbackTokens = 2000;
+  /// 토큰 소진 → 광고 로드 실패 시 최소 fallback 토큰
+  /// 500 tokens ≈ 1회 대화 (악용 방지: 비행기모드→로드실패→무료토큰 반복 차단)
+  static const int depletedFallbackTokens = 500;
 
   /// 토큰 소진 → 네이티브 광고 보상 토큰: 0 (정책 위반 방지)
   /// v3: 네이티브 클릭 → 토큰 보상 제거 (AdMob 인센티브화 클릭 정책 위반)

@@ -10,15 +10,17 @@ import '../../../../core/widgets/mystic_background.dart';
 import '../../../../shared/utils/text_formatter.dart';
 import '../../../menu/presentation/providers/daily_fortune_provider.dart';
 
-/// 카테고리별 색상
+/// 카테고리별 색상 — 보석 톤, 고급스러운 감성
 class _FortuneColors {
-  static const wealth = Color(0xFFF59E0B);
-  static const love = Color(0xFFEC4899);
-  static const work = Color(0xFF3B82F6);
-  static const health = Color(0xFF10B981);
-  static const accent = Color(0xFF6B48FF);
-  static const accentLight = Color(0xFF8B5CF6);
-  static const highlight = Color(0xFFFFB800);
+  static const wealth = Color(0xFFE8B866);   // 앤틱 골드
+  static const love = Color(0xFFCF7B8E);     // 로즈 쿼츠
+  static const work = Color(0xFF7BA3CF);     // 사파이어
+  static const health = Color(0xFF7BBF9A);   // 에메랄드
+  static const accent = Color(0xFF9B8AD8);   // 아메시스트
+  static const accentLight = Color(0xFFB0A0E8);
+  static const highlight = Color(0xFFE8B866);
+  static const gold = Color(0xFFD4A55A);     // 메인 골드 악센트
+  static const goldLight = Color(0xFFE8C97A);
 }
 
 /// 카테고리 항목 타입
@@ -312,15 +314,14 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        // 메시지 (명조체 + 양쪽정렬)
+        // 메시지
         Text(
           FortuneTextFormatter.formatParagraph(fortune.overallMessage),
-          style: AppFonts.fortuneBody(
-            color: theme.textPrimary,
+          style: TextStyle(
+            color: theme.textSecondary,
             fontSize: 14,
             height: 1.7,
           ),
-          textAlign: TextAlign.justify,
         ),
       ],
     );
@@ -410,76 +411,85 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
         child: Container(
           padding: EdgeInsets.all(padding),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                cat.color.withValues(alpha: 0.15),
-                cat.color.withValues(alpha: 0.05),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: cat.color.withValues(alpha: 0.2)),
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cat.color.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: cat.color.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 카테고리명 + 점수
+              // 카테고리 아이콘 + 점수
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(cat.icon, color: cat.color, size: (18 * scale).clamp(16.0, 24.0)),
-                      SizedBox(width: 6 * scale),
-                      Text(
-                        cat.nameKey.tr(),
-                        style: TextStyle(
-                          fontSize: (13 * scale).clamp(11.0, 16.0),
-                          fontWeight: FontWeight.w600,
-                          color: theme.textPrimary,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: cat.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(cat.icon, color: cat.color, size: 17),
                   ),
                   Text(
-                    'daily_fortune.scoreWithValue'.tr(namedArgs: {'score': '$score'}),
+                    '$score',
                     style: TextStyle(
-                      fontSize: (14 * scale).clamp(12.0, 18.0),
+                      fontSize: 26,
                       fontWeight: FontWeight.w700,
                       color: cat.color,
+                      shadows: [
+                        Shadow(
+                          color: cat.color.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 10 * scale),
-              // 첫 문장 (명조체 + 양쪽정렬)
+              SizedBox(height: 12 * scale),
+              // 카테고리명
+              Text(
+                cat.nameKey.tr(),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textPrimary,
+                ),
+              ),
+              SizedBox(height: 6 * scale),
+              // 첫 문장
               Text(
                 firstSentence,
-                style: AppFonts.fortuneBody(
-                  color: theme.textPrimary,
-                  fontSize: (14 * scale).clamp(13.0, 16.0),
-                  height: 1.6,
+                style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  height: 1.5,
                 ),
-                textAlign: TextAlign.justify,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 8 * scale),
+              SizedBox(height: 10 * scale),
               // 탭 유도
               Row(
                 children: [
                   Text(
                     'daily_fortune.viewDetail'.tr(),
                     style: TextStyle(
-                      fontSize: (11 * scale).clamp(10.0, 13.0),
-                      color: theme.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: cat.color,
                     ),
                   ),
-                  SizedBox(width: 2 * scale),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: (14 * scale).clamp(12.0, 18.0),
-                    color: theme.textMuted,
-                  ),
+                  const SizedBox(width: 2),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 10, color: cat.color),
                 ],
               ),
             ],
@@ -532,36 +542,26 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildLuckyCard(AppThemeExtension theme, _LuckyDef item) {
-    final color = theme.primaryColor;
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _FortuneColors.gold.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(item.icon, color: color, size: 18),
-          ),
-          const SizedBox(height: 12),
+          Icon(item.icon, color: _FortuneColors.gold, size: 20),
+          const SizedBox(height: 10),
           Text(item.label, style: TextStyle(fontSize: 11, color: theme.textMuted)),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             item.value,
-            style: AppFonts.fortuneBody(
-              color: color,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+            style: TextStyle(
+              color: _FortuneColors.goldLight,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -633,14 +633,12 @@ class DailyFortuneDetailScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             text,
-            style: AppFonts.fortuneBody(
+            style: TextStyle(
               color: textColor,
               fontSize: 14,
               height: 1.7,
-            ).copyWith(
               fontStyle: italic ? FontStyle.italic : FontStyle.normal,
             ),
-            textAlign: TextAlign.justify,
           ),
         ],
       ),

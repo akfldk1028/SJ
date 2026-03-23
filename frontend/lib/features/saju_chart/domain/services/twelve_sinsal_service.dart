@@ -6,6 +6,7 @@
 /// - RuleEngine 기반: analyzeWithRuleEngine()
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import '../../data/constants/twelve_sinsal.dart';
 import '../../data/repositories/rule_repository_impl.dart';
 import '../entities/rule.dart';
@@ -403,88 +404,18 @@ class TwelveSinsalService {
   /// 12신살 상세 해석
   static String getDetailedInterpretation(TwelveSinsal sinsal) {
     return switch (sinsal) {
-      TwelveSinsal.geopsal => '''
-겁살(劫煞)은 재물 손실과 도난을 주의해야 하는 신살입니다.
-- 갑작스러운 재물 손실 주의
-- 투자나 보증에 신중해야 함
-- 도둑, 사기 조심
-''',
-      TwelveSinsal.jaesal => '''
-재살(災煞)은 재앙과 사고를 주의해야 하는 신살입니다.
-- 예기치 못한 재난 주의
-- 안전사고에 유의
-- 보험 등 대비 필요
-''',
-      TwelveSinsal.cheonsal => '''
-천살(天煞)은 하늘에서 오는 재앙의 신살입니다.
-- 자연재해, 날씨 변화 주의
-- 예기치 못한 사건 발생 가능
-- 하늘의 뜻에 순응하는 자세 필요
-''',
-      TwelveSinsal.jisal => '''
-지살(地煞)은 땅과 관련된 재앙의 신살입니다.
-- 이사, 이동에 주의
-- 부동산 거래 신중
-- 지진, 함몰 등 지면 관련 주의
-''',
-      TwelveSinsal.yeonsal => '''
-연살(年煞)은 도화살이라고도 하며 이성 관계의 신살입니다.
-- 이성에게 매력적으로 보임
-- 연애, 결혼운에 영향
-- 바람기나 색정 문제 주의
-- 예술적 감각이 뛰어남
-''',
-      TwelveSinsal.wolsal => '''
-월살(月煞)은 고독과 외로움의 신살입니다.
-- 혼자 있는 시간이 많음
-- 독립심이 강함
-- 고독을 즐기는 성향
-- 가족과 떨어져 살 수 있음
-''',
-      TwelveSinsal.mangshin => '''
-망신(亡身)은 체면 손상의 신살입니다.
-- 명예나 체면이 손상될 수 있음
-- 창피당할 일 주의
-- 실수나 실언에 조심
-- 평판 관리 필요
-''',
-      TwelveSinsal.jangsung => '''
-장성(將星)은 권위와 리더십의 길한 신살입니다.
-- 지도자적 자질이 있음
-- 권위와 명예 획득
-- 조직을 이끄는 능력
-- 군인, 경찰, 관리직 적합
-''',
-      TwelveSinsal.banan => '''
-반안(攀鞍)은 안정과 승진의 길한 신살입니다.
-- 안장에 오르듯 승진
-- 안정적인 출세
-- 높은 자리에 오름
-- 사회적 성공 가능
-''',
-      TwelveSinsal.yeokma => '''
-역마(驛馬)는 이동과 변동의 신살입니다.
-- 이동, 출장이 많음
-- 해외 인연
-- 변화가 많은 삶
-- 무역, 운송, 여행업 적합
-- 한 곳에 정착하기 어려움
-''',
-      TwelveSinsal.yukhae => '''
-육해(六害)는 육친 갈등의 신살입니다.
-- 가족 간 갈등 주의
-- 친척과의 불화
-- 가정 문제 발생 가능
-- 육친의 도움 받기 어려움
-''',
-      TwelveSinsal.hwagae => '''
-화개(華蓋)는 예술과 종교의 신살입니다.
-- 예술적 재능이 뛰어남
-- 종교나 철학에 관심
-- 학문 탐구 능력
-- 고독하지만 깊은 내면
-- 예술가, 종교인 적합
-''',
+      TwelveSinsal.geopsal => 'saju_detail.sinsal_detail_geopsal'.tr(),
+      TwelveSinsal.jaesal => 'saju_detail.sinsal_detail_jaesal'.tr(),
+      TwelveSinsal.cheonsal => 'saju_detail.sinsal_detail_cheonsal'.tr(),
+      TwelveSinsal.jisal => 'saju_detail.sinsal_detail_jisal'.tr(),
+      TwelveSinsal.yeonsal => 'saju_detail.sinsal_detail_yeonsal'.tr(),
+      TwelveSinsal.wolsal => 'saju_detail.sinsal_detail_wolsal'.tr(),
+      TwelveSinsal.mangshin => 'saju_detail.sinsal_detail_mangshin'.tr(),
+      TwelveSinsal.jangsung => 'saju_detail.sinsal_detail_jangsung'.tr(),
+      TwelveSinsal.banan => 'saju_detail.sinsal_detail_banan'.tr(),
+      TwelveSinsal.yeokma => 'saju_detail.sinsal_detail_yeokma'.tr(),
+      TwelveSinsal.yukhae => 'saju_detail.sinsal_detail_yukhae'.tr(),
+      TwelveSinsal.hwagae => 'saju_detail.sinsal_detail_hwagae'.tr(),
     };
   }
 

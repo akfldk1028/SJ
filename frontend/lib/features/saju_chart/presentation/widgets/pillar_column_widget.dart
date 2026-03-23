@@ -72,14 +72,21 @@ class PillarColumnWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 라벨 (년주, 월주, 일주, 시주)
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: isDayMaster
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey[600],
-              fontWeight: isDayMaster ? FontWeight.bold : FontWeight.normal,
+          // 라벨 (년주, 월주, 일주, 시주) — 긴 다국어 대응
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: isDayMaster
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey[600],
+                fontWeight: isDayMaster ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(height: 8),
@@ -111,15 +118,20 @@ class PillarColumnWidget extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                ganDisplay,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  ganDisplay,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: _getOhengColor(ganOheng).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
@@ -127,7 +139,7 @@ class PillarColumnWidget extends StatelessWidget {
                 child: Text(
                   ganOhengDisplay,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 11,
                     color: _getOhengColor(ganOheng),
                     fontWeight: FontWeight.bold,
                   ),
@@ -164,15 +176,20 @@ class PillarColumnWidget extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                jiDisplay,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  jiDisplay,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: _getOhengColor(jiOheng).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
@@ -180,7 +197,7 @@ class PillarColumnWidget extends StatelessWidget {
                 child: Text(
                   jiOhengDisplay,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 11,
                     color: _getOhengColor(jiOheng),
                     fontWeight: FontWeight.bold,
                   ),
@@ -215,10 +232,17 @@ class UnknownHourPillarWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'saju_chart.hourPillar'.tr(),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
+          SizedBox(
+            width: 80,
+            child: Text(
+              'saju_chart.hourPillar'.tr(),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(height: 8),

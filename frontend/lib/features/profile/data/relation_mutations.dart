@@ -362,6 +362,28 @@ class RelationMutations extends BaseMutations {
     );
   }
 
+  /// 프로필 ID로 관련 relation의 display_name 일괄 동기화
+  ///
+  /// saju_profiles 수정 시 profile_relations.display_name도 함께 갱신
+  /// to_profile_id가 일치하는 모든 relation 업데이트
+  Future<QueryResult<void>> syncDisplayNameByProfileId(
+    String profileId,
+    String displayName,
+  ) async {
+    return safeMutation(
+      mutation: (client) async {
+        await client
+            .from(profileRelationsTable)
+            .update({
+              'display_name': displayName,
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .eq('to_profile_id', profileId);
+      },
+      errorPrefix: '프로필 display_name 동기화 실패',
+    );
+  }
+
   /// 관계 유형 변경
   Future<QueryResult<ProfileRelationModel>> updateRelationType(
     String relationId,

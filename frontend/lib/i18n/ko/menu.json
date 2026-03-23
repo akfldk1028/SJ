@@ -95,5 +95,6 @@
   "compatPromoRegister": "등록",
   "compatPromoAnalyzeTitle": "등록된 인연과 궁합을 확인해보세요",
   "compatPromoAnalyzeSubtitle": "두 사람의 사주로 숨겨진 인연을 분석합니다",
-  "compatPromoResultTitle": "{name}님과의 궁합"
+  "compatPromoResultTitle": "{name}님과의 궁합",
+  "defaultPartner": "상대방"
 }

@@ -75,10 +75,10 @@ class CompatibilityContext {
 
   /// 상대방 이름 (표시용)
   String get targetDisplayName =>
-      relationDisplayName ?? toProfile.displayName ?? '상대방';
+      relationDisplayName ?? toProfile.displayName ?? '—';
 
   /// 나의 이름 (표시용)
-  String get myDisplayName => fromProfile.displayName ?? '나';
+  String get myDisplayName => fromProfile.displayName ?? '—';
 
   /// 캐시된 분석이 있는지
   bool get hasCachedAnalysis => cachedCompatibilityAnalysisId != null;

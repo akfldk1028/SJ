@@ -61,8 +61,8 @@ class FortuneLocaleUtils {
   /// 영어 프롬프트 뒤에 추가할 언어 지시문 생성
   static String languageDirective(String locale) {
     final name = languageName(locale);
-    return '\n\nIMPORTANT: You MUST respond entirely in $name. '
-        'All messages, tips, proverbs, and descriptions must be in $name.';
+    return '\n\nCRITICAL: Respond 100% in $name. '
+        'NEVER output Korean (한국어) text. Translate ALL Korean/Chinese terms to $name.';
   }
 
   /// 성별 문자열 (locale-aware)

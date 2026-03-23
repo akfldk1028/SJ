@@ -2,6 +2,7 @@
 /// 지지 속에 숨은 천간을 분석하고 십성 계산
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../entities/saju_chart.dart';
@@ -326,29 +327,20 @@ class JiJangGanService {
     return parts.join(', ');
   }
 
-  /// 십성별 상세 해석
+  /// 십성별 상세 해석 (i18n)
   static String getSipSinInterpretation(SipSin sipsin) {
-    return switch (sipsin) {
-      SipSin.bigyeon => '비견: 나와 같은 기운. 독립심, 자존심, 경쟁심이 강함. '
-          '형제, 친구, 동료를 의미.',
-      SipSin.geopjae => '겁재: 재물을 빼앗는 기운. 적극적이고 승부욕이 강함. '
-          '과감한 투자, 도박적 성향 주의.',
-      SipSin.siksin => '식신: 먹을 것을 생산하는 기운. 온화하고 여유로움. '
-          '의식주, 건강, 수명을 담당.',
-      SipSin.sanggwan => '상관: 관을 상하게 하는 기운. 재능이 넘치고 말 잘함. '
-          '자유로우나 권위에 반발.',
-      SipSin.pyeonjae => '편재: 큰 재물의 기운. 사업 수완, 투자 능력. '
-          '아버지, 첩, 투기적 재물.',
-      SipSin.jeongjae => '정재: 정당한 재물의 기운. 성실하게 모은 재산. '
-          '아내, 정직한 수입, 알뜰함.',
-      SipSin.pyeongwan => '편관(칠살): 강한 통제의 기운. 권력, 무관, 돌발상황. '
-          '적극적이나 갈등 많음.',
-      SipSin.jeonggwan => '정관: 정당한 명예의 기운. 사회적 지위, 직장. '
-          '책임감, 도덕성, 남편.',
-      SipSin.pyeonin => '편인: 특별한 학문의 기운. 비정통 학문, 종교, 의술. '
-          '의붓어머니, 편벽된 사고.',
-      SipSin.jeongin => '정인: 정당한 문서의 기운. 학업, 자격증, 어머니. '
-          '보호받음, 인자함, 지식.',
+    final key = switch (sipsin) {
+      SipSin.bigyeon => 'saju_detail.sipsin_bigyeon',
+      SipSin.geopjae => 'saju_detail.sipsin_geopjae',
+      SipSin.siksin => 'saju_detail.sipsin_siksin',
+      SipSin.sanggwan => 'saju_detail.sipsin_sanggwan',
+      SipSin.pyeonjae => 'saju_detail.sipsin_pyeonjae',
+      SipSin.jeongjae => 'saju_detail.sipsin_jeongjae',
+      SipSin.pyeongwan => 'saju_detail.sipsin_pyeongwan',
+      SipSin.jeonggwan => 'saju_detail.sipsin_jeonggwan',
+      SipSin.pyeonin => 'saju_detail.sipsin_pyeonin',
+      SipSin.jeongin => 'saju_detail.sipsin_jeongin',
     };
+    return key.tr();
   }
 }

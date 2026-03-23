@@ -42,7 +42,7 @@
   "sidebarHide": "Masquer la barre latérale",
   "sidebarShow": "Afficher la barre latérale",
   "adViewToContinue": "Consultez la pub pour continuer la conversation",
-  "tokenDepleted": "Jetons épuisés ! Regardez une pub pour continuer à chatter",
+  "tokenDepleted": "Jetons épuisés ! Regardez une publicité pour continuer",
   "continueChatButton": "Continuer à chatter",
   "noAdsButton": "Utiliser sans pub",
   "deepAnalysisTitle": "Analyse astrologique détaillée...",
@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Conteur de destins",
   "persona_bookOfSaju_desc": "Un ancien texte de Saju vivant",
   "persona_yinYangGrandpa_desc": "Lumière dans l'obscurité, maître des retournements",
-  "persona_sewerSaju_desc": "Honnêteté brutale sur votre destin"
+  "persona_sewerSaju_desc": "Honnêteté brutale sur votre destin",
+  "persona_default": "Par défaut",
+  "persona_default_desc": "Consultation par défaut",
+  "persona_default_detail": "Conseiller IA par défaut.",
+  "persona_sewerSaju_short": "Sans filtre",
+  "persona_sewerSaju_descChat": "Maître de la vérité brutale",
+  "persona_nf_detail": "Un conseiller chaleureux et empathique.\n\nLit d'abord votre cœur et transmet les lectures du destin avec une émotion sincère. Recommandé quand vous avez besoin de réconfort et d'empathie.",
+  "persona_nt_detail": "Un analyste logique et systématique.\n\nFournit des lectures fondées sur des preuves en analysant précisément les cinq éléments, les dix dieux et la compatibilité. Recommandé pour une analyse approfondie du destin.",
+  "persona_sf_detail": "Un conseiller amical et joyeux, comme un ami proche.\n\nExplique le destin facilement et agréablement dans une conversation détendue. Recommandé pour des lectures du destin sans prise de tête.",
+  "persona_st_detail": "Un conseiller qui donne des conseils directs et réalistes.\n\nVa droit au but sans enjoliver, interprétant le destin d'un point de vue pratique. Recommandé quand vous voulez des réponses claires.",
+  "persona_babyMonk_detail": "Un petit maître, le Petit Moine. Lit le destin avec audace et franchise, avec des vérités qui frappent juste.\n\nRecommandé pour des lectures du destin honnêtes dans une ambiance légère.",
+  "persona_scenarioWriter_detail": "Un conteur qui tisse le destin en récit.",
+  "persona_yinYangGrandpa_detail": "Grand-père Yin-Yang trouve la lumière dans l'obscurité et l'ombre dans la lumière — un maître des retournements dramatiques.\n\nReconnaît les faits difficiles en face, puis révèle de manière spectaculaire les forces cachées pour offrir de l'espoir. Recommandé quand vous avez besoin de réconfort et de surprises.",
+  "persona_sewerSaju_detail": "L'Oracle sans filtre est un maître de la vérité brutale qui expose sans crainte le côté sombre de votre destin.\n\nVous fait affronter la réalité avec un esprit acéré et une honnêteté rafraîchissante. Attention : déconseillé aux âmes sensibles !"
 }

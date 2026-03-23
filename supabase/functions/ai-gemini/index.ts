@@ -74,7 +74,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, cache-control",
 };
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+// v62: Gemini API Key 로테이션 (스케일링 병목 해소)
+// 단일 키 15 RPM → 복수 키 × N RPM
+const GEMINI_API_KEYS = [
+  Deno.env.get("GEMINI_API_KEY"),
+  Deno.env.get("GEMINI_API_KEY_2"),
+  Deno.env.get("GEMINI_API_KEY_3"),
+].filter(Boolean) as string[];
+
+let geminiKeyIndex = 0;
+
+function getNextGeminiKey(): string {
+  if (GEMINI_API_KEYS.length === 0) throw new Error("No GEMINI_API_KEY configured");
+  const key = GEMINI_API_KEYS[geminiKeyIndex % GEMINI_API_KEYS.length];
+  geminiKeyIndex++;
+  return key;
+}
+
+// 하위 호환: 기존 GEMINI_API_KEY 참조를 위한 getter (캐시/삭제 등 retry 불필요한 곳)
+const GEMINI_API_KEY = GEMINI_API_KEYS[0] || "";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -220,6 +239,7 @@ async function checkAndUpdateQuota(
  * chatting_tokens는 DB 트리거(update_daily_chat_tokens)가 chat_messages INSERT 시 정확히 기록
  * → 이중 기록 방지 (이전 버전에서는 Edge Function + 트리거 둘 다 chatting_tokens 갱신하여 이중 카운트)
  */
+// v62: 원자적 UPSERT RPC — race condition 제거, DB 쿼리 2→1개
 async function recordGeminiCost(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -229,32 +249,18 @@ async function recordGeminiCost(
 ): Promise<void> {
   const today = getTodayKST();
   try {
-    const { data: existing } = await supabase
-      .from("user_daily_token_usage")
-      .select("id, gemini_cost_usd")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-    if (existing) {
-      await supabase
-        .from("user_daily_token_usage")
-        .update({
-          gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-    } else {
-      await supabase
-        .from("user_daily_token_usage")
-        .insert({
-          user_id: userId,
-          usage_date: today,
-          gemini_cost_usd: cost,
-        });
-    }
-    console.log(`[ai-gemini v25] Recorded gemini_cost=$${cost.toFixed(6)} (prompt=${promptTokens}, completion=${completionTokens}) for user ${userId}`);
+    await supabase.rpc('increment_token_usage', {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_column_name: 'chatting_tokens',  // Gemini는 chatting용 → 컬럼은 DB 트리거가 처리, 여기선 cost만
+      p_tokens: 0,  // chatting_tokens는 chat_messages INSERT 트리거가 기록 (이중 기록 방지)
+      p_gpt_cost: 0,
+      p_gemini_cost: cost,
+      p_daily_quota: DAILY_QUOTA,
+    });
+    console.log(`[ai-gemini v62] Recorded gemini_cost=$${cost.toFixed(6)} (prompt=${promptTokens}, completion=${completionTokens}) for user ${userId}`);
   } catch (error) {
-    console.error("[ai-gemini v25] Failed to record gemini cost:", error);
+    console.error("[ai-gemini v62] Failed to record gemini cost:", error);
   }
 }
 
@@ -270,7 +276,9 @@ async function handleIntentClassification(
     ? `\n[최근 대화]\n${chatHistory.slice(-3).join('\n')}\n`
     : '';
   const prompt = `다음 사용자 질문이 어떤 카테고리와 관련이 있는지 판단하세요.\n최대 3개까지 선택 가능하며, 관련성이 높은 순서대로 나열하세요.\n\n[카테고리 목록]\n- PERSONALITY: 성격, 성향, 기질\n- LOVE: 연애, 이성관계, 호감\n- MARRIAGE: 결혼, 배우자, 가정\n- CAREER: 진로, 직장, 직업\n- BUSINESS: 사업, 창업, 자영업\n- WEALTH: 재물, 돈, 투자, 재테크\n- HEALTH: 건강, 질병, 체질\n- GENERAL: 올해 전체 운세, 모든 분야를 한 번에 묻는 질문 (특정 분야가 명확하면 GENERAL 선택 금지!)\n\n⚠️ 중요: 특정 카테고리가 명확한 질문에는 GENERAL을 포함하지 마세요!\n${historyContext}\n[사용자 질문]\n${userMessage}\n\nJSON 형식으로 답변하세요:\n{\n  "categories": ["LOVE", "MARRIAGE"],\n  "reason": "연애와 결혼에 대한 질문"\n}`;
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+  // v62: Gemini Key 로테이션
+  const intentKey = getNextGeminiKey();
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${intentKey}`;
   try {
     const response = await fetch(geminiUrl, {
       method: "POST",
@@ -412,14 +420,14 @@ async function handleStreamingRequest(
   let geminiUrl: string;
   let requestBody: Record<string, unknown>;
 
+  // v62: Gemini Key 로테이션 + 429 retry
+  const streamKey = getNextGeminiKey();
+
   if (cacheName) {
-    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${streamKey}&alt=sse`;
     requestBody = {
       cachedContent: cacheName,
       contents,
-      // v35.2: Gemini 3 Flash → thinkingLevel: "minimal" (generationConfig 내부, 공식 문서 준수)
-      // thinkingBudget은 Gemini 2.5 전용, thinkingLevel은 Gemini 3 전용
-      // "minimal"은 Gemini 3 Flash에서 가장 낮은 thinking (완전 비활성화 불가)
       generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -428,9 +436,9 @@ async function handleStreamingRequest(
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
       ],
     };
-    console.log(`[ai-gemini-stream v35.2] Using cached content: ${cacheName}`);
+    console.log(`[ai-gemini-stream v62] Using cached content: ${cacheName} (key ${geminiKeyIndex % GEMINI_API_KEYS.length}/${GEMINI_API_KEYS.length})`);
   } else {
-    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${streamKey}&alt=sse`;
     requestBody = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
@@ -442,13 +450,25 @@ async function handleStreamingRequest(
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
       ],
     };
-    console.log(`[ai-gemini-stream v26] No cache, standard request: model=${model}`);
+    console.log(`[ai-gemini-stream v62] No cache, standard request: model=${model} (key ${geminiKeyIndex % GEMINI_API_KEYS.length}/${GEMINI_API_KEYS.length})`);
   }
   let geminiResponse = await fetch(geminiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(requestBody),
   });
+
+  // v62: 429 rate limit → 다음 키로 retry
+  if (geminiResponse.status === 429 && GEMINI_API_KEYS.length > 1) {
+    console.warn(`[ai-gemini v62] Rate limited (429), trying next key...`);
+    const retryKey = getNextGeminiKey();
+    const retryUrl = geminiUrl.replace(/key=[^&]+/, `key=${retryKey}`);
+    geminiResponse = await fetch(retryUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+  }
   // v27: 캐시 에러 시 캐시 삭제 + 캐시 없이 재시도 (fallback)
   if (!geminiResponse.ok && cacheName) {
     const errorText = await geminiResponse.text();
@@ -682,7 +702,7 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
   try {
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    if (GEMINI_API_KEYS.length === 0) throw new Error("GEMINI_API_KEY is not configured");
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const requestData: GeminiRequest = await req.json();
     const action = requestData.action || "chat";
@@ -727,27 +747,39 @@ Deno.serve(async (req) => {
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-    const response = await fetch(geminiUrl, {
+    // v62: non-streaming도 Key 로테이션 + 429 retry
+    const nonStreamKey = getNextGeminiKey();
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${nonStreamKey}`;
+    const geminiBody = {
+      contents,
+      systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+      generationConfig: {
+        temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
+        stopSequences: ["[/SUGGESTED_QUESTIONS]"],
+        thinkingConfig: { thinkingLevel: "low" },
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+    };
+    let response = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-        generationConfig: {
-          temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
-          stopSequences: ["[/SUGGESTED_QUESTIONS]"],
-          // v34: non-streaming(운세)에는 thinking "low" — JSON 생성에 heavy thinking 불필요
-          thinkingConfig: { thinkingLevel: "low" },
-        },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-        ],
-      }),
+      body: JSON.stringify(geminiBody),
     });
+    // v62: 429 → 다음 키 retry
+    if (response.status === 429 && GEMINI_API_KEYS.length > 1) {
+      console.warn(`[ai-gemini v62] Non-stream 429, trying next key...`);
+      const retryKey = getNextGeminiKey();
+      response = await fetch(geminiUrl.replace(/key=[^&]+/, `key=${retryKey}`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiBody),
+      });
+    }
     const data = await response.json();
     if (data.error) {
       console.error("[ai-gemini v23] Gemini API Error:", data.error);

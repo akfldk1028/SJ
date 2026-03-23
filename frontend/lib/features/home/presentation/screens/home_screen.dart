@@ -470,7 +470,7 @@ class HomeScreen extends ConsumerWidget {
                       // 무조건 표시 (디버그용)
                       const SizedBox(height: 20),
                       Text(
-                        fortune?.idiom.korean ?? '사자성어없음',
+                        fortune?.idiom.korean ?? '—',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w600,
@@ -479,12 +479,21 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '${fortune?.idiom.chinese ?? ''} · ${fortune?.idiom.meaning ?? ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.textMuted,
-                        ),
+                      Builder(
+                        builder: (ctx) {
+                          final locale = ctx.locale.languageCode;
+                          final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+                          final idiomDisplay = isCjk
+                              ? (fortune?.idiom.chinese ?? '')
+                              : (fortune?.idiom.korean ?? '');
+                          return Text(
+                            '$idiomDisplay · ${fortune?.idiom.meaning ?? ''}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.textMuted,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -781,15 +790,21 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 한자
-                  Text(
-                    idiom.chinese,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: theme.textSecondary.withValues(alpha: 0.7),
-                      letterSpacing: 4,
-                    ),
+                  // 한자 (CJK) / 한글 (나머지)
+                  Builder(
+                    builder: (ctx) {
+                      final locale = ctx.locale.languageCode;
+                      final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+                      return Text(
+                        isCjk ? idiom.chinese : idiom.korean,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: theme.textSecondary.withValues(alpha: 0.7),
+                          letterSpacing: 4,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   // 구분선

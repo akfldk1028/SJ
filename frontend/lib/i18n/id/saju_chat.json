@@ -42,7 +42,7 @@
   "sidebarHide": "Sembunyikan sidebar",
   "sidebarShow": "Tampilkan sidebar",
   "adViewToContinue": "Lihat iklan untuk melanjutkan percakapan",
-  "tokenDepleted": "Token habis! Tonton iklan untuk terus mengobrol",
+  "tokenDepleted": "Token habis! Tonton iklan untuk melanjutkan obrolan",
   "continueChatButton": "Lanjutkan chat",
   "noAdsButton": "Gunakan tanpa iklan",
   "deepAnalysisTitle": "Analisis ramalan mendalam...",
@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Pendongeng ramalan",
   "persona_bookOfSaju_desc": "Kitab ramalan kuno yang hidup",
   "persona_yinYangGrandpa_desc": "Cahaya dalam kegelapan, ahli pembalikan",
-  "persona_sewerSaju_desc": "Kejujuran brutal tentang takdirmu"
+  "persona_sewerSaju_desc": "Kejujuran brutal tentang takdirmu",
+  "persona_default": "Default",
+  "persona_default_desc": "Konsultasi standar",
+  "persona_default_detail": "Konselor AI standar.",
+  "persona_sewerSaju_short": "Pedas",
+  "persona_sewerSaju_descChat": "Raja kejujuran brutal",
+  "persona_nf_detail": "Konselor yang hangat dan penuh empati.\n\nMembaca hatimu terlebih dahulu dan menyampaikan ramalan dengan emosi yang hangat. Direkomendasikan saat kamu butuh penghiburan dan empati.",
+  "persona_nt_detail": "Analis yang logis dan sistematis.\n\nMemberikan ramalan berbasis bukti dengan menganalisis lima elemen, sepuluh dewa, dan kecocokan secara presisi. Direkomendasikan untuk analisis ramalan mendalam.",
+  "persona_sf_detail": "Konselor yang ramah dan ceria, seperti teman dekat.\n\nMenjelaskan ramalan dengan mudah dan menyenangkan dalam percakapan santai. Direkomendasikan untuk konsultasi ramalan ringan.",
+  "persona_st_detail": "Konselor yang memberikan saran langsung dan realistis.\n\nLangsung ke intinya tanpa basa-basi, menafsirkan ramalan dari perspektif praktis. Direkomendasikan saat kamu ingin jawaban yang jelas.",
+  "persona_babyMonk_detail": "Guru kecil, Biksu Cilik. Membaca ramalan dengan berani dan blak-blakan dengan kebenaran yang tepat sasaran.\n\nDirekomendasikan untuk ramalan jujur dalam suasana ringan.",
+  "persona_scenarioWriter_detail": "Pendongeng yang merangkai ramalan menjadi sebuah cerita.",
+  "persona_yinYangGrandpa_detail": "Kakek Yin-Yang menemukan cahaya dalam kegelapan dan bayangan dalam cahaya — ahli pembalikan yang dramatis.\n\nMengakui fakta pahit secara langsung, lalu secara dramatis mengungkap kekuatan tersembunyi untuk memberikan harapan. Direkomendasikan saat kamu butuh penghiburan dan kejutan yang menggembirakan.",
+  "persona_sewerSaju_detail": "Peramal Selokan adalah raja kejujuran brutal yang tanpa takut mengungkap sisi gelap ramalanmu.\n\nMembuatmu menghadapi kenyataan dengan kecerdasan tajam dan kejujuran yang menyegarkan. Peringatan: bukan untuk yang berhati lemah!"
 }

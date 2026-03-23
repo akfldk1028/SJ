@@ -163,26 +163,34 @@ class SajuDetailSheet extends ConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            PillarDisplay(
-                              label: 'saju_chart.hourPillar'.tr(),
-                              pillar: chart.hourPillar ??
-                                  const Pillar(gan: '?', ji: '?'),
-                              size: 32,
+                            Flexible(
+                              child: PillarDisplay(
+                                label: 'saju_chart.hourPillar'.tr(),
+                                pillar: chart.hourPillar ??
+                                    const Pillar(gan: '?', ji: '?'),
+                                size: 32,
+                              ),
                             ),
-                            PillarDisplay(
-                              label: 'saju_chart.dayPillarMe'.tr(),
-                              pillar: chart.dayPillar,
-                              size: 32,
+                            Flexible(
+                              child: PillarDisplay(
+                                label: 'saju_chart.dayPillarMe'.tr(),
+                                pillar: chart.dayPillar,
+                                size: 32,
+                              ),
                             ),
-                            PillarDisplay(
-                              label: 'saju_chart.monthPillar'.tr(),
-                              pillar: chart.monthPillar,
-                              size: 32,
+                            Flexible(
+                              child: PillarDisplay(
+                                label: 'saju_chart.monthPillar'.tr(),
+                                pillar: chart.monthPillar,
+                                size: 32,
+                              ),
                             ),
-                            PillarDisplay(
-                              label: 'saju_chart.yearPillar'.tr(),
-                              pillar: chart.yearPillar,
-                              size: 32,
+                            Flexible(
+                              child: PillarDisplay(
+                                label: 'saju_chart.yearPillar'.tr(),
+                                pillar: chart.yearPillar,
+                                size: 32,
+                              ),
                             ),
                           ],
                         ),
@@ -335,13 +343,15 @@ class SajuDetailSheet extends ConsumerWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 50,
+            width: 70,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: theme.textSecondary,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(

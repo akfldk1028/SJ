@@ -95,5 +95,6 @@
   "compatPromoRegister": "تسجيل",
   "compatPromoAnalyzeTitle": "تحقق من التوافق مع معارفك",
   "compatPromoAnalyzeSubtitle": "حلل الرابطة الخفية بين مخططي شخصين",
-  "compatPromoResultTitle": "التوافق مع {name}"
+  "compatPromoResultTitle": "التوافق مع {name}",
+  "defaultPartner": "الشريك"
 }

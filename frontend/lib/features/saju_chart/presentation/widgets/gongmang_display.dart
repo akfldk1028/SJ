@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/gongmang_table.dart';
 import '../../domain/services/gongmang_service.dart';
 
@@ -33,14 +34,15 @@ class GongmangJijiDisplay extends StatelessWidget {
             color: theme.textMuted,
           ),
           const SizedBox(width: 12),
-          Text(
-            'saju_chart.gongmangJijiLabel'.tr(),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
+          Expanded(
+            child: Text(
+              'saju_chart.gongmangJijiLabel'.tr(),
+              style: TextStyle(
+                color: theme.textSecondary,
+                fontSize: 13,
+              ),
             ),
           ),
-          const Spacer(),
           ...gongmangJijis.map((jiji) => Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: Container(
@@ -292,7 +294,7 @@ class GongmangTable extends StatelessWidget {
                     : theme.textMuted,
                 fontSize: 13,
               ),
-              maxLines: 2,
+              maxLines: 5,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -335,13 +337,15 @@ class GongmangRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 50,
+            width: 80,
             child: Text(
               'saju_chart.gongmang'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 13,
+                fontSize: 12,
               ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           ...items.map((item) => Expanded(
@@ -508,15 +512,16 @@ class GongmangSummaryCard extends StatelessWidget {
                 color: mainColor,
               ),
               const SizedBox(width: 8),
-              Text(
-                'saju_chart.gongmangSummary'.tr(),
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.gongmangSummary'.tr(),
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -543,28 +548,29 @@ class GongmangSummaryCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'saju_chart.belongingSun'.tr(),
-                      style: TextStyle(
-                        color: theme.textMuted,
-                        fontSize: 13,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'saju_chart.belongingSun'.tr(),
+                        style: TextStyle(
+                          color: theme.textMuted,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      result.sunInfo.sunName,
-                      style: TextStyle(
-                        color: theme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      Text(
+                        result.sunInfo.sunName,
+                        style: TextStyle(
+                          color: theme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -757,6 +763,7 @@ class GongmangTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
     final color = _getTypeColor(type);
 
     return Container(
@@ -770,7 +777,7 @@ class GongmangTypeBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            type.korean,
+            SajuI18n.specialSinsal(type.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: 13,

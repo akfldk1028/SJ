@@ -26,6 +26,9 @@ frontend/supadart.yaml
 # API Key test scripts (sensitive)
 test_gemini*.ps1
 frontend/test/ai_*_test.dart
+frontend/test_ai_language.py
+frontend/test/integration/db_test_script.dart
+frontend/test/integration/supabase_integration_test.dart
 
 # Flutter (frontend 폴더 내 별도 .gitignore 있음)
 frontend/.dart_tool/
@@ -68,3 +71,4 @@ supabase/migrations
 logs/security/.security-key
 docs/contracts/
 applog.txt
+frontend/docs/TODO_global_launch.md

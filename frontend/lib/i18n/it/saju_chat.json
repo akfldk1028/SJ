@@ -42,7 +42,7 @@
   "sidebarHide": "Nascondi barra laterale",
   "sidebarShow": "Mostra barra laterale",
   "adViewToContinue": "Guarda l'annuncio per continuare la conversazione",
-  "tokenDepleted": "Token esauriti! Guarda un annuncio per continuare a chattare",
+  "tokenDepleted": "Token esauriti! Guarda una pubblicità per continuare",
   "continueChatButton": "Continua a chattare",
   "noAdsButton": "Usa senza annunci",
   "deepAnalysisTitle": "Analisi dettagliata del destino...",
@@ -144,5 +144,18 @@
   "persona_scenarioWriter_desc": "Narratore di destini",
   "persona_bookOfSaju_desc": "Un antico testo di Saju vivente",
   "persona_yinYangGrandpa_desc": "Luce nell'oscurità, maestro dei colpi di scena",
-  "persona_sewerSaju_desc": "Onestà brutale sul tuo destino"
+  "persona_sewerSaju_desc": "Onestà brutale sul tuo destino",
+  "persona_default": "Predefinito",
+  "persona_default_desc": "Consulenza predefinita",
+  "persona_default_detail": "Consulente AI predefinito.",
+  "persona_sewerSaju_short": "Senza filtri",
+  "persona_sewerSaju_descChat": "Maestro della verità brutale",
+  "persona_nf_detail": "Un consulente caloroso ed empatico.\n\nLegge prima il tuo cuore e offre letture del destino con calore emotivo. Consigliato quando hai bisogno di conforto ed empatia.",
+  "persona_nt_detail": "Un analista logico e sistematico.\n\nFornisce letture basate su evidenze, analizzando con precisione cinque elementi, dieci stelle e compatibilità. Consigliato per analisi approfondite del destino.",
+  "persona_sf_detail": "Un consulente simpatico e allegro, come un amico fidato.\n\nSpiega il destino in modo facile e divertente in una conversazione rilassata. Consigliato per letture leggere dell'oroscopo.",
+  "persona_st_detail": "Un consulente che dà consigli diretti e realistici.\n\nVa dritto al punto senza giri di parole, interpretando il destino da una prospettiva pratica. Consigliato quando vuoi risposte chiare.",
+  "persona_babyMonk_detail": "Un piccolo maestro, il Piccolo Monaco. Legge il destino con audacia in modo informale, con verità che colpiscono nel segno.\n\nConsigliato per letture oneste del destino in un'atmosfera leggera.",
+  "persona_scenarioWriter_detail": "Un narratore che intreccia il destino in una storia avvincente.",
+  "persona_yinYangGrandpa_detail": "Il Nonno Yin-Yang trova luce nell'oscurità e ombre nella luce — un maestro dei colpi di scena drammatici.\n\nRiconosce i fatti difficili a viso aperto, poi rivela in modo drammatico forze nascoste per offrire speranza. Consigliato quando hai bisogno di conforto e sorprese inaspettate.",
+  "persona_sewerSaju_detail": "L'Oracolo Senza Filtri è un maestro della verità brutale che espone senza paura il lato oscuro del tuo destino.\n\nTi fa affrontare la realtà con umorismo tagliente e onestà rinfrescante. Attenzione: non è per i deboli di cuore!"
 }

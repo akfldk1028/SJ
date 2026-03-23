@@ -100,12 +100,19 @@ class PersonalizedOhengWidget extends StatelessWidget {
                     ShadBadge(
                       backgroundColor: color.withValues(alpha: 0.15),
                       foregroundColor: color,
-                      child: Text(
-                        '${SajuI18n.cheongan(dayMaster, context.locale.languageCode)}(${myOheng.hanja})',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Builder(
+                        builder: (ctx) {
+                          final locale = ctx.locale.languageCode;
+                          final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+                          final ohengDisplay = isCjk ? myOheng.hanja : SajuI18n.oheng(myOheng.korean, locale);
+                          return Text(
+                            '${SajuI18n.cheongan(dayMaster, locale)}($ohengDisplay)',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -155,37 +162,45 @@ class PersonalizedOhengWidget extends StatelessWidget {
                       color: sourceColor.withValues(alpha: 0.15),
                     ),
                   ),
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: r.sourceOheng.hanja,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: sourceColor,
-                            height: 1.2,
-                          ),
+                  child: Builder(
+                    builder: (ctx) {
+                      final locale = ctx.locale.languageCode;
+                      final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+                      final srcDisplay = isCjk ? r.sourceOheng.hanja : SajuI18n.oheng(r.sourceOheng.korean, locale);
+                      final tgtDisplay = isCjk ? r.targetOheng.hanja : SajuI18n.oheng(r.targetOheng.korean, locale);
+                      return RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: srcDisplay,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: sourceColor,
+                                height: 1.2,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' ${r.connector} ',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.textSecondary.withValues(alpha: 0.6),
+                                height: 1.2,
+                              ),
+                            ),
+                            TextSpan(
+                              text: tgtDisplay,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: targetColor,
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
                         ),
-                        TextSpan(
-                          text: ' ${r.connector} ',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: theme.textSecondary.withValues(alpha: 0.6),
-                            height: 1.2,
-                          ),
-                        ),
-                        TextSpan(
-                          text: r.targetOheng.hanja,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: targetColor,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 4),

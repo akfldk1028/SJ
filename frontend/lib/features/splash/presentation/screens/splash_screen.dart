@@ -60,8 +60,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _startPrefetch() async {
-    // 최소 1.5초 대기 (애니메이션 + 브랜딩)
-    await Future.delayed(const Duration(milliseconds: 1500));
+    // 최소 대기 (애니메이션 + 브랜딩)
+    // 비한국어: 사주 소개 읽을 시간 확보 (2.5초)
+    bool isKo = true;
+    try {
+      isKo = context.locale.languageCode == 'ko';
+    } catch (_) {}
+    await Future.delayed(Duration(milliseconds: isKo ? 1500 : 2500));
 
     if (!mounted) return;
 
@@ -183,17 +188,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   _buildLogo(context, theme),
                   const SizedBox(height: 24),
 
-                  // 앱 이름
-                  Text(
-                    'common.appName'.tr(),
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      color: theme.textPrimary,
+                  // 앱 이름 (비한국어는 로고에 텍스트 포함이라 생략)
+                  if (context.locale.languageCode == 'ko') ...[
+                    Text(
+                      'common.appName'.tr(),
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: theme.textPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
+                  ],
 
                   // 앱 설명
                   Text(
@@ -203,6 +210,53 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       color: theme.textMuted,
                     ),
                   ),
+
+                  // 비한국어: KOREA 사주 소개
+                  if (context.locale.languageCode != 'ko') ...[
+                    const SizedBox(height: 36),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        children: [
+                          // 구분선
+                          Row(
+                            children: [
+                              Expanded(child: Divider(color: theme.primaryColor.withValues(alpha: 0.3))),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  '✦',
+                                  style: TextStyle(fontSize: 16, color: theme.primaryColor),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: theme.primaryColor.withValues(alpha: 0.3))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'onboarding.sajuIntroTitle'.tr(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'onboarding.sajuIntroDesc'.tr(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.6,
+                              color: theme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 48),
 
                   // 로딩 상태 표시
@@ -217,6 +271,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Widget _buildLogo(BuildContext context, AppThemeExtension theme) {
+    // 비한국어: 글로벌 로고 이미지 (로고에 Sadam 텍스트 포함)
+    if (context.locale.languageCode != 'ko') {
+      return Image.asset(
+        'assets/images/logo_global.png',
+        width: 220,
+        height: 220,
+        color: theme.textPrimary,
+      );
+    }
+
+    // 한국어: 기존 그라데이션 원형 로고
     return Container(
       width: 100,
       height: 100,

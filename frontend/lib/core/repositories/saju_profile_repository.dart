@@ -174,7 +174,7 @@ class SajuProfileRepository {
   SajuProfile _fromSupabaseMap(Map<String, dynamic> map) {
     // null-safe 처리: DB 데이터가 불완전할 수 있음
     final id = map['id'] as String? ?? '';
-    final displayName = map['display_name'] as String? ?? '이름없음';
+    final displayName = map['display_name'] as String? ?? '—';
     final relationTypeStr = map['relation_type'] as String? ?? 'other';
     final birthDateStr = map['birth_date'] as String?;
     final genderStr = map['gender'] as String? ?? 'male';

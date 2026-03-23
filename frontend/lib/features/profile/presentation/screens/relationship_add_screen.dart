@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../saju_chart/domain/services/true_solar_time_service.dart';
 import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../widgets/profile_name_input.dart';
@@ -14,8 +15,6 @@ import '../widgets/birth_date_input_widget.dart';
 import '../widgets/birth_time_input_widget.dart';
 import '../widgets/birth_time_options.dart';
 import '../widgets/lunar_options.dart';
-import '../widgets/city_search_field.dart';
-import '../widgets/time_correction_banner.dart';
 import '../providers/profile_provider.dart';
 import '../providers/relation_provider.dart';
 import '../../domain/entities/saju_profile.dart';
@@ -125,12 +124,6 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
 
                 // 생년월일 섹션
                 const _BirthDateSection(),
-                const SizedBox(height: 24),
-
-                // 출생 도시
-                const CitySearchField(),
-                const SizedBox(height: 16),
-                const TimeCorrectionBanner(),
                 const SizedBox(height: 24),
 
                 // 메모 입력
@@ -358,6 +351,11 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
       final newProfileId = const Uuid().v4();
       debugPrint('   - newProfileId = $newProfileId');
 
+      // 도시 필드 제거됨 → locale 기반 기본 도시
+      final birthCity = formState.birthCity.isNotEmpty
+          ? formState.birthCity
+          : TrueSolarTimeService.defaultCityForLocale(context.locale.languageCode);
+
       final newProfile = SajuProfile(
         id: newProfileId,
         displayName: formState.displayName,
@@ -369,7 +367,7 @@ class _RelationshipAddScreenState extends ConsumerState<RelationshipAddScreen> {
             formState.birthTimeUnknown ? null : formState.birthTimeMinutes,
         birthTimeUnknown: formState.birthTimeUnknown,
         useYaJasi: formState.useYaJasi,
-        birthCity: formState.birthCity,
+        birthCity: birthCity,
         timeCorrection: formState.timeCorrection,
         createdAt: now,
         updatedAt: now,

@@ -9,6 +9,7 @@ import '../../domain/entities/saju_analysis.dart';
 import '../../domain/services/hapchung_service.dart';
 import '../../domain/services/jijanggan_service.dart';
 import '../../domain/services/unsung_service.dart';
+import '../../data/constants/twelve_sinsal.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
 import '../../domain/services/gongmang_service.dart';
 import '../providers/saju_chart_provider.dart';
@@ -25,6 +26,7 @@ import 'day_strength_display.dart';
 import 'oheng_analysis_display.dart';
 import 'gilseong_display.dart';
 import '../../domain/entities/pillar.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/services/gilseong_service.dart';
 
@@ -567,12 +569,16 @@ class _SipSungTab extends StatelessWidget {
             children: [
               Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 22),
               const SizedBox(width: 8),
-              Text(
-                'saju_chart.sipsungDetailTitle'.tr(),
-                style: TextStyle(
-                  color: theme.primaryColor,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.sipsungDetailTitle'.tr(),
+                  style: TextStyle(
+                    color: theme.primaryColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -640,13 +646,15 @@ class _SipSungTab extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 60,
+            width: 80,
             child: Text(
               'saju_chart.heavenlyStem'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 13,
+                fontSize: 12,
               ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           ...sipsinList.map((sipsin) => Expanded(
@@ -762,14 +770,16 @@ class _UnsungTab extends StatelessWidget {
             children: [
               Icon(Icons.help_outline_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
-              Text(
+              Expanded(child: Text(
                 'saju_chart.unsungDetailTitle'.tr(),
                 style: TextStyle(
                   color: theme.primaryColor,
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              )),
             ],
           ),
           const SizedBox(height: 12),
@@ -793,17 +803,17 @@ class _UnsungTab extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildCycleItem('장생', 'saju_chart.unsungCycleBirth'.tr(), theme),
+                  _buildCycleItem(SajuI18n.unsung('장생', context.locale.languageCode), 'saju_chart.unsungCycleBirth'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('목욕', 'saju_chart.unsungCycleGrowth'.tr(), theme),
+                  _buildCycleItem(SajuI18n.unsung('목욕', context.locale.languageCode), 'saju_chart.unsungCycleGrowth'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('관대', 'saju_chart.unsungCycleAdult'.tr(), theme),
+                  _buildCycleItem(SajuI18n.unsung('관대', context.locale.languageCode), 'saju_chart.unsungCycleAdult'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('건록', 'saju_chart.unsungCyclePrime'.tr(), theme),
+                  _buildCycleItem(SajuI18n.unsung('건록', context.locale.languageCode), 'saju_chart.unsungCyclePrime'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('제왕', 'saju_chart.unsungCyclePeak'.tr(), theme),
+                  _buildCycleItem(SajuI18n.unsung('제왕', context.locale.languageCode), 'saju_chart.unsungCyclePeak'.tr(), theme),
                   _buildCycleArrow(theme),
-                  _buildCycleItem('쇠', 'saju_chart.unsungCycleDecline'.tr(), theme),
+                  _buildCycleItem(SajuI18n.unsung('쇠', context.locale.languageCode), 'saju_chart.unsungCycleDecline'.tr(), theme),
                 ],
               ),
             ),
@@ -874,14 +884,16 @@ class _UnsungTab extends StatelessWidget {
             children: [
               Icon(Icons.account_tree_rounded, color: tealColor, size: 20),
               const SizedBox(width: 8),
-              Text(
+              Expanded(child: Text(
                 'saju_chart.gungseongDetailTitle'.tr(),
                 style: TextStyle(
                   color: tealColor,
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              )),
             ],
           ),
           const SizedBox(height: 12),
@@ -903,13 +915,13 @@ class _UnsungTab extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildGungseongRow('saju_chart.gungseong_year'.tr(), 'saju_chart.gungseong_yearPalace'.tr(), 'saju_chart.gungseong_yearMeaning'.tr(), theme),
-                const SizedBox(height: 8),
-                _buildGungseongRow('saju_chart.gungseong_month'.tr(), 'saju_chart.gungseong_monthPalace'.tr(), 'saju_chart.gungseong_monthMeaning'.tr(), theme),
-                const SizedBox(height: 8),
-                _buildGungseongRow('saju_chart.gungseong_day'.tr(), 'saju_chart.gungseong_dayPalace'.tr(), 'saju_chart.gungseong_dayMeaning'.tr(), theme),
-                const SizedBox(height: 8),
-                _buildGungseongRow('saju_chart.gungseong_hour'.tr(), 'saju_chart.gungseong_hourPalace'.tr(), 'saju_chart.gungseong_hourMeaning'.tr(), theme),
+                _buildGungseongRow('saju_chart.gungseong_year'.tr(), 'saju_chart.gungseong_yearMeaning'.tr(), theme),
+                const SizedBox(height: 6),
+                _buildGungseongRow('saju_chart.gungseong_month'.tr(), 'saju_chart.gungseong_monthMeaning'.tr(), theme),
+                const SizedBox(height: 6),
+                _buildGungseongRow('saju_chart.gungseong_day'.tr(), 'saju_chart.gungseong_dayMeaning'.tr(), theme),
+                const SizedBox(height: 6),
+                _buildGungseongRow('saju_chart.gungseong_hour'.tr(), 'saju_chart.gungseong_hourMeaning'.tr(), theme),
               ],
             ),
           ),
@@ -918,56 +930,49 @@ class _UnsungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildGungseongRow(String pillar, String palace, String meaning, AppThemeExtension theme) {
+  Widget _buildGungseongRow(String pillar, String meaning, AppThemeExtension theme) {
     const tealColor = Color(0xFF009688);
-    return Row(
-      children: [
-        Container(
-          width: 70,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: tealColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            pillar,
-            style: TextStyle(
-              color: tealColor,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-            color: theme.surfaceHover,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            palace,
-            style: TextStyle(
-              color: theme.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            meaning,
-            style: TextStyle(
-              color: theme.textMuted,
-              fontSize: 13,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: tealColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                pillar,
+                style: TextStyle(
+                  color: tealColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  height: 1.3,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Expanded(
+            flex: 7,
+            child: Text(
+              meaning,
+              style: TextStyle(
+                color: theme.textMuted,
+                fontSize: 12,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -983,25 +988,31 @@ class _UnsungTab extends StatelessWidget {
           child: Icon(icon, color: color, size: 18),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: theme.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: theme.textMuted,
-                fontSize: 13,
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: theme.textMuted,
+                  fontSize: 13,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -1029,12 +1040,16 @@ class _UnsungTab extends StatelessWidget {
             children: [
               Icon(Icons.auto_awesome_rounded, color: theme.primaryColor, size: 20),
               const SizedBox(width: 10),
-              Text(
-                'saju_chart.unsungSummaryTitle'.tr(),
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.unsungSummaryTitle'.tr(),
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -1083,9 +1098,11 @@ class _UnsungTab extends StatelessWidget {
   }
 
   Widget _buildUnsungItemCard(BuildContext context, UnsungResult item, AppThemeExtension theme) {
-    final unsungName = item.unsung.korean;
-    final color = _unsungColors[unsungName] ?? theme.textSecondary;
-    final icon = _unsungIcons[unsungName] ?? Icons.circle;
+    final locale = context.locale.languageCode;
+    final unsungName = SajuI18n.unsung(item.unsung.korean, locale);
+    // 색상/아이콘은 항상 한글 키로 조회 (locale 무관)
+    final color = _unsungColors[item.unsung.korean] ?? theme.textSecondary;
+    final icon = _unsungIcons[item.unsung.korean] ?? Icons.circle;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1120,7 +1137,7 @@ class _UnsungTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    item.pillarName,
+                    SajuI18n.pillarName(item.pillarName, locale),
                     style: TextStyle(
                       color: theme.textPrimary,
                       fontSize: 13,
@@ -1138,7 +1155,7 @@ class _UnsungTab extends StatelessWidget {
                     border: Border.all(color: color.withOpacity(0.3)),
                   ),
                   child: Text(
-                    '${item.dayGan}→${item.jiji}',
+                    '${SajuI18n.cheongan(item.dayGan, locale)}→${SajuI18n.jiji(item.jiji, locale)}',
                     style: TextStyle(
                       color: color,
                       fontSize: 14,
@@ -1207,7 +1224,7 @@ class _UnsungTab extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        item.unsung.meaning,
+                        SajuI18n.unsungMeaning(item.unsung.meaning, locale),
                         style: TextStyle(
                           color: theme.textPrimary,
                           fontSize: 14,
@@ -1380,14 +1397,16 @@ class _SinsalTab extends StatelessWidget {
             children: [
               Icon(Icons.help_outline_rounded, color: purpleColor, size: 20),
               const SizedBox(width: 8),
-              Text(
+              Expanded(child: Text(
                 'saju_chart.sinsalDetailTitle'.tr(),
                 style: TextStyle(
                   color: purpleColor,
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              )),
             ],
           ),
           const SizedBox(height: 12),
@@ -1459,25 +1478,31 @@ class _SinsalTab extends StatelessWidget {
           child: Icon(icon, color: color, size: 18),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: theme.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: theme.textMuted,
-                fontSize: 13,
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: theme.textMuted,
+                  fontSize: 13,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -1518,7 +1543,7 @@ class _SinsalTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // 요약 텍스트
+          // 요약 텍스트 (locale-aware)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1530,14 +1555,37 @@ class _SinsalTab extends StatelessWidget {
                 Icon(Icons.auto_awesome_rounded, color: theme.primaryColor, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    result.summary,
-                    style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
+                  child: Builder(builder: (ctx) {
+                    final loc = ctx.locale.languageCode;
+                    final parts = <String>[];
+                    if (result.jangsungResult != null) {
+                      parts.add('${SajuI18n.sinsal('장성', loc)}(${SajuI18n.pillarName(result.jangsungResult!.pillarName, loc)})');
+                    }
+                    final bananResult = result.findSinsal(TwelveSinsal.banan);
+                    if (bananResult != null) {
+                      parts.add('${SajuI18n.sinsal('반안', loc)}(${SajuI18n.pillarName(bananResult.pillarName, loc)})');
+                    }
+                    if (result.yeokmaResult != null) {
+                      parts.add('${SajuI18n.sinsal('역마', loc)}(${SajuI18n.pillarName(result.yeokmaResult!.pillarName, loc)})');
+                    }
+                    if (result.dohwaResult != null) {
+                      parts.add('${SajuI18n.specialSinsal('도화살', loc)}(${SajuI18n.pillarName(result.dohwaResult!.pillarName, loc)})');
+                    }
+                    if (result.hwagaeResult != null) {
+                      parts.add('${SajuI18n.specialSinsal('화개살', loc)}(${SajuI18n.pillarName(result.hwagaeResult!.pillarName, loc)})');
+                    }
+                    final localSummary = parts.isEmpty
+                        ? 'saju_chart.noKeySinsal'.tr()
+                        : parts.join(', ');
+                    return Text(
+                      localSummary,
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    );
+                  }),
                 ),
               ],
             ),
@@ -1549,7 +1597,7 @@ class _SinsalTab extends StatelessWidget {
 
   Widget _buildStatBox(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
@@ -1570,9 +1618,12 @@ class _SinsalTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1587,7 +1638,7 @@ class _SinsalTab extends StatelessWidget {
         context,
         sinsal: result.jangsungResult!.sinsal,
         pillarName: result.jangsungResult!.pillarName,
-        description: '권위와 성공을 상징하며, 출세와 명예를 얻을 수 있는 좋은 기운입니다.',
+        description: 'saju_detail.sinsal_jangsung'.tr(),
         theme: theme,
       ));
     }
@@ -1596,7 +1647,7 @@ class _SinsalTab extends StatelessWidget {
         context,
         sinsal: result.yeokmaResult!.sinsal,
         pillarName: result.yeokmaResult!.pillarName,
-        description: '이동과 변화의 기운으로, 활동적이고 여행이나 이사가 많을 수 있습니다.',
+        description: 'saju_detail.sinsal_yeokma'.tr(),
         theme: theme,
       ));
     }
@@ -1605,7 +1656,7 @@ class _SinsalTab extends StatelessWidget {
         context,
         sinsal: result.dohwaResult!.sinsal,
         pillarName: result.dohwaResult!.pillarName,
-        description: '매력과 인기의 기운으로, 이성운과 대인관계에 영향을 줍니다.',
+        description: 'saju_detail.sinsal_dohwa'.tr(),
         theme: theme,
       ));
     }
@@ -1614,7 +1665,7 @@ class _SinsalTab extends StatelessWidget {
         context,
         sinsal: result.hwagaeResult!.sinsal,
         pillarName: result.hwagaeResult!.pillarName,
-        description: '예술성과 영적 감수성을 나타내며, 종교나 예술 분야에 재능이 있습니다.',
+        description: 'saju_detail.sinsal_hwagae'.tr(),
         theme: theme,
       ));
     }
@@ -1629,9 +1680,10 @@ class _SinsalTab extends StatelessWidget {
     required String description,
     required AppThemeExtension theme,
   }) {
-    final sinsalName = sinsal.korean;
-    final color = _sinsalColors[sinsalName] ?? theme.primaryColor;
-    final icon = _sinsalIcons[sinsalName] ?? Icons.star_rounded;
+    final locale = context.locale.languageCode;
+    final sinsalName = SajuI18n.sinsal(sinsal.korean, locale);
+    final color = _sinsalColors[sinsal.korean] ?? theme.primaryColor;
+    final icon = _sinsalIcons[sinsal.korean] ?? Icons.star_rounded;
     final fortuneType = sinsal.fortuneType;
     final fortuneColor = fortuneType == '길' ? AppColors.success :
                          fortuneType == '흉' ? AppColors.error : theme.primaryColor;
@@ -1694,10 +1746,10 @@ class _SinsalTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        fortuneType,
+                        SajuI18n.fortuneType(fortuneType, locale),
                         style: TextStyle(
                           color: fortuneColor,
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1710,7 +1762,7 @@ class _SinsalTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        pillarName,
+                        SajuI18n.pillarName(pillarName, locale),
                         style: TextStyle(
                           color: theme.textSecondary,
                           fontSize: 13,
@@ -1751,9 +1803,10 @@ class _SinsalTab extends StatelessWidget {
   }
 
   Widget _buildSinsalItemCard(BuildContext context, TwelveSinsalResult item, AppThemeExtension theme) {
-    final sinsalName = item.sinsal.korean;
-    final color = _sinsalColors[sinsalName] ?? theme.textSecondary;
-    final icon = _sinsalIcons[sinsalName] ?? Icons.circle;
+    final locale = context.locale.languageCode;
+    final sinsalName = SajuI18n.sinsal(item.sinsal.korean, locale);
+    final color = _sinsalColors[item.sinsal.korean] ?? theme.textSecondary;
+    final icon = _sinsalIcons[item.sinsal.korean] ?? Icons.circle;
     final fortuneType = item.sinsal.fortuneType;
     final fortuneColor = fortuneType == '길' ? AppColors.success :
                          fortuneType == '흉' ? AppColors.error : theme.primaryColor;
@@ -1774,93 +1827,93 @@ class _SinsalTab extends StatelessWidget {
               color: color.withOpacity(0.08),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 궁성
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    item.pillarName,
-                    style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // 지지
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: color.withOpacity(0.4)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.jiji,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                // 1행: 궁성 + 지지
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: theme.surface,
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                // 신살 뱃지
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        sinsalName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
+                      child: Text(
+                        SajuI18n.pillarName(item.pillarName, locale),
+                        style: TextStyle(
+                          color: theme.textPrimary,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // 길흉 뱃지
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: fortuneColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: fortuneColor.withOpacity(0.4)),
-                  ),
-                  child: Text(
-                    fortuneType == '길' ? 'saju_chart.fortuneGil'.tr() : fortuneType == '흉' ? 'saju_chart.fortuneHyung'.tr() : 'saju_chart.mixed'.tr(),
-                    style: TextStyle(
-                      color: fortuneColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: color.withOpacity(0.4)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          SajuI18n.jiji(item.jiji, locale),
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // 2행: 신살 뱃지 + 길흉 뱃지
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            sinsalName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: fortuneColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: fortuneColor.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        fortuneType == '길' ? 'saju_chart.fortuneGil'.tr() : fortuneType == '흉' ? 'saju_chart.fortuneHyung'.tr() : 'saju_chart.mixed'.tr(),
+                        style: TextStyle(
+                          color: fortuneColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1873,7 +1926,7 @@ class _SinsalTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.sinsal.meaning,
+                  SajuI18n.sinsalMeaning(item.sinsal.meaning, locale),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,
@@ -1959,14 +2012,16 @@ class _GongmangTab extends StatelessWidget {
             children: [
               Icon(Icons.help_outline_rounded, color: grayBlue, size: 20),
               const SizedBox(width: 8),
-              Text(
+              Expanded(child: Text(
                 'saju_chart.gongmangDetailTitle'.tr(),
                 style: TextStyle(
                   color: grayBlue,
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              )),
             ],
           ),
           const SizedBox(height: 12),
@@ -2020,25 +2075,31 @@ class _GongmangTab extends StatelessWidget {
           child: Icon(icon, color: color, size: 18),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: theme.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: theme.textMuted,
-                fontSize: 13,
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: theme.textMuted,
+                  fontSize: 13,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -2118,9 +2179,9 @@ class _GongmangTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 20),
-              _buildGongmangJijiBox(result.sunInfo.gongmang1),
+              _buildGongmangJijiBox(SajuI18n.jiji(result.sunInfo.gongmang1, context.locale.languageCode)),
               const SizedBox(width: 12),
-              _buildGongmangJijiBox(result.sunInfo.gongmang2),
+              _buildGongmangJijiBox(SajuI18n.jiji(result.sunInfo.gongmang2, context.locale.languageCode)),
             ],
           ),
         ],
@@ -2206,14 +2267,22 @@ class _GongmangTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    result.summary,
-                    style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
+                  child: Builder(builder: (ctx) {
+                    final loc = ctx.locale.languageCode;
+                    final localSummary = result.hasGongmang
+                        ? 'saju_detail.gongmang_with_pillars_summary'.tr(namedArgs: {
+                            'pillars': result.gongmangPillars.map((p) => SajuI18n.pillarName(p, loc)).join(', ')
+                          })
+                        : result.summary;
+                    return Text(
+                      localSummary,
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    );
+                  }),
                 ),
               ],
             ),
@@ -2239,7 +2308,7 @@ class _GongmangTab extends StatelessWidget {
                             Icon(Icons.blur_circular_rounded, size: 14, color: AppColors.error),
                             const SizedBox(width: 4),
                             Text(
-                              '${r.pillarName} (${r.jiji})',
+                              '${SajuI18n.pillarName(r.pillarName, context.locale.languageCode)} (${r.jiji})',
                               style: TextStyle(
                                 color: AppColors.error,
                                 fontSize: 13,
@@ -2259,7 +2328,7 @@ class _GongmangTab extends StatelessWidget {
 
   Widget _buildStatBox(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
@@ -2280,9 +2349,12 @@ class _GongmangTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -2324,82 +2396,78 @@ class _GongmangTab extends StatelessWidget {
               color: isGongmang ? color.withOpacity(0.08) : theme.surfaceHover,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 궁성
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    item.pillarName,
-                    style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // 지지
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isGongmang ? color.withOpacity(0.15) : theme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isGongmang ? color.withOpacity(0.5) : theme.border,
-                      width: isGongmang ? 2 : 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.jiji,
-                      style: TextStyle(
-                        color: isGongmang ? color : theme.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                // 1행: 궁성 + 지지 + 상태뱃지
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: theme.surface,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                // 상태 뱃지
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isGongmang ? Icons.blur_circular_rounded : Icons.check_circle_rounded,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isGongmang ? 'saju_chart.gongmang'.tr() : 'saju_chart.normal'.tr(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
+                      child: Text(
+                        SajuI18n.pillarName(item.pillarName, context.locale.languageCode),
+                        style: TextStyle(
+                          color: theme.textPrimary,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isGongmang ? color.withOpacity(0.15) : theme.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isGongmang ? color.withOpacity(0.5) : theme.border,
+                          width: isGongmang ? 2 : 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          SajuI18n.jiji(item.jiji, context.locale.languageCode),
+                          style: TextStyle(
+                            color: isGongmang ? color : theme.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isGongmang ? Icons.blur_circular_rounded : Icons.check_circle_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isGongmang ? 'saju_chart.gongmang'.tr() : 'saju_chart.normal'.tr(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -2448,14 +2516,17 @@ class _GongmangTab extends StatelessWidget {
                   ),
                 ] else
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.check_rounded, color: AppColors.success, size: 18),
                       const SizedBox(width: 8),
-                      Text(
-                        'saju_chart.normalEnergyDesc'.tr(),
-                        style: TextStyle(
-                          color: theme.textSecondary,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          'saju_chart.normalEnergyDesc'.tr(),
+                          style: TextStyle(
+                            color: theme.textSecondary,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],

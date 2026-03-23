@@ -111,7 +111,7 @@ interface OpenAIRequest {
   model: string;
   max_tokens?: number;
   temperature?: number;
-  response_format?: { type: "json_object" | "text" };
+  response_format?: { type: string; json_schema?: Record<string, unknown> };
   user_id?: string;
   run_in_background?: boolean;
   task_type?: string;
@@ -491,7 +491,10 @@ Deno.serve(async (req) => {
         model, input: inputText, background: true, store: true, max_output_tokens: max_tokens,
         reasoning: { effort: reasoning_effort },  // v43: reasoning_effort 지원
       };
-      if (response_format?.type === "json_object") {
+      if (response_format?.type === "json_schema") {
+        // v61: json_schema strict 모드 → Responses API text.format에 전달
+        responsesApiBody.text = { format: response_format };
+      } else if (response_format?.type === "json_object") {
         responsesApiBody.text = { format: { type: "json_object" } };
       }
 
@@ -562,10 +565,13 @@ Deno.serve(async (req) => {
     }
 
     // === Sync 모드 ===
-    console.log(`[ai-openai v43] *** SYNC MODE *** (reasoning_effort: ${reasoning_effort})`);
+    // v61: json_schema strict 모드에서는 stream=false (멀티바이트 문자 청크 경계 잘림 방지)
+    const useStream = response_format?.type !== 'json_schema';
+    console.log(`[ai-openai v61] *** SYNC MODE *** (reasoning_effort: ${reasoning_effort}, stream: ${useStream}, response_format: ${response_format?.type ?? 'none'})`);
     const requestBody: Record<string, unknown> = {
       model, messages, max_completion_tokens: max_tokens,
-      reasoning_effort: reasoning_effort, stream: true, stream_options: { include_usage: true },
+      reasoning_effort: reasoning_effort,
+      ...(useStream ? { stream: true, stream_options: { include_usage: true } } : {}),
     };
     if (response_format) requestBody.response_format = response_format;
 
@@ -594,7 +600,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { content, usage, finishReason } = await collectStreamResponse(response);
+    // v61: stream=false(json_schema)일 때는 일반 JSON 응답 처리
+    let content: string | null;
+    let usage: UsageInfo | null;
+    let finishReason: string | null;
+
+    if (useStream) {
+      const streamResult = await collectStreamResponse(response);
+      content = streamResult.content;
+      usage = streamResult.usage;
+      finishReason = streamResult.finishReason;
+    } else {
+      // Non-streaming: 전체 JSON 응답을 한 번에 파싱
+      const jsonResponse = await response.json();
+      content = jsonResponse.choices?.[0]?.message?.content || null;
+      finishReason = jsonResponse.choices?.[0]?.finish_reason || "stop";
+      usage = jsonResponse.usage || null;
+      console.log(`[ai-openai v61] Non-stream response: content_length=${content?.length}, finish_reason=${finishReason}`);
+    }
+
     const elapsed = Date.now() - startTime;
     if (!content) throw new Error("No response from OpenAI");
 
@@ -605,7 +629,7 @@ Deno.serve(async (req) => {
 
     const promptTokens = usage?.prompt_tokens || 0;
     const completionTokens = usage?.completion_tokens || 0;
-    const cachedTokens = usage?.prompt_tokens_details?.cached_tokens || 0;
+    const cachedTokens = (usage as any)?.prompt_tokens_details?.cached_tokens || 0;
     const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
     if (user_id && promptTokens > 0) {
       await recordTokenUsage(supabase, user_id, promptTokens, completionTokens, cost, isAdmin, task_type);

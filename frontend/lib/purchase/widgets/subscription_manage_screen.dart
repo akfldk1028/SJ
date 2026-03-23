@@ -202,28 +202,22 @@ class _SubscriptionManageScreenState
     final color = isExpiringSoon ? Colors.redAccent : theme.primaryColor;
 
     return ShadCard(
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.timer_outlined, color: color, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'purchase.remainingPeriod'.tr(),
-                  style: TextStyle(color: theme.textMuted, fontSize: 12),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _formatRemainingDetailed(days, hours, minutes),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+          Icon(Icons.timer_outlined, color: color, size: 28),
+          const SizedBox(height: 10),
+          Text(
+            'purchase.remainingPeriod'.tr(),
+            style: TextStyle(color: theme.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatRemainingDetailed(days, hours, minutes),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isExpiringSoon ? Colors.redAccent : theme.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -243,32 +237,26 @@ class _SubscriptionManageScreenState
         '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 
     return ShadCard(
-      child: Row(
+      child: Column(
         children: [
           Icon(
             Icons.event_outlined,
             color: isExpiringSoon ? Colors.orange : theme.textSecondary,
-            size: 24,
+            size: 28,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'purchase.validPeriod'.tr(),
-                  style: TextStyle(color: theme.textMuted, fontSize: 12),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'purchase.validUntil'.tr(namedArgs: {'date': dateStr, 'time': timeStr}),
-                  style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(
+            'purchase.validPeriod'.tr(),
+            style: TextStyle(color: theme.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'purchase.validUntil'.tr(namedArgs: {'date': dateStr, 'time': timeStr}),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
