@@ -1,3 +1,5 @@
+import 'zodiac_identity.dart';
+
 /// 십이지신 띠 기반 페르소나 매칭
 ///
 /// 생년의 지지(earthly branch)로 띠 동물 페르소나를 매칭합니다.
@@ -11,8 +13,8 @@
 /// // 올해 동물
 /// final yearId = ZodiacPersonaMatcher.getCurrentYearPersonaId(); // 2026 = zodiac_horse
 ///
-/// // 동물 이모지
-/// final emoji = ZodiacPersonaMatcher.getAnimalEmoji('zodiac_rat'); // 🐭
+/// // 60갑자 정체성 (색+동물)
+/// final identity = ZodiacPersonaMatcher.getIdentity(1990); // "흰 말 (庚午)"
 /// ```
 class ZodiacPersonaMatcher {
   ZodiacPersonaMatcher._();
@@ -75,6 +77,23 @@ class ZodiacPersonaMatcher {
 
   /// 모든 십이지신 페르소나 ID 목록
   static List<String> get allPersonaIds => List.unmodifiable(_zodiacPersonaIds);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 60갑자 정체성 (색 + 동물)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 생년으로 60갑자 정체성 (색+동물) 생성
+  ///
+  /// [birthYear] 양력 생년 (예: 1990)
+  /// 반환: ZodiacIdentity ("흰 말", "푸른 쥐" 등)
+  static ZodiacIdentity getIdentity(int birthYear) {
+    return ZodiacIdentity.fromBirthYear(birthYear);
+  }
+
+  /// 올해의 60갑자 정체성
+  static ZodiacIdentity get currentYearIdentity {
+    return ZodiacIdentity.currentYear();
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 내부 데이터
