@@ -722,7 +722,11 @@ async function handleNewSaju(req: Request, molClient: any) {
     sinsal_list: record.sinsal_list || null, twelve_unsung: record.twelve_unsung || null,
     gilseong: record.gilseong || null, twelve_sinsal: record.twelve_sinsal || null,
     jijanggan_info: record.jijanggan_info || null, daeun: record.daeun || null,
-    current_seun: record.current_seun || null, created_at: new Date().toISOString(),
+    current_seun: record.current_seun || null,
+    gender: record.gender || null,
+    locale: record.locale || null,
+    country_code: record.country_code || null,
+    created_at: new Date().toISOString(),
   }, { onConflict: 'source_hash' });
 
   return new Response(JSON.stringify({
