@@ -27,6 +27,7 @@
 
 import 'persona_base.dart';
 import 'persona_registry.dart';
+import 'zodiac/zodiac_persona_matcher.dart';
 
 /// 페르소나 선택기
 ///
@@ -113,6 +114,32 @@ class PersonaSelector {
   /// 말투별 페르소나 목록
   static List<PersonaBase> getByTone(PersonaTone tone) {
     return PersonaRegistry.getByTone(tone);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 십이지신 (띠 기반 선택)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// 생년으로 띠 동물 페르소나 반환
+  ///
+  /// [birthYear] 양력 생년 (예: 1996)
+  /// 반환: 해당 띠의 십이지신 페르소나
+  static PersonaBase getByBirthYear(int birthYear) {
+    final id = ZodiacPersonaMatcher.getPersonaIdByBirthYear(birthYear);
+    return PersonaRegistry.getByIdOrDefault(id);
+  }
+
+  /// 올해의 띠 동물 페르소나
+  static PersonaBase get currentYearPersona {
+    final id = ZodiacPersonaMatcher.getCurrentYearPersonaId();
+    return PersonaRegistry.getByIdOrDefault(id);
+  }
+
+  /// 모든 십이지신 페르소나 목록
+  static List<PersonaBase> get zodiacPersonas {
+    return ZodiacPersonaMatcher.allPersonaIds
+        .map((id) => PersonaRegistry.getByIdOrDefault(id))
+        .toList();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
