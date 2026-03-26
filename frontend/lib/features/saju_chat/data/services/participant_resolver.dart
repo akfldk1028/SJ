@@ -258,15 +258,21 @@ class ParticipantResolver {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // v9.0: 단일 멘션 처리 (@친구/종환 이사람사주머게)
-    // - participantIds에 1명만 있으면 해당 인물의 사주 데이터 로드 필요
-    // - person2Id를 설정하여 "하위 호환: owner + target" 분기로 진입
+    // v14.0: 멘션 1명이라도 있으면 즉시 궁합 모드 전환
+    // - 기존 v9.0은 단일 멘션을 "하위 호환" 경로로 보냈으나,
+    //   이 경우 SystemPromptBuilder에서 상대방 사주가 불안정하게 주입됨
+    // - person2Id가 설정되어 있으면 무조건 isCompatibilityMode = true
+    // - person1Id가 없으면 owner(activeProfile)로 자동 채움
     // ═══════════════════════════════════════════════════════════════════════════
     if (!isCompatibilityMode && person2Id == null &&
         effectiveParticipantIds != null && effectiveParticipantIds.length == 1) {
       person2Id = effectiveParticipantIds[0];
+    }
+    // v14.0: person2Id가 있으면 항상 궁합 모드로 승격
+    if (!isCompatibilityMode && person2Id != null) {
+      isCompatibilityMode = true;
       if (kDebugMode) {
-        print('   📌 단일 멘션 모드: target=$person2Id (상대방 사주 데이터 로드)');
+        print('   🔄 v14.0: 멘션 감지 → 궁합 모드 자동 전환: person1=$person1Id, person2=$person2Id');
       }
     }
 

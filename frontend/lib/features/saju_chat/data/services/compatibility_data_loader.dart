@@ -81,17 +81,34 @@ class CompatibilityDataLoader {
     final profileRepo = SajuProfileRepository();
     final analysisRepo = SajuAnalysisRepository();
 
-    if (isCompatibilityMode && person1Id != null) {
+    if (isCompatibilityMode && (person1Id != null || person2Id != null)) {
       // ═══════════════════════════════════════════════════════════════════
       // 궁합 모드: person1, person2 둘 다 프로필/사주 로드
+      // v14.0: person1Id가 null이면 owner(activeProfile)를 person1으로 사용
       // ═══════════════════════════════════════════════════════════════════
+      if (person1Id == null) {
+        // owner를 person1으로 자동 채움
+        final ownerProfile = await ref.read(activeProfileProvider.future);
+        person1Id = ownerProfile?.id;
+        if (kDebugMode) {
+          print('   🔄 v14.0: person1Id null → owner 자동 채움: $person1Id (${ownerProfile?.displayName})');
+        }
+      }
+
       if (kDebugMode) {
         print('   🎯 궁합 모드: 두 사람 프로필/사주 조회...');
       }
 
-      // Person 1 로드
-      activeProfile = await profileRepo.getById(person1Id);
-      if (activeProfile != null) {
+      // Person 1 로드 (person1Id가 여전히 null이면 owner Provider fallback)
+      if (person1Id != null) {
+        activeProfile = await profileRepo.getById(person1Id);
+      }
+      if (activeProfile == null) {
+        // activeProfileProvider fallback (DB 직접 조회 실패 시)
+        activeProfile = await ref.read(activeProfileProvider.future);
+        person1Id = activeProfile?.id;
+      }
+      if (activeProfile != null && person1Id != null) {
         sajuAnalysis = await analysisRepo.getByProfileId(person1Id);
 
         // v6.0: 첫 번째 사람도 사주 자동생성
@@ -159,6 +176,31 @@ class CompatibilityDataLoader {
           if (kDebugMode) {
             print('   ✅ Person2 프로필: ${targetProfile.displayName}');
             print('   ✅ Person2 사주: ${targetSajuAnalysis != null ? '있음' : '없음'}');
+          }
+        }
+      }
+
+      // v14.0: 궁합 모드에서 세션 메타 + chat_mentions 저장
+      // (기존엔 하위 호환 분기에서만 저장했으나, 단일 멘션→궁합 승격 시 누락됨)
+      if (person2Id != null) {
+        try {
+          await Supabase.instance.client
+              .from('chat_sessions')
+              .update({'target_profile_id': person2Id})
+              .eq('id', sessionId);
+          // chat_mentions 저장 (이미 ParticipantResolver에서 저장된 경우 중복 방지)
+          final mentionCheck = await Supabase.instance.client
+              .from('chat_mentions')
+              .select('id')
+              .eq('session_id', sessionId)
+              .limit(1);
+          if (mentionCheck is List && mentionCheck.isEmpty && person1Id != null) {
+            final ids = [person1Id, if (person2Id != null) person2Id!, ...extraMentionIds];
+            await _saveChatMentions(sessionId, ids);
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('   ⚠️ v14.0: 세션 메타/chat_mentions 저장 실패: $e');
           }
         }
       }
