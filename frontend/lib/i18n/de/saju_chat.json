@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "Ein kleiner Meister, der Kleine Mönch. Deutet das Schicksal mutig und unverblümt mit Wahrheiten, die ins Schwarze treffen.\n\nEmpfohlen für ehrliche Schicksalsdeutungen in lockerer Atmosphäre.",
   "persona_scenarioWriter_detail": "Ein Geschichtenerzähler, der das Schicksal in eine Erzählung verwebt.",
   "persona_yinYangGrandpa_detail": "Yin-Yang-Großvater findet Licht in der Dunkelheit und Schatten im Licht — ein Meister der dramatischen Wendungen.\n\nErkennt harte Fakten direkt an und enthüllt dann auf spektakuläre Weise verborgene Stärken, um Hoffnung zu schenken. Empfohlen, wenn Sie Trost und überraschende Wendungen brauchen.",
-  "persona_sewerSaju_detail": "Der Schicksals-Klartexter ist ein Meister der brutalen Wahrheit, der furchtlos die dunkle Seite Ihres Schicksals enthüllt.\n\nBringt Sie mit scharfem Witz und erfrischender Ehrlichkeit dazu, der Realität ins Auge zu blicken. Warnung: Nichts für schwache Nerven!"
+  "persona_sewerSaju_detail": "Der Schicksals-Klartexter ist ein Meister der brutalen Wahrheit, der furchtlos die dunkle Seite Ihres Schicksals enthüllt.\n\nBringt Sie mit scharfem Witz und erfrischender Ehrlichkeit dazu, der Realität ins Auge zu blicken. Warnung: Nichts für schwache Nerven!",
+  "zodiac_section_title": "Schutztiere",
+  "zodiac_my_animal": "Mein Tierkreis",
+  "zodiac_year_animal": "Dieses Jahr",
+  "zodiac_rat": "Ratte", "zodiac_rat_desc": "Klug und einfallsreich",
+  "zodiac_ox": "Ochse", "zodiac_ox_desc": "Fleißig und zuverlässig",
+  "zodiac_tiger": "Tiger", "zodiac_tiger_desc": "Mutig und charismatisch",
+  "zodiac_rabbit": "Hase", "zodiac_rabbit_desc": "Sanft und sensibel",
+  "zodiac_dragon": "Drache", "zodiac_dragon_desc": "Selbstbewusst und leidenschaftlich",
+  "zodiac_snake": "Schlange", "zodiac_snake_desc": "Weise und geheimnisvoll",
+  "zodiac_horse": "Pferd", "zodiac_horse_desc": "Freiheitsliebend und aktiv",
+  "zodiac_sheep": "Schaf", "zodiac_sheep_desc": "Sanft und künstlerisch",
+  "zodiac_monkey": "Affe", "zodiac_monkey_desc": "Witzig und verspielt",
+  "zodiac_rooster": "Hahn", "zodiac_rooster_desc": "Fleißig und ehrlich",
+  "zodiac_dog": "Hund", "zodiac_dog_desc": "Treu und zuverlässig",
+  "zodiac_pig": "Schwein", "zodiac_pig_desc": "Großzügig und optimistisch"
 }

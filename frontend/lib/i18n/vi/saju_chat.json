@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "Tiểu sư phụ, Tiểu hòa thượng. Xem vận mệnh bạo dạn bằng giọng suồng sã với những câu nói trúng tim đen.\n\nPhù hợp khi muốn nghe sự thật trong không khí nhẹ nhàng.",
   "persona_scenarioWriter_detail": "Người kể chuyện dệt vận mệnh thành câu chuyện.",
   "persona_yinYangGrandpa_detail": "Ông Âm Dương tìm ánh sáng trong bóng tối và bóng tối trong ánh sáng — bậc thầy đảo ngược tình thế.\n\nThừa nhận sự thật khắc nghiệt, rồi hé lộ những thế mạnh ẩn giấu một cách kịch tính để mang lại hy vọng. Phù hợp khi bạn cần an ủi và những bất ngờ ngoạn mục.",
-  "persona_sewerSaju_detail": "Thầy bói khẩu độc là bậc thầy sự thật phũ phàng, không ngại phơi bày mặt tối trong số mệnh của bạn.\n\nBuộc bạn đối mặt thực tế bằng sự sắc sảo và thẳng thắn sảng khoái. Cảnh báo: không dành cho người yếu tim!"
+  "persona_sewerSaju_detail": "Thầy bói khẩu độc là bậc thầy sự thật phũ phàng, không ngại phơi bày mặt tối trong số mệnh của bạn.\n\nBuộc bạn đối mặt thực tế bằng sự sắc sảo và thẳng thắn sảng khoái. Cảnh báo: không dành cho người yếu tim!",
+  "zodiac_section_title": "Thú hộ mệnh",
+  "zodiac_my_animal": "Cung của tôi",
+  "zodiac_year_animal": "Năm nay",
+  "zodiac_rat": "Chuột", "zodiac_rat_desc": "Thông minh và tháo vát",
+  "zodiac_ox": "Trâu", "zodiac_ox_desc": "Siêng năng và đáng tin",
+  "zodiac_tiger": "Hổ", "zodiac_tiger_desc": "Dũng cảm và lôi cuốn",
+  "zodiac_rabbit": "Mèo", "zodiac_rabbit_desc": "Dịu dàng và nhạy cảm",
+  "zodiac_dragon": "Rồng", "zodiac_dragon_desc": "Tự tin và đam mê",
+  "zodiac_snake": "Rắn", "zodiac_snake_desc": "Thông thái và bí ẩn",
+  "zodiac_horse": "Ngựa", "zodiac_horse_desc": "Tự do và năng động",
+  "zodiac_sheep": "Dê", "zodiac_sheep_desc": "Hiền lành và nghệ sĩ",
+  "zodiac_monkey": "Khỉ", "zodiac_monkey_desc": "Hóm hỉnh và vui vẻ",
+  "zodiac_rooster": "Gà", "zodiac_rooster_desc": "Chăm chỉ và thật thà",
+  "zodiac_dog": "Chó", "zodiac_dog_desc": "Trung thành và tận tụy",
+  "zodiac_pig": "Lợn", "zodiac_pig_desc": "Hào phóng và lạc quan"
 }

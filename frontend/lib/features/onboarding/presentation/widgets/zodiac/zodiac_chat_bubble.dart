@@ -1,3 +1,4 @@
+import 'dart:math' show sin, pi;
 import 'package:flutter/material.dart';
 import 'zodiac_animal_avatar.dart';
 
@@ -11,6 +12,9 @@ class ZodiacChatBubble extends StatefulWidget {
 
   /// 동물 이모지
   final String emoji;
+
+  /// 이미지 URL (Supabase Storage)
+  final String? imageUrl;
 
   /// 글로우 색상
   final Color accentColor;
@@ -31,6 +35,7 @@ class ZodiacChatBubble extends StatefulWidget {
     super.key,
     this.text = '',
     this.emoji = '🐴',
+    this.imageUrl,
     this.accentColor = Colors.orange,
     this.isAi = true,
     this.typewrite = true,
@@ -107,6 +112,7 @@ class _ZodiacChatBubbleState extends State<ZodiacChatBubble>
             if (widget.isAi) ...[
               ZodiacSmallAvatar(
                 emoji: widget.emoji,
+                imageUrl: widget.imageUrl,
                 glowColor: widget.accentColor,
               ),
               const SizedBox(width: 8),
@@ -204,7 +210,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             children: List.generate(3, (i) {
               final delay = i * 0.2;
               final t = (_controller.value - delay).clamp(0.0, 1.0);
-              final opacity = (0.3 + 0.7 * (0.5 + 0.5 * (t * 3.14 * 2).sin())).clamp(0.3, 1.0);
+              final opacity = (0.3 + 0.7 * (0.5 + 0.5 * sin(t * pi * 2))).clamp(0.3, 1.0);
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Opacity(

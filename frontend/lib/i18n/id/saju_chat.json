@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "Guru kecil, Biksu Cilik. Membaca ramalan dengan berani dan blak-blakan dengan kebenaran yang tepat sasaran.\n\nDirekomendasikan untuk ramalan jujur dalam suasana ringan.",
   "persona_scenarioWriter_detail": "Pendongeng yang merangkai ramalan menjadi sebuah cerita.",
   "persona_yinYangGrandpa_detail": "Kakek Yin-Yang menemukan cahaya dalam kegelapan dan bayangan dalam cahaya — ahli pembalikan yang dramatis.\n\nMengakui fakta pahit secara langsung, lalu secara dramatis mengungkap kekuatan tersembunyi untuk memberikan harapan. Direkomendasikan saat kamu butuh penghiburan dan kejutan yang menggembirakan.",
-  "persona_sewerSaju_detail": "Peramal Selokan adalah raja kejujuran brutal yang tanpa takut mengungkap sisi gelap ramalanmu.\n\nMembuatmu menghadapi kenyataan dengan kecerdasan tajam dan kejujuran yang menyegarkan. Peringatan: bukan untuk yang berhati lemah!"
+  "persona_sewerSaju_detail": "Peramal Selokan adalah raja kejujuran brutal yang tanpa takut mengungkap sisi gelap ramalanmu.\n\nMembuatmu menghadapi kenyataan dengan kecerdasan tajam dan kejujuran yang menyegarkan. Peringatan: bukan untuk yang berhati lemah!",
+  "zodiac_section_title": "Hewan Penjaga",
+  "zodiac_my_animal": "Shio saya",
+  "zodiac_year_animal": "Tahun ini",
+  "zodiac_rat": "Tikus", "zodiac_rat_desc": "Cerdas dan kreatif",
+  "zodiac_ox": "Kerbau", "zodiac_ox_desc": "Rajin dan dapat diandalkan",
+  "zodiac_tiger": "Macan", "zodiac_tiger_desc": "Berani dan karismatik",
+  "zodiac_rabbit": "Kelinci", "zodiac_rabbit_desc": "Lembut dan peka",
+  "zodiac_dragon": "Naga", "zodiac_dragon_desc": "Percaya diri dan bersemangat",
+  "zodiac_snake": "Ular", "zodiac_snake_desc": "Bijak dan misterius",
+  "zodiac_horse": "Kuda", "zodiac_horse_desc": "Bebas dan aktif",
+  "zodiac_sheep": "Kambing", "zodiac_sheep_desc": "Lembut dan artistik",
+  "zodiac_monkey": "Monyet", "zodiac_monkey_desc": "Cerdik dan ceria",
+  "zodiac_rooster": "Ayam", "zodiac_rooster_desc": "Rajin dan jujur",
+  "zodiac_dog": "Anjing", "zodiac_dog_desc": "Setia dan terpercaya",
+  "zodiac_pig": "Babi", "zodiac_pig_desc": "Murah hati dan optimis"
 }

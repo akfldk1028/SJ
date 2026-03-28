@@ -43,6 +43,7 @@ dependencies:
 
   # Routing
   go_router: ^14.6.2
+  cached_network_image: ^3.3.1
 
   # Local Storage
   hive_flutter: ^1.1.0
@@ -149,6 +150,7 @@ flutter:
     - assets/data/
     - assets/data/rules/
     - assets/images/logo_global.png
+    - assets/images/zodiac/
     - lib/i18n/ko/
     - lib/i18n/en/
     - lib/i18n/ja/

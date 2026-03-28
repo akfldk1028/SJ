@@ -127,6 +127,64 @@ class ZodiacIdentity {
     );
   }
 
+  /// 생년월일로 일주(Day Pillar) 기반 정체성 생성
+  ///
+  /// 년주(fromBirthYear)보다 개인화된 매칭.
+  /// SajuCalculationService._calculateDayPillar() 동일 로직.
+  factory ZodiacIdentity.fromBirthDate(DateTime birthDate) {
+    // 기준일: 1900-01-01, base index 10 (포스텔러 검증 완료)
+    final baseDate = DateTime(1900, 1, 1);
+    const baseDayIndex = 10;
+    final daysDiff = birthDate.difference(baseDate).inDays;
+    int dayIndex = (baseDayIndex + daysDiff) % 60;
+    if (dayIndex < 0) dayIndex += 60;
+
+    // 표준 천간 순서로 계산
+    const standardCheongan = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
+    final ganIndex = dayIndex % 10;
+    final jiIndex = dayIndex % 12;
+
+    final cheongan = standardCheongan[ganIndex];
+    final jiji = _jijiList[jiIndex];
+
+    final elementInfo = _cheonganToElement[cheongan]!;
+    final animalInfo = _jijiToAnimal[jiji]!;
+
+    return ZodiacIdentity(
+      animalPersonaId: animalInfo['personaId']!,
+      animalName: animalInfo['name']!,
+      animalEmoji: animalInfo['emoji']!,
+      colorName: elementInfo['colorName']!,
+      colorEmoji: elementInfo['colorEmoji']!,
+      elementName: elementInfo['element']!,
+      elementNameEn: elementInfo['elementEn']!,
+      themeColor: Color(int.parse(elementInfo['colorHex']!, radix: 16)),
+      cheongan: cheongan,
+      jiji: jiji,
+      eumYang: elementInfo['eumYang']!,
+    );
+  }
+
+  /// 천간+지지 문자열로 직접 생성 (SajuCalculationService 결과 활용)
+  factory ZodiacIdentity.fromGanji(String cheongan, String jiji) {
+    final elementInfo = _cheonganToElement[cheongan]!;
+    final animalInfo = _jijiToAnimal[jiji]!;
+
+    return ZodiacIdentity(
+      animalPersonaId: animalInfo['personaId']!,
+      animalName: animalInfo['name']!,
+      animalEmoji: animalInfo['emoji']!,
+      colorName: elementInfo['colorName']!,
+      colorEmoji: elementInfo['colorEmoji']!,
+      elementName: elementInfo['element']!,
+      elementNameEn: elementInfo['elementEn']!,
+      themeColor: Color(int.parse(elementInfo['colorHex']!, radix: 16)),
+      cheongan: cheongan,
+      jiji: jiji,
+      eumYang: elementInfo['eumYang']!,
+    );
+  }
+
   /// 올해의 60갑자 정체성
   factory ZodiacIdentity.currentYear() {
     return ZodiacIdentity.fromBirthYear(DateTime.now().year);

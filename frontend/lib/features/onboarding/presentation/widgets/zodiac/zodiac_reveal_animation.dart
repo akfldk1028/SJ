@@ -22,6 +22,9 @@ class ZodiacRevealAnimation extends StatefulWidget {
   /// 오행 이름 (배경 전환용)
   final String elementName;
 
+  /// 이미지 URL (Supabase Storage)
+  final String? imageUrl;
+
   /// 완료 콜백
   final VoidCallback? onComplete;
 
@@ -32,6 +35,7 @@ class ZodiacRevealAnimation extends StatefulWidget {
     required this.ganjiHanja,
     required this.themeColor,
     this.elementName = '화',
+    this.imageUrl,
     this.onComplete,
   });
 
@@ -163,6 +167,7 @@ class _ZodiacRevealAnimationState extends State<ZodiacRevealAnimation>
                     scale: _scaleUp.value,
                     child: ZodiacAnimalAvatar(
                       emoji: widget.animalEmoji,
+                      imageUrl: widget.imageUrl,
                       size: 140,
                       glowColor: widget.themeColor,
                       animate: false,

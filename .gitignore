@@ -39,6 +39,8 @@ frontend/*.freezed.dart
 UI/Best-Flutter-UI-Templates/
 nul
 docs/Image
+docs/*.png
+frontend/docs/zodiac_60ganji_transparent
 .claude/settings.local.json
 
 UI/
@@ -72,3 +74,4 @@ logs/security/.security-key
 docs/contracts/
 applog.txt
 frontend/docs/TODO_global_launch.md
+frontend/assets/images/zodiac

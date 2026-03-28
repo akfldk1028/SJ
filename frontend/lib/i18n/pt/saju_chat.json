@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "Um pequeno mestre, o Monge Pequeno. Lê o destino com ousadia em linguagem informal, com verdades certeiras.\n\nRecomendado para leituras honestas do destino em um clima descontraído.",
   "persona_scenarioWriter_detail": "Um contador de histórias que tece o destino em uma narrativa.",
   "persona_yinYangGrandpa_detail": "O Vovô Yin-Yang encontra luz na escuridão e sombras na luz — um mestre das reviravoltas dramáticas.\n\nReconhece fatos difíceis de frente, depois revela de forma dramática forças ocultas para oferecer esperança. Recomendado quando você precisa de conforto e reviravoltas surpreendentes.",
-  "persona_sewerSaju_detail": "O Oráculo Sem Filtro é um mestre da verdade brutal que expõe sem medo o lado sombrio do seu destino.\n\nFaz você encarar a realidade com humor afiado e honestidade refrescante. Aviso: não é para os fracos de coração!"
+  "persona_sewerSaju_detail": "O Oráculo Sem Filtro é um mestre da verdade brutal que expõe sem medo o lado sombrio do seu destino.\n\nFaz você encarar a realidade com humor afiado e honestidade refrescante. Aviso: não é para os fracos de coração!",
+  "zodiac_section_title": "Animais Guardiões",
+  "zodiac_my_animal": "Meu signo",
+  "zodiac_year_animal": "Este ano",
+  "zodiac_rat": "Rato", "zodiac_rat_desc": "Esperto e engenhoso",
+  "zodiac_ox": "Boi", "zodiac_ox_desc": "Diligente e confiável",
+  "zodiac_tiger": "Tigre", "zodiac_tiger_desc": "Corajoso e carismático",
+  "zodiac_rabbit": "Coelho", "zodiac_rabbit_desc": "Gentil e sensível",
+  "zodiac_dragon": "Dragão", "zodiac_dragon_desc": "Confiante e apaixonado",
+  "zodiac_snake": "Serpente", "zodiac_snake_desc": "Sábio e misterioso",
+  "zodiac_horse": "Cavalo", "zodiac_horse_desc": "Livre e ativo",
+  "zodiac_sheep": "Cabra", "zodiac_sheep_desc": "Gentil e artístico",
+  "zodiac_monkey": "Macaco", "zodiac_monkey_desc": "Espirituoso e brincalhão",
+  "zodiac_rooster": "Galo", "zodiac_rooster_desc": "Diligente e honesto",
+  "zodiac_dog": "Cão", "zodiac_dog_desc": "Leal e fiel",
+  "zodiac_pig": "Porco", "zodiac_pig_desc": "Generoso e otimista"
 }

@@ -9,6 +9,7 @@ import 'routes.dart';
 import '../core/widgets/main_shell.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../features/onboarding/presentation/screens/zodiac_onboarding_screen.dart';
 import '../features/menu/presentation/screens/menu_screen.dart';
 import '../features/profile/presentation/screens/profile_select_screen.dart';
 import '../features/profile/presentation/screens/profile_edit_screen.dart';
@@ -73,6 +74,11 @@ GoRouter appRouter(Ref ref) {
         path: Routes.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: Routes.zodiacOnboarding,
+        name: 'zodiacOnboarding',
+        builder: (context, state) => const ZodiacOnboardingScreen(),
       ),
       GoRoute(
         path: Routes.profileSelect,
