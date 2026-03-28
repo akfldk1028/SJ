@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/localized_text.dart';
 import '../../domain/models/chat_persona.dart';
 import '../providers/chat_persona_provider.dart';
 import '../providers/chat_session_provider.dart';
@@ -249,9 +250,10 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                             const Icon(Icons.info_outline, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
+                              child: LocalizedText(
                                 'saju_chat.personaLockedSnackbar'.tr(),
                                 style: const TextStyle(fontSize: 13),
+                                maxLines: 2,
                               ),
                             ),
                           ],

@@ -16,6 +16,7 @@ import '../../../../ad/ad_strategy.dart';
 import '../../../../ad/ad_tracking_service.dart';
 import '../../../../ad/token_reward_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/localized_text.dart';
 import '../../../../router/routes.dart';
 import '../../data/models/conversational_ad_model.dart';
 import '../providers/chat_provider.dart';
@@ -248,13 +249,14 @@ class AdChoiceButton extends StatelessWidget {
         ),
         elevation: isPrimary ? 2 : 0,
       ),
-      child: Text(
+      child: LocalizedText(
         label,
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
         textAlign: TextAlign.center,
+        maxLines: 2,
       ),
     );
   }
