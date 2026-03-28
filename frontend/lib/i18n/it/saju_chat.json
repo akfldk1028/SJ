@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "Un piccolo maestro, il Piccolo Monaco. Legge il destino con audacia in modo informale, con verità che colpiscono nel segno.\n\nConsigliato per letture oneste del destino in un'atmosfera leggera.",
   "persona_scenarioWriter_detail": "Un narratore che intreccia il destino in una storia avvincente.",
   "persona_yinYangGrandpa_detail": "Il Nonno Yin-Yang trova luce nell'oscurità e ombre nella luce — un maestro dei colpi di scena drammatici.\n\nRiconosce i fatti difficili a viso aperto, poi rivela in modo drammatico forze nascoste per offrire speranza. Consigliato quando hai bisogno di conforto e sorprese inaspettate.",
-  "persona_sewerSaju_detail": "L'Oracolo Senza Filtri è un maestro della verità brutale che espone senza paura il lato oscuro del tuo destino.\n\nTi fa affrontare la realtà con umorismo tagliente e onestà rinfrescante. Attenzione: non è per i deboli di cuore!"
+  "persona_sewerSaju_detail": "L'Oracolo Senza Filtri è un maestro della verità brutale che espone senza paura il lato oscuro del tuo destino.\n\nTi fa affrontare la realtà con umorismo tagliente e onestà rinfrescante. Attenzione: non è per i deboli di cuore!",
+  "zodiac_section_title": "Animali Guardiani",
+  "zodiac_my_animal": "Il mio segno",
+  "zodiac_year_animal": "Quest'anno",
+  "zodiac_rat": "Topo", "zodiac_rat_desc": "Astuto e ingegnoso",
+  "zodiac_ox": "Bue", "zodiac_ox_desc": "Diligente e affidabile",
+  "zodiac_tiger": "Tigre", "zodiac_tiger_desc": "Coraggioso e carismatico",
+  "zodiac_rabbit": "Coniglio", "zodiac_rabbit_desc": "Gentile e sensibile",
+  "zodiac_dragon": "Drago", "zodiac_dragon_desc": "Sicuro e appassionato",
+  "zodiac_snake": "Serpente", "zodiac_snake_desc": "Saggio e misterioso",
+  "zodiac_horse": "Cavallo", "zodiac_horse_desc": "Libero e attivo",
+  "zodiac_sheep": "Pecora", "zodiac_sheep_desc": "Gentile e artistico",
+  "zodiac_monkey": "Scimmia", "zodiac_monkey_desc": "Spiritoso e giocoso",
+  "zodiac_rooster": "Gallo", "zodiac_rooster_desc": "Diligente e onesto",
+  "zodiac_dog": "Cane", "zodiac_dog_desc": "Leale e fedele",
+  "zodiac_pig": "Maiale", "zodiac_pig_desc": "Generoso e ottimista"
 }

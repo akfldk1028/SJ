@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "المعلم الصغير، الراهب الصغير. يقرأ الحظ بجرأة بلهجة عفوية وحقائق صادمة تصيب الهدف.\n\nيُنصح به لقراءات الحظ الصادقة في أجواء خفيفة.",
   "persona_scenarioWriter_detail": "راوي يحيك الحظ في قصة شيقة.",
   "persona_yinYangGrandpa_detail": "جد اليين واليانغ يجد النور في الظلام والظلال في النور — سيد التحولات الدراماتيكية.\n\nيعترف بالحقائق الصعبة وجهاً لوجه، ثم يكشف بشكل مثير عن نقاط القوة الخفية ليمنح الأمل. يُنصح به عندما تحتاج إلى الراحة والمفاجآت المذهلة.",
-  "persona_sewerSaju_detail": "العراف الصريح هو سيد الحقائق القاسية الذي يكشف بلا خوف الجانب المظلم من حظك.\n\nيجعلك تواجه الواقع بذكاء حاد وصراحة منعشة. تحذير: ليس لأصحاب القلوب الضعيفة!"
+  "persona_sewerSaju_detail": "العراف الصريح هو سيد الحقائق القاسية الذي يكشف بلا خوف الجانب المظلم من حظك.\n\nيجعلك تواجه الواقع بذكاء حاد وصراحة منعشة. تحذير: ليس لأصحاب القلوب الضعيفة!",
+  "zodiac_section_title": "الحيوانات الحارسة",
+  "zodiac_my_animal": "برجي",
+  "zodiac_year_animal": "هذا العام",
+  "zodiac_rat": "الجرذ", "zodiac_rat_desc": "ذكي وواسع الحيلة",
+  "zodiac_ox": "الثور", "zodiac_ox_desc": "مجتهد ويمكن الاعتماد عليه",
+  "zodiac_tiger": "النمر", "zodiac_tiger_desc": "شجاع وجذاب",
+  "zodiac_rabbit": "الأرنب", "zodiac_rabbit_desc": "لطيف وحساس",
+  "zodiac_dragon": "التنين", "zodiac_dragon_desc": "واثق ومتحمس",
+  "zodiac_snake": "الأفعى", "zodiac_snake_desc": "حكيم وغامض",
+  "zodiac_horse": "الحصان", "zodiac_horse_desc": "حر ونشيط",
+  "zodiac_sheep": "الخروف", "zodiac_sheep_desc": "لطيف وفني",
+  "zodiac_monkey": "القرد", "zodiac_monkey_desc": "ذكي ومرح",
+  "zodiac_rooster": "الديك", "zodiac_rooster_desc": "مجتهد وصادق",
+  "zodiac_dog": "الكلب", "zodiac_dog_desc": "مخلص ووفي",
+  "zodiac_pig": "الخنزير", "zodiac_pig_desc": "كريم ومتفائل"
 }

@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "小师父小和尚，用大白话大胆看命，一针见血直击要害。\n\n想在轻松氛围中听到真话时推荐使用。",
   "persona_scenarioWriter_detail": "将命运编织成故事的讲述者。",
   "persona_yinYangGrandpa_detail": "阴阳爷爷在黑暗中寻找光明，在光明中洞察暗影——逆转乾坤的大师。\n\n正面承认残酷现实，再戏剧性地揭示隐藏的优势，给人希望。需要安慰和惊喜逆转时推荐使用。",
-  "persona_sewerSaju_detail": "毒舌占卜师是毫不留情揭露你命运阴暗面的真话王。\n\n用犀利的机智和痛快的坦率让你直面现实。警告：心理承受力弱者慎入！"
+  "persona_sewerSaju_detail": "毒舌占卜师是毫不留情揭露你命运阴暗面的真话王。\n\n用犀利的机智和痛快的坦率让你直面现实。警告：心理承受力弱者慎入！",
+  "zodiac_section_title": "守护动物",
+  "zodiac_my_animal": "我的属相",
+  "zodiac_year_animal": "今年",
+  "zodiac_rat": "鼠", "zodiac_rat_desc": "聪明机智",
+  "zodiac_ox": "牛", "zodiac_ox_desc": "勤奋可靠",
+  "zodiac_tiger": "虎", "zodiac_tiger_desc": "勇敢有魅力",
+  "zodiac_rabbit": "兔", "zodiac_rabbit_desc": "温柔敏感",
+  "zodiac_dragon": "龙", "zodiac_dragon_desc": "自信热情",
+  "zodiac_snake": "蛇", "zodiac_snake_desc": "智慧神秘",
+  "zodiac_horse": "马", "zodiac_horse_desc": "自由奔放",
+  "zodiac_sheep": "羊", "zodiac_sheep_desc": "温和有艺术感",
+  "zodiac_monkey": "猴", "zodiac_monkey_desc": "机灵有趣",
+  "zodiac_rooster": "鸡", "zodiac_rooster_desc": "勤劳诚实",
+  "zodiac_dog": "狗", "zodiac_dog_desc": "忠诚可靠",
+  "zodiac_pig": "猪", "zodiac_pig_desc": "慷慨乐观"
 }

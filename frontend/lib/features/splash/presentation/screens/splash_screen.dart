@@ -91,8 +91,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         if (kDebugMode) {
           print('[Splash] Error: $error');
         }
-        // 에러 시 온보딩으로
-        _navigateTo(Routes.onboarding);
+        // 에러 시 온보딩으로 (CJK 분기)
+        final langFb = context.locale.languageCode;
+        final isCjkFb = {'ko', 'ja', 'zh'}.contains(langFb);
+        _navigateTo(isCjkFb ? Routes.onboarding : Routes.zodiacOnboarding);
       },
     );
   }
@@ -118,7 +120,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       case PrefetchStatus.noProfile:
         // 신규 사용자 → 온보딩
-        _navigateTo(Routes.onboarding);
+        // CJK(한중일)는 사주/오행 이미 아는 문화 → 기존 온보딩
+        // 나머지 언어 → zodiac 대화형 온보딩
+        final lang = context.locale.languageCode;
+        final isCjk = {'ko', 'ja', 'zh'}.contains(lang);
+        _navigateTo(isCjk ? Routes.onboarding : Routes.zodiacOnboarding);
 
       case PrefetchStatus.noAnalysis:
         // 프로필은 있지만 분석 없음
@@ -132,7 +138,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       case PrefetchStatus.error:
         // 에러 → 온보딩 (재시도 가능)
-        _navigateTo(Routes.onboarding);
+        final langErr = context.locale.languageCode;
+        final isCjkErr = {'ko', 'ja', 'zh'}.contains(langErr);
+        _navigateTo(isCjkErr ? Routes.onboarding : Routes.zodiacOnboarding);
     }
   }
 

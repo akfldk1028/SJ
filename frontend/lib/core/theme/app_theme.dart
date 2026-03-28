@@ -33,6 +33,21 @@ enum AppThemeType {
 
   /// 벚꽃 - 핑크 파스텔
   sakuraPink,
+
+  /// 오행: 목(木) - 푸른 숲
+  elementWood,
+
+  /// 오행: 화(火) - 붉은 불꽃
+  elementFire,
+
+  /// 오행: 토(土) - 황금 대지
+  elementEarth,
+
+  /// 오행: 금(金) - 은빛 달
+  elementMetal,
+
+  /// 오행: 수(水) - 깊은 바다
+  elementWater,
 }
 
 /// 앱 테마 정의 클래스
@@ -60,6 +75,16 @@ class AppTheme {
         return 'settings.themeNightSky'.tr();
       case AppThemeType.sakuraPink:
         return 'settings.themeSakuraPink'.tr();
+      case AppThemeType.elementWood:
+        return 'settings.themeElementWood'.tr();
+      case AppThemeType.elementFire:
+        return 'settings.themeElementFire'.tr();
+      case AppThemeType.elementEarth:
+        return 'settings.themeElementEarth'.tr();
+      case AppThemeType.elementMetal:
+        return 'settings.themeElementMetal'.tr();
+      case AppThemeType.elementWater:
+        return 'settings.themeElementWater'.tr();
     }
   }
 
@@ -86,6 +111,16 @@ class AppTheme {
         return Icons.nights_stay_rounded;
       case AppThemeType.sakuraPink:
         return Icons.local_florist_rounded;
+      case AppThemeType.elementWood:
+        return Icons.forest_rounded;
+      case AppThemeType.elementFire:
+        return Icons.local_fire_department_rounded;
+      case AppThemeType.elementEarth:
+        return Icons.landscape_rounded;
+      case AppThemeType.elementMetal:
+        return Icons.diamond_rounded;
+      case AppThemeType.elementWater:
+        return Icons.water_drop_rounded;
     }
   }
 
@@ -112,6 +147,16 @@ class AppTheme {
         return const Color(0xFF1A237E);
       case AppThemeType.sakuraPink:
         return const Color(0xFFF48FB1);
+      case AppThemeType.elementWood:
+        return const Color(0xFF2E7D32);
+      case AppThemeType.elementFire:
+        return const Color(0xFFC62828);
+      case AppThemeType.elementEarth:
+        return const Color(0xFFE6A23C);
+      case AppThemeType.elementMetal:
+        return const Color(0xFF78909C);
+      case AppThemeType.elementWater:
+        return const Color(0xFF1565C0);
     }
   }
 
@@ -184,6 +229,16 @@ class AppTheme {
         return _nightSkyExtension;
       case AppThemeType.sakuraPink:
         return _sakuraPinkExtension;
+      case AppThemeType.elementWood:
+        return _elementWoodExtension;
+      case AppThemeType.elementFire:
+        return _elementFireExtension;
+      case AppThemeType.elementEarth:
+        return _elementEarthExtension;
+      case AppThemeType.elementMetal:
+        return _elementMetalExtension;
+      case AppThemeType.elementWater:
+        return _elementWaterExtension;
     }
   }
 
@@ -343,6 +398,91 @@ class AppTheme {
     textSecondary: Color(0xFF757575),
     textMuted: Color(0xFF9E9E9E),
     isDark: false,
+  );
+
+  /// 오행: 목(木) — 푸른 숲
+  static const _elementWoodExtension = AppThemeExtension(
+    backgroundColor: Color(0xFF0A1F0A),
+    cardColor: Color(0xFF142814),
+    primaryColor: Color(0xFF4CAF50),
+    textPrimary: Colors.white,
+    textSecondary: Color(0xFFA5D6A7),
+    textMuted: Color(0xFF66BB6A),
+    isDark: true,
+    accentColor: Color(0xFF81C784),
+    woodColor: Color(0xFF7EDA98),
+    fireColor: Color(0xFFE87C7C),
+    earthColor: Color(0xFFD4A574),
+    metalColor: Color(0xFFC0C0C0),
+    waterColor: Color(0xFF7EB8DA),
+  );
+
+  /// 오행: 화(火) — 붉은 불꽃
+  static const _elementFireExtension = AppThemeExtension(
+    backgroundColor: Color(0xFF1A0A0A),
+    cardColor: Color(0xFF2C1414),
+    primaryColor: Color(0xFFE53935),
+    textPrimary: Colors.white,
+    textSecondary: Color(0xFFEF9A9A),
+    textMuted: Color(0xFFE57373),
+    isDark: true,
+    accentColor: Color(0xFFFF8A65),
+    woodColor: Color(0xFF7EDA98),
+    fireColor: Color(0xFFE87C7C),
+    earthColor: Color(0xFFD4A574),
+    metalColor: Color(0xFFC0C0C0),
+    waterColor: Color(0xFF7EB8DA),
+  );
+
+  /// 오행: 토(土) — 황금 대지
+  static const _elementEarthExtension = AppThemeExtension(
+    backgroundColor: Color(0xFF1A150A),
+    cardColor: Color(0xFF2C2214),
+    primaryColor: Color(0xFFE6A23C),
+    textPrimary: Colors.white,
+    textSecondary: Color(0xFFFFCC80),
+    textMuted: Color(0xFFFFB74D),
+    isDark: true,
+    accentColor: Color(0xFFFFD54F),
+    woodColor: Color(0xFF7EDA98),
+    fireColor: Color(0xFFE87C7C),
+    earthColor: Color(0xFFD4A574),
+    metalColor: Color(0xFFC0C0C0),
+    waterColor: Color(0xFF7EB8DA),
+  );
+
+  /// 오행: 금(金) — 은빛 달
+  static const _elementMetalExtension = AppThemeExtension(
+    backgroundColor: Color(0xFF121418),
+    cardColor: Color(0xFF1E2028),
+    primaryColor: Color(0xFF90A4AE),
+    textPrimary: Colors.white,
+    textSecondary: Color(0xFFB0BEC5),
+    textMuted: Color(0xFF78909C),
+    isDark: true,
+    accentColor: Color(0xFFE0E0E0),
+    woodColor: Color(0xFF7EDA98),
+    fireColor: Color(0xFFE87C7C),
+    earthColor: Color(0xFFD4A574),
+    metalColor: Color(0xFFC0C0C0),
+    waterColor: Color(0xFF7EB8DA),
+  );
+
+  /// 오행: 수(水) — 깊은 바다
+  static const _elementWaterExtension = AppThemeExtension(
+    backgroundColor: Color(0xFF0A0F1A),
+    cardColor: Color(0xFF14192C),
+    primaryColor: Color(0xFF1E88E5),
+    textPrimary: Colors.white,
+    textSecondary: Color(0xFF90CAF9),
+    textMuted: Color(0xFF64B5F6),
+    isDark: true,
+    accentColor: Color(0xFF42A5F5),
+    woodColor: Color(0xFF7EDA98),
+    fireColor: Color(0xFFE87C7C),
+    earthColor: Color(0xFFD4A574),
+    metalColor: Color(0xFFC0C0C0),
+    waterColor: Color(0xFF7EB8DA),
   );
 }
 

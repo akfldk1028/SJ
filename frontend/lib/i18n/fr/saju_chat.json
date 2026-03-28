@@ -157,5 +157,20 @@
   "persona_babyMonk_detail": "Un petit maître, le Petit Moine. Lit le destin avec audace et franchise, avec des vérités qui frappent juste.\n\nRecommandé pour des lectures du destin honnêtes dans une ambiance légère.",
   "persona_scenarioWriter_detail": "Un conteur qui tisse le destin en récit.",
   "persona_yinYangGrandpa_detail": "Grand-père Yin-Yang trouve la lumière dans l'obscurité et l'ombre dans la lumière — un maître des retournements dramatiques.\n\nReconnaît les faits difficiles en face, puis révèle de manière spectaculaire les forces cachées pour offrir de l'espoir. Recommandé quand vous avez besoin de réconfort et de surprises.",
-  "persona_sewerSaju_detail": "L'Oracle sans filtre est un maître de la vérité brutale qui expose sans crainte le côté sombre de votre destin.\n\nVous fait affronter la réalité avec un esprit acéré et une honnêteté rafraîchissante. Attention : déconseillé aux âmes sensibles !"
+  "persona_sewerSaju_detail": "L'Oracle sans filtre est un maître de la vérité brutale qui expose sans crainte le côté sombre de votre destin.\n\nVous fait affronter la réalité avec un esprit acéré et une honnêteté rafraîchissante. Attention : déconseillé aux âmes sensibles !",
+  "zodiac_section_title": "Animaux Gardiens",
+  "zodiac_my_animal": "Mon signe",
+  "zodiac_year_animal": "Cette année",
+  "zodiac_rat": "Rat", "zodiac_rat_desc": "Malin et ingénieux",
+  "zodiac_ox": "Buffle", "zodiac_ox_desc": "Travailleur et fiable",
+  "zodiac_tiger": "Tigre", "zodiac_tiger_desc": "Courageux et charismatique",
+  "zodiac_rabbit": "Lapin", "zodiac_rabbit_desc": "Doux et sensible",
+  "zodiac_dragon": "Dragon", "zodiac_dragon_desc": "Confiant et passionné",
+  "zodiac_snake": "Serpent", "zodiac_snake_desc": "Sage et mystérieux",
+  "zodiac_horse": "Cheval", "zodiac_horse_desc": "Libre et actif",
+  "zodiac_sheep": "Chèvre", "zodiac_sheep_desc": "Doux et artistique",
+  "zodiac_monkey": "Singe", "zodiac_monkey_desc": "Spirituel et joueur",
+  "zodiac_rooster": "Coq", "zodiac_rooster_desc": "Travailleur et honnête",
+  "zodiac_dog": "Chien", "zodiac_dog_desc": "Loyal et fidèle",
+  "zodiac_pig": "Cochon", "zodiac_pig_desc": "Généreux et optimiste"
 }

@@ -161,5 +161,21 @@
   "persona_babyMonk_detail": "A little master, Baby Monk. Reads fortune boldly in casual speech with truth-bombs that hit the mark.\n\nRecommended for honest fortune readings in a light atmosphere.",
   "persona_scenarioWriter_detail": "A storyteller who weaves fortune into a narrative.",
   "persona_yinYangGrandpa_detail": "Yin-Yang Grandpa finds light in darkness and shadows in light — a master of dramatic twists.\n\nAcknowledges hard facts head-on, then dramatically reveals hidden strengths to offer hope. Recommended when you need comfort and surprising twists.",
-  "persona_sewerSaju_detail": "Sewer Sorcerer is a brutal truth master who fearlessly exposes the dark side of your fortune.\n\nMakes you face reality with sharp wit and refreshing honesty. Warning: not for the faint-hearted!"
+  "persona_sewerSaju_detail": "Sewer Sorcerer is a brutal truth master who fearlessly exposes the dark side of your fortune.\n\nMakes you face reality with sharp wit and refreshing honesty. Warning: not for the faint-hearted!",
+
+  "zodiac_section_title": "Guardian Animals",
+  "zodiac_my_animal": "My zodiac",
+  "zodiac_year_animal": "This year",
+  "zodiac_rat": "Rat", "zodiac_rat_desc": "Clever and resourceful",
+  "zodiac_ox": "Ox", "zodiac_ox_desc": "Diligent and dependable",
+  "zodiac_tiger": "Tiger", "zodiac_tiger_desc": "Brave and charismatic",
+  "zodiac_rabbit": "Rabbit", "zodiac_rabbit_desc": "Gentle and sensitive",
+  "zodiac_dragon": "Dragon", "zodiac_dragon_desc": "Confident and passionate",
+  "zodiac_snake": "Snake", "zodiac_snake_desc": "Wise and mysterious",
+  "zodiac_horse": "Horse", "zodiac_horse_desc": "Free-spirited and active",
+  "zodiac_sheep": "Sheep", "zodiac_sheep_desc": "Gentle and artistic",
+  "zodiac_monkey": "Monkey", "zodiac_monkey_desc": "Witty and playful",
+  "zodiac_rooster": "Rooster", "zodiac_rooster_desc": "Diligent and honest",
+  "zodiac_dog": "Dog", "zodiac_dog_desc": "Loyal and faithful",
+  "zodiac_pig": "Pig", "zodiac_pig_desc": "Generous and optimistic"
 }

@@ -12,6 +12,8 @@ part 'chat_persona_provider.g.dart';
 const String _chatPersonaBoxName = 'chat_persona_settings';
 const String _chatPersonaKey = 'current_chat_persona';
 const String _mbtiQuadrantKey = 'current_mbti_quadrant';
+const String _zodiacModeKey = 'zodiac_mode';
+const String _zodiacPersonaIdKey = 'zodiac_persona_id';
 
 /// Hive Box 싱글턴 (앱 시작 시 한 번만 열기)
 ///
@@ -141,6 +143,52 @@ class MbtiQuadrantNotifier extends _$MbtiQuadrantNotifier {
   }
 }
 
+// ============================================================================
+// 십이지신 (Zodiac) 페르소나 Provider
+// ============================================================================
+
+/// 십이지신 모드 활성화 여부
+@riverpod
+class ZodiacModeNotifier extends _$ZodiacModeNotifier {
+  @override
+  bool build() {
+    try {
+      final box = ChatPersonaBox.box;
+      if (box != null) return box.get(_zodiacModeKey) == 'true';
+    } catch (_) {}
+    return false;
+  }
+
+  Future<void> setZodiacMode(bool active) async {
+    state = active;
+    try {
+      await ChatPersonaBox.ensureBoxOpen();
+      await ChatPersonaBox.box?.put(_zodiacModeKey, active.toString());
+    } catch (_) {}
+  }
+}
+
+/// 선택된 십이지신 페르소나 ID
+@riverpod
+class ZodiacPersonaIdNotifier extends _$ZodiacPersonaIdNotifier {
+  @override
+  String build() {
+    try {
+      final box = ChatPersonaBox.box;
+      if (box != null) return box.get(_zodiacPersonaIdKey) ?? 'zodiac_horse';
+    } catch (_) {}
+    return 'zodiac_horse';
+  }
+
+  Future<void> setZodiacId(String id) async {
+    state = id;
+    try {
+      await ChatPersonaBox.ensureBoxOpen();
+      await ChatPersonaBox.box?.put(_zodiacPersonaIdKey, id);
+    } catch (_) {}
+  }
+}
+
 /// 현재 ChatPersona가 MBTI 조절 가능한지 여부
 @riverpod
 bool canAdjustMbti(CanAdjustMbtiRef ref) {
@@ -156,6 +204,14 @@ bool canAdjustMbti(CanAdjustMbtiRef ref) {
 /// - 레거시 basePerson: MBTI 분면에 따른 동적 프롬프트 (하위 호환)
 @riverpod
 String finalSystemPrompt(FinalSystemPromptRef ref) {
+  // 십이지신 모드 우선 체크
+  final isZodiacMode = ref.watch(zodiacModeNotifierProvider);
+  if (isZodiacMode) {
+    final zodiacId = ref.watch(zodiacPersonaIdNotifierProvider);
+    final p = PersonaRegistry.getById(zodiacId);
+    if (p != null) return p.buildFullSystemPrompt();
+  }
+
   final persona = ref.watch(chatPersonaNotifierProvider);
 
   if (persona.canAdjustMbti) {

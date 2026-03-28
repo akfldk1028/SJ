@@ -161,5 +161,21 @@
   "persona_babyMonk_detail": "꼬마 도사 아기동자입니다. 반말로 거침없이 사주를 풀어주며, 핵심만 콕콕 짚어주는 팩폭 스타일입니다.\n\n가벼운 분위기에서 솔직한 사주 풀이를 원할 때 추천합니다.",
   "persona_scenarioWriter_detail": "사주를 하나의 이야기로 풀어내는 스토리텔러입니다.",
   "persona_yinYangGrandpa_detail": "음양 할배는 어둠 속에서 빛을, 빛 속에서 그림자를 찾아내는 반전의 대가입니다.\n\n팩트를 직격으로 인정한 뒤, 숨겨진 강점을 극적으로 뒤집어 희망을 제시합니다. 위로와 반전이 필요할 때 추천합니다.",
-  "persona_sewerSaju_detail": "시궁창 술사는 사주의 안 좋은 면을 거침없이 파헤치는 팩폭 장인입니다.\n\n독설과 사이다 발언으로 현실을 직시하게 해줍니다. 심장이 약하신 분은 주의!"
+  "persona_sewerSaju_detail": "시궁창 술사는 사주의 안 좋은 면을 거침없이 파헤치는 팩폭 장인입니다.\n\n독설과 사이다 발언으로 현실을 직시하게 해줍니다. 심장이 약하신 분은 주의!",
+
+  "zodiac_section_title": "수호동물",
+  "zodiac_my_animal": "내 띠",
+  "zodiac_year_animal": "올해",
+  "zodiac_rat": "쥐", "zodiac_rat_desc": "영리하고 재치있는",
+  "zodiac_ox": "소", "zodiac_ox_desc": "성실하고 든든한",
+  "zodiac_tiger": "호랑이", "zodiac_tiger_desc": "용감하고 카리스마 넘치는",
+  "zodiac_rabbit": "토끼", "zodiac_rabbit_desc": "다정하고 감성적인",
+  "zodiac_dragon": "용", "zodiac_dragon_desc": "당당하고 열정적인",
+  "zodiac_snake": "뱀", "zodiac_snake_desc": "지혜롭고 신비로운",
+  "zodiac_horse": "말", "zodiac_horse_desc": "자유롭고 활동적인",
+  "zodiac_sheep": "양", "zodiac_sheep_desc": "온화하고 예술적인",
+  "zodiac_monkey": "원숭이", "zodiac_monkey_desc": "재기넘치고 유쾌한",
+  "zodiac_rooster": "닭", "zodiac_rooster_desc": "성실하고 정직한",
+  "zodiac_dog": "개", "zodiac_dog_desc": "충직하고 의리있는",
+  "zodiac_pig": "돼지", "zodiac_pig_desc": "관대하고 낙천적인"
 }

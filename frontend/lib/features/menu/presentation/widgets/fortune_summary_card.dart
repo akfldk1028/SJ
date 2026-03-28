@@ -1,11 +1,15 @@
 import 'dart:math';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_identity.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/daily_fortune_provider.dart';
 import '../providers/daily_analysis_step_provider.dart';
 
@@ -34,7 +38,7 @@ class FortuneSummaryCard extends ConsumerWidget {
         if (fortune == null) {
           return _buildAnalyzingCard(ref, theme);
         }
-        return _buildFortuneCard(context, theme, fortune);
+        return _buildFortuneCard(context, ref, theme, fortune);
       },
     );
   }
@@ -273,6 +277,7 @@ class FortuneSummaryCard extends ConsumerWidget {
 
   Widget _buildFortuneCard(
     BuildContext context,
+    WidgetRef ref,
     AppThemeExtension theme,
     DailyFortuneData fortune,
   ) {
@@ -291,7 +296,7 @@ class FortuneSummaryCard extends ConsumerWidget {
           _buildMainScoreCard(context, theme, score, message, hour, fortune.idiom),
           SizedBox(height: context.scaledPadding(16)),
           // 오늘의 한마디 (시간대별 운세 아래, 운세 분석 위)
-          _buildTodayMessageSection(context, theme, fortune.affirmation),
+          _buildTodayMessageSection(context, ref, theme, fortune.affirmation),
           SizedBox(height: context.scaledPadding(16)),
           // 4개 카테고리 통계 그리드 + 오늘의 행운
           _buildCategoryStatsGrid(context, theme, fortune),
@@ -850,6 +855,7 @@ class FortuneSummaryCard extends ConsumerWidget {
   /// 오늘의 한마디 섹션
   Widget _buildTodayMessageSection(
     BuildContext context,
+    WidgetRef ref,
     AppThemeExtension theme,
     String affirmation,
   ) {
@@ -875,46 +881,31 @@ class FortuneSummaryCard extends ConsumerWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: iconBoxSize,
-                  height: iconBoxSize,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.lightbulb_outline_rounded,
-                    color: theme.primaryColor,
-                    size: iconSize,
-                  ),
+            // 큰 캐릭터 중앙
+            _zodiacOrIcon(ref, 100, theme, iconSize),
+            SizedBox(height: context.scaledPadding(12)),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.scaledPadding(14),
+                vertical: context.scaledPadding(5),
+              ),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'menu.todayMessage'.tr(),
+                style: TextStyle(
+                  fontSize: titleSize,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryColor,
                 ),
-                SizedBox(width: context.scaledPadding(12)),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: context.scaledPadding(10),
-                    vertical: context.scaledPadding(4),
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'menu.todayMessage'.tr(),
-                    style: TextStyle(
-                      fontSize: titleSize,
-                      fontWeight: FontWeight.w600,
-                      color: theme.primaryColor,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
             SizedBox(height: context.scaledPadding(16)),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
                   width: 16,
@@ -953,48 +944,32 @@ class FortuneSummaryCard extends ConsumerWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: iconBoxSize,
-                height: iconBoxSize,
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.lightbulb_outline_rounded,
-                  color: theme.primaryColor,
-                  size: iconSize,
-                ),
+          // 큰 캐릭터 중앙
+          _zodiacOrIcon(ref, 100, theme, iconSize),
+          SizedBox(height: context.scaledPadding(12)),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.scaledPadding(14),
+              vertical: context.scaledPadding(5),
+            ),
+            decoration: BoxDecoration(
+              color: theme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'menu.todayMessage'.tr(),
+              style: TextStyle(
+                fontSize: titleSize,
+                fontWeight: FontWeight.w600,
+                color: theme.primaryColor,
               ),
-              SizedBox(width: context.scaledPadding(12)),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.scaledPadding(10),
-                  vertical: context.scaledPadding(4),
-                ),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'menu.todayMessage'.tr(),
-                  style: TextStyle(
-                    fontSize: titleSize,
-                    fontWeight: FontWeight.w600,
-                    color: theme.primaryColor,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           SizedBox(height: context.scaledPadding(16)),
           Text(
             affirmation,
-            textAlign: TextAlign.justify,
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: messageSize,
               height: 1.6,
@@ -1005,6 +980,41 @@ class FortuneSummaryCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _zodiacOrIcon(WidgetRef ref, double size, AppThemeExtension theme, double iconSize) {
+    final profileAsync = ref.watch(activeProfileProvider);
+    if (profileAsync.hasValue && profileAsync.value != null) {
+      try {
+        final identity = ZodiacIdentity.fromBirthDate(profileAsync.value!.birthDate);
+        final imageUrl = ZodiacImageService.getImageUrl(identity);
+        if (imageUrl != null) {
+          return CachedNetworkImage(
+            imageUrl: imageUrl,
+            width: size, height: size,
+            fit: BoxFit.contain,
+            placeholder: (_, __) => SizedBox(
+              width: size, height: size,
+              child: Center(
+                child: SizedBox(
+                  width: size * 0.25, height: size * 0.25,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.primaryColor.withValues(alpha: 0.4),
+                  ),
+                ),
+              ),
+            ),
+            errorWidget: (_, __, ___) => Icon(
+              Icons.auto_awesome_rounded,
+              color: theme.primaryColor,
+              size: size * 0.4,
+            ),
+          );
+        }
+      } catch (_) {}
+    }
+    return Icon(Icons.lightbulb_outline_rounded, color: theme.primaryColor, size: iconSize);
   }
 
   String _getGradeText(int score) {

@@ -182,6 +182,11 @@ class SettingsScreen extends ConsumerWidget {
           AppThemeType.streetLampLight,
           AppThemeType.orientalLight, // 레드 라이트
           AppThemeType.darkPurple,
+          AppThemeType.elementWood,
+          AppThemeType.elementFire,
+          AppThemeType.elementEarth,
+          AppThemeType.elementMetal,
+          AppThemeType.elementWater,
           // 비활성화된 테마 (주석처리)
           // AppThemeType.orientalDark,
           // AppThemeType.defaultLight,
