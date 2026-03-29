@@ -862,7 +862,7 @@ class FortuneSummaryCard extends ConsumerWidget {
     final scale = context.scaleFactor;
     final iconBoxSize = (40 * scale).clamp(36.0, 52.0);
     final iconSize = context.scaledIcon(22);
-    final titleSize = context.scaledFont(12);
+    final titleSize = context.scaledFont(16);
     final messageSize = context.scaledFont(15);
 
     // 메시지가 비어있으면 로딩 표시
@@ -881,47 +881,42 @@ class FortuneSummaryCard extends ConsumerWidget {
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 큰 캐릭터 중앙
-            _zodiacOrIcon(ref, 100, theme, iconSize),
-            SizedBox(height: context.scaledPadding(12)),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: context.scaledPadding(14),
-                vertical: context.scaledPadding(5),
-              ),
-              decoration: BoxDecoration(
-                color: theme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'menu.todayMessage'.tr(),
-                style: TextStyle(
-                  fontSize: titleSize,
-                  fontWeight: FontWeight.w600,
-                  color: theme.primaryColor,
-                ),
+            // 오늘의 한마디 — SectionHeader 스타일
+            Text(
+              'menu.todayMessage'.tr(),
+              style: TextStyle(
+                fontSize: titleSize,
+                fontWeight: FontWeight.w600,
+                color: theme.textPrimary,
               ),
             ),
             SizedBox(height: context.scaledPadding(16)),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.primaryColor.withValues(alpha: 0.6),
-                  ),
-                ),
-                SizedBox(width: context.scaledPadding(12)),
-                Text(
-                  'menu.aiPreparingMessage'.tr(),
-                  style: TextStyle(
-                    fontSize: context.scaledFont(14),
-                    color: theme.textMuted,
-                  ),
+                _zodiacOrIcon(ref, 140, theme, iconSize),
+                SizedBox(width: context.scaledPadding(16)),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.primaryColor.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    SizedBox(width: context.scaledPadding(8)),
+                    Text(
+                      'menu.aiPreparingMessage'.tr(),
+                      style: TextStyle(
+                        fontSize: context.scaledFont(14),
+                        color: theme.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -944,38 +939,36 @@ class FortuneSummaryCard extends ConsumerWidget {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 큰 캐릭터 중앙
-          _zodiacOrIcon(ref, 100, theme, iconSize),
-          SizedBox(height: context.scaledPadding(12)),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.scaledPadding(14),
-              vertical: context.scaledPadding(5),
-            ),
-            decoration: BoxDecoration(
-              color: theme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'menu.todayMessage'.tr(),
-              style: TextStyle(
-                fontSize: titleSize,
-                fontWeight: FontWeight.w600,
-                color: theme.primaryColor,
-              ),
+          // 오늘의 한마디 — SectionHeader 스타일
+          Text(
+            'menu.todayMessage'.tr(),
+            style: TextStyle(
+              fontSize: titleSize,
+              fontWeight: FontWeight.w600,
+              color: theme.textPrimary,
             ),
           ),
           SizedBox(height: context.scaledPadding(16)),
-          Text(
-            affirmation,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: messageSize,
-              height: 1.6,
-              fontWeight: FontWeight.w400,
-              color: theme.textSecondary,
-            ),
+          // 캐릭터 + 텍스트 가로 배치
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _zodiacOrIcon(ref, 140, theme, iconSize),
+              SizedBox(width: context.scaledPadding(16)),
+              Expanded(
+                child: Text(
+                  affirmation,
+                  style: TextStyle(
+                    fontSize: messageSize,
+                    height: 1.7,
+                    fontWeight: FontWeight.w400,
+                    color: theme.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -987,12 +980,14 @@ class FortuneSummaryCard extends ConsumerWidget {
     if (profileAsync.hasValue && profileAsync.value != null) {
       try {
         final identity = ZodiacIdentity.fromBirthDate(profileAsync.value!.birthDate);
-        final imageUrl = ZodiacImageService.getImageUrl(identity);
+        final imageUrl = ZodiacImageService.getImageUrl(identity, large: true);
         if (imageUrl != null) {
           return CachedNetworkImage(
             imageUrl: imageUrl,
             width: size, height: size,
             fit: BoxFit.contain,
+            memCacheWidth: (size * 3).toInt(),
+            memCacheHeight: (size * 3).toInt(),
             placeholder: (_, __) => SizedBox(
               width: size, height: size,
               child: Center(
