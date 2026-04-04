@@ -719,13 +719,7 @@ Deno.serve(async (req) => {
       if (user_id) isAdmin = await isAdminUser(supabase, user_id);
       return await handleIntentClassification(supabase, user_message, chat_history, user_id, isAdmin);
     }
-    const { messages, model: _clientModel = "gemini-2.5-flash-lite", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
-    // v37: 모델 강제 오버라이드 — 기존 앱이 gemini-3-flash-preview를 보내도 gemini-2.5-flash-lite 사용
-    // 앱 업데이트 완료 후 제거 가능 (클라이언트가 gemini-2.5-flash-lite를 보내게 되면)
-    const model = "gemini-2.5-flash-lite";
-    if (_clientModel !== model) {
-      console.log(`[ai-gemini v37] Model override: ${_clientModel} → ${model}`);
-    }
+    const { messages, model = "gemini-2.5-flash-lite", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
     if (!messages || messages.length === 0) throw new Error("messages is required");
     let isAdmin = false;
     if (user_id) {
