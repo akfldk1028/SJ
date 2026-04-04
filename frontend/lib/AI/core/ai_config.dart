@@ -26,8 +26,8 @@ class AIConfig {
   static const String gptPro = 'gpt-5.2-pro'; // Pro - 최고 품질
   static const String gptLegacy = 'gpt-4o'; // 이전 버전 (Chat Completions API)
 
-  // Google Models (Gemini 3.0 - 2025.12.17 출시)
-  static const String geminiDefault = 'gemini-3-flash-preview'; // Gemini 3 Flash
+  // Google Models (v37: 2026-04-04 비용 절감 전환)
+  static const String geminiDefault = 'gemini-2.5-flash-lite'; // Gemini 2.5 Flash Lite (비용 최적)
   static const String geminiPro = 'gemini-3-pro-preview'; // Gemini 3 Pro
   static const String geminiLegacy = 'gemini-2.0-flash'; // 이전 버전 (호환용)
 

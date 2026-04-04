@@ -61,11 +61,11 @@ const corsHeaders = {
 // 설정 방법: npx supabase secrets set GEMINI_API_KEY=your_key
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-// Gemini 3.0 Flash Preview (2025-12 업데이트)
-// - 빠른 응답 속도
+// v37: gemini-2.5-flash-lite (2026-04 비용 절감 전환)
+// - 빠른 응답 속도 + 최저 비용
 // - 한국어 지원 우수
 // - JSON 출력 지원
-const GEMINI_MODEL = "gemini-3-flash-preview";
+const GEMINI_MODEL = "gemini-2.5-flash-lite";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 타입 정의
@@ -109,7 +109,7 @@ interface AiSummary {
 
   // 메타 정보
   generated_at: string;  // 생성 시간 (ISO 8601)
-  model: string;         // 사용 모델 (gemini-3-flash-preview)
+  model: string;         // 사용 모델 (gemini-2.5-flash-lite)
   version: string;       // 스키마 버전 (1.0)
 }
 

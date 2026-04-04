@@ -11,17 +11,17 @@ AI backend for Mantok saju chat service.
 |----------|-------|---------|---------|
 | `ai-openai` | GPT-5.2 | **v42** | Saju analysis (background mode) |
 | `ai-openai-result` | - | **v32** | Poll GPT background task results |
-| `ai-gemini` | gemini-3-flash-preview | **v59** | Chat streaming (SSE) + quota check + premium bypass |
+| `ai-gemini` | gemini-2.5-flash-lite | **v37** | Chat streaming (SSE) + quota check + premium bypass |
 | `ai-openai-mini` | - | - | Lightweight OpenAI tasks |
 | `ai-task-status` | - | - | Task status check endpoint |
-| `generate-ai-summary` | gemini-2.0-flash | v4 | Legacy (do not use for new features) |
+| `generate-ai-summary` | gemini-2.5-flash-lite | v4 | AI summary generation |
 | `purchase-webhook` | - | - | Purchase verification webhook |
 
-## ai-gemini (v59)
+## ai-gemini (v37)
 
-Gemini 3.0 Flash chat with SSE streaming.
+Gemini 2.5 Flash Lite chat with SSE streaming.
 
-- **Model**: `gemini-3-flash-preview`, max_tokens=16384, temperature=0.8
+- **Model**: `gemini-2.5-flash-lite`, max_tokens=16384, temperature=0.8, thinkingBudget=0
 - **Streaming**: Server-Sent Events (SSE) for real-time response delivery
 - **Token recording**: Records `gemini_cost_usd` directly. `chatting_tokens` and `chatting_message_count` recorded by Edge Function (no DB trigger).
 - **Thought filtering**: Filters out Gemini thinking/reasoning content from streamed output

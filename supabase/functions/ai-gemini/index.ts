@@ -63,8 +63,14 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * v24 변경사항 (2026-02-01):
  * - checkAndUpdateQuota: rewarded_tokens_earned 포함 (광고 보상 토큰 반영)
  *
- * === 모델 변경 금지 ===
- * 채팅용: gemini-3-flash-preview
+ * v37 변경사항 (2026-04-04):
+ * - 비용 절감: 채팅 모델 gemini-3-flash-preview → gemini-2.5-flash-lite 전환
+ *   → Input: $0.50 → $0.10 (5배 절감), Output: $3.00 → $0.40 (7.5배 절감)
+ *   → thinkingConfig: thinkingLevel(Gemini3 전용) → thinkingBudget:0(Gemini2.5 전용, thinking 비활성화)
+ *   → Context Caching: $0.05 → $0.01 (5배 절감)
+ *
+ * === 모델 설정 ===
+ * 채팅용: gemini-2.5-flash-lite
  * Intent: gemini-2.5-flash-lite
  */
 
@@ -323,7 +329,7 @@ async function handleIntentClassification(
 
 /**
  * v26: Gemini Context Caching — 세션별 system prompt + saju 데이터 캐싱
- * 캐시된 토큰은 $0.05/1M (표준 $0.50의 90% 할인)
+ * v37: 캐시된 토큰 $0.01/1M (표준 $0.10의 90% 할인, gemini-2.5-flash-lite)
  * 최소 1,024 토큰 필요 (system prompt + saju 데이터 = 4~6K → 충족)
  */
 async function createGeminiCache(
@@ -428,7 +434,7 @@ async function handleStreamingRequest(
     requestBody = {
       cachedContent: cacheName,
       contents,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -442,7 +448,7 @@ async function handleStreamingRequest(
     requestBody = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -481,7 +487,7 @@ async function handleStreamingRequest(
     const fallbackBody = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
+      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -632,7 +638,7 @@ async function handleStreamingRequest(
         if (repetitionDetected) {
           if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
             const nonCachedPrompt = totalPromptTokens - totalCachedTokens;
-            const cost = (nonCachedPrompt * 0.50 / 1000000) + (totalCachedTokens * 0.05 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
+            const cost = (nonCachedPrompt * 0.10 / 1000000) + (totalCachedTokens * 0.01 / 1000000) + (totalCompletionTokens * 0.40 / 1000000);
             await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
           }
           return; // controller.close()는 finally에서 처리
@@ -665,9 +671,9 @@ async function handleStreamingRequest(
         // v26: gemini_cost_usd 기록 (fallback + context caching 할인 포함)
         if (userId) {
           if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
-            // v26: cachedContentTokenCount가 있으면 캐시 할인 적용 ($0.05/1M vs $0.50/1M)
+            // v37: gemini-2.5-flash-lite 가격 ($0.10/$0.40, cache $0.01)
             const nonCachedPrompt = totalPromptTokens - totalCachedTokens;
-            const cost = (nonCachedPrompt * 0.50 / 1000000) + (totalCachedTokens * 0.05 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
+            const cost = (nonCachedPrompt * 0.10 / 1000000) + (totalCachedTokens * 0.01 / 1000000) + (totalCompletionTokens * 0.40 / 1000000);
             await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
           } else {
             // v26 FALLBACK: usageMetadata 누락 시 응답 텍스트 길이 기반 추산
@@ -678,7 +684,7 @@ async function handleStreamingRequest(
             const estPromptTokens = Math.round((systemPromptLength + chatHistoryLength) * 2.5);
             // completion은 클라이언트에서 tokens_used로 정확히 잡히므로 여기선 평균값 사용
             const estCompletionTokens = Math.round(1500); // 평균 응답 길이 기반
-            const estCost = (estPromptTokens * 0.50 / 1000000) + (estCompletionTokens * 3.00 / 1000000);
+            const estCost = (estPromptTokens * 0.10 / 1000000) + (estCompletionTokens * 0.40 / 1000000);
             console.log(`[ai-gemini v26] [FALLBACK] usageMetadata missing. Estimated prompt=${estPromptTokens}, completion=${estCompletionTokens}, cost=$${estCost.toFixed(6)}`);
             await recordGeminiCost(supabase, userId, estPromptTokens, estCompletionTokens, estCost);
           }
@@ -713,7 +719,7 @@ Deno.serve(async (req) => {
       if (user_id) isAdmin = await isAdminUser(supabase, user_id);
       return await handleIntentClassification(supabase, user_message, chat_history, user_id, isAdmin);
     }
-    const { messages, model = "gemini-3-flash-preview", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
+    const { messages, model = "gemini-2.5-flash-lite", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
     if (!messages || messages.length === 0) throw new Error("messages is required");
     let isAdmin = false;
     if (user_id) {
@@ -756,7 +762,7 @@ Deno.serve(async (req) => {
       generationConfig: {
         temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
         stopSequences: ["[/SUGGESTED_QUESTIONS]"],
-        thinkingConfig: { thinkingLevel: "low" },
+        thinkingConfig: { thinkingBudget: 0 },
       },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -825,8 +831,8 @@ Deno.serve(async (req) => {
         completionTokens = maxReasonable;
       }
     }
-    // Gemini 3.0 Flash: $0.50/$3.00
-    const cost = (promptTokens * 0.50 / 1000000) + (rawCompletionTokens * 3.00 / 1000000);
+    // v37: Gemini 2.5 Flash Lite: $0.10/$0.40
+    const cost = (promptTokens * 0.10 / 1000000) + (rawCompletionTokens * 0.40 / 1000000);
     if (user_id) await recordGeminiCost(supabase, user_id, promptTokens, rawCompletionTokens, cost);
     console.log(`[ai-gemini v35.3] Success: prompt=${promptTokens}, completion=${completionTokens} (raw=${rawCompletionTokens}), thoughts=${thoughtsTokens}, textLen=${content.length}, isAdmin=${isAdmin}`);
     return new Response(

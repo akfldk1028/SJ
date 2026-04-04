@@ -8,7 +8,7 @@ import '../../../../core/services/error_logging_service.dart';
 /// Gemini 3.0 추론 레벨 (thinking_level)
 enum ThinkingLevel { none, low, medium, high }
 
-/// Google Gemini Provider (Gemini 3.0 - 2025.12.17 출시)
+/// Google Gemini Provider (v37: gemini-2.5-flash-lite 전환)
 class GeminiProvider extends BaseLLMProvider {
   static final GeminiProvider _instance = GeminiProvider._();
   factory GeminiProvider() => _instance;

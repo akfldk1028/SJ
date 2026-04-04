@@ -711,7 +711,7 @@ class SajuAnalysisService {
           profileName: profileName,
           analysisType: 'daily_fortune',
           provider: 'google',
-          model: 'gemini-3.0-flash',
+          model: 'gemini-2.5-flash-lite',
           success: true,
           content: result.content != null ? jsonEncode(result.content) : null,
           tokens: {
@@ -739,7 +739,7 @@ class SajuAnalysisService {
         profileName: profileName,
         analysisType: 'daily_fortune',
         provider: 'google',
-        model: 'gemini-3.0-flash',
+        model: 'gemini-2.5-flash-lite',
         success: false,
         error: e.toString(),
         processingTimeMs: stopwatch.elapsedMilliseconds,

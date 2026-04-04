@@ -332,7 +332,7 @@ class AiMutations extends BaseMutations {
       inputData: inputDataJson.isNotEmpty ? inputDataJson : null,
       targetDate: targetDate,
       modelProvider: ModelProvider.google,
-      modelName: modelName ?? GoogleModels.dailyFortune,  // Gemini 3.0 Flash
+      modelName: modelName ?? GoogleModels.dailyFortune,  // Gemini 2.5 Flash Lite
       promptTokens: promptTokens,
       completionTokens: completionTokens,
       totalCostUsd: totalCostUsd,
