@@ -1258,7 +1258,16 @@ class SystemPromptBuilder {
     _buffer.writeln('신강(일간 강함): 설기(식상/재성) 또는 극(관성)으로 억제');
     _buffer.writeln('신약(일간 약함): 생조(인성) 또는 방조(비겁)으로 보강');
     _buffer.writeln();
-    _buffer.writeln('⚠️ 위 규칙을 반드시 참조하여 십성/오행/용신을 해석하세요. 추측하지 마세요.');
+    _buffer.writeln('【격국(格局) — 월지 기준 가장 강한 십성으로 판단】');
+    _buffer.writeln('정관격: 조직력, 규율, 안정 / 칠살격(편관): 추진력, 권위, 강한 외부 압력');
+    _buffer.writeln('정재격: 안정적 재물, 성실 / 편재격: 유동적 재물, 사업, 투기');
+    _buffer.writeln('식신격: 표현력, 창의, 먹복 / 상관격: 재능, 반항, 자유분방');
+    _buffer.writeln('정인격: 학문, 자격, 어머니 / 편인격: 편학, 종교, 예술, 고독');
+    _buffer.writeln('비견격: 자존심, 독립, 경쟁 / 겁재격: 승부욕, 투쟁, 재물 손실 주의');
+    _buffer.writeln('종왕격: 비겁 압도적 → 자기 길만 감 / 종살격: 관살 압도적 → 조직에 순응');
+    _buffer.writeln('종재격: 재성 압도적 → 돈을 쫓는 삶 / 중화격: 균형 → 무난하지만 뚜렷한 특징 없음');
+    _buffer.writeln();
+    _buffer.writeln('⚠️ 위 규칙을 반드시 참조하여 십성/오행/용신/격국을 해석하세요. 추측하지 마세요.');
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
