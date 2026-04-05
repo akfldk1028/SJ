@@ -404,33 +404,32 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
               ],
             ),
           ),
-          // Divider: 수호동물
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                const Text('🐾', style: TextStyle(fontSize: 12)),
-                const SizedBox(width: 6),
-                Text(
-                  'saju_chat.zodiac_section_title'.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: appTheme.textMuted,
-                    fontWeight: FontWeight.w500,
+          // Divider + Row 2: 수호동물 (한국어 유저 제외)
+          if (context.locale.languageCode != 'ko') ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  const Text('🐾', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'saju_chat.zodiac_section_title'.tr(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: appTheme.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Divider(
-                    color: appTheme.textMuted.withValues(alpha: 0.2),
-                    height: 1,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Divider(
+                      color: appTheme.textMuted.withValues(alpha: 0.2),
+                      height: 1,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Row 2: 십이지신 동물 (한국어 유저 제외 — 한국은 기존 MBTI/특수 페르소나만)
-          if (context.locale.languageCode != 'ko')
             SizedBox(
               height: 80,
               child: SingleChildScrollView(
@@ -445,6 +444,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                 ),
               ),
             ),
+          ],
         ],
       ),
     );
