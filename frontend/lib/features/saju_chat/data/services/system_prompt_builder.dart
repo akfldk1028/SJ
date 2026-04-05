@@ -80,6 +80,9 @@ class SystemPromptBuilder {
     // 3. 기본 프롬프트
     _buffer.writeln(basePrompt);
 
+    // 3-1. 사주 명리학 핵심 규칙 (v39: AI 해석 정확도 향상)
+    _addSajuCoreRules();
+
     // v6.0 (Phase 57): 라벨 결정
     // - 나 제외 모드: "첫 번째 사람" / "두 번째 사람"
     // - 나 포함 모드: "나 (상담 요청자)" / "상대방 (궁합 대상자)"
@@ -1220,6 +1223,45 @@ class SystemPromptBuilder {
     addOheng(chars['hour_ji'] as String?, false);
 
     return counts;
+  }
+
+  /// v39: 사주 명리학 핵심 규칙 (AI 해석 정확도 향상)
+  /// 2.5-flash-lite가 사주 용어를 가끔 잘못 해석하는 문제 방지
+  /// ~500 토큰, implicit caching으로 2턴부터 비용 무시 가능
+  void _addSajuCoreRules() {
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('## 사주 명리학 핵심 규칙 (반드시 준수)');
+    _buffer.writeln();
+    _buffer.writeln('【오행 상생】 木→火→土→金→水→木 (목생화, 화생토, 토생금, 금생수, 수생목)');
+    _buffer.writeln('【오행 상극】 木→土, 土→水, 水→火, 火→金, 金→木 (목극토, 토극수, 수극화, 화극금, 금극목)');
+    _buffer.writeln();
+    _buffer.writeln('【천간 오행/음양】');
+    _buffer.writeln('양(+): 甲(갑)木, 丙(병)火, 戊(무)土, 庚(경)金, 壬(임)水');
+    _buffer.writeln('음(-): 乙(을)木, 丁(정)火, 己(기)土, 辛(신)金, 癸(계)水');
+    _buffer.writeln();
+    _buffer.writeln('【십성 판별법 — 일간 기준, 절대 틀리지 말 것】');
+    _buffer.writeln('같은오행+같은음양=비견, 같은오행+다른음양=겁재');
+    _buffer.writeln('내가 생(生)하는 오행+같은음양=식신, +다른음양=상관');
+    _buffer.writeln('내가 극(剋)하는 오행+같은음양=편재, +다른음양=정재');
+    _buffer.writeln('나를 극(剋)하는 오행+같은음양=편관, +다른음양=정관');
+    _buffer.writeln('나를 생(生)하는 오행+같은음양=편인, +다른음양=정인');
+    _buffer.writeln();
+    _buffer.writeln('【조후용신 — 궁통보감(窮通寶鑑) 핵심】');
+    _buffer.writeln('봄(寅卯辰월): 수(水) 필요 — 목왕화상, 수로 윤택하게');
+    _buffer.writeln('여름(巳午未월): 수(水) 필요 — 화왕토조, 수로 식혀야');
+    _buffer.writeln('가을(申酉戌월): 화(火) 필요 — 금왕수냉, 화로 따뜻하게');
+    _buffer.writeln('겨울(亥子丑월): 화(火) 필요 — 수왕목한, 화로 온기 공급');
+    _buffer.writeln();
+    _buffer.writeln('【용신 선정 — 억부법】');
+    _buffer.writeln('신강(일간 강함): 설기(식상/재성) 또는 극(관성)으로 억제');
+    _buffer.writeln('신약(일간 약함): 생조(인성) 또는 방조(비겁)으로 보강');
+    _buffer.writeln();
+    _buffer.writeln('⚠️ 위 규칙을 반드시 참조하여 십성/오행/용신을 해석하세요. 추측하지 마세요.');
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
   }
 
 }
