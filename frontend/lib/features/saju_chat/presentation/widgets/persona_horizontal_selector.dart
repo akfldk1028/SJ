@@ -429,21 +429,22 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
               ],
             ),
           ),
-          // Row 2: 십이지신 동물
-          SizedBox(
-            height: 80,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: _buildZodiacItems(
-                  context,
-                  selectedId: isZodiacMode ? zodiacPersonaId : null,
-                  isLocked: isPersonaLocked,
+          // Row 2: 십이지신 동물 (한국어 유저 제외 — 한국은 기존 MBTI/특수 페르소나만)
+          if (context.locale.languageCode != 'ko')
+            SizedBox(
+              height: 80,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildZodiacItems(
+                    context,
+                    selectedId: isZodiacMode ? zodiacPersonaId : null,
+                    isLocked: isPersonaLocked,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
