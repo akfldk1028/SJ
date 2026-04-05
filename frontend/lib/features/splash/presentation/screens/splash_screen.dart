@@ -26,12 +26,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _scaleAnimation;
 
   bool _isNavigating = false;
+  bool _minDelayCompleted = false;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
-    _startPrefetch();
+    _startMinDelay();
   }
 
   void _setupAnimations() {
@@ -57,7 +58,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _animationController.forward();
   }
 
-  Future<void> _startPrefetch() async {
+  Future<void> _startMinDelay() async {
     // 최소 대기 (애니메이션 + 브랜딩)
     // 비한국어: 사주 소개 읽을 시간 확보 (2.5초)
     bool isKo = true;
@@ -68,30 +69,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (!mounted) return;
 
-    // Provider가 자동으로 pre-fetch 실행
-    // 결과를 listen하고 네비게이션
-    _listenToSplashState();
-  }
+    _minDelayCompleted = true;
 
-  void _listenToSplashState() {
-    // 현재 상태 확인
+    // 딜레이 끝났을 때 이미 데이터가 준비되어 있으면 즉시 네비게이션
     final asyncState = ref.read(splashProvider);
-
     asyncState.when(
       data: (state) => _handleSplashState(state),
-      loading: () {
-        // 로딩 중이면 다음 빌드에서 다시 확인
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted && !_isNavigating) {
-            _listenToSplashState();
-          }
-        });
-      },
+      loading: () {}, // ref.listen이 이후 변경 감지
       error: (error, stack) {
         if (kDebugMode) {
           print('[Splash] Error: $error');
         }
-        // 에러 시 온보딩으로 (CJK 분기)
         final langFb = context.locale.languageCode;
         final isCjkFb = {'ko', 'ja', 'zh'}.contains(langFb);
         _navigateTo(isCjkFb ? Routes.onboarding : Routes.zodiacOnboarding);
@@ -146,17 +134,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   void _navigateTo(String route) {
     if (_isNavigating || !mounted) return;
-
-    setState(() {
-      _isNavigating = true;
-    });
-
-    // 부드러운 전환을 위해 약간의 딜레이
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        context.go(route);
-      }
-    });
+    _isNavigating = true;
+    context.go(route);
   }
 
   @override
@@ -167,8 +146,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Provider 상태 watch (자동 rebuild)
+    // Provider 상태 watch (자동 rebuild — 로딩 인디케이터용)
     final asyncState = ref.watch(splashProvider);
+
+    // ref.listen: 상태 변경 시 네비게이션 (폴링 대신 Riverpod 공식 패턴)
+    ref.listen(splashProvider, (previous, next) {
+      if (!_minDelayCompleted || _isNavigating) return;
+      next.when(
+        data: (state) => _handleSplashState(state),
+        loading: () {},
+        error: (error, stack) {
+          if (kDebugMode) {
+            print('[Splash] Error: $error');
+          }
+          final lang = context.locale.languageCode;
+          final isCjk = {'ko', 'ja', 'zh'}.contains(lang);
+          _navigateTo(isCjk ? Routes.onboarding : Routes.zodiacOnboarding);
+        },
+      );
+    });
+
     // 스플래시는 로고(검정)에 맞춰 항상 흰색 배경 + 고정 색상
     const splashText = Color(0xFF1A1A1A);
     const splashMuted = Color(0xFF8E8E8E);
