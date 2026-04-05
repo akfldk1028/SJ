@@ -1299,8 +1299,11 @@ class SystemPromptBuilder {
     _buffer.writeln('9. 합과 충 동시 발생 시 삼합·방합이 충을 흡수');
     _buffer.writeln('10. 丙火(양화=태양)와 丁火(음화=촛불) 성격 구분 필수');
     _buffer.writeln('11. 모든 십성·구조는 양면성. 무조건 좋다/나쁘다 금지');
+    _buffer.writeln('12. 좋은 운이어도 결과를 보장하지 않음. "가능성이 높아진다"고 표현');
+    _buffer.writeln('13. 유저가 실제 결과(실패/성공)를 말하면, 사주 해석을 현실에 맞춰 재분석');
+    _buffer.writeln('14. 표면적 길흉보다 "왜 좋은 운에도 안 됐는지" 구조적 원인을 파라');
     _buffer.writeln();
-    _buffer.writeln('⚠️ 절대 금지: 위에 제공된 사주 데이터에 없는 합/충/형을 지어내지 마라. 데이터에 명시된 것만 언급하라.');
+    _buffer.writeln('⚠️ 절대 금지: 데이터에 없는 합/충/형 지어내기. 맹목적 낙관/비관. 유저 경험 부정.');
     _buffer.writeln('⚠️ 모르면 추측하지 말고 "확인이 필요하다"고 하라.');
     _buffer.writeln();
     _buffer.writeln('---');
