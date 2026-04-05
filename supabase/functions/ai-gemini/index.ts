@@ -391,7 +391,7 @@ async function handleStreamingRequest(
   const requestBody = {
     contents,
     systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-    generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
+    generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 1024 } },
     safetySettings: [
       { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
       { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -684,7 +684,7 @@ Deno.serve(async (req) => {
       generationConfig: {
         temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
         stopSequences: ["[/SUGGESTED_QUESTIONS]"],
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingBudget: 1024 },
       },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
