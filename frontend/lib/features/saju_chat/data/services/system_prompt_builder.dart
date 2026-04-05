@@ -1300,7 +1300,8 @@ class SystemPromptBuilder {
     _buffer.writeln('10. 丙火(양화=태양)와 丁火(음화=촛불) 성격 구분 필수');
     _buffer.writeln('11. 모든 십성·구조는 양면성. 무조건 좋다/나쁘다 금지');
     _buffer.writeln();
-    _buffer.writeln('⚠️ 위 규칙을 반드시 참조하세요. 모르면 추측하지 말고 "확인이 필요하다"고 하세요.');
+    _buffer.writeln('⚠️ 절대 금지: 위에 제공된 사주 데이터에 없는 합/충/형을 지어내지 마라. 데이터에 명시된 것만 언급하라.');
+    _buffer.writeln('⚠️ 모르면 추측하지 말고 "확인이 필요하다"고 하라.');
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
