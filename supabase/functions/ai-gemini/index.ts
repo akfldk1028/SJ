@@ -2,14 +2,16 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 // v76: saju-tools — 동적 import로 실패 시 기존 동작 유지
 let sajuToolDeclarations: any[] = [];
-let executeSajuFunction: ((name: string, args: Record<string, unknown>) => unknown) | null = null;
+let openaiToolDeclarations: any[] = [];
+let executeSajuFunction: ((name: string, args: { [k: string]: unknown }) => unknown) | null = null;
 try {
   const mod = await import("./saju-tools/index.ts");
   sajuToolDeclarations = mod.sajuToolDeclarations;
+  openaiToolDeclarations = mod.openaiToolDeclarations;
   executeSajuFunction = mod.executeSajuFunction;
-  console.log("[ai-gemini v76] saju-tools loaded successfully");
+  console.log(`[ai-gemini v77] saju-tools loaded: gemini=${sajuToolDeclarations[0]?.functionDeclarations?.length || 0}, openai=${openaiToolDeclarations.length} tools`);
 } catch (e) {
-  console.error("[ai-gemini v76] saju-tools load failed, running without tools:", e);
+  console.error("[ai-gemini v77] saju-tools load failed, running without tools:", e);
 }
 
 /**
@@ -102,8 +104,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, cache-control",
 };
 
-// v62: Gemini API Key 로테이션 (스케일링 병목 해소)
-// 단일 키 15 RPM → 복수 키 × N RPM
+// v77: Qwen 3.5 Flash (DashScope 싱가포르) — primary provider
+// GPQA 84.2% vs Gemini Lite 64.6%, 가격 동일 ($0.10/$0.40), explicit cache 90% 할인
+const QWEN_API_KEY = Deno.env.get("QWEN_API_KEY");
+const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const QWEN_MODEL = "qwen3.5-flash";
+
+// v62: Gemini API Key 로테이션 (fallback용)
 const GEMINI_API_KEYS = [
   Deno.env.get("GEMINI_API_KEY"),
   Deno.env.get("GEMINI_API_KEY_2"),
@@ -137,6 +144,260 @@ function getSessionKey(sessionId: string): string {
 }
 
 // v38: GEMINI_API_KEY 상수 제거 (explicit caching 제거로 불필요)
+
+/**
+ * v77: Qwen 3.5 Flash Non-Streaming 호출
+ * - OpenAI 호환 API (DashScope 싱가포르)
+ * - explicit cache: system message에 cache_control 마커 → 90% 할인
+ * - 실패 시 null 반환 → Gemini fallback
+ */
+async function callQwenNonStreaming(
+  messages: { role: string; content: string }[],
+  maxTokens: number,
+  temperature: number,
+): Promise<{ content: string; usage: { [k: string]: number } } | null> {
+  if (!QWEN_API_KEY) return null;
+  try {
+    const systemMsgs = messages.filter((m) => m.role === "system");
+    const otherMsgs = messages.filter((m) => m.role !== "system");
+    const systemText = systemMsgs.map((m) => m.content).join("\n");
+
+    const qwenMessages: { [k: string]: unknown }[] = [];
+    if (systemText) {
+      qwenMessages.push({
+        role: "system",
+        content: [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }],
+      });
+    }
+    for (const m of otherMsgs) {
+      qwenMessages.push({ role: m.role === "assistant" ? "assistant" : "user", content: m.content });
+    }
+
+    // v77: Function Calling Loop (최대 6회)
+    const MAX_FC = 6;
+    const hasTools = openaiToolDeclarations.length > 0 && executeSajuFunction;
+    let totalUsage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 };
+
+    for (let i = 0; i < MAX_FC; i++) {
+      const body: { [k: string]: unknown } = {
+        model: QWEN_MODEL,
+        messages: qwenMessages,
+        max_tokens: maxTokens,
+        temperature,
+        presence_penalty: 0.6,
+        stream: false,
+        enable_thinking: false,
+        stop: ["[/SUGGESTED_QUESTIONS]"],
+      };
+      if (hasTools) body.tools = openaiToolDeclarations;
+
+      const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error(`[ai-gemini v77] Qwen non-stream error ${resp.status}: ${errText}`);
+        return null;
+      }
+      const data = await resp.json();
+      const usage = data.usage || {};
+      totalUsage.prompt_tokens += usage.prompt_tokens || 0;
+      totalUsage.completion_tokens += usage.completion_tokens || 0;
+      totalUsage.cached_tokens += usage.prompt_tokens_details?.cached_tokens || 0;
+
+      const choice = data.choices?.[0];
+      if (!choice) return null;
+
+      // Function call 감지
+      const toolCalls = choice.message?.tool_calls;
+      if (toolCalls && toolCalls.length > 0 && executeSajuFunction) {
+        // assistant message (tool_calls 포함) 추가
+        qwenMessages.push(choice.message);
+        for (const tc of toolCalls) {
+          const fnName = tc.function.name;
+          const fnArgs = JSON.parse(tc.function.arguments || "{}");
+          const result = executeSajuFunction(fnName, fnArgs);
+          console.log(`[ai-gemini v77] Qwen FC[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
+          qwenMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+        }
+        continue; // 다음 루프에서 결과 포함하여 재호출
+      }
+
+      // 텍스트 응답
+      const content = choice.message?.content || "";
+      console.log(`[ai-gemini v77] Qwen non-stream OK: prompt=${totalUsage.prompt_tokens}, comp=${totalUsage.completion_tokens}, cached=${totalUsage.cached_tokens}, fc=${i}`);
+      return { content, usage: totalUsage };
+    }
+    console.error("[ai-gemini v77] Qwen FC loop exhausted");
+    return null;
+  } catch (e) {
+    console.error("[ai-gemini v77] Qwen non-stream exception:", e);
+    return null;
+  }
+}
+
+/**
+ * v77: Qwen 3.5 Flash Streaming 호출
+ * - OpenAI SSE → 클라이언트 SSE 형식 변환 ({ text, done, usage })
+ * - explicit cache 동일 적용
+ * - 실패 시 null 반환 → Gemini streaming fallback
+ */
+async function handleQwenStreamingRequest(
+  supabase: ReturnType<typeof createClient>,
+  messages: { role: string; content: string }[],
+  maxTokens: number,
+  temperature: number,
+  userId: string | undefined,
+  isAdmin: boolean,
+): Promise<Response | null> {
+  if (!QWEN_API_KEY) return null;
+  try {
+    const systemMsgs = messages.filter((m) => m.role === "system");
+    const otherMsgs = messages.filter((m) => m.role !== "system");
+    const systemText = systemMsgs.map((m) => m.content).join("\n");
+
+    const qwenMessages: { [k: string]: unknown }[] = [];
+    if (systemText) {
+      qwenMessages.push({
+        role: "system",
+        content: [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }],
+      });
+    }
+    for (const m of otherMsgs) {
+      qwenMessages.push({ role: m.role === "assistant" ? "assistant" : "user", content: m.content });
+    }
+
+    const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+      body: JSON.stringify({
+        model: QWEN_MODEL,
+        messages: qwenMessages,
+        max_tokens: maxTokens,
+        temperature,
+        presence_penalty: 0.6,
+        stream: true,
+        stream_options: { include_usage: true },
+        enable_thinking: false,
+        stop: ["[/SUGGESTED_QUESTIONS]"],
+      }),
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error(`[ai-gemini v77] Qwen stream error ${resp.status}: ${errText}`);
+      return null;
+    }
+
+    let totalPromptTokens = 0;
+    let totalCompletionTokens = 0;
+    let totalCachedTokens = 0;
+    let totalTextLength = 0;
+    let accumulatedText = "";
+    let repetitionDetected = false;
+
+    function detectRepetition(text: string): boolean {
+      if (text.length < 20) return false;
+      const tail = text.slice(-100);
+      if (/(.)\1{19,}/.test(tail)) return true;
+      if (/(.{2,4})\1{9,}/.test(tail)) return true;
+      return false;
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const reader = resp.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        function processLine(line: string) {
+          if (repetitionDetected) return;
+          if (!line.startsWith("data: ")) return;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr || jsonStr === "[DONE]") return;
+          try {
+            const data = JSON.parse(jsonStr);
+            // usage 캡처 (마지막 청크에 포함)
+            if (data.usage) {
+              totalPromptTokens = data.usage.prompt_tokens || 0;
+              totalCompletionTokens = data.usage.completion_tokens || 0;
+              totalCachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+            }
+            const choice = data.choices?.[0];
+            if (!choice) return;
+            const text = choice.delta?.content || "";
+            const finishReason = choice.finish_reason;
+
+            if (text) {
+              accumulatedText += text;
+              if (accumulatedText.length > 200) accumulatedText = accumulatedText.slice(-200);
+              if (detectRepetition(accumulatedText)) {
+                repetitionDetected = true;
+                console.error(`[ai-gemini v77] Qwen REPETITION DETECTED! Last 50: "${accumulatedText.slice(-50)}"`);
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n[AI 응답에 오류가 발생했습니다. 다시 질문해주세요.]", done: false, finish_reason: "REPETITION_DETECTED" })}\n\n`));
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "REPETITION_DETECTED", usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, cached_tokens: totalCachedTokens } })}\n\n`));
+                return;
+              }
+              totalTextLength += text.length;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text, done: false, finish_reason: finishReason })}\n\n`));
+            }
+            if (finishReason === "stop" && !text) {
+              // finish만 온 경우 (텍스트 없이)
+            }
+          } catch (e) {
+            console.error("[ai-gemini v77] Qwen SSE parse error:", e);
+          }
+        }
+
+        try {
+          while (true) {
+            if (repetitionDetected) { await reader.cancel(); break; }
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              processLine(line);
+              if (repetitionDetected) break;
+            }
+          }
+          if (!repetitionDetected) {
+            buffer += decoder.decode(new Uint8Array(), { stream: false });
+            if (buffer.trim()) {
+              for (const line of buffer.split("\n")) processLine(line);
+            }
+          }
+          // done 전송
+          if (!repetitionDetected) {
+            const cacheHitPct = totalPromptTokens > 0 ? Math.round(totalCachedTokens / totalPromptTokens * 100) : 0;
+            console.log(`[ai-gemini v77] Qwen stream done: prompt=${totalPromptTokens}, comp=${totalCompletionTokens}, cached=${totalCachedTokens} (${cacheHitPct}%), textLen=${totalTextLength}`);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, total_tokens: totalPromptTokens + totalCompletionTokens, cached_tokens: totalCachedTokens } })}\n\n`));
+          }
+          // 비용 기록 (Qwen 가격 = Gemini와 동일 $0.10/$0.40, explicit cache $0.01)
+          if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
+            const nonCached = totalPromptTokens - totalCachedTokens;
+            const cost = (nonCached * 0.10 / 1000000) + (totalCachedTokens * 0.01 / 1000000) + (totalCompletionTokens * 0.40 / 1000000);
+            await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
+          }
+        } catch (e) {
+          console.error("[ai-gemini v77] Qwen stream error:", e);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream error", done: true })}\n\n`));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(stream, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" },
+    });
+  } catch (e) {
+    console.error("[ai-gemini v77] Qwen stream setup error:", e);
+    return null;
+  }
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -636,7 +897,7 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
   try {
-    if (GEMINI_API_KEYS.length === 0) throw new Error("GEMINI_API_KEY is not configured");
+    if (!QWEN_API_KEY && GEMINI_API_KEYS.length === 0) throw new Error("No AI provider configured (QWEN_API_KEY or GEMINI_API_KEY required)");
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const requestData: GeminiRequest = await req.json();
     const action = requestData.action || "chat";
@@ -676,11 +937,41 @@ Deno.serve(async (req) => {
         }
       }
     }
+    // v77: Qwen → Gemini fallback
     if (stream) {
-      console.log(`[ai-gemini v36] Streaming mode: model=${model}, session_id=${session_id || 'none'}`);
+      // 스트리밍: Qwen 먼저 시도, 실패 시 Gemini fallback
+      if (QWEN_API_KEY) {
+        console.log(`[ai-gemini v77] Streaming: trying Qwen 3.5 Flash`);
+        const qwenResp = await handleQwenStreamingRequest(supabase, messages, max_tokens, temperature, user_id, isAdmin);
+        if (qwenResp) return qwenResp;
+        console.warn(`[ai-gemini v77] Qwen streaming failed, falling back to Gemini`);
+      }
+      console.log(`[ai-gemini v77] Streaming fallback: Gemini ${model}, session_id=${session_id || 'none'}`);
       return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin, session_id);
     }
-    console.log(`[ai-gemini v23] Non-streaming: model=${model}, isAdmin=${isAdmin}`);
+
+    // Non-streaming: Qwen 먼저 시도
+    if (QWEN_API_KEY) {
+      console.log(`[ai-gemini v77] Non-streaming: trying Qwen 3.5 Flash`);
+      const qwenResult = await callQwenNonStreaming(messages, max_tokens, temperature);
+      if (qwenResult) {
+        const { content, usage } = qwenResult;
+        // 비용 기록 (Qwen = Gemini 동일 가격)
+        if (user_id) {
+          const nonCached = (usage.prompt_tokens || 0) - (usage.cached_tokens || 0);
+          const cost = (nonCached * 0.10 / 1000000) + ((usage.cached_tokens || 0) * 0.01 / 1000000) + ((usage.completion_tokens || 0) * 0.40 / 1000000);
+          await recordGeminiCost(supabase, user_id, usage.prompt_tokens || 0, usage.completion_tokens || 0, cost);
+        }
+        const cacheHitPct = usage.prompt_tokens ? Math.round((usage.cached_tokens || 0) / usage.prompt_tokens * 100) : 0;
+        console.log(`[ai-gemini v77] Qwen non-stream OK: cached=${usage.cached_tokens || 0} (${cacheHitPct}% hit)`);
+        return new Response(
+          JSON.stringify({ success: true, content, usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, total_tokens: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) }, model: QWEN_MODEL, finish_reason: "stop", is_admin: isAdmin }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.warn(`[ai-gemini v77] Qwen non-streaming failed, falling back to Gemini`);
+    }
+    console.log(`[ai-gemini v77] Non-streaming fallback: Gemini ${model}, isAdmin=${isAdmin}`);
     const systemInstruction = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");
     const contents = messages.filter((m) => m.role !== "system").map((m) => ({
       role: m.role === "assistant" ? "model" : "user",

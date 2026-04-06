@@ -2,7 +2,7 @@
  * 천간합(天干合) 5쌍 룩업
  */
 
-const CHEONGAN_HAP: Record<string, { pair: string; result: string }> = {
+const CHEONGAN_HAP: { [k: string]: { pair: string; result: string } } = {
   '갑': { pair: '기', result: '토(土)' },
   '기': { pair: '갑', result: '토(土)' },
   '을': { pair: '경', result: '금(金)' },
@@ -15,7 +15,7 @@ const CHEONGAN_HAP: Record<string, { pair: string; result: string }> = {
   '계': { pair: '무', result: '화(火)' },
 };
 
-export function verifyCheonganHap(gan1: string, gan2: string): Record<string, unknown> {
+export function verifyCheonganHap(gan1: string, gan2: string): { [k: string]: unknown } {
   const hap = CHEONGAN_HAP[gan1];
   if (hap && hap.pair === gan2) {
     return {

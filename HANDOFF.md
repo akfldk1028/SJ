@@ -1,146 +1,157 @@
-# HANDOFF — 사주 정확도 대폭 개선 + Function Calling 인프라
+# HANDOFF — Qwen 3.5 Flash 전환 완료 + 궁통보감 FC 도구 + 프롬프트 정리 대기
 
-> 작성: 2026-04-06 | DK-DD 브랜치 | v0.1.6+75 → Edge Function v92
+> 작성: 2026-04-07 | DK-DD 브랜치 | Edge Function v98
 
 ---
 
 ## Goal
 
-1. AI(Gemini)가 사주 기초를 틀리는 문제 해결 (원진살 지어내기, 남녀 배우자성 혼동 등)
-2. Gemini function calling 인프라 구축 (flash 업그레이드 시 즉시 활성화)
-3. Sequential Thinking (공식 MCP 기반) 도구 추가
-4. 대운 해석 규칙은 인터넷+커뮤니티 리서치 후 별도 작업
+1. ~~Gemini 2.5 Flash Lite 추론력 부족 (GPQA 64.6%)~~ → **Qwen 3.5 Flash (GPQA 84.2%) 전환 완료**
+2. 사주 FC 도구 확장 (궁통보감 조후 120조합 + 지장간) → **v98 배포 완료**
+3. 프롬프트 정리 (FC 중복 ~1400토큰 삭제) → **미완료, 다음 세션**
+4. 비용 모니터링 (DashScope 대시보드 확인) → **24시간 후 확인 필요**
 
 ---
 
 ## Current Progress (완료)
 
-### 1. 시스템 프롬프트 규칙 추가 (`system_prompt_builder.dart` `_addSajuCoreRules()`)
+### 1. Qwen 3.5 Flash 전환 (v94~v98)
 
-| 추가된 규칙 | 내용 |
-|------------|------|
-| **원진살 6쌍** | 子未, 丑午, 寅酉, 卯申, 辰亥, 巳戌 + 해(害)와 구분 |
-| **육친 배우자성 10간** | 남자=재성, 여자=관성. 10간 전체 매핑 |
-| **4궁(宮位)** | 년주=조상궁, 월주=부모궁, 일간=나, 일지=배우자궁, 시주=자녀궁 |
-| **조후용신 수정** | 봄: 수→**화** 수정 (궁통보감 원칙) |
-| **금지 규칙 강화** | 원진 지어내기 금지, 남녀 육친 혼동 금지 |
+| 버전 | 변경 | 결과 |
+|------|------|------|
+| v94 | Qwen 추가 (thinking ON) | 23~69초, 비용 폭발 |
+| v95 | `enable_thinking: false` | 4초로 개선 |
+| v96 | saju-tools Record 에러 수정 + Qwen FC 루프 | 3.5초, 도구 정상 |
+| v97 | `stop: ["[/SUGGESTED_QUESTIONS]"]` | 추천 질문 칩 정상화 |
+| v98 | 궁통보감 조후 + 지장간 FC 도구 추가 | 9개 도구 |
 
-### 2. compatibility_calculator.dart 원진 replaceAll 수정
+**Qwen 설정:**
+- API Key: Supabase secret `QWEN_API_KEY` (DashScope 싱가포르)
+- Base URL: `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`
+- 모델: `qwen3.5-flash`
+- `enable_thinking: false` (⛔ 절대 true 금지)
+- `stop: ["[/SUGGESTED_QUESTIONS]"]`
+- explicit cache: `cache_control: {"type": "ephemeral"}` (system message)
+- Fallback: Qwen 실패 → Gemini 2.5 Flash Lite 자동
 
-- 기존: 해(害) 쌍을 원진으로 잘못 매핑 (인사→인유, 묘진→묘신 등)
-- 수정: 원진 6쌍에 맞게 전체 12개 replaceAll 수정
-
-### 3. Gemini Function Calling 인프라 (`saju-tools/`)
+### 2. saju-tools 9개 도구
 
 ```
 supabase/functions/ai-gemini/saju-tools/
-├── index.ts          # 도구 선언 6개 + 실행 디스패처
-├── interactions.ts   # 충6/원진6/해6/육합6/삼합4/방합4/형/파
-├── spouse.ts         # 육친 배우자성 (10간×2성별)
-├── sipsin.ts         # 십성 계산 (정기 기준 음양)
+├── index.ts          # 도구 9개 선언 (Gemini + OpenAI 자동 변환)
+├── interactions.ts   # 충/원진/해/육합/삼합/방합/형/파
+├── spouse.ts         # 육친 배우자성
+├── sipsin.ts         # 십성 계산
 ├── cheongan.ts       # 천간합 5쌍
-└── gungwi.ts         # 궁위 (4궁)
+├── gungwi.ts         # 궁위 4궁
+├── johu.ts           # ✅ 궁통보감 조후용신 120조합 (신규)
+└── jijanggan.ts      # ✅ 지장간 본기/중기/여기 (신규)
 ```
 
-6개 도구:
-- `verify_interaction` — 지지 관계 판별
-- `get_spouse_star` — 배우자성 조회
-- `get_sipsin` — 십성 계산
-- `verify_cheongan_hap` — 천간합 확인
-- `get_gungwi` — 궁위 의미
-- `think` — Sequential Thinking (공식 MCP description 그대로)
+- `openaiToolDeclarations`가 Gemini 형식에서 자동 변환 (geminiToOpenAI 함수)
+- Qwen non-streaming에 FC 루프 (최대 6회)
+- 스트리밍은 도구 없음 (non-streaming에서만 FC 동작)
 
-### 4. Edge Function 수정 (`index.ts` v92)
+### 3. 테스트 결과
 
-- 동적 import: saju-tools 로드 실패해도 기존 동작 유지
-- **lite 모델은 tools 안 보냄** (`!model.includes('lite')` 체크)
-- non-streaming 경로에 function call loop (최대 6회)
-- functionResponse에 id 필드 포함 (Gemini 공식 스펙)
+| 모델 | 정답률 | 속도 |
+|------|--------|------|
+| Gemini 2.5 Flash Lite (v92) | ~73% | ~1.8초 |
+| **Qwen 3.5 Flash (v98)** | **100% (12/12)** | ~3.5초 |
+
+테스트 스크립트: `test_saju_chat.mjs` (Gemini vs Qwen 비교 모드 추가됨)
+```bash
+QWEN_API_KEY=sk-xxx node test_saju_chat.mjs compare  # 양쪽 비교
+QWEN_API_KEY=sk-xxx node test_saju_chat.mjs qwen     # Qwen만
+node test_saju_chat.mjs gemini                        # Gemini만
+```
+
+### 4. 가격 (Gemini와 동일)
+
+| | Gemini Lite | Qwen Flash |
+|--|:-:|:-:|
+| Input | $0.10/M | $0.10/M |
+| Output | $0.40/M | $0.40/M |
+| Cached | $0.01/M (implicit) | $0.01/M (explicit 90%) |
+| 월 예상 | ~$14 | ~$14-18 |
+
+### 5. 리서치 결과 (사주 분석 방법론)
+
+리서치 에이전트 완료 (`a409c03d54a7c26e1`). 핵심 발견:
+- **BaZi MCP 서버** (cantian-ai/bazi-mcp, 354 stars): 30.3~62.6% 정확도 향상
+- **커뮤니티 AI 사주 불만 Top 5**: 합충 할루, 격국 오판, 조후/억부 혼동, 육친 반전, 지장간 오류
+- **우리 FC 9개 도구가 Top 5 중 4개 커버**
+- 상세 결과: 메모리 `architecture/qwen_vs_gemini_evaluation.md` 참조
 
 ---
 
 ## What Worked
 
-1. **프롬프트 규칙만으로 lite 4/5 통과** — function calling 없이도 규칙 텍스트로 충분
-2. **원진살 6쌍 명시** → AI가 "인술은 원진 아님, 인유가 원진" 정확 답변
-3. **육친 배우자성 명시** → "경금 남자 배우자=목(갑/을)" 정확 답변
-4. **4궁 명시** → "일지=배우자궁, 일주 전체 아님" 정확 답변
-5. **반합 규칙** → "자진=신자진 수국의 반합" 정확 답변
-6. **동적 import** → saju-tools 로드 실패해도 프로덕션 영향 없음
+1. **Qwen 3.5 Flash**: 같은 가격에 GPQA +19.6p, 정답률 73%→100%
+2. **`enable_thinking: false`**: thinking ON이 기본이라 23~69초 → OFF로 3.5초
+3. **explicit caching**: `cache_control: {"type": "ephemeral"}` → 90% 할인 (Gemini implicit과 동일)
+4. **OpenAI 호환 API**: Gemini → Qwen 전환이 endpoint/format만 바꾸면 됨
+5. **saju-tools Record 에러 수정**: `Record<>` → `{ [k: string]: ... }` + 한자 변수명 → 영문
+6. **FC openaiToolDeclarations 자동 변환**: Gemini 형식 → OpenAI 형식 `geminiToOpenAI()` 함수
 
 ## What Didn't Work
 
-1. **gemini-2.5-flash-lite는 function calling 미지원** — 공식 문서 확인
-2. **도구 사용 지시 너무 강하면 역효과** — lite가 도구를 텍스트로 출력하며 혼란
-3. **정적 import** → saju-tools에 에러 있으면 전체 Edge Function 크래시 (500)
-4. **thinkingBudget** → 돈 많이 듦. function calling이 더 경제적이나 lite 미지원
+1. **`enable_thinking: true` (기본값)**: 비용 5~8배 + 속도 10배 느림. 절대 켜지 마라
+2. **Gemma 4 (OpenRouter)**: 캐싱 미지원 → 월 $60+ 예상, 탈락
+3. **프롬프트 대량 수정**: system_prompt_builder.dart에서 80줄 한번에 교체하려니 인코딩 문제로 Edit 도구 실패. 줄 단위로 접근해야 함
+4. **curl로 Edge Function 테스트**: `verify_jwt: true`라 JWT 없이 안 됨. node fetch나 앱에서 테스트해야 함
+5. **Supabase MCP로 대용량 파일 배포**: index.ts가 56KB라 MCP files 파라미터에 직접 넣기 어려움. CLI `supabase functions deploy`가 확실
 
 ---
 
-## 현재 상태
+## Next Steps (다음 세션)
 
-| 항목 | 상태 |
-|------|------|
-| Edge Function | v92 배포, 정상 동작 |
-| 프롬프트 규칙 | 기초 + 대운 해석 규칙 추가 완료 |
-| saju-tools 코드 | 완성, lite에서는 비활성 (flash 전환 시 즉시 활성화) |
-| 테스트 결과 | 8문제 중 7/8 통과 (1개는 서버 과부하) |
-| 프로덕션 영향 | 없음 (lite는 tools 안 보냄) |
+### 🔴 P0: 비용 모니터링 (배포 24시간 후)
 
----
+1. **DashScope 대시보드** 확인: https://modelstudio.console.alibabacloud.com (싱가포르)
+   - 실제 과금 금액 확인
+   - cached_tokens 비율 확인
+2. **AI Studio (Gemini)** 확인: https://aistudio.google.com (hanvit4303@gmail.com)
+   - Gemini fallback이 얼마나 호출됐는지
+3. DB `user_daily_token_usage` → `gemini_cost_usd` 값과 대시보드 비교
 
-## Next Steps
+### ✅ P1: 프롬프트 정리 (~1000토큰 절약) — 완료
 
-### 1. ~~대운 해석 규칙 리서치~~ ✅ 완료
-- `_addSajuCoreRules()`에 대운 규칙 9개 추가 (천간지지 비중, 원국 작용, 교운기, 용신기신, 대운×세운, 순행역행)
-- 테스트 3문제 추가 (용신판별, 교운기, 지지비중) → 7/8 통과
+**파일**: `frontend/lib/features/saju_chat/data/services/system_prompt_builder.dart`
+**메서드**: `_addSajuCoreRules()` (v99)
 
-### 2. 궁통보감 120조합 (보류 — flash 전환 시)
-- 10일간 × 12월지 = 120가지 조후용신
-- ~3000토큰. lite에는 과부하, flash에서 넣을 것
+완료 내역:
+- 천간 오행/음양, 십성 판별법, 지장간 테이블, 조후 계절 4줄, 천간합/삼합/방합/육합/충/원진/해, 배우자성, 궁위 **전부 삭제** (FC 도구가 대체)
+- 【도구 활용】 섹션 추가 (9줄, 7개 도구 매핑 + 경고 2줄)
+- 순 40줄 감소 (diff: +65/-105)
 
-### 3. 십성 정확도 마지막 1문제
-- "경금→갑목=편재"를 "아빠"라고 잘못 비유 (1/5 실패)
-- persona_base.dart 용어 번역 테이블에 "편재≠아빠" 명시 고려
+### ✅ P2: 추가 프롬프트 개선 — 완료
 
-### 4. Flash 업그레이드 시 체크리스트
-- [ ] `model.includes('lite')` 체크 제거 → tools 활성화
-- [ ] `toolConfig: { functionCallingConfig: { mode: "AUTO" } }` 추가
-- [ ] 궁통보감 120조합 추가
-- [ ] function calling 테스트 재실행
+- 조후 우선순위: "사주 온도가 극단적이면 조후가 억부보다 우선" 추가
+- 격국 판정: "① 종격 확인 → ② 월지 본기 투간 → ③ 중기 → ④ 여기" 추가
 
-### 5. 앱 배포
-- system_prompt_builder.dart 변경사항은 Flutter 앱 빌드+배포 필요
-- `flutter build appbundle --release` → Play Store 업로드
+### 🟢 P3: 스트리밍 FC (선택)
+
+현재 스트리밍에서는 도구 없음 (non-streaming에서만 FC). 
+스트리밍에서도 도구 호출하려면 OpenAI streaming + tool_calls 처리 필요 — 복잡도 높음, 현재 정확도 100%이니 우선순위 낮음.
 
 ---
 
-## 핵심 파일
+## Key Files
 
 | 파일 | 역할 |
 |------|------|
-| `supabase/functions/ai-gemini/index.ts` | Edge Function v92 (동적 saju-tools import, lite safe) |
-| `supabase/functions/ai-gemini/saju-tools/` | 🆕 사주 검증 도구 6개 (flash 전용) |
-| `frontend/lib/features/saju_chat/data/services/system_prompt_builder.dart` | `_addSajuCoreRules()` — 원진/육친/궁위/조후/대운 추가 |
-| `frontend/lib/AI/jina/personas/persona_base.dart` | 공통 프롬프트 (해석 태도, 용어 번역) |
-| `frontend/lib/AI/services/compatibility_calculator.dart` | 원진 replaceAll 수정 |
-| `test_saju_chat.mjs` | 함정 질문 테스트 (8문제: 기초5+대운3) |
+| `supabase/functions/ai-gemini/index.ts` | Edge Function 메인 (Qwen+Gemini fallback) |
+| `supabase/functions/ai-gemini/saju-tools/` | FC 도구 9개 |
+| `frontend/lib/features/saju_chat/data/services/system_prompt_builder.dart` | 사주 프롬프트 빌더 |
+| `test_saju_chat.mjs` | Qwen vs Gemini 비교 테스트 |
+| `memory/architecture/qwen_vs_gemini_evaluation.md` | 전환 기록 + 설정 |
 
 ---
 
-## 테스트 명령어
+## 절대 금지 사항
 
-```bash
-# 사주 함정 질문 테스트 (lite, 프롬프트만)
-node test_saju_chat.mjs
-
-# Edge Function 배포
-cd D:/Data/20_Flutter/01_SJ
-npx supabase functions deploy ai-gemini --no-verify-jwt
-```
-
----
-
-## 메모리
-
-전체 아키텍처/비용/버그 이력: `D:\DevCache\claude-data\projects\D--Data-20-Flutter-01-SJ\memory\`
+1. **Qwen `enable_thinking: true`** → 비용 5~8배 + 속도 10배
+2. **Gemini `thinkingBudget` ≠ 0** → 비용 25배
+3. **QWEN_API_KEY를 코드에 하드코딩** → Supabase secret으로만
+4. **Play Store 기본 언어를 영어로 바꾸기** → 한국어 유지 (메모리 참조)

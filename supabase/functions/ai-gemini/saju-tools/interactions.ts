@@ -4,7 +4,7 @@
  */
 
 // 충(冲) — 6쌍
-const CHUNG: Record<string, string> = {
+const CHUNG: { [k: string]: string } = {
   '자': '오', '오': '자',
   '축': '미', '미': '축',
   '인': '신', '신': '인',
@@ -14,7 +14,7 @@ const CHUNG: Record<string, string> = {
 };
 
 // 원진(怨嗔) — 6쌍
-const WONJIN: Record<string, string> = {
+const WONJIN: { [k: string]: string } = {
   '자': '미', '미': '자',
   '축': '오', '오': '축',
   '인': '유', '유': '인',
@@ -24,7 +24,7 @@ const WONJIN: Record<string, string> = {
 };
 
 // 해(害/六害) — 6쌍 (원진과 다름!)
-const HAE: Record<string, string> = {
+const HAE: { [k: string]: string } = {
   '자': '미', '미': '자',
   '축': '오', '오': '축',
   '인': '사', '사': '인',
@@ -34,7 +34,7 @@ const HAE: Record<string, string> = {
 };
 
 // 육합(六合) — 6쌍 + 합화 결과
-const YUKHAP: Record<string, { pair: string; result: string }> = {
+const YUKHAP: { [k: string]: { pair: string; result: string } } = {
   '자': { pair: '축', result: '토' },
   '축': { pair: '자', result: '토' },
   '인': { pair: '해', result: '목' },
@@ -77,7 +77,7 @@ const HYUNG: Array<{ members: string[]; name: string }> = [
 ];
 
 // 파(破) — 6쌍
-const PA: Record<string, string> = {
+const PA: { [k: string]: string } = {
   '자': '유', '유': '자',
   '축': '진', '진': '축',
   '인': '해', '해': '인',
@@ -86,8 +86,8 @@ const PA: Record<string, string> = {
   '술': '미', '미': '술',
 };
 
-export function verifyInteraction(ji1: string, ji2: string): Record<string, unknown> {
-  const results: Record<string, unknown> = {
+export function verifyInteraction(ji1: string, ji2: string): { [k: string]: unknown } {
+  const results: { [k: string]: unknown } = {
     ji1,
     ji2,
     relations: [] as string[],

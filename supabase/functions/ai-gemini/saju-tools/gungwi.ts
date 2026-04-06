@@ -2,7 +2,7 @@
  * 궁위(宮位) — 사주 4주(柱)의 의미
  */
 
-const GUNGWI: Record<string, Record<string, string>> = {
+const GUNGWI: { [k: string]: { [k2: string]: string } } = {
   year: {
     name: '년주(年柱) — 조상궁/사회궁',
     period: '유년기 (1~15세)',
@@ -38,7 +38,7 @@ const GUNGWI: Record<string, Record<string, string>> = {
   },
 };
 
-export function getGungwi(pillar: string): Record<string, string> {
+export function getGungwi(pillar: string): { [k: string]: string } {
   const info = GUNGWI[pillar];
   if (!info) {
     return {

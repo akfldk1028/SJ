@@ -335,16 +335,7 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
 
-    // 용신
-    final yongsin = sajuAnalysis.yongsin;
-    _buffer.writeln('### 용신');
-    _buffer.writeln('- 용신: ${yongsin.yongsin.korean}');
-    _buffer.writeln('- 희신: ${yongsin.heesin.korean}');
-    _buffer.writeln('- 기신: ${yongsin.gisin.korean}');
-    _buffer.writeln('- 구신: ${yongsin.gusin.korean}');
-    _buffer.writeln();
-
-    // 신강/신약
+    // 신강/신약 (오행 다음, 격국·용신 판단의 전제)
     final dayStrength = sajuAnalysis.dayStrength;
     _buffer.writeln('### 신강/신약');
     _buffer.writeln('- 상태: ${dayStrength.level.korean}');
@@ -354,12 +345,21 @@ class SystemPromptBuilder {
     _buffer.writeln('- 득세: ${dayStrength.deukse ? 'O' : 'X'}');
     _buffer.writeln();
 
-    // 격국
+    // 격국 (종격 여부가 용신 방법을 결정 → 용신보다 먼저)
     final gyeokguk = sajuAnalysis.gyeokguk;
     _buffer.writeln('### 격국');
     _buffer.writeln('- 격국: ${gyeokguk.gyeokguk.korean}');
     _buffer.writeln('- 강도: ${gyeokguk.strength}/100');
     _buffer.writeln('- 설명: ${gyeokguk.reason}');
+    _buffer.writeln();
+
+    // 용신 (격국 판단 후 선정)
+    final yongsin = sajuAnalysis.yongsin;
+    _buffer.writeln('### 용신');
+    _buffer.writeln('- 용신: ${yongsin.yongsin.korean}');
+    _buffer.writeln('- 희신: ${yongsin.heesin.korean}');
+    _buffer.writeln('- 기신: ${yongsin.gisin.korean}');
+    _buffer.writeln('- 구신: ${yongsin.gusin.korean}');
     _buffer.writeln();
 
     // 십성
@@ -378,18 +378,9 @@ class SystemPromptBuilder {
     _buffer.writeln('| 지지 | $yearJiSipsin | $monthJiSipsin | $dayJiSipsin | $hourJiSipsin |');
     _buffer.writeln();
 
-    // 지장간
-    final jijanggan = sajuAnalysis.jijangganInfo;
-    _buffer.writeln('### 지장간');
-    _buffer.writeln('| 위치 | 지장간 |');
-    _buffer.writeln('|------|--------|');
-    _buffer.writeln('| 년지 | ${_formatJiJangGan(jijanggan.yearJi)} |');
-    _buffer.writeln('| 월지 | ${_formatJiJangGan(jijanggan.monthJi)} |');
-    _buffer.writeln('| 일지 | ${_formatJiJangGan(jijanggan.dayJi)} |');
-    if (jijanggan.hourJi.isNotEmpty) {
-      _buffer.writeln('| 시지 | ${_formatJiJangGan(jijanggan.hourJi)} |');
-    }
-    _buffer.writeln();
+    // 지장간 데이터 주입 제거 — AI가 지장간 위주로 설명하면 유저가 헷갈림
+    // 격국·십성 판별은 규칙 섹션의 지장간 본기 테이블로 충분
+
 
     // 신살
     final sinsalList = sajuAnalysis.sinsalList;
@@ -1226,114 +1217,83 @@ class SystemPromptBuilder {
   }
 
   /// v39: 사주 명리학 핵심 규칙 (AI 해석 정확도 향상)
-  /// 2.5-flash-lite가 사주 용어를 가끔 잘못 해석하는 문제 방지
-  /// ~500 토큰, implicit caching으로 2턴부터 비용 무시 가능
+  /// v99: FC 도구 중복 테이블 제거 + 도구 활용 지시 추가 (~1000토큰 절약)
+  /// 상세 데이터(합충/십성/배우자성/궁위/지장간/조후)는 FC 도구가 제공
   void _addSajuCoreRules() {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
     _buffer.writeln('## 사주 명리학 핵심 규칙 (반드시 준수)');
     _buffer.writeln();
+    _buffer.writeln('【해석 순서 — 반드시 이 순서대로. 앞 단계 결론이 뒷 단계 전제】');
+    _buffer.writeln('① 일간 파악: 일주 천간 = 나 자신. 모든 십성·강약의 기준점');
+    _buffer.writeln('② 십성 배치: 일간 기준 나머지 7글자의 십성 산출 (비겁/식상/재성/관성/인성)');
+    _buffer.writeln('③ 오행 균형: 8글자+지장간의 목화토금수 분포. 과다/부족/전무 파악');
+    _buffer.writeln('④ 신강/신약: 득령(월지)+득지(일지)+득세(천간) → 일간이 강한지 약한지');
+    _buffer.writeln('⑤ 격국 판단: 월지 지장간 기준. 종격 여부를 먼저 확인! (종격이면 ⑥에서 억부법 불가)');
+    _buffer.writeln('⑥ 용신 선정: 정격→억부법(신강이면 억제, 신약이면 보강), 종격→종하는 오행이 용신. 조후는 보조');
+    _buffer.writeln('⑦ 합충형파해: 천간합, 지지 삼합/방합/육합/충/형/파/해. 원국 구조 변화 확인');
+    _buffer.writeln('⑧ 궁위/육친: 4궁(년=조상, 월=부모, 일=배우자, 시=자녀) + 성별별 배우자성 + 신살');
+    _buffer.writeln('⑨ 대운/세운: 원국+용신 확정 후 후천운 대조. 대운은 10년 환경, 세운은 1년 사건');
+    _buffer.writeln('⚠️ 격국 전에 용신을 판단하면 종격 사주에서 정반대 결론이 나옴. 순서 엄수!');
+    _buffer.writeln();
     _buffer.writeln('【오행 상생】 木→火→土→金→水→木 (목생화, 화생토, 토생금, 금생수, 수생목)');
     _buffer.writeln('【오행 상극】 木→土, 土→水, 水→火, 火→金, 金→木 (목극토, 토극수, 수극화, 화극금, 금극목)');
     _buffer.writeln();
-    _buffer.writeln('【천간 오행/음양】');
-    _buffer.writeln('양(+): 甲(갑)木, 丙(병)火, 戊(무)土, 庚(경)金, 壬(임)水');
-    _buffer.writeln('음(-): 乙(을)木, 丁(정)火, 己(기)土, 辛(신)金, 癸(계)水');
-    _buffer.writeln();
-    _buffer.writeln('【십성 판별법 — 일간 기준】');
-    _buffer.writeln('같은오행=비견(같은음양)/겁재(다른음양)');
-    _buffer.writeln('내가 생하는 오행=식신(같은음양)/상관(다른음양)');
-    _buffer.writeln('내가 극하는 오행=편재(같은음양)/정재(다른음양)');
-    _buffer.writeln('나를 극하는 오행=편관(같은음양)/정관(다른음양)');
-    _buffer.writeln('나를 생하는 오행=편인(같은음양)/정인(다른음양)');
-    _buffer.writeln('⚠️ 십성은 위에 계산된 "십성 배치" 테이블을 우선 참조하라. 새로운 조합은 아래로 확인:');
-    _buffer.writeln('  상극 방향: 木克土, 土克水, 水克火, 火克金, 金克木 (→ 방향이 "내가 극" = 재성)');
-    _buffer.writeln('  상생 방향: 木生火, 火生土, 土生金, 金生水, 水生木 (→ 방향이 "내가 생" = 식상)');
-    _buffer.writeln();
-    _buffer.writeln('【조후용신 — 궁통보감(窮通寶鑑) 핵심】');
-    _buffer.writeln('핵심 원리: 춥고 습하면 火가 약, 덥고 건조하면 水가 약. 일간+월지 조합으로 판단.');
-    _buffer.writeln('봄(寅卯辰월): 화(火) 필요 — 아직 쌀쌀, 丙火로 따뜻하게 + 癸水로 윤택(보조)');
-    _buffer.writeln('여름(巳午未월): 수(水) 필요 — 화왕토조, 壬水로 식혀야 (가장 명확한 계절)');
-    _buffer.writeln('가을(申酉戌월): 화(火) 필요 — 금왕수냉, 丁火로 따뜻하게 (일간에 따라 壬水 보조)');
-    _buffer.writeln('겨울(亥子丑월): 화(火) 필요 — 수왕목한, 丙火로 온기 공급');
-    _buffer.writeln('⚠️ 조후는 일간×월지 조합마다 다름. 위는 일반 원칙이며, 실제는 제공된 용신 데이터를 우선 참조.');
-    _buffer.writeln();
-    _buffer.writeln('【용신 선정 — 억부법】');
-    _buffer.writeln('신강(일간 강함): 설기(식상/재성) 또는 극(관성)으로 억제');
-    _buffer.writeln('신약(일간 약함): 생조(인성) 또는 방조(비겁)으로 보강');
-    _buffer.writeln();
-    _buffer.writeln('【격국(格局) — 월지 기준 가장 강한 십성으로 판단】');
+    _buffer.writeln('【격국(格局) — 월지 기준, 용신보다 먼저 판단! 종격 여부가 용신 방법을 결정】');
+    _buffer.writeln('■ 정격(내격): 월지 지장간 중 천간에 투출된 것으로 격 결정');
     _buffer.writeln('정관격: 조직력, 규율, 안정 / 칠살격(편관): 추진력, 권위, 강한 외부 압력');
     _buffer.writeln('정재격: 안정적 재물, 성실 / 편재격: 유동적 재물, 사업, 투기');
     _buffer.writeln('식신격: 표현력, 창의, 먹복 / 상관격: 재능, 반항, 자유분방');
     _buffer.writeln('정인격: 학문, 자격, 어머니 / 편인격: 편학, 종교, 예술, 고독');
     _buffer.writeln('비견격: 자존심, 독립, 경쟁 / 겁재격: 승부욕, 투쟁, 재물 손실 주의');
+    _buffer.writeln('■ 종격(외격): 일간이 극도로 약하여 강한 쪽에 따르는 구조 → 억부법 적용 불가!');
     _buffer.writeln('종왕격: 비겁 압도적 → 자기 길만 감 / 종살격: 관살 압도적 → 조직에 순응');
     _buffer.writeln('종재격: 재성 압도적 → 돈을 쫓는 삶 / 중화격: 균형 → 무난하지만 뚜렷한 특징 없음');
     _buffer.writeln();
-    _buffer.writeln('【천간합(天干合) — 궁합의 핵심】');
-    _buffer.writeln('甲己합토, 乙庚합금, 丙辛합수, 丁壬합목, 戊癸합화');
+    _buffer.writeln('【용신 선정 — 격국 판단 후 적용】');
+    _buffer.writeln('■ 정격 → 억부법: 신강이면 설기(식상/재성) 또는 극(관성), 신약이면 생조(인성) 또는 방조(비겁)');
+    _buffer.writeln('■ 종격 → 종하는 오행이 용신 (억부법 쓰면 정반대 결론!)');
+    _buffer.writeln('■ 조후용신(보조): 한난조습 기준. lookup_johu 도구로 궁통보감 120조합 정확히 확인');
+    _buffer.writeln('⚠️ 사주 온도가 극단적이면(한겨울 수일간, 한여름 화일간 등) 조후가 억부보다 우선.');
+    _buffer.writeln('⚠️ 격국 판정: ① 종격 확인 → ② 월지 본기 투간 → ③ 중기 투간 → ④ 여기 투간 순서.');
     _buffer.writeln();
-    _buffer.writeln('【지지 삼합(三合) — 절대 틀리지 말 것】');
-    _buffer.writeln('申子辰(신자진) = 水局 / 寅午戌(인오술) = 火局 / 巳酉丑(사유축) = 金局 / 亥卯未(해묘미) = 木局');
-    _buffer.writeln('반합: 삼합 중 2글자만 있으면 반합 (예: 子+辰=수 반합, 寅+戌=화 반합)');
+    _buffer.writeln('【도구 활용 — 아래 판별은 반드시 도구로 확인. 도구 없이 답하면 할루시네이션 위험!】');
+    _buffer.writeln('합/충/형/원진/해/육합/삼합/방합 → verify_interaction(ji1, ji2)');
+    _buffer.writeln('십성 → get_sipsin(ilgan, target)');
+    _buffer.writeln('배우자성 → get_spouse_star(ilgan, gender)');
+    _buffer.writeln('천간합 → verify_cheongan_hap(gan1, gan2)');
+    _buffer.writeln('궁위 해석 → get_gungwi(pillar)');
+    _buffer.writeln('지장간 → lookup_jijanggan(ji)');
+    _buffer.writeln('조후용신 → lookup_johu(ilgan, wolji) — 궁통보감 120조합');
+    _buffer.writeln('⚠️ 용신 논의 시 lookup_johu를 반드시 호출하여 정확한 조후를 확인하라.');
+    _buffer.writeln('⚠️ 육친 배우자성은 get_spouse_star로만 확인. 남녀 뒤바꾸면 치명적 오류.');
     _buffer.writeln();
-    _buffer.writeln('【지지 방합(方合)】');
-    _buffer.writeln('寅卯辰(인묘진)=동방 木 / 巳午未(사오미)=남방 火 / 申酉戌(신유술)=서방 金 / 亥子丑(해자축)=북방 水');
-    _buffer.writeln();
-    _buffer.writeln('【지지 육합(六合)】');
-    _buffer.writeln('子丑합토, 寅亥합목, 卯戌합화, 辰酉합금, 巳申합수, 午未합토');
-    _buffer.writeln();
-    _buffer.writeln('【지지 충(冲) — 딱 6쌍만 존재. 이 외는 충이 아님!】');
-    _buffer.writeln('子午충, 丑未충, 寅申충, 卯酉충, 辰戌충, 巳亥충');
-    _buffer.writeln('⚠️ 충/합 판별 시: 먼저 위 테이블에서 해당 조합을 찾아라. 테이블에 없으면 충이 아님.');
-    _buffer.writeln();
-    _buffer.writeln('【원진살(怨嗔殺) — 딱 6쌍만 존재. 이 외는 원진이 아님!】');
-    _buffer.writeln('子未(자미), 丑午(축오), 寅酉(인유), 卯申(묘신), 辰亥(진해), 巳戌(사술)');
-    _buffer.writeln('⚠️ 원진 판별 시: 위 6쌍에 없으면 원진이 아님. 원진과 해(害/육해)는 다른 개념:');
-    _buffer.writeln('  - 원진: 子未, 丑午, 寅酉, 卯申, 辰亥, 巳戌');
-    _buffer.writeln('  - 해(害): 子未, 丑午, 寅巳, 卯辰, 申亥, 酉戌 (자미·축오만 겹침, 나머지 4쌍은 다름)');
-    _buffer.writeln();
-    _buffer.writeln('【육친(六親) — 성별에 따라 배우자성이 다름! 절대 혼동 금지】');
-    _buffer.writeln('■ 남자: 배우자(아내) = 재성(財星) = 내가 극하는 오행');
-    _buffer.writeln('  甲乙(목) 남자 → 아내=토(戊편재/己정재), 丙丁(화) 남자 → 아내=금(庚편재/辛정재)');
-    _buffer.writeln('  戊己(토) 남자 → 아내=수(壬편재/癸정재), 庚辛(금) 남자 → 아내=목(甲편재/乙정재)');
-    _buffer.writeln('  壬癸(수) 남자 → 아내=화(丙편재/丁정재)');
-    _buffer.writeln('■ 여자: 배우자(남편) = 관성(官星) = 나를 극하는 오행');
-    _buffer.writeln('  甲乙(목) 여자 → 남편=금(庚편관/辛정관), 丙丁(화) 여자 → 남편=수(壬편관/癸정관)');
-    _buffer.writeln('  戊己(토) 여자 → 남편=목(甲편관/乙정관), 庚辛(금) 여자 → 남편=화(丙편관/丁정관)');
-    _buffer.writeln('  壬癸(수) 여자 → 남편=토(戊편관/己정관)');
-    _buffer.writeln('⚠️ 남자에게 관성은 직장/상사/사회적 압력이지 배우자가 아님!');
-    _buffer.writeln('⚠️ 여자에게 재성은 재물/아버지이지 배우자가 아님!');
-    _buffer.writeln();
-    _buffer.writeln('【사주 4궁(宮位) — 주(柱)마다 보는 대상이 다름】');
-    _buffer.writeln('년주(年柱) = 조상궁/사회궁: 조부모, 가문, 사회적 배경, 유년기(1~15세)');
-    _buffer.writeln('월주(月柱) = 부모궁/형제궁: 부모, 형제, 청년기(16~30세), 사회활동, 직업환경');
-    _buffer.writeln('일주(日柱) = 본인궁/배우자궁: 일간=나 자신, 일지=배우자. 중년기(31~45세)');
-    _buffer.writeln('시주(時柱) = 자녀궁/말년궁: 자녀, 후배, 하인, 말년(46세~), 노후');
-    _buffer.writeln('⚠️ 배우자궁 = 일지(日支). 일지에 앉은 십성이 배우자 성격/관계를 보여줌.');
-    _buffer.writeln('⚠️ 같은 십성이라도 어느 궁에 있느냐에 따라 해석이 완전히 달라짐.');
-    _buffer.writeln();
-    _buffer.writeln('【해석 원칙 — 고급 규칙, 반드시 준수】');
+    _buffer.writeln('【해석 원칙】');
     _buffer.writeln('1. 합화 결과가 용신이면 좋은합, 기신이면 나쁜합');
     _buffer.writeln('2. 충이 용신을 활성화하면 좋은충 (고지충=창고개방)');
     _buffer.writeln('3. 삼형≠충. 삼형은 만성적 마찰, 합으로 해소 불가');
     _buffer.writeln('4. 궁합은 쌍방(A→B + B→A) 양쪽 다 봐야 함');
-    _buffer.writeln('5. 전무오행이 대운으로 오면 폭발적 반응');
-    _buffer.writeln('6. 반합→삼합 완성 시점 = 인생 정점 예측 핵심');
-    _buffer.writeln('7. 종격 먼저 판별. 종격이면 억부법 적용 안 됨');
-    _buffer.writeln('8. 대운은 만세력 데이터 그대로. 임의 계산 금지');
-    _buffer.writeln('9. 합과 충 동시 발생 시 삼합·방합이 충을 흡수');
-    _buffer.writeln('10. 丙火(양화=태양)와 丁火(음화=촛불) 성격 구분 필수');
-    _buffer.writeln('11. 모든 십성·구조는 양면성. 무조건 좋다/나쁘다 금지');
-    _buffer.writeln('12. 좋은 운이어도 결과를 보장하지 않음. "가능성이 높아진다"고 표현');
-    _buffer.writeln('13. 유저가 실제 결과(실패/성공)를 말하면, 사주 해석을 현실에 맞춰 재분석');
-    _buffer.writeln('14. 표면적 길흉보다 "왜 좋은 운에도 안 됐는지" 구조적 원인을 파라');
+    _buffer.writeln('5. 합과 충 동시 발생 시 삼합·방합이 충을 흡수');
+    _buffer.writeln('6. 丙火(양화=태양)와 丁火(음화=촛불) 성격 구분 필수');
+    _buffer.writeln('7. 모든 십성·구조는 양면성. 무조건 좋다/나쁘다 금지');
+    _buffer.writeln('8. 좋은 운이어도 결과를 보장하지 않음. "가능성이 높아진다"고 표현');
+    _buffer.writeln('9. 유저가 실제 결과(실패/성공)를 말하면, 사주 해석을 현실에 맞춰 재분석');
+    _buffer.writeln('10. 표면적 길흉보다 "왜 좋은 운에도 안 됐는지" 구조적 원인을 파라');
+    _buffer.writeln('11. 대운은 만세력 데이터 그대로. 임의 계산 금지');
     _buffer.writeln();
     _buffer.writeln('⚠️ 절대 금지: 데이터에 없는 합/충/형/원진 지어내기. 맹목적 낙관/비관. 유저 경험 부정.');
     _buffer.writeln('⚠️ 절대 금지: 남자의 배우자를 관성으로, 여자의 배우자를 재성으로 말하기. 성별 육친 규칙 반드시 확인.');
     _buffer.writeln('⚠️ 모르면 추측하지 말고 "확인이 필요하다"고 하라.');
+    _buffer.writeln();
+    _buffer.writeln('【응답 태도 — 정확도와 일관성이 최우선】');
+    _buffer.writeln('1. 답변 전 제공된 데이터(사주팔자, 십성, 오행, 용신, 대운)를 먼저 전부 확인하라. 데이터에 있는 걸 못 보고 답하면 신뢰를 잃는다.');
+    _buffer.writeln('2. 유저가 "다른 AI는 이렇게 말했다"거나 지적하면: 반사적으로 동의/반박하지 말고, 제공된 데이터를 다시 확인하라. 확인 결과 유저가 맞으면 솔직히 인정+정정, 내가 맞았으면 근거를 들어 설명.');
+    _buffer.writeln('3. 한 대화 안에서 같은 질문에 다른 답 금지. 용신을 토라고 했으면 끝까지 토. 바꿔야 하면 왜 바꾸는지 명확히 설명.');
+    _buffer.writeln('4. 좋은 말만 하지 마라. 좋은 점과 주의할 점을 항상 같이 말하라. 유저가 "다 좋다고만 하네"라고 느끼면 실패.');
+    _buffer.writeln('5. 캐릭터 설정(위 페르소나)의 말투와 태도를 끝까지 유지하라. 대화가 길어져도 존댓말↔반말, 성격이 바뀌면 안 된다.');
+    _buffer.writeln('6. 유저에게 설명할 때 8글자(천간+지지) 위주로 말하라. 지장간은 격국·십성 판별 근거로만 쓰고, 대화에서 지장간을 주제로 길게 풀지 마라. 유저가 헷갈린다.');
+    _buffer.writeln('7. 존재하지 않는 충/합을 만들지 마라. 천간충은 없다(천간은 합만 존재). 지지충은 딱 6쌍뿐. "병계충" 같은 건 없다.');
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();

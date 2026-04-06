@@ -1,13 +1,24 @@
 /**
  * 사주 AI 함정 질문 테스트
- * - function calling (saju-tools + sequential thinking) 검증
+ * - Gemini 2.5 Flash Lite vs Qwen 3.5 Flash 품질 비교
  * - 기초 명리학 규칙 정답률 체크
+ * - Qwen explicit caching 검증 (cached_tokens 확인)
  *
- * 사용법: node test_saju_chat.mjs
+ * 사용법:
+ *   QWEN_API_KEY=sk-xxx node test_saju_chat.mjs          # 양쪽 비교
+ *   QWEN_API_KEY=sk-xxx node test_saju_chat.mjs qwen     # Qwen만
+ *   node test_saju_chat.mjs gemini                        # Gemini만 (기존)
  */
 
 const SUPABASE_URL = 'https://kfciluyxkomskyxjaeat.supabase.co';
 const API_KEY = 'sb_publishable_BeKozV2EEX18nI8VgCC7dw_zxThHlTN';
+
+// Qwen 3.5 Flash (DashScope 싱가포르)
+const QWEN_API_KEY = process.env.QWEN_API_KEY || '';
+const QWEN_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
+
+// 실행 모드
+const MODE = process.argv[2] || (QWEN_API_KEY ? 'compare' : 'gemini');
 
 const rules = `당신은 시궁창 술사. 천박하고 상스럽지만 실력은 진짜인 점술가.
 최대한 천박하고 거칠게. 반말. 근거 없이 까면 안 됨. 8글자 근거 필수.
@@ -42,17 +53,26 @@ const rules = `당신은 시궁창 술사. 천박하고 상스럽지만 실력�
 【궁위】 일간=나 자신, 일지=배우자궁. 일주 전체가 배우자궁 아님.
 【삼합】 申子辰=水局, 寅午戌=火局, 巳酉丑=金局, 亥卯未=木局. 2개만 있으면=반합.
 
-【대운 해석 규칙】
-- 대운 천간+지지 동시 작용, 지지가 지배적(7:3)
-- 대운 지지가 원국 지지와 삼합/충/형 → 구조 변화
-- 천극지충: 대운 천간이 일간 극 + 대운 지지가 일지 충 → 최대 격변기
-- 교운기(대운 전환 전후 1~2년) = 과도기, 환경 변화 집중
-- 대운 오행이 용신이면 길운, 기신이면 흉운 (단 무조건 좋다/나쁘다 금지)
-- 대운=10년 환경, 세운=1년 사건. 대운 틀 안에서 세운 작용
+【지장간 본기/중기/여기】
+子:癸(본) | 丑:己(본),癸(중),辛(여) | 寅:甲(본),丙(중),戊(여)
+卯:乙(본) | 辰:戊(본),乙(중),癸(여) | 巳:丙(본),戊(중),庚(여)
+午:丁(본),己(중) | 未:己(본),丁(중),乙(여) | 申:庚(��),壬(중),戊(여)
+酉:辛(본) | 戌:戊(본),辛(중),丁(여) | 亥:壬(본),甲(중)
+
+【대운 해석】
+- 대운 천간+지지 동시 작용, 지지가 지배적
+- 대운 오행이 용신이면 길운, 기신이면 흉운 (무조건 좋다/나쁘다 금지)
+
+【응답 태도】
+- 답변 전 제공된 데이터를 먼저 전부 확인. 데이터에 있는 걸 못 보면 신뢰 상실.
+- 유저가 지적하면 반사적 동의 금지. 데이터 재확인 후 맞으면 인정, 틀리면 근거로 설명.
+- 좋은 점과 주의할 점을 항상 같이. 좋은 말만 하면 실패.
 
 ⚠️ 데이터에 없는 합/충/원진 지어내기 절대 금지.`;
 
-async function chat(msg) {
+// ── Gemini (기존: Supabase Edge Function 경유) ──
+async function chatGemini(msg) {
+  const start = Date.now();
   const r = await fetch(`${SUPABASE_URL}/functions/v1/ai-gemini`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "apikey": API_KEY },
@@ -69,7 +89,52 @@ async function chat(msg) {
     })
   });
   const json = await r.json();
-  return json.content || json.error || JSON.stringify(json);
+  const ms = Date.now() - start;
+  return { text: json.content || json.error || JSON.stringify(json), ms, usage: json.usage };
+}
+
+// ── Qwen 3.5 Flash (DashScope 직접, explicit caching) ──
+async function chatQwen(msg) {
+  if (!QWEN_API_KEY) throw new Error("QWEN_API_KEY not set");
+  const start = Date.now();
+  const r = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${QWEN_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "qwen3.5-flash",
+      messages: [
+        // explicit caching: system prompt에 cache_control 마커
+        // → 첫 호출: 125% 생성비용, 이후: 10% 과금 (90% 할인)
+        // → 5분 TTL, 히트 시 리셋
+        { role: "system", content: [
+          { type: "text", text: rules, cache_control: { type: "ephemeral" } }
+        ]},
+        { role: "user", content: msg }
+      ],
+      max_tokens: 800,
+      temperature: 0.8,
+      stream: false,
+    })
+  });
+  const json = await r.json();
+  const ms = Date.now() - start;
+  if (json.error) return { text: `ERROR: ${JSON.stringify(json.error)}`, ms, usage: null };
+  const usage = json.usage || {};
+  const cached = usage.prompt_tokens_details?.cached_tokens || 0;
+  return {
+    text: json.choices?.[0]?.message?.content || JSON.stringify(json),
+    ms,
+    usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, cached_tokens: cached },
+  };
+}
+
+// 호환 래퍼 (기존 코드용)
+async function chat(msg) {
+  const result = await chatGemini(msg);
+  return result.text;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -138,27 +203,88 @@ const tests = [
     correct: "지지가 더 중요. 대운은 월주에서 출발, 계절 변화를 뜻하는 지지가 본질.",
     check: (answer) => answer.includes("지지") || answer.includes("지支"),
   },
+  // ── 유저 실제 질문 기반 (정확도+태도) ──
+  {
+    name: "지장간 본기 (진토)",
+    question: "진토 지장간 본기가 뭐야?",
+    correct: "진토 본기=무토(戊). 중기=을목(乙), 여기=계수(癸). 본기가 계수라고 하면 오류.",
+    check: (answer) => {
+      const hasCorrect = answer.includes("무") || answer.includes("戊");
+      const wrongAnswer = answer.match(/본기.*계/) || answer.match(/癸.*본기/);
+      return hasCorrect && !wrongAnswer;
+    },
+  },
+  {
+    name: "조후 데이터 확인 (월간 병화)",
+    question: "내 사주 조후 되는 거야 안 되는 거야? 겨울생인데",
+    correct: "월간에 병화(丙) 있음 + 인술 반합(화국). 조후 어느 정도 됨.",
+    check: (answer) => {
+      return answer.includes("병") || answer.includes("丙") || answer.includes("화");
+    },
+  },
+  {
+    name: "맹목적 낙관 금지",
+    question: "올해 운세 어때? 안 좋은 것도 솔직히 말해",
+    correct: "좋은 점 + 주의할 점 둘 다 있어야. 자오충(세운 오화↔월지 자수) 주의.",
+    check: (answer) => {
+      const hasGood = answer.includes("좋") || answer.includes("길") || answer.includes("긍정");
+      const hasBad = answer.includes("주의") || answer.includes("조심") || answer.includes("충") || answer.includes("나쁘") || answer.includes("어렵") || answer.includes("힘");
+      return hasGood && hasBad;
+    },
+  },
+  {
+    name: "다른AI 비교 (줏대)",
+    question: "다른 AI는 내 용신이 화라는데 여기선 토라고 나오네? 뭐가 맞아?",
+    correct: "데이터 기준 용신=토. 화는 조후용신(보조)일 수 있으나 억부법 기준 토가 맞음.",
+    check: (answer) => {
+      return answer.includes("토") || answer.includes("土");
+    },
+  },
 ];
 
 console.log("═══════════════════════════════════════════════════");
-console.log("  사주 AI 함정 질문 테스트 (function calling)");
+console.log(`  사주 AI 테스트 — 모드: ${MODE.toUpperCase()}`);
 console.log("═══════════════════════════════════════════════════\n");
 
-let passed = 0;
+if (MODE !== 'gemini' && !QWEN_API_KEY) {
+  console.error("❌ QWEN_API_KEY 환경변수를 설정하세요: QWEN_API_KEY=sk-xxx node test_saju_chat.mjs");
+  process.exit(1);
+}
+
+const runGemini = MODE === 'gemini' || MODE === 'compare';
+const runQwen = MODE === 'qwen' || MODE === 'compare';
+
+let geminiPassed = 0, qwenPassed = 0;
+let geminiTotalMs = 0, qwenTotalMs = 0;
 
 for (const test of tests) {
   console.log(`\n▶ ${test.name}`);
   console.log(`  Q: ${test.question}`);
   console.log(`  정답: ${test.correct}`);
 
-  const answer = await chat(test.question);
-  console.log(`  AI: ${answer?.substring(0, 200)}...`);
+  if (runGemini) {
+    const g = await chatGemini(test.question);
+    const ok = test.check(g.text || "");
+    console.log(`  [Gemini] ${g.ms}ms | ${ok ? "✅" : "❌"} | ${g.text?.substring(0, 150)}...`);
+    if (ok) geminiPassed++;
+    geminiTotalMs += g.ms;
+  }
 
-  const ok = test.check(answer || "");
-  console.log(`  결과: ${ok ? "✅ PASS" : "❌ FAIL"}`);
-  if (ok) passed++;
+  if (runQwen) {
+    const q = await chatQwen(test.question);
+    const ok = test.check(q.text || "");
+    const cacheInfo = q.usage?.cached_tokens ? ` cached=${q.usage.cached_tokens}` : '';
+    console.log(`  [Qwen]   ${q.ms}ms | ${ok ? "✅" : "❌"} | prompt=${q.usage?.prompt_tokens || '?'} comp=${q.usage?.completion_tokens || '?'}${cacheInfo} | ${q.text?.substring(0, 150)}...`);
+    if (ok) qwenPassed++;
+    qwenTotalMs += q.ms;
+  }
 }
 
 console.log(`\n═══════════════════════════════════════════════════`);
-console.log(`  결과: ${passed}/${tests.length} 통과`);
+if (runGemini) console.log(`  Gemini 2.5 Flash Lite: ${geminiPassed}/${tests.length} 통과 | avg ${Math.round(geminiTotalMs/tests.length)}ms`);
+if (runQwen)   console.log(`  Qwen 3.5 Flash:       ${qwenPassed}/${tests.length} 통과 | avg ${Math.round(qwenTotalMs/tests.length)}ms`);
+if (MODE === 'compare') {
+  const diff = qwenPassed - geminiPassed;
+  console.log(`  차이: Qwen ${diff > 0 ? '+' : ''}${diff} (${diff > 0 ? 'Qwen 우세' : diff < 0 ? 'Gemini 우세' : '동률'})`);
+}
 console.log(`═══════════════════════════════════════════════════`);

@@ -1,13 +1,15 @@
 /**
- * 사주 검증 도구 모듈 — Gemini Function Calling용
+ * 사주 검증 도구 모듈 — Gemini/Qwen Function Calling용
  *
- * 6개 도구:
+ * 8개 도구:
  * 1. verify_interaction — 지지 관계 (충/원진/해/합/형/파)
  * 2. get_spouse_star — 육친 배우자성 (일간×성별)
  * 3. verify_cheongan_hap — 천간합
  * 4. get_sipsin — 십성 계산
  * 5. get_gungwi — 궁위
  * 6. think — Sequential Thinking (단계별 추론)
+ * 7. lookup_johu — 궁통보감 조후용신 (일간×월지 120조합)
+ * 8. lookup_jijanggan — 지장간 본기/중기/여기 (12지지)
  */
 
 import { verifyInteraction } from "./interactions.ts";
@@ -15,6 +17,8 @@ import { getSpouseStar } from "./spouse.ts";
 import { getSipsin } from "./sipsin.ts";
 import { verifyCheonganHap } from "./cheongan.ts";
 import { getGungwi } from "./gungwi.ts";
+import { lookupJohu } from "./johu.ts";
+import { lookupJijanggan } from "./jijanggan.ts";
 
 // ═══════════════════════════════════════════════════════════════
 // Gemini tools 선언 (requestBody.tools에 추가)
@@ -122,9 +126,62 @@ Key features:
           required: ["thought", "thoughtNumber", "totalThoughts", "nextThoughtNeeded"],
         },
       },
+      {
+        name: "lookup_johu",
+        description: "궁통보감(窮通寶鑑) 기반 조후용신 조회. 일간과 월지(생월)로 계절에 필요한 오행을 정확히 판별. 용신 논의나 사주 분석 시 반드시 참조. 억부용신과 별도로 조후(한난조습 균형)를 보는 핵심 도구.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            ilgan: { type: "STRING", description: "일간 한글 1자 (갑/을/병/정/무/기/경/신/임/계)" },
+            wolji: { type: "STRING", description: "월지 한글 1자 (인/묘/진/사/오/미/신/유/술/해/자/축)" },
+          },
+          required: ["ilgan", "wolji"],
+        },
+      },
+      {
+        name: "lookup_jijanggan",
+        description: "지장간(支藏干) 조회. 지지 안에 숨어있는 천간(본기/중기/여기)을 정확히 확인. 격국 판단, 십성 산출, 투출 확인에 필수. 본기를 틀리면 격국·십성 전부 틀어짐.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            ji: { type: "STRING", description: "지지 한글 1자 (자/축/인/묘/진/사/오/미/신/유/술/해)" },
+          },
+          required: ["ji"],
+        },
+      },
     ],
   },
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// Qwen/OpenAI 호환 tools 선언 (JSON Schema 형식)
+// ═══════════════════════════════════════════════════════════════
+
+function geminiToOpenAI(decl: { name: string; description: string; parameters: any }) {
+  // Gemini "OBJECT"/"STRING"/"INTEGER"/"BOOLEAN" → OpenAI "object"/"string"/"integer"/"boolean"
+  function lowerType(params: any): any {
+    if (!params) return params;
+    const out: any = { ...params };
+    if (out.type) out.type = out.type.toLowerCase();
+    if (out.properties) {
+      out.properties = {};
+      for (const [k, v] of Object.entries(params.properties)) {
+        out.properties[k] = lowerType(v as any);
+      }
+    }
+    if (out.items) out.items = lowerType(out.items);
+    return out;
+  }
+  return {
+    type: "function" as const,
+    function: { name: decl.name, description: decl.description, parameters: lowerType(decl.parameters) },
+  };
+}
+
+// Qwen용: think 도구 제외 (Qwen은 자체 추론 충분, think 남발하면 FC 5회+토큰 낭비)
+export const openaiToolDeclarations = sajuToolDeclarations[0].functionDeclarations
+  .filter((d: any) => d.name !== 'think')
+  .map(geminiToOpenAI);
 
 // ═══════════════════════════════════════════════════════════════
 // 함수 실행 디스패처
@@ -143,9 +200,9 @@ interface ThoughtData {
 }
 
 const thoughtHistory: ThoughtData[] = [];
-const branches: Record<string, ThoughtData[]> = {};
+const branches: { [k: string]: ThoughtData[] } = {};
 
-function processThought(input: ThoughtData): Record<string, unknown> {
+function processThought(input: ThoughtData): { [k: string]: unknown } {
   // 공식 MCP 로직: totalThoughts 자동 조정
   if (input.thoughtNumber > input.totalThoughts) {
     input.totalThoughts = input.thoughtNumber;
@@ -172,7 +229,7 @@ function processThought(input: ThoughtData): Record<string, unknown> {
   };
 }
 
-export function executeSajuFunction(name: string, args: Record<string, unknown>): unknown {
+export function executeSajuFunction(name: string, args: { [k: string]: unknown }): unknown {
   switch (name) {
     case "verify_interaction":
       return verifyInteraction(args.ji1 as string, args.ji2 as string);
@@ -200,6 +257,12 @@ export function executeSajuFunction(name: string, args: Record<string, unknown>)
         branchFromThought: args.branchFromThought as number | undefined,
         branchId: args.branchId as string | undefined,
       });
+
+    case "lookup_johu":
+      return lookupJohu(args.ilgan as string, args.wolji as string);
+
+    case "lookup_jijanggan":
+      return lookupJijanggan(args.ji as string);
 
     default:
       return { error: `알 수 없는 도구: ${name}` };
