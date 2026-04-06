@@ -1,5 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+// v76: saju-tools — 동적 import로 실패 시 기존 동작 유지
+let sajuToolDeclarations: any[] = [];
+let executeSajuFunction: ((name: string, args: Record<string, unknown>) => unknown) | null = null;
+try {
+  const mod = await import("./saju-tools/index.ts");
+  sajuToolDeclarations = mod.sajuToolDeclarations;
+  executeSajuFunction = mod.executeSajuFunction;
+  console.log("[ai-gemini v76] saju-tools loaded successfully");
+} catch (e) {
+  console.error("[ai-gemini v76] saju-tools load failed, running without tools:", e);
+}
 
 /**
  * Gemini API 호출 Edge Function (v36)
@@ -391,7 +402,7 @@ async function handleStreamingRequest(
   const requestBody = {
     contents,
     systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-    generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 1024 } },
+    generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
     safetySettings: [
       { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
       { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -678,52 +689,94 @@ Deno.serve(async (req) => {
     // v38: non-streaming도 세션 고정 키 (implicit caching) + 429 retry
     const nonStreamKey = session_id ? getSessionKey(session_id) : getNextGeminiKey();
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${nonStreamKey}`;
-    const geminiBody = {
+    const safetySettings = [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ];
+    const genConfig = {
+      temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
+      stopSequences: ["[/SUGGESTED_QUESTIONS]"],
+      thinkingConfig: { thinkingBudget: 0 },
+    };
+    const geminiBody: Record<string, unknown> = {
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: {
-        temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
-        stopSequences: ["[/SUGGESTED_QUESTIONS]"],
-        thinkingConfig: { thinkingBudget: 1024 },
-      },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-      ],
+      generationConfig: genConfig,
+      safetySettings,
+      ...(sajuToolDeclarations.length > 0 && !model.includes('lite') ? { tools: sajuToolDeclarations } : {}),
     };
-    let response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
-    });
-    // v62: 429 → 다음 키 retry
-    if (response.status === 429 && GEMINI_API_KEYS.length > 1) {
-      console.warn(`[ai-gemini v62] Non-stream 429, trying next key...`);
-      const retryKey = getNextGeminiKey();
-      response = await fetch(geminiUrl.replace(/key=[^&]+/, `key=${retryKey}`), {
+
+    // v76: Function Calling Loop (최대 6회 — think 5단계 + 최종 답변)
+    const MAX_FUNCTION_CALLS = 6;
+    let data: Record<string, unknown> = {};
+    let functionCallCount = 0;
+
+    for (let i = 0; i < MAX_FUNCTION_CALLS; i++) {
+      let response = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(geminiBody),
       });
+      // v62: 429 → 다음 키 retry
+      if (response.status === 429 && GEMINI_API_KEYS.length > 1) {
+        console.warn(`[ai-gemini v62] Non-stream 429, trying next key...`);
+        const retryKey = getNextGeminiKey();
+        response = await fetch(geminiUrl.replace(/key=[^&]+/, `key=${retryKey}`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(geminiBody),
+        });
+      }
+      data = await response.json();
+      if ((data as any).error) {
+        console.error("[ai-gemini v76] Gemini API Error:", (data as any).error);
+        return new Response(JSON.stringify({ success: false, error: (data as any).error?.message || "Gemini API error" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const candidate = (data as any).candidates?.[0];
+      if (!candidate) throw new Error("No response from Gemini");
+      if (candidate.finishReason === "SAFETY") throw new Error("Response blocked due to safety settings");
+
+      // Function Call 감지
+      const fcParts = candidate.content?.parts?.filter((p: any) => p.functionCall);
+      if (fcParts && fcParts.length > 0) {
+        functionCallCount++;
+        // 모델의 functionCall 응답을 contents에 추가
+        (geminiBody.contents as any[]).push({ role: "model", parts: candidate.content.parts });
+
+        // 각 functionCall 실행 → functionResponse 추가
+        const responseParts: any[] = [];
+        for (const fc of fcParts) {
+          const { name, args, id } = fc.functionCall;
+          console.log(`[ai-gemini v76] Function call #${functionCallCount}: ${name}(${JSON.stringify(args)}) id=${id || 'none'}`);
+          const result = executeSajuFunction ? executeSajuFunction(name, args || {}) : { error: "saju-tools not loaded" };
+          const fnResponse: Record<string, unknown> = { name, response: { content: result } };
+          if (id) fnResponse.id = id; // Gemini가 id를 보내면 매칭용으로 포함
+          responseParts.push({ functionResponse: fnResponse });
+        }
+        (geminiBody.contents as any[]).push({ role: "user", parts: responseParts });
+        continue; // 다음 루프에서 Gemini 재호출
+      }
+
+      // functionCall이 없으면 텍스트 응답 → 루프 종료
+      break;
     }
-    const data = await response.json();
-    if (data.error) {
-      console.error("[ai-gemini v23] Gemini API Error:", data.error);
-      return new Response(JSON.stringify({ success: false, error: data.error.message || "Gemini API error" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (functionCallCount > 0) {
+      console.log(`[ai-gemini v76] Total function calls: ${functionCallCount}`);
     }
-    const candidate = data.candidates?.[0];
-    if (!candidate) throw new Error("No response from Gemini");
-    if (candidate.finishReason === "SAFETY") throw new Error("Response blocked due to safety settings");
+
+    const candidate = (data as any).candidates?.[0];
+    if (!candidate) throw new Error("No response from Gemini after function calls");
     // v34: thought 파트 필터링 (thought=true만 스킵, thoughtSignature 있는 text는 유지)
     let content = "";
     const parts = candidate.content?.parts;
     if (Array.isArray(parts)) {
       for (const part of parts) {
-        if (part.thought === true) continue; // thinking 파트만 스킵
-        if (part.text) content += part.text;  // thoughtSignature 있어도 text는 수집
+        if (part.thought === true) continue;
+        if (part.functionCall) continue; // 남은 functionCall은 무시
+        if (part.text) content += part.text;
       }
     }
     // v34: JSON 추출 안전장치 — thought 텍스트가 섞여 들어온 경우 JSON 블록만 추출
