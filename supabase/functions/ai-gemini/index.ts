@@ -162,11 +162,14 @@ async function callQwenNonStreaming(
     const otherMsgs = messages.filter((m) => m.role !== "system");
     const systemText = systemMsgs.map((m) => m.content).join("\n");
 
+    // v103: 데이터 준수 지시 (AI 할루시네이션 방지 — Flutter 빌드 전에도 즉시 적용)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트에 제공된 십성·대운·합충·오행 데이터는 만세력으로 계산된 정확한 값이며, 상담자 본인의 데이터입니다. 절대 자의적으로 십성을 재판정하거나 대운 순서를 바꾸지 마세요. 지장간은 반드시 lookup_jijanggan 도구로 확인 후 답변하세요. 유저가 채팅으로 다른 사람(남편·자녀·지인)의 사주를 입력하면 위 시스템 데이터와 혼동하지 마세요. 다른 사람의 대운·십성은 채팅에서 알려준 정보만 사용하고, 모르면 솔직히 "정확한 분석을 위해 인연 등록을 해주세요"라고 안내하세요.`;
+
     const qwenMessages: { [k: string]: unknown }[] = [];
     if (systemText) {
       qwenMessages.push({
         role: "system",
-        content: [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }],
+        content: [{ type: "text", text: systemText + dataGuard, cache_control: { type: "ephemeral" } }],
       });
     }
     for (const m of otherMsgs) {
@@ -184,7 +187,7 @@ async function callQwenNonStreaming(
         messages: qwenMessages,
         max_tokens: maxTokens,
         temperature,
-        presence_penalty: 0.6,
+        presence_penalty: 1.2,
         stream: false,
         enable_thinking: false,
         stop: ["[/SUGGESTED_QUESTIONS]"],
@@ -198,7 +201,7 @@ async function callQwenNonStreaming(
       });
       if (!resp.ok) {
         const errText = await resp.text();
-        console.error(`[ai-gemini v77] Qwen non-stream error ${resp.status}: ${errText}`);
+        console.error(`[ai-gemini v78] Qwen non-stream error ${resp.status}: ${errText}`);
         return null;
       }
       const data = await resp.json();
@@ -219,7 +222,7 @@ async function callQwenNonStreaming(
           const fnName = tc.function.name;
           const fnArgs = JSON.parse(tc.function.arguments || "{}");
           const result = executeSajuFunction(fnName, fnArgs);
-          console.log(`[ai-gemini v77] Qwen FC[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
+          console.log(`[ai-gemini v78] Qwen FC[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
           qwenMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
         continue; // 다음 루프에서 결과 포함하여 재호출
@@ -227,19 +230,22 @@ async function callQwenNonStreaming(
 
       // 텍스트 응답
       const content = choice.message?.content || "";
-      console.log(`[ai-gemini v77] Qwen non-stream OK: prompt=${totalUsage.prompt_tokens}, comp=${totalUsage.completion_tokens}, cached=${totalUsage.cached_tokens}, fc=${i}`);
+      console.log(`[ai-gemini v78] Qwen non-stream OK: prompt=${totalUsage.prompt_tokens}, comp=${totalUsage.completion_tokens}, cached=${totalUsage.cached_tokens}, fc=${i}`);
       return { content, usage: totalUsage };
     }
-    console.error("[ai-gemini v77] Qwen FC loop exhausted");
+    console.error("[ai-gemini v78] Qwen FC loop exhausted");
     return null;
   } catch (e) {
-    console.error("[ai-gemini v77] Qwen non-stream exception:", e);
+    console.error("[ai-gemini v78] Qwen non-stream exception:", e);
     return null;
   }
 }
 
 /**
- * v77: Qwen 3.5 Flash Streaming 호출
+ * v78: Qwen 3.5 Flash Streaming 호출
+ * - FC preflight: 스트리밍 전에 non-streaming으로 도구 호출 해결
+ *   → lookup_johu, verify_interaction 등 도구 결과를 먼저 확보
+ *   → 도구 결과 포함된 메시지로 최종 스트리밍 (도구 없이 답변만)
  * - OpenAI SSE → 클라이언트 SSE 형식 변환 ({ text, done, usage })
  * - explicit cache 동일 적용
  * - 실패 시 null 반환 → Gemini streaming fallback
@@ -258,17 +264,112 @@ async function handleQwenStreamingRequest(
     const otherMsgs = messages.filter((m) => m.role !== "system");
     const systemText = systemMsgs.map((m) => m.content).join("\n");
 
+    // v103: 데이터 준수 지시 (non-streaming과 동일)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트에 제공된 십성·대운·합충·오행 데이터는 만세력으로 계산된 정확한 값이며, 상담자 본인의 데이터입니다. 절대 자의적으로 십성을 재판정하거나 대운 순서를 바꾸지 마세요. 지장간은 반드시 lookup_jijanggan 도구로 확인 후 답변하세요. 유저가 채팅으로 다른 사람(남편·자녀·지인)의 사주를 입력하면 위 시스템 데이터와 혼동하지 마세요. 다른 사람의 대운·십성은 채팅에서 알려준 정보만 사용하고, 모르면 솔직히 "정확한 분석을 위해 인연 등록을 해주세요"라고 안내하세요.`;
+
     const qwenMessages: { [k: string]: unknown }[] = [];
     if (systemText) {
       qwenMessages.push({
         role: "system",
-        content: [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }],
+        content: [{ type: "text", text: systemText + dataGuard, cache_control: { type: "ephemeral" } }],
       });
     }
     for (const m of otherMsgs) {
       qwenMessages.push({ role: m.role === "assistant" ? "assistant" : "user", content: m.content });
     }
 
+    // v78: FC preflight — 스트리밍 전에 도구 호출 해결
+    // 도구 호출이 완료되면 최종 답변도 preflight에서 받아 SSE로 변환 (이중 호출 방지)
+    const hasTools = openaiToolDeclarations.length > 0 && executeSajuFunction;
+    let preflightUsage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 };
+    let preflightFinalContent: string | null = null; // 도구 사용 후 최종 답변
+    if (hasTools) {
+      const MAX_FC = 5;
+      let usedTools = false;
+      let lastPrefCompletionTokens = 0;  // v103: FC 루프 중 마지막 응답의 completion만 추적 (쿼타용)
+      for (let i = 0; i < MAX_FC; i++) {
+        const prefBody: { [k: string]: unknown } = {
+          model: QWEN_MODEL,
+          messages: qwenMessages,
+          max_tokens: maxTokens,
+          temperature,
+          presence_penalty: 1.2,
+          stream: false,
+          enable_thinking: false,
+          tools: openaiToolDeclarations,
+          stop: ["[/SUGGESTED_QUESTIONS]"],
+        };
+        const prefResp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+          body: JSON.stringify(prefBody),
+        });
+        if (!prefResp.ok) {
+          console.error(`[ai-gemini v78] FC preflight error ${prefResp.status}`);
+          break; // preflight 실패 시 도구 없이 스트리밍 진행
+        }
+        const prefData = await prefResp.json();
+        const prefUsage = prefData.usage || {};
+        preflightUsage.prompt_tokens += prefUsage.prompt_tokens || 0;
+        preflightUsage.completion_tokens += prefUsage.completion_tokens || 0;
+        preflightUsage.cached_tokens += prefUsage.prompt_tokens_details?.cached_tokens || 0;
+        lastPrefCompletionTokens = prefUsage.completion_tokens || 0;  // v103: 마지막 루프의 completion 기록
+        // v103: 캐시 디버깅
+        console.log(`[ai-gemini v103] FC preflight cache: created=${prefUsage.prompt_tokens_details?.cache_creation_input_tokens || 0}, hit=${prefUsage.prompt_tokens_details?.cached_tokens || 0}, details=${JSON.stringify(prefUsage.prompt_tokens_details)}`);
+
+        const prefChoice = prefData.choices?.[0];
+        if (!prefChoice) break;
+
+        const toolCalls = prefChoice.message?.tool_calls;
+        if (!toolCalls || toolCalls.length === 0) {
+          // 도구 호출 없음
+          if (usedTools && prefChoice.message?.content) {
+            // 도구 사용 후 최종 답변 → 스트리밍 재호출 불필요
+            preflightFinalContent = prefChoice.message.content;
+            console.log(`[ai-gemini v78] FC preflight final answer ready (${preflightFinalContent.length} chars, ${i} FC rounds)`);
+          }
+          break;
+        }
+        // 도구 호출 실행 + 결과 주입
+        usedTools = true;
+        qwenMessages.push(prefChoice.message);
+        for (const tc of toolCalls) {
+          const fnName = tc.function.name;
+          const fnArgs = JSON.parse(tc.function.arguments || "{}");
+          const result = executeSajuFunction!(fnName, fnArgs);
+          console.log(`[ai-gemini v78] FC preflight[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
+          qwenMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+        }
+      }
+    }
+
+    // 도구 사용 후 최종 답변이 이미 있으면 → SSE 형식으로 즉시 반환 (스트리밍 호출 불필요)
+    if (preflightFinalContent !== null) {
+      const encoder = new TextEncoder();
+      const allPrompt = preflightUsage.prompt_tokens;
+      const allComp = preflightUsage.completion_tokens;
+      const allCached = preflightUsage.cached_tokens;
+      // v103: 쿼타용 = 최종 답변 completion만 (FC 도구 호출 토큰 제외)
+      const quotaComp = lastPrefCompletionTokens;
+      const cacheHitPct = allPrompt > 0 ? Math.round(allCached / allPrompt * 100) : 0;
+      console.log(`[ai-gemini v103] Qwen FC→direct SSE: prompt=${allPrompt}, comp=${allComp}(quota=${quotaComp}), cached=${allCached} (${cacheHitPct}%)`);
+      // 비용 기록 (전체 토큰 — FC 포함)
+      if (userId && (allPrompt > 0 || allComp > 0)) {
+        const nonCached = allPrompt - allCached;
+        const cost = (nonCached * 0.10 / 1000000) + (allCached * 0.01 / 1000000) + (allComp * 0.40 / 1000000);
+        await recordGeminiCost(supabase, userId, allPrompt, allComp, cost);
+      }
+      // 클라이언트에는 쿼타용 completion만 전송
+      const body = [
+        `data: ${JSON.stringify({ text: preflightFinalContent, done: false })}\n\n`,
+        `data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: allPrompt, completion_tokens: quotaComp, total_tokens: allPrompt + quotaComp, cached_tokens: allCached } })}\n\n`,
+      ].join("");
+      return new Response(encoder.encode(body), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" },
+      });
+    }
+
+    // 최종 스트리밍 (도구 호출 해결된 메시지로, tools 없이)
     const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
@@ -277,7 +378,7 @@ async function handleQwenStreamingRequest(
         messages: qwenMessages,
         max_tokens: maxTokens,
         temperature,
-        presence_penalty: 0.6,
+        presence_penalty: 1.2,
         stream: true,
         stream_options: { include_usage: true },
         enable_thinking: false,
@@ -286,7 +387,7 @@ async function handleQwenStreamingRequest(
     });
     if (!resp.ok) {
       const errText = await resp.text();
-      console.error(`[ai-gemini v77] Qwen stream error ${resp.status}: ${errText}`);
+      console.error(`[ai-gemini v78] Qwen stream error ${resp.status}: ${errText}`);
       return null;
     }
 
@@ -311,9 +412,15 @@ async function handleQwenStreamingRequest(
         const reader = resp.body!.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let streamClosed = false;  // v103: 스트림 닫힘 플래그
+
+        function safeEnqueue(data: Uint8Array) {
+          if (streamClosed) return;
+          try { controller.enqueue(data); } catch { streamClosed = true; }
+        }
 
         function processLine(line: string) {
-          if (repetitionDetected) return;
+          if (repetitionDetected || streamClosed) return;
           if (!line.startsWith("data: ")) return;
           const jsonStr = line.slice(6).trim();
           if (!jsonStr || jsonStr === "[DONE]") return;
@@ -324,6 +431,13 @@ async function handleQwenStreamingRequest(
               totalPromptTokens = data.usage.prompt_tokens || 0;
               totalCompletionTokens = data.usage.completion_tokens || 0;
               totalCachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+              // v103: 캐시 디버깅 — creation vs hit 구분
+              const cacheCreation = data.usage.prompt_tokens_details?.cache_creation_input_tokens || 0;
+              if (cacheCreation > 0 || totalCachedTokens > 0) {
+                console.log(`[ai-gemini v103] Cache debug: created=${cacheCreation}, hit=${totalCachedTokens}, prompt_details=${JSON.stringify(data.usage.prompt_tokens_details)}`);
+              } else {
+                console.log(`[ai-gemini v103] Cache debug: NO cache activity. prompt_tokens_details=${JSON.stringify(data.usage.prompt_tokens_details)}`);
+              }
             }
             const choice = data.choices?.[0];
             if (!choice) return;
@@ -335,19 +449,19 @@ async function handleQwenStreamingRequest(
               if (accumulatedText.length > 200) accumulatedText = accumulatedText.slice(-200);
               if (detectRepetition(accumulatedText)) {
                 repetitionDetected = true;
-                console.error(`[ai-gemini v77] Qwen REPETITION DETECTED! Last 50: "${accumulatedText.slice(-50)}"`);
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n[AI 응답에 오류가 발생했습니다. 다시 질문해주세요.]", done: false, finish_reason: "REPETITION_DETECTED" })}\n\n`));
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "REPETITION_DETECTED", usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, cached_tokens: totalCachedTokens } })}\n\n`));
+                console.error(`[ai-gemini v78] Qwen REPETITION DETECTED! Last 50: "${accumulatedText.slice(-50)}"`);
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n[AI 응답에 오류가 발생했습니다. 다시 질문해주세요.]", done: false, finish_reason: "REPETITION_DETECTED" })}\n\n`));
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "REPETITION_DETECTED", usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, cached_tokens: totalCachedTokens } })}\n\n`));
                 return;
               }
               totalTextLength += text.length;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text, done: false, finish_reason: finishReason })}\n\n`));
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text, done: false, finish_reason: finishReason })}\n\n`));
             }
             if (finishReason === "stop" && !text) {
               // finish만 온 경우 (텍스트 없이)
             }
           } catch (e) {
-            console.error("[ai-gemini v77] Qwen SSE parse error:", e);
+            console.error("[ai-gemini v78] Qwen SSE parse error:", e);
           }
         }
 
@@ -370,23 +484,33 @@ async function handleQwenStreamingRequest(
               for (const line of buffer.split("\n")) processLine(line);
             }
           }
-          // done 전송
+          // done 전송 — v103: 쿼타용 completion = 스트리밍 분만 (FC preflight 제외)
           if (!repetitionDetected) {
-            const cacheHitPct = totalPromptTokens > 0 ? Math.round(totalCachedTokens / totalPromptTokens * 100) : 0;
-            console.log(`[ai-gemini v77] Qwen stream done: prompt=${totalPromptTokens}, comp=${totalCompletionTokens}, cached=${totalCachedTokens} (${cacheHitPct}%), textLen=${totalTextLength}`);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, total_tokens: totalPromptTokens + totalCompletionTokens, cached_tokens: totalCachedTokens } })}\n\n`));
+            const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
+            const allComp = totalCompletionTokens + preflightUsage.completion_tokens;  // 비용 기록용 (전체)
+            const quotaComp = totalCompletionTokens;  // 쿼타용 (스트리밍만)
+            const allCached = totalCachedTokens + preflightUsage.cached_tokens;
+            const cacheHitPct = allPrompt > 0 ? Math.round(allCached / allPrompt * 100) : 0;
+            console.log(`[ai-gemini v103] Qwen stream done: prompt=${allPrompt}(pf=${preflightUsage.prompt_tokens}), comp=${allComp}(quota=${quotaComp}, pf=${preflightUsage.completion_tokens}), cached=${allCached} (${cacheHitPct}%), textLen=${totalTextLength}`);
+            // 클라이언트에는 쿼타용 completion만 전송
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: allPrompt, completion_tokens: quotaComp, total_tokens: allPrompt + quotaComp, cached_tokens: allCached } })}\n\n`));
           }
           // 비용 기록 (Qwen 가격 = Gemini와 동일 $0.10/$0.40, explicit cache $0.01)
-          if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
-            const nonCached = totalPromptTokens - totalCachedTokens;
-            const cost = (nonCached * 0.10 / 1000000) + (totalCachedTokens * 0.01 / 1000000) + (totalCompletionTokens * 0.40 / 1000000);
-            await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
+          {
+            const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
+            const allComp = totalCompletionTokens + preflightUsage.completion_tokens;
+            const allCached = totalCachedTokens + preflightUsage.cached_tokens;
+            if (userId && (allPrompt > 0 || allComp > 0)) {
+              const nonCached = allPrompt - allCached;
+              const cost = (nonCached * 0.10 / 1000000) + (allCached * 0.01 / 1000000) + (allComp * 0.40 / 1000000);
+              await recordGeminiCost(supabase, userId, allPrompt, allComp, cost);
+            }
           }
         } catch (e) {
-          console.error("[ai-gemini v77] Qwen stream error:", e);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream error", done: true })}\n\n`));
+          console.error("[ai-gemini v78] Qwen stream error:", e);
+          safeEnqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream error", done: true })}\n\n`));
         } finally {
-          controller.close();
+          if (!streamClosed) { try { controller.close(); } catch { /* already closed */ } streamClosed = true; }
         }
       },
     });
@@ -394,7 +518,7 @@ async function handleQwenStreamingRequest(
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" },
     });
   } catch (e) {
-    console.error("[ai-gemini v77] Qwen stream setup error:", e);
+    console.error("[ai-gemini v78] Qwen stream setup error:", e);
     return null;
   }
 }
@@ -402,7 +526,7 @@ async function handleQwenStreamingRequest(
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 5000;
+const DAILY_QUOTA = 4000;
 const ADMIN_QUOTA = 1000000000;
 
 /** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
@@ -944,7 +1068,7 @@ Deno.serve(async (req) => {
         console.log(`[ai-gemini v77] Streaming: trying Qwen 3.5 Flash`);
         const qwenResp = await handleQwenStreamingRequest(supabase, messages, max_tokens, temperature, user_id, isAdmin);
         if (qwenResp) return qwenResp;
-        console.warn(`[ai-gemini v77] Qwen streaming failed, falling back to Gemini`);
+        console.warn(`[ai-gemini v78] Qwen streaming failed, falling back to Gemini`);
       }
       console.log(`[ai-gemini v77] Streaming fallback: Gemini ${model}, session_id=${session_id || 'none'}`);
       return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin, session_id);
@@ -963,13 +1087,13 @@ Deno.serve(async (req) => {
           await recordGeminiCost(supabase, user_id, usage.prompt_tokens || 0, usage.completion_tokens || 0, cost);
         }
         const cacheHitPct = usage.prompt_tokens ? Math.round((usage.cached_tokens || 0) / usage.prompt_tokens * 100) : 0;
-        console.log(`[ai-gemini v77] Qwen non-stream OK: cached=${usage.cached_tokens || 0} (${cacheHitPct}% hit)`);
+        console.log(`[ai-gemini v78] Qwen non-stream OK: cached=${usage.cached_tokens || 0} (${cacheHitPct}% hit)`);
         return new Response(
           JSON.stringify({ success: true, content, usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, total_tokens: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) }, model: QWEN_MODEL, finish_reason: "stop", is_admin: isAdmin }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      console.warn(`[ai-gemini v77] Qwen non-streaming failed, falling back to Gemini`);
+      console.warn(`[ai-gemini v78] Qwen non-streaming failed, falling back to Gemini`);
     }
     console.log(`[ai-gemini v77] Non-streaming fallback: Gemini ${model}, isAdmin=${isAdmin}`);
     const systemInstruction = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");

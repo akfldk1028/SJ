@@ -4,6 +4,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v103 변경사항 (2026-04-07):
+ * - Qwen 3.5 Flash 라우팅 추가 (DashScope OpenAI 호환 API)
+ *   → model이 "qwen"으로 시작하면 DashScope로 라우팅
+ *   → json_schema → json_object 자동 변환 + 스키마 프롬프트 주입
+ *   → GPT-5-mini 대비 output 5배 저렴 ($2.00 → $0.40/1M)
+ *   → 실패 시 GPT fallback
+ *
  * v62 변경사항 (2026-03-22):
  * - 스케일링: collectStreamResponse() SSE 라인 버퍼링 수정
  *   → 청크 경계에서 불완전한 SSE 라인이 JSON.parse 실패하던 문제 해결
@@ -102,7 +109,11 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 5000;
+// v103: Qwen 3.5 Flash (DashScope 싱가포르) — saju_base 비용 절감용
+const QWEN_API_KEY = Deno.env.get("QWEN_API_KEY");
+const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+
+const DAILY_QUOTA = 4000;
 const ADMIN_QUOTA = 1000000000;
 
 // v56: 모델별 가격 ($/1M tokens)
@@ -113,6 +124,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'gpt-5-mini':        { input: 0.25,  output: 2.00 },
   'gpt-4o':            { input: 2.50,  output: 10.00 },
   'gpt-4o-mini':       { input: 0.15,  output: 0.60 },
+  'qwen3.5-flash':     { input: 0.10,  output: 0.40 },  // v103: DashScope 싱가포르
 };
 
 function getModelCost(model: string, promptTokens: number, completionTokens: number): number {
@@ -286,6 +298,111 @@ async function collectStreamResponse(response: Response): Promise<{ content: str
   return { content, usage, finishReason };
 }
 
+/**
+ * v103: Qwen 3.5 Flash Non-Streaming 호출 (saju_base 비용 절감용)
+ * - DashScope OpenAI 호환 API (싱가포르)
+ * - json_schema → json_object 자동 변환
+ * - 실패 시 null 반환 → GPT fallback
+ */
+async function callQwenSajuBase(
+  messages: ChatMessage[],
+  maxTokens: number,
+  temperature: number,
+  responseFormat?: { type: string; json_schema?: Record<string, unknown> },
+): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number } } | null> {
+  if (!QWEN_API_KEY) {
+    console.log("[ai-openai v103] No QWEN_API_KEY, skipping Qwen");
+    return null;
+  }
+  try {
+    // json_schema → json_object 변환 + 스키마를 system prompt에 주입
+    const qwenMessages: { role: string; content: unknown }[] = [];
+    let schemaInjection = "";
+    if (responseFormat?.type === "json_schema" && responseFormat.json_schema) {
+      const schema = responseFormat.json_schema;
+      schemaInjection = `\n\n## JSON Output Schema (MUST follow exactly)\nRespond with a single JSON object matching this schema. Every field is required. Do not add extra fields.\n\`\`\`json\n${JSON.stringify(schema.schema || schema, null, 0)}\n\`\`\``;
+    }
+
+    for (const m of messages) {
+      if (m.role === "system") {
+        // system prompt에 스키마 주입 + cache_control 마커
+        qwenMessages.push({
+          role: "system",
+          content: [{ type: "text", text: m.content + schemaInjection, cache_control: { type: "ephemeral" } }],
+        });
+      } else {
+        qwenMessages.push({ role: m.role, content: m.content });
+      }
+    }
+
+    const body: Record<string, unknown> = {
+      model: "qwen3.5-flash",
+      messages: qwenMessages,
+      max_tokens: maxTokens,
+      temperature,
+      stream: false,
+      enable_thinking: false,
+      response_format: { type: "json_object" },
+    };
+
+    console.log("[ai-openai v103] Calling Qwen 3.5 Flash for saju_base...");
+    const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error(`[ai-openai v103] Qwen error ${resp.status}: ${errText}`);
+      return null;
+    }
+
+    const data = await resp.json();
+    const choice = data.choices?.[0];
+    if (!choice?.message?.content) {
+      console.error("[ai-openai v103] Qwen: no content in response");
+      return null;
+    }
+
+    const content = choice.message.content;
+    const usage = data.usage || {};
+
+    // 19필드 검증 (saju_base 스키마)
+    try {
+      const parsed = JSON.parse(content);
+      const requiredKeys = [
+        'mySajuIntro', 'my_saju_characters', 'wonGuk_analysis',
+        'sipsung_analysis', 'hapchung_analysis', 'personality', 'lucky_elements',
+        'wealth', 'career', 'business', 'love', 'marriage',
+        'sinsal_gilseong', 'health', 'daeun_detail',
+        'summary', 'life_cycles', 'peak_years', 'modern_interpretation',
+      ];
+      const missingKeys = requiredKeys.filter(k => !(k in parsed));
+      if (missingKeys.length > 0) {
+        console.error(`[ai-openai v103] Qwen JSON missing ${missingKeys.length} keys: ${missingKeys.join(', ')}`);
+        return null;  // fallback to GPT
+      }
+      console.log(`[ai-openai v103] Qwen JSON validated: all 19 keys present`);
+    } catch (e) {
+      console.error(`[ai-openai v103] Qwen JSON parse failed: ${e}`);
+      return null;  // fallback to GPT
+    }
+
+    return {
+      content,
+      usage: {
+        prompt_tokens: usage.prompt_tokens || 0,
+        completion_tokens: usage.completion_tokens || 0,
+        cached_tokens: usage.prompt_tokens_details?.cached_tokens || usage.cached_tokens || 0,
+      },
+    };
+  } catch (e) {
+    console.error(`[ai-openai v103] Qwen call failed: ${e}`);
+    return null;
+  }
+}
+
 async function processInBackground(
   taskId: string,
   messages: ChatMessage[],
@@ -365,7 +482,7 @@ Deno.serve(async (req) => {
     const requestData: OpenAIRequest = await req.json();
     const {
       messages,
-      model = "gpt-5.2",
+      model: requestModel = "gpt-5.2",
       max_tokens = 10000,
       temperature = 0.7,
       response_format,
@@ -375,6 +492,7 @@ Deno.serve(async (req) => {
       reasoning_effort = "medium",
       locale = "ko",
     } = requestData;
+    let model = requestModel;  // v103: Qwen fallback 시 재할당 필요
 
     console.log(`[ai-openai v50] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, reasoning_effort=${reasoning_effort}, locale=${locale}, user_id=${user_id}`);
 
@@ -413,8 +531,33 @@ Deno.serve(async (req) => {
       }
     }
 
+    // === v103: Qwen 라우팅 (model이 "qwen"으로 시작하면) ===
+    if (model.startsWith("qwen")) {
+      console.log(`[ai-openai v103] *** QWEN MODE *** model=${model}`);
+      const qwenResult = await callQwenSajuBase(messages, max_tokens, temperature, response_format);
+      if (qwenResult) {
+        const { content, usage } = qwenResult;
+        const cost = getModelCost("qwen3.5-flash", usage.prompt_tokens, usage.completion_tokens);
+        if (user_id && usage.prompt_tokens > 0) {
+          await recordTokenUsage(supabase, user_id, usage.prompt_tokens, usage.completion_tokens, cost, isAdmin, task_type);
+        }
+        console.log(`[ai-openai v103] Qwen success: ${usage.prompt_tokens}+${usage.completion_tokens} tokens, $${cost.toFixed(6)}`);
+        return new Response(
+          JSON.stringify({
+            success: true, content,
+            usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, total_tokens: usage.prompt_tokens + usage.completion_tokens, cached_tokens: usage.cached_tokens },
+            model: "qwen3.5-flash", finish_reason: "stop", is_admin: isAdmin,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Qwen 실패 → GPT-5-mini fallback
+      console.warn("[ai-openai v103] Qwen failed, falling back to gpt-5-mini sync mode");
+      model = "gpt-5-mini";
+    }
+
     // === Background 모드 ===
-    if (run_in_background) {
+    if (run_in_background && !model.startsWith("qwen")) {
       console.log(`[ai-openai v50] *** RESPONSES API BACKGROUND MODE ***`);
 
       if (user_id) {

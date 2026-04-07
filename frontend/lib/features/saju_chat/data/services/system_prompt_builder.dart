@@ -91,7 +91,7 @@ class SystemPromptBuilder {
         : (isCompatibilityMode ? '나 (상담 요청자)' : null);
     final person1SajuLabel = isThirdPartyCompatibility
         ? '${profile?.displayName ?? '첫 번째 사람'}의 사주'
-        : (isCompatibilityMode ? '나의 사주' : null);
+        : (isCompatibilityMode ? '나의 사주' : '${profile?.displayName ?? '상담자'}님의 사주 데이터 (본인)');
     final person2Label = isThirdPartyCompatibility
         ? '두 번째 사람 (${targetProfile?.displayName ?? ''})'
         : null;  // 기존 _addTargetProfileInfo 사용
@@ -422,6 +422,17 @@ class SystemPromptBuilder {
       _buffer.writeln('- 지지: ${seun.pillar.ji} (${seun.pillar.jiOheng})');
       _buffer.writeln();
     }
+
+    // v103: 데이터 준수 지시 (AI 할루시네이션 방지)
+    _buffer.writeln('### ⚠️ 데이터 준수 규칙');
+    _buffer.writeln('- 위에 제공된 **십성, 대운, 합충, 오행 분포** 데이터는 만세력으로 계산된 정확한 값입니다.');
+    _buffer.writeln('- **절대 자의적으로 십성을 재판정하지 마세요.** 위 십성 표가 정답입니다.');
+    _buffer.writeln('- **대운 순서와 기간을 임의로 바꾸지 마세요.** 위 대운 표가 정답입니다.');
+    _buffer.writeln('- **지장간은 절대 기억으로 답하지 마라.** 네 기억 속 지장간은 높은 확률로 틀린다. 반드시 lookup_jijanggan(ji) 도구로 확인한 뒤에만 언급하라.');
+    _buffer.writeln('- **오행 분포는 위 데이터가 정답이다.** "물이 많다/불이 많다" 등 오행 강약을 말할 때 반드시 위 오행 분포 수치를 근거로 하라. 자체 계산 금지.');
+    _buffer.writeln('- 사주 데이터와 다른 내용을 답변하면 유저가 신뢰를 잃습니다.');
+    _buffer.writeln('- **유저가 채팅으로 다른 사람의 생년월일·사주를 입력할 수 있습니다.** 이 경우 위 시스템 데이터는 그 사람의 것이 아닙니다. 혼동 금지. 다른 사람의 사주는 유저가 채팅으로 알려준 정보만 사용하고, 모르는 부분은 "정확한 분석을 위해 인연 등록을 해주세요"라고 안내하세요.');
+    _buffer.writeln();
   }
 
 
@@ -1258,7 +1269,10 @@ class SystemPromptBuilder {
     _buffer.writeln('⚠️ 사주 온도가 극단적이면(한겨울 수일간, 한여름 화일간 등) 조후가 억부보다 우선.');
     _buffer.writeln('⚠️ 격국 판정: ① 종격 확인 → ② 월지 본기 투간 → ③ 중기 투간 → ④ 여기 투간 순서.');
     _buffer.writeln();
-    _buffer.writeln('【도구 활용 — 아래 판별은 반드시 도구로 확인. 도구 없이 답하면 할루시네이션 위험!】');
+    _buffer.writeln('【도구 활용 — 말하기 전에 도구부터 호출! 추측으로 답하면 틀린다】');
+    _buffer.writeln('★ 핵심 원칙: 조후·용신·합충·십성·배우자성 관련 질문을 받으면, 텍스트 답변 전에 해당 도구를 먼저 호출하라. 도구 결과를 본 뒤에 답하라.');
+    _buffer.writeln('★ 특히 조후/용신 판단 시: ① lookup_johu(일간, 월지) 먼저 호출 → ② 결과 확인 → ③ 원국에 해당 오행이 있는지 대조 → ④ 그 다음에 답변.');
+    _buffer.writeln('★ 도구를 호출하지 않고 기억이나 추론으로 답하면 높은 확률로 틀린다. 반드시 도구 먼저.');
     _buffer.writeln('합/충/형/원진/해/육합/삼합/방합 → verify_interaction(ji1, ji2)');
     _buffer.writeln('십성 → get_sipsin(ilgan, target)');
     _buffer.writeln('배우자성 → get_spouse_star(ilgan, gender)');
@@ -1266,7 +1280,6 @@ class SystemPromptBuilder {
     _buffer.writeln('궁위 해석 → get_gungwi(pillar)');
     _buffer.writeln('지장간 → lookup_jijanggan(ji)');
     _buffer.writeln('조후용신 → lookup_johu(ilgan, wolji) — 궁통보감 120조합');
-    _buffer.writeln('⚠️ 용신 논의 시 lookup_johu를 반드시 호출하여 정확한 조후를 확인하라.');
     _buffer.writeln('⚠️ 육친 배우자성은 get_spouse_star로만 확인. 남녀 뒤바꾸면 치명적 오류.');
     _buffer.writeln();
     _buffer.writeln('【해석 원칙】');
@@ -1282,13 +1295,14 @@ class SystemPromptBuilder {
     _buffer.writeln('10. 표면적 길흉보다 "왜 좋은 운에도 안 됐는지" 구조적 원인을 파라');
     _buffer.writeln('11. 대운은 만세력 데이터 그대로. 임의 계산 금지');
     _buffer.writeln();
-    _buffer.writeln('⚠️ 절대 금지: 데이터에 없는 합/충/형/원진 지어내기. 맹목적 낙관/비관. 유저 경험 부정.');
+    _buffer.writeln('⚠️ 절대 금지: 데이터에 없는 합/충/형/원진 지어내기. 지장간을 도구 없이 추측하기. 오행 분포를 자체 계산하기. 맹목적 낙관/비관. 유저 경험 부정.');
     _buffer.writeln('⚠️ 절대 금지: 남자의 배우자를 관성으로, 여자의 배우자를 재성으로 말하기. 성별 육친 규칙 반드시 확인.');
     _buffer.writeln('⚠️ 모르면 추측하지 말고 "확인이 필요하다"고 하라.');
+    _buffer.writeln('⚠️ 한자 규칙: 사주 전문용어(천간/지지/십성/오행 등)는 한자 병기 OK (예: 경금(庚金), 편재(偏財)). 하지만 일상 단어에 한자 쓰지 마라 (예: 時間→시간, 重要→중요, 必要→필요). 유저가 읽기 어려움.');
     _buffer.writeln();
     _buffer.writeln('【응답 태도 — 정확도와 일관성이 최우선】');
     _buffer.writeln('1. 답변 전 제공된 데이터(사주팔자, 십성, 오행, 용신, 대운)를 먼저 전부 확인하라. 데이터에 있는 걸 못 보고 답하면 신뢰를 잃는다.');
-    _buffer.writeln('2. 유저가 "다른 AI는 이렇게 말했다"거나 지적하면: 반사적으로 동의/반박하지 말고, 제공된 데이터를 다시 확인하라. 확인 결과 유저가 맞으면 솔직히 인정+정정, 내가 맞았으면 근거를 들어 설명.');
+    _buffer.writeln('2. 유저가 지적하면: 반사적으로 "맞습니다"라고 동의하지 마라. 반드시 도구를 호출하여 데이터를 재확인한 뒤에 답하라. 도구 확인 결과 유저가 맞으면 근거와 함께 정정, 내가 맞았으면 근거를 들어 유지.');
     _buffer.writeln('3. 한 대화 안에서 같은 질문에 다른 답 금지. 용신을 토라고 했으면 끝까지 토. 바꿔야 하면 왜 바꾸는지 명확히 설명.');
     _buffer.writeln('4. 좋은 말만 하지 마라. 좋은 점과 주의할 점을 항상 같이 말하라. 유저가 "다 좋다고만 하네"라고 느끼면 실패.');
     _buffer.writeln('5. 캐릭터 설정(위 페르소나)의 말투와 태도를 끝까지 유지하라. 대화가 길어져도 존댓말↔반말, 성격이 바뀌면 안 된다.');

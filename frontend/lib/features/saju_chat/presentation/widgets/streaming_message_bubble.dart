@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/markdown_parser.dart';
 import 'typing_indicator.dart';
 
 /// AI 스트리밍 응답 버블 위젯
@@ -121,45 +122,7 @@ class StreamingMessageBubble extends StatelessWidget {
     );
 
     return Text.rich(
-      _parseMarkdownBold(_cleanedContent, aiStyle),
+      MarkdownParser.parse(_cleanedContent, aiStyle),
     );
-  }
-
-  /// **text** 패턴을 파싱해서 볼드체로 변환
-  TextSpan _parseMarkdownBold(String text, TextStyle baseStyle) {
-    final List<InlineSpan> spans = [];
-    final regex = RegExp(r'\*\*(.+?)\*\*');
-    int lastEnd = 0;
-
-    for (final match in regex.allMatches(text)) {
-      // 매치 이전 텍스트 (일반)
-      if (match.start > lastEnd) {
-        spans.add(TextSpan(
-          text: text.substring(lastEnd, match.start),
-          style: baseStyle,
-        ));
-      }
-      // 매치된 텍스트 (볼드)
-      spans.add(TextSpan(
-        text: match.group(1), // ** 안의 텍스트
-        style: baseStyle.copyWith(fontWeight: FontWeight.bold),
-      ));
-      lastEnd = match.end;
-    }
-
-    // 마지막 남은 텍스트
-    if (lastEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastEnd),
-        style: baseStyle,
-      ));
-    }
-
-    // spans가 비어있으면 전체 텍스트 반환
-    if (spans.isEmpty) {
-      return TextSpan(text: text, style: baseStyle);
-    }
-
-    return TextSpan(children: spans);
   }
 }

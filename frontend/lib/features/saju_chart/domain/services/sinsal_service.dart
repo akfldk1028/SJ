@@ -336,29 +336,30 @@ class SinSalService {
     return results;
   }
 
-  /// 원진살 탐지 (충 관계)
+  /// 원진살 탐지 (원진 관계 — 충과 다름!)
+  /// 원진살 6쌍: 자미, 축오, 인유, 묘신, 진해, 사술
+  /// ※ 충(冲)은 자오/축미/인신/묘유/진술/사해 — 원진과 다름!
   List<SinSalResult> _findWonJinSal(List<_JiWithLocation> jis) {
     final results = <SinSalResult>[];
 
-    // 원진살 조합 (6충)
-    const chungPairs = [
-      ['자', '오'],
-      ['축', '미'],
-      ['인', '신'],
-      ['묘', '유'],
-      ['진', '술'],
-      ['사', '해'],
+    const wonJinPairs = [
+      ['자', '미'],
+      ['축', '오'],
+      ['인', '유'],
+      ['묘', '신'],
+      ['진', '해'],
+      ['사', '술'],
     ];
 
     final jiList = jis.map((j) => j.ji).toList();
 
-    for (final pair in chungPairs) {
+    for (final pair in wonJinPairs) {
       if (jiList.contains(pair[0]) && jiList.contains(pair[1])) {
         results.add(SinSalResult(
           sinsal: SinSal.wonJinSal,
           location: '사주 전체',
           relatedJi: '${pair[0]}-${pair[1]}',
-          description: '${pair[0]}${pair[1]} 충 - 대인 관계 마찰 주의',
+          description: '${pair[0]}${pair[1]} 원진 - 감정적 갈등·불화 주의',
         ));
       }
     }
@@ -366,27 +367,32 @@ class SinSalService {
     return results;
   }
 
-  /// 귀문관살 탐지
+  /// 귀문관살 탐지 (지지 6쌍 조합)
+  /// 귀문관살: 진해, 축오, 사술, 묘신, 인미, 자유
+  /// ※ 원진살과 4쌍 겹침 (진해/축오/사술/묘신), 2쌍 다름 (귀문: 인미·자유, 원진: 인유·자미)
   List<SinSalResult> _findGwiMunGwanSal(List<_JiWithLocation> jis) {
     final results = <SinSalResult>[];
 
-    // 귀문관살: 인신사해 중 2개 이상
-    const gwiMunJis = ['인', '신', '사', '해'];
-    int count = 0;
+    const gwiMunPairs = [
+      ['진', '해'],
+      ['축', '오'],
+      ['사', '술'],
+      ['묘', '신'],
+      ['인', '미'],
+      ['자', '유'],
+    ];
 
-    for (final ji in jis) {
-      if (gwiMunJis.contains(ji.ji)) {
-        count++;
+    final jiList = jis.map((j) => j.ji).toList();
+
+    for (final pair in gwiMunPairs) {
+      if (jiList.contains(pair[0]) && jiList.contains(pair[1])) {
+        results.add(SinSalResult(
+          sinsal: SinSal.gwiMunGwanSal,
+          location: '사주 전체',
+          relatedJi: '${pair[0]}-${pair[1]}',
+          description: '${pair[0]}${pair[1]} 귀문관 - 영적 민감성, 정신적 고통 주의',
+        ));
       }
-    }
-
-    if (count >= 2) {
-      results.add(SinSalResult(
-        sinsal: SinSal.gwiMunGwanSal,
-        location: '사주 전체',
-        relatedJi: '인신사해 중 $count개',
-        description: '귀문관살 - 영적 민감성, 신비 체험 가능',
-      ));
     }
 
     return results;

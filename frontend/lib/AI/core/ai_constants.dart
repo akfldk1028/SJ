@@ -85,11 +85,11 @@ abstract class OpenAIModels {
   static const String gpt4oMini = 'gpt-4o-mini';
 
   /// 사주 분석용 기본 모델 (평생운세 saju_base)
-  /// - 원래: gpt52 (GPT-5.2, $1.75/$14.00) → 건당 ~$0.20
-  /// - 현재: gpt5Mini (GPT-5-mini, $0.25/$2.00) → 건당 ~$0.03
-  /// - 이유: AdMob 무효트래픽 제한으로 광고 수익 없음 (2026-02-10~)
-  /// - 복원: 광고 재개되면 gpt52로 되돌리기
-  static const String sajuAnalysis = gpt5Mini;
+  /// - v103: qwen3.5-flash (DashScope, $0.10/$0.40) → 건당 ~$0.003
+  /// - 이전: gpt5Mini ($0.25/$2.00) → 건당 ~$0.03 (10배 비쌈)
+  /// - Edge Function에서 json_schema→json_object 자동 변환 + 19필드 검증
+  /// - Qwen 실패 시 GPT fallback
+  static const String sajuAnalysis = 'qwen3.5-flash';
 
   /// GPT-5-mini (2026년 출시)
   /// - API ID: gpt-5-mini
