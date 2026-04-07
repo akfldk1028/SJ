@@ -93,6 +93,16 @@ try {
  * - cachedContentTokenCount 로깅 추가 (캐시 적중률 모니터링)
  * - non-streaming 비용 계산: implicit cache 할인 반영
  *
+ * v104 변경사항 (2026-04-07):
+ * - BUG FIX: Qwen 빈 응답 자동 복구 (Gemini in-stream fallback)
+ *   → Qwen이 200 OK + text 0자로 응답하면 (간헐적 콘텐츠 필터/내부 오류)
+ *   → 같은 SSE 스트림 안에서 Gemini non-streaming fallback 자동 호출
+ *   → 클라이언트는 차이를 모르고 정상 응답 수신
+ *   → Gemini도 빈 응답 시 "다시 질문해주세요" 에러 메시지 + 쿼타 미차감 (usage 0)
+ *   → DashScope 공식: finish_reason은 stop/length/tool_calls/null만 존재
+ *     콘텐츠 필터는 HTTP 400 DataInspectionFailed (기존 resp.ok 체크로 처리됨)
+ *     200 + 빈 body는 문서화되지 않은 edge case
+ *
  * === 모델 설정 ===
  * 채팅용: gemini-2.5-flash-lite
  * Intent: gemini-2.5-flash-lite
@@ -283,10 +293,10 @@ async function handleQwenStreamingRequest(
     const hasTools = openaiToolDeclarations.length > 0 && executeSajuFunction;
     let preflightUsage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 };
     let preflightFinalContent: string | null = null; // 도구 사용 후 최종 답변
+    let lastPrefCompletionTokens = 0;  // v103: FC 루프 중 마지막 응답의 completion만 추적 (쿼타용)
     if (hasTools) {
       const MAX_FC = 5;
       let usedTools = false;
-      let lastPrefCompletionTokens = 0;  // v103: FC 루프 중 마지막 응답의 completion만 추적 (쿼타용)
       for (let i = 0; i < MAX_FC; i++) {
         const prefBody: { [k: string]: unknown } = {
           model: QWEN_MODEL,
@@ -484,19 +494,102 @@ async function handleQwenStreamingRequest(
               for (const line of buffer.split("\n")) processLine(line);
             }
           }
-          // done 전송 — v103: 쿼타용 completion = 스트리밍 분만 (FC preflight 제외)
+          // done 전송 — v104: Qwen 빈 응답 시 Gemini in-stream fallback
           if (!repetitionDetected) {
-            const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
-            const allComp = totalCompletionTokens + preflightUsage.completion_tokens;  // 비용 기록용 (전체)
-            const quotaComp = totalCompletionTokens;  // 쿼타용 (스트리밍만)
-            const allCached = totalCachedTokens + preflightUsage.cached_tokens;
-            const cacheHitPct = allPrompt > 0 ? Math.round(allCached / allPrompt * 100) : 0;
-            console.log(`[ai-gemini v103] Qwen stream done: prompt=${allPrompt}(pf=${preflightUsage.prompt_tokens}), comp=${allComp}(quota=${quotaComp}, pf=${preflightUsage.completion_tokens}), cached=${allCached} (${cacheHitPct}%), textLen=${totalTextLength}`);
-            // 클라이언트에는 쿼타용 completion만 전송
-            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: allPrompt, completion_tokens: quotaComp, total_tokens: allPrompt + quotaComp, cached_tokens: allCached } })}\n\n`));
+            if (totalTextLength === 0 && GEMINI_API_KEYS.length > 0) {
+              // v104: Qwen이 200 OK지만 text 0자 → Gemini non-streaming fallback (같은 SSE 스트림 안에서)
+              // DashScope 공식: finish_reason은 stop/length/tool_calls/null만 존재
+              // 콘텐츠 필터는 HTTP 400 DataInspectionFailed로 오지만,
+              // 간헐적으로 200 + 빈 body로 오는 케이스 존재 → Gemini로 자동 복구
+              console.warn(`[ai-gemini v104] Qwen empty response → Gemini in-stream fallback (prompt=${totalPromptTokens}, pf_comp=${preflightUsage.completion_tokens})`);
+              try {
+                const fbSystemText = messages.filter(m => m.role === "system").map(m => m.content).join("\n");
+                const fbContents = messages.filter(m => m.role !== "system").map(m => ({
+                  role: m.role === "assistant" ? "model" : "user",
+                  parts: [{ text: m.content }],
+                }));
+                const fbBody = JSON.stringify({
+                  contents: fbContents,
+                  systemInstruction: fbSystemText ? { parts: [{ text: fbSystemText }] } : undefined,
+                  generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
+                  safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                  ],
+                });
+                let fbKey = getNextGeminiKey();
+                let fbResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${fbKey}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: fbBody,
+                });
+                // 429 → 다른 키로 retry
+                if (fbResp.status === 429 && GEMINI_API_KEYS.length > 1) {
+                  console.warn(`[ai-gemini v104] Gemini fallback 429, trying next key`);
+                  fbKey = getNextGeminiKey();
+                  fbResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${fbKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: fbBody,
+                  });
+                }
+                if (fbResp.ok) {
+                  const fbData = await fbResp.json();
+                  const fbCandidate = (fbData as any).candidates?.[0];
+                  let fbContent = "";
+                  if (fbCandidate?.content?.parts) {
+                    for (const part of fbCandidate.content.parts) {
+                      if (part.thought === true) continue;
+                      if (part.text) fbContent += part.text;
+                    }
+                  }
+                  if (fbContent) {
+                    const fbUsage = (fbData as any).usageMetadata || {};
+                    const fbPrompt = fbUsage.promptTokenCount || 0;
+                    const fbComp = fbUsage.candidatesTokenCount || 0;
+                    console.log(`[ai-gemini v104] Gemini fallback OK: ${fbContent.length} chars, prompt=${fbPrompt}, comp=${fbComp}`);
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: fbContent, done: false })}\n\n`));
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: fbPrompt, completion_tokens: fbComp, total_tokens: fbPrompt + fbComp, cached_tokens: 0 } })}\n\n`));
+                    // Gemini fallback 비용 기록
+                    if (userId) {
+                      const fbCost = (fbPrompt * 0.10 / 1000000) + (fbComp * 0.40 / 1000000);
+                      await recordGeminiCost(supabase, userId, fbPrompt, fbComp, fbCost);
+                    }
+                  } else {
+                    console.error(`[ai-gemini v104] Gemini fallback also empty`);
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "EMPTY_RESPONSE", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+                  }
+                } else {
+                  console.error(`[ai-gemini v104] Gemini fallback HTTP ${fbResp.status}`);
+                  safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+                  safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "FALLBACK_FAILED", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+                }
+              } catch (fbErr) {
+                console.error(`[ai-gemini v104] Gemini fallback exception:`, fbErr);
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "FALLBACK_ERROR", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+              }
+            } else if (totalTextLength === 0) {
+              // Gemini 키도 없는 경우 — 에러 메시지만
+              console.error(`[ai-gemini v104] Qwen empty + no Gemini keys`);
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "EMPTY_RESPONSE", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+            } else {
+              // 정상 응답
+              const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
+              const allComp = totalCompletionTokens + preflightUsage.completion_tokens;
+              const quotaComp = totalCompletionTokens;
+              const allCached = totalCachedTokens + preflightUsage.cached_tokens;
+              const cacheHitPct = allPrompt > 0 ? Math.round(allCached / allPrompt * 100) : 0;
+              console.log(`[ai-gemini v104] Qwen stream done: prompt=${allPrompt}(pf=${preflightUsage.prompt_tokens}), comp=${allComp}(quota=${quotaComp}, pf=${preflightUsage.completion_tokens}), cached=${allCached} (${cacheHitPct}%), textLen=${totalTextLength}`);
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: allPrompt, completion_tokens: quotaComp, total_tokens: allPrompt + quotaComp, cached_tokens: allCached } })}\n\n`));
+            }
           }
-          // 비용 기록 (Qwen 가격 = Gemini와 동일 $0.10/$0.40, explicit cache $0.01)
-          {
+          // 비용 기록 — 정상 응답만 (빈 응답/fallback은 위에서 개별 처리)
+          if (totalTextLength > 0) {
             const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
             const allComp = totalCompletionTokens + preflightUsage.completion_tokens;
             const allCached = totalCachedTokens + preflightUsage.cached_tokens;
