@@ -208,7 +208,13 @@ async function generateWithGemini(prompt: string): Promise<AiSummary> {
   const usage = data.usageMetadata || {};
   console.log(`[generate-ai-summary] Gemini fallback tokens: prompt=${usage.promptTokenCount || 0}, completion=${usage.candidatesTokenCount || 0}`);
 
-  return JSON.parse(rawText) as AiSummary;
+  try {
+    return JSON.parse(rawText) as AiSummary;
+  } catch (e) {
+    console.error("[generate-ai-summary] Gemini JSON parse error:", e);
+    console.error("[generate-ai-summary] Gemini raw:", rawText);
+    throw new Error("Failed to parse Gemini fallback response as JSON");
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

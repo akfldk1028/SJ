@@ -558,7 +558,7 @@ Deno.serve(async (req) => {
         );
       }
       // Qwen 실패 → GPT-5-mini fallback
-      console.warn("[ai-openai v103] Qwen failed, falling back to gpt-5-mini sync mode");
+      console.warn(`[ai-openai v106] Qwen failed (${task_type}), falling back to gpt-5-mini sync mode`);
       model = "gpt-5-mini";
     }
 
