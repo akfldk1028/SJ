@@ -1,7 +1,7 @@
 /**
  * 사주 검증 도구 모듈 — Gemini/Qwen Function Calling용
  *
- * 8개 도구:
+ * 9개 도구:
  * 1. verify_interaction — 지지 관계 (충/원진/해/합/형/파)
  * 2. get_spouse_star — 육친 배우자성 (일간×성별)
  * 3. verify_cheongan_hap — 천간합
@@ -10,6 +10,7 @@
  * 6. think — Sequential Thinking (단계별 추론)
  * 7. lookup_johu — 궁통보감 조후용신 (일간×월지 120조합)
  * 8. lookup_jijanggan — 지장간 본기/중기/여기 (12지지)
+ * 9. calculate_daeun — 대운 계산 (월주+년간+성별→순행/역행+10개 대운)
  */
 
 import { verifyInteraction } from "./interactions.ts";
@@ -19,6 +20,7 @@ import { verifyCheonganHap } from "./cheongan.ts";
 import { getGungwi } from "./gungwi.ts";
 import { lookupJohu } from "./johu.ts";
 import { lookupJijanggan } from "./jijanggan.ts";
+import { calculateDaeun } from "./daeun.ts";
 
 // ═══════════════════════════════════════════════════════════════
 // Gemini tools 선언 (requestBody.tools에 추가)
@@ -29,7 +31,7 @@ export const sajuToolDeclarations = [
     functionDeclarations: [
       {
         name: "verify_interaction",
-        description: "두 지지(地支) 간 관계 확인. 충/원진/해/육합/삼합/방합/형/파 여부를 정확히 판별. 합/충/원진/해를 언급하기 전에 반드시 이 도구로 확인해야 함.",
+        description: "두 지지(地支) 간 관계 확인. 충/원진/해/육합/삼합/반합/방합/형/파 여부를 정확히 판별. 삼합·반합·충·합·형·파·원진·해를 언급하기 전에 반드시 이 도구로 확인해야 함. 삼합을 도구 없이 추측하면 높은 확률로 틀린다.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -41,7 +43,7 @@ export const sajuToolDeclarations = [
       },
       {
         name: "get_spouse_star",
-        description: "일간과 성별로 배우자성(配偶星)을 정확히 조회. 남자=재성, 여자=관성. 배우자/결혼운을 언급할 때 반드시 확인.",
+        description: "일간과 성별로 배우자성(配偶星)을 정확히 조회. 남자=재성, 여자=관성. 배우자/결혼/이혼/사별/궁합을 언급하기 전에 반드시 이 도구로 확인. 도구 없이 계산하면 높은 확률로 틀린다.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -65,7 +67,7 @@ export const sajuToolDeclarations = [
       },
       {
         name: "get_sipsin",
-        description: "일간 기준 특정 천간/지지의 십성(十星)을 정확히 계산.",
+        description: "일간 기준 특정 천간/지지의 십성(十星)을 정확히 계산. 십성을 언급하기 전에 반드시 이 도구로 확인. 추측하면 관성↔재성을 뒤집는 치명적 오류가 발생한다.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -147,6 +149,21 @@ Key features:
             ji: { type: "STRING", description: "지지 한글 1자 (자/축/인/묘/진/사/오/미/신/유/술/해)" },
           },
           required: ["ji"],
+        },
+      },
+      {
+        name: "calculate_daeun",
+        description: "대운(大運) 계산. 월주+년간+성별로 순행/역행 판별 및 10개 대운 리스트 생성. 대운 순서/방향을 언급하기 전에 반드시 이 도구로 확인. 순행/역행을 추측하면 정반대 대운이 나온다.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            month_gan: { type: "STRING", description: "월간 한글 1자 (갑/을/병/정/무/기/경/신/임/계)" },
+            month_ji: { type: "STRING", description: "월지 한글 1자 (자/축/인/묘/진/사/오/미/신/유/술/해)" },
+            year_gan: { type: "STRING", description: "년간 한글 1자 (순행/역행 판별용)" },
+            gender: { type: "STRING", enum: ["male", "female"], description: "성별" },
+            start_age: { type: "INTEGER", description: "대운 시작 나이 (선택, 기본 4세)" },
+          },
+          required: ["month_gan", "month_ji", "year_gan", "gender"],
         },
       },
     ],
@@ -263,6 +280,15 @@ export function executeSajuFunction(name: string, args: { [k: string]: unknown }
 
     case "lookup_jijanggan":
       return lookupJijanggan(args.ji as string);
+
+    case "calculate_daeun":
+      return calculateDaeun(
+        args.month_gan as string,
+        args.month_ji as string,
+        args.year_gan as string,
+        args.gender as string,
+        args.start_age as number | undefined,
+      );
 
     default:
       return { error: `알 수 없는 도구: ${name}` };

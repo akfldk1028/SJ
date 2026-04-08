@@ -55,16 +55,14 @@ const corsHeaders = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gemini API 설정
+// Qwen API 설정 (v38: Gemini → Qwen 전환)
 // ─────────────────────────────────────────────────────────────────────────────
-// GEMINI_API_KEY는 Supabase Secrets에 저장됨
-// 설정 방법: npx supabase secrets set GEMINI_API_KEY=your_key
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const QWEN_API_KEY = Deno.env.get("QWEN_API_KEY");
+const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const QWEN_MODEL = "qwen3.5-flash";
 
-// v37: gemini-2.5-flash-lite (2026-04 비용 절감 전환)
-// - 빠른 응답 속도 + 최저 비용
-// - 한국어 지원 우수
-// - JSON 출력 지원
+// Fallback용 Gemini
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const GEMINI_MODEL = "gemini-2.5-flash-lite";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,53 +125,71 @@ interface GenerateSummaryRequest {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gemini API 호출
+// Qwen API 호출 (v38: primary)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Gemini API로 AI 요약 생성
- *
- * @param prompt - 사주 분석 프롬프트 (한국어)
- * @returns AiSummary JSON 객체
- * @throws Error - API 오류 또는 JSON 파싱 실패 시
- *
- * ## Gemini API 특징
- * - responseMimeType: "application/json" → 항상 JSON 형식 응답
- * - systemInstruction → 시스템 프롬프트 (역할 지정)
- * - safetySettings → 안전 필터 (BLOCK_ONLY_HIGH: 높은 위험만 차단)
- */
+async function generateWithQwen(prompt: string): Promise<AiSummary> {
+  if (!QWEN_API_KEY) throw new Error("QWEN_API_KEY not set");
+
+  const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+    body: JSON.stringify({
+      model: QWEN_MODEL,
+      messages: [
+        { role: "system", content: AI_SUMMARY_SYSTEM_PROMPT },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 1024,
+      temperature: 0.7,
+      top_p: 0.9,
+      response_format: { type: "json_object" },
+      enable_thinking: false,
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error(`[generate-ai-summary] Qwen API ${resp.status}:`, errText);
+    throw new Error(`Qwen API error: ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  const choice = data.choices?.[0];
+  if (!choice?.message?.content) {
+    throw new Error("No response from Qwen");
+  }
+
+  const usage = data.usage || {};
+  console.log(`[generate-ai-summary] Qwen tokens: prompt=${usage.prompt_tokens || 0}, completion=${usage.completion_tokens || 0}, cached=${usage.prompt_tokens_details?.cached_tokens || 0}`);
+
+  try {
+    return JSON.parse(choice.message.content) as AiSummary;
+  } catch (parseError) {
+    console.error("[generate-ai-summary] JSON parse error:", parseError);
+    console.error("[generate-ai-summary] Raw:", choice.message.content);
+    throw new Error("Failed to parse Qwen response as JSON");
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gemini API 호출 (fallback)
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function generateWithGemini(prompt: string): Promise<AiSummary> {
-  // Gemini API 엔드포인트 (v1beta)
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not set");
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      // 사용자 메시지 (사주 데이터 포함)
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-
-      // 시스템 프롬프트 (사주 전문가 역할)
-      // @see prompts.ts의 AI_SUMMARY_SYSTEM_PROMPT
-      systemInstruction: {
-        parts: [{ text: AI_SUMMARY_SYSTEM_PROMPT }],
-      },
-
-      // 생성 설정
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: AI_SUMMARY_SYSTEM_PROMPT }] },
       generationConfig: {
-        temperature: 0.7,        // 창의성 (0=보수적, 1=창의적)
-        maxOutputTokens: 1024,   // 최대 출력 토큰
-        topP: 0.9,               // 확률 기반 샘플링
-        topK: 40,                // 상위 K개 토큰 고려
-        responseMimeType: "application/json",  // JSON 형식 강제
+        temperature: 0.7, maxOutputTokens: 1024, topP: 0.9, topK: 40,
+        responseMimeType: "application/json",
       },
-
-      // 안전 설정 (사주는 민감한 내용 없으므로 관대하게)
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
@@ -184,50 +200,15 @@ async function generateWithGemini(prompt: string): Promise<AiSummary> {
   });
 
   const data = await response.json();
+  if (data.error) throw new Error(data.error.message || "Gemini API error");
+  if (!data.candidates?.length) throw new Error("No response from Gemini");
+  if (data.candidates[0].finishReason === "SAFETY") throw new Error("Blocked by safety");
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // 에러 처리
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // API 에러 (인증 실패, 할당량 초과 등)
-  if (data.error) {
-    console.error("[generate-ai-summary] Gemini API Error:", data.error);
-    throw new Error(data.error.message || "Gemini API error");
-  }
-
-  // 응답 없음
-  if (!data.candidates || data.candidates.length === 0) {
-    throw new Error("No response generated from Gemini");
-  }
-
-  const candidate = data.candidates[0];
-
-  // 안전 필터에 의해 차단됨
-  if (candidate.finishReason === "SAFETY") {
-    throw new Error("Response blocked due to safety settings");
-  }
-
-  // 응답 텍스트 추출
-  const rawText = candidate.content?.parts?.[0]?.text || "";
-
-  // 토큰 사용량 로깅 (비용 추적용)
+  const rawText = data.candidates[0].content?.parts?.[0]?.text || "";
   const usage = data.usageMetadata || {};
-  console.log(
-    `[generate-ai-summary] Tokens: prompt=${usage.promptTokenCount || 0}, completion=${usage.candidatesTokenCount || 0}`
-  );
+  console.log(`[generate-ai-summary] Gemini fallback tokens: prompt=${usage.promptTokenCount || 0}, completion=${usage.candidatesTokenCount || 0}`);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // JSON 파싱
-  // ─────────────────────────────────────────────────────────────────────────
-  try {
-    const parsed = JSON.parse(rawText);
-    return parsed as AiSummary;
-  } catch (parseError) {
-    // JSON 파싱 실패 시 디버그 정보 출력
-    console.error("[generate-ai-summary] JSON parse error:", parseError);
-    console.error("[generate-ai-summary] Raw text:", rawText);
-    throw new Error("Failed to parse AI response as JSON");
-  }
+  return JSON.parse(rawText) as AiSummary;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -309,8 +290,8 @@ Deno.serve(async (req) => {
     // ─────────────────────────────────────────────────────────────────────────
     // 환경 변수 확인
     // ─────────────────────────────────────────────────────────────────────────
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not set. Run: npx supabase secrets set GEMINI_API_KEY=your_key");
+    if (!QWEN_API_KEY && !GEMINI_API_KEY) {
+      throw new Error("QWEN_API_KEY or GEMINI_API_KEY required");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -345,19 +326,35 @@ Deno.serve(async (req) => {
       saju_analysis
     );
 
-    // Gemini로 AI 요약 생성
+    // v38: Qwen 우선 → Gemini fallback → 정적 fallback
     let aiSummary: AiSummary;
     try {
-      aiSummary = await generateWithGemini(analysisPrompt);
-
-      // 메타 정보 추가
+      if (QWEN_API_KEY) {
+        aiSummary = await generateWithQwen(analysisPrompt);
+        aiSummary.model = QWEN_MODEL;
+      } else {
+        aiSummary = await generateWithGemini(analysisPrompt);
+        aiSummary.model = GEMINI_MODEL;
+      }
       aiSummary.generated_at = new Date().toISOString();
-      aiSummary.model = GEMINI_MODEL;
       aiSummary.version = "1.0";
-    } catch (geminiError) {
-      // Gemini 실패 시 fallback 사용
-      console.error("[generate-ai-summary] Gemini 실패, fallback 사용:", geminiError);
-      aiSummary = createFallbackSummary(saju_analysis);
+    } catch (primaryError) {
+      console.error("[generate-ai-summary] Primary 실패:", primaryError);
+      // Qwen 실패 시 Gemini fallback 시도
+      if (QWEN_API_KEY && GEMINI_API_KEY) {
+        try {
+          console.log("[generate-ai-summary] Gemini fallback 시도");
+          aiSummary = await generateWithGemini(analysisPrompt);
+          aiSummary.generated_at = new Date().toISOString();
+          aiSummary.model = GEMINI_MODEL + "-fallback";
+          aiSummary.version = "1.0";
+        } catch (fallbackError) {
+          console.error("[generate-ai-summary] Gemini fallback도 실패:", fallbackError);
+          aiSummary = createFallbackSummary(saju_analysis);
+        }
+      } else {
+        aiSummary = createFallbackSummary(saju_analysis);
+      }
     }
 
     console.log(`[generate-ai-summary] 완료: profile=${profile_id}, model=${aiSummary.model}`);

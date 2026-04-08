@@ -1277,6 +1277,9 @@ class SystemPromptBuilder {
     _buffer.writeln('지장간 → lookup_jijanggan(ji)');
     _buffer.writeln('조후용신 → lookup_johu(ilgan, wolji) — 궁통보감 120조합');
     _buffer.writeln('⚠️ 육친 배우자성은 get_spouse_star로만 확인. 남녀 뒤바꾸면 치명적 오류.');
+    _buffer.writeln('⚠️ 십성 방향 주의: "나를 극하는 것=관성(官)", "내가 극하는 것=재성(財)". 예: 화극금 → 火일간에게 金은 재성(내가 극하는 것). 수극화 → 火일간에게 水가 관성(나를 극하는 것). 방향을 뒤집으면 관성↔재성이 바뀌어 치명적 오류.');
+    _buffer.writeln('유저가 채팅으로 다른 사람의 사주를 입력하면: 그 사주의 십성/관성/합충도 반드시 도구로 계산. 시스템 데이터와 혼동 금지.');
+    _buffer.writeln('유저가 십성/관성을 지적하면: 반박 전에 도구로 확인. 유저가 맞으면 즉시 정정.');
     _buffer.writeln();
     _buffer.writeln('【해석 원칙】');
     _buffer.writeln('1. 합화 결과가 용신이면 좋은합, 기신이면 나쁜합');
@@ -1316,6 +1319,7 @@ class SystemPromptBuilder {
     _buffer.writeln('7. 대운=10년 큰 환경, 세운=1년 구체적 사건. 대운 틀 안에서 세운이 작용');
     _buffer.writeln('8. 대운 1개만 떼어서 단정 금지. 연속 2~3개 대운의 흐름을 봐야 함');
     _buffer.writeln('9. 순행/역행은 좋고 나쁨이 아님. 어디로 가느냐(용신 방향)가 핵심');
+    _buffer.writeln('10. 대운 해석 시 천간/지지의 십성은 반드시 get_sipsin(ilgan, 대운천간)과 get_sipsin(ilgan, 대운지지)로 확인. 편관/정관, 편재/정재 음양 구분을 추측하면 틀린다.');
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();

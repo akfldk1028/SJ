@@ -99,9 +99,10 @@ abstract class OpenAIModels {
   static const String gpt5Mini = 'gpt-5-mini';
 
   /// 운세 분석용 모델 (파생 운세: 2025 회고, 2026 신년, 월운 등)
-  /// - 처음부터 gpt5Mini로 설계 (saju_base 기반 파생이라 mini로 충분)
-  /// - sajuAnalysis와 달리 모델 변경 이력 없음
-  static const String fortuneAnalysis = gpt5Mini;
+  /// - v106: gpt5Mini → qwen3.5-flash 전환 (10배 절감, $0.03→$0.003/건)
+  /// - saju_base 기반 파생이라 Qwen으로 충분
+  /// - Qwen 실패 시 GPT fallback (ai-openai EF에서 처리)
+  static const String fortuneAnalysis = sajuAnalysis;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

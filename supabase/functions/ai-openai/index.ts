@@ -299,7 +299,8 @@ async function collectStreamResponse(response: Response): Promise<{ content: str
 }
 
 /**
- * v103: Qwen 3.5 Flash Non-Streaming 호출 (saju_base 비용 절감용)
+ * v103: Qwen 3.5 Flash Non-Streaming 호출
+ * v106: saju_base + fortune 공용 (taskType으로 검증 분기)
  * - DashScope OpenAI 호환 API (싱가포르)
  * - json_schema → json_object 자동 변환
  * - 실패 시 null 반환 → GPT fallback
@@ -309,6 +310,7 @@ async function callQwenSajuBase(
   maxTokens: number,
   temperature: number,
   responseFormat?: { type: string; json_schema?: Record<string, unknown> },
+  taskType?: string,
 ): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number } } | null> {
   if (!QWEN_API_KEY) {
     console.log("[ai-openai v103] No QWEN_API_KEY, skipping Qwen");
@@ -345,7 +347,7 @@ async function callQwenSajuBase(
       response_format: { type: "json_object" },
     };
 
-    console.log("[ai-openai v103] Calling Qwen 3.5 Flash for saju_base...");
+    console.log(`[ai-openai v106] Calling Qwen 3.5 Flash for ${taskType || 'unknown'}...`);
     const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
@@ -368,24 +370,28 @@ async function callQwenSajuBase(
     const content = choice.message.content;
     const usage = data.usage || {};
 
-    // 19필드 검증 (saju_base 스키마)
+    // v106: JSON 검증 — saju_base는 19필드 검증, fortune은 파싱만 확인
     try {
       const parsed = JSON.parse(content);
-      const requiredKeys = [
-        'mySajuIntro', 'my_saju_characters', 'wonGuk_analysis',
-        'sipsung_analysis', 'hapchung_analysis', 'personality', 'lucky_elements',
-        'wealth', 'career', 'business', 'love', 'marriage',
-        'sinsal_gilseong', 'health', 'daeun_detail',
-        'summary', 'life_cycles', 'peak_years', 'modern_interpretation',
-      ];
-      const missingKeys = requiredKeys.filter(k => !(k in parsed));
-      if (missingKeys.length > 0) {
-        console.error(`[ai-openai v103] Qwen JSON missing ${missingKeys.length} keys: ${missingKeys.join(', ')}`);
-        return null;  // fallback to GPT
+      if (taskType === 'saju_base' || taskType === 'saju_analysis') {
+        const requiredKeys = [
+          'mySajuIntro', 'my_saju_characters', 'wonGuk_analysis',
+          'sipsung_analysis', 'hapchung_analysis', 'personality', 'lucky_elements',
+          'wealth', 'career', 'business', 'love', 'marriage',
+          'sinsal_gilseong', 'health', 'daeun_detail',
+          'summary', 'life_cycles', 'peak_years', 'modern_interpretation',
+        ];
+        const missingKeys = requiredKeys.filter(k => !(k in parsed));
+        if (missingKeys.length > 0) {
+          console.error(`[ai-openai v106] Qwen JSON missing ${missingKeys.length} keys: ${missingKeys.join(', ')}`);
+          return null;  // fallback to GPT
+        }
+        console.log(`[ai-openai v106] Qwen JSON validated: all 19 keys present (saju_base)`);
+      } else {
+        console.log(`[ai-openai v106] Qwen JSON validated: parse OK (${taskType}, ${Object.keys(parsed).length} keys)`);
       }
-      console.log(`[ai-openai v103] Qwen JSON validated: all 19 keys present`);
     } catch (e) {
-      console.error(`[ai-openai v103] Qwen JSON parse failed: ${e}`);
+      console.error(`[ai-openai v106] Qwen JSON parse failed: ${e}`);
       return null;  // fallback to GPT
     }
 
@@ -531,17 +537,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // === v103: Qwen 라우팅 (model이 "qwen"으로 시작하면) ===
+    // === v106: Qwen 라우팅 (model이 "qwen"으로 시작하면) — saju_base + fortune 공용 ===
     if (model.startsWith("qwen")) {
-      console.log(`[ai-openai v103] *** QWEN MODE *** model=${model}`);
-      const qwenResult = await callQwenSajuBase(messages, max_tokens, temperature, response_format);
+      console.log(`[ai-openai v106] *** QWEN MODE *** model=${model}, task=${task_type}`);
+      const qwenResult = await callQwenSajuBase(messages, max_tokens, temperature, response_format, task_type);
       if (qwenResult) {
         const { content, usage } = qwenResult;
         const cost = getModelCost("qwen3.5-flash", usage.prompt_tokens, usage.completion_tokens);
         if (user_id && usage.prompt_tokens > 0) {
           await recordTokenUsage(supabase, user_id, usage.prompt_tokens, usage.completion_tokens, cost, isAdmin, task_type);
         }
-        console.log(`[ai-openai v103] Qwen success: ${usage.prompt_tokens}+${usage.completion_tokens} tokens, $${cost.toFixed(6)}`);
+        console.log(`[ai-openai v106] Qwen success (${task_type}): ${usage.prompt_tokens}+${usage.completion_tokens} tokens, $${cost.toFixed(6)}`);
         return new Response(
           JSON.stringify({
             success: true, content,

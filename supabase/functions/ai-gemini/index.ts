@@ -172,8 +172,8 @@ async function callQwenNonStreaming(
     const otherMsgs = messages.filter((m) => m.role !== "system");
     const systemText = systemMsgs.map((m) => m.content).join("\n");
 
-    // v103: 데이터 준수 지시 (AI 할루시네이션 방지 — Flutter 빌드 전에도 즉시 적용)
-    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트에 제공된 십성·대운·합충·오행 데이터는 만세력으로 계산된 정확한 값이며, 상담자 본인의 데이터입니다. 절대 자의적으로 십성을 재판정하거나 대운 순서를 바꾸지 마세요. 지장간은 반드시 lookup_jijanggan 도구로 확인 후 답변하세요. 유저가 채팅으로 다른 사람(남편·자녀·지인)의 사주를 입력하면 위 시스템 데이터와 혼동하지 마세요. 다른 사람의 대운·십성은 채팅에서 알려준 정보만 사용하고, 모르면 솔직히 "정확한 분석을 위해 인연 등록을 해주세요"라고 안내하세요.`;
+    // v105: 데이터 준수 지시 (추상적 — streaming 버전과 동일)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 한계를 밝혀라.`;
 
     const qwenMessages: { [k: string]: unknown }[] = [];
     if (systemText) {
@@ -202,7 +202,10 @@ async function callQwenNonStreaming(
         enable_thinking: false,
         stop: ["[/SUGGESTED_QUESTIONS]"],
       };
-      if (hasTools) body.tools = openaiToolDeclarations;
+      if (hasTools) {
+        body.tools = openaiToolDeclarations;
+        body.tool_choice = i === 0 ? "required" : "auto";  // v105: 첫 라운드 도구 강제
+      }
 
       const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
         method: "POST",
@@ -274,8 +277,8 @@ async function handleQwenStreamingRequest(
     const otherMsgs = messages.filter((m) => m.role !== "system");
     const systemText = systemMsgs.map((m) => m.content).join("\n");
 
-    // v103: 데이터 준수 지시 (non-streaming과 동일)
-    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트에 제공된 십성·대운·합충·오행 데이터는 만세력으로 계산된 정확한 값이며, 상담자 본인의 데이터입니다. 절대 자의적으로 십성을 재판정하거나 대운 순서를 바꾸지 마세요. 지장간은 반드시 lookup_jijanggan 도구로 확인 후 답변하세요. 유저가 채팅으로 다른 사람(남편·자녀·지인)의 사주를 입력하면 위 시스템 데이터와 혼동하지 마세요. 다른 사람의 대운·십성은 채팅에서 알려준 정보만 사용하고, 모르면 솔직히 "정확한 분석을 위해 인연 등록을 해주세요"라고 안내하세요.`;
+    // v105: 데이터 준수 지시 (추상적 — 구체적 도구명은 시스템 프롬프트 규칙에 있음)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 한계를 밝혀라.`;
 
     const qwenMessages: { [k: string]: unknown }[] = [];
     if (systemText) {
@@ -298,6 +301,7 @@ async function handleQwenStreamingRequest(
       const MAX_FC = 5;
       let usedTools = false;
       for (let i = 0; i < MAX_FC; i++) {
+        // v105: 첫 라운드 tool_choice:"required" (Qwen 공식: guaranteed tool call)
         const prefBody: { [k: string]: unknown } = {
           model: QWEN_MODEL,
           messages: qwenMessages,
@@ -307,6 +311,7 @@ async function handleQwenStreamingRequest(
           stream: false,
           enable_thinking: false,
           tools: openaiToolDeclarations,
+          tool_choice: i === 0 ? "required" : "auto",
           stop: ["[/SUGGESTED_QUESTIONS]"],
         };
         const prefResp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
@@ -350,6 +355,16 @@ async function handleQwenStreamingRequest(
           console.log(`[ai-gemini v78] FC preflight[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
           qwenMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
         }
+      }
+    }
+
+    // v105: paragraph-level 반복 감지 (범용)
+    if (preflightFinalContent !== null && preflightFinalContent.length > 500) {
+      const blk = preflightFinalContent.substring(0, 200);
+      const idx = preflightFinalContent.indexOf(blk, 200);
+      if (idx !== -1) {
+        console.warn(`[ai-gemini v105] Paragraph repetition at char ${idx}, truncating`);
+        preflightFinalContent = preflightFinalContent.substring(0, idx).trimEnd();
       }
     }
 
