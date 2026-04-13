@@ -48,7 +48,7 @@
 	<string>We use your data to provide personalized ads and improve your experience.</string>
 	<!-- AdMob App ID (iOS) -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-7140787344231420~6791926286</string>
+	<string>ca-app-pub-7140787344231420~7180710965</string>
 	<!-- SKAdNetwork 지원 (Google + Unity Ads + 파트너 네트워크, 2026-03-17) -->
 	<key>SKAdNetworkItems</key>
 	<array>

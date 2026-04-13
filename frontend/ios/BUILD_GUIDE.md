@@ -8,11 +8,11 @@
 
 | 항목 | iOS | Android (참고) |
 |------|-----|----------------|
-| **Bundle ID / Package** | `com.clickaround.sadam` | `com.clickaround.sadam` |
-| **앱 이름** | 사담 | 사담 |
+| **Bundle ID / Package** | `com.clickaround.sadamlife` | `com.clickaround.sadam` |
+| **앱 이름** | SaDam - AI Life Companion | 사담 |
 | **최소 버전** | iOS 13.0 | API 21 (Android 5.0) |
-| **버전** | 0.1.0+13 | 0.1.0+13 |
-| **AdMob App ID** | `ca-app-pub-7140787344231420~6791926286` | `ca-app-pub-7140787344231420~3931921704` |
+| **버전** | 1.0 | 0.1.0+13 |
+| **AdMob App ID** | `ca-app-pub-7140787344231420~7180710965` | `ca-app-pub-7140787344231420~3931921704` |
 | **코드 서명** | Automatic Signing | key.properties + keystore |
 
 ---
