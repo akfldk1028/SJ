@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/day_strength.dart';
 import '../../domain/entities/saju_analysis.dart';
@@ -46,12 +47,14 @@ class DayStrengthDisplay extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Row(
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.textPrimary,
-              ),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
+          ),
         ),
         const SizedBox(width: 8),
         GestureDetector(
@@ -102,6 +105,7 @@ class DayStrengthDisplay extends StatelessWidget {
 
   /// 신강/신약 상태 카드
   Widget _buildDayStrengthCard(BuildContext context, AppThemeExtension theme) {
+    final locale = context.locale.languageCode;
     final dayStrength = analysis.dayStrength;
     final level = dayStrength.level;
 
@@ -118,13 +122,13 @@ class DayStrengthDisplay extends StatelessWidget {
           // 득령/득지/득시/득세 표시 (실제 계산값 사용)
           Row(
             children: [
-              _buildDeukBadge('saju_chart.singang_deukryeong'.tr(), dayStrength.deukryeong, theme),
-              const SizedBox(width: 8),
-              _buildDeukBadge('saju_chart.singang_deukji'.tr(), dayStrength.deukji, theme),
-              const SizedBox(width: 8),
-              _buildDeukBadge('saju_chart.singang_deuksi'.tr(), dayStrength.deuksi, theme),
-              const SizedBox(width: 8),
-              _buildDeukBadge('saju_chart.singang_deukse'.tr(), dayStrength.deukse, theme),
+              Expanded(child: _buildDeukBadge('saju_chart.singang_deukryeong'.tr(), dayStrength.deukryeong, theme)),
+              const SizedBox(width: 4),
+              Expanded(child: _buildDeukBadge('saju_chart.singang_deukji'.tr(), dayStrength.deukji, theme)),
+              const SizedBox(width: 4),
+              Expanded(child: _buildDeukBadge('saju_chart.singang_deuksi'.tr(), dayStrength.deuksi, theme)),
+              const SizedBox(width: 4),
+              Expanded(child: _buildDeukBadge('saju_chart.singang_deukse'.tr(), dayStrength.deukse, theme)),
             ],
           ),
           const SizedBox(height: 16),
@@ -137,10 +141,10 @@ class DayStrengthDisplay extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: 'saju_chart.singang_dayGanDesc'.tr(namedArgs: {'dayGan': analysis.chart.dayPillar.gan}),
+                  text: 'saju_chart.singang_dayGanDesc'.tr(namedArgs: {'dayGan': SajuI18n.cheongan(analysis.chart.dayPillar.gan, locale)}),
                 ),
                 TextSpan(
-                  text: level.korean,
+                  text: SajuI18n.singangLevel(level.korean, locale),
                   style: TextStyle(
                     color: _getStrengthColor(level),
                     fontWeight: FontWeight.bold,
@@ -167,11 +171,15 @@ class DayStrengthDisplay extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: theme.textSecondary,
-            fontSize: 13,
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: theme.textSecondary,
+              fontSize: 12,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(width: 4),
@@ -263,20 +271,29 @@ class DayStrengthDisplay extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // 라벨
-          Row(
-            children: levels.map((label) {
-              return Expanded(
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: theme.textMuted,
-                    fontSize: 13,
+          // 라벨 — 모든 셀 동일 높이로 3줄까지 허용
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: levels.map((label) {
+                return Expanded(
+                  child: Container(
+                    alignment: Alignment.topCenter,
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: theme.textMuted,
+                        fontSize: 10,
+                        height: 1.2,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
           const SizedBox(height: 4),
           // Y축 레이블
@@ -300,6 +317,7 @@ class DayStrengthDisplay extends StatelessWidget {
 
   /// 용신 카드
   Widget _buildYongsinCard(BuildContext context, AppThemeExtension theme) {
+    final locale = context.locale.languageCode;
     final yongsin = analysis.yongsin;
 
     // 조후용신 계산 (월지 기반)
@@ -319,12 +337,14 @@ class DayStrengthDisplay extends StatelessWidget {
           _buildYongsinBadge(
             label: 'saju_chart.singang_johu'.tr(),
             oheng: johuYongsin,
+            locale: locale,
           ),
           const SizedBox(width: 24),
           // 억부용신
           _buildYongsinBadge(
             label: 'saju_chart.singang_eokbu'.tr(),
             oheng: yongsin.yongsin,
+            locale: locale,
           ),
         ],
       ),
@@ -334,6 +354,7 @@ class DayStrengthDisplay extends StatelessWidget {
   Widget _buildYongsinBadge({
     required String label,
     required Oheng oheng,
+    required String locale,
     AppThemeExtension? theme,
   }) {
     final color = _getOhengColor(oheng);
@@ -356,7 +377,7 @@ class DayStrengthDisplay extends StatelessWidget {
             border: Border.all(color: color.withValues(alpha: 0.5)),
           ),
           child: Text(
-            oheng.korean,
+            SajuI18n.oheng(oheng.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: 16,
@@ -370,6 +391,7 @@ class DayStrengthDisplay extends StatelessWidget {
 
   /// 일간 강약 분석 요소 카드
   Widget _buildStrengthFactorsCard(BuildContext context, AppThemeExtension theme) {
+    final locale = context.locale.languageCode;
     final details = analysis.dayStrength.details;
 
     return Container(
@@ -381,7 +403,7 @@ class DayStrengthDisplay extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildFactorRow('saju_chart.singang_wolryeong'.tr(), details.monthStatus.korean,
+          _buildFactorRow('saju_chart.singang_wolryeong'.tr(), SajuI18n.monthStatus(details.monthStatus.korean, locale),
               details.monthStatus == MonthStatus.deukwol, theme),
           _buildFactorRow('saju_chart.bigeop'.tr(), 'saju_chart.singang_factor_count'.tr(namedArgs: {'count': '${details.bigeopCount}'}),
               details.bigeopCount > 1, theme),
@@ -408,11 +430,13 @@ class DayStrengthDisplay extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: theme.textSecondary,
+                fontSize: 13,
+              ),
             ),
           ),
           Row(

@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/twelve_sinsal.dart';
 import '../../domain/services/twelve_sinsal_service.dart';
 
@@ -21,6 +22,7 @@ class SinsalBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final color = _getSinsalColor(sinsal, theme);
     final fontSize = _getFontSize();
     final padding = _getPadding();
@@ -36,7 +38,7 @@ class SinsalBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            sinsal.korean,
+            SajuI18n.sinsal(sinsal.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: fontSize,
@@ -52,7 +54,7 @@ class SinsalBadge extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                _getFortuneLabel(sinsal.fortuneType),
+                _getFortuneLabel(sinsal.fortuneType, locale),
                 style: TextStyle(
                   color: color,
                   fontSize: fontSize * 0.75,
@@ -82,13 +84,8 @@ class SinsalBadge extends StatelessWidget {
     };
   }
 
-  String _getFortuneLabel(String fortuneType) {
-    return switch (fortuneType) {
-      '길' => '길',
-      '흉' => '흉',
-      '길흉혼합' => '혼합',
-      _ => '',
-    };
+  String _getFortuneLabel(String fortuneType, String locale) {
+    return SajuI18n.fortuneType(fortuneType, locale);
   }
 
   /// 신살별 색상 (길흉 기반)
@@ -338,13 +335,15 @@ class SinsalRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 50,
+            width: 80,
             child: Text(
               'saju_chart.twelveSinsal'.tr(),
               style: TextStyle(
                 color: theme.textMuted,
-                fontSize: 13,
+                fontSize: 12,
               ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           ...items.map((item) => Expanded(
@@ -378,6 +377,7 @@ class SinsalDetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final color = _getSinsalColor(result.sinsal, theme);
     final interpretation = TwelveSinsalService.getDetailedInterpretation(result.sinsal);
 
@@ -441,7 +441,7 @@ class SinsalDetailCard extends StatelessWidget {
           // 의미
           Center(
             child: Text(
-              result.sinsal.meaning,
+              SajuI18n.sinsalMeaning(result.sinsal.meaning, locale),
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 13,
@@ -458,6 +458,7 @@ class SinsalDetailCard extends StatelessWidget {
             ),
             child: Text(
               interpretation,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 13,
@@ -468,14 +469,14 @@ class SinsalDetailCard extends StatelessWidget {
           // 특수 신살 표시
           if (result.hasSpecialSinsal) ...[
             const SizedBox(height: 12),
-            _buildSpecialSinsals(),
+            _buildSpecialSinsals(locale),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildSpecialSinsals() {
+  Widget _buildSpecialSinsals(String locale) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -490,12 +491,14 @@ class SinsalDetailCard extends StatelessWidget {
             children: [
               const Icon(Icons.star, size: 16, color: AppColors.warning),
               const SizedBox(width: 4),
-              Text(
-                'saju_chart.specialSinsal'.tr(),
-                style: const TextStyle(
-                  color: AppColors.warning,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  'saju_chart.specialSinsal'.tr(),
+                  style: const TextStyle(
+                    color: AppColors.warning,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -512,7 +515,7 @@ class SinsalDetailCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '${special.korean} (${special.hanja})',
+                  '${SajuI18n.specialSinsal(special.korean, locale)} (${special.hanja})',
                   style: const TextStyle(
                     color: AppColors.warning,
                     fontSize: 13,
@@ -546,6 +549,7 @@ class SinsalSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -627,7 +631,7 @@ class SinsalSummaryCard extends StatelessWidget {
               result.hwagaeResult != null ||
               result.jangsungResult != null) ...[
             const SizedBox(height: 12),
-            _buildKeysSinsalBadges(),
+            _buildKeysSinsalBadges(locale),
           ],
         ],
       ),
@@ -665,12 +669,12 @@ class SinsalSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildKeysSinsalBadges() {
+  Widget _buildKeysSinsalBadges(String locale) {
     final keySinsals = <Widget>[];
 
     if (result.jangsungResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        result.jangsungResult!.sinsal.korean,
+        SajuI18n.sinsal(result.jangsungResult!.sinsal.korean, locale),
         result.jangsungResult!.pillarName,
         AppColors.success,
         Icons.military_tech,
@@ -678,7 +682,7 @@ class SinsalSummaryCard extends StatelessWidget {
     }
     if (result.yeokmaResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        result.yeokmaResult!.sinsal.korean,
+        SajuI18n.sinsal(result.yeokmaResult!.sinsal.korean, locale),
         result.yeokmaResult!.pillarName,
         AppColors.accent,
         Icons.flight,
@@ -686,7 +690,7 @@ class SinsalSummaryCard extends StatelessWidget {
     }
     if (result.dohwaResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        result.dohwaResult!.sinsal.korean,
+        SajuI18n.sinsal(result.dohwaResult!.sinsal.korean, locale),
         result.dohwaResult!.pillarName,
         AppColors.error,
         Icons.favorite,
@@ -694,7 +698,7 @@ class SinsalSummaryCard extends StatelessWidget {
     }
     if (result.hwagaeResult != null) {
       keySinsals.add(_buildKeySinsalBadge(
-        result.hwagaeResult!.sinsal.korean,
+        SajuI18n.sinsal(result.hwagaeResult!.sinsal.korean, locale),
         result.hwagaeResult!.pillarName,
         AppColors.accent,
         Icons.palette,

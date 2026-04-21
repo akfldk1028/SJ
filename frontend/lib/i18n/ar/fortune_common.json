@@ -1,0 +1,19 @@
+{
+  "catCareer": "المسيرة المهنية",
+  "catWork": "العمل",
+  "catBusiness": "الأعمال",
+  "catWealth": "الثروة",
+  "catLove": "الحب",
+  "catMarriage": "الزواج",
+  "catStudy": "الدراسة",
+  "catHealth": "الصحة",
+  "catOverall": "شامل",
+  "catFamily": "العائلة",
+  "catSocial": "العلاقات الاجتماعية",
+  "phaseBasic": "جارٍ تحليل الشخصية...",
+  "phaseWealth": "جارٍ تحليل الثروة والمهنة والحب...",
+  "phaseHealth": "جارٍ تحليل الصحة ومسار الحياة...",
+  "phaseFinal": "التحليل النهائي...",
+  "phaseReady": "جارٍ تحضير التحليل...",
+  "errorMonthly": "فشل تحليل حظ الشهر.\nيرجى المحاولة مرة أخرى لاحقاً."
+}

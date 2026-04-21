@@ -54,12 +54,14 @@ class SajuAnalysisService {
     final sinsalList = _sinsalService.findSinSals(chart);
 
     // 5. 대운 분석 (성별 필요)
+    // 주의: correctedDateTime 사용 (양력 변환 + 진태양시 보정 완료)
+    // birthDateTime은 음력 입력 시 음력 날짜가 그대로 들어있어 절기 계산 오류 발생
     DaeUnResult? daeun;
     if (gender != null) {
       daeun = _daeunService.calculate(
         chart: chart,
         gender: gender,
-        birthDateTime: chart.birthDateTime,
+        birthDateTime: chart.correctedDateTime,
       );
     }
 
@@ -68,7 +70,7 @@ class SajuAnalysisService {
     if (currentYear != null) {
       currentSeun = _daeunService.calculateSeUn(
         currentYear,
-        chart.birthDateTime.year,
+        chart.correctedDateTime.year,
       );
     }
 

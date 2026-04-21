@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/localized_text.dart';
 import '../providers/profile_provider.dart';
 
 /// 진태양시 보정 배너
@@ -74,12 +75,13 @@ class TimeCorrectionBanner extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
+                LocalizedText(
                   'onboarding.trueSolarTimeDesc'.tr(namedArgs: {'city': birthCity, 'correction': correctionText}),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,
                   ),
+                  maxLines: 3,
                 ),
               ],
             ),

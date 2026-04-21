@@ -85,6 +85,7 @@ class FortuneSectionCard extends StatelessWidget {
           if (content != null)
             Text(
               FortuneTextFormatter.formatParagraph(content!),
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 color: theme.textSecondary,
@@ -112,13 +113,13 @@ class FortuneSectionCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 아이콘 (동양풍 우아한 스타일)
+        // 아이콘 (컴팩트 스타일)
         if (icon != null) ...[
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: theme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: theme.primaryColor.withValues(alpha: 0.15),
                 width: 1,
@@ -126,11 +127,11 @@ class FortuneSectionCard extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              size: 20,
+              size: 18,
               color: theme.primaryColor,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
         ],
 
         // 제목 & 부제목
@@ -389,7 +390,7 @@ class FortuneHighlightBox extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
@@ -398,36 +399,28 @@ class FortuneHighlightBox extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 아이콘 또는 세로 바
-          if (icon != null) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(width: 14),
-          ] else ...[
-            Container(
-              width: 4,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 14),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          // 라벨 + 아이콘 (한 줄)
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 8),
+              ] else ...[
+                Container(
+                  width: 4,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
                   label,
                   style: TextStyle(
                     fontSize: 14,
@@ -435,16 +428,18 @@ class FortuneHighlightBox extends StatelessWidget {
                     color: color,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  FortuneTextFormatter.formatParagraph(content),
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: theme.textSecondary,
-                    height: 1.7,
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // 내용 (전체 너비 사용)
+          Text(
+            FortuneTextFormatter.formatParagraph(content),
+            textAlign: TextAlign.justify,
+            style: TextStyle(
+              fontSize: 15,
+              color: theme.textSecondary,
+              height: 1.7,
             ),
           ),
         ],

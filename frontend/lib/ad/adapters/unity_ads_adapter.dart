@@ -70,7 +70,7 @@ class UnityAdsAdapter implements AdNetworkAdapter {
   }
 
   @override
-  Future<bool> showInterstitial({void Function()? onDismissed}) async {
+  Future<bool> showInterstitial({void Function()? onDismissed, String? screen}) async {
     if (!_isInterstitialLoaded) return false;
     _isInterstitialLoaded = false;
 
@@ -78,21 +78,21 @@ class UnityAdsAdapter implements AdNetworkAdapter {
       placementId: UnityAdsConfig.interstitial,
       onStart: (placementId) {
         debugPrint('[UnityAds] Interstitial started');
-        AdTrackingService.instance.trackInterstitialShow();
+        AdTrackingService.instance.trackInterstitialShow(screen: screen);
       },
       onClick: (placementId) {
         debugPrint('[UnityAds] Interstitial clicked');
-        AdTrackingService.instance.trackInterstitialClick();
+        AdTrackingService.instance.trackInterstitialClick(screen: screen);
       },
       onComplete: (placementId) {
         debugPrint('[UnityAds] Interstitial completed');
-        AdTrackingService.instance.trackInterstitialComplete();
+        AdTrackingService.instance.trackInterstitialComplete(screen: screen);
         onDismissed?.call();
         loadInterstitial(); // 자동 재로드
       },
       onSkipped: (placementId) {
         debugPrint('[UnityAds] Interstitial skipped');
-        AdTrackingService.instance.trackInterstitialComplete();
+        AdTrackingService.instance.trackInterstitialComplete(screen: screen);
         onDismissed?.call();
         loadInterstitial();
       },
@@ -128,36 +128,48 @@ class UnityAdsAdapter implements AdNetworkAdapter {
   @override
   Future<bool> showRewarded({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
   }) async {
     if (!_isRewardedLoaded) return false;
     _isRewardedLoaded = false;
 
+    // Completer: 광고 종료(완료/스킵/실패) 후에야 리턴
+    // → 호출자가 rewardGranted 플래그를 정확히 판단 가능
+    final completer = Completer<void>();
+    bool adStarted = false;
+
     UnityAds.showVideoAd(
       placementId: UnityAdsConfig.rewarded,
       onStart: (placementId) {
+        adStarted = true;
         debugPrint('[UnityAds] Rewarded started');
-        AdTrackingService.instance.trackRewardedShow();
+        AdTrackingService.instance.trackRewardedShow(screen: screen);
       },
       onClick: (placementId) {
         debugPrint('[UnityAds] Rewarded clicked');
-        AdTrackingService.instance.trackRewardedClick();
+        AdTrackingService.instance.trackRewardedClick(screen: screen);
       },
       onComplete: (placementId) {
         debugPrint('[UnityAds] Rewarded completed — granting reward');
-        AdTrackingService.instance.trackRewardedComplete();
+        AdTrackingService.instance.trackRewardedComplete(screen: screen);
         onRewarded(1, 'unity_reward');
-        loadRewarded(); // 자동 재로드
+        loadRewarded();
+        if (!completer.isCompleted) completer.complete();
       },
       onSkipped: (placementId) {
-        debugPrint('[UnityAds] Rewarded skipped — no reward');
+        debugPrint('[UnityAds] Rewarded skipped — ad was shown');
         loadRewarded();
+        if (!completer.isCompleted) completer.complete();
       },
       onFailed: (placementId, error, message) {
         debugPrint('[UnityAds] Rewarded show failed: $error — $message');
         loadRewarded();
+        if (!completer.isCompleted) completer.complete();
       },
     );
-    return true;
+
+    await completer.future;
+    return adStarted; // onFailed(광고 안 뜸) → false, onComplete/onSkipped → true
   }
 
   // ==================== Lifecycle ====================

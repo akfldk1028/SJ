@@ -16,11 +16,17 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../AI/jina/personas/persona_selector.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_persona_matcher.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/localized_text.dart';
 import '../../domain/models/chat_persona.dart';
 import '../providers/chat_persona_provider.dart';
 import '../providers/chat_session_provider.dart';
 import '../providers/chat_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import 'persona_selector/persona_selector.dart';
 
 class PersonaHorizontalSelector extends ConsumerStatefulWidget {
@@ -158,6 +164,8 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
   @override
   Widget build(BuildContext context) {
     final currentPersona = ref.watch(chatPersonaNotifierProvider);
+    final isZodiacMode = ref.watch(zodiacModeNotifierProvider);
+    final zodiacPersonaId = ref.watch(zodiacPersonaIdNotifierProvider);
     final appTheme = context.appTheme;
 
     // 현재 세션의 메시지 수 확인 (대화 시작 후 페르소나 잠금)
@@ -170,8 +178,10 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
     // 페르소나 잠금 상태: 메시지가 있으면 변경 불가
     final isPersonaLocked = hasMessages;
 
-    // 현재 페르소나의 색상
-    final quadrantColor = _getPersonaColor(currentPersona);
+    // 현재 페르소나의 색상 (zodiac mode면 동물 테마색)
+    final quadrantColor = isZodiacMode
+        ? _getZodiacColor(zodiacPersonaId)
+        : _getPersonaColor(currentPersona);
 
     // 페르소나 아이템 크기 계산용 상수
     const double circleSize = 44;
@@ -210,17 +220,26 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                   ),
                 ),
                 child: Center(
-                  child: Icon(
-                    currentPersona.icon,
-                    size: 18,
-                    color: quadrantColor,
-                  ),
+                  child: isZodiacMode
+                      ? ClipOval(
+                          child: _buildZodiacImage(
+                            zodiacPersonaId, 24,
+                            fallback: ZodiacPersonaMatcher.getAnimalEmoji(zodiacPersonaId),
+                          ),
+                        )
+                      : Icon(
+                          currentPersona.icon,
+                          size: 18,
+                          color: quadrantColor,
+                        ),
                 ),
               ),
               const SizedBox(width: 10),
               // 선택된 페르소나 이름
               Text(
-                currentPersona.displayName,
+                isZodiacMode
+                    ? _zodiacI18nName(zodiacPersonaId)
+                    : currentPersona.displayName,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -249,9 +268,10 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
                             const Icon(Icons.info_outline, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
+                              child: LocalizedText(
                                 'saju_chat.personaLockedSnackbar'.tr(),
                                 style: const TextStyle(fontSize: 13),
+                                maxLines: 2,
                               ),
                             ),
                           ],
@@ -321,57 +341,110 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // 펼친 상태: 전체 페르소나 목록 (기존 UI)
+    // 펼친 상태: 전체 페르소나 목록 + 십이지신 동물
     // ═══════════════════════════════════════════════════════════════════════════
     return Container(
-      height: 90,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: appTheme.cardColor.withValues(alpha: 0.8),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 페르소나 목록 (가로 스크롤)
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: ChatPersona.visibleValues.map((persona) {
-                  final isSelected = persona == currentPersona;
-                  final personaColor = _getPersonaColor(persona);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: _buildPersonaCircle(
-                      context,
-                      persona,
-                      isSelected: isSelected,
-                      accentColor: isSelected ? personaColor : appTheme.primaryColor,
-                      size: circleSize,
-                      isLocked: isPersonaLocked,
+          // Row 1: 기존 페르소나 (MBTI + 특수)
+          SizedBox(
+            height: 80,
+            child: Row(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: ChatPersona.visibleValues.map((persona) {
+                        // zodiac 모드면 기존 페르소나 모두 비선택 상태
+                        final isSelected = !isZodiacMode && persona == currentPersona;
+                        final personaColor = _getPersonaColor(persona);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _buildPersonaCircle(
+                            context,
+                            persona,
+                            isSelected: isSelected,
+                            accentColor: isSelected ? personaColor : appTheme.primaryColor,
+                            size: circleSize,
+                            isLocked: isPersonaLocked,
+                            onRegularTap: () {
+                              // 기존 페르소나 탭 시 zodiac 모드 해제
+                              ref.read(zodiacModeNotifierProvider.notifier).setZodiacMode(false);
+                            },
+                          ),
+                        );
+                      }).toList(),
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                ),
+                // 접기 버튼
+                GestureDetector(
+                  onTap: () => setState(() => _isExpanded = false),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: appTheme.textMuted.withValues(alpha: 0.1),
+                    ),
+                    child: Icon(
+                      Icons.expand_less,
+                      size: 20,
+                      color: appTheme.textMuted,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          // 접기 버튼
-          GestureDetector(
-            onTap: () => setState(() => _isExpanded = false),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: appTheme.textMuted.withValues(alpha: 0.1),
-              ),
-              child: Icon(
-                Icons.expand_less,
-                size: 20,
-                color: appTheme.textMuted,
+          // Divider + Row 2: 수호동물 (한국어 유저 제외)
+          if (context.locale.languageCode != 'ko') ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  const Text('🐾', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'saju_chat.zodiac_section_title'.tr(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: appTheme.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Divider(
+                      color: appTheme.textMuted.withValues(alpha: 0.2),
+                      height: 1,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+            SizedBox(
+              height: 80,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildZodiacItems(
+                    context,
+                    selectedId: isZodiacMode ? zodiacPersonaId : null,
+                    isLocked: isPersonaLocked,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -468,6 +541,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
     double size = 44,
     bool isLocked = false,
     VoidCallback? onTapSelected,
+    VoidCallback? onRegularTap,
   }) {
     final appTheme = context.appTheme;
     final iconSize = (size * 0.5).clamp(18.0, 22.0);
@@ -484,6 +558,7 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
               if (isSelected && onTapSelected != null) {
                 onTapSelected();
               } else {
+                onRegularTap?.call();
                 ref.read(chatPersonaNotifierProvider.notifier).setPersona(persona);
                 // MBTI 페르소나면 mbtiQuadrant도 동기화
                 if (persona.mbtiQuadrant != null) {
@@ -548,6 +623,136 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
         ),
       ),
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 십이지신 동물 UI
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  List<Widget> _buildZodiacItems(
+    BuildContext context, {
+    String? selectedId,
+    bool isLocked = false,
+  }) {
+    final appTheme = context.appTheme;
+    final allZodiac = PersonaSelector.zodiacPersonas;
+    // 유저 생년 띠 판별
+    final profile = ref.read(activeProfileProvider).valueOrNull;
+    final userBirthYear = profile?.birthDate?.year;
+    final userPersonaId = userBirthYear != null
+        ? ZodiacPersonaMatcher.getPersonaIdByBirthYear(userBirthYear)
+        : null;
+    final yearPersonaId = ZodiacPersonaMatcher.getCurrentYearPersonaId();
+
+    return allZodiac.map((persona) {
+      final isSelected = selectedId == persona.id;
+      final isUserAnimal = persona.id == userPersonaId;
+      final isYearAnimal = persona.id == yearPersonaId;
+      final emoji = ZodiacPersonaMatcher.getAnimalEmoji(persona.id);
+      final name = _zodiacI18nName(persona.id);
+      final color = _getZodiacColor(persona.id);
+
+      // 라벨: ⭐내 띠 / 🔥올해 / 이름
+      String label = name;
+      if (isUserAnimal) label = '⭐$name';
+      if (isYearAnimal) label = '🔥$name';
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: GestureDetector(
+          onTap: isLocked
+              ? null
+              : () {
+                  ref.read(zodiacModeNotifierProvider.notifier).setZodiacMode(true);
+                  ref.read(zodiacPersonaIdNotifierProvider.notifier).setZodiacId(persona.id);
+                  ref.read(chatSessionNotifierProvider.notifier)
+                      .updateCurrentSessionPersona();
+                },
+          child: Opacity(
+            opacity: isLocked && !isSelected ? 0.4 : 1.0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected
+                        ? color.withValues(alpha: 0.2)
+                        : appTheme.backgroundColor.withValues(alpha: 0.3),
+                    border: Border.all(
+                      color: isSelected
+                          ? color.withValues(alpha: 0.6)
+                          : appTheme.textMuted.withValues(alpha: 0.15),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: ClipOval(
+                      child: _buildZodiacImage(persona.id, 30, fallback: emoji),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected
+                        ? color
+                        : appTheme.textMuted.withValues(alpha: 0.8),
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  /// persona ID → 작은 이미지 (emoji fallback)
+  Widget _buildZodiacImage(String personaId, double size, {required String fallback}) {
+    final url = ZodiacImageService.getImageUrlByPersonaId(personaId);
+    if (url != null) {
+      return CachedNetworkImage(
+        imageUrl: url,
+        width: size, height: size,
+        fit: BoxFit.contain,
+        placeholder: (_, __) => Text(fallback, style: TextStyle(fontSize: size * 0.7)),
+        errorWidget: (_, __, ___) => Text(fallback, style: TextStyle(fontSize: size * 0.7)),
+      );
+    }
+    return Text(fallback, style: TextStyle(fontSize: size * 0.7));
+  }
+
+  /// persona ID → i18n 동물 이름 (saju_chat.zodiac_* 키)
+  String _zodiacI18nName(String personaId) {
+    // zodiac_rat → rat, zodiac_horse → horse
+    final key = personaId.replaceFirst('zodiac_', '');
+    return 'saju_chat.zodiac_$key'.tr();
+  }
+
+  Color _getZodiacColor(String personaId) {
+    final element = ZodiacPersonaMatcher.getElement(personaId);
+    switch (element) {
+      case '목':
+        return const Color(0xFF4CAF50);
+      case '화':
+        return const Color(0xFFF44336);
+      case '토':
+        return const Color(0xFFFF9800);
+      case '금':
+        return const Color(0xFF9E9E9E);
+      case '수':
+        return const Color(0xFF2196F3);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
   }
 
   Color _getPersonaColor(ChatPersona persona) {

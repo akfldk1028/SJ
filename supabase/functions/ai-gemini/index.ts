@@ -1,8 +1,29 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+// v76: saju-tools — 동적 import로 실패 시 기존 동작 유지
+let sajuToolDeclarations: any[] = [];
+let openaiToolDeclarations: any[] = [];
+let executeSajuFunction: ((name: string, args: { [k: string]: unknown }) => unknown) | null = null;
+try {
+  const mod = await import("./saju-tools/index.ts");
+  sajuToolDeclarations = mod.sajuToolDeclarations;
+  openaiToolDeclarations = mod.openaiToolDeclarations;
+  executeSajuFunction = mod.executeSajuFunction;
+  console.log(`[ai-gemini v77] saju-tools loaded: gemini=${sajuToolDeclarations[0]?.functionDeclarations?.length || 0}, openai=${openaiToolDeclarations.length} tools`);
+} catch (e) {
+  console.error("[ai-gemini v77] saju-tools load failed, running without tools:", e);
+}
 
 /**
- * Gemini API 호출 Edge Function (v35.2)
+ * Gemini API 호출 Edge Function (v36)
+ *
+ * v36 변경사항 (2026-03-21):
+ * - BUG FIX: Gemini 3 Flash Preview 반복 출력 방어 (공식 known issue)
+ *   → 같은 문자 연속 20회 이상 감지 시 스트림 즉시 종료
+ *   → 같은 2~4자 패턴 10회 이상 반복 감지 시 스트림 즉시 종료
+ *   → 토큰 낭비 방지 + 클라이언트에 REPETITION_DETECTED 에러 전송
+ *   → 참고: https://discuss.ai.google.dev/t/gemini-3-flash-preview-infinite-reasoning-loop-causing-max-token-exhaustion-raw-logic-leak/114528
+ *   → 참고: https://ai.google.dev/gemini-api/docs/troubleshooting (Repetitive output 섹션)
  *
  * v35.2 변경사항 (2026-03-17):
  * - BUG FIX: 스트리밍 candidatesTokenCount에 thinking 토큰 간헐적 혼입 (쿼타 2.5~3배 과다)
@@ -55,8 +76,35 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * v24 변경사항 (2026-02-01):
  * - checkAndUpdateQuota: rewarded_tokens_earned 포함 (광고 보상 토큰 반영)
  *
- * === 모델 변경 금지 ===
- * 채팅용: gemini-3-flash-preview
+ * v37 변경사항 (2026-04-04):
+ * - 비용 절감: 채팅 모델 gemini-3-flash-preview → gemini-2.5-flash-lite 전환
+ *   → Input: $0.50 → $0.10 (5배 절감), Output: $3.00 → $0.40 (7.5배 절감)
+ *   → thinkingConfig: thinkingLevel(Gemini3 전용) → thinkingBudget:0(Gemini2.5 전용, thinking 비활성화)
+ *   → Context Caching: $0.05 → $0.01 (5배 절감)
+ *
+ * v38 변경사항 (2026-04-04):
+ * - Explicit caching → Implicit caching 전환 (Gemini 2.5+ 자동 지원)
+ *   → createGeminiCache/deleteGeminiCache/gemini_cache_name 제거
+ *   → 저장 비용 $1.00/1M토큰/시간 → $0 (implicit은 무료)
+ *   → Explicit: systemInstruction만 캐시 (8% 절감) → Implicit: prefix 전체 캐시 (최대 89% 절감)
+ * - 세션 고정 키 라우팅 (getSessionKey)
+ *   → 동일 세션의 연속 요청이 같은 API 키 사용 → implicit cache chain 보장
+ *   → Intent는 라운드로빈 유지 (세션 무관 호출)
+ * - cachedContentTokenCount 로깅 추가 (캐시 적중률 모니터링)
+ * - non-streaming 비용 계산: implicit cache 할인 반영
+ *
+ * v104 변경사항 (2026-04-07):
+ * - BUG FIX: Qwen 빈 응답 자동 복구 (Gemini in-stream fallback)
+ *   → Qwen이 200 OK + text 0자로 응답하면 (간헐적 콘텐츠 필터/내부 오류)
+ *   → 같은 SSE 스트림 안에서 Gemini non-streaming fallback 자동 호출
+ *   → 클라이언트는 차이를 모르고 정상 응답 수신
+ *   → Gemini도 빈 응답 시 "다시 질문해주세요" 에러 메시지 + 쿼타 미차감 (usage 0)
+ *   → DashScope 공식: finish_reason은 stop/length/tool_calls/null만 존재
+ *     콘텐츠 필터는 HTTP 400 DataInspectionFailed (기존 resp.ok 체크로 처리됨)
+ *     200 + 빈 body는 문서화되지 않은 edge case
+ *
+ * === 모델 설정 ===
+ * 채팅용: gemini-2.5-flash-lite
  * Intent: gemini-2.5-flash-lite
  */
 
@@ -66,11 +114,527 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, cache-control",
 };
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+// v77: Qwen 3.5 Flash (DashScope 싱가포르) — primary provider
+// GPQA 84.2% vs Gemini Lite 64.6%, 가격 동일 ($0.10/$0.40), explicit cache 90% 할인
+const QWEN_API_KEY = Deno.env.get("QWEN_API_KEY");
+const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const QWEN_MODEL = "qwen3.5-flash";
+
+// v62: Gemini API Key 로테이션 (fallback용)
+const GEMINI_API_KEYS = [
+  Deno.env.get("GEMINI_API_KEY"),
+  Deno.env.get("GEMINI_API_KEY_2"),
+  Deno.env.get("GEMINI_API_KEY_3"),
+].filter(Boolean) as string[];
+
+let geminiKeyIndex = 0;
+
+/** 라운드로빈 키 선택 (intent 등 세션 무관한 호출용) */
+function getNextGeminiKey(): string {
+  if (GEMINI_API_KEYS.length === 0) throw new Error("No GEMINI_API_KEY configured");
+  const key = GEMINI_API_KEYS[geminiKeyIndex % GEMINI_API_KEYS.length];
+  geminiKeyIndex++;
+  return key;
+}
+
+/**
+ * v38: 세션 고정 키 선택 (implicit caching 최적화)
+ * 동일 세션의 연속 요청이 같은 API 키를 사용하면
+ * Gemini implicit caching이 prefix 전체를 캐시 → input 비용 최대 90% 절감
+ * Intent는 매번 다른 프롬프트이므로 라운드로빈(getNextGeminiKey) 유지
+ */
+function getSessionKey(sessionId: string): string {
+  if (GEMINI_API_KEYS.length === 0) throw new Error("No GEMINI_API_KEY configured");
+  // 간단한 해시: sessionId 문자 코드 합 → 키 인덱스
+  let hash = 0;
+  for (let i = 0; i < sessionId.length; i++) {
+    hash = ((hash << 5) - hash + sessionId.charCodeAt(i)) | 0;
+  }
+  return GEMINI_API_KEYS[((hash % GEMINI_API_KEYS.length) + GEMINI_API_KEYS.length) % GEMINI_API_KEYS.length];
+}
+
+// v38: GEMINI_API_KEY 상수 제거 (explicit caching 제거로 불필요)
+
+/**
+ * v77: Qwen 3.5 Flash Non-Streaming 호출
+ * - OpenAI 호환 API (DashScope 싱가포르)
+ * - explicit cache: system message에 cache_control 마커 → 90% 할인
+ * - 실패 시 null 반환 → Gemini fallback
+ */
+async function callQwenNonStreaming(
+  messages: { role: string; content: string }[],
+  maxTokens: number,
+  temperature: number,
+): Promise<{ content: string; usage: { [k: string]: number } } | null> {
+  if (!QWEN_API_KEY) return null;
+  try {
+    const systemMsgs = messages.filter((m) => m.role === "system");
+    const otherMsgs = messages.filter((m) => m.role !== "system");
+    const systemText = systemMsgs.map((m) => m.content).join("\n");
+
+    // v105: 데이터 준수 지시 (추상적 — streaming 버전과 동일)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 한계를 밝혀라.`;
+
+    const qwenMessages: { [k: string]: unknown }[] = [];
+    if (systemText) {
+      qwenMessages.push({
+        role: "system",
+        content: [{ type: "text", text: systemText + dataGuard, cache_control: { type: "ephemeral" } }],
+      });
+    }
+    for (const m of otherMsgs) {
+      qwenMessages.push({ role: m.role === "assistant" ? "assistant" : "user", content: m.content });
+    }
+
+    // v77: Function Calling Loop (최대 6회)
+    const MAX_FC = 6;
+    const hasTools = openaiToolDeclarations.length > 0 && executeSajuFunction;
+    let totalUsage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 };
+
+    for (let i = 0; i < MAX_FC; i++) {
+      const body: { [k: string]: unknown } = {
+        model: QWEN_MODEL,
+        messages: qwenMessages,
+        max_tokens: maxTokens,
+        temperature,
+        presence_penalty: 1.2,
+        stream: false,
+        enable_thinking: false,
+        stop: ["[/SUGGESTED_QUESTIONS]"],
+      };
+      if (hasTools) {
+        body.tools = openaiToolDeclarations;
+        body.tool_choice = i === 0 ? "required" : "auto";  // v105: 첫 라운드 도구 강제
+      }
+
+      const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error(`[ai-gemini v78] Qwen non-stream error ${resp.status}: ${errText}`);
+        return null;
+      }
+      const data = await resp.json();
+      const usage = data.usage || {};
+      totalUsage.prompt_tokens += usage.prompt_tokens || 0;
+      totalUsage.completion_tokens += usage.completion_tokens || 0;
+      totalUsage.cached_tokens += usage.prompt_tokens_details?.cached_tokens || 0;
+
+      const choice = data.choices?.[0];
+      if (!choice) return null;
+
+      // Function call 감지
+      const toolCalls = choice.message?.tool_calls;
+      if (toolCalls && toolCalls.length > 0 && executeSajuFunction) {
+        // assistant message (tool_calls 포함) 추가
+        qwenMessages.push(choice.message);
+        for (const tc of toolCalls) {
+          const fnName = tc.function.name;
+          const fnArgs = JSON.parse(tc.function.arguments || "{}");
+          const result = executeSajuFunction(fnName, fnArgs);
+          console.log(`[ai-gemini v78] Qwen FC[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
+          qwenMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+        }
+        continue; // 다음 루프에서 결과 포함하여 재호출
+      }
+
+      // 텍스트 응답
+      const content = choice.message?.content || "";
+      console.log(`[ai-gemini v78] Qwen non-stream OK: prompt=${totalUsage.prompt_tokens}, comp=${totalUsage.completion_tokens}, cached=${totalUsage.cached_tokens}, fc=${i}`);
+      return { content, usage: totalUsage };
+    }
+    console.error("[ai-gemini v78] Qwen FC loop exhausted");
+    return null;
+  } catch (e) {
+    console.error("[ai-gemini v78] Qwen non-stream exception:", e);
+    return null;
+  }
+}
+
+/**
+ * v78: Qwen 3.5 Flash Streaming 호출
+ * - FC preflight: 스트리밍 전에 non-streaming으로 도구 호출 해결
+ *   → lookup_johu, verify_interaction 등 도구 결과를 먼저 확보
+ *   → 도구 결과 포함된 메시지로 최종 스트리밍 (도구 없이 답변만)
+ * - OpenAI SSE → 클라이언트 SSE 형식 변환 ({ text, done, usage })
+ * - explicit cache 동일 적용
+ * - 실패 시 null 반환 → Gemini streaming fallback
+ */
+async function handleQwenStreamingRequest(
+  supabase: ReturnType<typeof createClient>,
+  messages: { role: string; content: string }[],
+  maxTokens: number,
+  temperature: number,
+  userId: string | undefined,
+  isAdmin: boolean,
+): Promise<Response | null> {
+  if (!QWEN_API_KEY) return null;
+  try {
+    const systemMsgs = messages.filter((m) => m.role === "system");
+    const otherMsgs = messages.filter((m) => m.role !== "system");
+    const systemText = systemMsgs.map((m) => m.content).join("\n");
+
+    // v105: 데이터 준수 지시 (추상적 — 구체적 도구명은 시스템 프롬프트 규칙에 있음)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 한계를 밝혀라.`;
+
+    const qwenMessages: { [k: string]: unknown }[] = [];
+    if (systemText) {
+      qwenMessages.push({
+        role: "system",
+        content: [{ type: "text", text: systemText + dataGuard, cache_control: { type: "ephemeral" } }],
+      });
+    }
+    for (const m of otherMsgs) {
+      qwenMessages.push({ role: m.role === "assistant" ? "assistant" : "user", content: m.content });
+    }
+
+    // v78: FC preflight — 스트리밍 전에 도구 호출 해결
+    // 도구 호출이 완료되면 최종 답변도 preflight에서 받아 SSE로 변환 (이중 호출 방지)
+    const hasTools = openaiToolDeclarations.length > 0 && executeSajuFunction;
+    let preflightUsage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 };
+    let preflightFinalContent: string | null = null; // 도구 사용 후 최종 답변
+    let lastPrefCompletionTokens = 0;  // v103: FC 루프 중 마지막 응답의 completion만 추적 (쿼타용)
+    if (hasTools) {
+      const MAX_FC = 5;
+      let usedTools = false;
+      for (let i = 0; i < MAX_FC; i++) {
+        // v105: 첫 라운드 tool_choice:"required" (Qwen 공식: guaranteed tool call)
+        const prefBody: { [k: string]: unknown } = {
+          model: QWEN_MODEL,
+          messages: qwenMessages,
+          max_tokens: maxTokens,
+          temperature,
+          presence_penalty: 1.2,
+          stream: false,
+          enable_thinking: false,
+          tools: openaiToolDeclarations,
+          tool_choice: i === 0 ? "required" : "auto",
+          stop: ["[/SUGGESTED_QUESTIONS]"],
+        };
+        const prefResp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+          body: JSON.stringify(prefBody),
+        });
+        if (!prefResp.ok) {
+          console.error(`[ai-gemini v78] FC preflight error ${prefResp.status}`);
+          break; // preflight 실패 시 도구 없이 스트리밍 진행
+        }
+        const prefData = await prefResp.json();
+        const prefUsage = prefData.usage || {};
+        preflightUsage.prompt_tokens += prefUsage.prompt_tokens || 0;
+        preflightUsage.completion_tokens += prefUsage.completion_tokens || 0;
+        preflightUsage.cached_tokens += prefUsage.prompt_tokens_details?.cached_tokens || 0;
+        lastPrefCompletionTokens = prefUsage.completion_tokens || 0;  // v103: 마지막 루프의 completion 기록
+        // v103: 캐시 디버깅
+        console.log(`[ai-gemini v103] FC preflight cache: created=${prefUsage.prompt_tokens_details?.cache_creation_input_tokens || 0}, hit=${prefUsage.prompt_tokens_details?.cached_tokens || 0}, details=${JSON.stringify(prefUsage.prompt_tokens_details)}`);
+
+        const prefChoice = prefData.choices?.[0];
+        if (!prefChoice) break;
+
+        const toolCalls = prefChoice.message?.tool_calls;
+        if (!toolCalls || toolCalls.length === 0) {
+          // 도구 호출 없음
+          if (usedTools && prefChoice.message?.content) {
+            // 도구 사용 후 최종 답변 → 스트리밍 재호출 불필요
+            preflightFinalContent = prefChoice.message.content;
+            console.log(`[ai-gemini v78] FC preflight final answer ready (${preflightFinalContent.length} chars, ${i} FC rounds)`);
+          }
+          break;
+        }
+        // 도구 호출 실행 + 결과 주입
+        usedTools = true;
+        qwenMessages.push(prefChoice.message);
+        for (const tc of toolCalls) {
+          const fnName = tc.function.name;
+          const fnArgs = JSON.parse(tc.function.arguments || "{}");
+          const result = executeSajuFunction!(fnName, fnArgs);
+          console.log(`[ai-gemini v78] FC preflight[${i}]: ${fnName}(${JSON.stringify(fnArgs)}) → ${JSON.stringify(result).substring(0, 100)}`);
+          qwenMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+        }
+      }
+    }
+
+    // v105: paragraph-level 반복 감지 (범용)
+    if (preflightFinalContent !== null && preflightFinalContent.length > 500) {
+      const blk = preflightFinalContent.substring(0, 200);
+      const idx = preflightFinalContent.indexOf(blk, 200);
+      if (idx !== -1) {
+        console.warn(`[ai-gemini v105] Paragraph repetition at char ${idx}, truncating`);
+        preflightFinalContent = preflightFinalContent.substring(0, idx).trimEnd();
+      }
+    }
+
+    // 도구 사용 후 최종 답변이 이미 있으면 → SSE 형식으로 즉시 반환 (스트리밍 호출 불필요)
+    if (preflightFinalContent !== null) {
+      const encoder = new TextEncoder();
+      const allPrompt = preflightUsage.prompt_tokens;
+      const allComp = preflightUsage.completion_tokens;
+      const allCached = preflightUsage.cached_tokens;
+      // v103: 쿼타용 = 최종 답변 completion만 (FC 도구 호출 토큰 제외)
+      const quotaComp = lastPrefCompletionTokens;
+      const cacheHitPct = allPrompt > 0 ? Math.round(allCached / allPrompt * 100) : 0;
+      console.log(`[ai-gemini v103] Qwen FC→direct SSE: prompt=${allPrompt}, comp=${allComp}(quota=${quotaComp}), cached=${allCached} (${cacheHitPct}%)`);
+      // 비용 기록 (전체 토큰 — FC 포함)
+      if (userId && (allPrompt > 0 || allComp > 0)) {
+        const nonCached = allPrompt - allCached;
+        const cost = (nonCached * 0.10 / 1000000) + (allCached * 0.01 / 1000000) + (allComp * 0.40 / 1000000);
+        await recordGeminiCost(supabase, userId, allPrompt, allComp, cost);
+      }
+      // 클라이언트에는 쿼타용 completion만 전송
+      const body = [
+        `data: ${JSON.stringify({ text: preflightFinalContent, done: false })}\n\n`,
+        `data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: allPrompt, completion_tokens: quotaComp, total_tokens: allPrompt + quotaComp, cached_tokens: allCached } })}\n\n`,
+      ].join("");
+      return new Response(encoder.encode(body), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" },
+      });
+    }
+
+    // 최종 스트리밍 (도구 호출 해결된 메시지로, tools 없이)
+    const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+      body: JSON.stringify({
+        model: QWEN_MODEL,
+        messages: qwenMessages,
+        max_tokens: maxTokens,
+        temperature,
+        presence_penalty: 1.2,
+        stream: true,
+        stream_options: { include_usage: true },
+        enable_thinking: false,
+        stop: ["[/SUGGESTED_QUESTIONS]"],
+      }),
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error(`[ai-gemini v78] Qwen stream error ${resp.status}: ${errText}`);
+      return null;
+    }
+
+    let totalPromptTokens = 0;
+    let totalCompletionTokens = 0;
+    let totalCachedTokens = 0;
+    let totalTextLength = 0;
+    let accumulatedText = "";
+    let repetitionDetected = false;
+
+    function detectRepetition(text: string): boolean {
+      if (text.length < 20) return false;
+      const tail = text.slice(-100);
+      if (/(.)\1{19,}/.test(tail)) return true;
+      if (/(.{2,4})\1{9,}/.test(tail)) return true;
+      return false;
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const reader = resp.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let streamClosed = false;  // v103: 스트림 닫힘 플래그
+
+        function safeEnqueue(data: Uint8Array) {
+          if (streamClosed) return;
+          try { controller.enqueue(data); } catch { streamClosed = true; }
+        }
+
+        function processLine(line: string) {
+          if (repetitionDetected || streamClosed) return;
+          if (!line.startsWith("data: ")) return;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr || jsonStr === "[DONE]") return;
+          try {
+            const data = JSON.parse(jsonStr);
+            // usage 캡처 (마지막 청크에 포함)
+            if (data.usage) {
+              totalPromptTokens = data.usage.prompt_tokens || 0;
+              totalCompletionTokens = data.usage.completion_tokens || 0;
+              totalCachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+              // v103: 캐시 디버깅 — creation vs hit 구분
+              const cacheCreation = data.usage.prompt_tokens_details?.cache_creation_input_tokens || 0;
+              if (cacheCreation > 0 || totalCachedTokens > 0) {
+                console.log(`[ai-gemini v103] Cache debug: created=${cacheCreation}, hit=${totalCachedTokens}, prompt_details=${JSON.stringify(data.usage.prompt_tokens_details)}`);
+              } else {
+                console.log(`[ai-gemini v103] Cache debug: NO cache activity. prompt_tokens_details=${JSON.stringify(data.usage.prompt_tokens_details)}`);
+              }
+            }
+            const choice = data.choices?.[0];
+            if (!choice) return;
+            const text = choice.delta?.content || "";
+            const finishReason = choice.finish_reason;
+
+            if (text) {
+              accumulatedText += text;
+              if (accumulatedText.length > 200) accumulatedText = accumulatedText.slice(-200);
+              if (detectRepetition(accumulatedText)) {
+                repetitionDetected = true;
+                console.error(`[ai-gemini v78] Qwen REPETITION DETECTED! Last 50: "${accumulatedText.slice(-50)}"`);
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n[AI 응답에 오류가 발생했습니다. 다시 질문해주세요.]", done: false, finish_reason: "REPETITION_DETECTED" })}\n\n`));
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "REPETITION_DETECTED", usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, cached_tokens: totalCachedTokens } })}\n\n`));
+                return;
+              }
+              totalTextLength += text.length;
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text, done: false, finish_reason: finishReason })}\n\n`));
+            }
+            if (finishReason === "stop" && !text) {
+              // finish만 온 경우 (텍스트 없이)
+            }
+          } catch (e) {
+            console.error("[ai-gemini v78] Qwen SSE parse error:", e);
+          }
+        }
+
+        try {
+          while (true) {
+            if (repetitionDetected) { await reader.cancel(); break; }
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              processLine(line);
+              if (repetitionDetected) break;
+            }
+          }
+          if (!repetitionDetected) {
+            buffer += decoder.decode(new Uint8Array(), { stream: false });
+            if (buffer.trim()) {
+              for (const line of buffer.split("\n")) processLine(line);
+            }
+          }
+          // done 전송 — v104: Qwen 빈 응답 시 Gemini in-stream fallback
+          if (!repetitionDetected) {
+            if (totalTextLength === 0 && GEMINI_API_KEYS.length > 0) {
+              // v104: Qwen이 200 OK지만 text 0자 → Gemini non-streaming fallback (같은 SSE 스트림 안에서)
+              // DashScope 공식: finish_reason은 stop/length/tool_calls/null만 존재
+              // 콘텐츠 필터는 HTTP 400 DataInspectionFailed로 오지만,
+              // 간헐적으로 200 + 빈 body로 오는 케이스 존재 → Gemini로 자동 복구
+              console.warn(`[ai-gemini v104] Qwen empty response → Gemini in-stream fallback (prompt=${totalPromptTokens}, pf_comp=${preflightUsage.completion_tokens})`);
+              try {
+                const fbSystemText = messages.filter(m => m.role === "system").map(m => m.content).join("\n");
+                const fbContents = messages.filter(m => m.role !== "system").map(m => ({
+                  role: m.role === "assistant" ? "model" : "user",
+                  parts: [{ text: m.content }],
+                }));
+                const fbBody = JSON.stringify({
+                  contents: fbContents,
+                  systemInstruction: fbSystemText ? { parts: [{ text: fbSystemText }] } : undefined,
+                  generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
+                  safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                  ],
+                });
+                let fbKey = getNextGeminiKey();
+                let fbResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${fbKey}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: fbBody,
+                });
+                // 429 → 다른 키로 retry
+                if (fbResp.status === 429 && GEMINI_API_KEYS.length > 1) {
+                  console.warn(`[ai-gemini v104] Gemini fallback 429, trying next key`);
+                  fbKey = getNextGeminiKey();
+                  fbResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${fbKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: fbBody,
+                  });
+                }
+                if (fbResp.ok) {
+                  const fbData = await fbResp.json();
+                  const fbCandidate = (fbData as any).candidates?.[0];
+                  let fbContent = "";
+                  if (fbCandidate?.content?.parts) {
+                    for (const part of fbCandidate.content.parts) {
+                      if (part.thought === true) continue;
+                      if (part.text) fbContent += part.text;
+                    }
+                  }
+                  if (fbContent) {
+                    const fbUsage = (fbData as any).usageMetadata || {};
+                    const fbPrompt = fbUsage.promptTokenCount || 0;
+                    const fbComp = fbUsage.candidatesTokenCount || 0;
+                    console.log(`[ai-gemini v104] Gemini fallback OK: ${fbContent.length} chars, prompt=${fbPrompt}, comp=${fbComp}`);
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: fbContent, done: false })}\n\n`));
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: fbPrompt, completion_tokens: fbComp, total_tokens: fbPrompt + fbComp, cached_tokens: 0 } })}\n\n`));
+                    // Gemini fallback 비용 기록
+                    if (userId) {
+                      const fbCost = (fbPrompt * 0.10 / 1000000) + (fbComp * 0.40 / 1000000);
+                      await recordGeminiCost(supabase, userId, fbPrompt, fbComp, fbCost);
+                    }
+                  } else {
+                    console.error(`[ai-gemini v104] Gemini fallback also empty`);
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+                    safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "EMPTY_RESPONSE", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+                  }
+                } else {
+                  console.error(`[ai-gemini v104] Gemini fallback HTTP ${fbResp.status}`);
+                  safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+                  safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "FALLBACK_FAILED", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+                }
+              } catch (fbErr) {
+                console.error(`[ai-gemini v104] Gemini fallback exception:`, fbErr);
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+                safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "FALLBACK_ERROR", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+              }
+            } else if (totalTextLength === 0) {
+              // Gemini 키도 없는 경우 — 에러 메시지만
+              console.error(`[ai-gemini v104] Qwen empty + no Gemini keys`);
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "\n\n일시적인 오류가 발생했어요. 다시 질문해주세요.", done: false })}\n\n`));
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, error: "EMPTY_RESPONSE", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0 } })}\n\n`));
+            } else {
+              // 정상 응답
+              const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
+              const allComp = totalCompletionTokens + preflightUsage.completion_tokens;
+              const quotaComp = totalCompletionTokens;
+              const allCached = totalCachedTokens + preflightUsage.cached_tokens;
+              const cacheHitPct = allPrompt > 0 ? Math.round(allCached / allPrompt * 100) : 0;
+              console.log(`[ai-gemini v104] Qwen stream done: prompt=${allPrompt}(pf=${preflightUsage.prompt_tokens}), comp=${allComp}(quota=${quotaComp}, pf=${preflightUsage.completion_tokens}), cached=${allCached} (${cacheHitPct}%), textLen=${totalTextLength}`);
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify({ text: "", done: true, usage: { prompt_tokens: allPrompt, completion_tokens: quotaComp, total_tokens: allPrompt + quotaComp, cached_tokens: allCached } })}\n\n`));
+            }
+          }
+          // 비용 기록 — 정상 응답만 (빈 응답/fallback은 위에서 개별 처리)
+          if (totalTextLength > 0) {
+            const allPrompt = totalPromptTokens + preflightUsage.prompt_tokens;
+            const allComp = totalCompletionTokens + preflightUsage.completion_tokens;
+            const allCached = totalCachedTokens + preflightUsage.cached_tokens;
+            if (userId && (allPrompt > 0 || allComp > 0)) {
+              const nonCached = allPrompt - allCached;
+              const cost = (nonCached * 0.10 / 1000000) + (allCached * 0.01 / 1000000) + (allComp * 0.40 / 1000000);
+              await recordGeminiCost(supabase, userId, allPrompt, allComp, cost);
+            }
+          }
+        } catch (e) {
+          console.error("[ai-gemini v78] Qwen stream error:", e);
+          safeEnqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream error", done: true })}\n\n`));
+        } finally {
+          if (!streamClosed) { try { controller.close(); } catch { /* already closed */ } streamClosed = true; }
+        }
+      },
+    });
+    return new Response(stream, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" },
+    });
+  } catch (e) {
+    console.error("[ai-gemini v78] Qwen stream setup error:", e);
+    return null;
+  }
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 5000;
+const DAILY_QUOTA = 4000;
 const ADMIN_QUOTA = 1000000000;
 
 /** KST(UTC+9) 기준 오늘 날짜 (YYYY-MM-DD) */
@@ -212,6 +776,7 @@ async function checkAndUpdateQuota(
  * chatting_tokens는 DB 트리거(update_daily_chat_tokens)가 chat_messages INSERT 시 정확히 기록
  * → 이중 기록 방지 (이전 버전에서는 Edge Function + 트리거 둘 다 chatting_tokens 갱신하여 이중 카운트)
  */
+// v62: 원자적 UPSERT RPC — race condition 제거, DB 쿼리 2→1개
 async function recordGeminiCost(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -221,32 +786,18 @@ async function recordGeminiCost(
 ): Promise<void> {
   const today = getTodayKST();
   try {
-    const { data: existing } = await supabase
-      .from("user_daily_token_usage")
-      .select("id, gemini_cost_usd")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-    if (existing) {
-      await supabase
-        .from("user_daily_token_usage")
-        .update({
-          gemini_cost_usd: parseFloat(existing.gemini_cost_usd || "0") + cost,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-    } else {
-      await supabase
-        .from("user_daily_token_usage")
-        .insert({
-          user_id: userId,
-          usage_date: today,
-          gemini_cost_usd: cost,
-        });
-    }
-    console.log(`[ai-gemini v25] Recorded gemini_cost=$${cost.toFixed(6)} (prompt=${promptTokens}, completion=${completionTokens}) for user ${userId}`);
+    await supabase.rpc('increment_token_usage', {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_column_name: 'chatting_tokens',  // Gemini는 chatting용 → 컬럼은 DB 트리거가 처리, 여기선 cost만
+      p_tokens: 0,  // chatting_tokens는 chat_messages INSERT 트리거가 기록 (이중 기록 방지)
+      p_gpt_cost: 0,
+      p_gemini_cost: cost,
+      p_daily_quota: DAILY_QUOTA,
+    });
+    console.log(`[ai-gemini v62] Recorded gemini_cost=$${cost.toFixed(6)} (prompt=${promptTokens}, completion=${completionTokens}) for user ${userId}`);
   } catch (error) {
-    console.error("[ai-gemini v25] Failed to record gemini cost:", error);
+    console.error("[ai-gemini v62] Failed to record gemini cost:", error);
   }
 }
 
@@ -262,7 +813,9 @@ async function handleIntentClassification(
     ? `\n[최근 대화]\n${chatHistory.slice(-3).join('\n')}\n`
     : '';
   const prompt = `다음 사용자 질문이 어떤 카테고리와 관련이 있는지 판단하세요.\n최대 3개까지 선택 가능하며, 관련성이 높은 순서대로 나열하세요.\n\n[카테고리 목록]\n- PERSONALITY: 성격, 성향, 기질\n- LOVE: 연애, 이성관계, 호감\n- MARRIAGE: 결혼, 배우자, 가정\n- CAREER: 진로, 직장, 직업\n- BUSINESS: 사업, 창업, 자영업\n- WEALTH: 재물, 돈, 투자, 재테크\n- HEALTH: 건강, 질병, 체질\n- GENERAL: 올해 전체 운세, 모든 분야를 한 번에 묻는 질문 (특정 분야가 명확하면 GENERAL 선택 금지!)\n\n⚠️ 중요: 특정 카테고리가 명확한 질문에는 GENERAL을 포함하지 마세요!\n${historyContext}\n[사용자 질문]\n${userMessage}\n\nJSON 형식으로 답변하세요:\n{\n  "categories": ["LOVE", "MARRIAGE"],\n  "reason": "연애와 결혼에 대한 질문"\n}`;
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+  // v62: Gemini Key 로테이션
+  const intentKey = getNextGeminiKey();
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${intentKey}`;
   try {
     const response = await fetch(geminiUrl, {
       method: "POST",
@@ -305,50 +858,10 @@ async function handleIntentClassification(
   }
 }
 
-/**
- * v26: Gemini Context Caching — 세션별 system prompt + saju 데이터 캐싱
- * 캐시된 토큰은 $0.05/1M (표준 $0.50의 90% 할인)
- * 최소 1,024 토큰 필요 (system prompt + saju 데이터 = 4~6K → 충족)
- */
-async function createGeminiCache(
-  systemContent: string,
-  model: string,
-  ttlSeconds: number = 3600
-): Promise<string | null> {
-  try {
-    const cacheUrl = `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${GEMINI_API_KEY}`;
-    const response = await fetch(cacheUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: `models/${model}`,
-        systemInstruction: { parts: [{ text: systemContent }] },
-        ttl: `${ttlSeconds}s`,
-      }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[ai-gemini v26] Cache creation failed: ${response.status}`, errorText);
-      return null;
-    }
-    const data = await response.json();
-    console.log(`[ai-gemini v26] Cache created: ${data.name}, expireTime=${data.expireTime}`);
-    return data.name;
-  } catch (error) {
-    console.error("[ai-gemini v26] Cache creation error:", error);
-    return null;
-  }
-}
-
-async function deleteGeminiCache(cacheName: string): Promise<void> {
-  try {
-    const deleteUrl = `https://generativelanguage.googleapis.com/v1beta/${cacheName}?key=${GEMINI_API_KEY}`;
-    await fetch(deleteUrl, { method: "DELETE" });
-    console.log(`[ai-gemini v26] Cache deleted: ${cacheName}`);
-  } catch (error) {
-    console.error("[ai-gemini v26] Cache deletion error:", error);
-  }
-}
+// v38: Explicit caching 제거 → Implicit caching으로 전환
+// Gemini 2.5+ implicit caching: 동일 prefix 자동 캐시, 저장 비용 $0, 90% 할인
+// 세션별 고정 키(getSessionKey)로 implicit cache chain 보장
+// 이전 createGeminiCache/deleteGeminiCache/gemini_cache_name 관련 코드 제거
 
 async function handleStreamingRequest(
   supabase: ReturnType<typeof createClient>,
@@ -375,97 +888,38 @@ async function handleStreamingRequest(
     );
   }
 
-  // v26: Context Caching — 세션에 캐시가 있으면 사용, 없으면 생성
-  let cacheName: string | null = null;
-  if (sessionId && systemInstruction.length > 500) {
-    // 세션에 기존 캐시가 있는지 확인
-    const { data: session } = await supabase
-      .from("chat_sessions")
-      .select("gemini_cache_name")
-      .eq("id", sessionId)
-      .single();
+  // v38: Implicit caching — 세션 고정 키로 prefix 캐시 체인 보장
+  // systemInstruction + contents[0..N-1] 이 동일하면 자동 캐시 적중 (90% 할인)
+  const streamKey = sessionId ? getSessionKey(sessionId) : getNextGeminiKey();
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${streamKey}&alt=sse`;
+  const requestBody = {
+    contents,
+    systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+    generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingBudget: 0 } },
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ],
+  };
+  console.log(`[ai-gemini-stream v38] model=${model}, session=${sessionId || 'none'}, key=session-fixed`);
 
-    if (session?.gemini_cache_name) {
-      cacheName = session.gemini_cache_name;
-      console.log(`[ai-gemini v26] Using existing cache: ${cacheName}`);
-    } else {
-      // 캐시 생성 (system prompt가 충분히 길 때만 — 1024 tokens ≈ 400자 이상)
-      cacheName = await createGeminiCache(systemInstruction, model);
-      if (cacheName) {
-        await supabase
-          .from("chat_sessions")
-          .update({ gemini_cache_name: cacheName })
-          .eq("id", sessionId);
-      }
-    }
-  }
-
-  // 캐시 사용 시 다른 엔드포인트 (cachedContent 참조)
-  let geminiUrl: string;
-  let requestBody: Record<string, unknown>;
-
-  if (cacheName) {
-    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
-    requestBody = {
-      cachedContent: cacheName,
-      contents,
-      // v35.2: Gemini 3 Flash → thinkingLevel: "minimal" (generationConfig 내부, 공식 문서 준수)
-      // thinkingBudget은 Gemini 2.5 전용, thinkingLevel은 Gemini 3 전용
-      // "minimal"은 Gemini 3 Flash에서 가장 낮은 thinking (완전 비활성화 불가)
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
-      ],
-    };
-    console.log(`[ai-gemini-stream v35.2] Using cached content: ${cacheName}`);
-  } else {
-    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
-    requestBody = {
-      contents,
-      systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
-      ],
-    };
-    console.log(`[ai-gemini-stream v26] No cache, standard request: model=${model}`);
-  }
   let geminiResponse = await fetch(geminiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(requestBody),
   });
-  // v27: 캐시 에러 시 캐시 삭제 + 캐시 없이 재시도 (fallback)
-  if (!geminiResponse.ok && cacheName) {
-    const errorText = await geminiResponse.text();
-    console.warn(`[ai-gemini v27] Cache request failed (${geminiResponse.status}), falling back to standard request. Error: ${errorText}`);
-    if (sessionId) {
-      await supabase.from("chat_sessions").update({ gemini_cache_name: null }).eq("id", sessionId);
-    }
-    cacheName = null;
-    // 캐시 없이 표준 요청으로 재시도
-    const fallbackBody = {
-      contents,
-      systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-      generationConfig: { temperature: 1.0, maxOutputTokens: maxTokens, topP: 0.9, topK: 40, stopSequences: ["[/SUGGESTED_QUESTIONS]"], thinkingConfig: { thinkingLevel: "minimal" } },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
-      ],
-    };
-    console.log(`[ai-gemini v35.2] [FALLBACK] Retrying without cache: model=${model}`);
-    geminiResponse = await fetch(geminiUrl, {
+
+  // v62: 429 rate limit → 다음 키로 retry
+  if (geminiResponse.status === 429 && GEMINI_API_KEYS.length > 1) {
+    console.warn(`[ai-gemini v38] Rate limited (429), trying next key...`);
+    const retryKey = getNextGeminiKey();
+    const retryUrl = geminiUrl.replace(/key=[^&]+/, `key=${retryKey}`);
+    geminiResponse = await fetch(retryUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(fallbackBody),
+      body: JSON.stringify(requestBody),
     });
   }
   if (!geminiResponse.ok) {
@@ -485,8 +939,34 @@ async function handleStreamingRequest(
       const decoder = new TextDecoder();
       let buffer = "";
 
-      // v25: SSE 라인 파싱 헬퍼 (thought 필터링 포함)
+      // v36: 반복 출력 감지 상태 (Gemini known issue 방어)
+      let accumulatedText = ""; // 스트리밍 누적 텍스트 (최근 200자만 유지)
+      let repetitionDetected = false;
+
+      /**
+       * v36: 반복 패턴 감지
+       * - 같은 문자 연속 20회 이상 (예: ㄴㄴㄴㄴㄴㄴ..., \b\b\b..., \n\n\n...)
+       * - 같은 2~4자 패턴 10회 이상 반복 (예: "아니요아니요아니요...")
+       */
+      function detectRepetition(text: string): boolean {
+        if (text.length < 20) return false;
+        // 검사 대상: 최근 100자
+        const tail = text.slice(-100);
+
+        // 감지1: 같은 문자 연속 20회
+        const singleCharRepeat = /(.)\1{19,}/;
+        if (singleCharRepeat.test(tail)) return true;
+
+        // 감지2: 같은 2~4자 패턴 10회 반복
+        const patternRepeat = /(.{2,4})\1{9,}/;
+        if (patternRepeat.test(tail)) return true;
+
+        return false;
+      }
+
+      // v25: SSE 라인 파싱 헬퍼 (thought 필터링 + v36 반복 감지 포함)
       function processSSELine(line: string) {
+        if (repetitionDetected) return; // v36: 이미 감지되면 이후 청크 무시
         if (!line.startsWith("data: ")) return;
         const jsonStr = line.slice(6).trim();
         if (!jsonStr || jsonStr === "[DONE]") return;
@@ -517,6 +997,25 @@ async function handleStreamingRequest(
             totalThoughtsTokens = data.usageMetadata.thoughtsTokenCount || 0;
           }
           if (text) {
+            // v36: 누적 텍스트에 추가 (최근 200자만 유지 — 메모리 절약)
+            accumulatedText += text;
+            if (accumulatedText.length > 200) {
+              accumulatedText = accumulatedText.slice(-200);
+            }
+
+            // v36: 반복 패턴 감지
+            if (detectRepetition(accumulatedText)) {
+              repetitionDetected = true;
+              console.error(`[ai-gemini v36] REPETITION DETECTED! Aborting stream. Last 50 chars: "${accumulatedText.slice(-50)}"`);
+              // 클라이언트에 에러 알림
+              const repData = JSON.stringify({ text: "\n\n[AI 응답에 오류가 발생했습니다. 다시 질문해주세요.]", done: false, finish_reason: "REPETITION_DETECTED" });
+              controller.enqueue(encoder.encode(`data: ${repData}\n\n`));
+              // 즉시 done 전송
+              const doneData = JSON.stringify({ text: "", done: true, error: "REPETITION_DETECTED", usage: { prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens, thoughts_tokens: totalThoughtsTokens, total_tokens: totalPromptTokens + totalCompletionTokens, cached_tokens: totalCachedTokens } });
+              controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
+              return;
+            }
+
             totalTextLength += text.length; // v35.2: 텍스트 길이 누적
             const sseData = JSON.stringify({ text, done: false, finish_reason: finishReason });
             controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
@@ -528,6 +1027,12 @@ async function handleStreamingRequest(
 
       try {
         while (true) {
+          // v36: 반복 감지되면 reader 취소 + 루프 탈출 (토큰 낭비 방지)
+          if (repetitionDetected) {
+            console.log("[ai-gemini v36] Cancelling reader due to repetition detection");
+            await reader.cancel();
+            break;
+          }
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
@@ -535,16 +1040,28 @@ async function handleStreamingRequest(
           buffer = lines.pop() || "";
           for (const line of lines) {
             processSSELine(line);
+            if (repetitionDetected) break; // v36: 즉시 탈출
           }
         }
         // v25 BUG FIX: 잔여 버퍼 처리 (usageMetadata가 마지막 청크에 있음)
         // decoder flush (stream: false로 잔여 바이트 방출)
-        buffer += decoder.decode(new Uint8Array(), { stream: false });
-        if (buffer.trim()) {
-          const remainingLines = buffer.split("\n");
-          for (const line of remainingLines) {
-            processSSELine(line);
+        if (!repetitionDetected) {
+          buffer += decoder.decode(new Uint8Array(), { stream: false });
+          if (buffer.trim()) {
+            const remainingLines = buffer.split("\n");
+            for (const line of remainingLines) {
+              processSSELine(line);
+            }
           }
+        }
+        // v36: 반복 감지 시 done/cost는 이미 processSSELine에서 전송됨 — 후처리 스킵
+        if (repetitionDetected) {
+          if (userId && (totalPromptTokens > 0 || totalCompletionTokens > 0)) {
+            const nonCachedPrompt = totalPromptTokens - totalCachedTokens;
+            const cost = (nonCachedPrompt * 0.10 / 1000000) + (totalCachedTokens * 0.01 / 1000000) + (totalCompletionTokens * 0.40 / 1000000);
+            await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
+          }
+          return; // controller.close()는 finally에서 처리
         }
         // v35.2: thinking 토큰 누출 방어 (3단계)
         // Gemini 3 Flash Preview에서 candidatesTokenCount에 thinking 토큰 간헐적 혼입
@@ -568,15 +1085,16 @@ async function handleStreamingRequest(
           }
         }
 
-        console.log(`[ai-gemini-stream v35.2] Stream done. prompt=${totalPromptTokens}, completion=${actualCompletionTokens} (raw=${totalCompletionTokens}), thoughts=${totalThoughtsTokens}, textLen=${totalTextLength}, ratio=${tokensPerChar.toFixed(2)}, cached=${totalCachedTokens}`);
+        const cacheHitPct = totalPromptTokens > 0 ? Math.round(totalCachedTokens / totalPromptTokens * 100) : 0;
+        console.log(`[ai-gemini-stream v38] Stream done. prompt=${totalPromptTokens}, completion=${actualCompletionTokens} (raw=${totalCompletionTokens}), thoughts=${totalThoughtsTokens}, textLen=${totalTextLength}, ratio=${tokensPerChar.toFixed(2)}, cached=${totalCachedTokens} (${cacheHitPct}% hit)`);
         const doneData = JSON.stringify({ text: "", done: true, usage: { prompt_tokens: totalPromptTokens, completion_tokens: actualCompletionTokens, thoughts_tokens: totalThoughtsTokens, total_tokens: totalPromptTokens + actualCompletionTokens, cached_tokens: totalCachedTokens } });
         controller.enqueue(encoder.encode(`data: ${doneData}\n\n`));
         // v26: gemini_cost_usd 기록 (fallback + context caching 할인 포함)
         if (userId) {
           if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
-            // v26: cachedContentTokenCount가 있으면 캐시 할인 적용 ($0.05/1M vs $0.50/1M)
+            // v38: gemini-2.5-flash-lite 가격 ($0.10/$0.40, cache $0.01)
             const nonCachedPrompt = totalPromptTokens - totalCachedTokens;
-            const cost = (nonCachedPrompt * 0.50 / 1000000) + (totalCachedTokens * 0.05 / 1000000) + (totalCompletionTokens * 3.00 / 1000000);
+            const cost = (nonCachedPrompt * 0.10 / 1000000) + (totalCachedTokens * 0.01 / 1000000) + (totalCompletionTokens * 0.40 / 1000000);
             await recordGeminiCost(supabase, userId, totalPromptTokens, totalCompletionTokens, cost);
           } else {
             // v26 FALLBACK: usageMetadata 누락 시 응답 텍스트 길이 기반 추산
@@ -587,7 +1105,7 @@ async function handleStreamingRequest(
             const estPromptTokens = Math.round((systemPromptLength + chatHistoryLength) * 2.5);
             // completion은 클라이언트에서 tokens_used로 정확히 잡히므로 여기선 평균값 사용
             const estCompletionTokens = Math.round(1500); // 평균 응답 길이 기반
-            const estCost = (estPromptTokens * 0.50 / 1000000) + (estCompletionTokens * 3.00 / 1000000);
+            const estCost = (estPromptTokens * 0.10 / 1000000) + (estCompletionTokens * 0.40 / 1000000);
             console.log(`[ai-gemini v26] [FALLBACK] usageMetadata missing. Estimated prompt=${estPromptTokens}, completion=${estCompletionTokens}, cost=$${estCost.toFixed(6)}`);
             await recordGeminiCost(supabase, userId, estPromptTokens, estCompletionTokens, estCost);
           }
@@ -611,7 +1129,7 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
   try {
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    if (!QWEN_API_KEY && GEMINI_API_KEYS.length === 0) throw new Error("No AI provider configured (QWEN_API_KEY or GEMINI_API_KEY required)");
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const requestData: GeminiRequest = await req.json();
     const action = requestData.action || "chat";
@@ -622,7 +1140,12 @@ Deno.serve(async (req) => {
       if (user_id) isAdmin = await isAdminUser(supabase, user_id);
       return await handleIntentClassification(supabase, user_message, chat_history, user_id, isAdmin);
     }
-    const { messages, model = "gemini-3-flash-preview", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
+    const { messages, model: _clientModel = "gemini-2.5-flash-lite", max_tokens = 16384, temperature = 0.8, user_id, stream = false, session_id } = requestData;
+    // v37: 모델 강제 오버라이드 — 기존 앱이 다른 모델명을 보내도 2.5-flash-lite 사용
+    const model = "gemini-2.5-flash-lite";
+    if (_clientModel !== model) {
+      console.log(`[ai-gemini v37] Model override: ${_clientModel} → ${model}`);
+    }
     if (!messages || messages.length === 0) throw new Error("messages is required");
     let isAdmin = false;
     if (user_id) {
@@ -646,53 +1169,137 @@ Deno.serve(async (req) => {
         }
       }
     }
+    // v77: Qwen → Gemini fallback
     if (stream) {
-      console.log(`[ai-gemini v26] Streaming mode: model=${model}, session_id=${session_id || 'none'}`);
+      // 스트리밍: Qwen 먼저 시도, 실패 시 Gemini fallback
+      if (QWEN_API_KEY) {
+        console.log(`[ai-gemini v77] Streaming: trying Qwen 3.5 Flash`);
+        const qwenResp = await handleQwenStreamingRequest(supabase, messages, max_tokens, temperature, user_id, isAdmin);
+        if (qwenResp) return qwenResp;
+        console.warn(`[ai-gemini v78] Qwen streaming failed, falling back to Gemini`);
+      }
+      console.log(`[ai-gemini v77] Streaming fallback: Gemini ${model}, session_id=${session_id || 'none'}`);
       return await handleStreamingRequest(supabase, messages, model, max_tokens, temperature, user_id, isAdmin, session_id);
     }
-    console.log(`[ai-gemini v23] Non-streaming: model=${model}, isAdmin=${isAdmin}`);
+
+    // Non-streaming: Qwen 먼저 시도
+    if (QWEN_API_KEY) {
+      console.log(`[ai-gemini v77] Non-streaming: trying Qwen 3.5 Flash`);
+      const qwenResult = await callQwenNonStreaming(messages, max_tokens, temperature);
+      if (qwenResult) {
+        const { content, usage } = qwenResult;
+        // 비용 기록 (Qwen = Gemini 동일 가격)
+        if (user_id) {
+          const nonCached = (usage.prompt_tokens || 0) - (usage.cached_tokens || 0);
+          const cost = (nonCached * 0.10 / 1000000) + ((usage.cached_tokens || 0) * 0.01 / 1000000) + ((usage.completion_tokens || 0) * 0.40 / 1000000);
+          await recordGeminiCost(supabase, user_id, usage.prompt_tokens || 0, usage.completion_tokens || 0, cost);
+        }
+        const cacheHitPct = usage.prompt_tokens ? Math.round((usage.cached_tokens || 0) / usage.prompt_tokens * 100) : 0;
+        console.log(`[ai-gemini v78] Qwen non-stream OK: cached=${usage.cached_tokens || 0} (${cacheHitPct}% hit)`);
+        return new Response(
+          JSON.stringify({ success: true, content, usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, total_tokens: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) }, model: QWEN_MODEL, finish_reason: "stop", is_admin: isAdmin }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.warn(`[ai-gemini v78] Qwen non-streaming failed, falling back to Gemini`);
+    }
+    console.log(`[ai-gemini v77] Non-streaming fallback: Gemini ${model}, isAdmin=${isAdmin}`);
     const systemInstruction = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");
     const contents = messages.filter((m) => m.role !== "system").map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-        generationConfig: {
-          temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
-          stopSequences: ["[/SUGGESTED_QUESTIONS]"],
-          // v34: non-streaming(운세)에는 thinking "low" — JSON 생성에 heavy thinking 불필요
-          thinkingConfig: { thinkingLevel: "low" },
-        },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-        ],
-      }),
-    });
-    const data = await response.json();
-    if (data.error) {
-      console.error("[ai-gemini v23] Gemini API Error:", data.error);
-      return new Response(JSON.stringify({ success: false, error: data.error.message || "Gemini API error" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // v38: non-streaming도 세션 고정 키 (implicit caching) + 429 retry
+    const nonStreamKey = session_id ? getSessionKey(session_id) : getNextGeminiKey();
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${nonStreamKey}`;
+    const safetySettings = [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ];
+    const genConfig = {
+      temperature: 1.0, maxOutputTokens: max_tokens, topP: 0.9, topK: 40,
+      stopSequences: ["[/SUGGESTED_QUESTIONS]"],
+      thinkingConfig: { thinkingBudget: 0 },
+    };
+    const geminiBody: Record<string, unknown> = {
+      contents,
+      systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+      generationConfig: genConfig,
+      safetySettings,
+      ...(sajuToolDeclarations.length > 0 && !model.includes('lite') ? { tools: sajuToolDeclarations } : {}),
+    };
+
+    // v76: Function Calling Loop (최대 6회 — think 5단계 + 최종 답변)
+    const MAX_FUNCTION_CALLS = 6;
+    let data: Record<string, unknown> = {};
+    let functionCallCount = 0;
+
+    for (let i = 0; i < MAX_FUNCTION_CALLS; i++) {
+      let response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiBody),
+      });
+      // v62: 429 → 다음 키 retry
+      if (response.status === 429 && GEMINI_API_KEYS.length > 1) {
+        console.warn(`[ai-gemini v62] Non-stream 429, trying next key...`);
+        const retryKey = getNextGeminiKey();
+        response = await fetch(geminiUrl.replace(/key=[^&]+/, `key=${retryKey}`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(geminiBody),
+        });
+      }
+      data = await response.json();
+      if ((data as any).error) {
+        console.error("[ai-gemini v76] Gemini API Error:", (data as any).error);
+        return new Response(JSON.stringify({ success: false, error: (data as any).error?.message || "Gemini API error" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const candidate = (data as any).candidates?.[0];
+      if (!candidate) throw new Error("No response from Gemini");
+      if (candidate.finishReason === "SAFETY") throw new Error("Response blocked due to safety settings");
+
+      // Function Call 감지
+      const fcParts = candidate.content?.parts?.filter((p: any) => p.functionCall);
+      if (fcParts && fcParts.length > 0) {
+        functionCallCount++;
+        // 모델의 functionCall 응답을 contents에 추가
+        (geminiBody.contents as any[]).push({ role: "model", parts: candidate.content.parts });
+
+        // 각 functionCall 실행 → functionResponse 추가
+        const responseParts: any[] = [];
+        for (const fc of fcParts) {
+          const { name, args, id } = fc.functionCall;
+          console.log(`[ai-gemini v76] Function call #${functionCallCount}: ${name}(${JSON.stringify(args)}) id=${id || 'none'}`);
+          const result = executeSajuFunction ? executeSajuFunction(name, args || {}) : { error: "saju-tools not loaded" };
+          const fnResponse: Record<string, unknown> = { name, response: { content: result } };
+          if (id) fnResponse.id = id; // Gemini가 id를 보내면 매칭용으로 포함
+          responseParts.push({ functionResponse: fnResponse });
+        }
+        (geminiBody.contents as any[]).push({ role: "user", parts: responseParts });
+        continue; // 다음 루프에서 Gemini 재호출
+      }
+
+      // functionCall이 없으면 텍스트 응답 → 루프 종료
+      break;
     }
-    const candidate = data.candidates?.[0];
-    if (!candidate) throw new Error("No response from Gemini");
-    if (candidate.finishReason === "SAFETY") throw new Error("Response blocked due to safety settings");
+    if (functionCallCount > 0) {
+      console.log(`[ai-gemini v76] Total function calls: ${functionCallCount}`);
+    }
+
+    const candidate = (data as any).candidates?.[0];
+    if (!candidate) throw new Error("No response from Gemini after function calls");
     // v34: thought 파트 필터링 (thought=true만 스킵, thoughtSignature 있는 text는 유지)
     let content = "";
     const parts = candidate.content?.parts;
     if (Array.isArray(parts)) {
       for (const part of parts) {
-        if (part.thought === true) continue; // thinking 파트만 스킵
-        if (part.text) content += part.text;  // thoughtSignature 있어도 text는 수집
+        if (part.thought === true) continue;
+        if (part.functionCall) continue; // 남은 functionCall은 무시
+        if (part.text) content += part.text;
       }
     }
     // v34: JSON 추출 안전장치 — thought 텍스트가 섞여 들어온 경우 JSON 블록만 추출
@@ -709,6 +1316,7 @@ Deno.serve(async (req) => {
     const rawCompletionTokens = usageMetadata.candidatesTokenCount || 0;
     const thoughtsTokens = usageMetadata.thoughtsTokenCount || 0;
     const totalTokens = usageMetadata.totalTokenCount || 0;
+    const cachedTokens = usageMetadata.cachedContentTokenCount || 0; // v38: implicit cache hit 추적
     // v35.3: 비스트리밍 경로에도 thinking 누출 방어 (스트리밍 fallback 시 이 경로를 탐)
     let completionTokens = rawCompletionTokens;
     if (thoughtsTokens > 0 && completionTokens > thoughtsTokens) {
@@ -722,10 +1330,12 @@ Deno.serve(async (req) => {
         completionTokens = maxReasonable;
       }
     }
-    // Gemini 3.0 Flash: $0.50/$3.00
-    const cost = (promptTokens * 0.50 / 1000000) + (rawCompletionTokens * 3.00 / 1000000);
+    // v38: gemini-2.5-flash-lite 가격 + implicit caching 할인
+    const nonCachedPrompt = promptTokens - cachedTokens;
+    const cost = (nonCachedPrompt * 0.10 / 1000000) + (cachedTokens * 0.01 / 1000000) + (rawCompletionTokens * 0.40 / 1000000);
     if (user_id) await recordGeminiCost(supabase, user_id, promptTokens, rawCompletionTokens, cost);
-    console.log(`[ai-gemini v35.3] Success: prompt=${promptTokens}, completion=${completionTokens} (raw=${rawCompletionTokens}), thoughts=${thoughtsTokens}, textLen=${content.length}, isAdmin=${isAdmin}`);
+    const cacheHitPct = promptTokens > 0 ? Math.round(cachedTokens / promptTokens * 100) : 0;
+    console.log(`[ai-gemini v38] Non-stream success: prompt=${promptTokens}, completion=${completionTokens} (raw=${rawCompletionTokens}), thoughts=${thoughtsTokens}, cached=${cachedTokens} (${cacheHitPct}% hit), textLen=${content.length}, isAdmin=${isAdmin}`);
     return new Response(
       JSON.stringify({ success: true, content, usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens }, model, finish_reason: candidate.finishReason, is_admin: isAdmin }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

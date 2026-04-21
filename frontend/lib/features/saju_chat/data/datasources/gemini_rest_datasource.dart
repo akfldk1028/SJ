@@ -54,7 +54,7 @@ class GeminiRestDatasource {
 
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta';
-  static const String _model = 'gemini-3-flash-preview'; // Gemini 3.0 Flash (빠른 응답)
+  static const String _model = 'gemini-2.5-flash-lite'; // v37: Gemini 2.5 Flash Lite (비용 최적)
 
   /// 환경변수에서 API 키 가져오기
   static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';

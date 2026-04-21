@@ -146,6 +146,79 @@ class ParticipantResolver {
       if (kDebugMode) {
         print('   📌 하위 호환 모드: person1=$person1Id, person2=$person2Id, isCompatibilityMode=$isCompatibilityMode');
       }
+    } else if (effectiveParticipantIds != null && effectiveParticipantIds.length == 1) {
+      // ═══════════════════════════════════════════════════════════════════
+      // v13.0: 단일 멘션 포커스 전환
+      //
+      // 기존 궁합 세션에서 새 인물 1명 멘션 시:
+      //   유저 의도: "이 사람에 대해 봐줘" (포커스 전환)
+      //   기존 동작(버그): 새 멘션을 extra(3번째+)에 추가 → AI가 무시
+      //   수정: 새 멘션을 person2(주 분석 대상)로 승격,
+      //         기존 person2는 extras로 이동
+      //
+      // 새 세션(chat_mentions 없음)이면: v9.0 단일 멘션 모드
+      // ═══════════════════════════════════════════════════════════════════
+      final newMentionId = effectiveParticipantIds[0];
+
+      try {
+        final existingMentions = await Supabase.instance.client
+            .from('chat_mentions')
+            .select('target_profile_id, mention_order')
+            .eq('session_id', sessionId)
+            .order('mention_order');
+
+        if (existingMentions is List && existingMentions.length >= 2) {
+          final existingIds = existingMentions
+              .map((m) => m['target_profile_id'] as String?)
+              .where((id) => id != null)
+              .cast<String>()
+              .toList();
+
+          // 기존 person1 유지 (보통 owner/본인)
+          person1Id = existingIds[0];
+          isCompatibilityMode = true;
+
+          if (newMentionId == existingIds[0] || newMentionId == existingIds[1]) {
+            // 기존 person1 또는 person2 재멘션 → 기존 순서 유지
+            person2Id = existingIds[1];
+            extraMentionIds = existingIds.length > 2
+                ? existingIds.sublist(2)
+                : [];
+            if (kDebugMode) {
+              print('   📌 v13.0: 기존 참가자 재멘션 → 순서 유지: person1=$person1Id, person2=$person2Id');
+            }
+          } else {
+            // 새 인물 또는 기존 extra에서 승격 → person2로 포커스 전환
+            person2Id = newMentionId;
+            // 기존 참가자 중 person1과 새 멘션 제외 → extras
+            extraMentionIds = existingIds
+                .where((id) => id != person1Id && id != newMentionId)
+                .toList();
+
+            // chat_mentions 업데이트: [person1, 새멘션, 기존 나머지...]
+            final mergedIds = [person1Id!, person2Id!, ...extraMentionIds];
+            await _saveMergedParticipants(sessionId, mergedIds);
+            alreadySaved = true;
+
+            if (kDebugMode) {
+              print('   🔄 v13.0 포커스 전환: person2=$newMentionId (이전: ${existingIds[1]})');
+              print('      새 순서: $mergedIds');
+            }
+          }
+        } else {
+          // 기존 chat_mentions 없거나 1명뿐 → 단일 멘션 모드 (v9.0 동일)
+          person2Id = newMentionId;
+          if (kDebugMode) {
+            print('   📌 v13.0: 단일 멘션 모드 (새 세션): target=$newMentionId');
+          }
+        }
+      } catch (e) {
+        // 조회 실패 시 단일 멘션 fallback
+        person2Id = newMentionId;
+        if (kDebugMode) {
+          print('   ⚠️ v13.0: chat_mentions 조회 실패 → 단일 멘션 fallback: $e');
+        }
+      }
     } else {
       // v8.0: 명시적 ID가 없어도 chat_mentions에서 궁합 복원 시도
       // (두 번째 이후 메시지에서 UI가 participantIds를 전달하지 못하는 문제 대응)
@@ -185,15 +258,21 @@ class ParticipantResolver {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // v9.0: 단일 멘션 처리 (@친구/종환 이사람사주머게)
-    // - participantIds에 1명만 있으면 해당 인물의 사주 데이터 로드 필요
-    // - person2Id를 설정하여 "하위 호환: owner + target" 분기로 진입
+    // v14.0: 멘션 1명이라도 있으면 즉시 궁합 모드 전환
+    // - 기존 v9.0은 단일 멘션을 "하위 호환" 경로로 보냈으나,
+    //   이 경우 SystemPromptBuilder에서 상대방 사주가 불안정하게 주입됨
+    // - person2Id가 설정되어 있으면 무조건 isCompatibilityMode = true
+    // - person1Id가 없으면 owner(activeProfile)로 자동 채움
     // ═══════════════════════════════════════════════════════════════════════════
     if (!isCompatibilityMode && person2Id == null &&
         effectiveParticipantIds != null && effectiveParticipantIds.length == 1) {
       person2Id = effectiveParticipantIds[0];
+    }
+    // v14.0: person2Id가 있으면 항상 궁합 모드로 승격
+    if (!isCompatibilityMode && person2Id != null) {
+      isCompatibilityMode = true;
       if (kDebugMode) {
-        print('   📌 단일 멘션 모드: target=$person2Id (상대방 사주 데이터 로드)');
+        print('   🔄 v14.0: 멘션 감지 → 궁합 모드 자동 전환: person1=$person1Id, person2=$person2Id');
       }
     }
 

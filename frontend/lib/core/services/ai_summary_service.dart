@@ -194,7 +194,7 @@ class AiSummaryService {
         client: client,
         profileId: profileId,
         summaryJson: aiSummaryJson,
-        model: aiSummary.model ?? 'gemini-3-flash-preview',
+        model: aiSummary.model ?? 'gemini-2.5-flash-lite',
       );
 
       if (kDebugMode) {
@@ -227,7 +227,7 @@ class AiSummaryService {
   /// - summary_type: 'saju_base' (평생 사주)
   /// - content: AI 생성 JSON 전체
   /// - model_provider: 'google'
-  /// - model_name: 'gemini-3-flash-preview'
+  /// - model_name: 'gemini-2.5-flash-lite'
   /// - status: 'completed'
   static Future<void> _saveToDatabase({
     required SupabaseClient client,

@@ -64,16 +64,24 @@ class SystemPromptBuilder {
     // 궁합 모드 여부 (상대방이 있는 경우)
     final isCompatibilityMode = targetProfile != null;
 
+    // 0. 다국어 언어 지시 (프롬프트 최상단에 배치 — AI가 한국어 데이터를 보기 전에 언어 인지)
+    if (locale != 'ko') {
+      _addTopLanguageInstruction(locale);
+    }
+
     // 1. 현재 날짜
     _addCurrentDate();
 
     // 2. 페르소나 지시문
     if (personaPrompt != null && personaPrompt.isNotEmpty) {
-      _addPersona(personaPrompt);
+      _addPersona(personaPrompt, locale: locale);
     }
 
     // 3. 기본 프롬프트
     _buffer.writeln(basePrompt);
+
+    // 3-1. 사주 명리학 핵심 규칙 (v39: AI 해석 정확도 향상)
+    _addSajuCoreRules();
 
     // v6.0 (Phase 57): 라벨 결정
     // - 나 제외 모드: "첫 번째 사람" / "두 번째 사람"
@@ -83,7 +91,7 @@ class SystemPromptBuilder {
         : (isCompatibilityMode ? '나 (상담 요청자)' : null);
     final person1SajuLabel = isThirdPartyCompatibility
         ? '${profile?.displayName ?? '첫 번째 사람'}의 사주'
-        : (isCompatibilityMode ? '나의 사주' : null);
+        : (isCompatibilityMode ? '나의 사주' : '${profile?.displayName ?? '상담자'}님의 사주 데이터 (본인)');
     final person2Label = isThirdPartyCompatibility
         ? '두 번째 사람 (${targetProfile?.displayName ?? ''})'
         : null;  // 기존 _addTargetProfileInfo 사용
@@ -188,12 +196,31 @@ class SystemPromptBuilder {
   }
 
   /// 페르소나 지시문 추가
-  void _addPersona(String personaPrompt) {
-    _buffer.writeln('## 캐릭터 설정');
-    _buffer.writeln();
-    _buffer.writeln(personaPrompt);
-    _buffer.writeln();
-    _buffer.writeln('---');
+  void _addPersona(String personaPrompt, {String locale = 'ko'}) {
+    if (locale != 'ko') {
+      final langMap = {
+        'en': 'English', 'ja': '日本語', 'zh': '中文(简体)', 'vi': 'Tiếng Việt',
+        'th': 'ภาษาไทย', 'id': 'Bahasa Indonesia', 'ms': 'Bahasa Melayu',
+        'my': 'မြန်မာဘာသာ', 'fr': 'Français', 'de': 'Deutsch',
+        'es': 'Español', 'pt': 'Português', 'it': 'Italiano',
+        'ru': 'Русский', 'hi': 'हिन्दी', 'ar': 'العربية',
+      };
+      final langName = langMap[locale] ?? locale;
+      _buffer.writeln('## Character & Personality Setting');
+      _buffer.writeln('> The following character instructions are written in Korean for reference.');
+      _buffer.writeln('> Follow the personality and tone described below, but you MUST respond in **$langName**.');
+      _buffer.writeln();
+      _buffer.writeln(personaPrompt);
+      _buffer.writeln();
+      _buffer.writeln('> END CHARACTER SETTING — Remember: respond in **$langName**, not Korean.');
+      _buffer.writeln('---');
+    } else {
+      _buffer.writeln('## 캐릭터 설정');
+      _buffer.writeln();
+      _buffer.writeln(personaPrompt);
+      _buffer.writeln();
+      _buffer.writeln('---');
+    }
     _buffer.writeln();
   }
 
@@ -308,16 +335,7 @@ class SystemPromptBuilder {
     }
     _buffer.writeln();
 
-    // 용신
-    final yongsin = sajuAnalysis.yongsin;
-    _buffer.writeln('### 용신');
-    _buffer.writeln('- 용신: ${yongsin.yongsin.korean}');
-    _buffer.writeln('- 희신: ${yongsin.heesin.korean}');
-    _buffer.writeln('- 기신: ${yongsin.gisin.korean}');
-    _buffer.writeln('- 구신: ${yongsin.gusin.korean}');
-    _buffer.writeln();
-
-    // 신강/신약
+    // 신강/신약 (오행 다음, 격국·용신 판단의 전제)
     final dayStrength = sajuAnalysis.dayStrength;
     _buffer.writeln('### 신강/신약');
     _buffer.writeln('- 상태: ${dayStrength.level.korean}');
@@ -327,12 +345,21 @@ class SystemPromptBuilder {
     _buffer.writeln('- 득세: ${dayStrength.deukse ? 'O' : 'X'}');
     _buffer.writeln();
 
-    // 격국
+    // 격국 (종격 여부가 용신 방법을 결정 → 용신보다 먼저)
     final gyeokguk = sajuAnalysis.gyeokguk;
     _buffer.writeln('### 격국');
     _buffer.writeln('- 격국: ${gyeokguk.gyeokguk.korean}');
     _buffer.writeln('- 강도: ${gyeokguk.strength}/100');
     _buffer.writeln('- 설명: ${gyeokguk.reason}');
+    _buffer.writeln();
+
+    // 용신 (격국 판단 후 선정)
+    final yongsin = sajuAnalysis.yongsin;
+    _buffer.writeln('### 용신');
+    _buffer.writeln('- 용신: ${yongsin.yongsin.korean}');
+    _buffer.writeln('- 희신: ${yongsin.heesin.korean}');
+    _buffer.writeln('- 기신: ${yongsin.gisin.korean}');
+    _buffer.writeln('- 구신: ${yongsin.gusin.korean}');
     _buffer.writeln();
 
     // 십성
@@ -351,18 +378,9 @@ class SystemPromptBuilder {
     _buffer.writeln('| 지지 | $yearJiSipsin | $monthJiSipsin | $dayJiSipsin | $hourJiSipsin |');
     _buffer.writeln();
 
-    // 지장간
-    final jijanggan = sajuAnalysis.jijangganInfo;
-    _buffer.writeln('### 지장간');
-    _buffer.writeln('| 위치 | 지장간 |');
-    _buffer.writeln('|------|--------|');
-    _buffer.writeln('| 년지 | ${_formatJiJangGan(jijanggan.yearJi)} |');
-    _buffer.writeln('| 월지 | ${_formatJiJangGan(jijanggan.monthJi)} |');
-    _buffer.writeln('| 일지 | ${_formatJiJangGan(jijanggan.dayJi)} |');
-    if (jijanggan.hourJi.isNotEmpty) {
-      _buffer.writeln('| 시지 | ${_formatJiJangGan(jijanggan.hourJi)} |');
-    }
-    _buffer.writeln();
+    // 지장간 데이터 주입 제거 — AI가 지장간 위주로 설명하면 유저가 헷갈림
+    // 격국·십성 판별은 규칙 섹션의 지장간 본기 테이블로 충분
+
 
     // 신살
     final sinsalList = sajuAnalysis.sinsalList;
@@ -404,6 +422,12 @@ class SystemPromptBuilder {
       _buffer.writeln('- 지지: ${seun.pillar.ji} (${seun.pillar.jiOheng})');
       _buffer.writeln();
     }
+
+    // v103: 데이터 준수 지시 (AI 할루시네이션 방지)
+    _buffer.writeln('### ⚠️ 데이터 준수');
+    _buffer.writeln('- 위 데이터(십성, 대운, 오행 분포)는 만세력 계산 결과이며 정답이다. 자의적 재판정·순서 변경·자체 계산 금지.');
+    _buffer.writeln('- 유저가 채팅으로 다른 사람의 사주를 물으면 위 시스템 데이터와 혼동 금지. 모르는 부분은 "인연 등록을 해주세요"라고 안내.');
+    _buffer.writeln();
   }
 
 
@@ -460,49 +484,208 @@ class SystemPromptBuilder {
     _buffer.writeln('- **객관적 분석**: 나쁜 결과도 사실대로 전달하되 개선 방안 함께 제시');
   }
 
-  /// v8.1: 관계 유형별 분석 지시문 추가
+  /// v8.2: 관계 유형별 분석 지시문 — 세분류 19종 대응
   ///
-  /// AI가 관계 유형에 맞는 분석과 후속 질문을 생성하도록 지시
+  /// AI가 구체적 관계 유형에 맞는 분석과 후속 질문을 생성하도록 지시
+  /// 예: 부모 vs 자녀 vs 배우자 → 완전히 다른 상담 방향
   void _addRelationTypeContext(String relationType) {
     final type = ProfileRelationType.fromValue(relationType);
-    final category = type.categoryLabel;  // family/romantic/friend/work/other
 
     _buffer.writeln();
     _buffer.writeln('## 관계 유형별 분석 지침');
     _buffer.writeln('두 사람의 관계: **${type.displayName}** (${type.localizedCategoryLabel})');
     _buffer.writeln();
 
-    switch (category) {
-      case 'family':
-        _buffer.writeln('### 분석 초점');
-        _buffer.writeln('- 세대 간 소통, 가치관 차이, 서로 보완하는 역할');
-        _buffer.writeln('- 부모자녀 소통법, 가족 갈등 해소, 건강운 상호영향');
+    switch (type) {
+      // ═══════════════════════════════════════
+      // 가족 관계 (공통: 연애/성적/속궁합 절대 금지)
+      // ═══════════════════════════════════════
+      case ProfileRelationType.familyParent:
+        _buffer.writeln('### 분석 초점 — 부모');
+        _buffer.writeln('- 부모의 양육 스타일과 자녀의 기질 궁합');
+        _buffer.writeln('- 세대 간 가치관 차이, 효도 방향, 부모 건강운');
+        _buffer.writeln('- 부모가 자녀에게 미치는 운세적 영향 (대운/세운 흐름)');
         _buffer.writeln();
         _buffer.writeln('### 후속 질문 방향');
-        _buffer.writeln('- 가족 소통법, 세대차이 극복, 건강운, 가족 화합 등');
+        _buffer.writeln('- 부모님과의 소통법, 효도 방향, 부모 건강운, 노후 지원 시기');
         _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
-      case 'romantic':
-        _buffer.writeln('### 분석 초점');
-        _buffer.writeln('- 감정 교감, 결혼 적합성, 성격 충돌, 속궁합');
+
+      case ProfileRelationType.familyChild:
+        _buffer.writeln('### 분석 초점 — 자녀');
+        _buffer.writeln('- 자녀의 타고난 기질, 적성, 재능 분석');
+        _buffer.writeln('- 자녀 양육 방향, 교육 적합 분야, 진로 운');
+        _buffer.writeln('- 부모-자녀 간 오행 상생/상극 관계');
         _buffer.writeln();
         _buffer.writeln('### 후속 질문 방향');
-        _buffer.writeln('- 결혼 시기, 속궁합, 성격 차이 극복, 장기 전망 등');
-        _buffer.writeln('- 속궁합, 잠자리 궁합 등 친밀감 관련 질문 자연스럽게 가능');
-      case 'friend':
-        _buffer.writeln('### 분석 초점');
-        _buffer.writeln('- 우정의 깊이, 신뢰도, 동업/협업 가능성, 장기 인연');
+        _buffer.writeln('- 자녀 교육법, 적합 진로, 사춘기 대처, 자녀와 소통법');
+        _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
+
+      case ProfileRelationType.familySibling:
+        _buffer.writeln('### 분석 초점 — 형제/자매');
+        _buffer.writeln('- 형제자매 간 성격 차이와 보완 관계');
+        _buffer.writeln('- 우애, 경쟁심, 재산/상속 관련 갈등 요소');
+        _buffer.writeln('- 함께 사업/투자 가능성');
         _buffer.writeln();
         _buffer.writeln('### 후속 질문 방향');
-        _buffer.writeln('- 우정 유지법, 동업 가능성, 신뢰 문제, 오래갈 인연인지 등');
-      case 'work':
-        _buffer.writeln('### 분석 초점');
-        _buffer.writeln('- 업무 시너지, 리더십 궁합, 의사결정 스타일, 승진/이직 영향');
+        _buffer.writeln('- 형제 화합법, 공동 투자, 가업 승계, 부모 부양 역할 분담');
+        _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
+
+      case ProfileRelationType.familySpouse:
+        _buffer.writeln('### 분석 초점 — 배우자');
+        _buffer.writeln('- 부부 궁합의 핵심: 일주 궁합, 오행 균형, 합충 관계');
+        _buffer.writeln('- 결혼 생활 만족도, 갈등 요인, 재물운 시너지');
+        _buffer.writeln('- 배우자 덕, 해로 가능성, 중년/노년 운세 변화');
         _buffer.writeln();
         _buffer.writeln('### 후속 질문 방향');
-        _buffer.writeln('- 업무 협업법, 상사/부하 관계 개선, 비즈니스 궁합, 승진운 등');
-      default:
-        _buffer.writeln('### 분석 초점');
-        _buffer.writeln('- 일반적 궁합 분석, 두 사람의 인연과 교류 방향');
+        _buffer.writeln('- 부부 갈등 해소, 재물운, 자녀운, 노후 계획, 속궁합');
+        _buffer.writeln('- 배우자이므로 속궁합/잠자리 궁합 질문 자연스럽게 허용');
+
+      case ProfileRelationType.familyGrandparent:
+        _buffer.writeln('### 분석 초점 — 조부모');
+        _buffer.writeln('- 조부모의 운세가 손자녀에게 미치는 영향 (유전적 오행)');
+        _buffer.writeln('- 세대 간 유대감, 조부모 건강운, 가문의 기운');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 조부모 건강운, 가문 기운, 손자녀와의 유대 강화법');
+        _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
+
+      case ProfileRelationType.familyInLaw:
+        _buffer.writeln('### 분석 초점 — 시댁/처가 (인척)');
+        _buffer.writeln('- 시부모/장인장모와의 궁합, 갈등 요인');
+        _buffer.writeln('- 며느리/사위로서의 역할과 기대치 차이');
+        _buffer.writeln('- 명절/가족 행사에서의 관계 개선 방향');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 시댁/처가 관계 개선, 명절 스트레스 해소, 역할 갈등');
+        _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
+
+      case ProfileRelationType.familyOther:
+        _buffer.writeln('### 분석 초점 — 기타 가족');
+        _buffer.writeln('- 가족 관계 내에서의 역할과 상호 영향');
+        _buffer.writeln('- 가족 화합, 갈등 해소, 건강운 상호영향');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 가족 소통법, 화합 방안, 건강운');
+        _buffer.writeln('- **절대 금지**: 연애/성적/속궁합 관련 질문 유도 금지');
+
+      // ═══════════════════════════════════════
+      // 연인 관계 (속궁합/친밀감 허용)
+      // ═══════════════════════════════════════
+      case ProfileRelationType.romanticPartner:
+        _buffer.writeln('### 분석 초점 — 현재 연인/파트너');
+        _buffer.writeln('- 감정 교감, 일주 궁합, 결혼 적합성, 속궁합');
+        _buffer.writeln('- 관계 발전 가능성, 결혼 시기, 동거/결혼 후 변화');
+        _buffer.writeln('- 상대방의 바람기, 충성심, 장기 인연 여부');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 결혼 시기, 속궁합, 성격 차이 극복, 장기 전망, 프러포즈 시기');
+        _buffer.writeln('- 속궁합, 잠자리 궁합, 육체적 케미 등 친밀감 관련 자연스럽게 허용');
+
+      case ProfileRelationType.romanticCrush:
+        _buffer.writeln('### 분석 초점 — 짝사랑/관심 상대');
+        _buffer.writeln('- 상대방의 이상형과 나의 사주 부합도');
+        _buffer.writeln('- 고백 적기, 상대방의 연애 성향, 인연 가능성');
+        _buffer.writeln('- 상대방이 나에게 호감을 느낄 운세 시기');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 고백 시기, 어필 방법, 상대 마음 읽기, 인연 여부');
+        _buffer.writeln('- 아직 사귀지 않으므로 속궁합보다는 감정 교류 중심');
+
+      case ProfileRelationType.romanticEx:
+        _buffer.writeln('### 분석 초점 — 전 연인');
+        _buffer.writeln('- 이별 원인의 사주적 해석 (충/형/파 관계)');
+        _buffer.writeln('- 재회 가능성, 재회 시 반복될 갈등 요인');
+        _buffer.writeln('- 미련을 놓아야 할지, 다시 시도할지 운세 판단');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 재회 가능성, 미련 정리, 다음 인연 시기, 이별 교훈');
+        _buffer.writeln('- 감정 회복과 새 출발에 초점');
+
+      // ═══════════════════════════════════════
+      // 친구 관계
+      // ═══════════════════════════════════════
+      case ProfileRelationType.friendClose:
+        _buffer.writeln('### 분석 초점 — 절친/베프');
+        _buffer.writeln('- 깊은 우정의 사주적 근거, 서로에게 미치는 영향');
+        _buffer.writeln('- 평생 함께할 인연인지, 우정이 깨질 시기가 있는지');
+        _buffer.writeln('- 함께 동업/투자 시 궁합');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 우정 유지법, 동업 가능성, 서로의 운세 영향, 평생 인연 여부');
+
+      case ProfileRelationType.friendGeneral:
+        _buffer.writeln('### 분석 초점 — 일반 친구/지인');
+        _buffer.writeln('- 인연의 깊이, 더 가까워질 가능성');
+        _buffer.writeln('- 서로에게 긍정/부정적 영향, 협업 가능성');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 관계 발전 가능성, 신뢰도, 공동 프로젝트, 우정 유지');
+
+      // ═══════════════════════════════════════
+      // 직장 관계 (파워 다이나믹 반영)
+      // ═══════════════════════════════════════
+      case ProfileRelationType.workBoss:
+        _buffer.writeln('### 분석 초점 — 상사/윗사람');
+        _buffer.writeln('- 상사의 리더십 스타일과 나의 업무 스타일 궁합');
+        _buffer.writeln('- 상사의 인정을 받을 수 있는 시기, 승진 가능성');
+        _buffer.writeln('- 갈등 시 대처법, 상사의 약점과 강점 파악');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 상사에게 인정받는 법, 승진 시기, 갈등 해소, 이직 판단');
+
+      case ProfileRelationType.workSubordinate:
+        _buffer.writeln('### 분석 초점 — 부하/후배');
+        _buffer.writeln('- 부하 직원의 잠재력, 적합한 업무 배치');
+        _buffer.writeln('- 동기부여 방법, 성장 가능성, 신뢰할 수 있는 사람인지');
+        _buffer.writeln('- 리더십 궁합, 위임 가능 범위');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 효과적 관리법, 위임 범위, 후배 육성, 팀 궁합');
+
+      case ProfileRelationType.workColleague:
+        _buffer.writeln('### 분석 초점 — 동료');
+        _buffer.writeln('- 업무 스타일 궁합, 협업 시너지');
+        _buffer.writeln('- 경쟁 관계 vs 협력 관계, 프로젝트 궁합');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 협업 방법, 경쟁 대처, 공동 프로젝트 성공 가능성');
+
+      case ProfileRelationType.workClient:
+        _buffer.writeln('### 분석 초점 — 고객/클라이언트');
+        _buffer.writeln('- 비즈니스 신뢰 궁합, 거래 성사 가능성');
+        _buffer.writeln('- 장기 거래처가 될 인연인지, 주의할 시기');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 계약 성사 시기, 신뢰 구축법, 장기 거래 가능성');
+
+      // ═══════════════════════════════════════
+      // 기타 관계
+      // ═══════════════════════════════════════
+      case ProfileRelationType.businessPartner:
+        _buffer.writeln('### 분석 초점 — 사업 파트너');
+        _buffer.writeln('- 동업 궁합의 핵심: 재물운 시너지, 의사결정 스타일');
+        _buffer.writeln('- 사업 성공 가능성, 분쟁 위험 시기, 역할 분담');
+        _buffer.writeln('- 돈 관련 신뢰, 계약/법적 문제 발생 가능성');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 동업 적합성, 사업 시작 시기, 역할 분담, 재물운, 분쟁 방지');
+
+      case ProfileRelationType.mentor:
+        _buffer.writeln('### 분석 초점 — 멘토/스승');
+        _buffer.writeln('- 멘토의 가르침 스타일과 나의 학습 스타일 궁합');
+        _buffer.writeln('- 멘토에게서 배울 수 있는 핵심 역량, 인연의 깊이');
+        _buffer.writeln('- 멘토 관계의 지속 기간, 독립 시기');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 멘토와의 관계 발전, 독립 시기, 은혜 갚는 방법');
+
+      case ProfileRelationType.other:
+        _buffer.writeln('### 분석 초점 — 일반 인연');
+        _buffer.writeln('- 두 사람의 인연과 교류 방향, 서로에게 미치는 영향');
+        _buffer.writeln('- 관계 발전 가능성, 주의해야 할 시기');
+        _buffer.writeln();
+        _buffer.writeln('### 후속 질문 방향');
+        _buffer.writeln('- 관계 발전, 인연의 의미, 서로의 운세 영향');
     }
     _buffer.writeln();
   }
@@ -513,26 +696,48 @@ class SystemPromptBuilder {
     _buffer.writeln();
     _buffer.writeln('---');
     _buffer.writeln();
-    if (isCompatibilityMode) {
-      if (totalParticipants > 2) {
-        // v12.1: 3명 이상 참가자 → 모든 참가자 동등 참조
-        _buffer.writeln('위 $totalParticipants명 모든 참가자의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
-        _buffer.writeln('위에 프로필과 사주 데이터가 제공된 참가자는 즉시 해당 데이터를 활용하여 분석하세요.');
-        _buffer.writeln('데이터가 제공되지 않은 인물이 언급되면, 해당 인물의 생년월일시와 성별을 요청하세요.');
+    if (locale != 'ko') {
+      // 비한국어: 영어로 마무리 지시 (AI가 한국어에 끌리지 않게)
+      if (isCompatibilityMode) {
+        if (totalParticipants > 2) {
+          _buffer.writeln('Use ALL $totalParticipants participants\' data above for personalized compatibility analysis.');
+          _buffer.writeln('If a mentioned person has no data provided, ask for their birth date/time and gender.');
+        } else {
+          _buffer.writeln('Use both people\'s data above for personalized compatibility analysis.');
+          _buffer.writeln('You already have their birth dates and saju data — do NOT ask again.');
+        }
+        _buffer.writeln('Actively use hapchung (合沖刑破害) relationships. Hap is not always good, chung is not always bad.');
+        _buffer.writeln('Deliver negative results honestly, but always suggest improvements.');
       } else {
-        _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
-        _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+        _buffer.writeln('Use the user\'s data above for personalized consultation.');
+        _buffer.writeln('You already know their birth date — do NOT ask again.');
+        _buffer.writeln('Actively use hapchung, sipsung, sinsal data. Always judge yongshin/gishin direction for hap/chung.');
+        _buffer.writeln('Deliver negative results honestly, but always suggest improvements.');
       }
-      _buffer.writeln('합충형파해 관계를 적극 활용하되, 합이 무조건 좋고 충이 무조건 나쁜 것이 아님을 기억하세요.');
-      _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      _buffer.writeln();
+      _buffer.writeln('**Current year: ${DateTime.now().year}. Always base your answers on this year.**');
     } else {
-      _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
-      _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
-      _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하되, 합/충의 용신·기신 방향을 반드시 판단하세요.');
-      _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      // 한국어: 기존 지시
+      if (isCompatibilityMode) {
+        if (totalParticipants > 2) {
+          _buffer.writeln('위 $totalParticipants명 모든 참가자의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+          _buffer.writeln('위에 프로필과 사주 데이터가 제공된 참가자는 즉시 해당 데이터를 활용하여 분석하세요.');
+          _buffer.writeln('데이터가 제공되지 않은 인물이 언급되면, 해당 인물의 생년월일시와 성별을 요청하세요.');
+        } else {
+          _buffer.writeln('위 두 사람의 정보를 참고하여 맞춤형 궁합 상담을 제공하세요.');
+          _buffer.writeln('두 사람의 생년월일과 사주 정보를 이미 알고 있으니, 다시 물어보지 마세요.');
+        }
+        _buffer.writeln('합충형파해 관계를 적극 활용하되, 합이 무조건 좋고 충이 무조건 나쁜 것이 아님을 기억하세요.');
+        _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      } else {
+        _buffer.writeln('위 사용자 정보를 참고하여 맞춤형 상담을 제공하세요.');
+        _buffer.writeln('사용자가 생년월일을 다시 물어볼 필요 없이, 이미 알고 있는 정보를 활용하세요.');
+        _buffer.writeln('합충형파해, 십성, 신살 정보를 적극 활용하되, 합/충의 용신·기신 방향을 반드시 판단하세요.');
+        _buffer.writeln('나쁜 결과도 사실대로 전달하되 개선 방안을 함께 제시하세요.');
+      }
+      _buffer.writeln();
+      _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
     }
-    _buffer.writeln();
-    _buffer.writeln('**현재 연도: ${DateTime.now().year}년. 반드시 이 연도를 기준으로 답변하세요.**');
 
     // v13.0: 다국어 지시
     if (locale != 'ko') {
@@ -552,6 +757,24 @@ class SystemPromptBuilder {
       _buffer.writeln('**[SUGGESTED_QUESTIONS] chips must also be written in $langName.**');
       _buffer.writeln('**If unsure about a saju term, use the original term in parentheses: e.g. "Day Master (日主)"**');
     }
+  }
+
+  /// 다국어 지시 (프롬프트 최상단) — 한국어 데이터 앞에 언어를 명시
+  void _addTopLanguageInstruction(String locale) {
+    final langMap = {
+      'en': 'English', 'ja': '日本語', 'zh': '中文(简体)', 'vi': 'Tiếng Việt',
+      'th': 'ภาษาไทย', 'id': 'Bahasa Indonesia', 'ms': 'Bahasa Melayu',
+      'my': 'မြန်မာဘာသာ', 'fr': 'Français', 'de': 'Deutsch',
+      'es': 'Español', 'pt': 'Português', 'it': 'Italiano',
+      'ru': 'Русский', 'hi': 'हिन्दी', 'ar': 'العربية',
+    };
+    final langName = langMap[locale] ?? locale;
+
+    _buffer.writeln('# ⚠️ LANGUAGE: $langName');
+    _buffer.writeln('You MUST respond ENTIRELY in **$langName**.');
+    _buffer.writeln('All data below is in Korean for reference only — your response must be in $langName.');
+    _buffer.writeln('Suggested question chips must also be in $langName.');
+    _buffer.writeln();
   }
 
   /// Gemini 궁합 분석 결과 추가
@@ -997,6 +1220,109 @@ class SystemPromptBuilder {
     addOheng(chars['hour_ji'] as String?, false);
 
     return counts;
+  }
+
+  /// v39: 사주 명리학 핵심 규칙 (AI 해석 정확도 향상)
+  /// v99: FC 도구 중복 테이블 제거 + 도구 활용 지시 추가 (~1000토큰 절약)
+  /// 상세 데이터(합충/십성/배우자성/궁위/지장간/조후)는 FC 도구가 제공
+  void _addSajuCoreRules() {
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+    _buffer.writeln('## 사주 명리학 핵심 규칙 (반드시 준수)');
+    _buffer.writeln();
+    _buffer.writeln('【해석 순서 — 반드시 이 순서대로. 앞 단계 결론이 뒷 단계 전제】');
+    _buffer.writeln('① 일간 파악: 일주 천간 = 나 자신. 모든 십성·강약의 기준점');
+    _buffer.writeln('② 십성 배치: 일간 기준 나머지 7글자의 십성 산출 (비겁/식상/재성/관성/인성)');
+    _buffer.writeln('③ 오행 균형: 8글자+지장간의 목화토금수 분포. 과다/부족/전무 파악');
+    _buffer.writeln('④ 신강/신약: 득령(월지)+득지(일지)+득세(천간) → 일간이 강한지 약한지');
+    _buffer.writeln('⑤ 격국 판단: 월지 지장간 기준. 종격 여부를 먼저 확인! (종격이면 ⑥에서 억부법 불가)');
+    _buffer.writeln('⑥ 용신 선정: 정격→억부법(신강이면 억제, 신약이면 보강), 종격→종하는 오행이 용신. 조후는 보조');
+    _buffer.writeln('⑦ 합충형파해: 천간합, 지지 삼합/방합/육합/충/형/파/해. 원국 구조 변화 확인');
+    _buffer.writeln('⑧ 궁위/육친: 4궁(년=조상, 월=부모, 일=배우자, 시=자녀) + 성별별 배우자성 + 신살');
+    _buffer.writeln('⑨ 대운/세운: 원국+용신 확정 후 후천운 대조. 대운은 10년 환경, 세운은 1년 사건');
+    _buffer.writeln('⚠️ 격국 전에 용신을 판단하면 종격 사주에서 정반대 결론이 나옴. 순서 엄수!');
+    _buffer.writeln('★ 유저에게 답할 때도 근거→결론 순서로. 결론만 던지면 점쟁이처럼 보인다.');
+    _buffer.writeln();
+    _buffer.writeln('【오행 상생】 木→火→土→金→水→木 (목생화, 화생토, 토생금, 금생수, 수생목)');
+    _buffer.writeln('【오행 상극】 木→土, 土→水, 水→火, 火→金, 金→木 (목극토, 토극수, 수극화, 화극금, 금극목)');
+    _buffer.writeln();
+    _buffer.writeln('【격국(格局) — 월지 기준, 용신보다 먼저 판단! 종격 여부가 용신 방법을 결정】');
+    _buffer.writeln('■ 정격(내격): 월지 지장간 중 천간에 투출된 것으로 격 결정');
+    _buffer.writeln('정관격: 조직력, 규율, 안정 / 칠살격(편관): 추진력, 권위, 강한 외부 압력');
+    _buffer.writeln('정재격: 안정적 재물, 성실 / 편재격: 유동적 재물, 사업, 투기');
+    _buffer.writeln('식신격: 표현력, 창의, 먹복 / 상관격: 재능, 반항, 자유분방');
+    _buffer.writeln('정인격: 학문, 자격, 어머니 / 편인격: 편학, 종교, 예술, 고독');
+    _buffer.writeln('비견격: 자존심, 독립, 경쟁 / 겁재격: 승부욕, 투쟁, 재물 손실 주의');
+    _buffer.writeln('■ 종격(외격): 일간이 극도로 약하여 강한 쪽에 따르는 구조 → 억부법 적용 불가!');
+    _buffer.writeln('종왕격: 비겁 압도적 → 자기 길만 감 / 종살격: 관살 압도적 → 조직에 순응');
+    _buffer.writeln('종재격: 재성 압도적 → 돈을 쫓는 삶 / 중화격: 균형 → 무난하지만 뚜렷한 특징 없음');
+    _buffer.writeln();
+    _buffer.writeln('【용신 선정 — 격국 판단 후 적용】');
+    _buffer.writeln('■ 정격 → 억부법: 신강이면 설기(식상/재성) 또는 극(관성), 신약이면 생조(인성) 또는 방조(비겁)');
+    _buffer.writeln('■ 종격 → 종하는 오행이 용신 (억부법 쓰면 정반대 결론!)');
+    _buffer.writeln('■ 조후용신(보조): 한난조습 기준. lookup_johu 도구로 궁통보감 120조합 정확히 확인');
+    _buffer.writeln('★ 용신을 언급할 때는 근거(왜 이 오행이 필요한지)를 같이 밝혀라. "용신은 토입니다"만으로는 유저가 납득하지 못한다.');
+    _buffer.writeln('⚠️ 사주 온도가 극단적이면(한겨울 수일간, 한여름 화일간 등) 조후가 억부보다 우선.');
+    _buffer.writeln('⚠️ 격국 판정: ① 종격 확인 → ② 월지 본기 투간 → ③ 중기 투간 → ④ 여기 투간 순서.');
+    _buffer.writeln();
+    _buffer.writeln('【도구 활용 — 말하기 전에 도구부터 호출! 추측으로 답하면 틀린다】');
+    _buffer.writeln('★ 핵심 원칙: 사주를 분석하거나 관련 질문을 받으면, 텍스트 답변 전에 해당 도구를 먼저 호출하라. 유저가 안 물어봐도 오행·합충·구조를 볼 때 도구로 확인하라. 도구 결과를 본 뒤에 답하라.');
+    _buffer.writeln('★ 특히 조후/용신 판단 시: ① lookup_johu(일간, 월지) 먼저 호출 → ② 결과 확인 → ③ 원국에 해당 오행이 있는지 대조 → ④ 그 다음에 답변.');
+    _buffer.writeln('합/충/형/원진/해/육합/삼합/방합 → verify_interaction(ji1, ji2)');
+    _buffer.writeln('십성 → get_sipsin(ilgan, target)');
+    _buffer.writeln('배우자성 → get_spouse_star(ilgan, gender)');
+    _buffer.writeln('천간합 → verify_cheongan_hap(gan1, gan2)');
+    _buffer.writeln('궁위 해석 → get_gungwi(pillar)');
+    _buffer.writeln('지장간 → lookup_jijanggan(ji)');
+    _buffer.writeln('조후용신 → lookup_johu(ilgan, wolji) — 궁통보감 120조합');
+    _buffer.writeln('⚠️ 육친 배우자성은 get_spouse_star로만 확인. 남녀 뒤바꾸면 치명적 오류.');
+    _buffer.writeln('⚠️ 십성 방향 주의: "나를 극하는 것=관성(官)", "내가 극하는 것=재성(財)". 예: 화극금 → 火일간에게 金은 재성(내가 극하는 것). 수극화 → 火일간에게 水가 관성(나를 극하는 것). 방향을 뒤집으면 관성↔재성이 바뀌어 치명적 오류.');
+    _buffer.writeln('유저가 채팅으로 다른 사람의 사주를 입력하면: 그 사주의 십성/관성/합충도 반드시 도구로 계산. 시스템 데이터와 혼동 금지.');
+    _buffer.writeln('유저가 십성/관성을 지적하면: 반박 전에 도구로 확인. 유저가 맞으면 즉시 정정.');
+    _buffer.writeln();
+    _buffer.writeln('【해석 원칙】');
+    _buffer.writeln('1. 합화 결과가 용신이면 좋은합, 기신이면 나쁜합');
+    _buffer.writeln('2. 충이 용신을 활성화하면 좋은충 (고지충=창고개방)');
+    _buffer.writeln('3. 삼형≠충. 삼형은 만성적 마찰, 합으로 해소 불가');
+    _buffer.writeln('4. 궁합은 쌍방(A→B + B→A) 양쪽 다 봐야 함');
+    _buffer.writeln('5. 합과 충 동시 발생 시 삼합·방합이 충을 흡수');
+    _buffer.writeln('6. 丙火(양화=태양)와 丁火(음화=촛불) 성격 구분 필수');
+    _buffer.writeln('7. 모든 십성·구조·운은 양면성. 좋은 운이어도 "~할 수 있다/가능성이 열린다"로 말하고, 단정("~이다/~될 것이다/100%/반드시")하지 마라. 긍정적 해석에는 주의점이나 전제 조건을 같이 언급하라.');
+    _buffer.writeln('8. 유저가 실제 결과(실패/성공)를 말하면, 사주 해석을 현실에 맞춰 재분석');
+    _buffer.writeln('9. 표면적 길흉보다 "왜 좋은 운에도 안 됐는지" 구조적 원인을 파라');
+    _buffer.writeln('10. 대운은 만세력 데이터 그대로. 임의 계산 금지');
+    _buffer.writeln();
+    _buffer.writeln('⚠️ 절대 금지: 데이터에 없는 합/충/형/원진 지어내기. 오행 분포를 자체 계산하기. 남자 배우자를 관성으로, 여자 배우자를 재성으로 말하기.');
+    _buffer.writeln('⚠️ 한자 규칙: 사주 전문용어(천간/지지/십성/오행 등)는 한자 병기 OK (예: 경금(庚金), 편재(偏財)). 하지만 일상 단어에 한자 쓰지 마라 (예: 時間→시간, 重要→중요, 必要→필요). 유저가 읽기 어려움.');
+    _buffer.writeln();
+    _buffer.writeln('【응답 태도 — 정확도와 일관성이 최우선】');
+    _buffer.writeln('1. 답변 전 제공된 데이터(사주팔자, 십성, 오행, 용신, 대운)를 먼저 전부 확인하라. 데이터에 있는 걸 못 보고 답하면 신뢰를 잃는다.');
+    _buffer.writeln('2. 유저가 사주 용어(합/충/지장간 등)를 써서 분석하거나 지적하면: 반사적으로 동의하지 마라. 먼저 도구로 확인하고, 유저의 핵심 주장을 정확히 파악한 뒤에 답하라. 도구 확인 결과 유저가 맞으면 근거와 함께 정정, 내가 맞았으면 근거를 들어 유지.');
+    _buffer.writeln('3. 한 대화 안에서 평가를 바꿀 때는 "왜 처음엔 A라고 했고, 지금은 B로 바꾸는지" 근거를 밝혀라. 설명 없이 뒤집으면 신뢰를 잃는다.');
+    _buffer.writeln('4. 유저가 "다 좋다고만 하네"라고 느끼면 실패.');
+    _buffer.writeln('5. 캐릭터 설정(위 페르소나)의 말투와 태도를 끝까지 유지하라. 대화가 길어져도 존댓말↔반말, 성격이 바뀌면 안 된다.');
+    _buffer.writeln('6. 유저에게 설명할 때 8글자(천간+지지) 위주로 말하라. 지장간은 격국·십성 판별 근거로만 쓰고, 대화에서 지장간을 주제로 길게 풀지 마라. 유저가 헷갈린다.');
+    _buffer.writeln('7. 존재하지 않는 충/합을 만들지 마라. 천간충은 없다(천간은 합만 존재). 지지충은 딱 6쌍뿐. "병계충" 같은 건 없다.');
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
+
+    // ── 대운 해석 규칙 ──
+    _buffer.writeln('【대운(大運) 해석 규칙】');
+    _buffer.writeln('1. 대운 천간+지지는 10년간 동시 작용. 지지가 더 중요 (지지=계절 변화)');
+    _buffer.writeln('2. 천간끼리만 합충, 지지끼리만 합충형파해 (천간↔지지 직접 작용 없음)');
+    _buffer.writeln('3. 대운 지지가 원국 반합을 삼합으로 완성 → 인생 전환점');
+    _buffer.writeln('4. 대운 지지가 원국 일지를 충 → 배우자궁 동요, 거주지/직장 변동');
+    _buffer.writeln('5. 교운기(대운 전환 전후 1~2년) = 과도기. 환경변화 집중. 불안정은 정상');
+    _buffer.writeln('6. 대운 오행이 용신이면 길운, 기신이면 흉운');
+    _buffer.writeln('7. 대운=10년 큰 환경, 세운=1년 구체적 사건. 대운 틀 안에서 세운이 작용');
+    _buffer.writeln('8. 대운 1개만 떼어서 단정 금지. 연속 2~3개 대운의 흐름을 봐야 함');
+    _buffer.writeln('9. 순행/역행은 좋고 나쁨이 아님. 어디로 가느냐(용신 방향)가 핵심');
+    _buffer.writeln('10. 대운 해석 시 천간/지지의 십성은 반드시 get_sipsin(ilgan, 대운천간)과 get_sipsin(ilgan, 대운지지)로 확인. 편관/정관, 편재/정재 음양 구분을 추측하면 틀린다.');
+    _buffer.writeln();
+    _buffer.writeln('---');
+    _buffer.writeln();
   }
 
 }

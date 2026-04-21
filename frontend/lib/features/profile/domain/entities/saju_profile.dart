@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'gender.dart';
 import 'relationship_type.dart';
@@ -89,8 +90,8 @@ abstract class SajuProfile with _$SajuProfile {
     return '${birthDate.year}.${birthDate.month.toString().padLeft(2, '0')}.${birthDate.day.toString().padLeft(2, '0')}';
   }
 
-  /// 음양력 표시 (양력/음력)
-  String get calendarTypeLabel => isLunar ? '음력' : '양력';
+  /// 음양력 표시 (양력/음력) — i18n
+  String get calendarTypeLabel => isLunar ? 'profile.calendarLunar'.tr() : 'profile.calendarSolar'.tr();
 
   /// 진태양시 보정 표시 문자열
   String get timeCorrectionLabel {

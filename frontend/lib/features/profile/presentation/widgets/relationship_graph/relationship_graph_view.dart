@@ -725,8 +725,9 @@ class _ShadcnGroupNodeWidget extends StatelessWidget {
     final colors = _getGradientColors(relationType);
 
     return Container(
-      width: 100,
+      constraints: const BoxConstraints(minWidth: 100, maxWidth: 180),
       height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25),
         gradient: LinearGradient(
@@ -743,6 +744,7 @@ class _ShadcnGroupNodeWidget extends StatelessWidget {
         ],
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
@@ -751,12 +753,16 @@ class _ShadcnGroupNodeWidget extends StatelessWidget {
             color: Colors.white,
           ),
           const SizedBox(width: 6),
-          Text(
-            '${ProfileRelationType.localizedCategory(categoryLabel)} $count',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          Flexible(
+            child: Text(
+              '${ProfileRelationType.localizedCategory(categoryLabel)} $count',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
           const SizedBox(width: 4),

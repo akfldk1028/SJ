@@ -11,17 +11,22 @@
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
-| **버전** | v15 | 2024-12-30 |
-| **모델** | `gemini-3-flash-preview` | ⚠️ 변경 금지 |
-| **max_tokens** | `4096` | 채팅 짤림 방지 |
+| **버전** | v37 | 2026-04-04 |
+| **모델** | `gemini-2.5-flash-lite` | 비용 최적 모델 (v37 전환) |
+| **max_tokens** | `16384` | 기본값 (클라이언트에서 4096 전달) |
 | **temperature** | `0.8` | 대화형 응답 |
-| **용도** | 채팅/일운 분석 | Gemini 3.0 Flash |
+| **thinking** | `thinkingBudget: 0` | thinking 비활성화 (비용 절감) |
+| **Intent 분류** | `gemini-2.5-flash-lite` | 동일 모델 사용 |
+| **API키** | 3개 로드밸런싱 | GEMINI_API_KEY, _2, _3 |
+| **용도** | 채팅/일운 분석 | Gemini 2.5 Flash Lite |
 
 ```typescript
-// ai-gemini/index.ts - 핵심 설정
-model = "gemini-3-flash-preview"  // 변경 금지
-max_tokens = 4096                  // 변경 금지
+// ai-gemini/index.ts v37 - 핵심 설정
+model = "gemini-2.5-flash-lite"
+max_tokens = 16384
 temperature = 0.8
+thinkingConfig = { thinkingBudget: 0 }
+// 비용: Input $0.10/1M, Output $0.40/1M, Cache $0.01/1M
 ```
 
 ---
@@ -72,6 +77,8 @@ run_in_background = true    // OpenAI Responses API background 모드
 | v11 | gemini-3-flash-preview | 모델명 만료 대응 |
 | v14 | gemini-3-flash-preview | responseMimeType 제거 |
 | v15 | gemini-3-flash-preview | max_tokens 4096 (짤림 방지) |
+| v26~v36 | gemini-3-flash-preview | Context Caching, thinking 방어, 반복출력 방어 등 |
+| **v37** | **gemini-2.5-flash-lite** | **비용 절감 전환 (Input 5배, Output 7.5배 절감)** |
 
 ### ai-openai
 | 버전 | 모델 | 변경 사유 |
@@ -124,8 +131,8 @@ run_in_background = true    // OpenAI Responses API background 모드
 
 ### gemini_edge_datasource.dart
 ```dart
-'model': 'gemini-3-flash-preview',  // 변경 금지
-'max_tokens': 2048,                  // Edge Function이 4096으로 오버라이드
+'model': 'gemini-2.5-flash-lite',   // v37: 비용 절감 전환
+'max_tokens': 4096,                  // TokenLimits.questionAnswerMaxTokens
 ```
 
 ### openai_edge_datasource.dart

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../ad/ad_config.dart';
@@ -57,15 +58,21 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
   bool _isLoading = false;
 
   /// 광고 시청 처리
+  ///
+  /// DEPRECATED: 이 다이얼로그는 dead code. 실제 토큰 지급은
+  /// TokenDepletedBanner._handleRewardedAndContinue()에서 처리.
+  /// 가짜 2초 딜레이로 서버 토큰 지급하던 취약점 제거.
   Future<void> _watchAd() async {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: 실제 광고 SDK 연동 (Google AdMob 등)
-      // 현재는 시뮬레이션: 2초 대기 후 보너스 토큰 추가
-      await Future.delayed(const Duration(seconds: 2));
+      // 실제 보상형 광고 없이 토큰 지급 불가 — 다이얼로그 닫기만 처리
+      if (!mounted) return;
+      Navigator.of(context).pop(false);
+      return;
 
-      // 보너스 토큰 추가
+      // === 아래 코드는 더 이상 실행되지 않음 (보안 취약점 제거) ===
+      // ignore: dead_code
       final result = await QuotaService.addAdBonusTokens();
 
       if (!mounted) return;
@@ -101,7 +108,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+            content: Text('common.errorOccurred'.tr(namedArgs: {'error': '$e'})),
             backgroundColor: Colors.red,
           ),
         );
@@ -132,7 +139,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
             size: 28,
           ),
           const SizedBox(width: 12),
-          const Text('일일 사용량 초과'),
+          Text('common.dailyQuotaExceeded'.tr()),
         ],
       ),
       content: Column(
@@ -158,7 +165,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '사용량',
+                      'common.usageLabel'.tr(),
                       style: theme.textTheme.bodyMedium,
                     ),
                     Text(
@@ -236,7 +243,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
         // 닫기 버튼
         TextButton(
           onPressed: _isLoading ? null : widget.onClose,
-          child: const Text('나중에'),
+          child: Text('common.later'.tr()),
         ),
         // 광고 시청 버튼 (adEnabled일 때만)
         if (adEnabled)
@@ -256,7 +263,7 @@ class _QuotaExceededDialogState extends State<QuotaExceededDialog> {
                     children: [
                       Icon(Icons.play_arrow, size: 18),
                       SizedBox(width: 4),
-                      Text('광고 보고 토큰 받기'),
+                      Text('common.watchAdForTokens'.tr()),
                     ],
                   ),
           ),

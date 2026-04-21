@@ -95,5 +95,6 @@
   "compatPromoRegister": "注册",
   "compatPromoAnalyzeTitle": "查看与人脉的缘分",
   "compatPromoAnalyzeSubtitle": "分析两个人八字中隐藏的缘分",
-  "compatPromoResultTitle": "与{name}的缘分"
+  "compatPromoResultTitle": "与{name}的缘分",
+  "defaultPartner": "对方"
 }

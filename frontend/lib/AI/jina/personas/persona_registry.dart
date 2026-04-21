@@ -41,6 +41,19 @@ import 'base_nf.dart';
 import 'base_nt.dart';
 import 'base_sf.dart';
 import 'base_st.dart';
+// 십이지신 (Zodiac Animals)
+import 'zodiac/zodiac_rat.dart';
+import 'zodiac/zodiac_ox.dart';
+import 'zodiac/zodiac_tiger.dart';
+import 'zodiac/zodiac_rabbit.dart';
+import 'zodiac/zodiac_dragon.dart';
+import 'zodiac/zodiac_snake.dart';
+import 'zodiac/zodiac_horse.dart';
+import 'zodiac/zodiac_sheep.dart';
+import 'zodiac/zodiac_monkey.dart';
+import 'zodiac/zodiac_rooster.dart';
+import 'zodiac/zodiac_dog.dart';
+import 'zodiac/zodiac_pig.dart';
 
 /// 페르소나 레지스트리
 ///
@@ -71,6 +84,19 @@ class PersonaRegistry {
     BaseNtPersona(),
     BaseSfPersona(),
     BaseStPersona(),
+    // 십이지신 (Zodiac Animals)
+    ZodiacRatPersona(),
+    ZodiacOxPersona(),
+    ZodiacTigerPersona(),
+    ZodiacRabbitPersona(),
+    ZodiacDragonPersona(),
+    ZodiacSnakePersona(),
+    ZodiacHorsePersona(),
+    ZodiacSheepPersona(),
+    ZodiacMonkeyPersona(),
+    ZodiacRoosterPersona(),
+    ZodiacDogPersona(),
+    ZodiacPigPersona(),
   ];
 
   /// 기본 페르소나 ID

@@ -1,6 +1,8 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../domain/entities/pillar.dart';
 
 /// 사주의 기둥 하나(천간+지지)를 표시하는 위젯
@@ -24,8 +26,12 @@ class PillarDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final ganHanja = cheonganHanja[pillar.gan] ?? '';
     final jiHanja = jijiHanja[pillar.ji] ?? '';
+    // locale에 따라 한글 대신 로컬 표시명 사용 (en: Mu, ja: ぼ 등)
+    final ganDisplay = SajuI18n.cheongan(pillar.gan, locale);
+    final jiDisplay = SajuI18n.jiji(pillar.ji, locale);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -35,14 +41,17 @@ class PillarDisplay extends StatelessWidget {
             label,
             style: TextStyle(
               color: theme.textMuted,
-              fontSize: 13,
-              letterSpacing: 1,
+              fontSize: 11,
+              letterSpacing: 0.3,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
         ],
         Container(
-          // size에 비례하여 패딩 조정 (1.5배)
           padding: EdgeInsets.symmetric(
             horizontal: size > 28 ? 30 : size > 24 ? 24 : 18,
             vertical: size > 28 ? 18 : size > 24 ? 14 : 12,
@@ -66,29 +75,30 @@ class PillarDisplay extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // 천간 (한자 + 한글)
+              // 천간
               _buildCharWithHanja(
                 context,
                 theme,
-                hangul: pillar.gan,
+                displayName: ganDisplay,
                 hanja: ganHanja,
                 oheng: pillar.ganOheng,
+                korean: pillar.gan,
               ),
               const SizedBox(height: 4),
-              // 구분선
               Container(
                 width: 24,
                 height: 1,
                 color: theme.primaryColor.withOpacity(0.1),
               ),
               const SizedBox(height: 4),
-              // 지지 (한자 + 한글)
+              // 지지
               _buildCharWithHanja(
                 context,
                 theme,
-                hangul: pillar.ji,
+                displayName: jiDisplay,
                 hanja: jiHanja,
                 oheng: pillar.jiOheng,
+                korean: pillar.ji,
               ),
             ],
           ),
@@ -97,20 +107,23 @@ class PillarDisplay extends StatelessWidget {
     );
   }
 
-  /// 한자와 한글을 함께 표시하는 위젯
+  /// 큰 글씨 + 작은 글씨 표시
+  /// CJK: 한자 큰 + 한글 작은, 나머지: 한글 큰 + locale명 작은
   Widget _buildCharWithHanja(
     BuildContext context,
     AppThemeExtension theme, {
-    required String hangul,
-    required String hanja,
+    required String displayName, // locale별 이름 (Gap, Gye...)
+    required String hanja,       // 한자 (甲, 癸...)
     required String oheng,
+    required String korean,      // 원본 한글 (갑, 계...)
   }) {
     final color = _getOhengColor(theme, oheng);
+    final locale = context.locale.languageCode;
+    final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
 
     if (!showHanja || hanja.isEmpty) {
-      // 한자 표시 안 함 - 한글만 표시
       return Text(
-        hangul,
+        displayName,
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.bold,
@@ -119,32 +132,34 @@ class PillarDisplay extends StatelessWidget {
       );
     }
 
-    // 한자 크기는 size를 기준으로, 한글은 그 절반 정도로
-    final hanjaSize = size > 24 ? size : 22.0;
-    final hangulSize = hanjaSize * 0.45;
+    final bigSize = size > 24 ? size : 22.0;
+    final smallSize = bigSize * 0.45;
+    final bigChar = isCjk ? hanja : korean;
+    final smallChar = isCjk ? korean : displayName;
+    final showSmall = bigChar != smallChar;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 한자 (큰 글씨, 오행별 색상)
         Text(
-          hanja,
+          bigChar,
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.w600,
-            fontSize: hanjaSize,
+            fontSize: bigSize,
           ),
         ),
-        const SizedBox(height: 2),
-        // 한글 (작은 글씨)
-        Text(
-          hangul,
-          style: TextStyle(
-            color: color.withOpacity(0.7),
-            fontWeight: FontWeight.w500,
-            fontSize: hangulSize,
+        if (showSmall) ...[
+          const SizedBox(height: 2),
+          Text(
+            smallChar,
+            style: TextStyle(
+              color: color.withOpacity(0.7),
+              fontWeight: FontWeight.w500,
+              fontSize: smallSize,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

@@ -431,6 +431,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 10),
                       Text(
                         interpretation.ganHapAnalysis!,
+                        textAlign: TextAlign.justify,
                         style: TextStyle(
                           fontSize: 13,
                           height: 1.6,
@@ -715,6 +716,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           Text(
             summary,
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               height: 1.7,
@@ -1210,6 +1212,7 @@ class CompatibilityDetailScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           Text(
             advice,
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               height: 1.7,

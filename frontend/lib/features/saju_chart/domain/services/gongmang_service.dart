@@ -8,6 +8,7 @@
 /// - 탈공(脫空): 대운/세운에서 공망 지지 채워짐
 library;
 
+import 'package:easy_localization/easy_localization.dart';
 import '../../data/constants/gongmang_table.dart';
 import '../entities/saju_chart.dart';
 
@@ -106,10 +107,10 @@ class GongmangAnalysisResult {
 
   /// 공망 요약
   String get summary {
-    if (!hasGongmang) return '공망 없음 - 모든 궁성이 충실합니다.';
+    if (!hasGongmang) return 'saju_detail.gongmang_no_gongmang_summary'.tr();
 
     final pillars = gongmangPillars.join(', ');
-    return '$pillars에 공망 - 해당 궁의 기운이 약화됩니다.';
+    return 'saju_detail.gongmang_with_pillars_summary'.tr(namedArgs: {'pillars': pillars});
   }
 
   // ============================================================================
@@ -155,19 +156,19 @@ class GongmangAnalysisResult {
   /// 상세 요약 (Phase 26)
   String get detailedSummary {
     if (!hasGongmang) {
-      return '공망 없음 - 모든 궁성이 충실합니다.';
+      return 'saju_detail.gongmang_no_gongmang_summary'.tr();
     }
 
     final parts = <String>[];
 
     if (jinGongCount > 0) {
       final pillars = jinGongResults.map((r) => r.pillarName).join(', ');
-      parts.add('진공(眞空): $pillars');
+      parts.add('${GongmangType.jinGong.korean}: $pillars');
     }
 
     if (banGongCount > 0) {
       final pillars = banGongResults.map((r) => r.pillarName).join(', ');
-      parts.add('반공(半空): $pillars');
+      parts.add('${GongmangType.banGong.korean}: $pillars');
     }
 
     if (resolvedCount > 0) {
@@ -182,25 +183,25 @@ class GongmangAnalysisResult {
   /// 공망 상태 해석 (Phase 26)
   String get gongmangStatusInterpretation {
     if (!hasGongmang) {
-      return '사주에 공망이 없어 모든 궁성의 기운이 온전합니다.';
+      return 'saju_detail.gongmang_none_status'.tr();
     }
 
     final buffer = StringBuffer();
 
     // 진공
     if (jinGongCount > 0) {
-      buffer.writeln('【진공(眞空)】');
-      buffer.writeln('일간과 공망지지의 음양이 일치하여 공망 작용이 강합니다.');
+      buffer.writeln('saju_detail.gongmang_jingong_header'.tr());
+      buffer.writeln('saju_detail.gongmang_jingong_desc'.tr());
       for (final r in jinGongResults) {
-        buffer.writeln('• ${r.pillarName}(${ r.jiji}): ${r.interpretation}');
+        buffer.writeln('• ${r.pillarName}(${r.jiji}): ${r.interpretation}');
       }
       buffer.writeln();
     }
 
     // 반공
     if (banGongCount > 0) {
-      buffer.writeln('【반공(半空)】');
-      buffer.writeln('일간과 공망지지의 음양이 불일치하여 공망 작용이 반감됩니다.');
+      buffer.writeln('saju_detail.gongmang_bangong_header'.tr());
+      buffer.writeln('saju_detail.gongmang_bangong_desc'.tr());
       for (final r in banGongResults) {
         buffer.writeln('• ${r.pillarName}(${r.jiji}): ${r.interpretation}');
       }
@@ -209,10 +210,10 @@ class GongmangAnalysisResult {
 
     // 해공/탈공
     if (resolvedCount > 0) {
-      buffer.writeln('【해공(解空)/탈공(脫空)】');
-      buffer.writeln('충/합/형으로 공망이 해소되어 작용하지 않습니다.');
+      buffer.writeln('saju_detail.gongmang_haegong_header'.tr());
+      buffer.writeln('saju_detail.gongmang_haegong_desc'.tr());
       for (final r in resolvedResults) {
-        buffer.writeln('• ${r.pillarName}(${r.jiji}): ${r.typeResult?.reason ?? "해소됨"}');
+        buffer.writeln('• ${r.pillarName}(${r.jiji}): ${r.typeResult?.reason ?? 'saju_detail.gongmang_resolved'.tr()}');
       }
     }
 
@@ -329,7 +330,7 @@ class GongmangService {
         isGongmang: false,
         type: null,
         typeResult: null,
-        interpretation: '공망 없음',
+        interpretation: 'saju_detail.gongmang_none_interp'.tr(),
       );
     }
 
@@ -371,8 +372,8 @@ class GongmangService {
 
     // 진공/반공
     final strengthDesc = type == GongmangType.jinGong
-        ? '(진공: 강하게 작용)'
-        : '(반공: 약하게 작용)';
+        ? 'saju_detail.gongmang_jingong_strength'.tr()
+        : 'saju_detail.gongmang_bangong_strength'.tr();
 
     return '$baseInterpretation $strengthDesc - ${typeResult.reason}';
   }
@@ -380,10 +381,10 @@ class GongmangService {
   /// 궁성별 기본 해석
   static String _getBaseInterpretation(String pillarName) {
     return switch (pillarName) {
-      '년지' => '조상운과 유년기 운이 약함',
-      '월지' => '부모운과 형제운이 약함',
-      '시지' => '자녀운과 말년운이 약함',
-      _ => '해당 궁의 기운이 비어있음',
+      '년지' => 'saju_detail.gongmang_base_nyeonji'.tr(),
+      '월지' => 'saju_detail.gongmang_base_wolji'.tr(),
+      '시지' => 'saju_detail.gongmang_base_siji'.tr(),
+      _ => 'saju_detail.gongmang_base_default'.tr(),
     };
   }
 
@@ -418,32 +419,15 @@ class GongmangService {
     );
   }
 
-  /// 공망 상세 해석
+  /// 공망 상세 해석 (i18n)
   static String getDetailedInterpretation(GongmangResult result) {
-    if (!result.isGongmang) {
-      return '${result.pillarName}에는 공망이 없어 해당 궁성의 기운이 온전합니다.';
-    }
+    if (!result.isGongmang) return '';
 
     final baseMeaning = switch (result.pillarName) {
-      '년지' => '''
-년지 공망은 조상과 유년기를 담당하는 궁이 비어있음을 의미합니다.
-- 조상의 덕이 부족하여 스스로 일어서야 함
-- 고향을 떠나 타향에서 발전하는 경우가 많음
-- 유년 시절 어려움을 겪을 수 있으나 자수성가의 기운
-''',
-      '월지' => '''
-월지 공망은 부모와 형제를 담당하는 궁이 비어있음을 의미합니다.
-- 부모의 도움을 받기 어렵거나 일찍 독립함
-- 가업을 계승하기보다 새로운 길을 개척함
-- 형제와의 인연이 약하거나 멀리 살게 됨
-''',
-      '시지' => '''
-시지 공망은 자녀와 말년을 담당하는 궁이 비어있음을 의미합니다.
-- 자녀와의 인연이 약하거나 늦게 얻음
-- 말년에 의지할 곳이 부족할 수 있음
-- 노후 준비를 철저히 해야 함
-''',
-      _ => '해당 궁의 기운이 비어있습니다.',
+      '년지' => 'saju_detail.gongmang_nyeonji'.tr(),
+      '월지' => 'saju_detail.gongmang_wolji'.tr(),
+      '시지' => 'saju_detail.gongmang_siji'.tr(),
+      _ => '',
     };
 
     return baseMeaning;
@@ -460,14 +444,13 @@ class GongmangService {
         results.where((r) => r.isGongmang).length;
 
     if (gongmangCount == 0) {
-      return '공망 없음: 모든 궁성이 충실하여 안정적입니다.';
+      return 'saju_detail.gongmang_fortune_none'.tr();
     } else if (gongmangCount == 1) {
       final gongmangPillar =
           results.firstWhere((r) => r.isGongmang).pillarName;
-      return '단일 공망: $gongmangPillar에 공망이 있어 해당 분야에서 노력이 필요합니다.';
+      return 'saju_detail.gongmang_fortune_single'.tr(namedArgs: {'pillar': gongmangPillar});
     } else {
-      return '다중 공망: 여러 궁에 공망이 있어 자기 힘으로 일어서야 합니다. '
-          '다만 공망은 비어있기에 새로운 가능성을 채울 수 있습니다.';
+      return 'saju_detail.gongmang_fortune_multi'.tr();
     }
   }
 }

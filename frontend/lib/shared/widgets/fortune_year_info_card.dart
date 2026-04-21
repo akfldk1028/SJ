@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -63,7 +64,7 @@ class FortuneYearInfoCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$year년 $ganji',
+                      'year_info.yearTitle'.tr(namedArgs: {'year': '$year', 'ganji': ganji}),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -98,11 +99,11 @@ class FortuneYearInfoCard extends StatelessWidget {
           // 오행 + 특성 정보
           Row(
             children: [
-              _buildInfoChip(theme, '오행', yearInfo.element, yearInfo.color),
+              Expanded(child: _buildInfoChip(theme, 'year_info.fiveElements'.tr(), 'year_info.${yearInfo.element}'.tr(), yearInfo.color)),
               const SizedBox(width: 10),
-              _buildInfoChip(theme, '띠', yearInfo.zodiac, yearInfo.color),
+              Expanded(child: _buildInfoChip(theme, 'year_info.zodiac'.tr(), 'year_info.${yearInfo.zodiac}'.tr(), yearInfo.color)),
               const SizedBox(width: 10),
-              _buildInfoChip(theme, '음양', yearInfo.yinYang, yearInfo.color),
+              Expanded(child: _buildInfoChip(theme, 'year_info.yinYang'.tr(), 'year_info.${yearInfo.yinYang}'.tr(), yearInfo.color)),
             ],
           ),
 
@@ -187,10 +188,10 @@ class FortuneYearInfoCard extends StatelessWidget {
     final earthlyBranch = ganji.length > 1 ? ganji[1] : '';
 
     // 천간별 오행과 음양
-    final stemInfo = _heavenlyStemInfo[heavenlyStem] ?? _StemInfo('목', '양', const Color(0xFF2D8659));
+    final stemInfo = _heavenlyStemInfo[heavenlyStem] ?? _StemInfo('wood', 'yang', const Color(0xFF2D8659));
 
     // 지지별 띠 정보
-    final branchInfo = _earthlyBranchInfo[earthlyBranch] ?? _BranchInfo('용', '辰', '용띠');
+    final branchInfo = _earthlyBranchInfo[earthlyBranch] ?? _BranchInfo('dragon', '🐉', 'dragon');
 
     // 년도별 특수 명칭 및 설명
     final specialInfo = _getSpecialYearInfo(year, heavenlyStem, earthlyBranch);
@@ -211,73 +212,73 @@ class FortuneYearInfoCard extends StatelessWidget {
     // 2025년 을사년 (청뱀의 해)
     if (year == 2025 && stem == '을' && branch == '사') {
       return _SpecialYearInfo(
-        title: '청뱀의 해',
-        description: '을사년은 목(木) 기운의 뱀띠 해입니다. 뱀의 지혜와 나무의 성장 에너지가 결합하여 내면의 성장과 통찰력이 강조됩니다. 조용하지만 깊은 변화의 한 해가 될 것입니다.',
-        keywords: ['지혜', '성장', '내면탐구', '변화'],
-        color: const Color(0xFF2D8659), // 청록색 (목)
+        title: 'year_info.greenSnakeTitle'.tr(),
+        description: 'year_info.greenSnakeDesc'.tr(),
+        keywords: ['year_info.greenSnakeK1'.tr(), 'year_info.greenSnakeK2'.tr(), 'year_info.greenSnakeK3'.tr(), 'year_info.greenSnakeK4'.tr()],
+        color: const Color(0xFF2D8659),
       );
     }
 
     // 2026년 병오년 (붉은말의 해)
     if (year == 2026 && stem == '병' && branch == '오') {
       return _SpecialYearInfo(
-        title: '붉은말의 해',
-        description: '병오년은 화(火) 기운이 강한 말띠 해입니다. 말의 열정과 불의 에너지가 만나 활기차고 역동적인 기운이 넘칩니다. 새로운 도전과 적극적인 행동이 좋은 결과를 가져올 해입니다.',
-        keywords: ['열정', '도전', '활력', '전진'],
-        color: const Color(0xFFB8420F), // 붉은색 (화)
+        title: 'year_info.redHorseTitle'.tr(),
+        description: 'year_info.redHorseDesc'.tr(),
+        keywords: ['year_info.redHorseK1'.tr(), 'year_info.redHorseK2'.tr(), 'year_info.redHorseK3'.tr(), 'year_info.redHorseK4'.tr()],
+        color: const Color(0xFFB8420F),
       );
     }
 
     // 2024년 갑진년 (청룡의 해)
     if (year == 2024 && stem == '갑' && branch == '진') {
       return _SpecialYearInfo(
-        title: '청룡의 해',
-        description: '갑진년은 목(木) 기운의 용띠 해입니다. 용의 기상과 푸른 나무의 생명력이 결합하여 큰 꿈과 비전을 펼치기 좋은 해입니다.',
-        keywords: ['기상', '비전', '도약', '생명력'],
+        title: 'year_info.greenDragonTitle'.tr(),
+        description: 'year_info.greenDragonDesc'.tr(),
+        keywords: ['year_info.greenDragonK1'.tr(), 'year_info.greenDragonK2'.tr(), 'year_info.greenDragonK3'.tr(), 'year_info.greenDragonK4'.tr()],
         color: const Color(0xFF2D8659),
       );
     }
 
     // 기본 정보
-    final stemInfo = _heavenlyStemInfo[stem] ?? _StemInfo('목', '양', const Color(0xFF2D8659));
-    final branchInfo = _earthlyBranchInfo[branch] ?? _BranchInfo('용', '辰', '용띠');
+    final stemInfo = _heavenlyStemInfo[stem] ?? _StemInfo('wood', 'yang', const Color(0xFF2D8659));
+    final branchInfo = _earthlyBranchInfo[branch] ?? _BranchInfo('dragon', '辰', 'dragon');
 
     return _SpecialYearInfo(
-      title: '${stemInfo.element}${branchInfo.zodiacName}의 해',
-      description: '${stemInfo.element}(${stemInfo.yinYang}) 기운과 ${branchInfo.zodiacName}띠의 특성이 조화를 이루는 해입니다.',
+      title: 'year_info.yearOfTitle'.tr(namedArgs: {'element': 'year_info.${stemInfo.element}'.tr(), 'zodiac': 'year_info.${branchInfo.zodiacName}'.tr()}),
+      description: 'year_info.yearOfDesc'.tr(namedArgs: {'element': 'year_info.${stemInfo.element}'.tr(), 'yinYang': 'year_info.${stemInfo.yinYang}'.tr(), 'zodiac': 'year_info.${branchInfo.zodiacName}'.tr()}),
       keywords: [],
       color: stemInfo.color,
     );
   }
 
-  // 천간 정보 (오행, 음양, 색상)
+  // 천간 정보 (오행 i18n 키, 음양 i18n 키, 색상)
   static final Map<String, _StemInfo> _heavenlyStemInfo = {
-    '갑': _StemInfo('목', '양', const Color(0xFF2D8659)), // 청색
-    '을': _StemInfo('목', '음', const Color(0xFF3D9970)), // 청색
-    '병': _StemInfo('화', '양', const Color(0xFFB8420F)), // 적색
-    '정': _StemInfo('화', '음', const Color(0xFFD4652F)), // 적색
-    '무': _StemInfo('토', '양', const Color(0xFFB8860B)), // 황색
-    '기': _StemInfo('토', '음', const Color(0xFFCDA64F)), // 황색
-    '경': _StemInfo('금', '양', const Color(0xFF6B7280)), // 백색/은색
-    '신': _StemInfo('금', '음', const Color(0xFF9CA3AF)), // 백색/은색
-    '임': _StemInfo('수', '양', const Color(0xFF1E40AF)), // 흑색/남색
-    '계': _StemInfo('수', '음', const Color(0xFF3B5998)), // 흑색/남색
+    '갑': _StemInfo('wood', 'yang', const Color(0xFF2D8659)),
+    '을': _StemInfo('wood', 'yin', const Color(0xFF3D9970)),
+    '병': _StemInfo('fire', 'yang', const Color(0xFFB8420F)),
+    '정': _StemInfo('fire', 'yin', const Color(0xFFD4652F)),
+    '무': _StemInfo('earth', 'yang', const Color(0xFFB8860B)),
+    '기': _StemInfo('earth', 'yin', const Color(0xFFCDA64F)),
+    '경': _StemInfo('metal', 'yang', const Color(0xFF6B7280)),
+    '신': _StemInfo('metal', 'yin', const Color(0xFF9CA3AF)),
+    '임': _StemInfo('water', 'yang', const Color(0xFF1E40AF)),
+    '계': _StemInfo('water', 'yin', const Color(0xFF3B5998)),
   };
 
-  // 지지 정보 (띠, 한자, 이름)
+  // 지지 정보 (띠 i18n 키, 이모지, 짧은 이름)
   static final Map<String, _BranchInfo> _earthlyBranchInfo = {
-    '자': _BranchInfo('쥐', '🐀', '쥐'),
-    '축': _BranchInfo('소', '🐂', '소'),
-    '인': _BranchInfo('호랑이', '🐅', '범'),
-    '묘': _BranchInfo('토끼', '🐇', '토끼'),
-    '진': _BranchInfo('용', '🐉', '용'),
-    '사': _BranchInfo('뱀', '🐍', '뱀'),
-    '오': _BranchInfo('말', '🐴', '말'),
-    '미': _BranchInfo('양', '🐏', '양'),
-    '신': _BranchInfo('원숭이', '🐒', '원숭이'),
-    '유': _BranchInfo('닭', '🐓', '닭'),
-    '술': _BranchInfo('개', '🐕', '개'),
-    '해': _BranchInfo('돼지', '🐖', '돼지'),
+    '자': _BranchInfo('rat', '🐀', 'rat'),
+    '축': _BranchInfo('ox', '🐂', 'ox'),
+    '인': _BranchInfo('tiger', '🐅', 'tiger'),
+    '묘': _BranchInfo('rabbit', '🐇', 'rabbit'),
+    '진': _BranchInfo('dragon', '🐉', 'dragon'),
+    '사': _BranchInfo('snake', '🐍', 'snake'),
+    '오': _BranchInfo('horse', '🐴', 'horse'),
+    '미': _BranchInfo('goat', '🐏', 'goat'),
+    '신': _BranchInfo('monkey', '🐒', 'monkey'),
+    '유': _BranchInfo('rooster', '🐓', 'rooster'),
+    '술': _BranchInfo('dog', '🐕', 'dog'),
+    '해': _BranchInfo('pig', '🐖', 'pig'),
   };
 }
 

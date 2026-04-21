@@ -1,0 +1,19 @@
+{
+  "catCareer": "Karier",
+  "catWork": "Pekerjaan",
+  "catBusiness": "Bisnis",
+  "catWealth": "Kekayaan",
+  "catLove": "Cinta",
+  "catMarriage": "Pernikahan",
+  "catStudy": "Pendidikan",
+  "catHealth": "Kesehatan",
+  "catOverall": "Keseluruhan",
+  "catFamily": "Keluarga",
+  "catSocial": "Sosial",
+  "phaseBasic": "Menganalisis kepribadian...",
+  "phaseWealth": "Menganalisis kekayaan, karier, dan cinta...",
+  "phaseHealth": "Menganalisis kesehatan dan jalan hidup...",
+  "phaseFinal": "Analisis akhir...",
+  "phaseReady": "Mempersiapkan analisis...",
+  "errorMonthly": "Gagal menganalisis peruntungan bulanan.\nSilakan coba lagi nanti."
+}

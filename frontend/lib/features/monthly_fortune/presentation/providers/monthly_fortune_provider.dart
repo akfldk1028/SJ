@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import '../../../../AI/fortune/common/locale_utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -439,7 +440,7 @@ class MonthlyFortune extends _$MonthlyFortune {
     if (_retryCount >= _maxRetries) {
       print('[MonthlyFortune] ❌ 최대 재시도 초과 ($_retryCount/$_maxRetries)');
       _retryCount = 0; // 다음 수동 새로고침에서는 다시 시도 가능
-      throw Exception('월별 운세 분석에 실패했습니다.\n잠시 후 다시 시도해주세요.');
+      throw Exception('fortune_common.errorMonthly'.tr());
     }
 
     // 캐시가 없으면 AI 분석 트리거

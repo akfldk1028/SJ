@@ -1,156 +1,136 @@
-# HANDOFF — 다국어 17개 언어 + 하드코딩 정리 + 앱번들
+# HANDOFF — Qwen v103 + saju_base GPT→Qwen + 마크다운 파서 + 빌드 대기
 
-> 작성: 2026-03-17 21:30 | v0.1.6+53 | 앱번들 빌드 완료
+> 작성: 2026-04-07 | DK-DD 브랜치 | Edge Function v103 | Flutter 빌드 대기
 
 ---
 
 ## Goal
 
-SaDam(사담) 앱 전세계 배포를 위한 17개 언어 완전 대응:
-1. ~~JSON 번역 파일 17개 언어 생성~~ **완료**
-2. ~~Dart 하드코딩 한국어 → `.tr()` 교체~~ **대부분 완료**
-3. ~~AI 채팅(Gemini) 다국어 응답~~ **완료**
-4. ~~페르소나/MBTI/ChatType i18n~~ **완료**
-5. ~~Supabase locale CHECK 17개 확장~~ **완료**
-6. ~~pg_cron 좀비 task 자동 정리~~ **완료**
-7. 🔴 운세 화면 하드코딩 한국어 잔존 — **미완료**
+1. ~~Gemini→Qwen 전환~~ → **완료 (v94~v102)**
+2. ~~FC 도구 확장~~ → **완료 (9개: 궁통보감 조후 + 지장간 포함)**
+3. **마크다운 파서 + 한자 규칙 + 버전업 + 빌드** → **Flutter 수정 완료, 빌드만 남음**
+4. **비용 일일 추적** → 매 세션 시작 시 확인
+5. ~~saju_base GPT→Qwen~~ → **완료 (v103, Edge Function 배포 완료, Flutter 빌드 대기)**
+
+---
+
+## 즉시 할 일: 버전업 + 빌드
+
+```bash
+# 1. pubspec.yaml 버전업 (현재 0.1.6+79 → 0.1.6+80)
+# 2. 빌드
+cd frontend && flutter build appbundle --release
+# 3. Play Store 업로드
+```
+
+### Flutter 수정 완료 (빌드 대기):
+
+| 파일 | 변경 |
+|------|------|
+| `core/utils/markdown_parser.dart` (신규) | 블록 레벨 마크다운 파서 (헤더/불릿/구분선/번호/볼드/이탤릭) |
+| `message_bubble.dart` | `parseToWidget()` 사용 (완성 메시지) |
+| `streaming_message_bubble.dart` | `parse()` TextSpan 유지 (스트리밍) |
+| `system_prompt_builder.dart` | 한자 규칙 추가 (사주용어 OK, 일상어 금지) |
 
 ---
 
 ## Current Progress
 
-### 완료 (이번 세션)
+### Edge Function v103 (배포 완료)
+- **ai-gemini**: Qwen 3.5 Flash primary, Gemini 2.5 Lite fallback (채팅)
+- **ai-openai**: Qwen 3.5 Flash primary, GPT-5-mini fallback (saju_base)
+  - json_schema → json_object 변환 + full schema 프롬프트 주입
+  - 19필드 서버사이드 검증 → 실패 시 GPT fallback
+  - 테스트 완료: 실제 프로필 데이터, 모든 nested 구조 일치
+  - 호출당 $0.0025 (GPT $0.0115, **78% 절감**)
+- `enable_thinking: false`
+- `presence_penalty: 0.9` (장문 억제)
+- FC 도구 7개 (Qwen용, think 제외) + Gemini 8개
 
-**14개 언어 네이티브 번역** — 238개 JSON 파일 (7개 에이전트 병렬)
-- 검증 통과: JSON 파싱 0에러, 키 누락 0, {변수} 불일치 0
+### 마크다운 파서 (`core/utils/markdown_parser.dart`)
+- `#` `##` `###` → 섹션 헤더 (큰글씨+볼드)
+- `**카테고리:**` `* 카테고리:` → 섹션 헤더 + 카테고리 이모지
+- `* ` `- ` → • 불릿 들여쓰기
+- 중첩 불릿 → ◦ 추가 들여쓰기
+- `1. ` → 번호 리스트
+- `---` `***` → Divider 위젯
+- `**볼드**` → FontWeight.bold
+- `*이탤릭*` → FontStyle.italic
+- 카테고리 이모지: 💰재물, 🏥건강, 💕사랑, 💼직업, ✨총운, ⚠️주의
 
-**페르소나/MBTI/ChatType i18n** (chat_type.dart, ai_persona.dart)
-- `MbtiQuadrant.displayName/description` → `.tr()` (mbti_NF, mbti_NT 등)
-- `AiPersona.displayName/description` → `.tr()` (persona_grandma 등)
-- `ChatType.title/inputHint` → `.tr()` (chatType_general 등)
-- 17개 언어 JSON에 37개 신규 키 추가 완료
-
-**AI 프롬프트 다국어 강화**
-- `system_prompt_builder.dart` — CRITICAL LANGUAGE INSTRUCTION (langMap 17개 언어명)
-- `prompt_loader.dart` — fallback "한국어로" → "사용자가 보낸 언어로"
-- `saju_prompts.dart` — 다국어 지시 추가
-- `chat_provider.dart` + `session_restore_service.dart` — `FortuneLocaleUtils.currentLocale` 사용
-
-**Supabase DB**
-- 5개 테이블 locale CHECK → 17개 언어 확장
-- `pg_cron` job `cleanup-zombie-tasks` — 5분마다 10분 넘은 stuck task 자동 정리
-- `cleanup_zombie_tasks()` 함수 생성
-
-**프로필 저장 시 locale 전달**
-- `profile_provider.dart` — `locale: FortuneLocaleUtils.currentLocale`
-
-**ja 누락 키 추가**
-- `ja/saju_chat.json` — 6개 토큰 관련 키
-- `ja/yearly_2025.json` — 4개 제목 키
-- `ja/lifetime_fortune.json` — 25개 키
-
-**앱 번들**
-- `v0.1.6+53` — `app-release.aab` (67MB) 빌드 완료
-- 경로: `frontend/build/app/outputs/bundle/release/app-release.aab`
-- 보상형 광고 토큰: 5000 (변경 없음, `ad_strategy.dart:99`)
-
-### 메모리 업데이트
-- `architecture/i18n_expansion.md` — 전체 재작성 (v0.1.6+53 기준)
-- `project/global_deployment_goal.md` — 전세계 배포 목표 기록
-- `MEMORY.md` — 인덱스 정리
+### 한자 규칙 (`system_prompt_builder.dart`)
+- 사주 전문용어 한자 병기 OK (경금(庚金), 편재(偏財))
+- 일상 단어 한자 금지 (時間→시간, 重要→중요)
 
 ---
 
-## 🔴 남은 문제 — 운세 화면 한국어 하드코딩
+## 비용 추적 (매 세션 필수!)
 
-### 스크린샷 증거
-- `docs/Image/화면 캡처 2026-03-17 212421.png`
-  - **"탭하여 상세 운세를 확인하세요"** — 하드코딩
-  - **"직업운/사업운/재물운/애정운/결혼운/학업운/건강운"** — 하드코딩 버튼
-- `docs/Image/화면 캡처 2026-03-17 205509.png`
-  - **"2025년", "목용의 해", "오행/띠/음양", "총운"** — DB 저장된 AI 분석 결과 (한국어 캐시)
-  - **"목(양) 기운과 용띠의 특성이..."** — AI 분석 결과
-
-### 원인 분류
-
-**1. 코드 하드코딩 (수정 필요)**
-파일 위치를 grep으로 찾아서 `.tr()` 교체 필요:
-```bash
-grep -rn "직업운\|사업운\|재물운\|애정운\|결혼운\|학업운\|건강운\|탭하여" frontend/lib/features/
+### SQL
+```sql
+SELECT 
+  usage_date,
+  ROUND(SUM(gemini_cost_usd)::numeric, 4) as total_cost,
+  COUNT(DISTINCT user_id) as dau,
+  ROUND((SUM(gemini_cost_usd) / NULLIF(COUNT(DISTINCT user_id), 0))::numeric, 4) as cost_per_user,
+  SUM(chatting_tokens) as chat_tokens
+FROM user_daily_token_usage 
+WHERE usage_date >= '2026-04-06'
+GROUP BY usage_date 
+ORDER BY usage_date;
 ```
 
-예상 파일:
-- `new_year_fortune/presentation/screens/` 또는 `widgets/`
-- `yearly_2025_fortune/presentation/`
-- 카테고리 이름은 이미 `lifetime_fortune.json`에 `careerFortune`, `wealthFortune` 등 키가 있으므로 해당 키 사용
+### 기록
+| 날짜 | 총비용 | DAU | 유저당 | 모델 | 비고 |
+|------|--------|-----|--------|------|------|
+| 4/5 | $0.48 | ~19 | $0.025 | Gemini Lite | 기준선 |
+| 4/6 | $0.575 | 21 | $0.027 | Qwen v94~98 | thinking ON 포함 |
+| 4/7 | $0.033 | 4 | $0.008 | Qwen v99~102 | think 제거 |
+| **DashScope 4월 실측** | **$0.39** | - | - | 전체 | 4/6~4/7 합산 |
 
-**2. DB 캐시된 AI 분석 결과 (한국어)**
-- 기존 유저의 `ai_summaries.content`가 한국어로 저장됨
-- locale 변경 시 새로 분석해야 올바른 언어로 나옴
-- `ai_summaries` 테이블에 `locale` 컬럼이 있으므로, locale이 다르면 새 레코드 생성됨
-- **해결**: 언어 변경 시 기존 캐시와 locale이 다르면 자동 재분석 트리거
+### 경보
+- 일일 $1.00 이상 → ⚠️
+- 일일 $2.00 이상 → 🚨 즉시 조사
+- 유저당 $0.05 이상 → 비정상
 
-**3. 카테고리 매핑 (운세 provider)**
-- 운세 분석 결과의 카테고리 키가 한국어("직업/취업운")인 경우가 있음
-- `yearly_2025_fortune_provider.dart`의 dummy data는 이미 `.tr()`로 교체함
-- 하지만 실제 AI 응답의 카테고리 제목이 한국어일 수 있음
+### 확인할 곳
+1. DB: 위 SQL
+2. DashScope: https://modelstudio.console.alibabacloud.com (싱가포르)
+3. AI Studio: https://aistudio.google.com (Gemini fallback)
+
+### 캐시 디버깅 (v103)
+- ai-gemini에 `cache_creation_input_tokens` 로깅 추가 배포 완료
+- 로그 확인: `[ai-gemini v103] Cache debug:` 검색
+- `created=N` → 캐시 생성됨 (첫 요청), `hit=N` → 캐시 적중 (후속 요청)
+- `NO cache activity` → 캐시 자체가 안 되는 것 → 추가 조사 필요
+- 싱가포르 리전에서 explicit cache 공식 지원 확인됨 (최소 1024 토큰, 유효 5분)
 
 ---
 
 ## What Worked
-
-- **7개 에이전트 병렬 번역** — 238파일 약 10분에 완료
-- **python3 검증 스크립트** — JSON 파싱 + 키 매칭 + 변수 체크 자동화
-- **Supabase MCP** — DB constraint 변경, pg_cron 설정, task 상태 확인
-- **FortuneLocaleUtils.currentLocale** — 앱 전역 locale 싱글톤으로 통일
+- Qwen 3.5 Flash: 동일 가격에 GPQA +19.6p, 정답률 73%→100%
+- `enable_thinking: false`: 23~69초→3.5초
+- `presence_penalty: 0.9`: Qwen 장문 억제
+- think 도구 Qwen에서 제거: FC 5회→0회, 토큰 대폭 절약
+- saju-tools Record 에러→{ [k: string] } + 한자 변수명→영문
 
 ## What Didn't Work
-
-- **`platformDispatcher.locale`** → easy_localization의 앱 내 언어와 불일치 가능. `FortuneLocaleUtils.currentLocale`로 교체함
-- **에뮬레이터 wipe 후 테스트** — 프로필 없는 새 유저라 task 생성 안 됨. 온보딩 + 프로필 등록 필수
-- **"영어로만" 사고** — 17개 언어 대응인데 영어만 생각하면 안 됨. langMap으로 구체적 언어명 전달 필수
-
----
-
-## Next Steps
-
-### 1. 🔴 운세 화면 하드코딩 정리 (긴급)
-```bash
-# 먼저 하드코딩 위치 찾기
-grep -rn "직업운\|사업운\|재물운\|애정운\|결혼운\|학업운\|건강운" frontend/lib/features/new_year_fortune/ frontend/lib/features/yearly_2025_fortune/
-grep -rn "탭하여\|총운\|목용의" frontend/lib/features/
-```
-→ 찾은 것들을 `saju_chart.json`이나 `new_year_fortune.json`의 기존 키로 교체
-
-### 2. 십성 UI 리디자인
-- `sipsin_relations.dart` 하드코딩 → i18n
-- `oheng_analysis_display.dart` UI 개선
-
-### 3. 데이터 레이어 하드코딩 (150+ 키)
-- `hapchung_explanations.dart`
-- `compatibility_interpreter.dart`
-
-### 4. 에뮬레이터 다국어 테스트
-- 각 언어 전환 후 주요 화면 확인
-- 텍스트 오버플로우 (독일어/러시아어)
-- RTL 아랍어 레이아웃
+- `enable_thinking: true` (기본값): 비용 5~8배 + 속도 10배
+- Gemma 4 (OpenRouter): 캐싱 미지원 → 월 $60+
+- system_prompt_builder 대량 Edit: 인코딩 문제로 실패, 줄 단위로 해야
 
 ---
 
-## Key Files
+## 절대 금지
+1. **Qwen `enable_thinking: true`** → 비용 5~8배
+2. **Gemini `thinkingBudget` ≠ 0** → 비용 25배
+3. **QWEN_API_KEY 하드코딩** → Supabase secret으로만
+4. **Play Store 기본 언어 영어로 변경** → 한국어 유지
 
-| 파일 | 역할 |
-|------|------|
-| `frontend/lib/main.dart:128-146` | 17개 locale 등록 |
-| `frontend/lib/i18n/{locale}/*.json` | 번역 파일 289개 (17×17) |
-| `frontend/lib/AI/fortune/common/locale_utils.dart` | `FortuneLocaleUtils` 앱 전역 locale |
-| `frontend/lib/features/saju_chat/data/services/system_prompt_builder.dart` | AI 프롬프트 locale 지시 |
-| `frontend/lib/features/saju_chat/domain/models/ai_persona.dart` | 페르소나 i18n |
-| `frontend/lib/features/saju_chat/domain/models/chat_type.dart` | 채팅타입 i18n |
-| `frontend/lib/ad/ad_strategy.dart:99` | `depletedRewardTokensVideo = 5000` |
-| `frontend/build/app/outputs/bundle/release/app-release.aab` | 릴리스 번들 v0.1.6+53 |
+---
 
-## Memory 참조
-- `memory/architecture/i18n_expansion.md` — 다국어 전체 구조 (v0.1.6+53 최종)
-- `memory/project/global_deployment_goal.md` — 전세계 배포 목표
-- `memory/architecture/gemini_token_system.md` — 토큰 시스템
+## 미완료 (다음 세션들)
+- [ ] 프롬프트 정리 (~1400토큰 절약, FC 중복 삭제)
+- [ ] 스트리밍 FC (현재 non-streaming만)
+- [ ] DashScope 대시보드 24시간 비용 확인
+- [ ] "무료 쿼터 소진 시 중지" OFF 확인 완료 (Playwright로 확인함)

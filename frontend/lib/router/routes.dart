@@ -3,6 +3,7 @@ abstract class Routes {
   // Splash & Onboarding
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
+  static const String zodiacOnboarding = '/onboarding/zodiac';
 
   // Home & Menu
   static const String home = '/home';

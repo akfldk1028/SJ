@@ -95,5 +95,6 @@
   "compatPromoRegister": "Register",
   "compatPromoAnalyzeTitle": "Check compatibility with your connections",
   "compatPromoAnalyzeSubtitle": "Analyze the hidden bond between two people's saju",
-  "compatPromoResultTitle": "Compatibility with {name}"
+  "compatPromoResultTitle": "Compatibility with {name}",
+  "defaultPartner": "Partner"
 }

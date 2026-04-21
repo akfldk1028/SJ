@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../shared/widgets/localized_text.dart';
 import 'typing_indicator.dart';
 
 /// AI가 생각 중일 때 표시하는 버블
@@ -113,11 +114,12 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
                   Flexible(
                     child: FadeTransition(
                       opacity: _fadeAnimation,
-                      child: Text(
+                      child: LocalizedText(
                         _thinkingMessages[_currentIndex],
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
+                        maxLines: 2,
                       ),
                     ),
                   ),

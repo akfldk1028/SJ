@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/twelve_unsung.dart';
 import '../../domain/services/unsung_service.dart';
 
@@ -20,6 +21,7 @@ class UnsungBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
     final color = _getUnsungColor(unsung);
     final fontSize = _getFontSize();
     final padding = _getPadding();
@@ -35,7 +37,7 @@ class UnsungBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            unsung.korean,
+            SajuI18n.unsung(unsung.korean, locale),
             style: TextStyle(
               color: color,
               fontSize: fontSize,
@@ -443,6 +445,7 @@ class UnsungDetailCard extends StatelessWidget {
             ),
             child: Text(
               interpretation,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 13,

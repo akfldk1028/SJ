@@ -3,12 +3,42 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/constants/cheongan_jiji.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/jijanggan_table.dart';
 import '../../data/constants/sipsin_relations.dart';
 import '../../domain/entities/daeun.dart';
 import '../../domain/entities/pillar.dart';
 import '../../domain/entities/saju_analysis.dart';
 import '../../domain/services/daeun_service.dart';
+
+/// CJK 분기 텍스트: CJK면 한자, 나머지면 한글
+Widget _buildGanJiText(String korean, Map<String, String> hanjaMap, Color color, String locale) {
+  final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+  final display = isCjk ? (hanjaMap[korean] ?? korean) : korean;
+  return Text(
+    display,
+    style: TextStyle(
+      color: color,
+      fontSize: 22,
+      fontWeight: FontWeight.bold,
+    ),
+  );
+}
+
+/// CJK 분기 박스: Container + 텍스트
+Widget _buildGanJiBox(String korean, Map<String, String> hanjaMap, Color color, String locale) {
+  return Container(
+    width: 40,
+    height: 40,
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.2),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Center(
+      child: _buildGanJiText(korean, hanjaMap, color, locale),
+    ),
+  );
+}
 
 /// 대운/세운/월운 종합 표시 위젯 (포스텔러 스타일)
 class FortuneDisplay extends StatelessWidget {
@@ -36,7 +66,7 @@ class FortuneDisplay extends StatelessWidget {
             DaeunSlider(
               daeunResult: analysis.daeun!,
               dayGan: analysis.chart.dayPillar.gan,
-              currentAge: _calculateCurrentAge(analysis.chart.birthDateTime),
+              currentAge: _calculateCurrentAge(analysis.chart.correctedDateTime),
             ),
             const SizedBox(height: 24),
           ],
@@ -45,7 +75,7 @@ class FortuneDisplay extends StatelessWidget {
           _buildSectionTitle(context, 'saju_chart.fortune_yeunun'.tr(), theme),
           const SizedBox(height: 12),
           SeunSlider(
-            birthYear: analysis.chart.birthDateTime.year,
+            birthYear: analysis.chart.correctedDateTime.year,
             dayGan: analysis.chart.dayPillar.gan,
             currentYear: DateTime.now().year,
           ),
@@ -55,7 +85,7 @@ class FortuneDisplay extends StatelessWidget {
           _buildSectionTitle(context, 'saju_chart.fortune_wolun'.tr(), theme),
           const SizedBox(height: 12),
           WolunSlider(
-            birthYear: analysis.chart.birthDateTime.year,
+            birthYear: analysis.chart.correctedDateTime.year,
             dayGan: analysis.chart.dayPillar.gan,
             currentYear: DateTime.now().year,
           ),
@@ -81,7 +111,7 @@ class FortuneDisplay extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'saju_chart.fortune_daeunNumberInfo'.tr(namedArgs: {'info': '${daeun.startAge}(${daeun.daeUnList.isNotEmpty ? daeun.daeUnList.first.pillar.ji : ""}${daeun.daeUnList.isNotEmpty ? jijiHanja[daeun.daeUnList.first.pillar.ji] ?? "" : ""})'}),
+                  'saju_chart.fortune_daeunNumberInfo'.tr(namedArgs: {'info': '${daeun.startAge}(${daeun.daeUnList.isNotEmpty ? jijiHanja[daeun.daeUnList.first.pillar.ji] ?? SajuI18n.jiji(daeun.daeUnList.first.pillar.ji, context.locale.languageCode) : ""})'}),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 16,
@@ -107,12 +137,14 @@ class FortuneDisplay extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title, AppThemeExtension theme) {
     return Row(
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.textPrimary,
-              ),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.textPrimary,
+                ),
+          ),
         ),
         const SizedBox(width: 8),
         GestureDetector(
@@ -195,7 +227,7 @@ class DaeunSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 185,
+      height: 230,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: daeunResult.daeUnList.length,
@@ -214,15 +246,16 @@ class DaeunSlider extends StatelessWidget {
 
   Widget _buildDaeunCard(BuildContext context, DaeUn daeun, bool isCurrent) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final ganSipsin = calculateSipSin(dayGan, daeun.pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(daeun.pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(daeun.pillar.ganOheng);
     final jiColor = _getOhengColor(daeun.pillar.jiOheng);
 
     return Container(
-      width: 76,
+      width: 96,
       margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
         color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
@@ -234,7 +267,7 @@ class DaeunSlider extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 나이 + 십성
+          // 나이
           Text(
             '${daeun.startAge}',
             style: TextStyle(
@@ -242,60 +275,45 @@ class DaeunSlider extends StatelessWidget {
               fontSize: 13,
             ),
           ),
-          Text(
-            ganSipsin.korean.substring(0, 2),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 4),
-          // 천간 (한자)
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: ganColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(4),
-            ),
+          // 천간 십성 (2줄 허용)
+          SizedBox(
+            height: 42,
             child: Center(
               child: Text(
-                cheonganHanja[daeun.pillar.gan] ?? daeun.pillar.gan,
+                SajuI18n.sipsin(ganSipsin.korean, locale),
                 style: TextStyle(
-                  color: ganColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+                  color: theme.textSecondary,
+                  fontSize: 10,
+                  height: 1.2,
                 ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
           ),
+          const SizedBox(height: 2),
+          // 천간 (CJK: 한자, 나머지: 한글)
+          _buildGanJiBox(daeun.pillar.gan, cheonganHanja, ganColor, locale),
           const SizedBox(height: 4),
-          // 지지 (한자)
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: jiColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(4),
-            ),
+          // 지지
+          _buildGanJiBox(daeun.pillar.ji, jijiHanja, jiColor, locale),
+          const SizedBox(height: 2),
+          // 지지 십성 (2줄 허용)
+          SizedBox(
+            height: 42,
             child: Center(
               child: Text(
-                jijiHanja[daeun.pillar.ji] ?? daeun.pillar.ji,
+                SajuI18n.sipsin(jiSipsin.korean, locale),
                 style: TextStyle(
-                  color: jiColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+                  color: theme.textSecondary,
+                  fontSize: 10,
+                  height: 1.2,
                 ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          // 지지 십성
-          Text(
-            jiSipsin.korean.substring(0, 2),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
             ),
           ),
         ],
@@ -339,7 +357,7 @@ class SeunSlider extends StatelessWidget {
     );
 
     return SizedBox(
-      height: 185,
+      height: 230,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: seunList.length,
@@ -357,15 +375,16 @@ class SeunSlider extends StatelessWidget {
 
   Widget _buildSeunCard(BuildContext context, SeUn seun, bool isCurrent) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final ganSipsin = calculateSipSin(dayGan, seun.pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(seun.pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(seun.pillar.ganOheng);
     final jiColor = _getOhengColor(seun.pillar.jiOheng);
 
     return Container(
-      width: 76,
+      width: 96,
       margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
         color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
@@ -385,15 +404,24 @@ class SeunSlider extends StatelessWidget {
               fontSize: 13,
             ),
           ),
-          Text(
-            ganSipsin.korean.substring(0, 2),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
+          SizedBox(
+            height: 42,
+            child: Center(
+              child: Text(
+                SajuI18n.sipsin(ganSipsin.korean, locale),
+                style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 10,
+                  height: 1.2,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          // 천간
+          const SizedBox(height: 2),
+          // 천간 (한글)
           Container(
             width: 40,
             height: 40,
@@ -402,14 +430,7 @@ class SeunSlider extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Center(
-              child: Text(
-                cheonganHanja[seun.pillar.gan] ?? seun.pillar.gan,
-                style: TextStyle(
-                  color: ganColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _buildGanJiText(seun.pillar.gan, cheonganHanja, ganColor, locale),
             ),
           ),
           const SizedBox(height: 4),
@@ -422,23 +443,25 @@ class SeunSlider extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Center(
-              child: Text(
-                jijiHanja[seun.pillar.ji] ?? seun.pillar.ji,
-                style: TextStyle(
-                  color: jiColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _buildGanJiText(seun.pillar.ji, jijiHanja, jiColor, locale),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           // 지지 십성
-          Text(
-            jiSipsin.korean.substring(0, 2),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
+          SizedBox(
+            height: 42,
+            child: Center(
+              child: Text(
+                SajuI18n.sipsin(jiSipsin.korean, locale),
+                style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 10,
+                  height: 1.2,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ],
@@ -478,7 +501,7 @@ class WolunSlider extends StatelessWidget {
     final wolunList = _generateWolunList(currentYear, currentMonth);
 
     return SizedBox(
-      height: 185,
+      height: 230,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: wolunList.length,
@@ -542,15 +565,16 @@ class WolunSlider extends StatelessWidget {
     final pillar = wolun['pillar'] as Pillar;
     final month = wolun['month'] as int;
 
+    final locale = context.locale.languageCode;
     final ganSipsin = calculateSipSin(dayGan, pillar.gan);
     final jiSipsin = calculateSipSin(dayGan, getJeongGi(pillar.ji) ?? '갑');
     final ganColor = _getOhengColor(pillar.ganOheng);
     final jiColor = _getOhengColor(pillar.jiOheng);
 
     return Container(
-      width: 76,
+      width: 96,
       margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
         color: isCurrent ? theme.primaryColor.withOpacity(0.15) : theme.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
@@ -569,16 +593,27 @@ class WolunSlider extends StatelessWidget {
               color: theme.textMuted,
               fontSize: 13,
             ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
-          Text(
-            ganSipsin.korean.substring(0, 2),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
+          SizedBox(
+            height: 42,
+            child: Center(
+              child: Text(
+                SajuI18n.sipsin(ganSipsin.korean, locale),
+                style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 10,
+                  height: 1.2,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          // 천간
+          const SizedBox(height: 2),
+          // 천간 (한글)
           Container(
             width: 40,
             height: 40,
@@ -587,14 +622,7 @@ class WolunSlider extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Center(
-              child: Text(
-                cheonganHanja[pillar.gan] ?? pillar.gan,
-                style: TextStyle(
-                  color: ganColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _buildGanJiText(pillar.gan, cheonganHanja, ganColor, locale),
             ),
           ),
           const SizedBox(height: 4),
@@ -607,23 +635,25 @@ class WolunSlider extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Center(
-              child: Text(
-                jijiHanja[pillar.ji] ?? pillar.ji,
-                style: TextStyle(
-                  color: jiColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _buildGanJiText(pillar.ji, jijiHanja, jiColor, locale),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           // 지지 십성
-          Text(
-            jiSipsin.korean.substring(0, 2),
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 13,
+          SizedBox(
+            height: 42,
+            child: Center(
+              child: Text(
+                SajuI18n.sipsin(jiSipsin.korean, locale),
+                style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 10,
+                  height: 1.2,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ],

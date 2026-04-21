@@ -36,7 +36,7 @@ class AdFitAdapter implements AdNetworkAdapter {
   }
 
   @override
-  Future<bool> showInterstitial({void Function()? onDismissed}) async {
+  Future<bool> showInterstitial({void Function()? onDismissed, String? screen}) async {
     if (!_available || !isInterstitialLoaded) return false;
     return AdFitService.instance.showInterstitial(onDismissed: onDismissed);
   }
@@ -52,6 +52,7 @@ class AdFitAdapter implements AdNetworkAdapter {
   @override
   Future<bool> showRewarded({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
   }) async => false;
 
   // ==================== Lifecycle ====================

@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../data/constants/sipsin_relations.dart';
 
 /// 십성(十星) 표시 위젯
@@ -31,13 +32,14 @@ class SipSungDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
     final color = _getSipSinColor(sipsin);
     final fontSize = _getFontSize();
     final padding = _getPadding();
 
     if (!showBackground) {
       return Text(
-        showHanja ? sipsin.hanja : sipsin.korean,
+        showHanja ? sipsin.hanja : SajuI18n.sipsin(sipsin.korean, locale),
         style: TextStyle(
           color: color,
           fontSize: fontSize,
@@ -57,7 +59,7 @@ class SipSungDisplay extends StatelessWidget {
         ),
       ),
       child: Text(
-        showHanja ? sipsin.hanja : sipsin.korean,
+        showHanja ? sipsin.hanja : SajuI18n.sipsin(sipsin.korean, locale),
         style: TextStyle(
           color: color,
           fontSize: fontSize,
@@ -122,13 +124,15 @@ class SipSungRow extends StatelessWidget {
       children: [
         if (label != null) ...[
           SizedBox(
-            width: 60,
+            width: 80,
             child: Text(
               label!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: theme.textMuted,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -170,6 +174,7 @@ class SipSungDistributionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final maxCount = distribution.values.fold<int>(0, (a, b) => a > b ? a : b);
     if (maxCount == 0) {
       return const SizedBox.shrink();
@@ -228,7 +233,7 @@ class SipSungDistributionChart extends StatelessWidget {
             return Expanded(
               child: Center(
                 child: Text(
-                  sipsin.korean.substring(0, 1), // 첫 글자만
+                  SajuI18n.sipsin(sipsin.korean, locale),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: theme.textMuted,
                         fontSize: 13,
@@ -284,13 +289,13 @@ class SipSungCategoryChart extends StatelessWidget {
     SipSinCategory.inseong: Icons.school_rounded,        // 인성 - 학문
   };
 
-  // 카테고리별 설명
-  static const _categoryDescriptions = {
-    SipSinCategory.bigeop: '자아, 형제, 경쟁',
-    SipSinCategory.siksang: '표현, 재능, 자녀',
-    SipSinCategory.jaeseong: '재물, 아버지, 여자',
-    SipSinCategory.gwanseong: '명예, 직장, 남자',
-    SipSinCategory.inseong: '학문, 어머니, 문서',
+  // 카테고리별 설명 i18n 키
+  static const _categoryDescriptionKeys = {
+    SipSinCategory.bigeop: 'saju_chart.bigeop_short',
+    SipSinCategory.siksang: 'saju_chart.siksang_short',
+    SipSinCategory.jaeseong: 'saju_chart.jaeseong_short',
+    SipSinCategory.gwanseong: 'saju_chart.gwanseong_short',
+    SipSinCategory.inseong: 'saju_chart.inseong_short',
   };
 
   @override
@@ -334,7 +339,7 @@ class SipSungCategoryChart extends StatelessWidget {
             final count = distribution[category] ?? 0;
             final color = _categoryColors[category]!;
             final icon = _categoryIcons[category]!;
-            final description = _categoryDescriptions[category]!;
+            final description = _categoryDescriptionKeys[category]!.tr();
             final ratio = total > 0 ? count / total : 0.0;
 
             return _buildCategoryCard(
@@ -363,6 +368,7 @@ class SipSungCategoryChart extends StatelessWidget {
     required IconData icon,
     required String description,
   }) {
+    final locale = context.locale.languageCode;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -397,7 +403,7 @@ class SipSungCategoryChart extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  category.korean,
+                  SajuI18n.sipsinCategory(category.korean, locale),
                   style: TextStyle(
                     color: color,
                     fontSize: 15,
@@ -465,6 +471,10 @@ class _SipSungRadarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.locale.languageCode;
+    final localizedLabels = SipSinCategory.values
+        .map((c) => SajuI18n.sipsinCategory(c.korean, locale))
+        .toList();
     return CustomPaint(
       size: const Size(double.infinity, 220),
       painter: _SipSungRadarPainter(
@@ -476,6 +486,7 @@ class _SipSungRadarChart extends StatelessWidget {
         textMuted: theme.textMuted,
         textPrimary: theme.textPrimary,
         accentColor: theme.primaryColor,
+        labels: localizedLabels,
       ),
     );
   }
@@ -488,8 +499,7 @@ class _SipSungRadarPainter extends CustomPainter {
   final Color textMuted;
   final Color textPrimary;
   final Color accentColor;
-
-  static const labels = ['비겁', '식상', '재성', '관성', '인성'];
+  final List<String> labels;
 
   _SipSungRadarPainter({
     required this.values,
@@ -498,6 +508,7 @@ class _SipSungRadarPainter extends CustomPainter {
     required this.textMuted,
     required this.textPrimary,
     required this.accentColor,
+    required this.labels,
   });
 
   @override
@@ -664,6 +675,6 @@ class _SipSungRadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SipSungRadarPainter oldDelegate) {
-    return oldDelegate.values != values || oldDelegate.maxValue != maxValue;
+    return oldDelegate.values != values || oldDelegate.maxValue != maxValue || oldDelegate.labels != labels;
   }
 }

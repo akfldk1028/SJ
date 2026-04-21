@@ -230,16 +230,18 @@ class _ProfileCard extends ConsumerWidget {
                           ],
                         ),
                       ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline, size: 18, color: Colors.red[400]),
-                          const SizedBox(width: 8),
-                          Text('common.delete'.tr(), style: TextStyle(color: Colors.red[400])),
-                        ],
+                    // 본인 프로필은 삭제 불가 (수정만 가능)
+                    if (profile.relationType != RelationshipType.me)
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 18, color: Colors.red[400]),
+                            const SizedBox(width: 8),
+                            Text('common.delete'.tr(), style: TextStyle(color: Colors.red[400])),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],

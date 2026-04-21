@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/constants/cheongan_jiji_i18n.dart';
 import '../../domain/entities/saju_chart.dart';
 import '../../domain/services/hapchung_service.dart';
 
@@ -23,6 +24,7 @@ class HapchungTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     final result = HapchungService.analyzeSaju(
       yearGan: chart.yearPillar.gan,
       monthGan: chart.monthPillar.gan,
@@ -69,12 +71,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.jijiHyungs.map((hyung) => _buildRelationCard(
               context,
-              type: '형',
+              type: SajuI18n.relationType('형', locale),
+              koreanType: '형',
               char1: hyung.ji1,
               char2: hyung.ji2,
               pillar1: hyung.pillar1,
               pillar2: hyung.pillar2,
-              description: hyung.description,
+              description: SajuI18n.hapchungDesc(hyung.description, locale),
               color: _hyungColor,
             )),
             const SizedBox(height: 24),
@@ -85,12 +88,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.jijiPas.map((pa) => _buildRelationCard(
               context,
-              type: '파',
+              type: SajuI18n.relationType('파', locale),
+              koreanType: '파',
               char1: pa.ji1,
               char2: pa.ji2,
               pillar1: pa.pillar1,
               pillar2: pa.pillar2,
-              description: pa.description,
+              description: SajuI18n.hapchungDesc(pa.description, locale),
               color: _paColor,
             )),
             const SizedBox(height: 24),
@@ -101,12 +105,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.jijiHaes.map((hae) => _buildRelationCard(
               context,
-              type: '해',
+              type: SajuI18n.relationType('해', locale),
+              koreanType: '해',
               char1: hae.ji1,
               char2: hae.ji2,
               pillar1: hae.pillar1,
               pillar2: hae.pillar2,
-              description: hae.description,
+              description: SajuI18n.hapchungDesc(hae.description, locale),
               color: _haeColor,
             )),
             const SizedBox(height: 24),
@@ -117,12 +122,13 @@ class HapchungTab extends StatelessWidget {
             const SizedBox(height: 12),
             ...result.wonjins.map((wonjin) => _buildRelationCard(
               context,
-              type: '원진',
+              type: SajuI18n.relationType('원진', locale),
+              koreanType: '원진',
               char1: wonjin.ji1,
               char2: wonjin.ji2,
               pillar1: wonjin.pillar1,
               pillar2: wonjin.pillar2,
-              description: wonjin.description,
+              description: SajuI18n.hapchungDesc(wonjin.description, locale),
               color: _wonjinColor,
             )),
             const SizedBox(height: 24),
@@ -229,9 +235,13 @@ class HapchungTab extends StatelessWidget {
             label,
             style: TextStyle(
               color: count > 0 ? color : theme.textMuted,
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
@@ -310,6 +320,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildHapSection(BuildContext context, HapchungAnalysisResult result) {
+    final locale = context.locale.languageCode;
     return Column(
       children: [
         // 천간합
@@ -318,12 +329,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.cheonganHaps.map((hap) => _buildRelationCard(
             context,
-            type: '합',
+            type: SajuI18n.relationType('합', locale),
+            koreanType: '합',
             char1: hap.gan1,
             char2: hap.gan2,
             pillar1: hap.pillar1,
             pillar2: hap.pillar2,
-            description: hap.description,
+            description: SajuI18n.hapchungDesc(hap.description, locale),
             color: _hapColor,
           )),
           const SizedBox(height: 16),
@@ -335,12 +347,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.jijiYukhaps.map((yukhap) => _buildRelationCard(
             context,
-            type: '육합',
+            type: SajuI18n.relationType('육합', locale),
+            koreanType: '육합',
             char1: yukhap.ji1,
             char2: yukhap.ji2,
             pillar1: yukhap.pillar1,
             pillar2: yukhap.pillar2,
-            description: yukhap.description,
+            description: SajuI18n.hapchungDesc(yukhap.description, locale),
             color: _hapColor,
           )),
           const SizedBox(height: 16),
@@ -365,6 +378,7 @@ class HapchungTab extends StatelessWidget {
   }
 
   Widget _buildChungSection(BuildContext context, HapchungAnalysisResult result) {
+    final locale = context.locale.languageCode;
     return Column(
       children: [
         // 천간충
@@ -373,12 +387,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.cheonganChungs.map((chung) => _buildRelationCard(
             context,
-            type: '충',
+            type: SajuI18n.relationType('충', locale),
+            koreanType: '충',
             char1: chung.gan1,
             char2: chung.gan2,
             pillar1: chung.pillar1,
             pillar2: chung.pillar2,
-            description: chung.description,
+            description: SajuI18n.hapchungDesc(chung.description, locale),
             color: _chungColor,
           )),
           const SizedBox(height: 16),
@@ -390,12 +405,13 @@ class HapchungTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...result.jijiChungs.map((chung) => _buildRelationCard(
             context,
-            type: '충',
+            type: SajuI18n.relationType('충', locale),
+            koreanType: '충',
             char1: chung.ji1,
             char2: chung.ji2,
             pillar1: chung.pillar1,
             pillar2: chung.pillar2,
-            description: chung.description,
+            description: SajuI18n.hapchungDesc(chung.description, locale),
             color: _chungColor,
           )),
         ],
@@ -422,9 +438,8 @@ class HapchungTab extends StatelessWidget {
     );
   }
 
-  // 한자 이름 생성 (형/파/해/원진용)
-  String _getHanjaName(String type, String char1, String char2) {
-    // 한자 매핑
+  // 한자 이름 생성 (형/파/해/원진용) — locale 인식
+  String _getHanjaName(String type, String char1, String char2, String locale) {
     const jiToHanja = {
       '자': '子', '축': '丑', '인': '寅', '묘': '卯',
       '진': '辰', '사': '巳', '오': '午', '미': '未',
@@ -444,30 +459,33 @@ class HapchungTab extends StatelessWidget {
       _ => type,
     };
 
-    return '$char1$char2$type($hanja1$hanja2$typeHanja)';
+    final display1 = SajuI18n.jiji(char1, locale);
+    final display2 = SajuI18n.jiji(char2, locale);
+    final displayType = SajuI18n.relationType(type, locale);
+
+    return '$display1$display2 $displayType($hanja1$hanja2$typeHanja)';
   }
 
-  // 형/파/해/원진 부가 설명
+  // 형/파/해/원진 부가 설명 (i18n)
   String? _getRelationExplanation(String type, String char1, String char2) {
     if (type == '형') {
-      // 자묘형 (무례지형), 인사신형 (무은지형), 축술미형 (지세지형), 진진형/오오형/유유형/해해형 (자형)
       if ((char1 == '자' && char2 == '묘') || (char1 == '묘' && char2 == '자')) {
-        return '무례지형(無禮之刑): 예의 없음으로 인한 형벌. 무례하고 은혜를 모르는 일이 생길 수 있습니다.';
+        return 'saju_detail.hyung_murye'.tr();
       } else if ((char1 == '인' || char1 == '사' || char1 == '신') &&
                  (char2 == '인' || char2 == '사' || char2 == '신')) {
-        return '무은지형(無恩之刑): 은혜 없음으로 인한 형벌. 배신이나 배은망덕한 일이 생길 수 있습니다.';
+        return 'saju_detail.hyung_mueun'.tr();
       } else if ((char1 == '축' || char1 == '술' || char1 == '미') &&
                  (char2 == '축' || char2 == '술' || char2 == '미')) {
-        return '지세지형(持勢之刑): 권세를 믿고 함부로 행동. 교만이나 독선으로 문제가 생길 수 있습니다.';
+        return 'saju_detail.hyung_jise'.tr();
       } else if (char1 == char2) {
-        return '자형(自刑): 스스로를 해치는 형. 자기 파괴적 행동이나 내적 갈등이 있을 수 있습니다.';
+        return 'saju_detail.hyung_ja'.tr();
       }
     } else if (type == '파') {
-      return '관계의 단절이나 깨짐을 의미합니다. 일이 중도에 무산되거나 관계가 끊어질 수 있습니다.';
+      return 'saju_detail.pa_desc'.tr();
     } else if (type == '해') {
-      return '서로를 해치는 관계입니다. 가까운 사람과의 갈등이나 방해가 있을 수 있습니다.';
+      return 'saju_detail.hae_desc'.tr();
     } else if (type == '원진') {
-      return '원망과 미움의 관계입니다. 해소되지 않는 감정적 앙금이나 갈등이 있을 수 있습니다.';
+      return 'saju_detail.wonjin_desc'.tr();
     }
     return null;
   }
@@ -481,11 +499,14 @@ class HapchungTab extends StatelessWidget {
     required String pillar2,
     required String description,
     required Color color,
+    String? koreanType,
   }) {
-    // 형/파/해/원진인 경우 한자 이름과 설명 생성
-    final bool showHanjaName = ['형', '파', '해', '원진'].contains(type);
-    final hanjaName = showHanjaName ? _getHanjaName(type, char1, char2) : null;
-    final explanation = _getRelationExplanation(type, char1, char2);
+    final locale = context.locale.languageCode;
+    // 형/파/해/원진인 경우 한자 이름과 설명 생성 (원본 한글 키로 판별)
+    final koType = koreanType ?? type;
+    final bool showHanjaName = ['형', '파', '해', '원진'].contains(koType);
+    final hanjaName = showHanjaName ? _getHanjaName(koType, char1, char2, locale) : null;
+    final explanation = _getRelationExplanation(koType, char1, char2);
 
     final theme = context.appTheme;
     return Container(
@@ -551,8 +572,8 @@ class HapchungTab extends StatelessWidget {
                   ),
                 ] else
                   const Spacer(),
-                // 간지 표시
-                _buildCharacterBox(char1, color),
+                // 간지 표시 (천간 또는 지지)
+                _buildCharacterBox(_localizeGanJi(char1, locale), color, koreanChar: char1),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
@@ -561,7 +582,7 @@ class HapchungTab extends StatelessWidget {
                     size: 24,
                   ),
                 ),
-                _buildCharacterBox(char2, color),
+                _buildCharacterBox(_localizeGanJi(char2, locale), color, koreanChar: char2),
               ],
             ),
           ),
@@ -576,25 +597,31 @@ class HapchungTab extends StatelessWidget {
                   children: [
                     Icon(Icons.location_on_outlined, size: 14, color: theme.textMuted),
                     const SizedBox(width: 4),
-                    Text(
-                      '$pillar1주 ↔ $pillar2주',
-                      style: TextStyle(
-                        color: theme.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        '${SajuI18n.pillarName('${pillar1}주', locale)} ↔ ${SajuI18n.pillarName('${pillar2}주', locale)}',
+                        style: TextStyle(
+                          color: theme.textMuted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 14,
-                    height: 1.4,
+                // description 표시: 한국어는 항상 표시, 비한국어는 번역된 경우만
+                if (description.isNotEmpty && (locale == 'ko' || !RegExp(r'^[\uAC00-\uD7A3()\s]+$').hasMatch(description))) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    textAlign: TextAlign.justify,
+                    style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
                   ),
-                ),
+                ],
                 // 형/파/해/원진 상세 설명
                 if (explanation != null) ...[
                   const SizedBox(height: 10),
@@ -617,6 +644,7 @@ class HapchungTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             explanation,
+                            textAlign: TextAlign.justify,
                             style: TextStyle(
                               color: theme.textMuted,
                               fontSize: 13,
@@ -636,44 +664,104 @@ class HapchungTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCharacterBox(String char, Color color) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+  /// 천간 또는 지지 한글 → locale별 표시
+  /// 천간(갑~계)이면 cheongan, 지지(자~해)이면 jiji로 변환
+  String _localizeGanJi(String korean, String locale) {
+    const cheonganSet = {'갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'};
+    if (cheonganSet.contains(korean)) {
+      return SajuI18n.cheongan(korean, locale);
+    }
+    return SajuI18n.jiji(korean, locale);
+  }
+
+  Widget _buildCharacterBox(String localizedChar, Color color, {String? koreanChar}) {
+    return Builder(
+      builder: (context) {
+        final loc = context.locale.languageCode;
+        final isCjk = loc == 'ko' || loc == 'ja' || loc == 'zh';
+        // Non-CJK: show locale name + 한글(한자)
+        if (!isCjk && koreanChar != null && localizedChar != koreanChar) {
+          final hanja = _getHanjaForChar(koreanChar);
+          return Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  localizedChar,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  hanja != null ? '$koreanChar($hanja)' : koreanChar,
+                  style: TextStyle(
+                    color: color.withOpacity(0.7),
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        // CJK: show 한자 or 한글 only
+        return Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withOpacity(0.6), width: 1.5),
           ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          char,
-          style: TextStyle(
-            color: color,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+          child: Center(
+            child: Text(
+              localizedChar,
+              style: TextStyle(
+                color: color,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  /// 한글 간지 → 한자 반환 (천간/지지)
+  String? _getHanjaForChar(String korean) {
+    // 천간에서 찾기
+    final cheonganHanja = SajuI18n.cheongan(korean, 'ja');
+    if (cheonganHanja != korean) return cheonganHanja;
+    // 지지에서 찾기
+    final jijiHanja = SajuI18n.jiji(korean, 'ja');
+    if (jijiHanja != korean) return jijiHanja;
+    return null;
   }
 
   Widget _buildSamhapCard(BuildContext context, {required SamhapResult samhap}) {
     final theme = context.appTheme;
-    final label = samhap.isFullSamhap ? '삼합' : samhap.displayLabel;
+    final locale = context.locale.languageCode;
+    final label = SajuI18n.relationType(
+      samhap.isFullSamhap ? '삼합' : samhap.displayLabel,
+      locale,
+    );
     final isHalfSamhap = !samhap.isFullSamhap;
 
-    // 반합 설명
+    // 반합 설명 (i18n)
     String? halfExplanation;
     if (isHalfSamhap) {
-      halfExplanation = '삼합의 2글자만 있는 경우로, 완전한 삼합보다 약하지만 화합의 기운이 있습니다.';
+      halfExplanation = 'saju_detail.halfSamhap_desc'.tr();
     }
 
     return Container(
@@ -739,7 +827,7 @@ class HapchungTab extends StatelessWidget {
                   const Spacer(),
                 ...samhap.jijis.map((ji) => Padding(
                   padding: const EdgeInsets.only(left: 6),
-                  child: _buildCharacterBox(ji, _hapColor),
+                  child: _buildCharacterBox(SajuI18n.jiji(ji, context.locale.languageCode), _hapColor, koreanChar: ji),
                 )),
               ],
             ),
@@ -755,7 +843,7 @@ class HapchungTab extends StatelessWidget {
                     Icon(Icons.location_on_outlined, size: 14, color: theme.textMuted),
                     const SizedBox(width: 4),
                     Text(
-                      '${samhap.pillars.join(", ")}주',
+                      samhap.pillars.map((p) => SajuI18n.pillarName('${p}주', context.locale.languageCode)).join(', '),
                       style: TextStyle(
                         color: theme.textMuted,
                         fontSize: 13,
@@ -766,7 +854,7 @@ class HapchungTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  samhap.description,
+                  SajuI18n.hapchungDesc(samhap.description, context.locale.languageCode),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,
@@ -810,7 +898,8 @@ class HapchungTab extends StatelessWidget {
 
   Widget _buildBanghapCard(BuildContext context, {required BanghapResult banghap}) {
     final theme = context.appTheme;
-    final label = banghap.displayLabel;
+    final locale = context.locale.languageCode;
+    final label = SajuI18n.relationType(banghap.displayLabel, locale);
     final isHalfBanghap = !banghap.isFullBanghap;
 
     // 반방합 설명
@@ -871,7 +960,7 @@ class HapchungTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${banghap.direction}방 ${banghap.season}',
+                        '${SajuI18n.direction(banghap.direction, context.locale.languageCode)} · ${SajuI18n.season(banghap.season, context.locale.languageCode)}',
                         style: TextStyle(
                           color: theme.textMuted,
                           fontSize: 13,
@@ -891,7 +980,7 @@ class HapchungTab extends StatelessWidget {
                 ),
                 ...banghap.jijis.map((ji) => Padding(
                   padding: const EdgeInsets.only(left: 6),
-                  child: _buildCharacterBox(ji, _hapColor),
+                  child: _buildCharacterBox(SajuI18n.jiji(ji, context.locale.languageCode), _hapColor, koreanChar: ji),
                 )),
               ],
             ),
@@ -903,7 +992,7 @@ class HapchungTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  banghap.description,
+                  SajuI18n.hapchungDesc(banghap.description, context.locale.languageCode),
                   style: TextStyle(
                     color: theme.textPrimary,
                     fontSize: 14,
@@ -947,6 +1036,7 @@ class HapchungTab extends StatelessWidget {
 
   Widget _buildExplanationCard(BuildContext context) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -980,9 +1070,7 @@ class HapchungTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '사주팔자의 간지(干支)들 사이의 관계를 분석합니다. '
-            '합(合)은 화합과 조화를, 충(沖)은 대립과 변화를 의미합니다. '
-            '형(刑)·파(破)·해(害)·원진은 갈등과 어려움을 나타냅니다.',
+            'saju_chart.hapchungDetailBody'.tr(),
             style: TextStyle(
               color: theme.textSecondary,
               fontSize: 13,
@@ -998,12 +1086,12 @@ class HapchungTab extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildTermRow('합(合)', '서로 끌어당기고 화합하는 관계 (긍정적)', _hapColor),
-                _buildTermRow('충(沖)', '서로 부딪히고 대립하는 관계 (변화)', _chungColor),
-                _buildTermRow('형(刑)', '벌과 시련, 법적 문제', _hyungColor),
-                _buildTermRow('파(破)', '깨지고 파손되는 관계', _paColor),
-                _buildTermRow('해(害)', '방해하고 해치는 관계', _haeColor),
-                _buildTermRow('원진(怨嗔)', '원망과 미움의 관계', _wonjinColor),
+                _buildTermRow(SajuI18n.relationType('합', locale), 'saju_chart.hapTermHap'.tr(), _hapColor),
+                _buildTermRow(SajuI18n.relationType('충', locale), 'saju_chart.hapTermChung'.tr(), _chungColor),
+                _buildTermRow(SajuI18n.relationType('형', locale), 'saju_chart.hapTermHyung'.tr(), _hyungColor),
+                _buildTermRow(SajuI18n.relationType('파', locale), 'saju_chart.hapTermPa'.tr(), _paColor),
+                _buildTermRow(SajuI18n.relationType('해', locale), 'saju_chart.hapTermHae'.tr(), _haeColor),
+                _buildTermRow(SajuI18n.relationType('원진', locale), 'saju_chart.hapTermWonjin'.tr(), _wonjinColor),
               ],
             ),
           ),

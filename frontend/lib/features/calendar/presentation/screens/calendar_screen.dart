@@ -693,14 +693,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          // 한자 + 뜻
-          Text(
-            '${idiom.chinese} \u00B7 ${idiom.meaning}',
+          // 한자/한글 + 뜻 (CJK면 한자, 아니면 한글)
+          Builder(builder: (ctx) {
+            final locale = ctx.locale.languageCode;
+            final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+            return Text(
+              '${isCjk ? idiom.chinese : idiom.korean} \u00B7 ${idiom.meaning}',
             style: TextStyle(
               fontSize: 13,
               color: theme.textSecondary,
             ),
-          ),
+          );
+          }),
           const SizedBox(height: 10),
           // 메시지
           Text(

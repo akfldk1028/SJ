@@ -191,14 +191,14 @@ abstract class AdTriggerService {
 
     // 쿨다운 체크 (인터벌 광고)
     if (lastAdShownAt != null) {
-      const cooldown = Duration(seconds: AdStrategy.interstitialCooldownSeconds);
+      const cooldown = Duration(seconds: AdStrategy.rewardedCooldownSeconds);
       if (DateTime.now().difference(lastAdShownAt) < cooldown) {
         return false;
       }
     }
 
     // 일일 제한 체크
-    if (todayAdCount >= AdStrategy.interstitialDailyLimit) {
+    if (todayAdCount >= AdStrategy.rewardedDailyLimit) {
       return false;
     }
 

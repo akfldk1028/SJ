@@ -143,6 +143,9 @@ abstract class SajuProfileModel with _$SajuProfileModel {
   /// saju_profiles 테이블 스키마에 맞춤
   /// [userId]는 Supabase auth.uid()
   Map<String, dynamic> toSupabaseMap(String userId) {
+    // 일주 기반 zodiac identity 계산
+    final zodiac = _computeZodiac(birthDate);
+
     return {
       'id': id,
       'user_id': userId,
@@ -160,9 +163,40 @@ abstract class SajuProfileModel with _$SajuProfileModel {
       'time_correction': timeCorrection,
       'use_ya_jasi': useYaJasi,
       'locale': locale,
+      // zodiac identity (일주 기반)
+      'zodiac_animal': zodiac['animal'],
+      'zodiac_element': zodiac['element'],
+      'zodiac_ganji': zodiac['ganji'],
       // is_primary 컬럼 삭제됨 - profile_type으로 대체
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+
+  /// birthDate → 일주 기반 zodiac 계산 (ZodiacIdentity 의존 없이 순수 계산)
+  static Map<String, String> _computeZodiac(DateTime birthDate) {
+    const cheongan = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
+    const jiji = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+    const animals = ['rat', 'ox', 'tiger', 'rabbit', 'dragon', 'snake',
+                     'horse', 'sheep', 'monkey', 'rooster', 'dog', 'pig'];
+    const elements = {
+      '갑': 'wood', '을': 'wood', '병': 'fire', '정': 'fire',
+      '무': 'earth', '기': 'earth', '경': 'metal', '신': 'metal',
+      '임': 'water', '계': 'water',
+    };
+
+    final baseDate = DateTime(1900, 1, 1);
+    final daysDiff = birthDate.difference(baseDate).inDays;
+    int dayIndex = (10 + daysDiff) % 60;
+    if (dayIndex < 0) dayIndex += 60;
+
+    final gan = cheongan[dayIndex % 10];
+    final ji = jiji[dayIndex % 12];
+
+    return {
+      'animal': animals[dayIndex % 12],
+      'element': elements[gan] ?? 'earth',
+      'ganji': '$gan$ji',
     };
   }
 

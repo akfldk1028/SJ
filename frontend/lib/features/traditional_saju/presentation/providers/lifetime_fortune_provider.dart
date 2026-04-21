@@ -923,30 +923,60 @@ class SajuCharacterInfo {
     this.season,
   });
 
-  /// 지지 → 동물 하드코딩 매핑
-  static const _jijiAnimalMap = {
-    '자': '쥐', '축': '소', '인': '호랑이', '묘': '토끼',
-    '진': '용', '사': '뱀', '오': '말', '미': '양',
-    '신': '원숭이', '유': '닭', '술': '개', '해': '돼지',
+  /// 지지 → 동물 i18n 키 매핑 (한글 + 한자 키 모두 지원)
+  static Map<String, String> get _jijiAnimalMap => {
+    // 한글 키
+    '자': 'year_info.rat'.tr(), '축': 'year_info.ox'.tr(), '인': 'year_info.tiger'.tr(), '묘': 'year_info.rabbit'.tr(),
+    '진': 'year_info.dragon'.tr(), '사': 'year_info.snake'.tr(), '오': 'year_info.horse'.tr(), '미': 'year_info.goat'.tr(),
+    '신': 'year_info.monkey'.tr(), '유': 'year_info.rooster'.tr(), '술': 'year_info.dog'.tr(), '해': 'year_info.pig'.tr(),
+    // 한자 키 (다국어: AI가 한자 character를 반환할 때)
+    '子': 'year_info.rat'.tr(), '丑': 'year_info.ox'.tr(), '寅': 'year_info.tiger'.tr(), '卯': 'year_info.rabbit'.tr(),
+    '辰': 'year_info.dragon'.tr(), '巳': 'year_info.snake'.tr(), '午': 'year_info.horse'.tr(), '未': 'year_info.goat'.tr(),
+    '申': 'year_info.monkey'.tr(), '酉': 'year_info.rooster'.tr(), '戌': 'year_info.dog'.tr(), '亥': 'year_info.pig'.tr(),
   };
 
   factory SajuCharacterInfo.fromJson(Map<String, dynamic> json) {
     final reading = json['reading'] as String? ?? '';
-    // AI가 animal을 안 주면 지지 한글에서 하드코딩 매핑
+    final character = json['character'] as String? ?? '';
+    // AI가 animal을 안 주면 reading(한글) → character(한자) 순으로 매핑
     String? animal = json['animal'] as String?;
-    if ((animal == null || animal.isEmpty) && reading.isNotEmpty) {
-      animal = _jijiAnimalMap[reading];
+    if (animal == null || animal.isEmpty) {
+      // 한글 reading으로 먼저 시도
+      if (reading.isNotEmpty) animal = _jijiAnimalMap[reading];
+      // 한자 character에서 지지 1글자 추출하여 시도
+      if (animal == null && character.isNotEmpty) {
+        for (final char in character.split('')) {
+          if (_jijiAnimalMap.containsKey(char)) {
+            animal = _jijiAnimalMap[char];
+            break;
+          }
+        }
+      }
     }
 
     return SajuCharacterInfo(
       character: json['character'] as String? ?? '',
       reading: reading,
-      oheng: json['oheng'] as String? ?? '',
+      oheng: _normalizeOheng(json['oheng'] as String? ?? ''),
       yinYang: json['yin_yang'] as String? ?? '',
       meaning: json['meaning'] as String? ?? '',
       animal: animal,
       season: json['season'] as String?,
     );
+  }
+
+  /// AI가 oheng을 영어/기타 언어로 반환할 경우 한국어로 정규화
+  /// (schema enum으로 강제하지만 safety net)
+  static String _normalizeOheng(String oheng) {
+    if (['목', '화', '토', '금', '수'].contains(oheng)) return oheng;
+    return switch (oheng.toLowerCase().trim()) {
+      'wood' || '木' => '목',
+      'fire' || '火' => '화',
+      'earth' || '土' => '토',
+      'metal' || '金' => '금',
+      'water' || '水' => '수',
+      _ => oheng,
+    };
   }
 }
 
@@ -1190,15 +1220,15 @@ class PhaseProgressData {
   String get phaseDescription {
     switch (currentPhase) {
       case 1:
-        return '기본 성격 분석 중...';
+        return 'fortune_common.phaseBasic'.tr();
       case 2:
-        return '재물/직업/애정운 분석 중...';
+        return 'fortune_common.phaseWealth'.tr();
       case 3:
-        return '건강/대운 분석 중...';
+        return 'fortune_common.phaseHealth'.tr();
       case 4:
-        return '종합 분석 중...';
+        return 'fortune_common.phaseFinal'.tr();
       default:
-        return '분석 준비 중...';
+        return 'fortune_common.phaseReady'.tr();
     }
   }
 

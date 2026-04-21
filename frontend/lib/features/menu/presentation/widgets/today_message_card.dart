@@ -1,11 +1,15 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_identity.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/daily_fortune_provider.dart';
 
-/// Today message card - AI 데이터 연동
+/// Today message card - AI 데이터 연동 + 수호동물 캐릭터
 class TodayMessageCard extends ConsumerWidget {
   const TodayMessageCard({super.key});
 
@@ -22,24 +26,66 @@ class TodayMessageCard extends ConsumerWidget {
       }),
     );
 
+    // 활성 프로필에서 zodiac identity 계산
+    final profileAsync = ref.watch(activeProfileProvider);
+    ZodiacIdentity? zodiacIdentity;
+    if (profileAsync.hasValue && profileAsync.value != null) {
+      try {
+        zodiacIdentity = ZodiacIdentity.fromBirthDate(profileAsync.value!.birthDate);
+      } catch (_) {}
+    }
+
     return affirmation.when(
       skipLoadingOnRefresh: true,
-      loading: () => _buildLoadingCard(context, theme),
-      error: (_, __) => _buildCard(context, theme, 'menu.cannotLoadMessage'.tr()),
+      loading: () => _buildLoadingCard(context, theme, zodiacIdentity),
+      error: (_, __) => _buildCard(context, theme, 'menu.cannotLoadMessage'.tr(), zodiacIdentity),
       data: (message) {
-        // message가 null이면 AI 분석 중
         if (message == null) {
-          return _buildLoadingCard(context, theme);
+          return _buildLoadingCard(context, theme, zodiacIdentity);
         }
-        return _buildCard(context, theme, message);
+        return _buildCard(context, theme, message, zodiacIdentity);
       },
     );
   }
 
-  Widget _buildLoadingCard(BuildContext context, AppThemeExtension theme) {
+  Widget _buildZodiacAvatar(double size, ZodiacIdentity? identity) {
+    if (identity == null) {
+      return Icon(
+        Icons.lightbulb_outline_rounded,
+        color: Colors.amber,
+        size: size * 0.55,
+      );
+    }
+
+    final imageUrl = ZodiacImageService.getImageUrl(identity);
+    if (imageUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.3),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          width: size, height: size,
+          fit: BoxFit.contain,
+          placeholder: (_, __) => Text(
+            identity.animalEmoji,
+            style: TextStyle(fontSize: size * 0.5),
+          ),
+          errorWidget: (_, __, ___) => Text(
+            identity.animalEmoji,
+            style: TextStyle(fontSize: size * 0.5),
+          ),
+        ),
+      );
+    }
+
+    return Text(
+      identity.animalEmoji,
+      style: TextStyle(fontSize: size * 0.5),
+    );
+  }
+
+  Widget _buildLoadingCard(BuildContext context, AppThemeExtension theme, ZodiacIdentity? identity) {
     final scale = context.scaleFactor;
-    final iconBoxSize = (40 * scale).clamp(36.0, 52.0);
-    final iconSize = context.scaledIcon(22);
+    final avatarSize = (44 * scale).clamp(40.0, 56.0);
     final titleSize = context.scaledFont(12);
 
     return Padding(
@@ -62,19 +108,7 @@ class TodayMessageCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: iconBoxSize,
-                  height: iconBoxSize,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.lightbulb_outline_rounded,
-                    color: theme.primaryColor,
-                    size: iconSize,
-                  ),
-                ),
+                _buildZodiacAvatar(avatarSize, identity),
                 SizedBox(width: context.scaledPadding(12)),
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -123,10 +157,9 @@ class TodayMessageCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildCard(BuildContext context, AppThemeExtension theme, String message) {
+  Widget _buildCard(BuildContext context, AppThemeExtension theme, String message, ZodiacIdentity? identity) {
     final scale = context.scaleFactor;
-    final iconBoxSize = (40 * scale).clamp(36.0, 52.0);
-    final iconSize = context.scaledIcon(22);
+    final avatarSize = (44 * scale).clamp(40.0, 56.0);
     final titleSize = context.scaledFont(12);
     final messageSize = context.scaledFont(15);
 
@@ -150,19 +183,7 @@ class TodayMessageCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: iconBoxSize,
-                  height: iconBoxSize,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.lightbulb_outline_rounded,
-                    color: theme.primaryColor,
-                    size: iconSize,
-                  ),
-                ),
+                _buildZodiacAvatar(avatarSize, identity),
                 SizedBox(width: context.scaledPadding(12)),
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -187,6 +208,7 @@ class TodayMessageCard extends ConsumerWidget {
             SizedBox(height: context.scaledPadding(16)),
             Text(
               message,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: messageSize,
                 height: 1.6,

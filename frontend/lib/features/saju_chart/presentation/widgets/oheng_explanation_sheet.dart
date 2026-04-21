@@ -156,6 +156,7 @@ class OhengExplanationSheet extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'saju_chart.ohengExplanationBody'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               height: 1.7,
@@ -497,6 +498,7 @@ class OhengExplanationSheet extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'saju_chart.balanceExplanation'.tr(),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               height: 1.7,

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import 'fortune_score_gauge.dart';
@@ -76,9 +77,17 @@ class FortuneTitleHeader extends StatelessWidget {
           Row(
             children: [
               if (keyword != null)
-                FortuneKeywordBadge(
-                  keyword: keyword!,
-                  style: BadgeStyle.filled,
+                Flexible(
+                  child: Text(
+                    keyword!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: theme.primaryColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               if (keyword != null && score != null) const SizedBox(width: 12),
               if (score != null)
@@ -185,7 +194,7 @@ class FortuneTitleHeader extends StatelessWidget {
               score: score!,
               size: 100,
               style: GaugeStyle.circular,
-              label: '총운',
+              label: 'year_info.totalFortune'.tr(),
             ),
             const SizedBox(height: 24),
           ],
@@ -231,10 +240,19 @@ class FortuneTitleHeader extends StatelessWidget {
           // 키워드
           if (keyword != null) ...[
             const SizedBox(height: 16),
-            FortuneKeywordBadge(
-              keyword: keyword!,
-              style: BadgeStyle.glass,
-              fontSize: 14,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                keyword!,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryColor,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
 

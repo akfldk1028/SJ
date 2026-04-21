@@ -95,5 +95,6 @@
   "compatPromoRegister": "Registrar",
   "compatPromoAnalyzeTitle": "Analise a compatibilidade com seus contatos",
   "compatPromoAnalyzeSubtitle": "Descubra o vínculo oculto entre os Quatro Pilares de duas pessoas",
-  "compatPromoResultTitle": "Compatibilidade com {name}"
+  "compatPromoResultTitle": "Compatibilidade com {name}",
+  "defaultPartner": "Parceiro"
 }

@@ -56,28 +56,20 @@ class PosstellerStyleTable extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 헤더 행 (구분 | 시주 | 일주 | 월주 | 년주)
           _buildHeaderRow(context),
           _buildDivider(),
-          // 천간 행
           _buildCheonganRow(context),
           _buildDivider(),
-          // 천간 십성 행 (포스텔러 스타일)
           _buildCheonganSipsinRow(context, dayGan),
           _buildDivider(),
-          // 지지 행
           _buildJijiRow(context),
           _buildDivider(),
-          // 지지 십성 행 (포스텔러 스타일 - 정기 기준)
           _buildJijiSipsinRow(context, dayGan),
           _buildDivider(),
-          // 지장간 행
           _buildJijangganRow(context, jijangganResult),
           _buildDivider(),
-          // 12운성 행
           _buildUnsungRow(context, unsungResult),
           _buildDivider(),
-          // 12신살 행
           _buildSinsalRow(context, sinsalResult),
         ],
       ),
@@ -121,7 +113,8 @@ class PosstellerStyleTable extends StatelessWidget {
         final color = _getOhengColor(pillar.ganOheng);
         return _buildGanJiCell(
           context,
-          hangul: SajuI18n.cheongan(pillar.gan, locale),
+          korean: pillar.gan,
+          localeName: SajuI18n.cheongan(pillar.gan, locale),
           hanja: cheonganHanja[pillar.gan] ?? '',
           color: color,
         );
@@ -142,7 +135,8 @@ class PosstellerStyleTable extends StatelessWidget {
         final color = _getOhengColor(pillar.jiOheng);
         return _buildGanJiCell(
           context,
-          hangul: SajuI18n.jiji(pillar.ji, locale),
+          korean: pillar.ji,
+          localeName: SajuI18n.jiji(pillar.ji, locale),
           hanja: jijiHanja[pillar.ji] ?? '',
           color: color,
         );
@@ -153,6 +147,7 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 천간 십성 행 (포스텔러 스타일)
   Widget _buildCheonganSipsinRow(BuildContext context, String dayGan) {
     final pillars = _getPillarsOrdered();
+    final locale = context.locale.languageCode;
 
     return _buildDataRow(
       context,
@@ -168,7 +163,7 @@ class PosstellerStyleTable extends StatelessWidget {
         }
 
         final sipsin = calculateSipSin(dayGan, pillar.gan);
-        return _buildSipsinCell(context, sipsin.korean, sipsin);
+        return _buildSipsinCell(context, SajuI18n.sipsin(sipsin.korean, locale), sipsin);
       }).toList(),
     );
   }
@@ -176,6 +171,7 @@ class PosstellerStyleTable extends StatelessWidget {
   /// 지지 십성 행 (포스텔러 스타일 - 정기 기준)
   Widget _buildJijiSipsinRow(BuildContext context, String dayGan) {
     final pillars = _getPillarsOrdered();
+    final locale = context.locale.languageCode;
 
     return _buildDataRow(
       context,
@@ -188,13 +184,14 @@ class PosstellerStyleTable extends StatelessWidget {
         if (jeongGi == null) return _buildEmptyCell(context);
 
         final sipsin = calculateSipSin(dayGan, jeongGi);
-        return _buildSipsinCell(context, sipsin.korean, sipsin);
+        return _buildSipsinCell(context, SajuI18n.sipsin(sipsin.korean, locale), sipsin);
       }).toList(),
     );
   }
 
   /// 지장간 행
   Widget _buildJijangganRow(BuildContext context, JiJangGanAnalysisResult result) {
+    final locale = context.locale.languageCode;
     final results = [
       result.hourResult,
       result.dayResult,
@@ -207,8 +204,10 @@ class PosstellerStyleTable extends StatelessWidget {
       label: 'saju_chart.jijanggan'.tr(),
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
-        // 지장간 한글로 표시 (포스텔러 스타일)
-        final jijangganStr = r.jijangganString;
+        // 지장간 locale별 표시
+        final sorted = [...r.jijangganList]..sort((a, b) =>
+            a.type.strengthRank.compareTo(b.type.strengthRank));
+        final jijangganStr = sorted.map((j) => SajuI18n.cheongan(j.gan, locale)).join();
         final theme = context.appTheme;
         return _buildTextCell(context, jijangganStr, theme.textSecondary);
       }).toList(),
@@ -217,6 +216,7 @@ class PosstellerStyleTable extends StatelessWidget {
 
   /// 12운성 행
   Widget _buildUnsungRow(BuildContext context, UnsungAnalysisResult result) {
+    final locale = context.locale.languageCode;
     final results = [
       result.hourUnsung,
       result.dayUnsung,
@@ -230,13 +230,14 @@ class PosstellerStyleTable extends StatelessWidget {
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         final color = _getUnsungColor(r.unsung);
-        return _buildBadgeCell(context, r.unsung.korean, color);
+        return _buildBadgeCell(context, SajuI18n.unsung(r.unsung.korean, locale), color);
       }).toList(),
     );
   }
 
   /// 12신살 행
   Widget _buildSinsalRow(BuildContext context, TwelveSinsalAnalysisResult result) {
+    final locale = context.locale.languageCode;
     final results = [
       result.hourResult,
       result.dayResult,
@@ -250,7 +251,7 @@ class PosstellerStyleTable extends StatelessWidget {
       cells: results.map((r) {
         if (r == null) return _buildEmptyCell(context);
         final color = _getSinsalColor(r.sinsal);
-        return _buildBadgeCell(context, r.sinsal.korean, color);
+        return _buildBadgeCell(context, SajuI18n.sinsal(r.sinsal.korean, locale), color);
       }).toList(),
       isLast: true,
     );
@@ -292,86 +293,107 @@ class PosstellerStyleTable extends StatelessWidget {
     );
   }
 
-  /// 라벨 셀 (구분 열)
+  /// 라벨 셀 (구분 열) — locale에 따라 너비 조정
   Widget _buildLabelCell(BuildContext context, String text, {bool isHeader = false}) {
     final theme = context.appTheme;
+    final locale = context.locale.languageCode;
+    final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+    final labelWidth = compact
+        ? (isCjk ? 50.0 : 80.0)
+        : (isCjk ? 60.0 : 90.0);
+
     return SizedBox(
-      width: compact ? 50 : 60,
+      width: labelWidth,
       child: Text(
         text,
         style: TextStyle(
           color: isHeader ? theme.textMuted : theme.textSecondary,
-          fontSize: compact ? 12 : 13,
+          fontSize: compact ? 11 : 12,
           fontWeight: isHeader ? FontWeight.w500 : FontWeight.w600,
         ),
+        maxLines: 5,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
 
-  /// 헤더 셀
+  /// 헤더 셀 — 2줄 허용, 글씨 크기 통일
   Widget _buildHeaderCell(BuildContext context, String text) {
     final theme = context.appTheme;
     return Expanded(
-      child: Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Text(
           text,
           style: TextStyle(
             color: theme.textMuted,
-            fontSize: compact ? 12 : 13,
+            fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w500,
           ),
+          textAlign: TextAlign.center,
+          maxLines: 5,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
-  /// 천간/지지 셀 (한글 + 한자)
+  /// 천간/지지 셀
+  /// CJK(한/중/일): 한자 큰 글씨 + locale명 작은 글씨
+  /// 나머지: 한글 큰 글씨 + locale명 작은 글씨
   Widget _buildGanJiCell(
     BuildContext context, {
-    required String hangul,
-    required String hanja,
+    required String korean,     // 원본 한글 (갑, 을, 자, 축...)
+    required String localeName, // locale별 이름 (Gap, Gye...)
+    required String hanja,      // 한자 (甲, 乙...)
     required Color color,
   }) {
+    final locale = context.locale.languageCode;
+    final isCjk = locale == 'ko' || locale == 'ja' || locale == 'zh';
+    final bigChar = isCjk ? hanja : korean;
+    final smallChar = isCjk ? korean : localeName;
+    final showSmall = bigChar != smallChar;
+
     return Expanded(
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 한자 (큰 글씨)
-            if (showHanja && hanja.isNotEmpty)
-              Text(
-                hanja,
-                style: TextStyle(
-                  color: color,
-                  fontSize: compact ? 20 : 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            // 한글 (작은 글씨)
             Text(
-              showHanja ? hangul : '$hangul($hanja)',
+              bigChar.isNotEmpty ? bigChar : korean,
               style: TextStyle(
-                color: color.withOpacity(showHanja ? 0.8 : 1.0),
-                fontSize: compact ? 12 : 13,
-                fontWeight: FontWeight.w600,
+                color: color,
+                fontSize: compact ? 18 : 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            if (showSmall)
+              Text(
+                smallChar,
+                style: TextStyle(
+                  color: color.withOpacity(0.7),
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  /// 십성 셀
+  /// 십성 셀 — 글씨 크기 통일, 2줄 허용
   Widget _buildSipsinCell(BuildContext context, String text, SipSin? sipsin) {
     final theme = context.appTheme;
     final color = sipsin != null ? _getSipsinColor(sipsin) : theme.textSecondary;
 
     return Expanded(
-      child: Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
+          width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 6 : 8,
+            horizontal: compact ? 3 : 4,
             vertical: compact ? 3 : 4,
           ),
           decoration: BoxDecoration(
@@ -383,9 +405,13 @@ class PosstellerStyleTable extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: compact ? 12 : 13,
+              fontSize: compact ? 10 : 11,
               fontWeight: FontWeight.w600,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),
@@ -409,13 +435,15 @@ class PosstellerStyleTable extends StatelessWidget {
     );
   }
 
-  /// 뱃지 셀 (12운성, 12신살용)
+  /// 뱃지 셀 (12운성, 12신살용) — 글씨 크기 통일, 2줄 허용
   Widget _buildBadgeCell(BuildContext context, String text, Color color) {
     return Expanded(
-      child: Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
+          width: double.infinity,
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 6 : 8,
+            horizontal: compact ? 3 : 4,
             vertical: compact ? 3 : 4,
           ),
           decoration: BoxDecoration(
@@ -427,9 +455,13 @@ class PosstellerStyleTable extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: compact ? 12 : 13,
+              fontSize: compact ? 10 : 11,
               fontWeight: FontWeight.w600,
+              height: 1.2,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),

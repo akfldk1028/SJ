@@ -233,7 +233,7 @@ class GeminiEdgeDatasource {
         '',
         data: {
           'messages': messages,
-          'model': 'gemini-3-flash-preview',
+          'model': 'gemini-2.5-flash-lite',
           'max_tokens': TokenLimits.questionAnswerMaxTokens, // v29: 4096 (끊김 방지)
           'temperature': 0.8,
           if (userId != null) 'user_id': userId,
@@ -267,7 +267,7 @@ class GeminiEdgeDatasource {
       // 로컬 로그 저장
       await AiLogger.log(
         provider: 'gemini-edge',
-        model: responseData['model'] ?? 'gemini-2.5-flash',
+        model: responseData['model'] ?? 'gemini-2.5-flash-lite',
         type: 'chat',
         request: {
           'message': message,
@@ -384,7 +384,7 @@ class GeminiEdgeDatasource {
         url: '',
         data: {
           'messages': messages,
-          'model': 'gemini-3-flash-preview',
+          'model': 'gemini-2.5-flash-lite',
           'max_tokens': TokenLimits.questionAnswerMaxTokens, // v29: 4096 (끊김 방지)
           'temperature': 0.8,
           'stream': true,
@@ -589,7 +589,7 @@ class GeminiEdgeDatasource {
     // 로컬 로그 저장
     await AiLogger.log(
       provider: 'gemini-edge-stream',
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash-lite',
       type: 'chat-stream',
       request: {
         'message': message,
@@ -880,10 +880,10 @@ class GeminiEdgeDatasource {
   }
 
   /// Gemini 비용 계산 (USD)
-  /// gemini-2.5-flash: 입력 $0.075/1M, 출력 $0.30/1M (thinking 없음)
+  /// gemini-2.5-flash-lite: 입력 $0.10/1M, 출력 $0.40/1M
   double _calculateCost(int promptTokens, int completionTokens) {
-    const inputPrice = 0.075 / 1000000;
-    const outputPrice = 0.30 / 1000000;
+    const inputPrice = 0.10 / 1000000;
+    const outputPrice = 0.40 / 1000000;
     return (promptTokens * inputPrice) + (completionTokens * outputPrice);
   }
 }

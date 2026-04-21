@@ -75,9 +75,25 @@ class MentionSendHandler {
         includesOwner = result.includesOwner;
       }
     }
-    // 3. 기본값
+    // 3. @멘션 없어도 인연 이름이 텍스트에 있으면 자동 매칭 (v13.0)
     else {
-      targetId = fallbackTargetProfileId;
+      final activeProfile = await ref.read(activeProfileProvider.future);
+      if (activeProfile != null) {
+        final matched = await _matchRelationNamesInText(
+          text: text,
+          ref: ref,
+          activeProfileId: activeProfile.id,
+        );
+        if (matched != null) {
+          targetId = matched.targetProfileId;
+          participantIds = matched.participantIds;
+          includesOwner = matched.includesOwner;
+        } else {
+          targetId = fallbackTargetProfileId;
+        }
+      } else {
+        targetId = fallbackTargetProfileId;
+      }
     }
 
     return MentionSendParams(
@@ -262,5 +278,74 @@ class MentionSendHandler {
   /// 텍스트에 멘션 패턴(@카테고리/이름)이 포함되어 있는지 확인
   static bool hasMention(String text) {
     return RegExp(r'@[^\s/]+/[^\s]+').hasMatch(text);
+  }
+
+  /// v13.0: @멘션 없이 자연어에서 인연 이름 자동 매칭
+  ///
+  /// "언니와 형님 궁합 봐줘" → 인연 목록에서 "언니", "형님" 매칭
+  /// - 2명 이상 매칭: 제3자 궁합 모드 (includesOwner=false)
+  /// - 1명 매칭: 나+상대 모드 (includesOwner=true)
+  /// - 0명: null 반환 (fallback)
+  ///
+  /// 오탐 방지: display_name 2글자 이상만 매칭
+  static Future<MentionSendParams?> _matchRelationNamesInText({
+    required String text,
+    required WidgetRef ref,
+    required String activeProfileId,
+  }) async {
+    try {
+      final relations = await ref.read(relationListProvider(activeProfileId).future);
+      if (relations.isEmpty) return null;
+
+      // 인연 이름 → profileId 매칭 (긴 이름부터 검색하여 부분 매칭 오탐 방지)
+      final candidates = <({String name, String profileId})>[];
+      for (final relation in relations) {
+        final name = relation.displayName ?? relation.toProfile?.displayName ?? '';
+        final pid = relation.toProfileId;
+        if (name.length >= 2 && pid != null && text.contains(name)) {
+          candidates.add((name: name, profileId: pid));
+        }
+      }
+
+      if (candidates.isEmpty) return null;
+
+      // 중복 profileId 제거 (동일인 다른 이름)
+      final seen = <String>{};
+      final uniqueIds = <String>[];
+      for (final c in candidates) {
+        if (seen.add(c.profileId)) {
+          uniqueIds.add(c.profileId);
+        }
+      }
+
+      if (uniqueIds.length >= 2) {
+        // 2명 이상: 제3자 궁합 (언니와 형님)
+        if (kDebugMode) {
+          print('[MentionSendHandler] v13.0 자연어 매칭: ${candidates.map((c) => c.name).join(", ")} (${uniqueIds.length}명, 제3자 모드)');
+        }
+        return MentionSendParams(
+          targetProfileId: uniqueIds.first,
+          participantIds: uniqueIds,
+          includesOwner: false,
+        );
+      } else if (uniqueIds.length == 1) {
+        // 1명: 나+상대
+        if (kDebugMode) {
+          print('[MentionSendHandler] v13.0 자연어 매칭: ${candidates.first.name} (단일, 나+상대 모드)');
+        }
+        return MentionSendParams(
+          targetProfileId: uniqueIds.first,
+          participantIds: uniqueIds,
+          includesOwner: true,
+        );
+      }
+
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('[MentionSendHandler] v13.0 자연어 매칭 오류: $e');
+      }
+      return null;
+    }
   }
 }

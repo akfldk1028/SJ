@@ -128,6 +128,25 @@ class ChatNotifier extends _$ChatNotifier {
   /// 쿼타 초과가 발생한 KST 날짜 (자정 넘기면 자동 리셋)
   String? _quotaExceededDate;
 
+  /// 쿼타 초과 전역 플래그 (main_scaffold 등 외부에서 참조)
+  /// ChatNotifier는 세션별 autoDispose라 네비게이션 시 사라짐 → static으로 유지
+  static bool _quotaExceededGlobal = false;
+  static String? _quotaExceededGlobalDate;
+
+  /// 자정 넘기면 자동 리셋하는 getter (외부에서는 이것만 사용)
+  static bool get quotaExceededGlobal {
+    if (!_quotaExceededGlobal) return false;
+    if (_quotaExceededGlobalDate == null) return false;
+    final kst = DateTime.now().toUtc().add(const Duration(hours: 9));
+    final today = '${kst.year}-${kst.month.toString().padLeft(2, '0')}-${kst.day.toString().padLeft(2, '0')}';
+    if (today != _quotaExceededGlobalDate) {
+      _quotaExceededGlobal = false;
+      _quotaExceededGlobalDate = null;
+      return false;
+    }
+    return true;
+  }
+
   @override
   ChatState build(String sessionId) {
     // 세션별로 새로운 ChatRepository 생성 (Gemini 히스토리 분리)
@@ -620,13 +639,23 @@ class ChatNotifier extends _$ChatNotifier {
       if (todayStr != _quotaExceededDate) {
         _serverQuotaExceeded = false;
         _quotaExceededDate = null;
+        _quotaExceededGlobal = false;
+        _quotaExceededGlobalDate = null;
         if (kDebugMode) {
           print('[CHAT] 날짜 변경 감지 → 서버 쿼타 플래그 리셋');
         }
       }
     }
 
-    if (!isPremium && _serverQuotaExceeded) {
+    // v68: quotaExceededGlobal 추가 — 세션 전환해도 쿼타 초과 모달 유지
+    // ChatNotifier는 세션별 autoDispose라 인스턴스 변수가 리셋됨
+    // static quotaExceededGlobal로 세션 간 쿼타 상태 공유 → 불필요한 429 요청 방지
+    if (!isPremium && (_serverQuotaExceeded || quotaExceededGlobal)) {
+      // 인스턴스 플래그도 동기화 (global에서 감지된 경우)
+      if (!_serverQuotaExceeded && quotaExceededGlobal) {
+        _serverQuotaExceeded = true;
+        _quotaExceededDate = _quotaExceededGlobalDate;
+      }
       final selectedPersona = ref.read(chatPersonaNotifierProvider);
       final quota = PurchaseConfig.freeDailyQuota;
       ref.read(conversationalAdNotifierProvider.notifier).checkAndTrigger(
@@ -647,7 +676,7 @@ class ChatNotifier extends _$ChatNotifier {
       );
       _isSendingMessage = false;
       if (kDebugMode) {
-        print('⚠️ [CHAT] 서버 쿼타 초과 상태 — 광고 시청 필요');
+        print('⚠️ [CHAT] 서버 쿼타 초과 상태 — 광고 시청 필요 (global: $quotaExceededGlobal, instance: $_serverQuotaExceeded)');
       }
       return;
     }
@@ -1307,6 +1336,9 @@ class ChatNotifier extends _$ChatNotifier {
         _serverQuotaExceeded = true;
         final nowKst = DateTime.now().toUtc().add(const Duration(hours: 9));
         _quotaExceededDate = '${nowKst.year}-${nowKst.month.toString().padLeft(2, '0')}-${nowKst.day.toString().padLeft(2, '0')}';
+        // 전역 플래그 설정 (main_scaffold 탭 전환 광고 스킵용)
+        _quotaExceededGlobal = true;
+        _quotaExceededGlobalDate = _quotaExceededDate;
         if (kDebugMode) {
           print('[CHAT] 서버 Quota 초과 → 광고 모드 활성화 + 플래그 설정 ($_quotaExceededDate)');
         }
@@ -1419,6 +1451,8 @@ class ChatNotifier extends _$ChatNotifier {
     // 서버 쿼타 초과 플래그 해제 (광고 시청으로 보너스 토큰 받았으므로)
     _serverQuotaExceeded = false;
     _quotaExceededDate = null;
+    _quotaExceededGlobal = false;
+    _quotaExceededGlobalDate = null;
 
     // 1. Client-side: ConversationWindowManager에 보너스 추가 (항상)
     _repository.addBonusTokens(tokens);

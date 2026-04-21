@@ -228,12 +228,14 @@ class AiApiService {
     double temperature = 0.7,
     String logType = 'unknown',
     String? userId,
-    bool runInBackground = true,  // v24: 기본값 true
+    bool runInBackground = false,  // v60: gpt-5-mini는 sync로 충분 (10~30초), background polling 불필요
     String taskType = 'saju_analysis',  // v29: task 구분용 (기본값 유지)
     String reasoningEffort = 'medium',  // v43: reasoning_effort (low/medium/high)
+    Map<String, dynamic>? responseFormat,  // v61: json_schema strict 모드 지원. null이면 json_object 기본
   }) async {
     try {
-      print('[AiApiService v43] OpenAI 호출: $model (background=$runInBackground, taskType=$taskType, reasoning=$reasoningEffort, userId: ${userId ?? "null"})');
+      final effectiveResponseFormat = responseFormat ?? {'type': 'json_object'};
+      print('[AiApiService v61] OpenAI 호출: $model (background=$runInBackground, taskType=$taskType, reasoning=$reasoningEffort, format=${effectiveResponseFormat['type']}, userId: ${userId ?? "null"})');
 
       final response = await _client.functions.invoke(
         'ai-openai',
@@ -242,7 +244,7 @@ class AiApiService {
           'model': model,
           'max_tokens': maxTokens,
           'temperature': temperature,
-          'response_format': {'type': 'json_object'},
+          'response_format': effectiveResponseFormat,  // v61: json_schema or json_object
           'run_in_background': runInBackground,  // v24: Background 모드
           'task_type': taskType,  // v29: 병렬 실행 시 task 분리!
           'reasoning_effort': reasoningEffort,  // v43: reasoning_effort
@@ -871,6 +873,7 @@ class AiApiService {
     String? userId,
     String taskType = 'saju_analysis',  // v29: 병렬 실행 시 task 분리!
     String reasoningEffort = 'medium',  // v43: reasoning_effort
+    Map<String, dynamic>? responseFormat,  // v61: json_schema strict 모드 지원
   }) async {
     final messages = [
       {'role': 'system', 'content': systemPrompt},
@@ -901,7 +904,7 @@ class AiApiService {
       );
     }
 
-    // OpenAI 모델 - v29: taskType 전달, v43: reasoningEffort 전달
+    // OpenAI 모델 - v29: taskType 전달, v43: reasoningEffort 전달, v61: responseFormat
     final response = await callOpenAI(
       messages: messages,
       model: model,
@@ -911,6 +914,7 @@ class AiApiService {
       userId: userId,
       taskType: taskType,  // v29: 병렬 실행 시 task 분리!
       reasoningEffort: reasoningEffort,  // v43: reasoning_effort
+      responseFormat: responseFormat,  // v61: json_schema 지원
     );
 
     return ChatResponse(

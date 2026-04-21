@@ -95,5 +95,6 @@
   "compatPromoRegister": "မှတ်ပုံတင်",
   "compatPromoAnalyzeTitle": "သင့်အသိအကျွမ်းများနှင့် ဂြိုဟ်တွဲ စစ်ဆေးပါ",
   "compatPromoAnalyzeSubtitle": "လူနှစ်ယောက်၏ ကံကြမ္မာကြား ဝှက်ထားသော ဆက်နွယ်မှုကို ခွဲခြမ်းစိတ်ဖြာပါ",
-  "compatPromoResultTitle": "{name} နှင့် ဂြိုဟ်တွဲ"
+  "compatPromoResultTitle": "{name} နှင့် ဂြိုဟ်တွဲ",
+  "defaultPartner": "အဖော်"
 }

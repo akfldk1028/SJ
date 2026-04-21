@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../AI/jina/personas/persona_registry.dart';
 import '../../../../AI/jina/personas/persona_base.dart';
@@ -241,23 +242,23 @@ enum ChatPersona {
   String get displayName {
     switch (this) {
       case ChatPersona.basePerson:
-        return '기본'; // 레거시
+        return 'saju_chat.persona_default'.tr();
       case ChatPersona.nfSensitive:
-        return '감성형';
+        return 'saju_chat.mbti_NF'.tr();
       case ChatPersona.ntAnalytic:
-        return '분석형';
+        return 'saju_chat.mbti_NT'.tr();
       case ChatPersona.sfFriendly:
-        return '친근형';
+        return 'saju_chat.mbti_SF'.tr();
       case ChatPersona.stRealistic:
-        return '현실형';
+        return 'saju_chat.mbti_ST'.tr();
       case ChatPersona.babyMonk:
-        return '아기동자';
+        return 'saju_chat.persona_babyMonk'.tr();
       case ChatPersona.scenarioWriter:
-        return '송작가';
+        return 'saju_chat.persona_scenarioWriter'.tr();
       case ChatPersona.yinYangGrandpa:
-        return '음양 할배';
+        return 'saju_chat.persona_yinYangGrandpa'.tr();
       case ChatPersona.sewerSaju:
-        return '시궁창 술사';
+        return 'saju_chat.persona_sewerSaju'.tr();
     }
   }
 
@@ -313,23 +314,23 @@ enum ChatPersona {
   String get shortName {
     switch (this) {
       case ChatPersona.basePerson:
-        return '기본';
+        return 'saju_chat.persona_default'.tr();
       case ChatPersona.nfSensitive:
-        return '감성형';
+        return 'saju_chat.mbti_NF'.tr();
       case ChatPersona.ntAnalytic:
-        return '분석형';
+        return 'saju_chat.mbti_NT'.tr();
       case ChatPersona.sfFriendly:
-        return '친근형';
+        return 'saju_chat.mbti_SF'.tr();
       case ChatPersona.stRealistic:
-        return '현실형';
+        return 'saju_chat.mbti_ST'.tr();
       case ChatPersona.babyMonk:
-        return '아기동자';
+        return 'saju_chat.persona_babyMonk'.tr();
       case ChatPersona.scenarioWriter:
-        return '송작가';
+        return 'saju_chat.persona_scenarioWriter'.tr();
       case ChatPersona.yinYangGrandpa:
-        return '음양 할배';
+        return 'saju_chat.persona_yinYangGrandpa'.tr();
       case ChatPersona.sewerSaju:
-        return '시궁창';
+        return 'saju_chat.persona_sewerSaju_short'.tr();
     }
   }
 
@@ -337,23 +338,23 @@ enum ChatPersona {
   String get description {
     switch (this) {
       case ChatPersona.basePerson:
-        return '기본 상담';
+        return 'saju_chat.persona_default_desc'.tr();
       case ChatPersona.nfSensitive:
-        return '따뜻하고 공감적인 상담';
+        return 'saju_chat.mbti_NF_desc'.tr();
       case ChatPersona.ntAnalytic:
-        return '논리적이고 체계적인 분석';
+        return 'saju_chat.mbti_NT_desc'.tr();
       case ChatPersona.sfFriendly:
-        return '친근하고 유쾌한 대화';
+        return 'saju_chat.mbti_SF_desc'.tr();
       case ChatPersona.stRealistic:
-        return '직설적이고 현실적인 조언';
+        return 'saju_chat.mbti_ST_desc'.tr();
       case ChatPersona.babyMonk:
-        return '반말과 팩폭, 꼬마도사';
+        return 'saju_chat.persona_babyMonk_desc'.tr();
       case ChatPersona.scenarioWriter:
-        return '사주 스토리텔러';
+        return 'saju_chat.persona_scenarioWriter_desc'.tr();
       case ChatPersona.yinYangGrandpa:
-        return '어둠 속 빛, 반전의 대가';
+        return 'saju_chat.persona_yinYangGrandpa_desc'.tr();
       case ChatPersona.sewerSaju:
-        return '팩폭 장인';
+        return 'saju_chat.persona_sewerSaju_descChat'.tr();
     }
   }
 
@@ -361,23 +362,23 @@ enum ChatPersona {
   String get detailedDescription {
     switch (this) {
       case ChatPersona.basePerson:
-        return '기본 AI 상담사입니다.';
+        return 'saju_chat.persona_default_detail'.tr();
       case ChatPersona.nfSensitive:
-        return '따뜻하고 공감적인 감성형 상담사입니다.\n\n당신의 마음을 먼저 읽고, 사주 풀이에 따뜻한 감성을 담아 전달합니다. 위로와 공감이 필요할 때 추천합니다.';
+        return 'saju_chat.persona_nf_detail'.tr();
       case ChatPersona.ntAnalytic:
-        return '논리적이고 체계적인 분석형 상담사입니다.\n\n오행, 십성, 합충 등 사주 이론을 정확히 분석하여 근거 있는 해석을 제공합니다. 깊이 있는 사주 풀이를 원할 때 추천합니다.';
+        return 'saju_chat.persona_nt_detail'.tr();
       case ChatPersona.sfFriendly:
-        return '친근하고 유쾌한 친구 같은 상담사입니다.\n\n편하게 대화하며 사주를 쉽고 재미있게 풀어줍니다. 가볍게 사주를 알아보고 싶을 때 추천합니다.';
+        return 'saju_chat.persona_sf_detail'.tr();
       case ChatPersona.stRealistic:
-        return '직설적이고 현실적인 조언을 해주는 상담사입니다.\n\n돌려 말하지 않고 핵심만 짚어주며, 실용적인 관점에서 사주를 해석합니다. 명쾌한 답을 원할 때 추천합니다.';
+        return 'saju_chat.persona_st_detail'.tr();
       case ChatPersona.babyMonk:
-        return '꼬마 도사 아기동자입니다. 반말로 거침없이 사주를 풀어주며, 핵심만 콕콕 짚어주는 팩폭 스타일입니다.\n\n가벼운 분위기에서 솔직한 사주 풀이를 원할 때 추천합니다.';
+        return 'saju_chat.persona_babyMonk_detail'.tr();
       case ChatPersona.scenarioWriter:
-        return '사주를 하나의 이야기로 풀어내는 스토리텔러입니다.';
+        return 'saju_chat.persona_scenarioWriter_detail'.tr();
       case ChatPersona.yinYangGrandpa:
-        return '음양 할배는 어둠 속에서 빛을, 빛 속에서 그림자를 찾아내는 반전의 대가입니다.\n\n팩트를 직격으로 인정한 뒤, 숨겨진 강점을 극적으로 뒤집어 희망을 제시합니다. 위로와 반전이 필요할 때 추천합니다.';
+        return 'saju_chat.persona_yinYangGrandpa_detail'.tr();
       case ChatPersona.sewerSaju:
-        return '시궁창 술사는 사주의 안 좋은 면을 거침없이 파헤치는 팩폭 장인입니다.\n\n독설과 사이다 발언으로 현실을 직시하게 해줍니다. 심장이 약하신 분은 주의!';
+        return 'saju_chat.persona_sewerSaju_detail'.tr();
     }
   }
 

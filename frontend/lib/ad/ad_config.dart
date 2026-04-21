@@ -98,23 +98,23 @@ abstract class TestAdUnitIds {
 abstract class ProductionAdUnitIds {
   // App ID (AndroidManifest.xml, Info.plist에 설정)
   static const String appIdAndroid = 'ca-app-pub-7140787344231420~3931921704';
-  static const String appIdIos = 'ca-app-pub-7140787344231420~6791926286';
+  static const String appIdIos = 'ca-app-pub-7140787344231420~7180710965';
 
   // Banner
   static const String bannerAndroid = 'ca-app-pub-7140787344231420/8692228132';
-  static const String bannerIos = 'ca-app-pub-7140787344231420/8787534233';
+  static const String bannerIos = 'ca-app-pub-7140787344231420/5186758004';
 
   // Interstitial
   static const String interstitialAndroid = 'ca-app-pub-7140787344231420/2126819784';
-  static const String interstitialIos = 'ca-app-pub-7140787344231420/8169554734';
+  static const String interstitialIos = 'ca-app-pub-7140787344231420/3185625637';
 
   // Rewarded
   static const String rewardedAndroid = 'ca-app-pub-7140787344231420/8500656445';
-  static const String rewardedIos = 'ca-app-pub-7140787344231420/9186288783';
+  static const String rewardedIos = 'ca-app-pub-7140787344231420/7677189975';
 
   // Native
   static const String nativeAndroid = 'ca-app-pub-7140787344231420/4565280863';
-  static const String nativeIos = 'ca-app-pub-7140787344231420/1303795883';
+  static const String nativeIos = 'ca-app-pub-7140787344231420/6395897890';
 }
 
 /// 현재 모드에 맞는 Ad Unit ID 반환

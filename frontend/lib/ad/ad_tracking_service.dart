@@ -66,6 +66,16 @@ class AdTrackingService {
   // 디바이스 정보 캐시
   Map<String, dynamic>? _deviceInfoCache;
 
+  /// AdMob 대시보드 기준 eCPM (micros per impression)
+  /// onPaidEvent가 안 불리는 계정을 위한 추정치
+  /// 주기적으로 대시보드 값에 맞춰 업데이트할 것
+  static const _estimatedEcpmMicros = {
+    AdType.native: 980, // $0.98 eCPM
+    AdType.rewarded: 13680, // $13.68 eCPM
+    AdType.interstitial: 22790, // $22.79 eCPM
+    AdType.banner: 500, // $0.50 eCPM (추정)
+  };
+
   /// 디바이스 정보 수집 (한 번만 실행)
   Future<Map<String, dynamic>> _getDeviceInfo() async {
     if (_deviceInfoCache != null) return _deviceInfoCache!;
@@ -310,6 +320,13 @@ class AdTrackingService {
     try {
       final deviceInfo = await _getDeviceInfo();
 
+      // impression/show 이벤트에 eCPM 기반 추정 수익 포함
+      // onPaidEvent가 안 불리는 계정 대비 (AdMob 저볼륨 계정 한계)
+      final isRevenueEvent =
+          eventType == AdEventType.impression || eventType == AdEventType.show;
+      final estimatedMicros =
+          isRevenueEvent ? (_estimatedEcpmMicros[adType] ?? 0) : 0;
+
       final response = await _client!.from('ad_events').insert({
         'user_id': _userId,
         'ad_type': adType.name,
@@ -321,6 +338,10 @@ class AdTrackingService {
         'profile_id': profileId,
         'device_info': deviceInfo,
         'purpose': purpose.toDbString(),
+        if (estimatedMicros > 0) ...{
+          'revenue_micros': estimatedMicros,
+          'revenue_precision': 'estimated_ecpm',
+        },
       }).select('id').single();
 
       final adEventId = response['id'] as String?;

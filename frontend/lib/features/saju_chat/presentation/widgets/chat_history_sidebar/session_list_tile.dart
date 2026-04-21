@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import '../../../../../shared/widgets/localized_text.dart';
 
 import '../../../domain/entities/chat_session.dart';
 import '../../../domain/models/chat_type.dart';
@@ -137,7 +138,9 @@ class SessionListTile extends StatelessWidget {
             children: [
               const Icon(Icons.edit, size: 18),
               const SizedBox(width: 8),
-              Text('saju_chat.rename'.tr()),
+              Expanded(
+                child: LocalizedText('saju_chat.rename'.tr()),
+              ),
             ],
           ),
         ),
@@ -147,7 +150,12 @@ class SessionListTile extends StatelessWidget {
             children: [
               const Icon(Icons.delete, size: 18, color: Colors.red),
               const SizedBox(width: 8),
-              Text('saju_chat.delete'.tr(), style: const TextStyle(color: Colors.red)),
+              Expanded(
+                child: LocalizedText(
+                  'saju_chat.delete'.tr(),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
             ],
           ),
         ),

@@ -95,5 +95,6 @@
   "compatPromoRegister": "Đăng ký",
   "compatPromoAnalyzeTitle": "Xem hợp tuổi với người thân",
   "compatPromoAnalyzeSubtitle": "Phân tích mối duyên ẩn giấu giữa Tứ Trụ hai người",
-  "compatPromoResultTitle": "Hợp tuổi với {name}"
+  "compatPromoResultTitle": "Hợp tuổi với {name}",
+  "defaultPartner": "Đối phương"
 }

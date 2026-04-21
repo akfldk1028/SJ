@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -239,7 +240,7 @@ class _FortuneCategoryChipSectionState
       children: [
         // 섹션 제목
         Text(
-          widget.title ?? '분야별 운세',
+          widget.title ?? 'common.categoryFortune'.tr(),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -250,7 +251,7 @@ class _FortuneCategoryChipSectionState
 
         // 안내 텍스트
         Text(
-          '탭하여 상세 운세를 확인하세요',
+          'common.tapToViewFortune'.tr(),
           style: TextStyle(
             fontSize: 13,
             color: theme.textSecondary,
@@ -361,7 +362,7 @@ class _FortuneCategoryChipSectionState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '$score점',
+                  'common.scoreUnit'.tr(namedArgs: {'score': '$score'}),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -394,7 +395,7 @@ class _FortuneCategoryChipSectionState
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -422,7 +423,7 @@ class _FortuneCategoryChipSectionState
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${cat.score}점',
+                  'common.scoreUnit'.tr(namedArgs: {'score': '${cat.score}'}),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -448,6 +449,7 @@ class _FortuneCategoryChipSectionState
           if (cat.summary != null && cat.summary!.isNotEmpty) ...[
             Text(
               cat.summary!,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -462,6 +464,7 @@ class _FortuneCategoryChipSectionState
           if (cat.reading.isNotEmpty)
             Text(
               cat.reading,
+              textAlign: TextAlign.justify,
               style: TextStyle(
                 fontSize: 15,
                 color: theme.textSecondary,
@@ -473,7 +476,7 @@ class _FortuneCategoryChipSectionState
           if (cat.bestMonths != null && cat.bestMonths!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '좋은 달: ${cat.bestMonths!.map((m) => '$m월').join(', ')}',
+              'common.bestMonths'.tr(namedArgs: {'months': cat.bestMonths!.map((m) => 'common.monthLabel'.tr(namedArgs: {'month': '$m'})).join(', ')}),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.green.shade700,
@@ -483,7 +486,7 @@ class _FortuneCategoryChipSectionState
           ],
           if (cat.cautionMonths != null && cat.cautionMonths!.isNotEmpty)
             Text(
-              '주의할 달: ${cat.cautionMonths!.map((m) => '$m월').join(', ')}',
+              'common.cautionMonths'.tr(namedArgs: {'months': cat.cautionMonths!.map((m) => 'common.monthLabel'.tr(namedArgs: {'month': '$m'})).join(', ')}),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.orange.shade700,
@@ -494,14 +497,14 @@ class _FortuneCategoryChipSectionState
           // 실천 팁
           if (cat.actionTip != null && cat.actionTip!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '실천 팁', cat.actionTip!),
+            _buildSubSection(theme, 'common.actionTip'.tr(), cat.actionTip!),
           ],
 
           // 집중 영역
           if (cat.focusAreas != null && cat.focusAreas!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '집중 영역:',
+              'common.focusAreas'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -540,7 +543,7 @@ class _FortuneCategoryChipSectionState
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '조언',
+                        'common.advice'.tr(),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -552,6 +555,7 @@ class _FortuneCategoryChipSectionState
                   const SizedBox(height: 8),
                   Text(
                     cat.advice!,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 14,
                       color: theme.textPrimary,
@@ -566,14 +570,14 @@ class _FortuneCategoryChipSectionState
           // 타이밍
           if (cat.timing != null && cat.timing!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '타이밍', cat.timing!),
+            _buildSubSection(theme, 'common.timing'.tr(), cat.timing!),
           ],
 
           // 강점
           if (cat.strengths != null && cat.strengths!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '강점:',
+              'common.strengths'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -588,7 +592,7 @@ class _FortuneCategoryChipSectionState
           if (cat.weaknesses != null && cat.weaknesses!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '주의할 점:',
+              'common.weaknesses'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -603,7 +607,7 @@ class _FortuneCategoryChipSectionState
           if (cat.suitableFields != null && cat.suitableFields!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '적합한 분야:',
+              'common.suitableFields'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -618,7 +622,7 @@ class _FortuneCategoryChipSectionState
           if (cat.unsuitableFields != null && cat.unsuitableFields!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '피해야 할 분야:',
+              'common.unsuitableFields'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -653,7 +657,7 @@ class _FortuneCategoryChipSectionState
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '주의사항',
+                        'common.cautions'.tr(),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -701,26 +705,26 @@ class _FortuneCategoryChipSectionState
           // 직업운 전용 필드
           if (cat.workStyle != null && cat.workStyle!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '업무 스타일', cat.workStyle!),
+            _buildSubSection(theme, 'common.workStyle'.tr(), cat.workStyle!),
           ],
           if (cat.leadershipPotential != null && cat.leadershipPotential!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '리더십 잠재력', cat.leadershipPotential!),
+            _buildSubSection(theme, 'common.leadershipPotential'.tr(), cat.leadershipPotential!),
           ],
 
           // 연애운 전용 필드
           if (cat.datingPattern != null && cat.datingPattern!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '연애 패턴', cat.datingPattern!),
+            _buildSubSection(theme, 'common.datingPattern'.tr(), cat.datingPattern!),
           ],
           if (cat.attractionStyle != null && cat.attractionStyle!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '끌리는 유형', cat.attractionStyle!),
+            _buildSubSection(theme, 'common.attractionStyle'.tr(), cat.attractionStyle!),
           ],
           if (cat.idealPartnerTraits != null && cat.idealPartnerTraits!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '이상형 특성:',
+              'common.idealPartnerTraits'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -734,54 +738,54 @@ class _FortuneCategoryChipSectionState
           // 재물운 전용 필드
           if (cat.overallTendency != null && cat.overallTendency!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '전반적 경향', cat.overallTendency!),
+            _buildSubSection(theme, 'common.overallTendency'.tr(), cat.overallTendency!),
           ],
           if (cat.earningStyle != null && cat.earningStyle!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '돈 버는 방식', cat.earningStyle!),
+            _buildSubSection(theme, 'common.earningStyle'.tr(), cat.earningStyle!),
           ],
           if (cat.spendingTendency != null && cat.spendingTendency!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '소비 성향', cat.spendingTendency!),
+            _buildSubSection(theme, 'common.spendingTendency'.tr(), cat.spendingTendency!),
           ],
           if (cat.investmentAptitude != null && cat.investmentAptitude!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '투자 적성', cat.investmentAptitude!),
+            _buildSubSection(theme, 'common.investmentAptitude'.tr(), cat.investmentAptitude!),
           ],
 
           // 사업운 전용 필드
           if (cat.entrepreneurshipAptitude != null && cat.entrepreneurshipAptitude!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '창업 적성', cat.entrepreneurshipAptitude!),
+            _buildSubSection(theme, 'common.entrepreneurshipAptitude'.tr(), cat.entrepreneurshipAptitude!),
           ],
           if (cat.businessPartnerTraits != null && cat.businessPartnerTraits!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '사업 파트너 특성', cat.businessPartnerTraits!),
+            _buildSubSection(theme, 'common.businessPartnerTraits'.tr(), cat.businessPartnerTraits!),
           ],
 
           // 결혼운 전용 필드
           if (cat.spousePalaceAnalysis != null && cat.spousePalaceAnalysis!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '배우자궁 분석', cat.spousePalaceAnalysis!),
+            _buildSubSection(theme, 'common.spousePalaceAnalysis'.tr(), cat.spousePalaceAnalysis!),
           ],
           if (cat.spouseCharacteristics != null && cat.spouseCharacteristics!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '배우자 특성', cat.spouseCharacteristics!),
+            _buildSubSection(theme, 'common.spouseCharacteristics'.tr(), cat.spouseCharacteristics!),
           ],
           if (cat.marriedLifeTendency != null && cat.marriedLifeTendency!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '결혼 생활 경향', cat.marriedLifeTendency!),
+            _buildSubSection(theme, 'common.marriedLifeTendency'.tr(), cat.marriedLifeTendency!),
           ],
 
           // 건강운 전용 필드
           if (cat.mentalHealth != null && cat.mentalHealth!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildSubSection(theme, '정신 건강', cat.mentalHealth!),
+            _buildSubSection(theme, 'common.mentalHealth'.tr(), cat.mentalHealth!),
           ],
           if (cat.lifestyleAdvice != null && cat.lifestyleAdvice!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              '생활 습관 조언:',
+              'common.lifestyleAdvice'.tr(),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -811,6 +815,7 @@ class _FortuneCategoryChipSectionState
         const SizedBox(height: 4),
         Text(
           content,
+          textAlign: TextAlign.justify,
           style: TextStyle(
             fontSize: 14,
             color: theme.textSecondary,
@@ -861,16 +866,16 @@ class _FortuneCategoryChipSectionState
         }
       });
     } else {
-      // 잠긴 카테고리 - 전면 광고 후 해금
-      await _showInterstitialAndUnlock(categoryKey);
+      // 잠긴 카테고리 - 보상형 광고 후 해금
+      await _showRewardedAndUnlock(categoryKey);
     }
   }
 
-  /// 전면 광고 표시 후 카테고리 해금
+  /// 보상형 광고 표시 후 카테고리 해금
   ///
-  /// v3: 보상형 광고 → 전면 광고(5초)로 전환
-  /// 전면 광고 실패 시 → 무료 해금 (광고 못 보여주면 차라리 해금)
-  Future<void> _showInterstitialAndUnlock(String categoryKey) async {
+  /// v4: 전면 광고 → 보상형 광고로 전환
+  /// showRewardedAdWithUnlock 내부에서 FeatureUnlockService 해금 처리
+  Future<void> _showRewardedAndUnlock(String categoryKey) async {
     if (_isLoadingAd) return;
 
     final categoryName = _getCategoryName(categoryKey);
@@ -901,23 +906,11 @@ class _FortuneCategoryChipSectionState
 
     final unlockInfo = _parseFortuneType();
 
-    // 전면 광고 로드 대기 (최대 5초) → 표시
-    await AdService.instance.waitForInterstitialLoad();
-    final shown = await AdService.instance.showInterstitialAd(
-      bypassInterval: true,
-      onDismissed: () async {
-        // 광고 닫힌 후 해금 (크래시 방지)
-        if (unlockInfo != null) {
-          await FeatureUnlockService.instance.unlockByRewardedAd(
-            featureType: unlockInfo.featureType,
-            featureKey: categoryKey,
-            targetYear: unlockInfo.targetYear,
-            targetMonth: unlockInfo.targetMonth,
-            rewardAmount: 0,
-            rewardType: 'interstitial',
-            profileId: widget.profileId,
-          );
-        }
+    // 보상형 광고 로드 대기 (최대 5초) → 표시
+    await AdService.instance.waitForRewardedLoad();
+    final shown = await AdService.instance.showRewardedAdWithUnlock(
+      onRewarded: (amount, type) {
+        // 보상 콜백 후 해금
         if (mounted) {
           setState(() {
             _isLoadingAd = false;
@@ -926,10 +919,15 @@ class _FortuneCategoryChipSectionState
           _unlockAndExpand(categoryKey, categoryName);
         }
       },
+      featureType: unlockInfo?.featureType,
+      featureKey: categoryKey,
+      targetYear: unlockInfo?.targetYear,
+      targetMonth: unlockInfo?.targetMonth,
+      profileId: widget.profileId,
     );
 
     if (!shown) {
-      // 전면 광고 로드 안 됨 (AdMob + AdFit 둘 다 실패) → 구매 안내
+      // 보상형 광고 로드 안 됨 (AdMob + Unity 둘 다 실패) → 구매 안내
       if (mounted) {
         setState(() {
           _isLoadingAd = false;
@@ -937,8 +935,6 @@ class _FortuneCategoryChipSectionState
         });
         _showPurchaseDialog(categoryName);
       }
-      // 다음을 위해 전면 광고 재로드
-      AdService.instance.loadInterstitialAd();
     }
   }
 
@@ -953,7 +949,9 @@ class _FortuneCategoryChipSectionState
       try {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$categoryName 운세가 해제되었습니다!$suffix'),
+            content: Text(suffix.isEmpty
+                ? 'common.unlocked'.tr(namedArgs: {'name': categoryName})
+                : 'common.unlockedWebTest'.tr(namedArgs: {'name': categoryName})),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -966,21 +964,21 @@ class _FortuneCategoryChipSectionState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('프리미엄으로 바로 보기'),
+        title: Text('common.premiumViewNow'.tr()),
         content: Text(
-          '$categoryName 운세를 보려면 광고 시청이 필요하지만,\n현재 광고를 불러올 수 없어요.\n\n프리미엄 구독하면 광고 없이 바로 이용할 수 있어요!',
+          'common.premiumAdNotAvailable'.tr(namedArgs: {'name': categoryName}),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('닫기'),
+            child: Text('common.close'.tr()),
           ),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.push(Routes.settingsPremium);
             },
-            child: const Text('프리미엄 보기'),
+            child: Text('common.viewPremium'.tr()),
           ),
         ],
       ),
@@ -988,18 +986,18 @@ class _FortuneCategoryChipSectionState
   }
 
   String _getCategoryName(String key) {
-    const names = {
-      'career': '직업운',
-      'work': '직장운',  // DB 키와 일치
-      'business': '사업운',
-      'wealth': '재물운',
-      'love': '애정운',
-      'marriage': '결혼운',
-      'study': '학업운',
-      'health': '건강운',
-      'overall': '총운',
-      'family': '가정운',
-      'social': '대인운',
+    final names = {
+      'career': 'fortune_common.catCareer'.tr(),
+      'work': 'fortune_common.catWork'.tr(),
+      'business': 'fortune_common.catBusiness'.tr(),
+      'wealth': 'fortune_common.catWealth'.tr(),
+      'love': 'fortune_common.catLove'.tr(),
+      'marriage': 'fortune_common.catMarriage'.tr(),
+      'study': 'fortune_common.catStudy'.tr(),
+      'health': 'fortune_common.catHealth'.tr(),
+      'overall': 'fortune_common.catOverall'.tr(),
+      'family': 'fortune_common.catFamily'.tr(),
+      'social': 'fortune_common.catSocial'.tr(),
     };
     return names[key] ?? key;
   }

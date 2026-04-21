@@ -85,11 +85,11 @@ abstract class OpenAIModels {
   static const String gpt4oMini = 'gpt-4o-mini';
 
   /// 사주 분석용 기본 모델 (평생운세 saju_base)
-  /// - 원래: gpt52 (GPT-5.2, $1.75/$14.00) → 건당 ~$0.20
-  /// - 현재: gpt5Mini (GPT-5-mini, $0.25/$2.00) → 건당 ~$0.03
-  /// - 이유: AdMob 무효트래픽 제한으로 광고 수익 없음 (2026-02-10~)
-  /// - 복원: 광고 재개되면 gpt52로 되돌리기
-  static const String sajuAnalysis = gpt5Mini;
+  /// - v103: qwen3.5-flash (DashScope, $0.10/$0.40) → 건당 ~$0.003
+  /// - 이전: gpt5Mini ($0.25/$2.00) → 건당 ~$0.03 (10배 비쌈)
+  /// - Edge Function에서 json_schema→json_object 자동 변환 + 19필드 검증
+  /// - Qwen 실패 시 GPT fallback
+  static const String sajuAnalysis = 'qwen3.5-flash';
 
   /// GPT-5-mini (2026년 출시)
   /// - API ID: gpt-5-mini
@@ -99,9 +99,10 @@ abstract class OpenAIModels {
   static const String gpt5Mini = 'gpt-5-mini';
 
   /// 운세 분석용 모델 (파생 운세: 2025 회고, 2026 신년, 월운 등)
-  /// - 처음부터 gpt5Mini로 설계 (saju_base 기반 파생이라 mini로 충분)
-  /// - sajuAnalysis와 달리 모델 변경 이력 없음
-  static const String fortuneAnalysis = gpt5Mini;
+  /// - v106: gpt5Mini → qwen3.5-flash 전환 (10배 절감, $0.03→$0.003/건)
+  /// - saju_base 기반 파생이라 Qwen으로 충분
+  /// - Qwen 실패 시 GPT fallback (ai-openai EF에서 처리)
+  static const String fortuneAnalysis = sajuAnalysis;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -111,17 +112,23 @@ abstract class OpenAIModels {
 /// Google Gemini 모델 식별자
 ///
 /// ## 모델 선택 가이드
-/// - `gemini30Flash`: Gemini 3.0 Flash (2025.12.17 출시) → 일운/대화용
+/// - `gemini25FlashLite`: Gemini 2.5 Flash Lite → 일운/대화용 (비용 최적)
+/// - `gemini30Flash`: Gemini 3.0 Flash (레거시)
 /// - `gemini20Flash`: Gemini 2.0 Flash (레거시)
-/// - `gemini15Pro`: Gemini 1.5 Pro → 복잡한 분석용
 ///
-/// ## 참고
-/// - Gemini API 엔드포인트에서 사용하는 정확한 모델 ID
+/// ## v37 변경 (2026-04-04)
+/// 비용 절감을 위해 기본 모델을 gemini-3-flash-preview → gemini-2.5-flash-lite로 전환
+/// - Input: $0.50 → $0.10 (5배 절감)
+/// - Output: $3.00 → $0.40 (7.5배 절감)
 abstract class GoogleModels {
-  /// Gemini 3.0 Flash (2025.12.17 출시)
-  /// - Pro급 지능 + Flash 속도/가격
-  /// - 1M 토큰 입력, 64k 출력
+  /// Gemini 2.5 Flash Lite (비용 최적 모델)
+  /// - 가장 저렴한 멀티모달 모델
+  /// - 1M 토큰 입력, 65k 출력
   /// - 일운/대화 기본 모델
+  static const String gemini25FlashLite = 'gemini-2.5-flash-lite';
+
+  /// Gemini 3.0 Flash (레거시 — 2025.12.17 출시)
+  /// - Pro급 지능 + Flash 속도
   static const String gemini30Flash = 'gemini-3-flash-preview';
 
   /// Gemini 3.0 Pro (2025.12.17 출시)
@@ -137,11 +144,11 @@ abstract class GoogleModels {
   /// - 이전 버전
   static const String gemini15Pro = 'gemini-1.5-pro';
 
-  /// 대화/일운용 기본 모델 (Gemini 3.0 Flash)
-  static const String chat = gemini30Flash;
+  /// 대화/일운용 기본 모델 (Gemini 2.5 Flash Lite)
+  static const String chat = gemini25FlashLite;
 
   /// 일운 분석용 모델
-  static const String dailyFortune = gemini30Flash;
+  static const String dailyFortune = gemini25FlashLite;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -247,12 +254,18 @@ abstract class OpenAIPricing {
 /// - Batch API는 50% 할인 (현재 Standard 기준)
 abstract class GeminiPricing {
   // ─────────────────────────────────────────────────────────────────────────
-  // Gemini 3.0 Flash 가격 (per 1M tokens) - 2025.12.17 출시
+  // Gemini 2.5 Flash Lite 가격 (per 1M tokens) - 기본 모델 (v37)
   // ─────────────────────────────────────────────────────────────────────────
-  /// 입력: $0.50 (text/image/video)
-  static const double gemini30FlashInput = 0.50;
+  /// 입력: $0.10 (text/image/video)
+  static const double gemini25FlashLiteInput = 0.10;
 
-  /// 출력: $3.00
+  /// 출력: $0.40
+  static const double gemini25FlashLiteOutput = 0.40;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Gemini 3.0 Flash 가격 (per 1M tokens) - 레거시
+  // ─────────────────────────────────────────────────────────────────────────
+  static const double gemini30FlashInput = 0.50;
   static const double gemini30FlashOutput = 3.00;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -280,7 +293,11 @@ abstract class GeminiPricing {
 
   /// 모델별 가격 조회
   static Map<String, double>? getModelPricing(String model) {
-    // Gemini 3.0 Flash
+    // Gemini 2.5 Flash Lite (기본 모델)
+    if (model.contains('gemini-2.5') && model.contains('lite')) {
+      return {'input': gemini25FlashLiteInput, 'output': gemini25FlashLiteOutput};
+    }
+    // Gemini 3.0 Flash (레거시)
     if (model.contains('gemini-3') && model.contains('flash')) {
       return {'input': gemini30FlashInput, 'output': gemini30FlashOutput};
     }

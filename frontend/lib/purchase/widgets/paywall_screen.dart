@@ -6,6 +6,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' show ShadButton;
 
 import '../../core/theme/app_theme.dart';
+import '../../features/settings/presentation/widgets/legal_notice_dialog.dart';
 import '../purchase_config.dart';
 import '../providers/purchase_provider.dart';
 import 'restore_button_widget.dart';
@@ -63,7 +64,7 @@ class PaywallScreen extends ConsumerWidget {
   };
 
   /// 상품 정렬 순서
-  static const _productOrder = [
+  static List<String> get _productOrder => [
     PurchaseConfig.productDayPass,
     PurchaseConfig.productWeekPass,
     PurchaseConfig.productMonthly,
@@ -249,6 +250,46 @@ class PaywallScreen extends ConsumerWidget {
                   'purchase.termsAutoRenew'.tr(),
                   style: TextStyle(color: theme.textMuted, fontSize: 11),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+
+                // 이용약관 & 개인정보처리방침 링크 (Guideline 3.1.2)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => LegalNoticeDialog.show(
+                        context, LegalNoticeType.terms),
+                      child: Text(
+                        'settings.terms'.tr(),
+                        style: TextStyle(
+                          color: theme.textMuted,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '|',
+                        style: TextStyle(
+                          color: theme.textMuted, fontSize: 11),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => LegalNoticeDialog.show(
+                        context, LegalNoticeType.privacy),
+                      child: Text(
+                        'settings.privacy'.tr(),
+                        style: TextStyle(
+                          color: theme.textMuted,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 32),
               ],

@@ -5,6 +5,8 @@
 /// 네트워크별 트래킹(onPaidEvent, impression, click)은 어댑터 내부에서 처리.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -24,6 +26,16 @@ class AdMobAdapter implements AdNetworkAdapter {
 
   // 보류 중인 콜백 (show 시 설정, dismiss 시 호출)
   void Function()? _pendingInterstitialDismissed;
+
+  // 보류 중인 screen (show 시 설정, 콜백에서 사용)
+  String? _pendingInterstitialScreen;
+  String? _pendingRewardedScreen;
+
+  // 보상형 광고 dismiss 대기 Completer
+  Completer<void>? _rewardedDismissCompleter;
+
+  // 보상형 광고 실제 표시 여부 (onAdShowedFullScreenContent → true)
+  bool _adShowed = false;
 
   @override
   bool get isInterstitialLoaded => _isInterstitialLoaded;
@@ -73,16 +85,17 @@ class AdMobAdapter implements AdNetworkAdapter {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Interstitial showed');
-              AdTrackingService.instance.trackInterstitialShow();
+              AdTrackingService.instance.trackInterstitialShow(screen: _pendingInterstitialScreen);
             },
             onAdDismissedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Interstitial dismissed');
-              AdTrackingService.instance.trackInterstitialComplete();
+              AdTrackingService.instance.trackInterstitialComplete(screen: _pendingInterstitialScreen);
               ad.dispose();
               _interstitialAd = null;
               _isInterstitialLoaded = false;
               _pendingInterstitialDismissed?.call();
               _pendingInterstitialDismissed = null;
+              _pendingInterstitialScreen = null;
               // 자동 재로드
               loadInterstitial();
             },
@@ -94,6 +107,7 @@ class AdMobAdapter implements AdNetworkAdapter {
               _isInterstitialLoaded = false;
               _pendingInterstitialDismissed?.call(); // show 실패해도 콜백 호출
               _pendingInterstitialDismissed = null;
+              _pendingInterstitialScreen = null;
               loadInterstitial();
             },
             onAdImpression: (ad) {
@@ -120,10 +134,11 @@ class AdMobAdapter implements AdNetworkAdapter {
   }
 
   @override
-  Future<bool> showInterstitial({void Function()? onDismissed}) async {
+  Future<bool> showInterstitial({void Function()? onDismissed, String? screen}) async {
     if (!_isInterstitialLoaded || _interstitialAd == null) return false;
 
     _pendingInterstitialDismissed = onDismissed;
+    _pendingInterstitialScreen = screen;
     await _interstitialAd!.show();
     return true;
   }
@@ -156,15 +171,20 @@ class AdMobAdapter implements AdNetworkAdapter {
           // 풀스크린 콘텐츠 콜백
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdShowedFullScreenContent: (ad) {
+              _adShowed = true;
               debugPrint('[AdMobAdapter] Rewarded showed');
-              AdTrackingService.instance.trackRewardedShow();
+              AdTrackingService.instance.trackRewardedShow(screen: _pendingRewardedScreen);
             },
             onAdDismissedFullScreenContent: (ad) {
               debugPrint('[AdMobAdapter] Rewarded dismissed');
-              AdTrackingService.instance.trackRewardedComplete();
+              AdTrackingService.instance.trackRewardedComplete(screen: _pendingRewardedScreen);
               ad.dispose();
               _rewardedAd = null;
               _isRewardedLoaded = false;
+              _pendingRewardedScreen = null;
+              if (!(_rewardedDismissCompleter?.isCompleted ?? true)) {
+                _rewardedDismissCompleter?.complete();
+              }
               // 지연 후 재로드
               Future.delayed(
                 const Duration(seconds: AdSettings.rewardedReloadDelay),
@@ -177,6 +197,10 @@ class AdMobAdapter implements AdNetworkAdapter {
               ad.dispose();
               _rewardedAd = null;
               _isRewardedLoaded = false;
+              _pendingRewardedScreen = null;
+              if (!(_rewardedDismissCompleter?.isCompleted ?? true)) {
+                _rewardedDismissCompleter?.complete();
+              }
             },
             onAdImpression: (ad) {
               debugPrint('[AdMobAdapter] Rewarded impression');
@@ -203,8 +227,13 @@ class AdMobAdapter implements AdNetworkAdapter {
   @override
   Future<bool> showRewarded({
     required void Function(int amount, String type) onRewarded,
+    String? screen,
   }) async {
     if (!_isRewardedLoaded || _rewardedAd == null) return false;
+
+    _pendingRewardedScreen = screen;
+    _rewardedDismissCompleter = Completer<void>();
+    _adShowed = false;
 
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
@@ -213,7 +242,10 @@ class AdMobAdapter implements AdNetworkAdapter {
         onRewarded(reward.amount.toInt(), reward.type);
       },
     );
-    return true;
+
+    // 광고 dismiss/실패 후에야 리턴 → 호출자가 rewardGranted 정확히 판단
+    await _rewardedDismissCompleter!.future;
+    return _adShowed; // onAdFailedToShow → false, 정상 표시 → true
   }
 
   // ==================== Lifecycle ====================
@@ -227,5 +259,7 @@ class AdMobAdapter implements AdNetworkAdapter {
     _isInterstitialLoaded = false;
     _isRewardedLoaded = false;
     _pendingInterstitialDismissed = null;
+    _pendingInterstitialScreen = null;
+    _pendingRewardedScreen = null;
   }
 }

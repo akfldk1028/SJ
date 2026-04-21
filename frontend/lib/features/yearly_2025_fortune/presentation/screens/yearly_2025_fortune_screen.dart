@@ -179,6 +179,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
               if (fortune.overview.opening.isNotEmpty)
                 Text(
                   fortune.overview.opening,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(
                     fontSize: 15,
                     color: theme.textSecondary,
@@ -279,6 +280,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.achievements.reading.isNotEmpty)
                   Text(
                     fortune.achievements.reading,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 15,
                       color: theme.textSecondary,
@@ -309,6 +311,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.challenges.reading.isNotEmpty)
                   Text(
                     fortune.challenges.reading,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 15,
                       color: theme.textSecondary,
@@ -362,6 +365,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.lessons.reading.isNotEmpty)
                   Text(
                     fortune.lessons.reading,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 15,
                       color: theme.textSecondary,
@@ -370,7 +374,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                   ),
                 if (fortune.lessons.keyLessons.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _buildLessonChips(theme, fortune.lessons.keyLessons),
+                  _buildLessonChips(context, theme, fortune.lessons.keyLessons),
                 ],
               ],
             ),
@@ -392,6 +396,7 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
                 if (fortune.to2026.reading.isNotEmpty)
                   Text(
                     fortune.to2026.reading,
+                    textAlign: TextAlign.justify,
                     style: TextStyle(
                       fontSize: 15,
                       color: theme.textSecondary,
@@ -478,33 +483,38 @@ class Yearly2025FortuneScreen extends ConsumerWidget {
   }
 
   /// 교훈 칩
-  Widget _buildLessonChips(AppThemeExtension theme, List<String> lessons) {
+  Widget _buildLessonChips(BuildContext context, AppThemeExtension theme, List<String> lessons) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: lessons.map((lesson) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.primaryColor.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.emoji_objects, size: 14, color: theme.primaryColor),
-            const SizedBox(width: 6),
-            Text(
-              lesson,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: theme.textPrimary,
-              ),
+      children: lessons.map((lesson) => ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 56),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: theme.primaryColor.withValues(alpha: 0.3),
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_objects, size: 14, color: theme.primaryColor),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  lesson,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: theme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       )).toList(),
     );

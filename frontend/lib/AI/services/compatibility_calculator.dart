@@ -743,20 +743,20 @@ class HapchungAnalysis {
         .replaceAll('신사파', '신사파(申巳破)')
         .replaceAll('술미파', '술미파(戌未破)');
 
-    // 원진
+    // 원진 (자미, 축오, 인유, 묘신, 진해, 사술 — 해(害)와 혼동 금지)
     text = text
         .replaceAll('자미 원진', '자미 원진(子未怨嗔)')
-        .replaceAll('축오 원진', '축오 원진(丑午怨嗔)')
-        .replaceAll('인사 원진', '인사 원진(寅巳怨嗔)')
-        .replaceAll('묘진 원진', '묘진 원진(卯辰怨嗔)')
-        .replaceAll('진묘 원진', '진묘 원진(辰卯怨嗔)')
-        .replaceAll('사인 원진', '사인 원진(巳寅怨嗔)')
-        .replaceAll('오축 원진', '오축 원진(午丑怨嗔)')
         .replaceAll('미자 원진', '미자 원진(未子怨嗔)')
-        .replaceAll('신해 원진', '신해 원진(申亥怨嗔)')
-        .replaceAll('유술 원진', '유술 원진(酉戌怨嗔)')
-        .replaceAll('술유 원진', '술유 원진(戌酉怨嗔)')
-        .replaceAll('해신 원진', '해신 원진(亥申怨嗔)');
+        .replaceAll('축오 원진', '축오 원진(丑午怨嗔)')
+        .replaceAll('오축 원진', '오축 원진(午丑怨嗔)')
+        .replaceAll('인유 원진', '인유 원진(寅酉怨嗔)')
+        .replaceAll('유인 원진', '유인 원진(酉寅怨嗔)')
+        .replaceAll('묘신 원진', '묘신 원진(卯申怨嗔)')
+        .replaceAll('신묘 원진', '신묘 원진(申卯怨嗔)')
+        .replaceAll('진해 원진', '진해 원진(辰亥怨嗔)')
+        .replaceAll('해진 원진', '해진 원진(亥辰怨嗔)')
+        .replaceAll('사술 원진', '사술 원진(巳戌怨嗔)')
+        .replaceAll('술사 원진', '술사 원진(戌巳怨嗔)');
 
     // 반합 (삼합 일부)
     text = text

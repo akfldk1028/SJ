@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/mystic_background.dart';
 import '../../../../router/routes.dart';
 import '../../data/schema.dart';
 import '../providers/splash_provider.dart';
@@ -28,12 +26,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _scaleAnimation;
 
   bool _isNavigating = false;
+  bool _minDelayCompleted = false;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
-    _startPrefetch();
+    _startMinDelay();
   }
 
   void _setupAnimations() {
@@ -59,37 +58,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _animationController.forward();
   }
 
-  Future<void> _startPrefetch() async {
-    // 최소 1.5초 대기 (애니메이션 + 브랜딩)
-    await Future.delayed(const Duration(milliseconds: 1500));
+  Future<void> _startMinDelay() async {
+    // 최소 대기 (애니메이션 + 브랜딩)
+    // 비한국어: 사주 소개 읽을 시간 확보 (2.5초)
+    bool isKo = true;
+    try {
+      isKo = context.locale.languageCode == 'ko';
+    } catch (_) {}
+    await Future.delayed(Duration(milliseconds: isKo ? 1500 : 2500));
 
     if (!mounted) return;
 
-    // Provider가 자동으로 pre-fetch 실행
-    // 결과를 listen하고 네비게이션
-    _listenToSplashState();
-  }
+    _minDelayCompleted = true;
 
-  void _listenToSplashState() {
-    // 현재 상태 확인
+    // 딜레이 끝났을 때 이미 데이터가 준비되어 있으면 즉시 네비게이션
     final asyncState = ref.read(splashProvider);
-
     asyncState.when(
       data: (state) => _handleSplashState(state),
-      loading: () {
-        // 로딩 중이면 다음 빌드에서 다시 확인
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted && !_isNavigating) {
-            _listenToSplashState();
-          }
-        });
-      },
+      loading: () {}, // ref.listen이 이후 변경 감지
       error: (error, stack) {
         if (kDebugMode) {
           print('[Splash] Error: $error');
         }
-        // 에러 시 온보딩으로
-        _navigateTo(Routes.onboarding);
+        final langFb = context.locale.languageCode;
+        final isCjkFb = {'ko', 'ja', 'zh'}.contains(langFb);
+        _navigateTo(isCjkFb ? Routes.onboarding : Routes.zodiacOnboarding);
       },
     );
   }
@@ -115,7 +108,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       case PrefetchStatus.noProfile:
         // 신규 사용자 → 온보딩
-        _navigateTo(Routes.onboarding);
+        // CJK(한중일)는 사주/오행 이미 아는 문화 → 기존 온보딩
+        // 나머지 언어 → zodiac 대화형 온보딩
+        final lang = context.locale.languageCode;
+        final isCjk = {'ko', 'ja', 'zh'}.contains(lang);
+        _navigateTo(isCjk ? Routes.onboarding : Routes.zodiacOnboarding);
 
       case PrefetchStatus.noAnalysis:
         // 프로필은 있지만 분석 없음
@@ -129,23 +126,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
       case PrefetchStatus.error:
         // 에러 → 온보딩 (재시도 가능)
-        _navigateTo(Routes.onboarding);
+        final langErr = context.locale.languageCode;
+        final isCjkErr = {'ko', 'ja', 'zh'}.contains(langErr);
+        _navigateTo(isCjkErr ? Routes.onboarding : Routes.zodiacOnboarding);
     }
   }
 
   void _navigateTo(String route) {
     if (_isNavigating || !mounted) return;
-
-    setState(() {
-      _isNavigating = true;
-    });
-
-    // 부드러운 전환을 위해 약간의 딜레이
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        context.go(route);
-      }
-    });
+    _isNavigating = true;
+    context.go(route);
   }
 
   @override
@@ -156,59 +146,127 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Provider 상태 watch (자동 rebuild)
+    // Provider 상태 watch (자동 rebuild — 로딩 인디케이터용)
     final asyncState = ref.watch(splashProvider);
-    final theme = context.appTheme;
+
+    // ref.listen: 상태 변경 시 네비게이션 (폴링 대신 Riverpod 공식 패턴)
+    ref.listen(splashProvider, (previous, next) {
+      if (!_minDelayCompleted || _isNavigating) return;
+      next.when(
+        data: (state) => _handleSplashState(state),
+        loading: () {},
+        error: (error, stack) {
+          if (kDebugMode) {
+            print('[Splash] Error: $error');
+          }
+          final lang = context.locale.languageCode;
+          final isCjk = {'ko', 'ja', 'zh'}.contains(lang);
+          _navigateTo(isCjk ? Routes.onboarding : Routes.zodiacOnboarding);
+        },
+      );
+    });
+
+    // 스플래시는 로고(검정)에 맞춰 항상 흰색 배경 + 고정 색상
+    const splashText = Color(0xFF1A1A1A);
+    const splashMuted = Color(0xFF8E8E8E);
+    const splashAccent = Color(0xFF5D4E37);
 
     return Scaffold(
-      backgroundColor: theme.backgroundColor,
-      body: MysticBackground(
-        child: SafeArea(
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: child,
-                  ),
-                );
-              },
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 로고 아이콘
-                  _buildLogo(context, theme),
-                  const SizedBox(height: 24),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: child,
+                ),
+              );
+            },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 로고 아이콘
+                _buildLogo(context),
+                const SizedBox(height: 24),
 
-                  // 앱 이름
-                  Text(
-                    'common.appName'.tr(),
+                // 앱 이름 (비한국어는 로고에 텍스트 포함이라 생략)
+                if (context.locale.languageCode == 'ko') ...[
+                  const Text(
+                    '사담',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,
-                      color: theme.textPrimary,
+                      color: splashText,
                     ),
                   ),
                   const SizedBox(height: 8),
+                ],
 
-                  // 앱 설명
-                  Text(
-                    'common.appDescription'.tr(),
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: theme.textMuted,
+                // 앱 설명
+                Text(
+                  'common.appDescription'.tr(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: splashMuted,
+                  ),
+                ),
+
+                // 비한국어: KOREA 사주 소개
+                if (context.locale.languageCode != 'ko') ...[
+                  const SizedBox(height: 36),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      children: [
+                        // 구분선
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: splashAccent.withValues(alpha: 0.3))),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                '✦',
+                                style: TextStyle(fontSize: 16, color: splashAccent),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: splashAccent.withValues(alpha: 0.3))),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'onboarding.sajuIntroTitle'.tr(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                            color: splashAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'onboarding.sajuIntroDesc'.tr(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            height: 1.6,
+                            color: splashMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 48),
-
-                  // 로딩 상태 표시
-                  _buildLoadingIndicator(context, asyncState, theme),
                 ],
-              ),
+                const SizedBox(height: 48),
+
+                // 로딩 상태 표시
+                _buildLoadingIndicator(context, asyncState),
+              ],
             ),
           ),
         ),
@@ -216,32 +274,43 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
-  Widget _buildLogo(BuildContext context, AppThemeExtension theme) {
+  Widget _buildLogo(BuildContext context) {
+    // 로고는 검정색 — 흰 배경에 맞춤
+    if (context.locale.languageCode != 'ko') {
+      return Image.asset(
+        'assets/images/logo_global.png',
+        width: 220,
+        height: 220,
+        color: const Color(0xFF1A1A1A),
+      );
+    }
+
+    // 한국어: 그라데이션 원형 로고
     return Container(
       width: 100,
       height: 100,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            theme.primaryColor,
-            theme.accentColor ?? theme.primaryColor,
+            Color(0xFF5D4E37),
+            Color(0xFF8B7355),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.primaryColor.withValues(alpha: 0.3),
+            color: const Color(0xFF5D4E37).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Icon(
+      child: const Icon(
         Icons.auto_awesome,
         size: 50,
-        color: theme.textPrimary,
+        color: Colors.white,
       ),
     );
   }
@@ -249,34 +318,36 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget _buildLoadingIndicator(
     BuildContext context,
     AsyncValue<SplashState> asyncState,
-    AppThemeExtension theme,
   ) {
+    const accent = Color(0xFF5D4E37);
+    const muted = Color(0xFF8E8E8E);
+
     return asyncState.when(
       data: (state) {
         final statusText = _getStatusText(state.status);
         return Column(
           children: [
             if (state.status == PrefetchStatus.loading)
-              SizedBox(
+              const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: theme.primaryColor,
+                  color: accent,
                 ),
               )
             else
               Icon(
                 _getStatusIcon(state.status),
-                color: theme.primaryColor,
+                color: accent,
                 size: 24,
               ),
             const SizedBox(height: 12),
             Text(
               statusText,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: theme.textMuted,
+                color: muted,
               ),
             ),
           ],
@@ -284,20 +355,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       },
       loading: () => Column(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 24,
             height: 24,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: theme.primaryColor,
+              color: accent,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             'splash.loading'.tr(),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: theme.textMuted,
+              color: muted,
             ),
           ),
         ],
@@ -312,9 +383,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           const SizedBox(height: 12),
           Text(
             'splash.connectionError'.tr(),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: theme.textMuted,
+              color: muted,
             ),
           ),
         ],

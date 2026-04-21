@@ -115,9 +115,7 @@ function getTokenColumnForTaskType(taskType: string): string {
   return 'saju_analysis_tokens';
 }
 
-/**
- * v32: task_type별 올바른 컬럼에 토큰 기록
- */
+// v62: 원자적 UPSERT RPC — race condition 제거, DB 쿼리 2→1개
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -128,45 +126,33 @@ async function recordTokenUsage(
 ): Promise<void> {
   const today = new Date().toISOString().split("T")[0];
   const totalTokens = promptTokens + completionTokens;
-  const cost = (promptTokens * 1.75 / 1000000) + (completionTokens * 14.00 / 1000000);
+  // v62: 모델별 가격 (기존 gpt-5.2 하드코딩 → 모델 분기)
+  const pricing: Record<string, { input: number; output: number }> = {
+    'gpt-5.2': { input: 1.75, output: 14.00 },
+    'gpt-5.2-thinking': { input: 1.75, output: 14.00 },
+    'gpt-5-mini': { input: 0.25, output: 2.00 },
+    'gpt-4o': { input: 2.50, output: 10.00 },
+    'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  };
+  const p = pricing[model] || pricing['gpt-5-mini'];
+  const cost = (promptTokens * p.input / 1000000) + (completionTokens * p.output / 1000000);
   const tokenColumn = getTokenColumnForTaskType(taskType);
 
-  console.log(`[ai-openai-result v32] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
+  console.log(`[ai-openai-result v62] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
 
   try {
-    const { data: existing } = await supabase
-      .from("user_daily_token_usage")
-      .select(`id, ${tokenColumn}, gpt_cost_usd`)
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-
-    if (existing) {
-      const updateData: Record<string, unknown> = {
-        gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
-        updated_at: new Date().toISOString(),
-      };
-      updateData[tokenColumn] = (existing[tokenColumn] || 0) + totalTokens;
-
-      await supabase
-        .from("user_daily_token_usage")
-        .update(updateData)
-        .eq("id", existing.id);
-    } else {
-      const insertData: Record<string, unknown> = {
-        user_id: userId,
-        usage_date: today,
-        gpt_cost_usd: cost,
-      };
-      insertData[tokenColumn] = totalTokens;
-
-      await supabase
-        .from("user_daily_token_usage")
-        .insert(insertData);
-    }
-    console.log(`[ai-openai-result v32] Recorded ${totalTokens} tokens to ${tokenColumn} for user ${userId}`);
+    await supabase.rpc('increment_token_usage', {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_column_name: tokenColumn,
+      p_tokens: totalTokens,
+      p_gpt_cost: cost,
+      p_gemini_cost: 0,
+      p_daily_quota: 5000,
+    });
+    console.log(`[ai-openai-result v62] Recorded ${totalTokens} tokens to ${tokenColumn} for user ${userId}`);
   } catch (error) {
-    console.error("[ai-openai-result v32] Failed to record token usage:", error);
+    console.error("[ai-openai-result v62] Failed to record token usage:", error);
   }
 }
 

@@ -95,5 +95,6 @@
   "compatPromoRegister": "ลงทะเบียน",
   "compatPromoAnalyzeTitle": "ดูดวงคู่ครองกับคนรู้จักของคุณ",
   "compatPromoAnalyzeSubtitle": "วิเคราะห์ความผูกพันที่ซ่อนอยู่ระหว่างดวงชะตาของคนสองคน",
-  "compatPromoResultTitle": "ดวงคู่ครองกับ{name}"
+  "compatPromoResultTitle": "ดวงคู่ครองกับ{name}",
+  "defaultPartner": "คู่ครอง"
 }

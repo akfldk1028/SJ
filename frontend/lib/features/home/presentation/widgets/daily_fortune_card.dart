@@ -69,6 +69,7 @@ class DailyFortuneCard extends StatelessWidget {
             // Fortune message
             Text(
               fortuneMessage ?? _getDefaultFortuneMessage(),
+              textAlign: TextAlign.justify,
               style: theme.textTheme.p.copyWith(
                 height: 1.6,
               ),
@@ -82,7 +83,7 @@ class DailyFortuneCard extends StatelessWidget {
                   context,
                   icon: Icons.palette_outlined,
                   label: 'menu.luckyColorShort'.tr(),
-                  value: luckyColor ?? '파랑',
+                  value: luckyColor ?? '-',
                 ),
                 const SizedBox(width: 24),
                 _buildLuckyItem(

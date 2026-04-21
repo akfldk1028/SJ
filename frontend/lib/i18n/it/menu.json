@@ -95,5 +95,6 @@
   "compatPromoRegister": "Registra",
   "compatPromoAnalyzeTitle": "Verifica la compatibilità con le tue relazioni",
   "compatPromoAnalyzeSubtitle": "Analizza il legame nascosto tra i destini di due persone",
-  "compatPromoResultTitle": "Compatibilità con {name}"
+  "compatPromoResultTitle": "Compatibilità con {name}",
+  "defaultPartner": "Partner"
 }

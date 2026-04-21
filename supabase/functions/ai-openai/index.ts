@@ -4,6 +4,27 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 /**
  * OpenAI API 호출 Edge Function
  *
+ * v103 변경사항 (2026-04-07):
+ * - Qwen 3.5 Flash 라우팅 추가 (DashScope OpenAI 호환 API)
+ *   → model이 "qwen"으로 시작하면 DashScope로 라우팅
+ *   → json_schema → json_object 자동 변환 + 스키마 프롬프트 주입
+ *   → GPT-5-mini 대비 output 5배 저렴 ($2.00 → $0.40/1M)
+ *   → 실패 시 GPT fallback
+ *
+ * v62 변경사항 (2026-03-22):
+ * - 스케일링: collectStreamResponse() SSE 라인 버퍼링 수정
+ *   → 청크 경계에서 불완전한 SSE 라인이 JSON.parse 실패하던 문제 해결
+ *   → json_schema + stream:true 안정화 (수만 명 동시 사용 대비)
+ *   → buffer 패턴: 마지막 불완전 라인 보관 → 다음 청크에서 결합
+ *   → 루프 종료 후 잔여 버퍼 파싱 추가
+ *
+ * v56 변경사항 (2026-03-22):
+ * - BUG FIX: MODEL_PRICING에 gpt-5.2-thinking 누락 → gpt-5.2 가격($1.75/$14.00) fallback 적용
+ *   → 실제 saju_analysis는 gpt-5-mini phase 1-4로 실행되는데, parent task(gpt-5.2-thinking)가
+ *     gpt-5.2 가격으로 비용 기록 → DB gpt_cost_usd가 실제 비용의 ~7배 부풀림
+ *   → 수정1: gpt-5.2-thinking을 MODEL_PRICING에 명시적 추가
+ *   → 수정2: fallback을 gpt-5.2 → gpt-5-mini로 변경 (알 수 없는 모델은 저가로 추산)
+ *
  * v51 변경사항 (2026-02-11):
  * - 모델별 가격 상수 (MODEL_PRICING) + getModelCost() 함수 추가
  *   → gpt-5-mini 등 다른 모델 사용 시 비용이 정확하게 기록됨
@@ -88,19 +109,27 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const DAILY_QUOTA = 5000;
+// v103: Qwen 3.5 Flash (DashScope 싱가포르) — saju_base 비용 절감용
+const QWEN_API_KEY = Deno.env.get("QWEN_API_KEY");
+const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+
+const DAILY_QUOTA = 4000;
 const ADMIN_QUOTA = 1000000000;
 
-// v51: 모델별 가격 ($/1M tokens)
+// v56: 모델별 가격 ($/1M tokens)
+// ※ 새 모델 추가 시 반드시 여기에 등록! 미등록 모델은 gpt-5-mini 가격으로 fallback
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  'gpt-5.2':     { input: 1.75,  output: 14.00 },
-  'gpt-5-mini':  { input: 0.25,  output: 2.00 },
-  'gpt-4o':      { input: 2.50,  output: 10.00 },
-  'gpt-4o-mini': { input: 0.15,  output: 0.60 },
+  'gpt-5.2':           { input: 1.75,  output: 14.00 },
+  'gpt-5.2-thinking':  { input: 1.75,  output: 14.00 },  // v56: parent orchestrator용 (실제 토큰=0이지만 명시)
+  'gpt-5-mini':        { input: 0.25,  output: 2.00 },
+  'gpt-4o':            { input: 2.50,  output: 10.00 },
+  'gpt-4o-mini':       { input: 0.15,  output: 0.60 },
+  'qwen3.5-flash':     { input: 0.10,  output: 0.40 },  // v103: DashScope 싱가포르
 };
 
 function getModelCost(model: string, promptTokens: number, completionTokens: number): number {
-  const pricing = MODEL_PRICING[model] || MODEL_PRICING['gpt-5.2'];
+  // v56: fallback을 gpt-5.2 → gpt-5-mini로 변경 (미등록 모델은 저가로 추산)
+  const pricing = MODEL_PRICING[model] || MODEL_PRICING['gpt-5-mini'];
   return (promptTokens * pricing.input / 1000000) + (completionTokens * pricing.output / 1000000);
 }
 
@@ -133,7 +162,7 @@ interface OpenAIRequest {
   model: string;
   max_tokens?: number;
   temperature?: number;
-  response_format?: { type: "json_object" | "text" };
+  response_format?: { type: string; json_schema?: Record<string, unknown> };
   user_id?: string;
   run_in_background?: boolean;
   task_type?: string;
@@ -150,48 +179,30 @@ interface UsageInfo {
   };
 }
 
-async function isAdminUser(supabase: ReturnType<typeof createClient>, userId: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from("saju_profiles")
-      .select("relation_type")
-      .eq("user_id", userId)
-      .eq("profile_type", "primary")
-      .single();
-    if (error || !data) return false;
-    return data.relation_type === "admin";
-  } catch {
-    return false;
-  }
-}
-
-async function checkQuota(
+// v62: isAdmin + checkQuota를 1 RPC로 통합 (DB 쿼리 3~4개 → 1개)
+// 수만 명 스케일링 대비: DB 연결 수 50% 감소
+async function checkUserAccess(
   supabase: ReturnType<typeof createClient>,
-  userId: string,
-  isAdmin: boolean
-): Promise<{ allowed: boolean; remaining: number; quotaLimit: number }> {
-  const quotaLimit = isAdmin ? ADMIN_QUOTA : DAILY_QUOTA;
+  userId: string
+): Promise<{ isAdmin: boolean; allowed: boolean; remaining: number; quotaLimit: number }> {
   const today = getTodayKST();
   try {
-    const { data: usage } = await supabase
-      .from("user_daily_token_usage")
-      .select("chatting_tokens, daily_quota, bonus_tokens, rewarded_tokens_earned, native_tokens_earned")
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-    // v42: chatting_tokens만 쿼터 대상, bonus_tokens + rewarded_tokens_earned + native_tokens_earned 포함
-    const currentUsage = usage?.chatting_tokens || 0;
-    const baseQuota = isAdmin ? ADMIN_QUOTA : (usage?.daily_quota || DAILY_QUOTA);
-    const bonusTokens = usage?.bonus_tokens || 0;
-    const rewardedTokens = usage?.rewarded_tokens_earned || 0;
-    const nativeTokens = usage?.native_tokens_earned || 0;
-    const effectiveQuota = baseQuota + bonusTokens + rewardedTokens + nativeTokens;
-    const remaining = effectiveQuota - currentUsage;
-    if (isAdmin) return { allowed: true, remaining: ADMIN_QUOTA, quotaLimit: ADMIN_QUOTA };
-    if (currentUsage >= effectiveQuota) return { allowed: false, remaining: 0, quotaLimit: effectiveQuota };
-    return { allowed: true, remaining, quotaLimit: effectiveQuota };
+    const { data, error } = await supabase.rpc('check_user_access', {
+      p_user_id: userId,
+      p_today: today,
+    });
+    if (error || !data) {
+      console.warn(`[ai-openai v62] check_user_access RPC error: ${error?.message}`);
+      return { isAdmin: false, allowed: true, remaining: DAILY_QUOTA, quotaLimit: DAILY_QUOTA };
+    }
+    return {
+      isAdmin: data.is_admin || false,
+      allowed: data.allowed ?? true,
+      remaining: data.remaining ?? DAILY_QUOTA,
+      quotaLimit: data.quota_limit ?? DAILY_QUOTA,
+    };
   } catch {
-    return { allowed: true, remaining: quotaLimit, quotaLimit };
+    return { isAdmin: false, allowed: true, remaining: DAILY_QUOTA, quotaLimit: DAILY_QUOTA };
   }
 }
 
@@ -202,6 +213,7 @@ function getTokenColumnForTaskType(taskType: string): string {
   return 'saju_analysis_tokens';
 }
 
+// v62: 원자적 UPSERT RPC — race condition 제거, DB 쿼리 2→1개
 async function recordTokenUsage(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -214,37 +226,26 @@ async function recordTokenUsage(
   const today = getTodayKST();
   const totalTokens = promptTokens + completionTokens;
   const tokenColumn = getTokenColumnForTaskType(taskType);
-  console.log(`[ai-openai v50] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
+  console.log(`[ai-openai v62] Recording ${totalTokens} tokens to ${tokenColumn} (task_type: ${taskType})`);
   try {
-    const { data: existing } = await supabase
-      .from("user_daily_token_usage")
-      .select(`id, ${tokenColumn}, gpt_cost_usd`)
-      .eq("user_id", userId)
-      .eq("usage_date", today)
-      .single();
-    if (existing) {
-      const updateData: Record<string, unknown> = {
-        gpt_cost_usd: parseFloat(existing.gpt_cost_usd || "0") + cost,
-        // daily_quota는 덮어쓰지 않음 (광고 보상으로 증가된 값 보존)
-        updated_at: new Date().toISOString(),
-      };
-      updateData[tokenColumn] = (existing[tokenColumn] || 0) + totalTokens;
-      await supabase.from("user_daily_token_usage").update(updateData).eq("id", existing.id);
-    } else {
-      const insertData: Record<string, unknown> = {
-        user_id: userId,
-        usage_date: today,
-        gpt_cost_usd: cost,
-        daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
-      };
-      insertData[tokenColumn] = totalTokens;
-      await supabase.from("user_daily_token_usage").insert(insertData);
-    }
+    await supabase.rpc('increment_token_usage', {
+      p_user_id: userId,
+      p_usage_date: today,
+      p_column_name: tokenColumn,
+      p_tokens: totalTokens,
+      p_gpt_cost: cost,
+      p_gemini_cost: 0,
+      p_daily_quota: isAdmin ? ADMIN_QUOTA : DAILY_QUOTA,
+    });
   } catch (error) {
-    console.error("[ai-openai v50] Failed to record token usage:", error);
+    console.error("[ai-openai v62] Failed to record token usage:", error);
   }
 }
 
+// v62: SSE 라인 버퍼링 수정 — 청크 경계에서 불완전한 라인 보존
+// 수만 명 스케일링 대비: json_schema + stream:true 안정화
+// 이전(v59): chunk.split("\n") 시 마지막 불완전 라인이 JSON.parse 실패
+// 수정: buffer에 불완전 라인 보관 → 다음 청크에서 결합
 async function collectStreamResponse(response: Response): Promise<{ content: string; usage: UsageInfo | null; finishReason: string | null }> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("No response body");
@@ -252,31 +253,160 @@ async function collectStreamResponse(response: Response): Promise<{ content: str
   let content = "";
   let usage: UsageInfo | null = null;
   let finishReason: string | null = null;
+  let buffer = "";  // v62: 불완전 라인 버퍼
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n");
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";  // v62: 마지막 불완전 라인은 버퍼에 보관
     for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta;
-          if (delta) {
-            if (delta.content) content += delta.content;
-          }
-          // v41: capture actual finish_reason
-          if (parsed.choices?.[0]?.finish_reason) {
-            finishReason = parsed.choices[0].finish_reason;
-          }
-          if (parsed.usage) usage = parsed.usage;
-        } catch { /* ignore */ }
-      }
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data: ")) continue;
+      const data = trimmed.slice(6);
+      if (data === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta;
+        if (delta) {
+          if (delta.content) content += delta.content;
+        }
+        // v41: capture actual finish_reason
+        if (parsed.choices?.[0]?.finish_reason) {
+          finishReason = parsed.choices[0].finish_reason;
+        }
+        if (parsed.usage) usage = parsed.usage;
+      } catch { /* ignore — 다음 청크에서 완성될 수 있음 */ }
     }
   }
+
+  // v62: 루프 종료 후 잔여 버퍼 처리
+  if (buffer.trim().startsWith("data: ")) {
+    const data = buffer.trim().slice(6);
+    if (data !== "[DONE]") {
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta;
+        if (delta?.content) content += delta.content;
+        if (parsed.choices?.[0]?.finish_reason) finishReason = parsed.choices[0].finish_reason;
+        if (parsed.usage) usage = parsed.usage;
+      } catch { /* ignore */ }
+    }
+  }
+
   return { content, usage, finishReason };
+}
+
+/**
+ * v103: Qwen 3.5 Flash Non-Streaming 호출
+ * v106: saju_base + fortune 공용 (taskType으로 검증 분기)
+ * - DashScope OpenAI 호환 API (싱가포르)
+ * - json_schema → json_object 자동 변환
+ * - 실패 시 null 반환 → GPT fallback
+ */
+async function callQwenSajuBase(
+  messages: ChatMessage[],
+  maxTokens: number,
+  temperature: number,
+  responseFormat?: { type: string; json_schema?: Record<string, unknown> },
+  taskType?: string,
+): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number } } | null> {
+  if (!QWEN_API_KEY) {
+    console.log("[ai-openai v103] No QWEN_API_KEY, skipping Qwen");
+    return null;
+  }
+  try {
+    // json_schema → json_object 변환 + 스키마를 system prompt에 주입
+    const qwenMessages: { role: string; content: unknown }[] = [];
+    let schemaInjection = "";
+    if (responseFormat?.type === "json_schema" && responseFormat.json_schema) {
+      const schema = responseFormat.json_schema;
+      schemaInjection = `\n\n## JSON Output Schema (MUST follow exactly)\nRespond with a single JSON object matching this schema. Every field is required. Do not add extra fields.\n\`\`\`json\n${JSON.stringify(schema.schema || schema, null, 0)}\n\`\`\``;
+    }
+
+    for (const m of messages) {
+      if (m.role === "system") {
+        // system prompt에 스키마 주입 + cache_control 마커
+        qwenMessages.push({
+          role: "system",
+          content: [{ type: "text", text: m.content + schemaInjection, cache_control: { type: "ephemeral" } }],
+        });
+      } else {
+        qwenMessages.push({ role: m.role, content: m.content });
+      }
+    }
+
+    const body: Record<string, unknown> = {
+      model: "qwen3.5-flash",
+      messages: qwenMessages,
+      max_tokens: maxTokens,
+      temperature,
+      stream: false,
+      enable_thinking: false,
+      response_format: { type: "json_object" },
+    };
+
+    console.log(`[ai-openai v106] Calling Qwen 3.5 Flash for ${taskType || 'unknown'}...`);
+    const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error(`[ai-openai v103] Qwen error ${resp.status}: ${errText}`);
+      return null;
+    }
+
+    const data = await resp.json();
+    const choice = data.choices?.[0];
+    if (!choice?.message?.content) {
+      console.error("[ai-openai v103] Qwen: no content in response");
+      return null;
+    }
+
+    const content = choice.message.content;
+    const usage = data.usage || {};
+
+    // v106: JSON 검증 — saju_base는 19필드 검증, fortune은 파싱만 확인
+    try {
+      const parsed = JSON.parse(content);
+      if (taskType === 'saju_base' || taskType === 'saju_analysis') {
+        const requiredKeys = [
+          'mySajuIntro', 'my_saju_characters', 'wonGuk_analysis',
+          'sipsung_analysis', 'hapchung_analysis', 'personality', 'lucky_elements',
+          'wealth', 'career', 'business', 'love', 'marriage',
+          'sinsal_gilseong', 'health', 'daeun_detail',
+          'summary', 'life_cycles', 'peak_years', 'modern_interpretation',
+        ];
+        const missingKeys = requiredKeys.filter(k => !(k in parsed));
+        if (missingKeys.length > 0) {
+          console.error(`[ai-openai v106] Qwen JSON missing ${missingKeys.length} keys: ${missingKeys.join(', ')}`);
+          return null;  // fallback to GPT
+        }
+        console.log(`[ai-openai v106] Qwen JSON validated: all 19 keys present (saju_base)`);
+      } else {
+        console.log(`[ai-openai v106] Qwen JSON validated: parse OK (${taskType}, ${Object.keys(parsed).length} keys)`);
+      }
+    } catch (e) {
+      console.error(`[ai-openai v106] Qwen JSON parse failed: ${e}`);
+      return null;  // fallback to GPT
+    }
+
+    return {
+      content,
+      usage: {
+        prompt_tokens: usage.prompt_tokens || 0,
+        completion_tokens: usage.completion_tokens || 0,
+        cached_tokens: usage.prompt_tokens_details?.cached_tokens || usage.cached_tokens || 0,
+      },
+    };
+  } catch (e) {
+    console.error(`[ai-openai v103] Qwen call failed: ${e}`);
+    return null;
+  }
 }
 
 async function processInBackground(
@@ -358,7 +488,7 @@ Deno.serve(async (req) => {
     const requestData: OpenAIRequest = await req.json();
     const {
       messages,
-      model = "gpt-5.2",
+      model: requestModel = "gpt-5.2",
       max_tokens = 10000,
       temperature = 0.7,
       response_format,
@@ -368,49 +498,72 @@ Deno.serve(async (req) => {
       reasoning_effort = "medium",
       locale = "ko",
     } = requestData;
+    let model = requestModel;  // v103: Qwen fallback 시 재할당 필요
 
     console.log(`[ai-openai v50] Request: run_in_background=${run_in_background}, model=${model}, task_type=${task_type}, reasoning_effort=${reasoning_effort}, locale=${locale}, user_id=${user_id}`);
 
     if (!messages || messages.length === 0) throw new Error("messages is required");
 
-    // Admin 여부 확인
+    // v62: isAdmin + checkQuota를 1 RPC로 통합 (DB 쿼리 3~4개 → 1개)
     let isAdmin = false;
     if (user_id) {
-      isAdmin = await isAdminUser(supabase, user_id);
-      console.log(`[ai-openai v50] User ${user_id} isAdmin: ${isAdmin}`);
+      const access = await checkUserAccess(supabase, user_id);
+      isAdmin = access.isAdmin;
+      console.log(`[ai-openai v62] User ${user_id} isAdmin: ${isAdmin}, allowed: ${access.allowed}`);
 
       // v39: 운세 분석은 쿼터 면제 (핵심 콘텐츠, 1회성 캐시)
-      // 채팅만 쿼터 제한 적용
       const isQuotaExempt = QUOTA_EXEMPT_TASK_TYPES.has(task_type);
 
-      if (!isAdmin && !isQuotaExempt) {
-        const quota = await checkQuota(supabase, user_id, isAdmin);
-        if (!quota.allowed) {
-          console.log(`[ai-openai v50] Quota exceeded for user ${user_id} (task_type: ${task_type}, locale: ${locale})`);
-          const quotaMessages: Record<string, string> = {
-            ko: "오늘 사용 가능한 토큰을 모두 사용했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.",
-            ja: "本日のトークンをすべて使用しました。広告を視聴すると追加トークンを獲得できます。",
-            en: "You've used all available tokens for today. Watch an ad to earn additional tokens.",
-          };
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: "QUOTA_EXCEEDED",
-              message: quotaMessages[locale] || quotaMessages.ko,
-              tokens_used: DAILY_QUOTA - quota.remaining,
-              quota_limit: quota.quotaLimit,
-              ads_required: true,
-            }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      if (!isAdmin && !isQuotaExempt && !access.allowed) {
+        console.log(`[ai-openai v62] Quota exceeded for user ${user_id} (task_type: ${task_type}, locale: ${locale})`);
+        const quotaMessages: Record<string, string> = {
+          ko: "오늘 사용 가능한 토큰을 모두 사용했습니다. 광고를 시청하면 추가 토큰을 받을 수 있습니다.",
+          ja: "本日のトークンをすべて使用しました。広告を視聴すると追加トークンを獲得できます。",
+          en: "You've used all available tokens for today. Watch an ad to earn additional tokens.",
+        };
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "QUOTA_EXCEEDED",
+            message: quotaMessages[locale] || quotaMessages.ko,
+            tokens_used: DAILY_QUOTA - access.remaining,
+            quota_limit: access.quotaLimit,
+            ads_required: true,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       } else if (isQuotaExempt) {
-        console.log(`[ai-openai v50] Quota check SKIPPED for ${task_type} (fortune exempt)`);
+        console.log(`[ai-openai v62] Quota check SKIPPED for ${task_type} (fortune exempt)`);
       }
     }
 
+    // === v106: Qwen 라우팅 (model이 "qwen"으로 시작하면) — saju_base + fortune 공용 ===
+    if (model.startsWith("qwen")) {
+      console.log(`[ai-openai v106] *** QWEN MODE *** model=${model}, task=${task_type}`);
+      const qwenResult = await callQwenSajuBase(messages, max_tokens, temperature, response_format, task_type);
+      if (qwenResult) {
+        const { content, usage } = qwenResult;
+        const cost = getModelCost("qwen3.5-flash", usage.prompt_tokens, usage.completion_tokens);
+        if (user_id && usage.prompt_tokens > 0) {
+          await recordTokenUsage(supabase, user_id, usage.prompt_tokens, usage.completion_tokens, cost, isAdmin, task_type);
+        }
+        console.log(`[ai-openai v106] Qwen success (${task_type}): ${usage.prompt_tokens}+${usage.completion_tokens} tokens, $${cost.toFixed(6)}`);
+        return new Response(
+          JSON.stringify({
+            success: true, content,
+            usage: { prompt_tokens: usage.prompt_tokens, completion_tokens: usage.completion_tokens, total_tokens: usage.prompt_tokens + usage.completion_tokens, cached_tokens: usage.cached_tokens },
+            model: "qwen3.5-flash", finish_reason: "stop", is_admin: isAdmin,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Qwen 실패 → GPT-5-mini fallback
+      console.warn(`[ai-openai v106] Qwen failed (${task_type}), falling back to gpt-5-mini sync mode`);
+      model = "gpt-5-mini";
+    }
+
     // === Background 모드 ===
-    if (run_in_background) {
+    if (run_in_background && !model.startsWith("qwen")) {
       console.log(`[ai-openai v50] *** RESPONSES API BACKGROUND MODE ***`);
 
       if (user_id) {
@@ -518,7 +671,10 @@ Deno.serve(async (req) => {
         model, input: inputText, background: true, store: true, max_output_tokens: max_tokens,
         reasoning: { effort: reasoning_effort },  // v43: reasoning_effort 지원
       };
-      if (response_format?.type === "json_object") {
+      // v62: json_schema strict 모드도 Background에서 지원
+      if (response_format?.type === "json_schema") {
+        responsesApiBody.text = { format: response_format };
+      } else if (response_format?.type === "json_object") {
         responsesApiBody.text = { format: { type: "json_object" } };
       }
 

@@ -188,7 +188,7 @@ class YearlyFortunePrompt extends PromptTemplate {
   String get summaryType => 'yearly_fortune';  // DB 저장용 키
 
   @override
-  String get modelName => OpenAIModels.gpt52;  // 또는 GoogleModels.gemini30Flash
+  String get modelName => OpenAIModels.gpt52;  // 또는 GoogleModels.gemini25FlashLite
 
   @override
   int get maxTokens => 2000;
@@ -230,14 +230,14 @@ class YearlyFortunePrompt extends PromptTemplate {
 
 ## AI 모델 정보
 
-### 사용 모델 (2024-12 기준)
+### 사용 모델 (2026-04 기준)
 
 | 모델 | ID | 용도 |
 |------|-----|------|
-| GPT-5.2 | `gpt-5-2-turbo-preview` | 사주 분석 |
-| GPT-4o Mini | `gpt-4o-mini` | 빠른 분석 |
-| Gemini 3.0 Flash | `gemini-3-flash-preview` | 대화 생성 |
-| Gemini 3.0 Pro | `gemini-3-pro-preview` | 고급 대화 |
+| GPT-5.2 | `gpt-5.2` | 사주 분석 (사주 base) |
+| GPT-5 Mini | `gpt-5-mini` | 운세 분석 (월운/연운) |
+| **Gemini 2.5 Flash Lite** | `gemini-2.5-flash-lite` | **대화/일운 (기본 모델)** |
+| Gemini 3.0 Pro | `gemini-3-pro-preview` | 고급 대화 (미사용) |
 | DALL-E 3 | `dall-e-3` | 이미지 생성 |
 | Imagen 3 | `imagen-3.0-generate-001` | 이미지 생성 |
 
@@ -248,12 +248,12 @@ class YearlyFortunePrompt extends PromptTemplate {
 class OpenAIModels {
   static const gpt52 = 'gpt-5.2';
   static const gpt5Mini = 'gpt-5-mini';    // 운세 분석용
-  static const gpt4oMini = 'gpt-4o-mini';
 }
 
 class GoogleModels {
-  static const gemini30Flash = 'gemini-3-flash-preview';
-  static const gemini30Pro = 'gemini-3-pro-preview';
+  static const gemini25FlashLite = 'gemini-2.5-flash-lite';  // 기본 모델
+  static const chat = gemini25FlashLite;
+  static const dailyFortune = gemini25FlashLite;
 }
 ```
 

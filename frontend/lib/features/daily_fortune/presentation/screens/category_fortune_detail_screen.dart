@@ -231,6 +231,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
           // 본문 (아래로 길게 읽히도록)
           Text(
             FortuneTextFormatter.formatParagraph(message),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 15,
               color: theme.textSecondary,
@@ -269,6 +270,7 @@ class CategoryFortuneDetailScreen extends ConsumerWidget {
           // 본문
           Text(
             FortuneTextFormatter.formatParagraph(tip),
+            textAlign: TextAlign.justify,
             style: TextStyle(
               fontSize: 14,
               color: theme.textSecondary,

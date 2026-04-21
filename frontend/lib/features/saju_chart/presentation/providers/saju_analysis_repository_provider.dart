@@ -320,7 +320,7 @@ class CurrentSajuAnalysisDb extends _$CurrentSajuAnalysisDb {
 
     // 현재 세운 계산
     final currentYear = DateTime.now().year;
-    final birthYear = analysis.chart.birthDateTime.year;
+    final birthYear = analysis.chart.correctedDateTime.year;
     final currentSeunData = daeunService.calculateSeUn(currentYear, birthYear);
 
     final currentSeunMap = {

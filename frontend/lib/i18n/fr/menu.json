@@ -95,5 +95,6 @@
   "compatPromoRegister": "Enregistrer",
   "compatPromoAnalyzeTitle": "Vérifiez la compatibilité avec vos proches",
   "compatPromoAnalyzeSubtitle": "Analysez le lien caché entre deux thèmes astraux",
-  "compatPromoResultTitle": "Compatibilité avec {name}"
+  "compatPromoResultTitle": "Compatibilité avec {name}",
+  "defaultPartner": "Partenaire"
 }
