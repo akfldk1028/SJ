@@ -79,7 +79,7 @@ dependencies:
   google_mobile_ads: ^7.0.0
   gma_mediation_mintegral: ^2.0.3
   gma_mediation_liftoffmonetize: ^1.4.3
-  gma_mediation_unity: ^1.6.1
+  gma_mediation_unity: 1.6.4
   unity_ads_plugin: ^0.3.29
   device_info_plus: ^11.3.3
   app_tracking_transparency: ^2.0.6
