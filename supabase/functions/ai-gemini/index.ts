@@ -93,6 +93,15 @@ try {
  * - cachedContentTokenCount 로깅 추가 (캐시 적중률 모니터링)
  * - non-streaming 비용 계산: implicit cache 할인 반영
  *
+ * v106 변경사항 (2026-04-09):
+ * - FIX: 십성 자체 추론 방지 — tool_choice:"required" 2라운드 확장 (i<=1)
+ *   → 이전: 첫 라운드만 도구 강제 → AI가 1개만 호출 후 나머지 십성 자체 추론 → 편/정 뒤바뀜
+ *   → 수정: 최소 2개 도구 호출 강제 (십성+지장간 동시 확인)
+ * - FIX: dataGuard에 "십성 텍스트 쓰기 전 get_sipsin 필수" 절대금지 규칙 추가
+ * - FIX: 지장간 해(亥) 여기에 戊(무토) 추가 (무갑임 전통)
+ * - ENHANCE: 채팅 입력 타인 사주 → 인연 등록 안내 강화
+ *   → 시스템 프롬프트에 "정확한 분석 불가 → 인연 추가 등록 필수" 명시
+ *
  * v104 변경사항 (2026-04-07):
  * - BUG FIX: Qwen 빈 응답 자동 복구 (Gemini in-stream fallback)
  *   → Qwen이 200 OK + text 0자로 응답하면 (간헐적 콘텐츠 필터/내부 오류)
@@ -172,8 +181,8 @@ async function callQwenNonStreaming(
     const otherMsgs = messages.filter((m) => m.role !== "system");
     const systemText = systemMsgs.map((m) => m.content).join("\n");
 
-    // v105: 데이터 준수 지시 (추상적 — streaming 버전과 동일)
-    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 한계를 밝혀라.`;
+    // v106: 데이터 준수 지시 (추상적 — streaming 버전과 동일)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 인연 등록을 안내하라. [절대금지] 십성(정관/편관/정인/편인/식신/상관 등)을 텍스트에 쓰기 전에 반드시 get_sipsin 도구를 호출하라. 지장간은 lookup_jijanggan 도구로 확인하라. 너의 자체 오행/음양 지식으로 십성·지장간을 계산하면 편/정이 뒤바뀌고 생/극 방향이 틀린다.`;
 
     const qwenMessages: { [k: string]: unknown }[] = [];
     if (systemText) {
@@ -204,7 +213,7 @@ async function callQwenNonStreaming(
       };
       if (hasTools) {
         body.tools = openaiToolDeclarations;
-        body.tool_choice = i === 0 ? "required" : "auto";  // v105: 첫 라운드 도구 강제
+        body.tool_choice = i <= 1 ? "required" : "auto";  // v106: 첫 2라운드 도구 강제 (십성+지장간 최소 2회 호출)
       }
 
       const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
@@ -277,8 +286,8 @@ async function handleQwenStreamingRequest(
     const otherMsgs = messages.filter((m) => m.role !== "system");
     const systemText = systemMsgs.map((m) => m.content).join("\n");
 
-    // v105: 데이터 준수 지시 (추상적 — 구체적 도구명은 시스템 프롬프트 규칙에 있음)
-    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 한계를 밝혀라.`;
+    // v106: 데이터 준수 지시 (추상적 — 구체적 도구명은 시스템 프롬프트 규칙에 있음)
+    const dataGuard = `\n\n[CRITICAL RULE] 시스템 프롬프트의 십성·대운·합충·오행 데이터는 만세력 계산 정확값. 자의적 재판정·대운 순서 변경 금지. 채팅으로 입력된 타인 사주의 십성·관성·합충은 반드시 도구로 계산 후 답변. 추측 금지. 유저가 십성/관성을 지적하면 도구로 확인 후 답변. 십성 방향: 나를 극하는 것=관성, 내가 극하는 것=재성. 대운 데이터 없는 타인은 인연 등록을 안내하라. [절대금지] 십성(정관/편관/정인/편인/식신/상관 등)을 텍스트에 쓰기 전에 반드시 get_sipsin 도구를 호출하라. 지장간은 lookup_jijanggan 도구로 확인하라. 너의 자체 오행/음양 지식으로 십성·지장간을 계산하면 편/정이 뒤바뀌고 생/극 방향이 틀린다.`;
 
     const qwenMessages: { [k: string]: unknown }[] = [];
     if (systemText) {
@@ -301,7 +310,7 @@ async function handleQwenStreamingRequest(
       const MAX_FC = 5;
       let usedTools = false;
       for (let i = 0; i < MAX_FC; i++) {
-        // v105: 첫 라운드 tool_choice:"required" (Qwen 공식: guaranteed tool call)
+        // v106: 첫 2라운드 tool_choice:"required" (Qwen 공식: guaranteed tool call)
         const prefBody: { [k: string]: unknown } = {
           model: QWEN_MODEL,
           messages: qwenMessages,
@@ -311,7 +320,7 @@ async function handleQwenStreamingRequest(
           stream: false,
           enable_thinking: false,
           tools: openaiToolDeclarations,
-          tool_choice: i === 0 ? "required" : "auto",
+          tool_choice: i <= 1 ? "required" : "auto",  // v106: 첫 2라운드 도구 강제
           stop: ["[/SUGGESTED_QUESTIONS]"],
         };
         const prefResp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
@@ -358,12 +367,12 @@ async function handleQwenStreamingRequest(
       }
     }
 
-    // v105: paragraph-level 반복 감지 (범용)
+    // v106: paragraph-level 반복 감지 (범용)
     if (preflightFinalContent !== null && preflightFinalContent.length > 500) {
       const blk = preflightFinalContent.substring(0, 200);
       const idx = preflightFinalContent.indexOf(blk, 200);
       if (idx !== -1) {
-        console.warn(`[ai-gemini v105] Paragraph repetition at char ${idx}, truncating`);
+        console.warn(`[ai-gemini v106] Paragraph repetition at char ${idx}, truncating`);
         preflightFinalContent = preflightFinalContent.substring(0, idx).trimEnd();
       }
     }
