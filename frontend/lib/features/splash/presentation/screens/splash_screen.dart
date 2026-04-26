@@ -60,12 +60,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<void> _startMinDelay() async {
     // 최소 대기 (애니메이션 + 브랜딩)
-    // 비한국어: 사주 소개 읽을 시간 확보 (2.5초)
-    bool isKo = true;
-    try {
-      isKo = context.locale.languageCode == 'ko';
-    } catch (_) {}
-    await Future.delayed(Duration(milliseconds: isKo ? 1500 : 2500));
+    await Future.delayed(const Duration(milliseconds: 1500));
 
     if (!mounted) return;
 
@@ -80,9 +75,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         if (kDebugMode) {
           print('[Splash] Error: $error');
         }
-        final langFb = context.locale.languageCode;
-        final isCjkFb = {'ko', 'ja', 'zh'}.contains(langFb);
-        _navigateTo(isCjkFb ? Routes.onboarding : Routes.zodiacOnboarding);
+        _navigateTo(Routes.zodiacOnboarding);
       },
     );
   }
@@ -107,12 +100,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         _navigateTo(Routes.menu);
 
       case PrefetchStatus.noProfile:
-        // 신규 사용자 → 온보딩
-        // CJK(한중일)는 사주/오행 이미 아는 문화 → 기존 온보딩
-        // 나머지 언어 → zodiac 대화형 온보딩
-        final lang = context.locale.languageCode;
-        final isCjk = {'ko', 'ja', 'zh'}.contains(lang);
-        _navigateTo(isCjk ? Routes.onboarding : Routes.zodiacOnboarding);
+        // 신규 사용자 → zodiac 페르소나 온보딩 (Apple 4.3b 통과 위해 모든 언어 통일)
+        _navigateTo(Routes.zodiacOnboarding);
 
       case PrefetchStatus.noAnalysis:
         // 프로필은 있지만 분석 없음
@@ -125,10 +114,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         break;
 
       case PrefetchStatus.error:
-        // 에러 → 온보딩 (재시도 가능)
-        final langErr = context.locale.languageCode;
-        final isCjkErr = {'ko', 'ja', 'zh'}.contains(langErr);
-        _navigateTo(isCjkErr ? Routes.onboarding : Routes.zodiacOnboarding);
+        // 에러 → zodiac 온보딩 (재시도 가능)
+        _navigateTo(Routes.zodiacOnboarding);
     }
   }
 
@@ -159,9 +146,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           if (kDebugMode) {
             print('[Splash] Error: $error');
           }
-          final lang = context.locale.languageCode;
-          final isCjk = {'ko', 'ja', 'zh'}.contains(lang);
-          _navigateTo(isCjk ? Routes.onboarding : Routes.zodiacOnboarding);
+          _navigateTo(Routes.zodiacOnboarding);
         },
       );
     });
@@ -169,7 +154,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // 스플래시는 로고(검정)에 맞춰 항상 흰색 배경 + 고정 색상
     const splashText = Color(0xFF1A1A1A);
     const splashMuted = Color(0xFF8E8E8E);
-    const splashAccent = Color(0xFF5D4E37);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -216,52 +200,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                 ),
 
-                // 비한국어: KOREA 사주 소개
-                if (context.locale.languageCode != 'ko') ...[
-                  const SizedBox(height: 36),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      children: [
-                        // 구분선
-                        Row(
-                          children: [
-                            Expanded(child: Divider(color: splashAccent.withValues(alpha: 0.3))),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                '✦',
-                                style: TextStyle(fontSize: 16, color: splashAccent),
-                              ),
-                            ),
-                            Expanded(child: Divider(color: splashAccent.withValues(alpha: 0.3))),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'onboarding.sajuIntroTitle'.tr(),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.5,
-                            color: splashAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'onboarding.sajuIntroDesc'.tr(),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            height: 1.6,
-                            color: splashMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 48),
 
                 // 로딩 상태 표시
