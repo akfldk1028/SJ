@@ -24,7 +24,7 @@ const JIJANGGAN: { [ji: string]: JijangganEntry } = {
   '신': { ji: '신', hanja: '申', bongi: '庚(경금)', junggi: '壬(임수)', yeogi: '戊(무토)', bongi_oheng: '금(金)' },
   '유': { ji: '유', hanja: '酉', bongi: '辛(신금)', junggi: '', yeogi: '', bongi_oheng: '금(金)' },
   '술': { ji: '술', hanja: '戌', bongi: '戊(무토)', junggi: '辛(신금)', yeogi: '丁(정화)', bongi_oheng: '토(土)' },
-  '해': { ji: '해', hanja: '亥', bongi: '壬(임수)', junggi: '甲(갑목)', yeogi: '', bongi_oheng: '수(水)' },
+  '해': { ji: '해', hanja: '亥', bongi: '壬(임수)', junggi: '甲(갑목)', yeogi: '戊(무토)', bongi_oheng: '수(水)' },
 };
 
 export function lookupJijanggan(ji: string): JijangganEntry | { error: string; hint: string } {
