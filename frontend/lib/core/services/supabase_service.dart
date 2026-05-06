@@ -1,4 +1,3 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase 서비스
@@ -11,20 +10,18 @@ class SupabaseService {
   /// Supabase 초기화
   ///
   /// main.dart에서 앱 시작 시 호출
-  /// .env 파일에서 SUPABASE_URL, SUPABASE_ANON_KEY 로드
+  /// 빌드 시 --dart-define-from-file=.env 로 SUPABASE_URL, SUPABASE_ANON_KEY 주입
   static Future<void> initialize() async {
-    final url = dotenv.env['SUPABASE_URL'];
-    final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
+    const url = String.fromEnvironment('SUPABASE_URL');
+    const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
     // 개발 환경에서 placeholder 값 체크
-    if (url == null ||
-        url.isEmpty ||
-        url == 'https://your-project.sql.co') {
+    if (url.isEmpty || url == 'https://your-project.sql.co') {
       _logWarning('SUPABASE_URL not configured. Using offline mode.');
       return;
     }
 
-    if (anonKey == null || anonKey.isEmpty || anonKey == 'your-anon-key') {
+    if (anonKey.isEmpty || anonKey == 'your-anon-key') {
       _logWarning('SUPABASE_ANON_KEY not configured. Using offline mode.');
       return;
     }
@@ -56,10 +53,16 @@ class SupabaseService {
   static bool get isConnected => _client != null;
 
   /// Supabase URL (Edge Function 호출용)
-  static String? get supabaseUrl => dotenv.env['SUPABASE_URL'];
+  static String? get supabaseUrl {
+    const v = String.fromEnvironment('SUPABASE_URL');
+    return v.isEmpty ? null : v;
+  }
 
   /// Supabase Anon Key (Edge Function Authorization용)
-  static String? get anonKey => dotenv.env['SUPABASE_ANON_KEY'];
+  static String? get anonKey {
+    const v = String.fromEnvironment('SUPABASE_ANON_KEY');
+    return v.isEmpty ? null : v;
+  }
 
   /// 현재 인증된 사용자
   static User? get currentUser => _client?.auth.currentUser;

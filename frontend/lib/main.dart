@@ -5,7 +5,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -43,8 +42,8 @@ void main() async {
     statusBarIconBrightness: Brightness.light,
   ));
 
-  // 환경변수 로드
-  await dotenv.load(fileName: '.env');
+  // 환경변수: --dart-define-from-file=.env 로 빌드 시 컴파일 타임 주입.
+  // .env 파일을 assets에 포함시키지 않음 (APK 추출 시 평문 노출 방지).
 
   // Hive 초기화
   await Hive.initFlutter();

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:posthog_flutter/posthog_flutter.dart';
 
 /// PostHog Analytics 서비스 (싱글톤)
@@ -13,17 +12,17 @@ class PosthogService {
 
   /// PostHog SDK 초기화
   static Future<void> initialize() async {
-    final apiKey = dotenv.env['POSTHOG_API_KEY'];
-    final host = dotenv.env['POSTHOG_HOST'];
+    const apiKey = String.fromEnvironment('POSTHOG_API_KEY');
+    const host = String.fromEnvironment('POSTHOG_HOST');
 
-    if (apiKey == null || apiKey.isEmpty) {
+    if (apiKey.isEmpty) {
       debugPrint('[PostHog] API key not configured. Skipping init.');
       return;
     }
 
     try {
       final config = PostHogConfig(apiKey);
-      config.host = host ?? 'https://us.i.posthog.com';
+      config.host = host.isNotEmpty ? host : 'https://us.i.posthog.com';
       config.debug = kDebugMode;
       config.captureApplicationLifecycleEvents = true;
 

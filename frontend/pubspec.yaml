@@ -92,8 +92,8 @@ dependencies:
   # AI - Gemini 3.0 (REST API via Dio)
   # google_generative_ai 제거됨 - REST API 직접 호출로 대체
 
-  # Environment variables
-  flutter_dotenv: ^5.2.1
+  # flutter_dotenv 제거됨 — .env를 assets에 포함시키면 APK에서 평문 키 노출됨.
+  # 빌드 시 --dart-define-from-file=.env 로 컴파일 타임 주입 + String.fromEnvironment 사용.
 
   # Graph Visualization - Relationship Graph
   graphview: ^1.2.0
@@ -141,8 +141,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
+  # SECURITY: .env는 assets에 절대 넣지 말 것. 빌드 시 --dart-define-from-file=.env 사용.
   assets:
-    - .env
     - assets/prompts/
     - assets/data/
     - assets/data/rules/
