@@ -46,6 +46,7 @@ frontend/docs/zodiac_60ganji_transparent
 UI/
 .swarm
 .playwright-mcp
+.mcp.json
 .claude-flow
 docs/01_Team_TODO
 .claude
