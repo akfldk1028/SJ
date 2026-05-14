@@ -26,6 +26,7 @@ library;
 // 핵심 모듈
 export 'zodiac_persona_matcher.dart';
 export 'zodiac_identity.dart';
+export 'zodiac_resolver.dart';
 
 // 12동물 페르소나
 export 'zodiac_rat.dart';

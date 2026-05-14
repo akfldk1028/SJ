@@ -1,21 +1,27 @@
+import '../../../../features/profile/domain/entities/saju_profile.dart';
 import 'zodiac_identity.dart';
+import 'zodiac_resolver.dart';
 
-/// 십이지신 띠 기반 페르소나 매칭
+/// 십이지신 일주(Day Pillar) 기반 페르소나 매칭
 ///
-/// 생년의 지지(earthly branch)로 띠 동물 페르소나를 매칭합니다.
-/// 올해의 동물 페르소나도 자동으로 결정됩니다.
+/// 일주의 지지(day branch)로 동물 페르소나를 매칭합니다.
+/// 음력/진태양시/자시 보정 모두 적용 (ZodiacResolver 경유).
 ///
-/// ## 사용법
+/// ## 사용법 (현재)
 /// ```dart
-/// // 생년으로 페르소나 ID
-/// final id = ZodiacPersonaMatcher.getPersonaIdByBirthYear(1996); // zodiac_rat
-///
-/// // 올해 동물
-/// final yearId = ZodiacPersonaMatcher.getCurrentYearPersonaId(); // 2026 = zodiac_horse
+/// // SajuProfile로 페르소나 ID (일주 기반, 정확)
+/// final id = ZodiacPersonaMatcher.getPersonaIdFromProfile(profile); // zodiac_rat
 ///
 /// // 60갑자 정체성 (색+동물)
-/// final identity = ZodiacPersonaMatcher.getIdentity(1990); // "흰 말 (庚午)"
+/// final identity = ZodiacPersonaMatcher.getIdentityFromProfile(profile); // "흰 말 (庚午)"
+///
+/// // 올해 동물 (년주 기반 — 의도적, "올해의 띠"는 시대적 개념)
+/// final yearId = ZodiacPersonaMatcher.getCurrentYearPersonaId(); // 2026 = zodiac_horse
 /// ```
+///
+/// ## 띠(년주) 기반 메서드는 @Deprecated
+/// - `getPersonaIdByBirthYear`, `getIdentity(birthYear)` — 양력 출생년만 봄
+/// - 음력/진태양시 보정 안 됨 → 정확도 떨어짐. `*FromProfile` 사용.
 class ZodiacPersonaMatcher {
   ZodiacPersonaMatcher._();
 
@@ -23,10 +29,28 @@ class ZodiacPersonaMatcher {
   // 매칭 API
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /// SajuProfile로 일주(Day Pillar) 기반 동물 페르소나 ID 반환
+  ///
+  /// 음력/진태양시/자시 보정 모두 적용. 정확한 매칭.
+  /// [profile] 활성 프로필
+  /// [localeCode] 도시 미입력 시 기본값 결정용
+  static String getPersonaIdFromProfile(
+    SajuProfile profile, {
+    String? localeCode,
+  }) {
+    final identity =
+        ZodiacResolver.fromProfile(profile, localeCode: localeCode);
+    return identity.animalPersonaId;
+  }
+
   /// 생년의 지지(earthly branch)로 띠 동물 페르소나 ID 반환
+  ///
+  /// ⚠️ DEPRECATED — 음력/진태양시 보정 없는 띠(년주) 기반.
+  /// `getPersonaIdFromProfile(profile)` 사용 (일주 기반, 정확).
   ///
   /// 기준: 2020년 = 경자년(쥐, index 0)
   /// [birthYear] 양력 생년 (예: 1996)
+  @Deprecated('Use getPersonaIdFromProfile(profile) — accurate Day Pillar')
   static String getPersonaIdByBirthYear(int birthYear) {
     final index = ((birthYear - 2020) % 12 + 12) % 12;
     return _zodiacPersonaIds[index];
@@ -82,11 +106,25 @@ class ZodiacPersonaMatcher {
   // 60갑자 정체성 (색 + 동물)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /// SajuProfile로 일주 기반 60갑자 정체성 (색+동물) 생성
+  ///
+  /// [profile] 활성 프로필 (음력/진태양시/자시 보정 적용)
+  /// [localeCode] 도시 미입력 시 기본값
+  /// 반환: ZodiacIdentity ("흰 말", "푸른 쥐" 등) — 일주 기반, 정확
+  static ZodiacIdentity getIdentityFromProfile(
+    SajuProfile profile, {
+    String? localeCode,
+  }) {
+    return ZodiacResolver.fromProfile(profile, localeCode: localeCode);
+  }
+
   /// 생년으로 60갑자 정체성 (색+동물) 생성
   ///
-  /// [birthYear] 양력 생년 (예: 1990)
-  /// 반환: ZodiacIdentity ("흰 말", "푸른 쥐" 등)
+  /// ⚠️ DEPRECATED — 띠(년주) 기반. 일주 정확도 떨어짐.
+  /// `getIdentityFromProfile(profile)` 사용.
+  @Deprecated('Use getIdentityFromProfile(profile) — accurate Day Pillar')
   static ZodiacIdentity getIdentity(int birthYear) {
+    // ignore: deprecated_member_use_from_same_package
     return ZodiacIdentity.fromBirthYear(birthYear);
   }
 

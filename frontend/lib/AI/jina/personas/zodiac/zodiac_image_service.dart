@@ -1,5 +1,7 @@
 import '../../../../core/services/supabase_service.dart';
+import '../../../../features/profile/domain/entities/saju_profile.dart';
 import 'zodiac_identity.dart';
+import 'zodiac_resolver.dart';
 
 /// 60갑자 수호동물 이미지 URL 서비스
 ///
@@ -44,8 +46,26 @@ class ZodiacImageService {
     return '$_bucketUrl/$prefix$name';
   }
 
+  /// SajuProfile로 일주 기반 이미지 URL (정확한 매칭)
+  ///
+  /// 음력/진태양시/자시 보정 모두 적용.
+  static String? getImageUrlByProfile(
+    SajuProfile profile, {
+    String? localeCode,
+    bool large = false,
+  }) {
+    final identity =
+        ZodiacResolver.fromProfile(profile, localeCode: localeCode);
+    return getImageUrl(identity, large: large);
+  }
+
   /// 생년으로 바로 이미지 URL
+  ///
+  /// ⚠️ DEPRECATED — 띠(년주) 기반. 음력/진태양시 보정 안 됨.
+  /// `getImageUrlByProfile(profile)` 사용 (일주 기반).
+  @Deprecated('Use getImageUrlByProfile(profile) — accurate Day Pillar')
   static String? getImageUrlByYear(int birthYear, {bool large = false}) {
+    // ignore: deprecated_member_use_from_same_package
     return getImageUrl(ZodiacIdentity.fromBirthYear(birthYear), large: large);
   }
 

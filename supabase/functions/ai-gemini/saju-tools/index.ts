@@ -1,7 +1,7 @@
 /**
  * 사주 검증 도구 모듈 — Gemini/Qwen Function Calling용
  *
- * 9개 도구:
+ * 10개 도구:
  * 1. verify_interaction — 지지 관계 (충/원진/해/합/형/파)
  * 2. get_spouse_star — 육친 배우자성 (일간×성별)
  * 3. verify_cheongan_hap — 천간합
@@ -11,6 +11,7 @@
  * 7. lookup_johu — 궁통보감 조후용신 (일간×월지 120조합)
  * 8. lookup_jijanggan — 지장간 본기/중기/여기 (12지지)
  * 9. calculate_daeun — 대운 계산 (월주+년간+성별→순행/역행+10개 대운)
+ * 10. calculate_monthly_pillars — 12개월 월주 계산 (오호둔법, 절기 포함)
  */
 
 import { verifyInteraction } from "./interactions.ts";
@@ -21,6 +22,7 @@ import { getGungwi } from "./gungwi.ts";
 import { lookupJohu } from "./johu.ts";
 import { lookupJijanggan } from "./jijanggan.ts";
 import { calculateDaeun } from "./daeun.ts";
+import { calculateMonthlyPillars } from "./monthly_pillars.ts";
 
 // ═══════════════════════════════════════════════════════════════
 // Gemini tools 선언 (requestBody.tools에 추가)
@@ -166,6 +168,17 @@ Key features:
           required: ["month_gan", "month_ji", "year_gan", "gender"],
         },
       },
+      {
+        name: "calculate_monthly_pillars",
+        description: "특정 사주년의 12개월 월주(月柱) 전체 계산. 오호둔법 기반으로 정월(인월)부터 축월까지 12개월 천간/지지/오행/절기 시작일 반환. 월운 분석이나 특정 월의 월주를 언급하기 전에 반드시 이 도구로 확인. 추측하면 인덱스가 한 칸씩 밀려 모든 월의 월주가 틀린다. 입춘(2/4) 전에는 전년도 사주년 사용.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            saju_year: { type: "INTEGER", description: "사주년 서기 (입춘 후 기준, 예: 2026). 양력 1~2/3은 전년도로 입력해야 함." },
+          },
+          required: ["saju_year"],
+        },
+      },
     ],
   },
 ];
@@ -289,6 +302,9 @@ export function executeSajuFunction(name: string, args: { [k: string]: unknown }
         args.gender as string,
         args.start_age as number | undefined,
       );
+
+    case "calculate_monthly_pillars":
+      return calculateMonthlyPillars(args.saju_year as number);
 
     default:
       return { error: `알 수 없는 도구: ${name}` };

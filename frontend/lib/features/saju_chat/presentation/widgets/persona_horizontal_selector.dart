@@ -20,6 +20,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../AI/jina/personas/persona_selector.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_persona_matcher.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_resolver.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/localized_text.dart';
 import '../../domain/models/chat_persona.dart';
@@ -636,12 +637,20 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
   }) {
     final appTheme = context.appTheme;
     final allZodiac = PersonaSelector.zodiacPersonas;
-    // 유저 생년 띠 판별
+    // 유저 일주(Day Pillar) 동물 판별 — 음력/진태양시/자시까지 보정
     final profile = ref.read(activeProfileProvider).valueOrNull;
-    final userBirthYear = profile?.birthDate?.year;
-    final userPersonaId = userBirthYear != null
-        ? ZodiacPersonaMatcher.getPersonaIdByBirthYear(userBirthYear)
-        : null;
+    String? userPersonaId;
+    if (profile != null) {
+      try {
+        final identity = ZodiacResolver.fromProfile(
+          profile,
+          localeCode: context.locale.languageCode,
+        );
+        userPersonaId = identity.animalPersonaId;
+      } catch (_) {
+        userPersonaId = null;
+      }
+    }
     final yearPersonaId = ZodiacPersonaMatcher.getCurrentYearPersonaId();
 
     return allZodiac.map((persona) {

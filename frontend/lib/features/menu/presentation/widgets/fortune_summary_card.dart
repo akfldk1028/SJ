@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_identity.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_resolver.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/illustrations/illustrations.dart';
@@ -979,7 +980,10 @@ class FortuneSummaryCard extends ConsumerWidget {
     final profileAsync = ref.watch(activeProfileProvider);
     if (profileAsync.hasValue && profileAsync.value != null) {
       try {
-        final identity = ZodiacIdentity.fromBirthDate(profileAsync.value!.birthDate);
+        // 음력/진태양시/자시까지 보정한 일주(Day Pillar) 기반 매칭
+        // context 미전달: profile.birthCity 우선, fallback 'ko' (도시는 진태양시 보정용,
+        // 일주 인덱스에는 영향 없음)
+        final identity = ZodiacResolver.fromProfile(profileAsync.value!);
         final imageUrl = ZodiacImageService.getImageUrl(identity, large: true);
         if (imageUrl != null) {
           return CachedNetworkImage(

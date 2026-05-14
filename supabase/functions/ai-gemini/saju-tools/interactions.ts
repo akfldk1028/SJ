@@ -65,11 +65,11 @@ const BANGHAP: Array<{ members: string[]; result: string }> = [
   { members: ['해', '자', '축'], result: '북방 수(水)' },
 ];
 
-// 형(刑) — 삼형살 + 자형
+// 형(刑) — 삼형살 + 상형 + 자형 (적천수 표준 명칭)
 const HYUNG: Array<{ members: string[]; name: string }> = [
-  { members: ['인', '사', '신'], name: '무은지형(無恩之刑)' },
-  { members: ['축', '술', '미'], name: '무례지형(無禮之刑)' },
-  { members: ['자', '묘'], name: '무예지형(無禮之刑)' },
+  { members: ['인', '사', '신'], name: '지세지형(持勢之刑)' },
+  { members: ['축', '술', '미'], name: '무은지형(無恩之刑)' },
+  { members: ['자', '묘'], name: '무례지형(無禮之刑)' },
   { members: ['진', '진'], name: '자형(自刑)' },
   { members: ['오', '오'], name: '자형(自刑)' },
   { members: ['유', '유'], name: '자형(自刑)' },

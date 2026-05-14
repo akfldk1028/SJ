@@ -85,10 +85,10 @@ abstract class OpenAIModels {
   static const String gpt4oMini = 'gpt-4o-mini';
 
   /// 사주 분석용 기본 모델 (평생운세 saju_base)
-  /// - v103: qwen3.5-flash (DashScope, $0.10/$0.40) → 건당 ~$0.003
-  /// - 이전: gpt5Mini ($0.25/$2.00) → 건당 ~$0.03 (10배 비쌈)
-  /// - Edge Function에서 json_schema→json_object 자동 변환 + 19필드 검증
-  /// - Qwen 실패 시 GPT fallback
+  /// - v107 (2026-05): Qwen 유지 + prompt 강화로 풍부도 시도
+  ///   GPT-5-mini는 비용 10배 부담, thinking=true는 비용 5배 + 속도 ↑↑ 부담
+  ///   대신 prompt에서 각 필드 최소 길이 강제 → 비용 거의 동일하게 풍부도 ↑
+  /// - v103: qwen3.5-flash 도입 ($0.10/$0.40, 건당 ~$0.003)
   static const String sajuAnalysis = 'qwen3.5-flash';
 
   /// GPT-5-mini (2026년 출시)
@@ -99,10 +99,12 @@ abstract class OpenAIModels {
   static const String gpt5Mini = 'gpt-5-mini';
 
   /// 운세 분석용 모델 (파생 운세: 2025 회고, 2026 신년, 월운 등)
-  /// - v106: gpt5Mini → qwen3.5-flash 전환 (10배 절감, $0.03→$0.003/건)
-  /// - saju_base 기반 파생이라 Qwen으로 충분
+  /// - Qwen 3.5 Flash 사용 (저비용, $0.003/건)
+  /// - 사용자 첫 노출 적은 파생 운세는 Qwen 충분
   /// - Qwen 실패 시 GPT fallback (ai-openai EF에서 처리)
-  static const String fortuneAnalysis = sajuAnalysis;
+  /// - v107 (2026-05): sajuAnalysis 별칭 의존 제거하고 'qwen3.5-flash' 직접 표기
+  ///   (saju_base와 fortune 둘 다 동일 모델이지만, 향후 분기 가능하도록 분리)
+  static const String fortuneAnalysis = 'qwen3.5-flash';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -573,7 +575,11 @@ abstract class PromptVersions {
   ///         각 카테고리별 구체적 콘텐츠 가이드 추가 (광고 잠금 콘텐츠 보강)
   /// - V9.9 (2026-02-04): 쉬운말 원칙 추가 - 전문용어(십성/용신/합충 등) 본문 직접 사용 금지
   ///         reading 필드에 일상 언어만 사용, 전문용어는 괄호 안에 작게
-  static const String sajuBase = 'V9.9';
+  /// - V10.0 (2026-05-07): 분량/풍부도 가이드 추가 (Qwen 짧은 응답 대응)
+  ///         "최소 문장수 강제 + 구체 해석 + 키워드 나열 금지" 5항 추가 (lifetime_prompt.dart)
+  /// - V10.3 (2026-05-07): lifetime_unified_prompt.dart(실사용)에 추상+분량+언어순도 가이드 통합
+  ///         시적 톤 + 8문장+ 강제 + 중국어 누출 방지. CLI 검증 완료 (월주 100%, 한자 0%).
+  static const String sajuBase = 'V10.3';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 일운 (daily_fortune)
@@ -608,7 +614,10 @@ abstract class PromptVersions {
   ///         "고전 vs 현대 해석" 테이블을 내부 참고용으로 변경
   /// - V5.6 (2026-02-08): months JSON 스키마에 month2~month12 개별 키 명시
   ///         AI가 "month2~month12" 단일 키로 묶는 버그 수정
-  static const String monthlyFortune = 'V5.6';
+  /// - V5.7 (2026-05-07): 12개월 월주 정확 표(오호둔법) 주입 + V10.3 가이드 (추상 톤+분량 8문장+언어순도)
+  ///         Qwen 3.5 Flash 짧은 응답 대응. 캐시 강제 무효화 → 모든 사용자 재생성.
+  ///         CLI 검증: 월주 12/12 정확, month별 8문장+, 한자 누출 0건.
+  static const String monthlyFortune = 'V5.7';
 
   // ─────────────────────────────────────────────────────────────────────────
   // 년운 (yearly_fortune)

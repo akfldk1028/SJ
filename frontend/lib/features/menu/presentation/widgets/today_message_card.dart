@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_identity.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_resolver.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
@@ -31,7 +32,11 @@ class TodayMessageCard extends ConsumerWidget {
     ZodiacIdentity? zodiacIdentity;
     if (profileAsync.hasValue && profileAsync.value != null) {
       try {
-        zodiacIdentity = ZodiacIdentity.fromBirthDate(profileAsync.value!.birthDate);
+        // 음력/진태양시/자시까지 보정한 일주(Day Pillar) 기반 매칭
+        zodiacIdentity = ZodiacResolver.fromProfile(
+          profileAsync.value!,
+          localeCode: context.locale.languageCode,
+        );
       } catch (_) {}
     }
 

@@ -110,8 +110,21 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 // v103: Qwen 3.5 Flash (DashScope 싱가포르) — saju_base 비용 절감용
-const QWEN_API_KEY = Deno.env.get("QWEN_API_KEY");
+// v107: Multi-key load balancing (RPM 60→180, TPM 100K→300K)
+const QWEN_API_KEYS = [
+  Deno.env.get("QWEN_API_KEY"),
+  Deno.env.get("QWEN_API_KEY_2"),
+  Deno.env.get("QWEN_API_KEY_3"),
+].filter(Boolean) as string[];
 const QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+
+let qwenKeyIndex = 0;
+function getNextQwenKey(): string | null {
+  if (QWEN_API_KEYS.length === 0) return null;
+  const key = QWEN_API_KEYS[qwenKeyIndex % QWEN_API_KEYS.length];
+  qwenKeyIndex++;
+  return key;
+}
 
 const DAILY_QUOTA = 4000;
 const ADMIN_QUOTA = 1000000000;
@@ -312,8 +325,8 @@ async function callQwenSajuBase(
   responseFormat?: { type: string; json_schema?: Record<string, unknown> },
   taskType?: string,
 ): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number } } | null> {
-  if (!QWEN_API_KEY) {
-    console.log("[ai-openai v103] No QWEN_API_KEY, skipping Qwen");
+  if (QWEN_API_KEYS.length === 0) {
+    console.log("[ai-openai v107] No QWEN_API_KEY configured, skipping Qwen");
     return null;
   }
   try {
@@ -347,16 +360,33 @@ async function callQwenSajuBase(
       response_format: { type: "json_object" },
     };
 
-    console.log(`[ai-openai v106] Calling Qwen 3.5 Flash for ${taskType || 'unknown'}...`);
-    const resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${QWEN_API_KEY}` },
-      body: JSON.stringify(body),
-    });
-
+    // v107: Multi-key round-robin + 429 retry on next key
+    let resp: Response | null = null;
+    let lastErrText = "";
+    for (let attempt = 0; attempt < QWEN_API_KEYS.length; attempt++) {
+      const currentKey = getNextQwenKey()!;
+      const idx = (qwenKeyIndex - 1) % QWEN_API_KEYS.length;
+      console.log(`[ai-openai v107] Qwen attempt ${attempt + 1}/${QWEN_API_KEYS.length} (key ${idx + 1}/${QWEN_API_KEYS.length}) for ${taskType || 'unknown'}...`);
+      resp = await fetch(`${QWEN_BASE_URL}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentKey}` },
+        body: JSON.stringify(body),
+      });
+      if (resp.status === 429) {
+        lastErrText = await resp.text();
+        console.warn(`[ai-openai v107] Qwen key ${idx + 1} rate limited (429), trying next...`);
+        resp = null;
+        continue;
+      }
+      break;
+    }
+    if (!resp) {
+      console.error(`[ai-openai v107] All ${QWEN_API_KEYS.length} Qwen keys rate limited: ${lastErrText.slice(0, 200)}`);
+      return null;
+    }
     if (!resp.ok) {
       const errText = await resp.text();
-      console.error(`[ai-openai v103] Qwen error ${resp.status}: ${errText}`);
+      console.error(`[ai-openai v107] Qwen error ${resp.status}: ${errText.slice(0, 300)}`);
       return null;
     }
 
@@ -558,7 +588,7 @@ Deno.serve(async (req) => {
         );
       }
       // Qwen 실패 → GPT-5-mini fallback
-      console.warn(`[ai-openai v106] Qwen failed (${task_type}), falling back to gpt-5-mini sync mode`);
+      console.warn(`[ai-openai v107] Qwen failed (${task_type}), falling back to gpt-5-mini sync mode`);
       model = "gpt-5-mini";
     }
 
