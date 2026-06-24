@@ -1,1 +1,0 @@
-ALTER POLICY "message_room_members_policy" ON "message_room_members" TO authenticated USING (public.is_user_member("message_room_members"."message_room_id", auth.uid()));

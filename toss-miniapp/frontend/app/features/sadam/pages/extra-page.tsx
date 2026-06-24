@@ -6,7 +6,7 @@ import {
   ZodiacElementBackground,
   ZodiacSpeechPanel,
 } from "../components/zodiac-widgets";
-import { resolveIdentityFromBirthDate } from "../personas";
+import { resolveSadamIdentity } from "../saju-calculation";
 import { requestRewardedAd } from "../toss-adapters";
 
 export const meta: MetaFunction = () => {
@@ -19,7 +19,13 @@ export default function ExtraPage() {
   const [message, setMessage] = useState("");
   const name = searchParams.get("name") || "나";
   const birthDate = searchParams.get("birthDate") || "19950101";
-  const identity = resolveIdentityFromBirthDate(birthDate);
+  const identity = resolveSadamIdentity({
+    birthDate,
+    birthTime: searchParams.get("birthTime"),
+    birthTimeUnknown: searchParams.get("birthTime") === "unknown",
+    calendar: searchParams.get("calendar"),
+    birthCity: searchParams.get("birthCity"),
+  }).identity;
 
   const handleReward = async () => {
     setStatus("loading");

@@ -152,6 +152,28 @@ export default function StartPage() {
           </section>
 
           <section className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-100">
+                출생 도시
+              </span>
+              <select
+                className="mt-3 h-12 w-full rounded-md border border-white/10 bg-white px-3 text-base text-slate-950 outline-none focus:border-sky-400"
+                defaultValue="서울"
+                name="birthCity"
+              >
+                <option value="서울">서울</option>
+                <option value="부산">부산</option>
+                <option value="대구">대구</option>
+                <option value="인천">인천</option>
+                <option value="광주">광주</option>
+                <option value="대전">대전</option>
+                <option value="울산">울산</option>
+                <option value="제주">제주</option>
+              </select>
+            </label>
+          </section>
+
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
             <p className="text-sm font-semibold text-slate-100">성별</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <label className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-white/10 text-sm">
@@ -175,21 +197,6 @@ export default function StartPage() {
               </label>
             </div>
           </section>
-
-          <label className="block rounded-lg border border-white/10 bg-white/[0.06] p-4">
-            <span className="text-sm font-semibold text-slate-100">
-              지금 궁금한 주제
-            </span>
-            <select
-              className="mt-3 h-12 w-full rounded-md border border-white/10 bg-white px-3 text-base text-slate-950 outline-none focus:border-sky-400"
-              name="focus"
-            >
-              <option>연애와 관계</option>
-              <option>일과 성장</option>
-              <option>돈과 선택</option>
-              <option>오늘의 컨디션</option>
-            </select>
-          </label>
 
           <Button className="h-12 w-full rounded-md bg-sky-500 text-base text-white hover:bg-sky-400">
             수호동물 보기

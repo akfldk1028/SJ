@@ -1,1 +1,0 @@
-ALTER TABLE "teams" ALTER COLUMN "team_leader_id" SET NOT NULL;

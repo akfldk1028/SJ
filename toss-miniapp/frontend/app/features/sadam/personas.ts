@@ -33,7 +33,7 @@ export type ZodiacIdentityLite = ElementInfo &
     combinedEmoji: string;
     imageUrl: string;
     largeImageUrl: string;
-    calculationMode: "day-pillar-lite" | "birth-year-cycle";
+    calculationMode: "day-pillar-lite" | "birth-year-cycle" | "saju-corrected";
   };
 
 export type SadamProfileInput = {
@@ -43,11 +43,10 @@ export type SadamProfileInput = {
   birthTime: string;
   birthTimeUnknown: boolean;
   gender: GenderType;
-  focus: string;
 };
 
-const cheongan = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
-const jiji = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+export const cheongan = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"] as const;
+export const jiji = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"] as const;
 const birthYearCheongan = ["경", "신", "임", "계", "갑", "을", "병", "정", "무", "기"];
 
 const cheonganHanja: Record<string, string> = {
@@ -309,6 +308,33 @@ function imageUrlsFor(elementNameEn: string, personaId: string) {
   };
 }
 
+export function resolveIdentityFromGanji(
+  gan: string,
+  ji: string,
+  calculationMode: ZodiacIdentityLite["calculationMode"] = "saju-corrected",
+): ZodiacIdentityLite {
+  const element = elementByCheongan[gan] ?? elementByCheongan.갑;
+  const animal = animalByJiji[ji] ?? animalByJiji.인;
+  const ganji = `${gan}${ji}`;
+  const ganjiHanja = `${cheonganHanja[gan] ?? ""}${jijiHanja[ji] ?? ""}`;
+  const fullName = `${element.colorName} ${animal.animalName}`;
+  const imageUrls = imageUrlsFor(element.elementNameEn, animal.personaId);
+
+  return {
+    ...element,
+    ...animal,
+    ...imageUrls,
+    cheongan: gan,
+    jiji: ji,
+    ganji,
+    ganjiHanja,
+    fullName,
+    displayName: `${fullName} (${ganjiHanja})`,
+    combinedEmoji: `${element.colorEmoji}${animal.animalEmoji}`,
+    calculationMode,
+  };
+}
+
 export function parseBirthDate(text: string) {
   const digits = text.replace(/\D/g, "");
   if (digits.length !== 8) return null;
@@ -341,51 +367,13 @@ export function resolveIdentityFromBirthDate(
   const dayIndex = normalizeCycle(10 + daysDiff, 60);
   const gan = cheongan[dayIndex % 10];
   const ji = jiji[dayIndex % 12];
-  const element = elementByCheongan[gan];
-  const animal = animalByJiji[ji];
-  const ganji = `${gan}${ji}`;
-  const ganjiHanja = `${cheonganHanja[gan]}${jijiHanja[ji]}`;
-  const fullName = `${element.colorName} ${animal.animalName}`;
-  const imageUrls = imageUrlsFor(element.elementNameEn, animal.personaId);
-
-  return {
-    ...element,
-    ...animal,
-    ...imageUrls,
-    cheongan: gan,
-    jiji: ji,
-    ganji,
-    ganjiHanja,
-    fullName,
-    displayName: `${fullName} (${ganjiHanja})`,
-    combinedEmoji: `${element.colorEmoji}${animal.animalEmoji}`,
-    calculationMode: "birth-year-cycle",
-  };
+  return resolveIdentityFromGanji(gan, ji, "day-pillar-lite");
 }
 
 export function resolveIdentityFromBirthYear(year: number): ZodiacIdentityLite {
   const gan = birthYearCheongan[normalizeCycle(year - 2020, 10)];
   const ji = jiji[normalizeCycle(year - 2020, 12)];
-  const element = elementByCheongan[gan];
-  const animal = animalByJiji[ji];
-  const ganji = `${gan}${ji}`;
-  const ganjiHanja = `${cheonganHanja[gan]}${jijiHanja[ji]}`;
-  const fullName = `${element.colorName} ${animal.animalName}`;
-  const imageUrls = imageUrlsFor(element.elementNameEn, animal.personaId);
-
-  return {
-    ...element,
-    ...animal,
-    ...imageUrls,
-    cheongan: gan,
-    jiji: ji,
-    ganji,
-    ganjiHanja,
-    fullName,
-    displayName: `${fullName} (${ganjiHanja})`,
-    combinedEmoji: `${element.colorEmoji}${animal.animalEmoji}`,
-    calculationMode: "day-pillar-lite",
-  };
+  return resolveIdentityFromGanji(gan, ji, "birth-year-cycle");
 }
 
 export function buildResultParams(input: SadamProfileInput) {
@@ -396,6 +384,5 @@ export function buildResultParams(input: SadamProfileInput) {
   params.set("birthTime", input.birthTime.trim());
   params.set("birthTimeUnknown", String(input.birthTimeUnknown));
   params.set("gender", input.gender);
-  params.set("focus", input.focus.trim());
   return params.toString();
 }

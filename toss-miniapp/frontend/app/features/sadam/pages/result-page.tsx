@@ -10,7 +10,8 @@ import {
   ZodiacElementBackground,
   ZodiacRevealCard,
 } from "../components/zodiac-widgets";
-import { parseBirthDate, resolveIdentityFromBirthDate } from "../personas";
+import { resolveSadamIdentity } from "../saju-calculation";
+import { parseBirthDate } from "../personas";
 
 export const meta: MetaFunction = () => {
   return [{ title: "SaDam 수호동물 결과" }];
@@ -31,8 +32,14 @@ export default function ResultPage() {
   const calendar = searchParams.get("calendar") === "lunar" ? "음력" : "양력";
   const birthTime = searchParams.get("birthTime") || "unknown";
   const gender = searchParams.get("gender") === "male" ? "남성" : "여성";
-  const focus = searchParams.get("focus") || "오늘의 컨디션";
-  const identity = resolveIdentityFromBirthDate(birthDate);
+  const calculation = resolveSadamIdentity({
+    birthDate,
+    birthTime,
+    birthTimeUnknown: birthTime === "unknown",
+    calendar: searchParams.get("calendar"),
+    birthCity: searchParams.get("birthCity"),
+  });
+  const identity = calculation.identity;
   const query = searchParams.toString();
 
   return (
@@ -98,7 +105,7 @@ export default function ResultPage() {
             <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-sky-800">
                 <MessageCircleIcon className="size-4" />
-                {focus} 힌트
+                기본 사주 정보
               </div>
               <p className="text-sm leading-6 text-sky-950">{identity.advice}</p>
             </div>
@@ -106,12 +113,16 @@ export default function ResultPage() {
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
                 <CalendarDaysIcon className="size-4" />
-                간편 계산 모드
+                {calculation.calculationLabel}
               </div>
               <p className="text-sm leading-6 text-amber-950">
-                현재 Toss MVP는 양력 날짜 기준 일주 계산만 먼저 반영했습니다.
-                본앱과 1:1 정밀 일치를 위해서는 다음 단계에서 음력 변환,
-                진태양시, 자시 보정 API를 연결해야 합니다.
+                일주는 {calculation.dayPillar.gan}{calculation.dayPillar.ji} 기준으로
+                계산했습니다. {calculation.hourPillar
+                  ? `시주는 ${calculation.hourPillar.gan}${calculation.hourPillar.ji}까지 반영했습니다.`
+                  : "태어난 시간을 모르면 시주는 제외합니다."}
+                {calculation.warnings.length > 0
+                  ? ` ${calculation.warnings.join(" ")}`
+                  : " 본앱 기준의 서머타임, 진태양시, 자시 보정을 적용했습니다."}
               </p>
             </div>
           </div>
