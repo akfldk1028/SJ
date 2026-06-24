@@ -1,5 +1,12 @@
 import { cheongan, jiji, parseBirthDate } from "../personas";
 import { resolveSadamIdentity, type SajuResolveResult } from "../saju-calculation";
+import {
+  cheonganHanja,
+  cheonganOheng,
+  jijiHanja,
+  jijiOheng,
+  zodiacAnimalByJi,
+} from "../chart/constants";
 
 export type GenderDb = "male" | "female";
 export type CalendarDb = "solar" | "lunar";
@@ -132,77 +139,6 @@ export type GenerateSummaryInput = {
   };
 };
 
-const cheonganHanja: Record<string, string> = {
-  갑: "甲",
-  을: "乙",
-  병: "丙",
-  정: "丁",
-  무: "戊",
-  기: "己",
-  경: "庚",
-  신: "辛",
-  임: "壬",
-  계: "癸",
-};
-
-const jijiHanja: Record<string, string> = {
-  자: "子",
-  축: "丑",
-  인: "寅",
-  묘: "卯",
-  진: "辰",
-  사: "巳",
-  오: "午",
-  미: "未",
-  신: "申",
-  유: "酉",
-  술: "戌",
-  해: "亥",
-};
-
-const zodiacAnimalByJi: Record<string, string> = {
-  자: "rat",
-  축: "ox",
-  인: "tiger",
-  묘: "rabbit",
-  진: "dragon",
-  사: "snake",
-  오: "horse",
-  미: "sheep",
-  신: "monkey",
-  유: "rooster",
-  술: "dog",
-  해: "pig",
-};
-
-const zodiacElementByGan: Record<string, string> = {
-  갑: "wood",
-  을: "wood",
-  병: "fire",
-  정: "fire",
-  무: "earth",
-  기: "earth",
-  경: "metal",
-  신: "metal",
-  임: "water",
-  계: "water",
-};
-
-const zodiacElementByJi: Record<string, string> = {
-  자: "water",
-  축: "earth",
-  인: "wood",
-  묘: "wood",
-  진: "earth",
-  사: "fire",
-  오: "fire",
-  미: "earth",
-  신: "metal",
-  유: "metal",
-  술: "earth",
-  해: "water",
-};
-
 function formatGan(value: string) {
   return `${value}(${cheonganHanja[value] ?? ""})`;
 }
@@ -232,10 +168,7 @@ function toSummaryPillar(gan: string | null, ji: string | null): SummaryPillar {
   };
 }
 
-function readOhengCount(
-  distribution: Record<string, number>,
-  keys: string[],
-) {
+function readOhengCount(distribution: Record<string, number>, keys: string[]) {
   for (const key of keys) {
     const value = distribution[key];
     if (typeof value === "number") return value;
@@ -360,32 +293,7 @@ export function parseProfileForm(formData: FormData): ProfileFormValues {
 }
 
 export function calculateOhengDistribution(calculation: SajuResolveResult) {
-  const counts = { "목(木)": 0, "화(火)": 0, "토(土)": 0, "금(金)": 0, "수(水)": 0 };
-  const keyByElement: Record<string, keyof typeof counts> = {
-    wood: "목(木)",
-    fire: "화(火)",
-    earth: "토(土)",
-    metal: "금(金)",
-    water: "수(水)",
-  };
-  const pillars = [
-    calculation.yearPillar,
-    calculation.monthPillar,
-    calculation.dayPillar,
-    calculation.hourPillar,
-  ].filter(Boolean);
-
-  for (const pillar of pillars) {
-    if (!pillar) continue;
-    const ganElement = zodiacElementByGan[pillar.gan];
-    const jiElement = zodiacElementByJi[pillar.ji];
-    const ganKey = keyByElement[ganElement];
-    const jiKey = keyByElement[jiElement];
-    if (ganKey) counts[ganKey] += 1;
-    if (jiKey) counts[jiKey] += 1;
-  }
-
-  return counts;
+  return calculation.analysis.ohengDistribution;
 }
 
 export function toProfileInsert(
@@ -416,7 +324,7 @@ export function toProfileInsert(
     country_code: "KR",
     locale: "ko",
     zodiac_animal: zodiacAnimalByJi[calculation.dayPillar.ji] ?? "tiger",
-    zodiac_element: zodiacElementByGan[calculation.dayPillar.gan] ?? "earth",
+    zodiac_element: cheonganOheng[calculation.dayPillar.gan] ?? "earth",
     zodiac_ganji: `${calculation.dayPillar.gan}${calculation.dayPillar.ji}`,
     created_at: now,
     updated_at: now,
@@ -443,18 +351,18 @@ export function toAnalysisUpsert(
     hour_ji: calculation.hourPillar ? formatJi(calculation.hourPillar.ji) : null,
     corrected_datetime: calculation.correctedDateTime.toISOString(),
     oheng_distribution: calculateOhengDistribution(calculation),
-    day_strength: null,
-    yongsin: null,
-    gyeokguk: null,
-    sipsin_info: null,
-    jijanggan_info: null,
+    day_strength: calculation.analysis.dayStrength,
+    yongsin: calculation.analysis.yongsin,
+    gyeokguk: calculation.analysis.gyeokguk,
+    sipsin_info: calculation.analysis.sipsinInfo,
+    jijanggan_info: calculation.analysis.jijangganInfo,
     sinsal_list: null,
     daeun: null,
     current_seun: null,
     twelve_unsung: null,
     twelve_sinsal: null,
     gilseong: null,
-    hapchung: null,
+    hapchung: calculation.analysis.hapchung,
     calculated_at: now,
     updated_at: now,
   };
@@ -476,4 +384,4 @@ export function resolveCalculationFromProfile(profile: SajuProfileRow) {
   });
 }
 
-export { cheongan, jiji };
+export { cheongan, jiji, jijiOheng as zodiacElementByJi };
