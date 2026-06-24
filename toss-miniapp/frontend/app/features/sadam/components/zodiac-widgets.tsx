@@ -39,7 +39,7 @@ export function ZodiacElementBackground({
 type ZodiacAnimalAvatarProps = {
   emoji: string;
   elementName: string;
-  size?: "sm" | "lg";
+  size?: "sm" | "lg" | "xl";
 };
 
 export function ZodiacAnimalAvatar({
@@ -48,7 +48,12 @@ export function ZodiacAnimalAvatar({
   size = "lg",
 }: ZodiacAnimalAvatarProps) {
   const accent = elementAccents[elementName] ?? elementAccents.화;
-  const sizeClass = size === "lg" ? "size-36 text-7xl" : "size-10 text-2xl";
+  const sizeClass =
+    size === "xl"
+      ? "size-52 text-8xl"
+      : size === "lg"
+        ? "size-36 text-7xl"
+        : "size-10 text-2xl";
 
   return (
     <div
@@ -56,6 +61,35 @@ export function ZodiacAnimalAvatar({
     >
       <span>{emoji}</span>
     </div>
+  );
+}
+
+type ZodiacSpeechPanelProps = {
+  emoji: string;
+  elementName: string;
+  title: string;
+  children: ReactNode;
+};
+
+export function ZodiacSpeechPanel({
+  emoji,
+  elementName,
+  title,
+  children,
+}: ZodiacSpeechPanelProps) {
+  const accent = elementAccents[elementName] ?? elementAccents.화;
+
+  return (
+    <section className="flex flex-col items-center">
+      <ZodiacAnimalAvatar emoji={emoji} elementName={elementName} size="xl" />
+      <div className="mt-3 h-0 w-0 border-x-[12px] border-b-[12px] border-x-transparent border-b-white/15" />
+      <div
+        className={`w-full rounded-3xl border px-5 py-5 text-center shadow-2xl ${accent}`}
+      >
+        <p className="text-xl font-semibold leading-8 text-white">{title}</p>
+        <div className="mt-5 text-left">{children}</div>
+      </div>
+    </section>
   );
 }
 

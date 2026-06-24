@@ -10,6 +10,7 @@ import { Button } from "~/common/components/ui/button";
 import {
   ZodiacChatBubble,
   ZodiacElementBackground,
+  ZodiacSpeechPanel,
 } from "../components/zodiac-widgets";
 import { resolveIdentityFromBirthYear } from "../personas";
 
@@ -57,7 +58,13 @@ export default function StartPage() {
           </ZodiacChatBubble>
         </section>
 
-        <Form action="/result" className="mt-5 space-y-4" method="get">
+        <Form action="/result" className="mt-5" method="get">
+          <ZodiacSpeechPanel
+            elementName={currentYearIdentity.elementName}
+            emoji={currentYearIdentity.animalEmoji}
+            title="너의 수호동물을 찾기 위해 몇 가지만 알려줘."
+          >
+            <div className="space-y-4">
           <label className="block rounded-lg border border-white/10 bg-white/[0.06] p-4">
             <span className="flex items-center gap-2 text-sm font-semibold text-slate-100">
               <UserRoundIcon className="size-4 text-sky-300" />
@@ -186,6 +193,8 @@ export default function StartPage() {
             수호동물 보기
             <ArrowRightIcon className="size-4" />
           </Button>
+            </div>
+          </ZodiacSpeechPanel>
         </Form>
 
         <p className="mt-4 text-center text-xs leading-5 text-slate-400">
