@@ -52,6 +52,7 @@ export default function ResultPage() {
             <ZodiacRevealCard
               elementName={identity.elementName}
               emoji={identity.animalEmoji}
+              imageUrl={identity.largeImageUrl}
               fullName={identity.fullName}
               ganjiHanja={identity.ganjiHanja}
               subtitle={`${identity.title} · ${identity.tone}`}

@@ -46,6 +46,7 @@ export default function StartPage() {
           <ZodiacChatBubble
             elementName={currentYearIdentity.elementName}
             emoji={currentYearIdentity.animalEmoji}
+            imageUrl={currentYearIdentity.imageUrl}
           >
             <p className="font-semibold">올해의 기운</p>
             <p className="mt-1 text-lg font-bold">
@@ -62,6 +63,7 @@ export default function StartPage() {
           <ZodiacSpeechPanel
             elementName={currentYearIdentity.elementName}
             emoji={currentYearIdentity.animalEmoji}
+            imageUrl={currentYearIdentity.largeImageUrl}
             title="너의 수호동물을 찾기 위해 몇 가지만 알려줘."
           >
             <div className="space-y-4">

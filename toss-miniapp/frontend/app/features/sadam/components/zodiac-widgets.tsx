@@ -39,12 +39,14 @@ export function ZodiacElementBackground({
 type ZodiacAnimalAvatarProps = {
   emoji: string;
   elementName: string;
+  imageUrl?: string;
   size?: "sm" | "lg" | "xl";
 };
 
 export function ZodiacAnimalAvatar({
   emoji,
   elementName,
+  imageUrl,
   size = "lg",
 }: ZodiacAnimalAvatarProps) {
   const accent = elementAccents[elementName] ?? elementAccents.화;
@@ -59,7 +61,15 @@ export function ZodiacAnimalAvatar({
     <div
       className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border shadow-2xl ${accent}`}
     >
-      <span>{emoji}</span>
+      {imageUrl ? (
+        <img
+          alt=""
+          className="h-[82%] w-[82%] object-contain"
+          src={imageUrl}
+        />
+      ) : (
+        <span>{emoji}</span>
+      )}
     </div>
   );
 }
@@ -67,6 +77,7 @@ export function ZodiacAnimalAvatar({
 type ZodiacSpeechPanelProps = {
   emoji: string;
   elementName: string;
+  imageUrl?: string;
   title: string;
   children: ReactNode;
 };
@@ -74,6 +85,7 @@ type ZodiacSpeechPanelProps = {
 export function ZodiacSpeechPanel({
   emoji,
   elementName,
+  imageUrl,
   title,
   children,
 }: ZodiacSpeechPanelProps) {
@@ -81,7 +93,12 @@ export function ZodiacSpeechPanel({
 
   return (
     <section className="flex flex-col items-center">
-      <ZodiacAnimalAvatar emoji={emoji} elementName={elementName} size="xl" />
+      <ZodiacAnimalAvatar
+        elementName={elementName}
+        emoji={emoji}
+        imageUrl={imageUrl}
+        size="xl"
+      />
       <div className="mt-3 h-0 w-0 border-x-[12px] border-b-[12px] border-x-transparent border-b-white/15" />
       <div
         className={`w-full rounded-3xl border px-5 py-5 text-center shadow-2xl ${accent}`}
@@ -96,6 +113,7 @@ export function ZodiacSpeechPanel({
 type ZodiacChatBubbleProps = {
   emoji: string;
   elementName: string;
+  imageUrl?: string;
   children: ReactNode;
   align?: "ai" | "user";
 };
@@ -103,6 +121,7 @@ type ZodiacChatBubbleProps = {
 export function ZodiacChatBubble({
   emoji,
   elementName,
+  imageUrl,
   children,
   align = "ai",
 }: ZodiacChatBubbleProps) {
@@ -112,7 +131,12 @@ export function ZodiacChatBubble({
   return (
     <div className={`flex gap-2 ${isAi ? "justify-start" : "justify-end"}`}>
       {isAi ? (
-        <ZodiacAnimalAvatar emoji={emoji} elementName={elementName} size="sm" />
+        <ZodiacAnimalAvatar
+          elementName={elementName}
+          emoji={emoji}
+          imageUrl={imageUrl}
+          size="sm"
+        />
       ) : null}
       <div
         className={`max-w-[82%] rounded-2xl border px-4 py-3 text-sm leading-6 text-white/90 shadow-lg ${
@@ -128,6 +152,7 @@ export function ZodiacChatBubble({
 type ZodiacRevealCardProps = {
   emoji: string;
   elementName: string;
+  imageUrl?: string;
   fullName: string;
   ganjiHanja: string;
   subtitle: string;
@@ -136,13 +161,18 @@ type ZodiacRevealCardProps = {
 export function ZodiacRevealCard({
   emoji,
   elementName,
+  imageUrl,
   fullName,
   ganjiHanja,
   subtitle,
 }: ZodiacRevealCardProps) {
   return (
     <section className="flex flex-col items-center px-5 py-8 text-center">
-      <ZodiacAnimalAvatar emoji={emoji} elementName={elementName} />
+      <ZodiacAnimalAvatar
+        elementName={elementName}
+        emoji={emoji}
+        imageUrl={imageUrl}
+      />
       <h2 className="mt-6 text-4xl font-bold text-white">{fullName}</h2>
       <p className="mt-2 text-lg tracking-[0.35em] text-white/55">
         {ganjiHanja}

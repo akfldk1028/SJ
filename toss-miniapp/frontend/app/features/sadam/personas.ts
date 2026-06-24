@@ -31,6 +31,8 @@ export type ZodiacIdentityLite = ElementInfo &
     fullName: string;
     displayName: string;
     combinedEmoji: string;
+    imageUrl: string;
+    largeImageUrl: string;
     calculationMode: "day-pillar-lite" | "birth-year-cycle";
   };
 
@@ -296,6 +298,17 @@ function normalizeCycle(index: number, length: number) {
   return ((index % length) + length) % length;
 }
 
+function imageUrlsFor(elementNameEn: string, personaId: string) {
+  const element = elementNameEn.toLowerCase();
+  const animal = personaId.replace("zodiac_", "");
+  const filename = `zodiac_${element}_${animal}.webp`;
+
+  return {
+    imageUrl: `/zodiac/${filename}`,
+    largeImageUrl: `/zodiac/onboarding/${filename.replace(".webp", "_large.webp")}`,
+  };
+}
+
 export function parseBirthDate(text: string) {
   const digits = text.replace(/\D/g, "");
   if (digits.length !== 8) return null;
@@ -333,10 +346,12 @@ export function resolveIdentityFromBirthDate(
   const ganji = `${gan}${ji}`;
   const ganjiHanja = `${cheonganHanja[gan]}${jijiHanja[ji]}`;
   const fullName = `${element.colorName} ${animal.animalName}`;
+  const imageUrls = imageUrlsFor(element.elementNameEn, animal.personaId);
 
   return {
     ...element,
     ...animal,
+    ...imageUrls,
     cheongan: gan,
     jiji: ji,
     ganji,
@@ -356,10 +371,12 @@ export function resolveIdentityFromBirthYear(year: number): ZodiacIdentityLite {
   const ganji = `${gan}${ji}`;
   const ganjiHanja = `${cheonganHanja[gan]}${jijiHanja[ji]}`;
   const fullName = `${element.colorName} ${animal.animalName}`;
+  const imageUrls = imageUrlsFor(element.elementNameEn, animal.personaId);
 
   return {
     ...element,
     ...animal,
+    ...imageUrls,
     cheongan: gan,
     jiji: ji,
     ganji,
