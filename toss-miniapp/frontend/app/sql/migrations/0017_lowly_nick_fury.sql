@@ -1,0 +1,1 @@
+ALTER TABLE "products" ALTER COLUMN "stats" SET DEFAULT '{"views":0,"reviews":0,"upvotes":{"decoder":{},"shouldInlineParams":false,"queryChunks":[{"value":["random() * 10000"]}]}}'::jsonb;
