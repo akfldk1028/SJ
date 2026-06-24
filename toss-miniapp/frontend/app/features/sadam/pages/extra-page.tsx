@@ -1,31 +1,45 @@
 import { useState } from "react";
-import { Link, type MetaFunction, useSearchParams } from "react-router";
+import { Link, type MetaFunction, useLoaderData } from "react-router";
 import { CheckCircle2Icon, PlayCircleIcon } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import {
   ZodiacElementBackground,
   ZodiacSpeechPanel,
 } from "../components/zodiac-widgets";
-import { resolveSadamIdentity } from "../saju-calculation";
+import { loadSadamProfile, type SadamProfileLoaderData } from "../data/route-loaders";
 import { requestRewardedAd } from "../toss-adapters";
 
 export const meta: MetaFunction = () => {
   return [{ title: "SaDam 추가 질문" }];
 };
 
+export const loader = loadSadamProfile;
+
 export default function ExtraPage() {
-  const [searchParams] = useSearchParams();
+  const data = useLoaderData() as SadamProfileLoaderData;
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [message, setMessage] = useState("");
-  const name = searchParams.get("name") || "나";
-  const birthDate = searchParams.get("birthDate") || "19950101";
-  const identity = resolveSadamIdentity({
-    birthDate,
-    birthTime: searchParams.get("birthTime"),
-    birthTimeUnknown: searchParams.get("birthTime") === "unknown",
-    calendar: searchParams.get("calendar"),
-    birthCity: searchParams.get("birthCity"),
-  }).identity;
+
+  if (data.error || !data.profile || !data.calculation) {
+    return (
+      <ZodiacElementBackground elementName="화">
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-6">
+          <section className="rounded-lg bg-white p-5 text-slate-950">
+            <h1 className="text-xl font-bold">프로필을 불러오지 못했습니다</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {data.error ?? "프로필 정보가 없습니다. 다시 입력해 주세요."}
+            </p>
+            <Button asChild className="mt-5 h-12 w-full rounded-md bg-sky-600 text-white">
+              <Link to="/">다시 입력하기</Link>
+            </Button>
+          </section>
+        </div>
+      </ZodiacElementBackground>
+    );
+  }
+
+  const name = data.profile.display_name;
+  const identity = data.calculation.identity;
 
   const handleReward = async () => {
     setStatus("loading");
@@ -86,7 +100,7 @@ export default function ExtraPage() {
 
         <div className="mt-auto pt-5">
           <Button asChild className="h-12 w-full rounded-md" variant="outline">
-            <Link to={`/result?${searchParams.toString()}`}>결과 카드로 돌아가기</Link>
+            <Link to={`/result?${data.query}`}>결과 카드로 돌아가기</Link>
           </Button>
         </div>
       </div>

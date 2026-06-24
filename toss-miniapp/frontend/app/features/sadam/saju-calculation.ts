@@ -32,6 +32,8 @@ export type SajuResolveInput = {
 
 export type SajuResolveResult = {
   identity: ZodiacIdentityLite;
+  yearPillar: Pillar;
+  monthPillar: Pillar;
   dayPillar: Pillar;
   hourPillar: Pillar | null;
   originalDateTime: Date;
@@ -164,6 +166,33 @@ function calculateDayPillar(date: Date): Pillar {
   };
 }
 
+function calculateYearPillar(date: Date): Pillar {
+  const year = date.getMonth() === 0 || (date.getMonth() === 1 && date.getDate() < 4)
+    ? date.getFullYear() - 1
+    : date.getFullYear();
+  const ganIndex = normalizeCycle(year - 4, 10);
+  const jiIndex = normalizeCycle(year - 4, 12);
+
+  return {
+    gan: cheongan[ganIndex],
+    ji: jiji[jiIndex],
+  };
+}
+
+function calculateMonthPillar(date: Date, yearPillar: Pillar): Pillar {
+  const approximateMonthIndexBySolarMonth = [11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const monthIndex = approximateMonthIndexBySolarMonth[date.getMonth()];
+  const yearGanIndex = cheongan.indexOf(yearPillar.gan as (typeof cheongan)[number]);
+  const monthGanStart = ((yearGanIndex % 5) * 2 + 2) % 10;
+  const ganIndex = (monthGanStart + monthIndex) % 10;
+  const jiIndex = (monthIndex + 2) % 12;
+
+  return {
+    gan: cheongan[ganIndex],
+    ji: jiji[jiIndex],
+  };
+}
+
 function calculateHourPillar(hour: number, dayPillar: Pillar): Pillar {
   const jiIndex = Math.floor((hour + 1) / 2) % 12;
   const dayGanIndex = cheongan.indexOf(dayPillar.gan as (typeof cheongan)[number]);
@@ -193,6 +222,8 @@ export function resolveSadamIdentity(input: SajuResolveInput): SajuResolveResult
   const correctedDateTime = birthTimeUnknown
     ? toDate({ ...parsed, hour: 12, minute: 0 })
     : applyJasi(trueSolarTime, input.useYaJasi ?? true);
+  const yearPillar = calculateYearPillar(correctedDateTime);
+  const monthPillar = calculateMonthPillar(correctedDateTime, yearPillar);
   const dayPillar = calculateDayPillar(correctedDateTime);
   const hourPillar = birthTimeUnknown
     ? null
@@ -203,6 +234,8 @@ export function resolveSadamIdentity(input: SajuResolveInput): SajuResolveResult
 
   return {
     identity,
+    yearPillar,
+    monthPillar,
     dayPillar,
     hourPillar,
     originalDateTime,

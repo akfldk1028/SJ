@@ -1,4 +1,4 @@
-import { Form, type MetaFunction } from "react-router";
+import { Form, redirect, type MetaFunction, useActionData } from "react-router";
 import {
   ArrowRightIcon,
   CalendarDaysIcon,
@@ -13,6 +13,14 @@ import {
   ZodiacSpeechPanel,
 } from "../components/zodiac-widgets";
 import { resolveIdentityFromBirthYear } from "../personas";
+import { ensureAnonymousSession } from "../data/supabase-server";
+import { createProfile, upsertAnalysis } from "../data/mutations";
+import {
+  parseProfileForm,
+  toAnalysisUpsert,
+  toProfileInsert,
+} from "../data/models";
+import { resolveSadamIdentity } from "../saju-calculation";
 
 export const meta: MetaFunction = () => {
   return [
@@ -26,7 +34,56 @@ export const meta: MetaFunction = () => {
 
 const currentYearIdentity = resolveIdentityFromBirthYear(new Date().getFullYear());
 
+type ActionData = {
+  error?: string;
+};
+
+export async function action({
+  request,
+  context,
+}: {
+  request: Request;
+  context: { cloudflare: { env: CloudflareEnvironment } };
+}) {
+  try {
+    const formData = await request.formData();
+    const values = parseProfileForm(formData);
+    const session = await ensureAnonymousSession(request, context.cloudflare.env);
+    const calculation = resolveSadamIdentity({
+      birthDate: values.birthDate,
+      birthTime: values.birthTime,
+      birthTimeUnknown: values.birthTime === "unknown",
+      calendar: values.calendar,
+      birthCity: values.birthCity,
+      useYaJasi: values.useYaJasi,
+    });
+    const profileId = crypto.randomUUID();
+    const analysisId = crypto.randomUUID();
+
+    await createProfile(
+      session.client,
+      toProfileInsert(profileId, session.userId, values, calculation),
+    );
+    await upsertAnalysis(
+      session.client,
+      toAnalysisUpsert(analysisId, profileId, calculation),
+    );
+
+    return redirect(`/result?profileId=${profileId}`, {
+      headers: session.cookieHeader
+        ? { "Set-Cookie": session.cookieHeader }
+        : undefined,
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "프로필 저장에 실패했습니다.",
+    } satisfies ActionData;
+  }
+}
+
 export default function StartPage() {
+  const actionData = useActionData() as ActionData | undefined;
+
   return (
     <ZodiacElementBackground elementName={currentYearIdentity.elementName}>
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
@@ -59,7 +116,7 @@ export default function StartPage() {
           </ZodiacChatBubble>
         </section>
 
-        <Form action="/result" className="mt-5" method="get">
+        <Form className="mt-5" method="post">
           <ZodiacSpeechPanel
             elementName={currentYearIdentity.elementName}
             emoji={currentYearIdentity.animalEmoji}
@@ -67,6 +124,12 @@ export default function StartPage() {
             title="너의 수호동물을 찾기 위해 몇 가지만 알려줘."
           >
             <div className="space-y-4">
+          {actionData?.error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-900">
+              {actionData.error}
+            </div>
+          ) : null}
+
           <label className="block rounded-lg border border-white/10 bg-white/[0.06] p-4">
             <span className="flex items-center gap-2 text-sm font-semibold text-slate-100">
               <UserRoundIcon className="size-4 text-sky-300" />
@@ -120,6 +183,14 @@ export default function StartPage() {
                 <span className="peer-checked:text-sky-200">음력</span>
               </label>
             </div>
+            <label className="mt-3 flex items-center gap-2 text-sm text-slate-100">
+              <input
+                className="size-4 rounded border-white/20"
+                name="isLeapMonth"
+                type="checkbox"
+              />
+              음력 윤달
+            </label>
           </section>
 
           <section className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
@@ -148,6 +219,17 @@ export default function StartPage() {
                 <option value="21:00">21:00 - 22:59</option>
                 <option value="23:00">23:00 - 23:59</option>
               </select>
+            </label>
+            <input name="useYaJasi" type="hidden" value="off" />
+            <label className="mt-3 flex items-center gap-2 text-sm text-slate-100">
+              <input
+                className="size-4 rounded border-white/20"
+                defaultChecked
+                name="useYaJasi"
+                type="checkbox"
+                value="on"
+              />
+              야자시 기준 적용
             </label>
           </section>
 

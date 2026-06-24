@@ -1,4 +1,4 @@
-import { Link, type MetaFunction, useSearchParams } from "react-router";
+import { Link, type MetaFunction, useLoaderData } from "react-router";
 import {
   ArrowRightIcon,
   CalendarDaysIcon,
@@ -10,37 +10,48 @@ import {
   ZodiacElementBackground,
   ZodiacRevealCard,
 } from "../components/zodiac-widgets";
-import { resolveSadamIdentity } from "../saju-calculation";
-import { parseBirthDate } from "../personas";
+import { loadSadamProfile, type SadamProfileLoaderData } from "../data/route-loaders";
 
 export const meta: MetaFunction = () => {
   return [{ title: "SaDam 수호동물 결과" }];
 };
 
+export const loader = loadSadamProfile;
+
 function formatBirthDate(value: string) {
-  const parsed = parseBirthDate(value);
-  if (!parsed) return "1995.01.01";
-  return `${parsed.year}.${String(parsed.month).padStart(2, "0")}.${String(
-    parsed.day,
-  ).padStart(2, "0")}`;
+  return value.replaceAll("-", ".");
 }
 
 export default function ResultPage() {
-  const [searchParams] = useSearchParams();
-  const name = searchParams.get("name") || "나";
-  const birthDate = searchParams.get("birthDate") || "19950101";
-  const calendar = searchParams.get("calendar") === "lunar" ? "음력" : "양력";
-  const birthTime = searchParams.get("birthTime") || "unknown";
-  const gender = searchParams.get("gender") === "male" ? "남성" : "여성";
-  const calculation = resolveSadamIdentity({
-    birthDate,
-    birthTime,
-    birthTimeUnknown: birthTime === "unknown",
-    calendar: searchParams.get("calendar"),
-    birthCity: searchParams.get("birthCity"),
-  });
+  const data = useLoaderData() as SadamProfileLoaderData;
+
+  if (data.error || !data.profile || !data.calculation) {
+    return (
+      <ZodiacElementBackground elementName="화">
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-6">
+          <section className="rounded-lg bg-white p-5 text-slate-950">
+            <h1 className="text-xl font-bold">프로필을 불러오지 못했습니다</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {data.error ?? "프로필 정보가 없습니다. 다시 입력해 주세요."}
+            </p>
+            <Button asChild className="mt-5 h-12 w-full rounded-md bg-sky-600 text-white">
+              <Link to="/">다시 입력하기</Link>
+            </Button>
+          </section>
+        </div>
+      </ZodiacElementBackground>
+    );
+  }
+
+  const { profile, calculation } = data;
+  const name = profile.display_name;
+  const calendar = profile.is_lunar ? "음력" : "양력";
+  const birthTime = profile.birth_time_unknown || profile.birth_time_minutes == null
+    ? "시간 모름"
+    : `${String(Math.floor(profile.birth_time_minutes / 60)).padStart(2, "0")}:${String(profile.birth_time_minutes % 60).padStart(2, "0")}`;
+  const gender = profile.gender === "male" ? "남성" : "여성";
   const identity = calculation.identity;
-  const query = searchParams.toString();
+  const query = data.query;
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
@@ -71,13 +82,13 @@ export default function ResultPage() {
               <div className="rounded-md bg-slate-100 p-3">
                 <p className="text-xs font-semibold text-slate-500">생년월일</p>
                 <p className="mt-1 font-bold">
-                  {calendar} {formatBirthDate(birthDate)}
+                  {calendar} {formatBirthDate(profile.birth_date)}
                 </p>
               </div>
               <div className="rounded-md bg-slate-100 p-3">
                 <p className="text-xs font-semibold text-slate-500">시간/성별</p>
                 <p className="mt-1 font-bold">
-                  {birthTime === "unknown" ? "시간 모름" : birthTime} · {gender}
+                  {birthTime} · {gender}
                 </p>
               </div>
             </div>

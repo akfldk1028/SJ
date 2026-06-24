@@ -1,0 +1,324 @@
+import { cheongan, jiji, parseBirthDate } from "../personas";
+import { resolveSadamIdentity, type SajuResolveResult } from "../saju-calculation";
+
+export type GenderDb = "male" | "female";
+export type CalendarDb = "solar" | "lunar";
+
+export type ProfileFormValues = {
+  displayName: string;
+  gender: GenderDb;
+  birthDate: string;
+  calendar: CalendarDb;
+  isLeapMonth: boolean;
+  birthTime: string;
+  birthCity: string;
+  useYaJasi: boolean;
+};
+
+export type SajuProfileRow = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  relation_type: string | null;
+  memo: string | null;
+  birth_date: string;
+  birth_time_minutes: number | null;
+  birth_time_unknown: boolean | null;
+  is_lunar: boolean | null;
+  is_leap_month: boolean | null;
+  gender: GenderDb;
+  birth_city: string;
+  time_correction: number | null;
+  use_ya_jasi: boolean | null;
+  profile_type: "primary" | "other" | null;
+  country_code: string | null;
+  locale: string;
+  zodiac_animal: string | null;
+  zodiac_element: string | null;
+  zodiac_ganji: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type SajuAnalysisRow = {
+  id: string;
+  profile_id: string;
+  year_gan: string;
+  year_ji: string;
+  month_gan: string;
+  month_ji: string;
+  day_gan: string;
+  day_ji: string;
+  hour_gan: string | null;
+  hour_ji: string | null;
+  corrected_datetime: string | null;
+  oheng_distribution: Record<string, number>;
+  day_strength?: Record<string, unknown> | null;
+  yongsin?: Record<string, unknown> | null;
+  gyeokguk?: Record<string, unknown> | null;
+  sipsin_info?: Record<string, unknown> | null;
+  jijanggan_info?: Record<string, unknown> | null;
+  sinsal_list?: Array<Record<string, unknown>> | null;
+  daeun?: Record<string, unknown> | null;
+  current_seun?: Record<string, unknown> | null;
+  twelve_unsung?: Array<Record<string, unknown>> | null;
+  twelve_sinsal?: Array<Record<string, unknown>> | null;
+  gilseong?: Record<string, unknown> | null;
+  hapchung?: Record<string, unknown> | null;
+  calculated_at?: string | null;
+  updated_at?: string | null;
+};
+
+const cheonganHanja: Record<string, string> = {
+  갑: "甲",
+  을: "乙",
+  병: "丙",
+  정: "丁",
+  무: "戊",
+  기: "己",
+  경: "庚",
+  신: "辛",
+  임: "壬",
+  계: "癸",
+};
+
+const jijiHanja: Record<string, string> = {
+  자: "子",
+  축: "丑",
+  인: "寅",
+  묘: "卯",
+  진: "辰",
+  사: "巳",
+  오: "午",
+  미: "未",
+  신: "申",
+  유: "酉",
+  술: "戌",
+  해: "亥",
+};
+
+const zodiacAnimalByJi: Record<string, string> = {
+  자: "rat",
+  축: "ox",
+  인: "tiger",
+  묘: "rabbit",
+  진: "dragon",
+  사: "snake",
+  오: "horse",
+  미: "sheep",
+  신: "monkey",
+  유: "rooster",
+  술: "dog",
+  해: "pig",
+};
+
+const zodiacElementByGan: Record<string, string> = {
+  갑: "wood",
+  을: "wood",
+  병: "fire",
+  정: "fire",
+  무: "earth",
+  기: "earth",
+  경: "metal",
+  신: "metal",
+  임: "water",
+  계: "water",
+};
+
+const zodiacElementByJi: Record<string, string> = {
+  자: "water",
+  축: "earth",
+  인: "wood",
+  묘: "wood",
+  진: "earth",
+  사: "fire",
+  오: "fire",
+  미: "earth",
+  신: "metal",
+  유: "metal",
+  술: "earth",
+  해: "water",
+};
+
+function formatGan(value: string) {
+  return `${value}(${cheonganHanja[value] ?? ""})`;
+}
+
+function formatJi(value: string) {
+  return `${value}(${jijiHanja[value] ?? ""})`;
+}
+
+export function extractHangul(value: string | null | undefined) {
+  if (!value) return "";
+  const index = value.indexOf("(");
+  return index >= 0 ? value.slice(0, index) : value;
+}
+
+export function parseBirthTimeMinutes(value: string) {
+  if (!value || value === "unknown") return null;
+  const [hourText, minuteText = "0"] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+export function birthDateToIsoDate(value: string) {
+  const parsed = parseBirthDate(value);
+  if (!parsed) throw new Error("생년월일은 YYYYMMDD 형식이어야 합니다.");
+  return `${parsed.year}-${String(parsed.month).padStart(2, "0")}-${String(parsed.day).padStart(2, "0")}`;
+}
+
+export function parseProfileForm(formData: FormData): ProfileFormValues {
+  const displayName = String(formData.get("name") ?? "").trim();
+  const birthDate = String(formData.get("birthDate") ?? "").trim();
+  const calendar = formData.get("calendar") === "lunar" ? "lunar" : "solar";
+  const birthTime = String(formData.get("birthTime") ?? "unknown");
+  const gender = formData.get("gender") === "male" ? "male" : "female";
+  const birthCity = String(formData.get("birthCity") ?? "서울").trim() || "서울";
+  const useYaJasiValues = formData.getAll("useYaJasi").map(String);
+
+  if (!displayName || displayName.length > 12) {
+    throw new Error("이름은 1자 이상 12자 이하로 입력해 주세요.");
+  }
+
+  const parsed = parseBirthDate(birthDate);
+  if (!parsed) throw new Error("생년월일은 YYYYMMDD 형식으로 입력해 주세요.");
+
+  const date = new Date(parsed.year, parsed.month - 1, parsed.day);
+  const now = new Date();
+  if (parsed.year < 1900 || date.getTime() > now.getTime()) {
+    throw new Error("생년월일은 1900년 이후, 오늘 이전 날짜여야 합니다.");
+  }
+
+  return {
+    displayName,
+    gender,
+    birthDate,
+    calendar,
+    isLeapMonth: formData.get("isLeapMonth") === "on",
+    birthTime,
+    birthCity,
+    useYaJasi: useYaJasiValues.includes("on"),
+  };
+}
+
+export function calculateOhengDistribution(calculation: SajuResolveResult) {
+  const counts = { "목(木)": 0, "화(火)": 0, "토(土)": 0, "금(金)": 0, "수(水)": 0 };
+  const keyByElement: Record<string, keyof typeof counts> = {
+    wood: "목(木)",
+    fire: "화(火)",
+    earth: "토(土)",
+    metal: "금(金)",
+    water: "수(水)",
+  };
+  const pillars = [
+    calculation.yearPillar,
+    calculation.monthPillar,
+    calculation.dayPillar,
+    calculation.hourPillar,
+  ].filter(Boolean);
+
+  for (const pillar of pillars) {
+    if (!pillar) continue;
+    const ganElement = zodiacElementByGan[pillar.gan];
+    const jiElement = zodiacElementByJi[pillar.ji];
+    const ganKey = keyByElement[ganElement];
+    const jiKey = keyByElement[jiElement];
+    if (ganKey) counts[ganKey] += 1;
+    if (jiKey) counts[jiKey] += 1;
+  }
+
+  return counts;
+}
+
+export function toProfileInsert(
+  id: string,
+  userId: string,
+  values: ProfileFormValues,
+  calculation: SajuResolveResult,
+) {
+  const now = new Date().toISOString();
+  const birthTimeMinutes = parseBirthTimeMinutes(values.birthTime);
+
+  return {
+    id,
+    user_id: userId,
+    display_name: values.displayName,
+    relation_type: "me",
+    memo: null,
+    birth_date: birthDateToIsoDate(values.birthDate),
+    birth_time_minutes: birthTimeMinutes,
+    birth_time_unknown: birthTimeMinutes == null,
+    is_lunar: values.calendar === "lunar",
+    is_leap_month: values.isLeapMonth,
+    gender: values.gender,
+    birth_city: values.birthCity,
+    time_correction: 0,
+    use_ya_jasi: values.useYaJasi,
+    profile_type: "primary",
+    country_code: "KR",
+    locale: "ko",
+    zodiac_animal: zodiacAnimalByJi[calculation.dayPillar.ji] ?? "tiger",
+    zodiac_element: zodiacElementByGan[calculation.dayPillar.gan] ?? "earth",
+    zodiac_ganji: `${calculation.dayPillar.gan}${calculation.dayPillar.ji}`,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+export function toAnalysisUpsert(
+  id: string,
+  profileId: string,
+  calculation: SajuResolveResult,
+) {
+  const now = new Date().toISOString();
+
+  return {
+    id,
+    profile_id: profileId,
+    year_gan: formatGan(calculation.yearPillar.gan),
+    year_ji: formatJi(calculation.yearPillar.ji),
+    month_gan: formatGan(calculation.monthPillar.gan),
+    month_ji: formatJi(calculation.monthPillar.ji),
+    day_gan: formatGan(calculation.dayPillar.gan),
+    day_ji: formatJi(calculation.dayPillar.ji),
+    hour_gan: calculation.hourPillar ? formatGan(calculation.hourPillar.gan) : null,
+    hour_ji: calculation.hourPillar ? formatJi(calculation.hourPillar.ji) : null,
+    corrected_datetime: calculation.correctedDateTime.toISOString(),
+    oheng_distribution: calculateOhengDistribution(calculation),
+    day_strength: null,
+    yongsin: null,
+    gyeokguk: null,
+    sipsin_info: null,
+    jijanggan_info: null,
+    sinsal_list: null,
+    daeun: null,
+    current_seun: null,
+    twelve_unsung: null,
+    twelve_sinsal: null,
+    gilseong: null,
+    hapchung: null,
+    calculated_at: now,
+    updated_at: now,
+  };
+}
+
+export function resolveCalculationFromProfile(profile: SajuProfileRow) {
+  const compactBirthDate = profile.birth_date.replaceAll("-", "");
+  const birthTime = profile.birth_time_unknown || profile.birth_time_minutes == null
+    ? "unknown"
+    : `${String(Math.floor(profile.birth_time_minutes / 60)).padStart(2, "0")}:${String(profile.birth_time_minutes % 60).padStart(2, "0")}`;
+
+  return resolveSadamIdentity({
+    birthDate: compactBirthDate,
+    birthTime,
+    birthTimeUnknown: profile.birth_time_unknown ?? false,
+    calendar: profile.is_lunar ? "lunar" : "solar",
+    birthCity: profile.birth_city,
+    useYaJasi: profile.use_ya_jasi ?? true,
+  });
+}
+
+export { cheongan, jiji };
