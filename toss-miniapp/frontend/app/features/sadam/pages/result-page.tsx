@@ -22,6 +22,12 @@ function formatBirthDate(value: string) {
   return value.replaceAll("-", ".");
 }
 
+function readStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 export default function ResultPage() {
   const data = useLoaderData() as SadamProfileLoaderData;
 
@@ -52,6 +58,13 @@ export default function ResultPage() {
   const gender = profile.gender === "male" ? "남성" : "여성";
   const identity = calculation.identity;
   const query = data.query;
+  const aiSummary = data.summary?.content;
+  const personality = aiSummary?.personality &&
+    typeof aiSummary.personality === "object"
+    ? aiSummary.personality as Record<string, unknown>
+    : null;
+  const aiCore = typeof personality?.core === "string" ? personality.core : null;
+  const aiStrengths = readStringArray(aiSummary?.strengths).slice(0, 3);
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
@@ -116,9 +129,29 @@ export default function ResultPage() {
             <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-sky-800">
                 <MessageCircleIcon className="size-4" />
-                기본 사주 정보
+                AI 분석 요약
               </div>
-              <p className="text-sm leading-6 text-sky-950">{identity.advice}</p>
+              {aiCore ? (
+                <div className="space-y-3">
+                  <p className="text-sm leading-6 text-sky-950">{aiCore}</p>
+                  {aiStrengths.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {aiStrengths.map((strength) => (
+                        <Badge
+                          className="rounded-md bg-white text-sky-900"
+                          key={strength}
+                        >
+                          {strength}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-sky-950">
+                  AI 상세 요약을 준비하고 있습니다. 잠시 후 상세 분석에서 더 깊은 해석을 확인할 수 있습니다.
+                </p>
+              )}
             </div>
 
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">

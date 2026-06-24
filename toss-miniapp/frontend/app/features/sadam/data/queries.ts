@@ -2,11 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   analysisSelectColumns,
   analysesTable,
+  aiSummariesTable,
+  aiSummaryColumns,
+  aiSummarySelectColumns,
   profileColumns,
   profileSelectColumns,
   profilesTable,
 } from "./schema";
-import type { SajuAnalysisRow, SajuProfileRow } from "./models";
+import type { AiSummaryRow, SajuAnalysisRow, SajuProfileRow } from "./models";
 
 export async function getProfileById(
   client: SupabaseClient,
@@ -57,4 +60,21 @@ export async function getOwnedProfileWithAnalysis(
 
   const analysis = await getAnalysisByProfileId(client, profileId);
   return { profile, analysis };
+}
+
+export async function getSajuBaseSummary(
+  client: SupabaseClient,
+  profileId: string,
+  locale = "ko",
+) {
+  const { data, error } = await client
+    .from(aiSummariesTable)
+    .select(aiSummarySelectColumns)
+    .eq(aiSummaryColumns.profileId, profileId)
+    .eq(aiSummaryColumns.summaryType, "saju_base")
+    .eq(aiSummaryColumns.locale, locale)
+    .maybeSingle<AiSummaryRow>();
+
+  if (error) throw new Error(`AI 요약 조회 실패: ${error.message}`);
+  return data;
 }

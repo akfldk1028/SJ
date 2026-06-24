@@ -69,6 +69,69 @@ export type SajuAnalysisRow = {
   updated_at?: string | null;
 };
 
+export type AiSummaryRow = {
+  id: string;
+  user_id: string;
+  profile_id: string;
+  summary_type: string;
+  content: Record<string, unknown>;
+  input_data: Record<string, unknown> | null;
+  model_provider: string | null;
+  model_name: string | null;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  total_tokens: number | null;
+  cached_tokens: number | null;
+  total_cost_usd: number | null;
+  processing_time_ms: number | null;
+  status: string | null;
+  is_cached: boolean | null;
+  prompt_version: string | null;
+  locale: string;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+type SummaryPillar = {
+  gan: string;
+  ji: string;
+  ganHanja?: string;
+  jiHanja?: string;
+};
+
+export type GenerateSummaryInput = {
+  saju: {
+    year: SummaryPillar;
+    month: SummaryPillar;
+    day: SummaryPillar;
+    hour: SummaryPillar;
+  };
+  oheng: {
+    wood: number;
+    fire: number;
+    earth: number;
+    metal: number;
+    water: number;
+  };
+  yongsin?: {
+    yongsin: string;
+    huisin: string;
+    gisin: string;
+    gusin: string;
+  };
+  sipsin?: Record<string, string>;
+  singang_singak?: {
+    is_singang: boolean;
+    score: number;
+    factors: {
+      deukryeong: boolean;
+      deukji: boolean;
+      deuksi: boolean;
+      deukse: boolean;
+    };
+  };
+};
+
 const cheonganHanja: Record<string, string> = {
   갑: "甲",
   을: "乙",
@@ -152,6 +215,98 @@ export function extractHangul(value: string | null | undefined) {
   if (!value) return "";
   const index = value.indexOf("(");
   return index >= 0 ? value.slice(0, index) : value;
+}
+
+function extractHanja(value: string | null | undefined) {
+  if (!value) return undefined;
+  const match = /\(([^)]+)\)/.exec(value);
+  return match?.[1];
+}
+
+function toSummaryPillar(gan: string | null, ji: string | null): SummaryPillar {
+  return {
+    gan: extractHangul(gan) || "?",
+    ji: extractHangul(ji) || "?",
+    ganHanja: extractHanja(gan) ?? undefined,
+    jiHanja: extractHanja(ji) ?? undefined,
+  };
+}
+
+function readOhengCount(
+  distribution: Record<string, number>,
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = distribution[key];
+    if (typeof value === "number") return value;
+  }
+  return 0;
+}
+
+function pickText(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function flattenSipsinInfo(value: Record<string, unknown> | null | undefined) {
+  if (!value) return undefined;
+  const result: Record<string, string> = {};
+
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw === "string") {
+      result[key] = raw;
+      continue;
+    }
+    if (!raw || typeof raw !== "object") continue;
+    for (const [nestedKey, nestedRaw] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof nestedRaw === "string") {
+        result[`${key}_${nestedKey}`] = nestedRaw;
+      }
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+export function toGenerateSummaryInput(analysis: SajuAnalysisRow): GenerateSummaryInput {
+  const yongsin = analysis.yongsin ?? undefined;
+  const dayStrength = analysis.day_strength ?? undefined;
+
+  return {
+    saju: {
+      year: toSummaryPillar(analysis.year_gan, analysis.year_ji),
+      month: toSummaryPillar(analysis.month_gan, analysis.month_ji),
+      day: toSummaryPillar(analysis.day_gan, analysis.day_ji),
+      hour: toSummaryPillar(analysis.hour_gan, analysis.hour_ji),
+    },
+    oheng: {
+      wood: readOhengCount(analysis.oheng_distribution, ["wood", "mok", "목", "목(木)"]),
+      fire: readOhengCount(analysis.oheng_distribution, ["fire", "hwa", "화", "화(火)"]),
+      earth: readOhengCount(analysis.oheng_distribution, ["earth", "to", "토", "토(土)"]),
+      metal: readOhengCount(analysis.oheng_distribution, ["metal", "geum", "금", "금(金)"]),
+      water: readOhengCount(analysis.oheng_distribution, ["water", "su", "수", "수(水)"]),
+    },
+    yongsin: yongsin
+      ? {
+          yongsin: pickText(yongsin.yongsin),
+          huisin: pickText(yongsin.huisin ?? yongsin.heesin),
+          gisin: pickText(yongsin.gisin),
+          gusin: pickText(yongsin.gusin),
+        }
+      : undefined,
+    sipsin: flattenSipsinInfo(analysis.sipsin_info),
+    singang_singak: dayStrength
+      ? {
+          is_singang: Boolean(dayStrength.isStrong ?? dayStrength.is_singang),
+          score: Number(dayStrength.score ?? 50),
+          factors: {
+            deukryeong: Boolean(dayStrength.deukryeong),
+            deukji: Boolean(dayStrength.deukji),
+            deuksi: Boolean(dayStrength.deuksi),
+            deukse: Boolean(dayStrength.deukse),
+          },
+        }
+      : undefined,
+  };
 }
 
 export function parseBirthTimeMinutes(value: string) {

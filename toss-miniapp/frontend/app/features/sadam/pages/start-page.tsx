@@ -15,6 +15,7 @@ import {
 import { resolveIdentityFromBirthYear } from "../personas";
 import { ensureAnonymousSession } from "../data/supabase-server";
 import { createProfile, upsertAnalysis } from "../data/mutations";
+import { ensureSajuBaseSummary } from "../data/ai-summary";
 import {
   parseProfileForm,
   toAnalysisUpsert,
@@ -43,7 +44,7 @@ export async function action({
   context,
 }: {
   request: Request;
-  context: { cloudflare: { env: CloudflareEnvironment } };
+  context: { cloudflare: { env: CloudflareEnvironment; ctx?: ExecutionContext } };
 }) {
   try {
     const formData = await request.formData();
@@ -60,14 +61,28 @@ export async function action({
     const profileId = crypto.randomUUID();
     const analysisId = crypto.randomUUID();
 
-    await createProfile(
+    const profile = await createProfile(
       session.client,
       toProfileInsert(profileId, session.userId, values, calculation),
     );
-    await upsertAnalysis(
+    const analysis = await upsertAnalysis(
       session.client,
       toAnalysisUpsert(analysisId, profileId, calculation),
     );
+    const summaryPromise = ensureSajuBaseSummary({
+      client: session.client,
+      userId: session.userId,
+      profile,
+      analysis,
+    }).catch((summaryError) => {
+      console.error("[sadam] AI summary generation failed", summaryError);
+    });
+
+    if (context.cloudflare.ctx) {
+      context.cloudflare.ctx.waitUntil(summaryPromise);
+    } else {
+      await summaryPromise;
+    }
 
     return redirect(`/result?profileId=${profileId}`, {
       headers: session.cookieHeader

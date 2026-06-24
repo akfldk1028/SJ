@@ -1,5 +1,6 @@
 export const profilesTable = "saju_profiles";
 export const analysesTable = "saju_analyses";
+export const aiSummariesTable = "ai_summaries";
 
 export const profileColumns = {
   id: "id",
@@ -56,6 +57,29 @@ export const analysisColumns = {
   hapchung: "hapchung",
 } as const;
 
+export const aiSummaryColumns = {
+  id: "id",
+  userId: "user_id",
+  profileId: "profile_id",
+  summaryType: "summary_type",
+  content: "content",
+  inputData: "input_data",
+  modelProvider: "model_provider",
+  modelName: "model_name",
+  promptTokens: "prompt_tokens",
+  completionTokens: "completion_tokens",
+  totalTokens: "total_tokens",
+  cachedTokens: "cached_tokens",
+  totalCostUsd: "total_cost_usd",
+  processingTimeMs: "processing_time_ms",
+  status: "status",
+  isCached: "is_cached",
+  promptVersion: "prompt_version",
+  locale: "locale",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+} as const;
+
 export const profileSelectColumns = `
   id,
   user_id,
@@ -107,5 +131,28 @@ export const analysisSelectColumns = `
   gilseong,
   hapchung,
   calculated_at,
+  updated_at
+`;
+
+export const aiSummarySelectColumns = `
+  id,
+  user_id,
+  profile_id,
+  summary_type,
+  content,
+  input_data,
+  model_provider,
+  model_name,
+  prompt_tokens,
+  completion_tokens,
+  total_tokens,
+  cached_tokens,
+  total_cost_usd,
+  processing_time_ms,
+  status,
+  is_cached,
+  prompt_version,
+  locale,
+  created_at,
   updated_at
 `;
