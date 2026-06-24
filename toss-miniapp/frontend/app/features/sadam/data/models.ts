@@ -356,12 +356,12 @@ export function toAnalysisUpsert(
     gyeokguk: calculation.analysis.gyeokguk,
     sipsin_info: calculation.analysis.sipsinInfo,
     jijanggan_info: calculation.analysis.jijangganInfo,
-    sinsal_list: null,
-    daeun: null,
-    current_seun: null,
-    twelve_unsung: null,
-    twelve_sinsal: null,
-    gilseong: null,
+    sinsal_list: calculation.analysis.sinsalList,
+    daeun: calculation.analysis.daeun,
+    current_seun: calculation.analysis.currentSeun,
+    twelve_unsung: calculation.analysis.twelveUnsung,
+    twelve_sinsal: calculation.analysis.twelveSinsal,
+    gilseong: calculation.analysis.gilseong,
     hapchung: calculation.analysis.hapchung,
     calculated_at: now,
     updated_at: now,
@@ -381,6 +381,7 @@ export function resolveCalculationFromProfile(profile: SajuProfileRow) {
     calendar: profile.is_lunar ? "lunar" : "solar",
     birthCity: profile.birth_city,
     useYaJasi: profile.use_ya_jasi ?? true,
+    gender: profile.gender,
   });
 }
 

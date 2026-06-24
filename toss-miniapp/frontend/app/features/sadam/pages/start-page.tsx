@@ -57,6 +57,7 @@ export async function action({
       calendar: values.calendar,
       birthCity: values.birthCity,
       useYaJasi: values.useYaJasi,
+      gender: values.gender,
     });
     const profileId = crypto.randomUUID();
     const analysisId = crypto.randomUUID();

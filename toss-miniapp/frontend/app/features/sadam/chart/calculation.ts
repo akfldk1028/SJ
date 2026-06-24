@@ -16,6 +16,7 @@ export type SajuResolveInput = {
   calendar?: CalendarType | string | null;
   birthCity?: string | null;
   useYaJasi?: boolean;
+  gender?: "male" | "female" | string | null;
 };
 
 const DAY_MS = 86_400_000;
@@ -229,6 +230,10 @@ export function resolveSadamIdentity(input: SajuResolveInput): SajuResolveResult
     correctedDateTime,
     calculationLabel: warnings.length > 0 ? "부분 보정 계산" : "정밀 계산 모드",
     warnings,
-    analysis: buildSajuAnalysis(chart),
+    analysis: buildSajuAnalysis(chart, {
+      birthDateTime: correctedDateTime,
+      birthYear: parsed.year,
+      gender: input.gender === "male" ? "male" : "female",
+    }),
   };
 }

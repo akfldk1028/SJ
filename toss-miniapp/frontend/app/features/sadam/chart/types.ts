@@ -27,6 +27,12 @@ export type SajuAnalysisPayload = {
   gyeokguk: Record<string, unknown>;
   sipsinInfo: Record<string, unknown>;
   jijangganInfo: Record<string, unknown>;
+  sinsalList: Array<Record<string, unknown>>;
+  daeun: Record<string, unknown>;
+  currentSeun: Record<string, unknown>;
+  twelveUnsung: Array<Record<string, unknown>>;
+  twelveSinsal: Array<Record<string, unknown>>;
+  gilseong: Record<string, unknown>;
   hapchung: Record<string, unknown>;
 };
 

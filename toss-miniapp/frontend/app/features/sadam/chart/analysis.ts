@@ -1,10 +1,12 @@
 import {
+  cheongan,
   cheonganHanja,
   cheonganOheng,
   cheonganYinYang,
   exhausting,
   generating,
   hiddenStems,
+  jiji,
   jijiHanja,
   jijiOheng,
   ohengDbKeys,
@@ -13,6 +15,12 @@ import {
   type OhengKey,
 } from "./constants";
 import type { Pillar, SajuAnalysisPayload, SajuChart } from "./types";
+
+type AnalysisContext = {
+  birthDateTime: Date;
+  birthYear: number;
+  gender: "male" | "female";
+};
 
 type SipSin =
   | "비견"
@@ -360,8 +368,326 @@ function analyzeHapchung(chart: SajuChart) {
   };
 }
 
-export function buildSajuAnalysis(chart: SajuChart): SajuAnalysisPayload {
+const unsungOrder = [
+  { key: "jangsaeng", name: "장생", hanja: "長生", strength: 7, fortuneType: "길" },
+  { key: "mokyok", name: "목욕", hanja: "沐浴", strength: 4, fortuneType: "중" },
+  { key: "gwandae", name: "관대", hanja: "冠帶", strength: 8, fortuneType: "길" },
+  { key: "geonrok", name: "건록", hanja: "建祿", strength: 9, fortuneType: "길" },
+  { key: "jewang", name: "제왕", hanja: "帝旺", strength: 10, fortuneType: "길" },
+  { key: "soe", name: "쇠", hanja: "衰", strength: 3, fortuneType: "중" },
+  { key: "byung", name: "병", hanja: "病", strength: 2, fortuneType: "흉" },
+  { key: "sa", name: "사", hanja: "死", strength: 1, fortuneType: "흉" },
+  { key: "myo", name: "묘", hanja: "墓", strength: 1, fortuneType: "흉" },
+  { key: "jeol", name: "절", hanja: "絶", strength: 0, fortuneType: "흉" },
+  { key: "tae", name: "태", hanja: "胎", strength: 5, fortuneType: "중" },
+  { key: "yang", name: "양", hanja: "養", strength: 6, fortuneType: "중" },
+] as const;
+
+const yangGanJangsaeng: Record<string, string> = {
+  갑: "해",
+  병: "인",
+  무: "인",
+  경: "사",
+  임: "신",
+};
+
+const yinGanJangsaeng: Record<string, string> = {
+  을: "오",
+  정: "유",
+  기: "유",
+  신: "자",
+  계: "묘",
+};
+
+function normalizeCycle(index: number, length: number) {
+  return ((index % length) + length) % length;
+}
+
+function calculateUnsung(dayGan: string, targetJi: string) {
+  const isYangGan = cheonganYinYang[dayGan] === "양";
+  const startJi = isYangGan ? yangGanJangsaeng[dayGan] : yinGanJangsaeng[dayGan];
+  const startIndex = jiji.indexOf(startJi as (typeof jiji)[number]);
+  const targetIndex = jiji.indexOf(targetJi as (typeof jiji)[number]);
+  const unsungIndex = isYangGan
+    ? normalizeCycle(targetIndex - startIndex, 12)
+    : normalizeCycle(startIndex - targetIndex, 12);
+
+  return unsungOrder[unsungIndex] ?? unsungOrder[0];
+}
+
+function analyzeTwelveUnsung(chart: SajuChart) {
+  return pillars(chart)
+    .filter((entry): entry is [(typeof pillarLabels)[number], Pillar] => Boolean(entry[1]))
+    .map(([label, pillar]) => {
+      const unsung = calculateUnsung(chart.dayPillar.gan, pillar.ji);
+      return {
+        pillar: label,
+        pillar_name: pillarKorean[label],
+        jiji: pillar.ji,
+        day_gan: chart.dayPillar.gan,
+        key: unsung.key,
+        name: unsung.name,
+        hanja: unsung.hanja,
+        strength: unsung.strength,
+        fortune_type: unsung.fortuneType,
+      };
+    });
+}
+
+const sinsalOrder = [
+  { key: "geopsal", name: "겁살", fortuneType: "흉" },
+  { key: "jaesal", name: "재살", fortuneType: "흉" },
+  { key: "cheonsal", name: "천살", fortuneType: "흉" },
+  { key: "jisal", name: "지살", fortuneType: "흉" },
+  { key: "yeonsal", name: "연살", fortuneType: "중" },
+  { key: "wolsal", name: "월살", fortuneType: "흉" },
+  { key: "mangshin", name: "망신", fortuneType: "흉" },
+  { key: "jangsung", name: "장성", fortuneType: "길" },
+  { key: "banan", name: "반안", fortuneType: "길" },
+  { key: "yeokma", name: "역마", fortuneType: "중" },
+  { key: "yukhae", name: "육해", fortuneType: "흉" },
+  { key: "hwagae", name: "화개", fortuneType: "중" },
+] as const;
+
+const sinsalGroupBase: Record<string, number> = {
+  인: 2,
+  오: 2,
+  술: 2,
+  사: 5,
+  유: 5,
+  축: 5,
+  신: 8,
+  자: 8,
+  진: 8,
+  해: 11,
+  묘: 11,
+  미: 11,
+};
+
+const sinsalStartOffset: Record<number, number> = {
+  2: 11,
+  5: 2,
+  8: 5,
+  11: 8,
+};
+
+function calculateTwelveSinsal(baseJi: string, targetJi: string) {
+  const groupBase = sinsalGroupBase[baseJi];
+  const startOffset = groupBase == null ? undefined : sinsalStartOffset[groupBase];
+  const targetIndex = jiji.indexOf(targetJi as (typeof jiji)[number]);
+  if (startOffset == null || targetIndex < 0) return null;
+  return sinsalOrder[normalizeCycle(targetIndex - startOffset, 12)];
+}
+
+function sinsalBasis(yearJi: string, dayJi: string, targetJi: string, key: string) {
+  const yearMatch = calculateTwelveSinsal(yearJi, targetJi)?.key === key;
+  const dayMatch = calculateTwelveSinsal(dayJi, targetJi)?.key === key;
+  if (yearMatch && dayMatch) return "both";
+  if (yearMatch) return "year";
+  if (dayMatch) return "day";
+  return null;
+}
+
+function analyzeTwelveSinsal(chart: SajuChart) {
+  return pillars(chart)
+    .filter((entry): entry is [(typeof pillarLabels)[number], Pillar] => Boolean(entry[1]))
+    .map(([label, pillar]) => {
+      const yearBased = calculateTwelveSinsal(chart.yearPillar.ji, pillar.ji);
+      const dayBased = calculateTwelveSinsal(chart.dayPillar.ji, pillar.ji);
+      return {
+        pillar: label,
+        pillar_name: pillarKorean[label],
+        jiji: pillar.ji,
+        year_based: yearBased,
+        day_based: dayBased,
+      };
+    });
+}
+
+function buildSinsalList(chart: SajuChart) {
+  const results: Array<Record<string, unknown>> = [];
+  const dayGan = chart.dayPillar.gan;
+  const yearJi = chart.yearPillar.ji;
+  const dayJi = chart.dayPillar.ji;
+  const allPillars = pillars(chart).filter((entry): entry is [(typeof pillarLabels)[number], Pillar] => Boolean(entry[1]));
+  const cheoneul: Record<string, string[]> = {
+    갑: ["축", "미"],
+    을: ["자", "신"],
+    병: ["해", "유"],
+    정: ["해", "유"],
+    무: ["축", "미"],
+    기: ["자", "신"],
+    경: ["축", "미"],
+    신: ["인", "오"],
+    임: ["묘", "사"],
+    계: ["묘", "사"],
+  };
+  const yangin: Record<string, string> = {
+    갑: "묘",
+    을: "진",
+    병: "오",
+    정: "미",
+    무: "오",
+    기: "미",
+    경: "유",
+    신: "술",
+    임: "자",
+    계: "축",
+  };
+
+  for (const [label, pillar] of allPillars) {
+    if (cheoneul[dayGan]?.includes(pillar.ji)) {
+      results.push({
+        key: "cheoneul_gwiin",
+        name: "천을귀인",
+        fortune_type: "길",
+        pillar: label,
+        pillar_name: pillarKorean[label],
+        related_ji: pillar.ji,
+      });
+    }
+
+    for (const special of [
+      ["dohwasal", "도화살", "yeonsal"],
+      ["yeokmasal", "역마살", "yeokma"],
+      ["hwagaesal", "화개살", "hwagae"],
+    ] as const) {
+      const basis = sinsalBasis(yearJi, dayJi, pillar.ji, special[2]);
+      if (basis) {
+        results.push({
+          key: special[0],
+          name: special[1],
+          fortune_type: "중",
+          pillar: label,
+          pillar_name: pillarKorean[label],
+          related_ji: pillar.ji,
+          basis,
+        });
+      }
+    }
+
+    if (yangin[dayGan] === pillar.ji) {
+      results.push({
+        key: "yangin",
+        name: "양인살",
+        fortune_type: "흉",
+        pillar: label,
+        pillar_name: pillarKorean[label],
+        related_ji: pillar.ji,
+      });
+    }
+  }
+
+  return results;
+}
+
+function analyzeGilseong(chart: SajuChart, sinsalList: Array<Record<string, unknown>>) {
+  const allJis = pillars(chart)
+    .map(([, pillar]) => pillar?.ji)
+    .filter((ji): ji is string => Boolean(ji));
+  const good = sinsalList.filter((item) => item.fortune_type === "길");
+  const bad = sinsalList.filter((item) => item.fortune_type === "흉");
+  const wonjinPairs = new Set(["자미", "축오", "인유", "묘신", "진해", "사술"]);
+  let wonjinCount = 0;
+
+  for (let i = 0; i < allJis.length; i += 1) {
+    for (let k = i + 1; k < allJis.length; k += 1) {
+      const pair = `${allJis[i]}${allJis[k]}`;
+      const reversePair = `${allJis[k]}${allJis[i]}`;
+      if (wonjinPairs.has(pair) || wonjinPairs.has(reversePair)) wonjinCount += 1;
+    }
+  }
+
+  return {
+    summary: good.length > 0 ? good.map((item) => item.name).join(", ") : "특수 길성 없음",
+    total_good_count: good.length,
+    total_bad_count: bad.length,
+    all_unique_sinsals: Array.from(new Set(sinsalList.map((item) => String(item.name)))),
+    has_gwimungwansal: allJis.includes("진") && allJis.includes("해"),
+    wonjinsal_count: wonjinCount,
+  };
+}
+
+const jeolipBoundaries = [
+  { month: 2, day: 4 },
+  { month: 3, day: 6 },
+  { month: 4, day: 5 },
+  { month: 5, day: 6 },
+  { month: 6, day: 6 },
+  { month: 7, day: 7 },
+  { month: 8, day: 8 },
+  { month: 9, day: 8 },
+  { month: 10, day: 8 },
+  { month: 11, day: 7 },
+  { month: 12, day: 7 },
+  { month: 1, day: 6 },
+];
+
+function nearestJeolipDays(date: Date, isForward: boolean) {
+  const candidates: Date[] = [];
+  for (const year of [date.getFullYear() - 1, date.getFullYear(), date.getFullYear() + 1]) {
+    for (const boundary of jeolipBoundaries) {
+      candidates.push(new Date(year, boundary.month - 1, boundary.day, 0, 0));
+    }
+  }
+  candidates.sort((a, b) => a.getTime() - b.getTime());
+  const target = isForward
+    ? candidates.find((candidate) => candidate.getTime() > date.getTime())
+    : candidates.reverse().find((candidate) => candidate.getTime() < date.getTime());
+  if (!target) return 15;
+  return Math.abs(Math.round((target.getTime() - date.getTime()) / 86_400_000));
+}
+
+function analyzeDaeun(chart: SajuChart, context: AnalysisContext) {
+  const isYearGanYang = cheonganYinYang[chart.yearPillar.gan] === "양";
+  const isForward = (context.gender === "male" && isYearGanYang) || (context.gender === "female" && !isYearGanYang);
+  const startAge = Math.max(1, Math.min(10, Math.round(nearestJeolipDays(context.birthDateTime, isForward) / 3)));
+  let ganIndex = cheongan.indexOf(chart.monthPillar.gan as (typeof cheongan)[number]);
+  let jiIndex = jiji.indexOf(chart.monthPillar.ji as (typeof jiji)[number]);
+  const list = [];
+
+  for (let i = 0; i < 10; i += 1) {
+    ganIndex = normalizeCycle(ganIndex + (isForward ? 1 : -1), 10);
+    jiIndex = normalizeCycle(jiIndex + (isForward ? 1 : -1), 12);
+    const age = startAge + i * 10;
+    list.push({
+      order: i + 1,
+      start_age: age,
+      end_age: age + 9,
+      gan: cheongan[ganIndex],
+      ji: jiji[jiIndex],
+      gan_hanja: cheonganHanja[cheongan[ganIndex]],
+      ji_hanja: jijiHanja[jiji[jiIndex]],
+    });
+  }
+
+  return {
+    start_age: startAge,
+    is_forward: isForward,
+    gender: context.gender,
+    is_year_gan_yang: isYearGanYang,
+    daeun_list: list,
+  };
+}
+
+function analyzeCurrentSeun(context: AnalysisContext) {
+  const year = new Date().getFullYear();
+  const ganIndex = normalizeCycle(year - 4, 10);
+  const jiIndex = normalizeCycle(year - 4, 12);
+
+  return {
+    year,
+    age: year - context.birthYear + 1,
+    gan: cheongan[ganIndex],
+    ji: jiji[jiIndex],
+    gan_hanja: cheonganHanja[cheongan[ganIndex]],
+    ji_hanja: jijiHanja[jiji[jiIndex]],
+  };
+}
+
+export function buildSajuAnalysis(chart: SajuChart, context: AnalysisContext): SajuAnalysisPayload {
   const dayStrength = analyzeDayStrength(chart);
+  const sinsalList = buildSinsalList(chart);
 
   return {
     ohengDistribution: calculateOhengDistribution(chart),
@@ -370,6 +696,12 @@ export function buildSajuAnalysis(chart: SajuChart): SajuAnalysisPayload {
     gyeokguk: analyzeGyeokguk(chart),
     sipsinInfo: analyzeSipsin(chart),
     jijangganInfo: analyzeJijanggan(chart),
+    sinsalList,
+    daeun: analyzeDaeun(chart, context),
+    currentSeun: analyzeCurrentSeun(context),
+    twelveUnsung: analyzeTwelveUnsung(chart),
+    twelveSinsal: analyzeTwelveSinsal(chart),
+    gilseong: analyzeGilseong(chart, sinsalList),
     hapchung: analyzeHapchung(chart),
   };
 }
