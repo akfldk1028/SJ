@@ -3,6 +3,11 @@ import { Link, type MetaFunction, useSearchParams } from "react-router";
 import { CheckIcon, CreditCardIcon, LockKeyholeIcon } from "lucide-react";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
+import {
+  ZodiacElementBackground,
+  ZodiacRevealCard,
+} from "../components/zodiac-widgets";
+import { resolveIdentityFromBirthDate } from "../personas";
 import { requestPremiumPurchase } from "../toss-adapters";
 
 export const meta: MetaFunction = () => {
@@ -20,6 +25,8 @@ export default function PremiumPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [message, setMessage] = useState("");
   const name = searchParams.get("name") || "나";
+  const birthDate = searchParams.get("birthDate") || "19950101";
+  const identity = resolveIdentityFromBirthDate(birthDate);
 
   const handlePurchase = async () => {
     setStatus("loading");
@@ -29,18 +36,30 @@ export default function PremiumPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <ZodiacElementBackground elementName={identity.elementName}>
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
         <header>
-          <p className="text-xs font-semibold uppercase text-blue-300">
+          <p className="text-xs font-semibold uppercase text-white/65">
             Premium Analysis
           </p>
           <h1 className="mt-1 text-2xl font-bold">상세 분석권</h1>
         </header>
 
-        <section className="mt-6 rounded-lg border border-white/10 bg-white/[0.06] p-5">
+        <section className="mt-6 overflow-hidden rounded-lg border border-white/10 bg-white/[0.06]">
+          <div className={identity.colorClass}>
+            <ZodiacRevealCard
+              elementName={identity.elementName}
+              emoji={identity.animalEmoji}
+              imageUrl={identity.largeImageUrl}
+              fullName={identity.fullName}
+              ganjiHanja={identity.ganjiHanja}
+              subtitle={`${name}님 전용 상세 분석`}
+            />
+          </div>
+
+          <div className="p-5">
           <div className="flex items-center justify-between">
-            <div className="rounded-md bg-blue-500 p-2">
+            <div className="rounded-md bg-white/10 p-2">
               <LockKeyholeIcon className="size-5" />
             </div>
             <Badge className="rounded-md bg-white/10 text-white">Mock IAP</Badge>
@@ -80,6 +99,7 @@ export default function PremiumPage() {
               {status === "loading" ? "결제 확인 중" : "상세 분석권 열기"}
             </Button>
           )}
+          </div>
         </section>
 
         <div className="mt-auto pt-5">
@@ -88,6 +108,6 @@ export default function PremiumPage() {
           </Button>
         </div>
       </div>
-    </main>
+    </ZodiacElementBackground>
   );
 }
