@@ -34,7 +34,7 @@ export const ohengStyle: Record<OhengKey, { label: string; bg: string; text: str
 export function ErrorState({ data }: { data: SadamProfileLoaderData }) {
   return (
     <ZodiacElementBackground elementName="earth">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-6 lg:max-w-2xl">
         <section className="rounded-lg bg-white p-5 text-slate-950">
           <h1 className="text-xl font-bold">프로필을 불러오지 못했습니다</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">

@@ -18,7 +18,7 @@ export default function PaymentFailPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 px-5 py-6 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md flex-col justify-center">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md flex-col justify-center lg:max-w-2xl">
         <section className="rounded-lg border border-rose-300/20 bg-white/[0.06] p-5">
           <div className="flex size-12 items-center justify-center rounded-lg bg-rose-400/15 text-rose-200">
             <XCircleIcon className="size-6" />
