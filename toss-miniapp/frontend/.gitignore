@@ -8,3 +8,5 @@ node_modules
 .dev.vars
 .dev-server*.log
 .wrangler
+playwright-report
+test-results
