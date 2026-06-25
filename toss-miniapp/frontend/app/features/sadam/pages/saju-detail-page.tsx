@@ -1,4 +1,5 @@
 import { type MetaFunction, useLoaderData } from "react-router";
+import { cheongan, jiji } from "../chart/constants";
 import { loadSadamProfile, type SadamProfileLoaderData } from "../data/route-loaders";
 import {
   ElementDistribution,
@@ -30,6 +31,65 @@ const detailTabs = [
   { id: "gongmang", label: "공망" },
 ];
 
+function normalizeCycle(index: number, length: number) {
+  return ((index % length) + length) % length;
+}
+
+function getYearGanji(year: number) {
+  const index = normalizeCycle(year - 4, 60);
+  return {
+    gan: cheongan[index % 10],
+    ji: jiji[index % 12],
+  };
+}
+
+function getMonthGanji(year: number, month: number) {
+  const yearGanIndex = normalizeCycle(year - 4, 10);
+  const monthGanStartIndex = (yearGanIndex % 5) * 2;
+  return {
+    gan: cheongan[normalizeCycle(monthGanStartIndex + month - 1, 10)],
+    ji: jiji[normalizeCycle(month + 1, 12)],
+  };
+}
+
+function buildRecentSeunList(currentYear: number) {
+  return Array.from({ length: 10 }, (_, index) => {
+    const year = currentYear - index;
+    return { year, ...getYearGanji(year) };
+  });
+}
+
+function buildRecentWolunList(currentYear: number, currentMonth: number) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(currentYear, currentMonth - 1 - index, 1);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    return { year, month, ...getMonthGanji(year, month) };
+  });
+}
+
+function FortuneCard({
+  title,
+  subtitle,
+  gan,
+  ji,
+  active = false,
+}: {
+  title: string;
+  subtitle: string;
+  gan: unknown;
+  ji: unknown;
+  active?: boolean;
+}) {
+  return (
+    <div className={`min-w-24 rounded-md border p-3 text-center text-sm ${active ? "border-sky-300 bg-sky-50" : "border-slate-200 bg-slate-50"}`}>
+      <p className="text-xs font-semibold text-slate-500">{title}</p>
+      <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
+      <p className="mt-3 text-lg font-bold text-slate-950">{getText(gan)}{getText(ji)}</p>
+    </div>
+  );
+}
+
 export default function SajuDetailPage() {
   const data = useLoaderData() as SadamProfileLoaderData;
   if (data.error || !data.profile || !data.calculation) return <ErrorState data={data} />;
@@ -50,6 +110,11 @@ export default function SajuDetailPage() {
   const twelveSinsal = getArray(analysis?.twelve_sinsal ?? calculation.analysis.twelveSinsal);
   const gongmang = getRecord(calculation.analysis.gongmang) ?? {};
   const gongmangResults = getArray(gongmang.results);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const seunList = buildRecentSeunList(currentYear);
+  const wolunList = buildRecentWolunList(currentYear, currentMonth);
 
   return (
     <PageShell calculation={calculation} eyebrow="Saju Detail" title="사주 상세 분석">
@@ -105,13 +170,51 @@ export default function SajuDetailPage() {
           <MetricRow label="대운 방향" value={daeun.is_forward ? "순행" : "역행"} />
           <MetricRow label="대운 시작" value={`${getText(daeun.start_age)}세`} />
           <MetricRow label="현재 세운" value={`${getText(currentSeun.year)}년 ${getText(currentSeun.gan)}${getText(currentSeun.ji)}`} />
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {getArray(daeun.daeun_list).slice(0, 6).map((item) => (
-              <div className="rounded-md bg-slate-50 p-3 text-sm" key={`${item.order}-${item.gan}-${item.ji}`}>
-                <p className="font-bold">{getText(item.gan)}{getText(item.ji)}</p>
-                <p className="text-slate-500">{getText(item.start_age)}-{getText(item.end_age)}세</p>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="text-xs font-bold text-slate-500">대운</p>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {getArray(daeun.daeun_list).map((item) => (
+                  <FortuneCard
+                    gan={item.gan}
+                    ji={item.ji}
+                    key={`${item.order}-${item.gan}-${item.ji}`}
+                    subtitle={`${getText(item.start_age)}-${getText(item.end_age)}세`}
+                    title={`${getText(item.order)}대운`}
+                  />
+                ))}
               </div>
-            ))}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500">최근 10년 세운</p>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {seunList.map((item) => (
+                  <FortuneCard
+                    active={item.year === currentYear}
+                    gan={item.gan}
+                    ji={item.ji}
+                    key={item.year}
+                    subtitle="세운"
+                    title={`${item.year}년`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500">최근 12개월 월운</p>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {wolunList.map((item) => (
+                  <FortuneCard
+                    active={item.year === currentYear && item.month === currentMonth}
+                    gan={item.gan}
+                    ji={item.ji}
+                    key={`${item.year}-${item.month}`}
+                    subtitle={`${item.year}`}
+                    title={`${item.month}월`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </InfoCard>
 
