@@ -5,4 +5,8 @@ export default [
   route("/result", "features/sadam/pages/result-page.tsx"),
   route("/extra", "features/sadam/pages/extra-page.tsx"),
   route("/premium", "features/sadam/pages/premium-page.tsx"),
+  route("/saju/chart", "features/sadam/pages/saju-chart-page.tsx"),
+  route("/saju/detail", "features/sadam/pages/saju-detail-page.tsx"),
+  route("/saju/graph", "features/sadam/pages/saju-graph-page.tsx"),
+  route("/saju/chat", "features/sadam/pages/saju-chat-page.tsx"),
 ] satisfies RouteConfig;

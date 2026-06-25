@@ -173,6 +173,9 @@ export default function ResultPage() {
         </section>
 
         <div className="mt-5 grid gap-3">
+          <Button asChild className="h-12 rounded-md bg-white text-slate-950 hover:bg-white/90">
+            <Link to={`/saju/chart?${query}`}>사주 차트 보기</Link>
+          </Button>
           <Button asChild className="h-12 rounded-md bg-sky-600 text-white">
             <Link to={`/extra?${query}`}>
               광고 보고 추가 질문
