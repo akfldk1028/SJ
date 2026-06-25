@@ -504,6 +504,62 @@ function analyzeTwelveSinsal(chart: SajuChart) {
     });
 }
 
+function analyzeGongmang(chart: SajuChart) {
+  const dayGanIndex = cheongan.indexOf(chart.dayPillar.gan as (typeof cheongan)[number]);
+  const dayJiIndex = jiji.indexOf(chart.dayPillar.ji as (typeof jiji)[number]);
+
+  if (dayGanIndex < 0 || dayJiIndex < 0) {
+    return {
+      day_gapja: `${chart.dayPillar.gan}${chart.dayPillar.ji}`,
+      gongmang_jijis: [],
+      results: [],
+      gongmang_count: 0,
+      has_gongmang: false,
+      summary: "공망 계산 기준을 확인할 수 없습니다.",
+    };
+  }
+
+  const sunStartJiIndex = normalizeCycle(dayJiIndex - dayGanIndex, 12);
+  const gongmangJijis: string[] = [
+    jiji[normalizeCycle(sunStartJiIndex + 10, 12)],
+    jiji[normalizeCycle(sunStartJiIndex + 11, 12)],
+  ];
+  const targetPillars: Array<[(typeof pillarLabels)[number], Pillar | null]> = [
+    ["year", chart.yearPillar],
+    ["month", chart.monthPillar],
+    ["hour", chart.hourPillar],
+  ];
+  const results = targetPillars
+    .filter((entry): entry is [(typeof pillarLabels)[number], Pillar] => Boolean(entry[1]))
+    .map(([label, pillar]) => {
+      const isGongmang = gongmangJijis.includes(pillar.ji);
+      return {
+        pillar: label,
+        pillar_name: pillarKorean[label],
+        jiji: pillar.ji,
+        is_gongmang: isGongmang,
+        type: isGongmang ? "jin_gong" : null,
+        effect_strength: isGongmang ? 100 : 0,
+        interpretation: isGongmang
+          ? `${pillarKorean[label]}의 ${pillar.ji}지가 일주 기준 공망입니다.`
+          : "공망에 해당하지 않습니다.",
+      };
+    });
+  const gongmangResults = results.filter((item) => item.is_gongmang);
+
+  return {
+    day_gapja: `${chart.dayPillar.gan}${chart.dayPillar.ji}`,
+    gongmang_jijis: gongmangJijis,
+    results,
+    gongmang_count: gongmangResults.length,
+    has_gongmang: gongmangResults.length > 0,
+    gongmang_pillars: gongmangResults.map((item) => item.pillar_name),
+    summary: gongmangResults.length > 0
+      ? `${gongmangResults.map((item) => item.pillar_name).join(", ")}에 공망이 있습니다.`
+      : "원국의 연지, 월지, 시지에 공망이 없습니다.",
+  };
+}
+
 function buildSinsalList(chart: SajuChart) {
   const results: Array<Record<string, unknown>> = [];
   const dayGan = chart.dayPillar.gan;
@@ -578,7 +634,27 @@ function buildSinsalList(chart: SajuChart) {
     }
   }
 
+  for (const gongmang of getGongmangSinsals(chart)) {
+    results.push(gongmang);
+  }
+
   return results;
+}
+
+function getGongmangSinsals(chart: SajuChart) {
+  const analysis = analyzeGongmang(chart);
+  return (analysis.results as Array<Record<string, unknown>>)
+    .filter((item) => item.is_gongmang)
+    .map((item) => ({
+      key: "gongmang",
+      name: "공망",
+      fortune_type: "흉",
+      pillar: item.pillar,
+      pillar_name: item.pillar_name,
+      related_ji: item.jiji,
+      effect_strength: item.effect_strength,
+      description: item.interpretation,
+    }));
 }
 
 function analyzeGilseong(chart: SajuChart, sinsalList: Array<Record<string, unknown>>) {
@@ -687,6 +763,7 @@ function analyzeCurrentSeun(context: AnalysisContext) {
 
 export function buildSajuAnalysis(chart: SajuChart, context: AnalysisContext): SajuAnalysisPayload {
   const dayStrength = analyzeDayStrength(chart);
+  const gongmang = analyzeGongmang(chart);
   const sinsalList = buildSinsalList(chart);
 
   return {
@@ -703,5 +780,6 @@ export function buildSajuAnalysis(chart: SajuChart, context: AnalysisContext): S
     twelveSinsal: analyzeTwelveSinsal(chart),
     gilseong: analyzeGilseong(chart, sinsalList),
     hapchung: analyzeHapchung(chart),
+    gongmang,
   };
 }

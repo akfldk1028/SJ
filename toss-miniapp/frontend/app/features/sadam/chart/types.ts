@@ -34,6 +34,7 @@ export type SajuAnalysisPayload = {
   twelveSinsal: Array<Record<string, unknown>>;
   gilseong: Record<string, unknown>;
   hapchung: Record<string, unknown>;
+  gongmang: Record<string, unknown>;
 };
 
 export type SajuResolveResult = SajuChart & {

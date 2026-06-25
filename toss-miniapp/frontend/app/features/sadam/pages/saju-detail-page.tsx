@@ -17,6 +17,8 @@ import {
 export const meta: MetaFunction = () => [{ title: "SaDam 사주 상세 분석" }];
 export const loader = loadSadamProfile;
 
+const pillarKeys = ["year", "month", "day", "hour"] as const;
+
 export default function SajuDetailPage() {
   const data = useLoaderData() as SadamProfileLoaderData;
   if (data.error || !data.profile || !data.calculation) return <ErrorState data={data} />;
@@ -35,6 +37,8 @@ export default function SajuDetailPage() {
   const sinsalList = getArray(analysis?.sinsal_list ?? calculation.analysis.sinsalList);
   const twelveUnsung = getArray(analysis?.twelve_unsung ?? calculation.analysis.twelveUnsung);
   const twelveSinsal = getArray(analysis?.twelve_sinsal ?? calculation.analysis.twelveSinsal);
+  const gongmang = getRecord(calculation.analysis.gongmang) ?? {};
+  const gongmangResults = getArray(gongmang.results);
 
   return (
     <PageShell calculation={calculation} eyebrow="Saju Detail" title="사주 상세 분석">
@@ -101,7 +105,7 @@ export default function SajuDetailPage() {
           <MetricRow label="월지 정기" value={getText(gyeokguk.month_main_gan)} />
           <MetricRow label="기준 십성" value={getText(gyeokguk.sipsin)} />
           <div className="mt-3 space-y-2">
-            {["year", "month", "day", "hour"].map((key) => {
+            {pillarKeys.map((key) => {
               const row = getRecord(sipsin[key]);
               if (!row) return null;
               const gan = getRecord(row.gan);
@@ -110,7 +114,7 @@ export default function SajuDetailPage() {
                 <div className="rounded-md bg-slate-50 p-3 text-sm" key={key}>
                   <p className="font-bold">{getText(row.pillar)}</p>
                   <p className="text-slate-600">천간: {getText(gan?.value)} · {getText(gan?.sipsin)}</p>
-                  <p className="text-slate-600">지장간 정기: {getText(jiMain?.value)} · {getText(jiMain?.sipsin)}</p>
+                  <p className="text-slate-600">지지 정기: {getText(jiMain?.value)} · {getText(jiMain?.sipsin)}</p>
                 </div>
               );
             })}
@@ -153,10 +157,10 @@ export default function SajuDetailPage() {
 
         <InfoCard title="지장간">
           <div className="space-y-2">
-            {["year", "month", "day", "hour"].map((key) => {
+            {pillarKeys.map((key) => {
               const row = getRecord(jijanggan[key]);
-              const stems = getArray(row?.stems);
               if (!row) return null;
+              const stems = getArray(row.stems);
               return (
                 <div className="rounded-md bg-slate-50 p-3 text-sm" key={key}>
                   <p className="font-bold">{getText(row.pillar)} · {getText(row.jiji)}</p>
@@ -168,10 +172,21 @@ export default function SajuDetailPage() {
         </InfoCard>
 
         <InfoCard title="공망">
-          <p className="text-sm leading-6 text-slate-600">
-            Flutter에는 별도 공망 탭이 있습니다. Toss 분석 저장 payload에는 아직 공망 전용 필드가 없으므로 다음 계산 루프에서
-            `gongmang` 필드를 추가해 이 섹션에 연결합니다.
-          </p>
+          <MetricRow label="일주" value={getText(gongmang.day_gapja)} />
+          <MetricRow label="공망 지지" value={getArray(gongmang.gongmang_jijis).map((item) => getText(item)).join(", ")} />
+          <MetricRow label="공망 궁성" value={`${getText(gongmang.gongmang_count, "0")}개`} />
+          <p className="mt-3 text-sm leading-6 text-slate-600">{getText(gongmang.summary)}</p>
+          <div className="mt-3 grid gap-2">
+            {gongmangResults.map((item) => (
+              <div
+                className={`rounded-md p-3 text-sm ${item.is_gongmang ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-600"}`}
+                key={`${item.pillar}-${item.jiji}`}
+              >
+                <p className="font-bold">{getText(item.pillar_name)} · {getText(item.jiji)}</p>
+                <p>{item.is_gongmang ? "공망" : "정상"} · {getText(item.interpretation)}</p>
+              </div>
+            ))}
+          </div>
         </InfoCard>
       </div>
       <SajuNavButtons query={data.query} />
