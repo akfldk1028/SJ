@@ -5,6 +5,7 @@ const accessCookieName = "sadam_toss_access_token";
 export type SupabaseEnv = {
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
 };
 
 function getRequiredSupabaseEnv(env: SupabaseEnv) {
@@ -39,6 +40,19 @@ export function createUserSupabase(env: SupabaseEnv, accessToken: string) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+    },
+  });
+}
+
+export function createServiceSupabase(env: SupabaseEnv) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase service role 환경변수가 설정되지 않았습니다.");
+  }
+
+  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
     },
   });
 }
