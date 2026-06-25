@@ -68,6 +68,35 @@ function buildRecentWolunList(currentYear: number, currentMonth: number) {
   });
 }
 
+function incrementCount(counts: Record<string, number>, value: unknown) {
+  if (typeof value !== "string" || value.length === 0 || value === "일간") return;
+  counts[value] = (counts[value] ?? 0) + 1;
+}
+
+function buildSipsinCounts(
+  sipsin: Record<string, unknown>,
+  jijanggan: Record<string, unknown>,
+) {
+  const counts: Record<string, number> = {};
+
+  for (const key of pillarKeys) {
+    const row = getRecord(sipsin[key]);
+    const gan = getRecord(row?.gan);
+    const jiMain = getRecord(row?.ji_main);
+    incrementCount(counts, gan?.sipsin);
+    incrementCount(counts, jiMain?.sipsin);
+
+    const jijangganRow = getRecord(jijanggan[key]);
+    for (const stem of getArray(jijangganRow?.stems)) {
+      incrementCount(counts, stem.sipsin);
+    }
+  }
+
+  return Object.entries(counts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
 function FortuneCard({
   title,
   subtitle,
@@ -115,6 +144,7 @@ export default function SajuDetailPage() {
   const currentMonth = now.getMonth() + 1;
   const seunList = buildRecentSeunList(currentYear);
   const wolunList = buildRecentWolunList(currentYear, currentMonth);
+  const sipsinCounts = buildSipsinCounts(sipsin, jijanggan);
 
   return (
     <PageShell calculation={calculation} eyebrow="Saju Detail" title="사주 상세 분석">
@@ -233,6 +263,17 @@ export default function SajuDetailPage() {
           <MetricRow label="격국" value={getText(gyeokguk.name)} />
           <MetricRow label="월지 정기" value={getText(gyeokguk.month_main_gan)} />
           <MetricRow label="기준 십성" value={getText(gyeokguk.sipsin)} />
+          <div className="mt-3 rounded-md bg-slate-50 p-3">
+            <p className="text-xs font-bold text-slate-500">십성 분포</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {sipsinCounts.map((item) => (
+                <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm" key={item.name}>
+                  <span className="font-semibold text-slate-700">{item.name}</span>
+                  <span className="text-slate-500">{item.count}개</span>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="mt-3 space-y-2">
             {pillarKeys.map((key) => {
               const row = getRecord(sipsin[key]);
