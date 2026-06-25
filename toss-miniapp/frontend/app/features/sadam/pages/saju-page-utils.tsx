@@ -247,20 +247,54 @@ export function getText(value: unknown, fallback = "-") {
 
 export function ElementDistribution({ distribution }: { distribution: Record<string, number> | undefined }) {
   const keys: OhengKey[] = ["wood", "fire", "earth", "metal", "water"];
+  const values = keys.map((key) => ({
+    key,
+    value: distribution?.[key] ?? distribution?.[`${ohengKorean[key]}(${key})`] ?? 0,
+  }));
+  const total = values.reduce((sum, item) => sum + item.value, 0);
+  const strongest = values.reduce((current, item) => item.value > current.value ? item : current, values[0]);
+  const weakest = values.reduce((current, item) => item.value < current.value ? item : current, values[0]);
+  const missing = values.filter((item) => item.value === 0);
+  const getStatus = (value: number) => {
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+    if (percentage >= 30) return "과다";
+    if (percentage >= 20) return "발달";
+    if (percentage >= 10) return "적정";
+    return "부족";
+  };
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4 text-slate-950">
       <div className="mb-3 flex items-center gap-2">
         <CalendarDaysIcon className="size-4 text-sky-600" />
         <h3 className="text-sm font-bold">오행 분포</h3>
       </div>
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <div className="rounded-md bg-slate-100 p-2">
+          <p className="text-[11px] font-semibold text-slate-500">총량</p>
+          <p className="mt-1 text-sm font-bold text-slate-950">{total}개</p>
+        </div>
+        <div className="rounded-md bg-slate-100 p-2">
+          <p className="text-[11px] font-semibold text-slate-500">강한 오행</p>
+          <p className="mt-1 text-sm font-bold text-slate-950">{ohengKorean[strongest.key]}</p>
+        </div>
+        <div className="rounded-md bg-slate-100 p-2">
+          <p className="text-[11px] font-semibold text-slate-500">부족 오행</p>
+          <p className="mt-1 truncate text-sm font-bold text-slate-950">
+            {missing.length > 0 ? missing.map((item) => ohengKorean[item.key]).join(", ") : ohengKorean[weakest.key]}
+          </p>
+        </div>
+      </div>
       <div className="grid grid-cols-5 gap-2">
-        {keys.map((key) => {
-          const value = distribution?.[key] ?? distribution?.[`${ohengKorean[key]}(${key})`] ?? 0;
+        {values.map(({ key, value }) => {
+          const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
           return (
             <div className="rounded-md bg-slate-100 p-2 text-center" key={key}>
               <div className={`mx-auto mb-2 size-3 rounded-full ${ohengStyle[key].bg}`} />
               <p className="text-xs font-semibold text-slate-600">{ohengKorean[key]}</p>
               <p className="text-lg font-bold">{value}</p>
+              <p className="text-[10px] text-slate-500">{percentage}%</p>
+              <p className="mt-1 text-[10px] font-semibold text-slate-600">{getStatus(value)}</p>
             </div>
           );
         })}
