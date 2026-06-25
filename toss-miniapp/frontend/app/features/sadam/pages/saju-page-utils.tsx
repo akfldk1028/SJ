@@ -3,6 +3,7 @@ import {
   ArrowLeftIcon,
   CalendarDaysIcon,
   GitBranchIcon,
+  HomeIcon,
   MessageCircleIcon,
   SparklesIcon,
 } from "lucide-react";
@@ -70,11 +71,18 @@ export function PageShell({
             <p className="text-xs font-semibold uppercase text-white/65">{eyebrow}</p>
             <h1 className="mt-1 text-2xl font-bold">{title}</h1>
           </div>
-          <Button asChild className="size-10 shrink-0 rounded-md bg-white/10 p-0 text-white hover:bg-white/15" variant="ghost">
-            <Link aria-label="결과로 돌아가기" to={`/result?${query}`}>
-              <ArrowLeftIcon className="size-5" />
-            </Link>
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button asChild className="size-10 rounded-md bg-white/10 p-0 text-white hover:bg-white/15" variant="ghost">
+              <Link aria-label="결과로 돌아가기" to={`/result?${query}`}>
+                <ArrowLeftIcon className="size-5" />
+              </Link>
+            </Button>
+            <Button asChild className="size-10 rounded-md bg-white/10 p-0 text-white hover:bg-white/15" variant="ghost">
+              <Link aria-label="홈으로 가기" to="/">
+                <HomeIcon className="size-5" />
+              </Link>
+            </Button>
+          </div>
         </header>
         {children}
       </div>

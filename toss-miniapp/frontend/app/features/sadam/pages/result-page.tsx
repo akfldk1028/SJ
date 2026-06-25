@@ -2,6 +2,7 @@ import { Link, type MetaFunction, useLoaderData } from "react-router";
 import {
   ArrowRightIcon,
   CalendarDaysIcon,
+  HomeIcon,
   MessageCircleIcon,
 } from "lucide-react";
 import { Badge } from "~/common/components/ui/badge";
@@ -69,13 +70,24 @@ export default function ResultPage() {
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
-        <header>
-          <p className="text-xs font-semibold uppercase text-white/65">
-            Guardian Animal Card
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-white">
-            {name}님의 수호동물
-          </h1>
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase text-white/65">
+              Saju Analysis
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-white">
+              {name}님의 사주 분석
+            </h1>
+          </div>
+          <Button
+            asChild
+            className="size-10 shrink-0 rounded-md bg-white/10 p-0 text-white hover:bg-white/15"
+            variant="ghost"
+          >
+            <Link aria-label="홈으로 가기" to="/">
+              <HomeIcon className="size-5" />
+            </Link>
+          </Button>
         </header>
 
         <section className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm">

@@ -25,10 +25,10 @@ import { resolveSadamIdentity } from "../saju-calculation";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "SaDam AI 수호동물" },
+    { title: "SaDam 사주 알아보기" },
     {
       name: "description",
-      content: "토스에서 빠르게 확인하는 AI 수호동물 성향 카드",
+      content: "토스에서 빠르게 확인하는 AI 사주 분석",
     },
   ];
 };
@@ -108,7 +108,7 @@ export default function StartPage() {
             <p className="text-xs font-semibold uppercase text-sky-300">
               SaDam in Toss
             </p>
-            <h1 className="mt-1 text-2xl font-bold">AI 수호동물 찾기</h1>
+            <h1 className="mt-1 text-2xl font-bold">AI 사주 알아보기</h1>
           </div>
           <div className="rounded-md bg-white/10 p-2">
             <SparklesIcon className="size-5 text-sky-200" />
@@ -137,7 +137,7 @@ export default function StartPage() {
             elementName={currentYearIdentity.elementName}
             emoji={currentYearIdentity.animalEmoji}
             imageUrl={currentYearIdentity.largeImageUrl}
-            title="너의 수호동물을 찾기 위해 몇 가지만 알려줘."
+            title="사주를 알아보기 위해 몇 가지만 알려줘."
           >
             <div className="space-y-4">
           {actionData?.error ? (
@@ -265,7 +265,7 @@ export default function StartPage() {
           </section>
 
           <Button className="h-12 w-full rounded-md bg-sky-500 text-base text-white hover:bg-sky-400">
-            수호동물 보기
+            사주 알아보기
             <ArrowRightIcon className="size-4" />
           </Button>
             </div>
