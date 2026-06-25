@@ -236,39 +236,7 @@ export default function StartPage() {
                 <option value="23:00">23:00 - 23:59</option>
               </select>
             </label>
-            <input name="useYaJasi" type="hidden" value="off" />
-            <label className="mt-3 flex items-center gap-2 text-sm text-slate-100">
-              <input
-                className="size-4 rounded border-white/20"
-                defaultChecked
-                name="useYaJasi"
-                type="checkbox"
-                value="on"
-              />
-              야자시 기준 적용
-            </label>
-          </section>
-
-          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-100">
-                출생 도시
-              </span>
-              <select
-                className="mt-3 h-12 w-full rounded-md border border-white/10 bg-white px-3 text-base text-slate-950 outline-none focus:border-sky-400"
-                defaultValue="서울"
-                name="birthCity"
-              >
-                <option value="서울">서울</option>
-                <option value="부산">부산</option>
-                <option value="대구">대구</option>
-                <option value="인천">인천</option>
-                <option value="광주">광주</option>
-                <option value="대전">대전</option>
-                <option value="울산">울산</option>
-                <option value="제주">제주</option>
-              </select>
-            </label>
+            <input name="useYaJasi" type="hidden" value="on" />
           </section>
 
           <section className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
