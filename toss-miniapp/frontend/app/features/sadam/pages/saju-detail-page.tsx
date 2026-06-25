@@ -18,6 +18,17 @@ export const meta: MetaFunction = () => [{ title: "SaDam 사주 상세 분석" }
 export const loader = loadSadamProfile;
 
 const pillarKeys = ["year", "month", "day", "hour"] as const;
+const detailTabs = [
+  { id: "manseryeok", label: "만세력" },
+  { id: "oheng", label: "오행" },
+  { id: "singang", label: "신강약" },
+  { id: "daeun", label: "대운" },
+  { id: "hapchung", label: "합충" },
+  { id: "sipsung", label: "십성" },
+  { id: "unsung", label: "12운성" },
+  { id: "sinsal", label: "신살" },
+  { id: "gongmang", label: "공망" },
+];
 
 export default function SajuDetailPage() {
   const data = useLoaderData() as SadamProfileLoaderData;
@@ -42,8 +53,21 @@ export default function SajuDetailPage() {
 
   return (
     <PageShell calculation={calculation} eyebrow="Saju Detail" title="사주 상세 분석">
+      <nav className="sticky top-0 z-10 -mx-1 mt-5 overflow-x-auto rounded-lg border border-white/10 bg-slate-950/85 p-1 backdrop-blur">
+        <div className="flex min-w-max gap-1">
+          {detailTabs.map((tab) => (
+            <a
+              className="rounded-md px-3 py-2 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+              href={`#${tab.id}`}
+              key={tab.id}
+            >
+              {tab.label}
+            </a>
+          ))}
+        </div>
+      </nav>
       <div className="mt-5 space-y-3">
-        <InfoCard title="만세력">
+        <InfoCard id="manseryeok" title="만세력">
           <div className="grid grid-cols-4 gap-2">
             {calculation.hourPillar ? (
               <PillarCard label="시주" gan={calculation.hourPillar.gan} ji={calculation.hourPillar.ji} />
@@ -58,9 +82,11 @@ export default function SajuDetailPage() {
           </div>
         </InfoCard>
 
-        <ElementDistribution distribution={analysis?.oheng_distribution ?? calculation.analysis.ohengDistribution} />
+        <div id="oheng" className="scroll-mt-28">
+          <ElementDistribution distribution={analysis?.oheng_distribution ?? calculation.analysis.ohengDistribution} />
+        </div>
 
-        <InfoCard title="신강약과 용신">
+        <InfoCard id="singang" title="신강약과 용신">
           <MetricRow label="점수" value={`${getText(dayStrength.score, "50")}점`} />
           <MetricRow label="단계" value={getText(dayStrength.level)} />
           <MetricRow label="득령" value={getText(dayStrength.deukryeong)} />
@@ -75,7 +101,7 @@ export default function SajuDetailPage() {
           </div>
         </InfoCard>
 
-        <InfoCard title="대운과 세운">
+        <InfoCard id="daeun" title="대운과 세운">
           <MetricRow label="대운 방향" value={daeun.is_forward ? "순행" : "역행"} />
           <MetricRow label="대운 시작" value={`${getText(daeun.start_age)}세`} />
           <MetricRow label="현재 세운" value={`${getText(currentSeun.year)}년 ${getText(currentSeun.gan)}${getText(currentSeun.ji)}`} />
@@ -89,7 +115,7 @@ export default function SajuDetailPage() {
           </div>
         </InfoCard>
 
-        <InfoCard title="합충">
+        <InfoCard id="hapchung" title="합충">
           <MetricRow label="육합" value={`${getArray(hapchung.jijiYukhaps).length}개`} />
           <MetricRow label="충" value={`${getArray(hapchung.jijiChungs).length}개`} />
           <SimpleBadgeList
@@ -100,7 +126,7 @@ export default function SajuDetailPage() {
           />
         </InfoCard>
 
-        <InfoCard title="십성">
+        <InfoCard id="sipsung" title="십성">
           <MetricRow label="격국" value={getText(gyeokguk.name)} />
           <MetricRow label="월지 정기" value={getText(gyeokguk.month_main_gan)} />
           <MetricRow label="기준 십성" value={getText(gyeokguk.sipsin)} />
@@ -121,7 +147,7 @@ export default function SajuDetailPage() {
           </div>
         </InfoCard>
 
-        <InfoCard title="12운성">
+        <InfoCard id="unsung" title="12운성">
           <div className="grid grid-cols-2 gap-2">
             {twelveUnsung.map((item) => (
               <div className="rounded-md bg-slate-50 p-3 text-sm" key={`${item.pillar}-${item.name}`}>
@@ -132,7 +158,7 @@ export default function SajuDetailPage() {
           </div>
         </InfoCard>
 
-        <InfoCard title="신살과 길성">
+        <InfoCard id="sinsal" title="신살과 길성">
           <MetricRow label="길성" value={`${getText(gilseong.total_good_count, "0")}개`} />
           <MetricRow label="흉성" value={`${getText(gilseong.total_bad_count, "0")}개`} />
           <MetricRow label="원진" value={`${getText(gilseong.wonjinsal_count, "0")}개`} />
@@ -171,7 +197,7 @@ export default function SajuDetailPage() {
           </div>
         </InfoCard>
 
-        <InfoCard title="공망">
+        <InfoCard id="gongmang" title="공망">
           <MetricRow label="일주" value={getText(gongmang.day_gapja)} />
           <MetricRow label="공망 지지" value={getArray(gongmang.gongmang_jijis).map((item) => getText(item)).join(", ")} />
           <MetricRow label="공망 궁성" value={`${getText(gongmang.gongmang_count, "0")}개`} />

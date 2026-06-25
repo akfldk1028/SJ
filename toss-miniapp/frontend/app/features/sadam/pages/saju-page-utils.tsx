@@ -202,14 +202,16 @@ export function ReadonlyJsonCard({
 }
 
 export function InfoCard({
+  id,
   title,
   children,
 }: {
+  id?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 text-slate-950">
+    <section id={id} className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-4 text-slate-950">
       <h3 className="text-sm font-bold">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
