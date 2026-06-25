@@ -81,7 +81,7 @@ export default function PremiumPage() {
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 lg:max-w-5xl">
         <header>
           <p className="text-xs font-semibold uppercase text-white/65">
             Premium Analysis
@@ -89,7 +89,7 @@ export default function PremiumPage() {
           <h1 className="mt-1 text-2xl font-bold">상세 분석권</h1>
         </header>
 
-        <section className="mt-6 overflow-hidden rounded-lg border border-white/10 bg-white/[0.06]">
+        <section className="mt-6 overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
           <div className={identity.colorClass}>
             <ZodiacRevealCard
               elementName={identity.elementName}
@@ -130,7 +130,7 @@ export default function PremiumPage() {
               ))}
             </div>
 
-            <div className="mt-6 space-y-2">
+            <div className="mt-6 grid gap-2 lg:grid-cols-3">
               {premiumProducts.map((product) => (
                 <PremiumProductButton
                   isSelected={product.id === selectedProduct.id}

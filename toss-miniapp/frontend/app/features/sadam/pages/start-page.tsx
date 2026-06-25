@@ -102,7 +102,7 @@ export default function StartPage() {
 
   return (
     <ZodiacElementBackground elementName={currentYearIdentity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 lg:max-w-5xl">
         <header className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-sky-300">
@@ -115,24 +115,25 @@ export default function StartPage() {
           </div>
         </header>
 
-        <section className="mt-6 space-y-3">
-          <ZodiacChatBubble
-            elementName={currentYearIdentity.elementName}
-            emoji={currentYearIdentity.animalEmoji}
-            imageUrl={currentYearIdentity.imageUrl}
-          >
-            <p className="font-semibold">올해의 기운</p>
-            <p className="mt-1 text-lg font-bold">
-              {currentYearIdentity.displayName}
-            </p>
-            <p className="mt-2">
-              본앱 온보딩처럼 이름, 생년월일, 시간, 성별을 받아 간편 일주
-              카드로 보여줄게요.
-            </p>
-          </ZodiacChatBubble>
-        </section>
+        <div className="lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(26rem,1fr)] lg:items-start lg:gap-8">
+          <section className="mt-6 space-y-3 lg:sticky lg:top-6">
+            <ZodiacChatBubble
+              elementName={currentYearIdentity.elementName}
+              emoji={currentYearIdentity.animalEmoji}
+              imageUrl={currentYearIdentity.imageUrl}
+            >
+              <p className="font-semibold">올해의 기운</p>
+              <p className="mt-1 text-lg font-bold">
+                {currentYearIdentity.displayName}
+              </p>
+              <p className="mt-2">
+                본앱 온보딩처럼 이름, 생년월일, 시간, 성별을 받아 간편 일주
+                카드로 보여줄게요.
+              </p>
+            </ZodiacChatBubble>
+          </section>
 
-        <Form className="mt-5" method="post">
+          <Form className="mt-5 lg:mt-6" method="post">
           <ZodiacSpeechPanel
             elementName={currentYearIdentity.elementName}
             emoji={currentYearIdentity.animalEmoji}
@@ -270,9 +271,10 @@ export default function StartPage() {
           </Button>
             </div>
           </ZodiacSpeechPanel>
-        </Form>
+          </Form>
+        </div>
 
-        <p className="mt-4 text-center text-xs leading-5 text-slate-400">
+        <p className="mx-auto mt-4 max-w-md text-center text-xs leading-5 text-slate-400 lg:max-w-xl">
           결과는 자기 이해를 돕는 AI 콘텐츠입니다. 중요한 결정이나 의료,
           법률, 금융 판단을 대신하지 않습니다.
         </p>

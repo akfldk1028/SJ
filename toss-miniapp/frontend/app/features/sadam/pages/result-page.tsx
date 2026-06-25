@@ -69,7 +69,7 @@ export default function ResultPage() {
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 lg:max-w-5xl">
         <header className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase text-white/65">
@@ -90,7 +90,7 @@ export default function ResultPage() {
           </Button>
         </header>
 
-        <section className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm">
+        <section className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
           <div className={identity.colorClass}>
             <ZodiacRevealCard
               elementName={identity.elementName}
@@ -102,7 +102,7 @@ export default function ResultPage() {
             />
           </div>
 
-          <div className="space-y-5 p-5">
+          <div className="space-y-5 p-5 lg:p-6">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-md bg-slate-100 p-3">
                 <p className="text-xs font-semibold text-slate-500">생년월일</p>
@@ -184,7 +184,7 @@ export default function ResultPage() {
           </div>
         </section>
 
-        <div className="mt-5 grid gap-3">
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
           <Button asChild className="h-12 rounded-md bg-white text-slate-950 hover:bg-white/90">
             <Link to={`/saju/chart?${query}`}>사주 차트 보기</Link>
           </Button>

@@ -65,7 +65,7 @@ export function PageShell({
 
   return (
     <ZodiacElementBackground elementName={calculation.identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 text-white lg:max-w-5xl">
         <header className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase text-white/65">{eyebrow}</p>
