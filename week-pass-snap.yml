@@ -1,0 +1,77 @@
+- generic [ref=e1]:
+  - banner "App Store Connect" [ref=e3]:
+    - generic [ref=e4]:
+      - heading "App Store Connect" [level=1] [ref=e20]:
+        - link "App Store Connect" [ref=e21] [cursor=pointer]:
+          - /url: /
+      - navigation "글로벌" [ref=e7]:
+        - list [ref=e23]:
+          - listitem [ref=e24]
+          - listitem [ref=e26]
+          - listitem [ref=e28]
+          - listitem [ref=e30]
+          - listitem [ref=e32]
+      - button "DONGHYEON KIM DONG HYEON KIM|19118507741|1 Account name menu" [ref=e35] [cursor=pointer]:
+        - generic:
+          - generic: DONGHYEON KIM
+          - generic: DONG HYEON KIM|19118507741|1
+          - img [ref=e36]
+  - generic [ref=e41]:
+    - button "앱 메뉴, SaDam - AI Life Companion, 선택됨" [ref=e46] [cursor=pointer]:
+      - generic [ref=e47]:
+        - generic "SaDam - AI Life Companion" [ref=e48]:
+          - img "SaDam - AI Life Companion" [ref=e49]
+        - generic [ref=e50]: SaDam - AI Life Companion
+      - img [ref=e52]
+    - navigation "앱" [ref=e55]:
+      - list [ref=e56]:
+        - listitem [ref=e57]:
+          - link "배포" [ref=e58] [cursor=pointer]:
+            - /url: /apps/6762071463/distribution
+        - listitem [ref=e59]:
+          - link "분석" [ref=e60] [cursor=pointer]:
+            - /url: /apps/6762071463/analytics
+        - listitem [ref=e61]:
+          - link "TestFlight" [ref=e62] [cursor=pointer]:
+            - /url: /teams/02b01583-0bb4-4400-9f97-6056f0680604/apps/6762071463/testflight
+        - listitem [ref=e63]:
+          - link "Xcode Cloud" [ref=e64] [cursor=pointer]:
+            - /url: /teams/02b01583-0bb4-4400-9f97-6056f0680604/apps/6762071463/ci
+  - generic [ref=e67]:
+    - main [ref=e68]:
+      - generic [ref=e75]:
+        - generic [ref=e79]:
+          - link "앱 내 구입" [ref=e83] [cursor=pointer]:
+            - /url: /apps/6762071463/distribution/iaps
+          - generic [ref=e87]
+        - generic [ref=e91]:
+          - generic [ref=e92]
+          - generic [ref=e98]
+    - dialog "앱 내 구입 가격" [ref=e1168]:
+      - document [ref=e1169]:
+        - generic [ref=e1170]:
+          - heading "앱 내 구입 가격" [level=2] [ref=e1171]
+          - generic [ref=e1172]
+          - generic [ref=e1185]
+        - tooltip "가격" [ref=e1191]:
+          - generic [ref=e1193]
+          - menu [ref=e1197]
+  - contentinfo [ref=e10]:
+    - generic [ref=e11]:
+      - list [ref=e219]:
+        - listitem [ref=e220]:
+          - link "App Store Connect" [ref=e221] [cursor=pointer]:
+            - /url: /apps
+      - list [ref=e12]:
+        - listitem [ref=e13]: Copyright © 2026 Apple Inc. 모든 권리 보유. |
+        - listitem [ref=e14]:
+          - link "서비스 약관" [ref=e15] [cursor=pointer]:
+            - /url: /WebObjects/iTunesConnect.woa/wa/termsOfService
+          - text: "|"
+        - listitem [ref=e16]:
+          - link "개인정보 처리방침" [ref=e17] [cursor=pointer]:
+            - /url: https://www.apple.com/legal/privacy
+          - text: "|"
+        - listitem [ref=e18]:
+          - link "문의" [ref=e19] [cursor=pointer]:
+            - /url: /contact-us

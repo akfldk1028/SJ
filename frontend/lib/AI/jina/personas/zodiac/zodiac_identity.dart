@@ -127,10 +127,11 @@ class ZodiacIdentity {
     );
   }
 
-  /// 생년월일로 일주(Day Pillar) 기반 정체성 생성
+  /// 생년월일로 일주(Day Pillar) 기반 정체성 생성 (양력 가정)
   ///
-  /// 년주(fromBirthYear)보다 개인화된 매칭.
-  /// SajuCalculationService._calculateDayPillar() 동일 로직.
+  /// ⚠️ DEPRECATED — 음력/진태양시/자시 보정 없음. 음력 사용자의 일주가 어긋남.
+  /// 정확한 매칭은 `ZodiacResolver.fromProfile(profile)` 사용.
+  @Deprecated('Use ZodiacResolver.fromProfile(profile) — accurate Day Pillar with lunar/solar-time/jasi correction')
   factory ZodiacIdentity.fromBirthDate(DateTime birthDate) {
     // 기준일: 1900-01-01, base index 10 (포스텔러 검증 완료)
     final baseDate = DateTime(1900, 1, 1);

@@ -19,6 +19,7 @@ import '../../core/ai_constants.dart';
 import '../common/prompt_template.dart';
 import '../common/fortune_input_data.dart';
 import '../common/locale_utils.dart';
+import 'monthly_ganji_calculator.dart';
 
 /// 이번달 운세 프롬프트 템플릿
 class MonthlyPrompt extends PromptTemplate {
@@ -56,90 +57,120 @@ class MonthlyPrompt extends PromptTemplate {
   @override
   Duration? get cacheExpiry => CacheExpiry.monthlyFortune;
 
-  /// 월별 간지 계산
-  /// TODO: 연도별 동적 계산으로 변경 (현재 2025-2026년 하드코딩)
-  String get _monthGanji {
-    // 2025년 월별 간지 (을사년)
-    const ganji2025 = {
-      1: '정축(丁丑)',
-      2: '무인(戊寅)',
-      3: '기묘(己卯)',
-      4: '경진(庚辰)',
-      5: '신사(辛巳)',
-      6: '임오(壬午)',
-      7: '계미(癸未)',
-      8: '갑신(甲申)',
-      9: '을유(乙酉)',
-      10: '병술(丙戌)',
-      11: '정해(丁亥)',
-      12: '무자(戊子)',
-    };
+  /// 양력 월(targetMonth)에 해당하는 사주월 간지 (오호둔법 동적 계산)
+  ///
+  /// 양력 → 사주월 매핑:
+  /// - 양력 1월 → 전년도 축월(소한 후)
+  /// - 양력 2월 → 인월(입춘 후)
+  /// - 양력 5월 → 사월(입하 후, 예: 2026 = 계사)
+  /// - 양력 12월 → 자월(대설 후)
+  late final MonthGanji _currentMonthGanji =
+      MonthlyGanjiCalculator.getByGregorianMonth(targetMonth, targetYear);
 
-    // 2026년 월별 간지 (병오년)
-    const ganji2026 = {
-      1: '경인(庚寅)',
-      2: '신묘(辛卯)',
-      3: '임진(壬辰)',
-      4: '계사(癸巳)',
-      5: '갑오(甲午)',
-      6: '을미(乙未)',
-      7: '병신(丙申)',
-      8: '정유(丁酉)',
-      9: '무술(戊戌)',
-      10: '기해(己亥)',
-      11: '경자(庚子)',
-      12: '신축(辛丑)',
-    };
+  /// 월별 간지 표시 (예: "계사(癸巳)")
+  String get _monthGanji => _currentMonthGanji.displayName;
 
-    if (targetYear == 2025) {
-      return ganji2025[targetMonth] ?? '';
-    } else if (targetYear == 2026) {
-      return ganji2026[targetMonth] ?? '';
+  /// 월간 오행 (간지에서 추출, 한자 표기 포함)
+  Map<String, String> get _monthElement => {
+        'stem': _currentMonthGanji.stemHanja,
+        'stemElement': '${_currentMonthGanji.stemElement}(${_stemElementHanja(_currentMonthGanji.stemElement)})',
+        'branch': _currentMonthGanji.branchHanja,
+        'branchElement': '${_currentMonthGanji.branchElement}(${_stemElementHanja(_currentMonthGanji.branchElement)})',
+      };
+
+  static String _stemElementHanja(String ko) => switch (ko) {
+        '목' => '木',
+        '화' => '火',
+        '토' => '土',
+        '금' => '金',
+        '수' => '水',
+        _ => '',
+      };
+
+  /// 12개월 전체 간지 테이블 (프롬프트 주입용)
+  ///
+  /// AI가 11개월의 월주를 환각으로 만들지 않도록 정확한 간지 표 제공.
+  /// 양력 월 1~12 기준 (각 월의 대부분을 차지하는 사주월).
+  String _build12MonthGanjiTable() {
+    final buf = StringBuffer();
+    buf.writeln('| 양력월 | 사주월 | 월주 | 천간(오행) | 지지(오행) |');
+    buf.writeln('|--------|--------|------|----------|----------|');
+    for (int gm = 1; gm <= 12; gm++) {
+      final mg = MonthlyGanjiCalculator.getByGregorianMonth(gm, targetYear);
+      buf.writeln(
+        '| ${gm}월 | ${mg.sajuMonthName} | ${mg.displayName} | ${mg.stemHanja}(${mg.stemElement}) | ${mg.branchHanja}(${mg.branchElement}) |',
+      );
     }
-    return '';
+    return buf.toString();
   }
 
-  /// 월간 오행 (간지에서 추출)
-  Map<String, String> get _monthElement {
-    // 2026년 월별 오행
-    const elements2026 = {
-      1: {'stem': '庚', 'stemElement': '금(金)', 'branch': '寅', 'branchElement': '목(木)'},
-      2: {'stem': '辛', 'stemElement': '금(金)', 'branch': '卯', 'branchElement': '목(木)'},
-      3: {'stem': '壬', 'stemElement': '수(水)', 'branch': '辰', 'branchElement': '토(土)'},
-      4: {'stem': '癸', 'stemElement': '수(水)', 'branch': '巳', 'branchElement': '화(火)'},
-      5: {'stem': '甲', 'stemElement': '목(木)', 'branch': '午', 'branchElement': '화(火)'},
-      6: {'stem': '乙', 'stemElement': '목(木)', 'branch': '未', 'branchElement': '토(土)'},
-      7: {'stem': '丙', 'stemElement': '화(火)', 'branch': '申', 'branchElement': '금(金)'},
-      8: {'stem': '丁', 'stemElement': '화(火)', 'branch': '酉', 'branchElement': '금(金)'},
-      9: {'stem': '戊', 'stemElement': '토(土)', 'branch': '戌', 'branchElement': '토(土)'},
-      10: {'stem': '己', 'stemElement': '토(土)', 'branch': '亥', 'branchElement': '수(水)'},
-      11: {'stem': '庚', 'stemElement': '금(金)', 'branch': '子', 'branchElement': '수(水)'},
-      12: {'stem': '辛', 'stemElement': '금(金)', 'branch': '丑', 'branchElement': '토(土)'},
-    };
+  /// 일간별 십성 치트시트 (오행→십성 매핑)
+  ///
+  /// AI가 자체 추론으로 십성을 뒤집는 오류 방지.
+  /// 예: 정화 일간 → 토(土)는 식상이지 재성 아님 (가장 흔한 실수).
+  /// 양일간(갑/병/무/경/임)과 음일간(을/정/기/신/계) 구분.
+  String _buildSipseongCheatsheet() {
+    final dayGan = inputData.dayGan;
+    if (dayGan == null || dayGan.isEmpty) return '(일간 정보 없음 — 기본 십성 규칙 적용)';
 
-    // 2025년 월별 오행
-    const elements2025 = {
-      1: {'stem': '丁', 'stemElement': '화(火)', 'branch': '丑', 'branchElement': '토(土)'},
-      2: {'stem': '戊', 'stemElement': '토(土)', 'branch': '寅', 'branchElement': '목(木)'},
-      3: {'stem': '己', 'stemElement': '토(土)', 'branch': '卯', 'branchElement': '목(木)'},
-      4: {'stem': '庚', 'stemElement': '금(金)', 'branch': '辰', 'branchElement': '토(土)'},
-      5: {'stem': '辛', 'stemElement': '금(金)', 'branch': '巳', 'branchElement': '화(火)'},
-      6: {'stem': '壬', 'stemElement': '수(水)', 'branch': '午', 'branchElement': '화(火)'},
-      7: {'stem': '癸', 'stemElement': '수(水)', 'branch': '未', 'branchElement': '토(土)'},
-      8: {'stem': '甲', 'stemElement': '목(木)', 'branch': '申', 'branchElement': '금(金)'},
-      9: {'stem': '乙', 'stemElement': '목(木)', 'branch': '酉', 'branchElement': '금(金)'},
-      10: {'stem': '丙', 'stemElement': '화(火)', 'branch': '戌', 'branchElement': '토(土)'},
-      11: {'stem': '丁', 'stemElement': '화(火)', 'branch': '亥', 'branchElement': '수(水)'},
-      12: {'stem': '戊', 'stemElement': '토(土)', 'branch': '子', 'branchElement': '수(水)'},
+    // 오행 매핑 (한글·한자 둘 다 — inputData.dayGan은 한자로 옴)
+    const ganElement = {
+      '갑': '목', '을': '목', '병': '화', '정': '화', '무': '토',
+      '기': '토', '경': '금', '신': '금', '임': '수', '계': '수',
+      '甲': '목', '乙': '목', '丙': '화', '丁': '화', '戊': '토',
+      '己': '토', '庚': '금', '辛': '금', '壬': '수', '癸': '수',
     };
+    const yangGan = {'갑', '병', '무', '경', '임', '甲', '丙', '戊', '庚', '壬'};
+    final dayElement = ganElement[dayGan];
+    if (dayElement == null) return '(일간 $dayGan 인식 불가)';
+    final dayIsYang = yangGan.contains(dayGan);
 
-    if (targetYear == 2025) {
-      return elements2025[targetMonth] ?? {};
-    } else if (targetYear == 2026) {
-      return elements2026[targetMonth] ?? {};
-    }
-    return {};
+    // 정화 기준: 화=비겁/토=식상/금=재성/수=관성/목=인성
+    // 일반화: 같은 오행=비겁, 일간이 생하는 오행=식상, 일간이 극하는 오행=재성,
+    //        일간을 극하는 오행=관성, 일간을 생하는 오행=인성
+    const generates = {'목': '화', '화': '토', '토': '금', '금': '수', '수': '목'}; // 일간이 생하는 것
+    const overcomes = {'목': '토', '화': '금', '토': '수', '금': '목', '수': '화'}; // 일간이 극하는 것
+    const overcomeBy = {'목': '금', '화': '수', '토': '목', '금': '화', '수': '토'}; // 일간을 극하는 것
+    const generatedBy = {'목': '수', '화': '목', '토': '화', '금': '토', '수': '금'}; // 일간을 생하는 것
+
+    final bigeob = dayElement; // 비겁
+    final sigsang = generates[dayElement]!; // 식상
+    final jaesong = overcomes[dayElement]!; // 재성
+    final gwansong = overcomeBy[dayElement]!; // 관성
+    final insong = generatedBy[dayElement]!; // 인성
+
+    // 양/음 짝
+    String pair(String el) => switch (el) {
+          '목' => dayIsYang ? '갑(편)/을(정)' : '을(편)/갑(정)',
+          '화' => dayIsYang ? '병(편)/정(정)' : '정(편)/병(정)',
+          '토' => dayIsYang ? '무(편)/기(정)' : '기(편)/무(정)',
+          '금' => dayIsYang ? '경(편)/신(정)' : '신(편)/경(정)',
+          '수' => dayIsYang ? '임(편)/계(정)' : '계(편)/임(정)',
+          _ => '',
+        };
+
+    final buf = StringBuffer();
+    buf.writeln('일간 **$dayGan($dayElement)** 기준:');
+    buf.writeln('| 오행 | 십성 | 천간 (편/정) |');
+    buf.writeln('|------|------|--------------|');
+    buf.writeln('| **$bigeob(${_oh(bigeob)})** | **비겁** (비견·겁재) | ${pair(bigeob)} |');
+    buf.writeln('| **$sigsang(${_oh(sigsang)})** | **식상** (식신·상관) | ${pair(sigsang)} |');
+    buf.writeln('| **$jaesong(${_oh(jaesong)})** | **재성** (정재·편재) | ${pair(jaesong)} |');
+    buf.writeln('| **$gwansong(${_oh(gwansong)})** | **관성** (정관·편관) | ${pair(gwansong)} |');
+    buf.writeln('| **$insong(${_oh(insong)})** | **인성** (정인·편인) | ${pair(insong)} |');
+    buf.writeln('');
+    buf.writeln('⚠️ 자주 틀리는 사례 ($dayGan 일간):');
+    buf.writeln('- $sigsang 오행 = **식상** (※ 재성 아님!)');
+    buf.writeln('- $bigeob 오행 = **비겁** (※ 식상 아님!)');
+    buf.writeln('- $jaesong 오행 = **재성** (※ 식상 아님!)');
+    return buf.toString();
   }
+
+  /// 오행 한자 표기
+  static String _oh(String ko) => switch (ko) {
+        '목' => '木', '화' => '火', '토' => '土',
+        '금' => '金', '수' => '水', _ => '',
+      };
 
   /// 성별 문자열 (locale-aware)
   String get _genderString =>
@@ -530,9 +561,33 @@ ${inputData.sinsalInfo}
 ## 평생 사주 분석 (saju_base)
 ${_formatSajuBase()}
 
+## ⚠️ ${targetYear}년 12개월 월주(月柱) 정확 표 — 절대 추측 금지! ⚠️
+
+아래 표는 오호둔법(五虎遁)으로 정확히 계산된 ${targetYear}년 12개월 월주입니다.
+**month1~month12를 작성할 때 반드시 이 표의 월주/오행을 그대로 사용하세요.**
+**임의로 다른 간지를 만들지 마세요. 인덱스를 한 칸씩 옮기지도 마세요.**
+
+${_build12MonthGanjiTable()}
+
+(절기 기준: 양력 N월의 대부분 일자가 속한 사주월의 월주를 표기. 절기 일자 ±1일 오차 가능)
+
+## ⚠️ 일간 ${inputData.dayGan ?? '?'} 십성 치트시트 — 절대 추측 금지
+
+이 표의 매핑만 사용하세요. **자체 추론으로 십성을 만들지 마세요** — 가장 흔한 오류는 "토(土)→재성", "비겁→식상" 같은 방향 뒤집기입니다.
+
+${_buildSipseongCheatsheet()}
+
+## 글의 결 (반드시 이 호흡으로)
+
+사주 8글자 하나하나가 어떻게 만나고 부딪히는지, 그 결을 시처럼 깊고 충분히 풀어내세요. 일간이 월주를 만나는 순간 — 십성, 합충, 대운이 빚어내는 흐름을 한 사람의 삶에 비추듯 쓰세요. 짧은 답이나 두루뭉술한 격언은 피하고, 위에 주어진 12개월 월주 표와 사주 8글자에서 직접 읽어낸 단서를 자연스레 본문 안에 녹여주세요.
+
+**분량 (필수 — 광고 해금 가치 보장)**: overview.reading 은 **15문장 이상**, 각 month1~12 의 reading 은 **12문장 이상** (권장 13~15문장)으로 충분히 깊게 풀어주세요. 사용자가 광고를 보고 해금하는 콘텐츠이므로 짧은 답변은 약속을 어기는 것입니다. 한 달의 결을 한 편의 산문처럼 — 사주 8글자→월주가 만나는 장면→일간과 월천간/월지의 십성 작용→직장·재물·관계·건강 흐름→그 달의 행동 지침 순으로 차례로 짚어 주세요. 한 문장에 한 가지만 담고, 단순 나열이 아닌 인과 관계를 담아주세요. highlights의 career/wealth/love 도 각 **2문장 이상** (권장 3문장)으로 구체적인 행동/시기/원인을 담으세요.
+
+**언어 순도**: 모든 본문은 자연스러운 한국어로 쓰세요. 천간/지지/십성 같은 명리 용어는 "정화(丁火)"처럼 한글(한자) 형식으로 한 번씩만 표기하고, **한자가 한글 없이 본문에 단독으로 노출되면 안 됩니다** (예: "湿气", "根通" 같이 한자만 단독 노출 금지 → "습기", "통한다" 등 한국어로). "伴侣/热烈/繁重/查漏补缺/到来/困境/极致/繁忙/紧张/湿气/根通/政金/精金" 같은 중국어 간체·번체 단어를 절대 섞지 마세요 — 모두 자연스러운 한국어 단어로 풀어쓰세요(伴侣→배우자, 困境→어려움, 极致→절정, 繁忙→바쁨, 湿气→습기, 政金→경금/신금). **영어 단어(romantical, dramatic 등)도 본문에 섞지 말고 한국어로 풀어쓰세요**(romantical→낭만적, dramatic→극적).
+
 ## 분석 요청
 
-위 원국 정보와 **"이번달과 나의 오행 결합 분석"**을 바탕으로 ${targetYear}년 ${targetMonth}월 운세를 분석해주세요.
+위 원국 정보와 **"이번달과 나의 오행 결합 분석"** + **"12개월 월주 정확 표"**를 바탕으로 ${targetYear}년 ${targetMonth}월 운세를 분석해주세요.
 
 **⭐ 핵심: 일간(${inputData.dayGan ?? '?'}) + 월운(${_monthElement['branchElement'] ?? '?'}) = ${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'} 관계를 중심으로!**
 
@@ -699,9 +754,27 @@ ${inputData.sinsalInfo}
 ## 一生の四柱分析 (saju_base)
 ${_formatSajuBase()}
 
+## ⚠️ ${targetYear}年 12ヶ月の月柱 正確表 — 絶対に推測禁止！ ⚠️
+
+以下の表は五虎遁法で正確に計算された${targetYear}年12ヶ月の月柱です。
+**month1〜month12を作成する際、必ずこの表の月柱/五行をそのまま使用してください。**
+**勝手に別の干支を作らないでください。インデックスを一つずらすこともしないでください。**
+
+${_build12MonthGanjiTable()}
+
+(節気基準: 太陽暦N月の大部分の日付が属する四柱月の月柱を表記。節気日付±1日の誤差あり)
+
+## 文の流れ (必ずこの呼吸で)
+
+四柱八字の一字一字がどのように出会い、ぶつかるのか、その紋様を詩のように深く十分に解き明かしてください。日干が月柱と出会う瞬間 — 十神、合冲、大運が織りなす流れを一人の人生に映すように書いてください。短い答えや漠然とした格言は避け、上に与えられた12ヶ月の月柱表と命式の八字から直接読み取った手がかりを自然に本文に溶け込ませてください。
+
+**分量 (必須 — 広告解禁の価値保証)**: overview.readingは**15文以上**、各month1~12のreadingは**12文以上**(推奨13~15文)で十分に深く書いてください。ユーザーが広告を見て解禁するコンテンツなので、短い回答は約束違反です。一ヶ月の紋様を一篇の散文のように、八字→月柱の出会い→十神の作用→職業・財運・人間関係・健康→行動指針の順で。highlightsのcareer/wealth/loveも各**2文以上**(推奨3文)で具体的な行動・時期・原因を含めて。
+
+**言語純度**: すべての本文は自然な日本語で書いてください。十神・天干・地支などの命理用語は漢字(かな)形式で一度だけ表記し、中国語(简体)の単語(热烈/繁重/到来等)を絶対に混ぜないでください。
+
 ## 分析リクエスト
 
-上記の命式情報と**「今月と命式の五行結合分析」**をもとに、${targetYear}年${targetMonth}月の月運を分析してください。
+上記の命式情報と**「今月と命式の五行結合分析」**+**「12ヶ月の月柱正確表」**をもとに、${targetYear}年${targetMonth}月の月運を分析してください。
 
 **⭐ 核心: 日干(${inputData.dayGan ?? '?'}) + 月運(${_monthElement['branchElement'] ?? '?'}) = ${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'} の関係を中心に！**
 
@@ -842,9 +915,27 @@ ${inputData.sinsalInfo}
 ## Lifetime BaZi Analysis (saju_base)
 ${_formatSajuBase()}
 
+## ⚠️ Authoritative Monthly Pillar Table for $targetYear — DO NOT GUESS! ⚠️
+
+The table below shows the exact 12-month pillars for $targetYear, calculated using the Wu Hu Dun (Five Tigers Hidden) formula.
+**When writing month1 through month12, you MUST use the exact pillars/elements shown in this table.**
+**Do not invent different stem-branch combinations. Do not shift the index by one position.**
+
+${_build12MonthGanjiTable()}
+
+(Solar term basis: each Gregorian month is mapped to the saju month covering most of its days. Solar term dates may vary by ±1 day.)
+
+## Tone of Writing (breathe like this)
+
+Tease out, line by line, how each of the eight chart characters meets and clashes with the others, weaving the texture into something poetic and full. Capture the moment the Day Master meets the month pillar — let the currents shaped by Ten Gods, combinations, clashes, and luck cycles play out as if mirroring one person's life. Avoid short answers and vague aphorisms. Quietly fold the cues read directly from the 12-month pillar table above and the eight chart characters into the prose.
+
+**Length (required — ad-unlock value guarantee)**: `overview.reading` must contain **at least 15 sentences**; each `month1`–`month12` `reading` must contain **at least 12 sentences** (recommended 13~15). This is content the user unlocks by watching an ad — short answers break that contract. Treat each month as a piece of prose: chart characters → the month-pillar encounter → Ten Gods at work → career, wealth, relationships, health → action guidance, in that flow. Each `highlights.career/wealth/love` must contain **at least 2 sentences** (recommended 3) with concrete actions, timing, and causes.
+
+**Language purity**: Write all body text in natural English. BaZi terms may appear in transliteration with a brief gloss (e.g., "Ding Fire (丁火)") at first mention, but never drop Chinese phrases (热烈, 繁重, 查漏补缺, 到来) into the English sentences.
+
 ## Analysis Request
 
-Based on the birth chart information above and the **"Five Element Combination Analysis with this month"**, please analyze the fortune for Month $targetMonth of $targetYear.
+Based on the birth chart information above, the **"Five Element Combination Analysis with this month"**, and the **"Authoritative Monthly Pillar Table"**, please analyze the fortune for Month $targetMonth of $targetYear.
 
 **⭐ Core Focus: Day Master (${inputData.dayGan ?? '?'}) + Monthly Energy (${_monthElement['branchElement'] ?? '?'}) = ${inputData.getSipseongFor(_extractPureElement(_monthElement['branchElement']) ?? '') ?? '?'} relationship as the central theme!**
 

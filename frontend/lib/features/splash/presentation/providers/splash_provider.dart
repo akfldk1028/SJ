@@ -141,19 +141,19 @@ class Splash extends _$Splash {
         print('[Splash] Pre-fetching for user: $userId');
       }
 
-      // 1.5a. RevenueCat user ID 동기화 (첫 설치 시 $RCAnonymousID → UUID)
-      await PurchaseService.instance.syncUserId();
-
-      // 1.5b. 인증 후 프로필 클라우드 동기화 (인연 프로필 포함)
-      // main.dart에서 호출 시점에는 아직 인증 안 됨 → 여기서 다시 시도
+      // 1.5. 독립적인 3개 작업을 병렬 실행 (각각 자체 에러 처리 있음)
+      //   a) RevenueCat user ID 동기화 (첫 설치 시 $RCAnonymousID → UUID)
+      //   b) 프로필 클라우드 동기화 (인연 프로필 포함)
+      //   c) Supabase에서 Primary 프로필 + 분석 데이터 Pre-fetch
       final repository = ref.read(profileRepositoryProvider);
-      await repository.syncFromCloud();
+      final (_, _, result) = await (
+        PurchaseService.instance.syncUserId(),
+        repository.syncFromCloud(),
+        splashQueries.prefetchPrimaryData(userId),
+      ).wait;
       if (kDebugMode) {
-        print('[Splash] Profile sync from cloud completed');
+        print('[Splash] Parallel pre-fetch completed');
       }
-
-      // 2. Supabase에서 Pre-fetch
-      final result = await splashQueries.prefetchPrimaryData(userId);
 
       switch (result) {
         case QuerySuccess(:final data) when data != null:

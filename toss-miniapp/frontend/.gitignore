@@ -1,0 +1,12 @@
+.env
+!.env.example
+.DS_Store
+.react-router
+build
+node_modules
+*.tsbuildinfo
+.dev.vars
+.dev-server*.log
+.wrangler
+playwright-report
+test-results

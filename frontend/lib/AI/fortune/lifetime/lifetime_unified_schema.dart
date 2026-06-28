@@ -277,9 +277,9 @@ Map<String, dynamic> get _unifiedSchema => {
     'life_cycles': {
       'type': 'object',
       'properties': {
-        'youth': {'type': 'string'},
-        'middle_age': {'type': 'string'},
-        'later_years': {'type': 'string'},
+        'youth': {'type': 'string', 'description': '청년기(0~30대 초반) 인생 흐름 — 최소 10문장. 사주 8글자/대운 흐름과 연관지어 학업·진로·관계·시련과 성장의 결을 구체적 시기로 풀어쓰기.'},
+        'middle_age': {'type': 'string', 'description': '중년기(30대 중반~50대) 인생 흐름 — 최소 10문장. 직업적 성취·가정·재물 축적·전환점과 도전을 깊이 있게.'},
+        'later_years': {'type': 'string', 'description': '후년(60세 이후) 인생 흐름 — 최소 10문장. 지혜의 정리·관계의 결실·건강·유산을 풀어쓰기.'},
         'key_years': {'type': 'array', 'items': {'type': 'string'}},
       },
       'required': ['youth', 'middle_age', 'later_years', 'key_years'],

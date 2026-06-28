@@ -20,6 +20,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../AI/jina/personas/persona_selector.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_image_service.dart';
 import '../../../../AI/jina/personas/zodiac/zodiac_persona_matcher.dart';
+import '../../../../AI/jina/personas/zodiac/zodiac_resolver.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/localized_text.dart';
 import '../../domain/models/chat_persona.dart';
@@ -404,46 +405,47 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
               ],
             ),
           ),
-          // Divider: 수호동물
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                const Text('🐾', style: TextStyle(fontSize: 12)),
-                const SizedBox(width: 6),
-                Text(
-                  'saju_chat.zodiac_section_title'.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: appTheme.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Divider(
-                    color: appTheme.textMuted.withValues(alpha: 0.2),
-                    height: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Row 2: 십이지신 동물
-          SizedBox(
-            height: 80,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+          // Divider + Row 2: 수호동물 (한국어 유저 제외)
+          if (context.locale.languageCode != 'ko') ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: _buildZodiacItems(
-                  context,
-                  selectedId: isZodiacMode ? zodiacPersonaId : null,
-                  isLocked: isPersonaLocked,
+                children: [
+                  const Text('🐾', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'saju_chat.zodiac_section_title'.tr(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: appTheme.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Divider(
+                      color: appTheme.textMuted.withValues(alpha: 0.2),
+                      height: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 80,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildZodiacItems(
+                    context,
+                    selectedId: isZodiacMode ? zodiacPersonaId : null,
+                    isLocked: isPersonaLocked,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -635,12 +637,20 @@ class _PersonaHorizontalSelectorState extends ConsumerState<PersonaHorizontalSel
   }) {
     final appTheme = context.appTheme;
     final allZodiac = PersonaSelector.zodiacPersonas;
-    // 유저 생년 띠 판별
+    // 유저 일주(Day Pillar) 동물 판별 — 음력/진태양시/자시까지 보정
     final profile = ref.read(activeProfileProvider).valueOrNull;
-    final userBirthYear = profile?.birthDate?.year;
-    final userPersonaId = userBirthYear != null
-        ? ZodiacPersonaMatcher.getPersonaIdByBirthYear(userBirthYear)
-        : null;
+    String? userPersonaId;
+    if (profile != null) {
+      try {
+        final identity = ZodiacResolver.fromProfile(
+          profile,
+          localeCode: context.locale.languageCode,
+        );
+        userPersonaId = identity.animalPersonaId;
+      } catch (_) {
+        userPersonaId = null;
+      }
+    }
     final yearPersonaId = ZodiacPersonaMatcher.getCurrentYearPersonaId();
 
     return allZodiac.map((persona) {

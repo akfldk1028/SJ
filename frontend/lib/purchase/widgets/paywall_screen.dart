@@ -64,7 +64,7 @@ class PaywallScreen extends ConsumerWidget {
   };
 
   /// 상품 정렬 순서
-  static const _productOrder = [
+  static List<String> get _productOrder => [
     PurchaseConfig.productDayPass,
     PurchaseConfig.productWeekPass,
     PurchaseConfig.productMonthly,

@@ -17,23 +17,10 @@ export 'core/ai_simple_logger.dart';
 export 'core/base_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// Common - LLM Providers
-// ═══════════════════════════════════════════════════════════════
-export 'common/providers/openai/gpt_provider.dart';
-export 'common/providers/google/gemini_provider.dart';
-// export 'common/providers/anthropic/claude_provider.dart'; // 나중에 추가
-
-// ═══════════════════════════════════════════════════════════════
-// Common - Image Providers
-// ═══════════════════════════════════════════════════════════════
-export 'common/providers/image/dalle_provider.dart';
-export 'common/providers/image/imagen_provider.dart';
-
-// ═══════════════════════════════════════════════════════════════
 // Common - Pipelines
+// (LLM/Image Provider는 Edge Function 경유로 전환되어 데드 코드 제거됨)
 // ═══════════════════════════════════════════════════════════════
 export 'common/pipelines/base_pipeline.dart';
-export 'common/pipelines/saju_pipeline.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // Common - Prompts

@@ -46,6 +46,7 @@ frontend/docs/zodiac_60ganji_transparent
 UI/
 .swarm
 .playwright-mcp
+.mcp.json
 .claude-flow
 docs/01_Team_TODO
 .claude
@@ -75,3 +76,22 @@ docs/contracts/
 applog.txt
 frontend/docs/TODO_global_launch.md
 frontend/assets/images/zodiac
+gemini_spend_this_month.png
+admob_dashboard_0405.png
+gemini_spend_0406.png
+gemini_25_flash_lite_pricing.png
+gemini_pricing.png
+
+# Root 임시 PNG 일괄 (스크린샷, 캡처, 미리보기 — diagrams 등 자산 폴더는 영향 없음)
+/*.png
+
+# Playwright capture screenshots (root)
+asc-*.png
+capture-*.png
+developer-*.png
+current-app-icon.png
+sadamlife-capabilities.png
+version-page-snapshot.yml
+.playwright-mcp/
+portfolio
+docs/본선 진출팀 안내사항_12.jpg

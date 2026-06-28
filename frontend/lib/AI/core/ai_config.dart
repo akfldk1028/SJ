@@ -1,5 +1,3 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 /// AI 서비스 설정
 class AIConfig {
   static AIConfig? _instance;
@@ -7,11 +5,12 @@ class AIConfig {
   AIConfig._();
 
   // ═══════════════════════════════════════════════════════════
-  // API Keys
+  // API Keys (빌드 시 --dart-define-from-file=.env 로 주입)
+  // SECURITY: .env를 assets에 절대 포함 금지. 컴파일 타임 상수로만 박기.
   // ═══════════════════════════════════════════════════════════
-  String get openaiApiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
-  String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
-  String get claudeApiKey => dotenv.env['CLAUDE_API_KEY'] ?? '';
+  String get openaiApiKey => const String.fromEnvironment('OPENAI_API_KEY');
+  String get geminiApiKey => const String.fromEnvironment('GEMINI_API_KEY');
+  String get claudeApiKey => const String.fromEnvironment('CLAUDE_API_KEY');
   String get dalleApiKey => openaiApiKey; // DALL-E uses OpenAI key
   String get imagenApiKey => geminiApiKey; // Imagen uses Google key
 

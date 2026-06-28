@@ -1,10 +1,45 @@
 # iOS App Store 심사 상태 기록
 
 > **담당**: DK
-> **최종 업데이트**: 2026-02-24
-> **상태**: Expedited Review 요청 완료, 응답 대기 중
+> **최종 업데이트**: 2026-06-23
+> **상태**: 새 앱 SaDam Life iOS 1.0 심사 대기 중
 
 ---
+
+## 2026-06-23 새 앱 제출 완료
+
+기존 `com.clickaround.sadam` 4.3(b) 최종 거절 이후, 새 앱으로 재구성한 `SaDam - AI Life Companion`을 Apple 심사에 제출 완료.
+
+| 항목 | 값 |
+|------|-----|
+| 앱 이름 | SaDam - AI Life Companion |
+| App Store ID | 6762071463 |
+| Bundle ID | com.clickaround.sadamlife |
+| 버전 | iOS 앱 1.0 |
+| 빌드 | 0.1.6 (86) |
+| 상태 | 심사 대기 중 |
+| 제출 확인 문구 | 제출 초안(0개), 1개의 항목 제출됨 |
+
+### 오늘 처리한 차단점
+
+- 앱 스크린샷은 정상 업로드됨: iPhone 6.5 디스플레이 `10개 중 10개의 스크린샷`
+- `심사에 추가할 수 없음` 배너 원인은 스크린샷이 아니라 App Privacy 미게시였음
+- `/distribution/privacy`에서 개인정보 답변 최종 `게시`
+- 게시 확인: `DONGHYEON KIM 님이 몇 초 전에 게시함`
+- v1.0 페이지에서 `심사에 추가` 성공
+- 사용자가 최종 `심사를 위해 제출` 클릭
+- 최종 ASC 상태: `iOS 앱 1.0 심사 대기 중`
+
+### 다음 대응
+
+- 지금은 ASC에서 수정하지 말고 심사 결과 대기
+- Apple 문구 기준 심사는 최대 48시간 소요 가능
+- 거절 시 Resolution Center 원문을 먼저 확보
+- 4.3(b) 거절이면 메모리 `apple-review/research_2026_04_26_strategy.md`와 `apple-review/submission_2026_04_26_actions.md` 기준으로 대응
+
+---
+
+## 이전 앱 기록: com.clickaround.sadam
 
 ## 앱 정보
 

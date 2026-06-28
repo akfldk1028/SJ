@@ -25,6 +25,7 @@
 /// final persona = PersonaSelector.defaultPersona;
 /// ```
 
+import '../../../features/profile/domain/entities/saju_profile.dart';
 import 'persona_base.dart';
 import 'persona_registry.dart';
 import 'zodiac/zodiac_persona_matcher.dart';
@@ -120,11 +121,31 @@ class PersonaSelector {
   // 십이지신 (띠 기반 선택)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /// SajuProfile로 일주(Day Pillar) 기반 동물 페르소나 반환
+  ///
+  /// 음력/진태양시/자시 보정 모두 적용. 같은 해 출생자도 일주에 따라 다른 페르소나.
+  /// [profile] 활성 프로필
+  /// [localeCode] 도시 미입력 시 기본값 결정용
+  static PersonaBase getByProfile(
+    SajuProfile profile, {
+    String? localeCode,
+  }) {
+    final id = ZodiacPersonaMatcher.getPersonaIdFromProfile(
+      profile,
+      localeCode: localeCode,
+    );
+    return PersonaRegistry.getByIdOrDefault(id);
+  }
+
   /// 생년으로 띠 동물 페르소나 반환
   ///
+  /// ⚠️ DEPRECATED — 띠(년주) 기반. 음력/진태양시 보정 없음. 같은 해 출생자 모두 동일.
+  /// `getByProfile(profile)` 사용 (일주 기반).
+  ///
   /// [birthYear] 양력 생년 (예: 1996)
-  /// 반환: 해당 띠의 십이지신 페르소나
+  @Deprecated('Use getByProfile(profile) — accurate Day Pillar')
   static PersonaBase getByBirthYear(int birthYear) {
+    // ignore: deprecated_member_use_from_same_package
     final id = ZodiacPersonaMatcher.getPersonaIdByBirthYear(birthYear);
     return PersonaRegistry.getByIdOrDefault(id);
   }

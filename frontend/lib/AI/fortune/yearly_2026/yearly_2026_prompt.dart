@@ -40,7 +40,7 @@ class Yearly2026Prompt extends PromptTemplate {
   String get summaryType => SummaryType.yearlyFortune2026;
 
   @override
-  String get modelName => OpenAIModels.gpt5Mini; // gpt-5-mini (비용 효율적)
+  String get modelName => OpenAIModels.fortuneAnalysis; // v107: qwen3.5-flash (비용 10배 절감 — 다른 fortune과 일관)
 
   @override
   int get maxTokens => 15000; // v5.1: 7개 카테고리 12-15문장 상세 응답용 (증가)
