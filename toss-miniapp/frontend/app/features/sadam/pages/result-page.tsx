@@ -90,7 +90,7 @@ export default function ResultPage() {
           </Button>
         </header>
 
-        <section className="mt-4 overflow-hidden rounded-lg border border-white/15 bg-white/[0.96] shadow-2xl shadow-black/20 lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
+        <section className="mt-4 overflow-hidden rounded-lg border border-white/15 bg-white/[0.96] text-slate-950 shadow-2xl shadow-black/20 lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
           <div className={identity.colorClass}>
             <ZodiacRevealCard
               elementName={identity.elementName}
@@ -118,7 +118,7 @@ export default function ResultPage() {
               </div>
             </div>
 
-            <p className="text-base leading-7">
+            <p className="text-base leading-7 text-slate-700">
               {identity.summary} {identity.modifier}
             </p>
 
@@ -194,7 +194,7 @@ export default function ResultPage() {
               <ArrowRightIcon className="size-4" />
             </Link>
           </Button>
-          <Button asChild className="h-12 rounded-md" variant="outline">
+          <Button asChild className="h-12 rounded-md bg-white text-slate-950 hover:bg-white/90" variant="outline">
             <Link to={`/premium?${query}`}>상세 분석권 보기</Link>
           </Button>
         </div>

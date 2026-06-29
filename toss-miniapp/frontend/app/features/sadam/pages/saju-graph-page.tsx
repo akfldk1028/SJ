@@ -21,6 +21,14 @@ type NodeSpec = {
   element: OhengKey;
 };
 
+const graphFill: Record<OhengKey, string> = {
+  wood: "#10b981",
+  fire: "#ef4444",
+  earth: "#f59e0b",
+  metal: "#71717a",
+  water: "#0ea5e9",
+};
+
 export default function SajuGraphPage() {
   const data = useLoaderData() as SadamProfileLoaderData;
   if (data.error || !data.profile || !data.calculation) return <ErrorState data={data} />;
@@ -35,8 +43,8 @@ export default function SajuGraphPage() {
           <p className="text-lg font-bold">{data.profile.display_name}</p>
           <p className="text-sm text-slate-500">일간을 중심으로 네 기둥의 천간/지지를 펼쳐 봅니다.</p>
         </div>
-        <div className="overflow-x-auto rounded-lg bg-slate-50 ring-1 ring-slate-200">
-          <svg className="h-[520px] min-w-[520px]" viewBox="0 0 520 520" role="img" aria-label="사주 관계 그래프">
+        <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200">
+          <svg className="h-[380px] w-full sm:h-[520px]" viewBox="0 0 520 520" role="img" aria-label="사주 관계 그래프">
             {nodes.filter((node) => node.id !== "root").map((node) => (
               <line
                 key={`${root.id}-${node.id}`}
@@ -68,10 +76,9 @@ export default function SajuGraphPage() {
 }
 
 function GraphNode({ node }: { node: NodeSpec }) {
-  const style = ohengStyle[node.element];
   return (
     <g transform={`translate(${node.x - 46} ${node.y - 30})`}>
-      <rect className={`${style.bg}`} height="60" rx="8" width="92" />
+      <rect fill={graphFill[node.element]} height="60" rx="8" width="92" />
       <text fill="white" fontSize="14" fontWeight="700" textAnchor="middle" x="46" y="25">
         {node.label}
       </text>
