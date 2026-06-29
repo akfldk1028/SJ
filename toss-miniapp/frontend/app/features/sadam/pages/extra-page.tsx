@@ -8,6 +8,7 @@ import {
 } from "../components/zodiac-widgets";
 import { loadSadamProfile, type SadamProfileLoaderData } from "../data/route-loaders";
 import { requestRewardedAd } from "../toss-adapters";
+import { ErrorState } from "./saju-page-utils";
 
 export const meta: MetaFunction = () => {
   return [{ title: "SaDam 추가 질문" }];
@@ -21,21 +22,7 @@ export default function ExtraPage() {
   const [message, setMessage] = useState("");
 
   if (data.error || !data.profile || !data.calculation) {
-    return (
-      <ZodiacElementBackground elementName="화">
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-6 lg:max-w-2xl">
-          <section className="rounded-lg bg-white p-5 text-slate-950">
-            <h1 className="text-xl font-bold">프로필을 불러오지 못했습니다</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {data.error ?? "프로필 정보가 없습니다. 다시 입력해 주세요."}
-            </p>
-            <Button asChild className="mt-5 h-12 w-full rounded-md bg-sky-600 text-white">
-              <Link to="/">다시 입력하기</Link>
-            </Button>
-          </section>
-        </div>
-      </ZodiacElementBackground>
-    );
+    return <ErrorState data={data} />;
   }
 
   const name = data.profile.display_name;

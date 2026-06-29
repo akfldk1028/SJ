@@ -198,7 +198,7 @@ export function ReadonlyJsonCard({
 }) {
   if (value == null) {
     return (
-      <section className="rounded-lg border border-slate-200 bg-white p-4 text-slate-950">
+      <section className="rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
         <h3 className="text-sm font-bold">{title}</h3>
         <p className="mt-2 text-sm text-slate-500">아직 저장된 분석 데이터가 없습니다.</p>
       </section>
@@ -278,21 +278,21 @@ export function ElementDistribution({ distribution }: { distribution: Record<str
   };
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 text-slate-950">
+    <section className="rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
       <div className="mb-3 flex items-center gap-2">
         <CalendarDaysIcon className="size-4 text-sky-600" />
         <h3 className="text-sm font-bold">오행 분포</h3>
       </div>
       <div className="mb-3 grid grid-cols-3 gap-2">
-        <div className="rounded-md bg-slate-100 p-2">
+        <div className="rounded-md bg-slate-100 p-2 ring-1 ring-slate-200">
           <p className="text-[11px] font-semibold text-slate-500">총량</p>
           <p className="mt-1 text-sm font-bold text-slate-950">{total}개</p>
         </div>
-        <div className="rounded-md bg-slate-100 p-2">
+        <div className="rounded-md bg-slate-100 p-2 ring-1 ring-slate-200">
           <p className="text-[11px] font-semibold text-slate-500">강한 오행</p>
           <p className="mt-1 text-sm font-bold text-slate-950">{ohengKorean[strongest.key]}</p>
         </div>
-        <div className="rounded-md bg-slate-100 p-2">
+        <div className="rounded-md bg-slate-100 p-2 ring-1 ring-slate-200">
           <p className="text-[11px] font-semibold text-slate-500">부족 오행</p>
           <p className="mt-1 truncate text-sm font-bold text-slate-950">
             {missing.length > 0 ? missing.map((item) => ohengKorean[item.key]).join(", ") : ohengKorean[weakest.key]}
@@ -321,7 +321,7 @@ export function SimpleBadgeList({ values }: { values: string[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {values.map((value) => (
-        <Badge className="rounded-md bg-slate-100 text-slate-800" key={value}>
+        <Badge className="rounded-md bg-slate-100 text-slate-800 ring-1 ring-slate-200" key={value}>
           {value}
         </Badge>
       ))}

@@ -111,7 +111,7 @@ function FortuneCard({
   active?: boolean;
 }) {
   return (
-    <div className={`min-w-24 rounded-md border p-3 text-center text-sm ${active ? "border-sky-300 bg-sky-50" : "border-slate-200 bg-slate-50"}`}>
+    <div className={`min-w-24 rounded-md border p-3 text-center text-sm shadow-sm ${active ? "border-sky-300 bg-sky-50 ring-1 ring-sky-200" : "border-slate-200 bg-slate-50 ring-1 ring-slate-100"}`}>
       <p className="text-xs font-semibold text-slate-500">{title}</p>
       <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
       <p className="mt-3 text-lg font-bold text-slate-950">{getText(gan)}{getText(ji)}</p>
@@ -148,11 +148,11 @@ export default function SajuDetailPage() {
 
   return (
     <PageShell calculation={calculation} eyebrow="Saju Detail" title="사주 상세 분석">
-      <nav className="sticky top-0 z-10 -mx-1 mt-5 overflow-x-auto rounded-lg border border-white/10 bg-slate-950/85 p-1 backdrop-blur">
+      <nav className="sticky top-0 z-10 -mx-1 mt-5 overflow-x-auto rounded-lg border border-white/15 bg-slate-950/90 p-1 shadow-xl shadow-black/20 backdrop-blur">
         <div className="flex min-w-max gap-1">
           {detailTabs.map((tab) => (
             <a
-              className="rounded-md px-3 py-2 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+              className="rounded-md px-3 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
               href={`#${tab.id}`}
               key={tab.id}
             >
@@ -167,7 +167,7 @@ export default function SajuDetailPage() {
             {calculation.hourPillar ? (
               <PillarCard label="시주" gan={calculation.hourPillar.gan} ji={calculation.hourPillar.ji} />
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-sm text-slate-500">
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-sm font-semibold text-slate-500 ring-1 ring-slate-100">
                 시주 없음
               </div>
             )}
@@ -188,7 +188,7 @@ export default function SajuDetailPage() {
           <MetricRow label="득지" value={getText(dayStrength.deukji)} />
           <MetricRow label="득시" value={getText(dayStrength.deuksi)} />
           <MetricRow label="득세" value={getText(dayStrength.deukse)} />
-          <div className="mt-4 rounded-md bg-slate-50 p-3">
+          <div className="mt-4 rounded-md bg-slate-50 p-3 ring-1 ring-slate-200">
             <MetricRow label="용신" value={getText(yongsin.yongsin)} />
             <MetricRow label="희신" value={getText(yongsin.heesin ?? yongsin.huisin)} />
             <MetricRow label="기신" value={getText(yongsin.gisin)} />
@@ -263,11 +263,11 @@ export default function SajuDetailPage() {
           <MetricRow label="격국" value={getText(gyeokguk.name)} />
           <MetricRow label="월지 정기" value={getText(gyeokguk.month_main_gan)} />
           <MetricRow label="기준 십성" value={getText(gyeokguk.sipsin)} />
-          <div className="mt-3 rounded-md bg-slate-50 p-3">
+          <div className="mt-3 rounded-md bg-slate-50 p-3 ring-1 ring-slate-200">
             <p className="text-xs font-bold text-slate-500">십성 분포</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {sipsinCounts.map((item) => (
-                <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm" key={item.name}>
+                <div className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-100" key={item.name}>
                   <span className="font-semibold text-slate-700">{item.name}</span>
                   <span className="text-slate-500">{item.count}개</span>
                 </div>
@@ -281,7 +281,7 @@ export default function SajuDetailPage() {
               const gan = getRecord(row.gan);
               const jiMain = getRecord(row.ji_main);
               return (
-                <div className="rounded-md bg-slate-50 p-3 text-sm" key={key}>
+                <div className="rounded-md bg-slate-50 p-3 text-sm ring-1 ring-slate-200" key={key}>
                   <p className="font-bold">{getText(row.pillar)}</p>
                   <p className="text-slate-600">천간: {getText(gan?.value)} · {getText(gan?.sipsin)}</p>
                   <p className="text-slate-600">지지 정기: {getText(jiMain?.value)} · {getText(jiMain?.sipsin)}</p>
@@ -294,7 +294,7 @@ export default function SajuDetailPage() {
         <InfoCard id="unsung" title="12운성">
           <div className="grid grid-cols-2 gap-2">
             {twelveUnsung.map((item) => (
-              <div className="rounded-md bg-slate-50 p-3 text-sm" key={`${item.pillar}-${item.name}`}>
+              <div className="rounded-md bg-slate-50 p-3 text-sm ring-1 ring-slate-200" key={`${item.pillar}-${item.name}`}>
                 <p className="font-bold">{getText(item.pillar_name)} · {getText(item.name)}</p>
                 <p className="text-slate-500">강도 {getText(item.strength)} · {getText(item.fortune_type)}</p>
               </div>
@@ -315,7 +315,7 @@ export default function SajuDetailPage() {
               const yearBased = getRecord(item.year_based);
               const dayBased = getRecord(item.day_based);
               return (
-                <div className="rounded-md bg-slate-50 p-3 text-sm" key={`${item.pillar}-${item.jiji}`}>
+                <div className="rounded-md bg-slate-50 p-3 text-sm ring-1 ring-slate-200" key={`${item.pillar}-${item.jiji}`}>
                   <p className="font-bold">{getText(item.pillar_name)} · {getText(item.jiji)}</p>
                   <p className="text-slate-600">연지 기준: {getText(yearBased?.name)}</p>
                   <p className="text-slate-600">일지 기준: {getText(dayBased?.name)}</p>
@@ -332,7 +332,7 @@ export default function SajuDetailPage() {
               if (!row) return null;
               const stems = getArray(row.stems);
               return (
-                <div className="rounded-md bg-slate-50 p-3 text-sm" key={key}>
+                <div className="rounded-md bg-slate-50 p-3 text-sm ring-1 ring-slate-200" key={key}>
                   <p className="font-bold">{getText(row.pillar)} · {getText(row.jiji)}</p>
                   <SimpleBadgeList values={stems.map((stem) => `${getText(stem.type)} ${getText(stem.gan)} ${getText(stem.sipsin)}`)} />
                 </div>
@@ -349,7 +349,7 @@ export default function SajuDetailPage() {
           <div className="mt-3 grid gap-2">
             {gongmangResults.map((item) => (
               <div
-                className={`rounded-md p-3 text-sm ${item.is_gongmang ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-600"}`}
+                className={`rounded-md p-3 text-sm ring-1 ${item.is_gongmang ? "bg-rose-50 text-rose-700 ring-rose-100" : "bg-slate-50 text-slate-600 ring-slate-200"}`}
                 key={`${item.pillar}-${item.jiji}`}
               >
                 <p className="font-bold">{getText(item.pillar_name)} · {getText(item.jiji)}</p>
