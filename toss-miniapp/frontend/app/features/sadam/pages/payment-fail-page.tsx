@@ -23,10 +23,12 @@ export default function PaymentFailPage() {
           <div className="flex size-12 items-center justify-center rounded-lg bg-rose-400/15 text-rose-200">
             <XCircleIcon className="size-6" />
           </div>
-          <h1 className="mt-5 text-2xl font-bold">결제가 완료되지 않았습니다</h1>
+          <h1 className="mt-5 text-2xl font-bold">
+            결제가 완료되지 않았습니다
+          </h1>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            결제창에서 실패 또는 취소 응답이 돌아왔습니다. 다시 시도하거나 다른
-            결제 수단을 선택해 주세요.
+            결제창에서 실패 또는 취소 응답이 돌아왔습니다. 다시 시도하거나
+            다른 결제 수단을 선택해 주세요.
           </p>
 
           <dl className="mt-5 space-y-3 rounded-lg bg-black/25 p-4 text-sm ring-1 ring-white/10">

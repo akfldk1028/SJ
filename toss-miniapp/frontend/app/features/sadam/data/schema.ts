@@ -1,6 +1,9 @@
 export const profilesTable = "saju_profiles";
 export const analysesTable = "saju_analyses";
 export const aiSummariesTable = "ai_summaries";
+export const chatSessionsTable = "chat_sessions";
+export const chatMessagesTable = "chat_messages";
+export const subscriptionsTable = "subscriptions";
 
 export const profileColumns = {
   id: "id",
@@ -80,6 +83,51 @@ export const aiSummaryColumns = {
   updatedAt: "updated_at",
 } as const;
 
+export const chatSessionColumns = {
+  id: "id",
+  profileId: "profile_id",
+  title: "title",
+  chatType: "chat_type",
+  messageCount: "message_count",
+  lastMessagePreview: "last_message_preview",
+  contextSummary: "context_summary",
+  targetProfileId: "target_profile_id",
+  totalTokensUsed: "total_tokens_used",
+  userMessageCount: "user_message_count",
+  assistantMessageCount: "assistant_message_count",
+  chatPersona: "chat_persona",
+  mbtiQuadrant: "mbti_quadrant",
+  locale: "locale",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+} as const;
+
+export const chatMessageColumns = {
+  id: "id",
+  sessionId: "session_id",
+  role: "role",
+  content: "content",
+  suggestedQuestions: "suggested_questions",
+  tokensUsed: "tokens_used",
+  status: "status",
+  createdAt: "created_at",
+} as const;
+
+export const subscriptionColumns = {
+  id: "id",
+  userId: "user_id",
+  productId: "product_id",
+  platform: "platform",
+  status: "status",
+  originalTransactionId: "original_transaction_id",
+  startsAt: "starts_at",
+  expiresAt: "expires_at",
+  isLifetime: "is_lifetime",
+  cancelledAt: "cancelled_at",
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+} as const;
+
 export const profileSelectColumns = `
   id,
   user_id,
@@ -153,6 +201,51 @@ export const aiSummarySelectColumns = `
   is_cached,
   prompt_version,
   locale,
+  created_at,
+  updated_at
+`;
+
+export const chatSessionSelectColumns = `
+  id,
+  profile_id,
+  title,
+  chat_type,
+  message_count,
+  last_message_preview,
+  context_summary,
+  target_profile_id,
+  total_tokens_used,
+  user_message_count,
+  assistant_message_count,
+  chat_persona,
+  mbti_quadrant,
+  locale,
+  created_at,
+  updated_at
+`;
+
+export const chatMessageSelectColumns = `
+  id,
+  session_id,
+  role,
+  content,
+  suggested_questions,
+  tokens_used,
+  status,
+  created_at
+`;
+
+export const subscriptionSelectColumns = `
+  id,
+  user_id,
+  product_id,
+  platform,
+  status,
+  original_transaction_id,
+  starts_at,
+  expires_at,
+  is_lifetime,
+  cancelled_at,
   created_at,
   updated_at
 `;

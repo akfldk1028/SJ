@@ -30,15 +30,27 @@ Port the existing Flutter SaDam logic and screens into `toss-miniapp/frontend` w
 - `eb15301 feat: expand Toss fortune detail section`
 - `5af66bb feat: enrich Toss oheng distribution`
 - `d81fb20 feat: add Toss sipsin distribution summary`
+- `ccb9e1a fix: align Toss saju lunar chart with Flutter`
+- `f43ee82 refactor: polish Toss miniapp route surfaces`
+- `40e2671 fix: refine Toss result and graph visuals`
+- `a81411e refactor: unify Toss route card treatments`
+
+## Current Verified Progress
+
+- `/saju/chart`, `/saju/detail`, `/saju/graph`, `/saju/chat` load from `profileId` through the shared React Router loader.
+- Lunar `1994-11-28` matches the Flutter reference conversion and resolves to day pillar `庚寅`.
+- `/saju/chat` now stores `chat_sessions` and `chat_messages`, calls the Supabase `ai-gemini` Edge Function, and persists assistant replies with suggested questions.
+- Toss premium products use the same `sadam_day_pass`, `sadam_week_pass`, and `sadam_monthly` IDs used by Flutter/RevenueCat and the `ai-gemini` quota bypass.
+- Toss payment success confirms server-side, upserts `subscriptions` with `platform = 'toss'`, and the shared loader reads active premium status back for UI display.
+- `npm run typecheck`, `npm run build`, and Playwright mobile/desktop route checks pass.
 
 ## Next Focus
 
-- AI chat parity:
-  - Flutter `features/saju_chat` providers/repositories/datasources
-  - Supabase `chat_sessions` and `chat_messages`
-  - Edge Function streaming or compatible API call path
-- Toss monetization:
-  - Premium product UI
-  - Toss Payments JS SDK or App-in-Toss payment capability
-  - Payment success/failure routes
-  - Server-side payment confirmation or premium activation path
+- AI chat parity gaps:
+  - Streaming response parity with Flutter, if required by the Toss runtime.
+  - `type=compatibility`, `targetProfileId`, `autoMention`, persona, and context-summary flows from Flutter chat.
+  - Quota/exhausted UI parity around `user_daily_token_usage`.
+- Toss monetization gaps:
+  - Real rewarded-ad capability replacement for the current local simulated adapter.
+  - Full Toss test payment run with valid test keys in the target Toss environment.
+  - Premium gating copy and active-subscription badges on every route that exposes paid content.

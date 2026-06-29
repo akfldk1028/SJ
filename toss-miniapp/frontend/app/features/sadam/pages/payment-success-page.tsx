@@ -62,7 +62,7 @@ export default function PaymentSuccessPage() {
       ? "프리미엄이 적용되었습니다"
       : result.status === "already_confirmed"
         ? "이미 적용된 결제입니다"
-        : "결제 승인을 완료하지 못했습니다";
+        : "결제 승인이 완료되지 못했습니다";
   const description = isSuccess
     ? "토스페이먼츠 결제 승인을 확인했고 Supabase 구독 상태에 프리미엄 이용권을 반영했습니다."
     : getFailureMessage(result);

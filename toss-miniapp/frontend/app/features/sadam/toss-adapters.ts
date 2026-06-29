@@ -25,7 +25,7 @@ export const premiumProducts: PremiumProduct[] = [
     periodLabel: "24시간",
     amount: 1900,
     badge: "가볍게",
-    description: "오늘의 상세 분석과 AI 질문을 바로 열어봅니다.",
+    description: "오늘의 상세 분석과 AI 질문을 바로 이어볼 수 있습니다.",
     features: ["상세 리포트", "AI 채팅", "광고 제거"],
   },
   {

@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, type MetaFunction, useLoaderData } from "react-router";
-import { CheckIcon, CreditCardIcon, LockKeyholeIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CreditCardIcon,
+  LockKeyholeIcon,
+  SparklesIcon,
+} from "lucide-react";
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
 import {
@@ -28,7 +33,7 @@ export const loader = loadSadamProfile;
 
 const premiumItems = [
   "보호신과 오행 상세 리포트",
-  "대운/세운/관계 흐름 분석",
+  "대운, 세운, 관계 흐름 분석",
   "AI 캐릭터 코치와 추가 질문",
 ];
 
@@ -50,6 +55,7 @@ export default function PremiumPage() {
   const selectedProduct =
     premiumProducts.find((product) => product.id === selectedProductId) ??
     premiumProducts[0];
+  const activeSubscription = data.subscription;
 
   const handlePurchase = async () => {
     setStatus("loading");
@@ -65,12 +71,19 @@ export default function PremiumPage() {
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5 sm:px-5 lg:max-w-4xl lg:py-7">
-        <header>
-          <p className="text-xs font-semibold uppercase text-white/65">
-            Premium Analysis
-          </p>
-          <h1 className="mt-1 text-2xl font-bold">상세 분석권</h1>
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5 text-white sm:px-5 lg:max-w-4xl lg:py-7">
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase text-white/65">
+              Premium Analysis
+            </p>
+            <h1 className="mt-1 text-2xl font-bold">상세 분석권</h1>
+          </div>
+          {activeSubscription ? (
+            <Badge className="rounded-md bg-emerald-400/15 text-emerald-100">
+              이용 중
+            </Badge>
+          ) : null}
         </header>
 
         <section className="mt-6 overflow-hidden rounded-lg border border-white/15 bg-white/[0.08] shadow-2xl shadow-black/20 backdrop-blur lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
@@ -88,7 +101,11 @@ export default function PremiumPage() {
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div className="rounded-md bg-white/10 p-2">
-                <LockKeyholeIcon className="size-5" />
+                {activeSubscription ? (
+                  <SparklesIcon className="size-5 text-emerald-200" />
+                ) : (
+                  <LockKeyholeIcon className="size-5" />
+                )}
               </div>
               <Badge className="rounded-md bg-white/10 text-white">
                 Toss Payments
@@ -96,12 +113,28 @@ export default function PremiumPage() {
             </div>
 
             <h2 className="mt-8 text-2xl font-bold">
-              {name}님 전용 AI 분석을 더 깊게 확인하세요
+              {activeSubscription
+                ? "프리미엄이 적용되어 있습니다"
+                : `${name}님 사주를 더 깊게 확인하세요`}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              Flutter 앱의 프리미엄 이용권 구조를 유지하고, 토스 미니앱에서는
-              토스페이먼츠 결제창으로 구매를 진행합니다.
+              Flutter 앱과 같은 이용권 구조를 사용합니다. 토스 미니앱에서는
+              토스페이먼츠 결제 완료 후 Supabase 구독 상태에 반영되어 AI
+              채팅 quota와 프리미엄 기능에 적용됩니다.
             </p>
+
+            {activeSubscription ? (
+              <div className="mt-5 rounded-lg border border-emerald-300/20 bg-emerald-400/10 p-4 text-sm text-emerald-50">
+                <div className="font-semibold">
+                  {getProductName(activeSubscription.product_id)} 활성
+                </div>
+                <div className="mt-1 text-emerald-100/80">
+                  {activeSubscription.expires_at
+                    ? `${formatDateTime(activeSubscription.expires_at)}까지 사용 가능`
+                    : "만료일 없이 사용 가능"}
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-5 space-y-3">
               {premiumItems.map((item) => (
@@ -209,4 +242,16 @@ function PremiumProductButton({
       </div>
     </button>
   );
+}
+
+function getProductName(productId: string) {
+  return premiumProducts.find((product) => product.id === productId)?.name ?? productId;
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(value));
 }
