@@ -180,7 +180,7 @@ export default function StartPage() {
             </label>
 
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <label className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-white/10 text-sm">
+              <label className="block text-sm">
                 <input
                   className="sr-only peer"
                   defaultChecked
@@ -188,16 +188,20 @@ export default function StartPage() {
                   type="radio"
                   value="solar"
                 />
-                <span className="peer-checked:text-sky-200">양력</span>
+                <span className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-slate-950/30 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition peer-checked:border-amber-300/80 peer-checked:bg-amber-300/15 peer-checked:text-amber-50 peer-checked:shadow-[0_0_0_1px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(255,255,255,0.18)]">
+                  양력
+                </span>
               </label>
-              <label className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-white/10 text-sm">
+              <label className="block text-sm">
                 <input
                   className="sr-only peer"
                   name="calendar"
                   type="radio"
                   value="lunar"
                 />
-                <span className="peer-checked:text-sky-200">음력</span>
+                <span className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-slate-950/30 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition peer-checked:border-amber-300/80 peer-checked:bg-amber-300/15 peer-checked:text-amber-50 peer-checked:shadow-[0_0_0_1px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(255,255,255,0.18)]">
+                  음력
+                </span>
               </label>
             </div>
             <label className="mt-3 flex items-center gap-2 text-sm text-slate-100">
@@ -243,7 +247,7 @@ export default function StartPage() {
           <section className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
             <p className="text-sm font-semibold text-slate-100">성별</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <label className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-white/10 text-sm">
+              <label className="block text-sm">
                 <input
                   className="sr-only peer"
                   defaultChecked
@@ -251,16 +255,20 @@ export default function StartPage() {
                   type="radio"
                   value="female"
                 />
-                <span className="peer-checked:text-sky-200">여성</span>
+                <span className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-slate-950/30 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition peer-checked:border-amber-300/80 peer-checked:bg-amber-300/15 peer-checked:text-amber-50 peer-checked:shadow-[0_0_0_1px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(255,255,255,0.18)]">
+                  여성
+                </span>
               </label>
-              <label className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-white/10 text-sm">
+              <label className="block text-sm">
                 <input
                   className="sr-only peer"
                   name="gender"
                   type="radio"
                   value="male"
                 />
-                <span className="peer-checked:text-sky-200">남성</span>
+                <span className="flex h-11 items-center justify-center rounded-md border border-white/10 bg-slate-950/30 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition peer-checked:border-amber-300/80 peer-checked:bg-amber-300/15 peer-checked:text-amber-50 peer-checked:shadow-[0_0_0_1px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(255,255,255,0.18)]">
+                  남성
+                </span>
               </label>
             </div>
           </section>
