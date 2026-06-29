@@ -30,12 +30,12 @@ export default function SajuGraphPage() {
 
   return (
     <PageShell calculation={data.calculation} eyebrow="Saju Graph" title="사주 관계 그래프">
-      <section className="mt-5 rounded-lg border border-white/10 bg-white p-4 text-slate-950">
+      <section className="mt-5 rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-2xl shadow-black/20">
         <div className="mb-4 text-center">
           <p className="text-lg font-bold">{data.profile.display_name}</p>
           <p className="text-sm text-slate-500">일간을 중심으로 네 기둥의 천간/지지를 펼쳐 봅니다.</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg bg-slate-50 ring-1 ring-slate-200">
           <svg className="h-[520px] min-w-[520px]" viewBox="0 0 520 520" role="img" aria-label="사주 관계 그래프">
             {nodes.filter((node) => node.id !== "root").map((node) => (
               <line
@@ -55,7 +55,7 @@ export default function SajuGraphPage() {
         </div>
         <div className="mt-3 grid grid-cols-5 gap-2">
           {(["wood", "fire", "earth", "metal", "water"] as OhengKey[]).map((key) => (
-            <div className="rounded-md bg-slate-100 p-2 text-center text-xs" key={key}>
+            <div className="rounded-md bg-slate-100 p-2 text-center text-xs ring-1 ring-slate-200" key={key}>
               <span className={`mx-auto mb-1 block size-3 rounded-full ${ohengStyle[key].bg}`} />
               {ohengKorean[key]}
             </div>

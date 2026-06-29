@@ -32,7 +32,7 @@ export default function SajuChatPage() {
     <PageShell calculation={data.calculation} eyebrow="Saju Chat" title="AI 사주 상담 시작">
       <ProfileSummary data={data} />
 
-      <section className="mt-5 rounded-lg border border-white/10 bg-white p-4 text-slate-950">
+      <section className="mt-5 rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
         <div className="flex items-center gap-2">
           <MessageCircleIcon className="size-5 text-sky-600" />
           <h2 className="text-lg font-bold">{data.calculation.identity.fullName} 상담 준비</h2>
@@ -42,12 +42,12 @@ export default function SajuChatPage() {
         </p>
       </section>
 
-      <section className="mt-5 rounded-lg border border-white/10 bg-white p-4 text-slate-950">
+      <section className="mt-5 rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
         <h3 className="text-sm font-bold">추천 질문</h3>
         <div className="mt-3 space-y-2">
           {questions.map((question) => (
             <button
-              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-left text-sm leading-5 text-slate-800"
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-left text-sm leading-5 text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50"
               key={question}
               type="button"
             >
@@ -57,7 +57,7 @@ export default function SajuChatPage() {
         </div>
       </section>
 
-      <section className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+      <section className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-xl shadow-black/10">
         <div className="flex flex-wrap gap-2">
           <Badge className="rounded-md bg-white text-amber-900">세션 저장 예정</Badge>
           <Badge className="rounded-md bg-white text-amber-900">AI API 연결 예정</Badge>

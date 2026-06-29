@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { lunarToSolar } from "../../app/features/sadam/chart/lunar-calendar";
 import { cheongan, jiji } from "../../app/features/sadam/personas";
 import { resolveSadamIdentity } from "../../app/features/sadam/saju-calculation";
 
@@ -20,6 +21,25 @@ test("lunar 1994-11-28 resolves to the Flutter reference day pillar", () => {
   });
   expect(calculation.identity.ganji).toBe(`${cheongan[6]}${jiji[2]}`);
   expect(calculation.warnings).toEqual([]);
+});
+
+test("lunar leap month conversion follows the Flutter month index table", () => {
+  expect(lunarToSolar({ year: 1995, month: 8, day: 1 })).toEqual({
+    year: 1995,
+    month: 8,
+    day: 26,
+  });
+  expect(lunarToSolar({ year: 1995, month: 8, day: 1, isLeapMonth: true })).toEqual({
+    year: 1995,
+    month: 9,
+    day: 25,
+  });
+  expect(lunarToSolar({ year: 1995, month: 9, day: 1 })).toEqual({
+    year: 1995,
+    month: 10,
+    day: 24,
+  });
+  expect(lunarToSolar({ year: 1995, month: 7, day: 1, isLeapMonth: true })).toBeNull();
 });
 
 test("start page is responsive and submit path is handled", async ({ page }) => {

@@ -17,9 +17,9 @@ export default function PaymentFailPage() {
     : "";
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-6 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md flex-col justify-center lg:max-w-2xl">
-        <section className="rounded-lg border border-rose-300/20 bg-white/[0.06] p-5">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-800 to-slate-950 px-4 py-5 text-white sm:px-5 lg:py-7">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-md flex-col justify-center lg:max-w-2xl">
+        <section className="rounded-lg border border-rose-300/25 bg-white/[0.08] p-5 shadow-2xl shadow-black/25 backdrop-blur">
           <div className="flex size-12 items-center justify-center rounded-lg bg-rose-400/15 text-rose-200">
             <XCircleIcon className="size-6" />
           </div>
@@ -29,7 +29,7 @@ export default function PaymentFailPage() {
             결제 수단을 선택해 주세요.
           </p>
 
-          <dl className="mt-5 space-y-3 rounded-lg bg-black/20 p-4 text-sm">
+          <dl className="mt-5 space-y-3 rounded-lg bg-black/25 p-4 text-sm ring-1 ring-white/10">
             <PaymentRow label="오류코드" value={code} />
             <PaymentRow label="메시지" value={message} />
             <PaymentRow label="주문번호" value={orderId} />

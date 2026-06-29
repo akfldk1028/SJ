@@ -50,7 +50,7 @@ export default function ExtraPage() {
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 lg:max-w-3xl">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5 sm:px-5 lg:max-w-3xl lg:py-7">
         <header>
           <p className="text-xs font-semibold uppercase text-white/65">
             Reward Question
@@ -67,7 +67,7 @@ export default function ExtraPage() {
             imageUrl={identity.largeImageUrl}
             title={`${name}님의 ${identity.fullName}에게 더 물어볼까요?`}
           >
-            <div className="rounded-lg bg-white/10 p-4">
+            <div className="rounded-lg border border-white/10 bg-white/10 p-4 shadow-lg shadow-black/10">
               <p className="text-sm font-semibold text-white/60">추천 질문</p>
               <p className="mt-2 text-lg font-bold leading-7 text-white">
                 관계에서 어떤 방식으로 마음을 표현하면 좋을까요?
@@ -75,7 +75,7 @@ export default function ExtraPage() {
             </div>
 
             {status === "done" ? (
-              <div className="mt-5 rounded-lg border border-emerald-200/40 bg-emerald-400/10 p-4">
+              <div className="mt-5 rounded-lg border border-emerald-200/40 bg-emerald-400/10 p-4 shadow-lg shadow-black/10">
                 <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
                   <CheckCircle2Icon className="size-4" />
                   광고 리워드 확인

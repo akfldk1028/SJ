@@ -35,7 +35,7 @@ export function ErrorState({ data }: { data: SadamProfileLoaderData }) {
   return (
     <ZodiacElementBackground elementName="earth">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-6 lg:max-w-2xl">
-        <section className="rounded-lg bg-white p-5 text-slate-950">
+        <section className="rounded-lg border border-white/20 bg-white/[0.96] p-5 text-slate-950 shadow-2xl shadow-black/20">
           <h1 className="text-xl font-bold">프로필을 불러오지 못했습니다</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {data.error ?? "프로필 정보가 없습니다. 다시 입력해 주세요."}
@@ -225,8 +225,8 @@ export function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-4 text-slate-950">
-      <h3 className="text-sm font-bold">{title}</h3>
+    <section id={id} className="scroll-mt-28 rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
+      <h3 className="text-sm font-bold tracking-tight">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
   );

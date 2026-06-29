@@ -68,10 +68,10 @@ export default function PaymentSuccessPage() {
     : getFailureMessage(result);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-6 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-md flex-col justify-center lg:max-w-2xl">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-800 to-slate-950 px-4 py-5 text-white sm:px-5 lg:py-7">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-md flex-col justify-center lg:max-w-2xl">
         <section
-          className={`rounded-lg border bg-white/[0.06] p-5 ${
+          className={`rounded-lg border bg-white/[0.08] p-5 shadow-2xl shadow-black/25 backdrop-blur ${
             isSuccess ? "border-emerald-300/20" : "border-rose-300/20"
           }`}
         >
@@ -95,7 +95,7 @@ export default function PaymentSuccessPage() {
             {description}
           </p>
 
-          <dl className="mt-5 space-y-3 rounded-lg bg-black/20 p-4 text-sm">
+          <dl className="mt-5 space-y-3 rounded-lg bg-black/25 p-4 text-sm ring-1 ring-white/10">
             <PaymentRow label="상품" value={result.productId} />
             <PaymentRow
               label="금액"

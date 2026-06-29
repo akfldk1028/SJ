@@ -69,7 +69,7 @@ export default function ResultPage() {
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 lg:max-w-5xl">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5 sm:px-5 lg:max-w-4xl lg:py-7">
         <header className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase text-white/65">
@@ -90,7 +90,7 @@ export default function ResultPage() {
           </Button>
         </header>
 
-        <section className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
+        <section className="mt-4 overflow-hidden rounded-lg border border-white/15 bg-white/[0.96] shadow-2xl shadow-black/20 lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
           <div className={identity.colorClass}>
             <ZodiacRevealCard
               elementName={identity.elementName}
@@ -138,7 +138,7 @@ export default function ResultPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
+            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-sky-800">
                 <MessageCircleIcon className="size-4" />
                 AI 분석 요약
@@ -166,7 +166,7 @@ export default function ResultPage() {
               )}
             </div>
 
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-900">
                 <CalendarDaysIcon className="size-4" />
                 {calculation.calculationLabel}

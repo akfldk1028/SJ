@@ -81,7 +81,7 @@ export default function PremiumPage() {
 
   return (
     <ZodiacElementBackground elementName={identity.elementName}>
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 py-6 lg:max-w-5xl">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5 sm:px-5 lg:max-w-4xl lg:py-7">
         <header>
           <p className="text-xs font-semibold uppercase text-white/65">
             Premium Analysis
@@ -89,7 +89,7 @@ export default function PremiumPage() {
           <h1 className="mt-1 text-2xl font-bold">상세 분석권</h1>
         </header>
 
-        <section className="mt-6 overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
+        <section className="mt-6 overflow-hidden rounded-lg border border-white/15 bg-white/[0.08] shadow-2xl shadow-black/20 backdrop-blur lg:grid lg:grid-cols-[minmax(20rem,0.9fr)_minmax(0,1.1fr)]">
           <div className={identity.colorClass}>
             <ZodiacRevealCard
               elementName={identity.elementName}
@@ -188,7 +188,7 @@ function PremiumProductButton({
   return (
     <button
       aria-pressed={isSelected}
-      className={`w-full rounded-lg border p-4 text-left transition ${
+      className={`w-full rounded-lg border p-4 text-left shadow-lg shadow-black/10 transition ${
         isSelected
           ? "border-blue-300 bg-blue-400/15"
           : "border-white/10 bg-white/[0.04]"
