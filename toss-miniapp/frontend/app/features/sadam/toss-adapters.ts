@@ -104,7 +104,7 @@ export async function requestPremiumPurchase({
       productId: product.id,
     });
 
-    await payment.requestPayment({
+    const request = payment.requestPayment({
       method: "CARD",
       amount: {
         currency: "KRW",
@@ -123,6 +123,8 @@ export async function requestPremiumPurchase({
       },
     });
 
+    await waitForImmediatePaymentError(request);
+
     return {
       ok: true,
       message: "토스페이먼츠 결제창을 열었습니다.",
@@ -135,6 +137,27 @@ export async function requestPremiumPurchase({
           ? error.message
           : "결제창을 여는 중 오류가 발생했습니다.",
     };
+  }
+}
+
+async function waitForImmediatePaymentError(request: Promise<unknown>) {
+  const opened = Symbol("opened");
+  const result = await Promise.race([
+    request.then(
+      () => null,
+      (error) => error instanceof Error ? error : new Error(String(error)),
+    ),
+    new Promise((resolve) => setTimeout(() => resolve(opened), 1500)),
+  ]);
+
+  if (result instanceof Error) {
+    throw result;
+  }
+
+  if (result === opened) {
+    request.catch((error) => {
+      console.error("Toss Payments request failed after opening.", error);
+    });
   }
 }
 
