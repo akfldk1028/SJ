@@ -114,6 +114,7 @@ test("created profile pages render without app errors or horizontal overflow", a
     `/saju/detail?profileId=${profileId}`,
     `/saju/graph?profileId=${profileId}`,
     `/saju/chat?profileId=${profileId}`,
+    `/saju/chat?profileId=${profileId}&type=compatibility&targetProfileId=${profileId}&autoMention=true`,
   ];
 
   for (const route of routes) {
@@ -129,6 +130,20 @@ test("created profile pages render without app errors or horizontal overflow", a
     expect(pageState.hasApplicationError, route).toBe(false);
     expect(pageState.scrollWidth, route).toBeLessThanOrEqual(pageState.clientWidth + 2);
   }
+});
+
+test("chat route preserves Flutter query contract", async ({ page }) => {
+  const profileId = await createProfile(page);
+  await page.goto(
+    `/saju/chat?profileId=${profileId}&type=compatibility&targetProfileId=${profileId}&autoMention=true`,
+  );
+
+  await expect(page.getByText("AI 사주 상담")).toBeVisible();
+  await expect(page.getByText("궁합 상담")).toBeVisible();
+  await expect(page.getByText("자동 멘션")).toBeVisible();
+  await expect(page.locator('input[name="type"]').first()).toHaveValue("compatibility");
+  await expect(page.locator('input[name="targetProfileId"]').first()).toHaveValue(profileId);
+  await expect(page.locator('input[name="autoMention"]').first()).toHaveValue("true");
 });
 
 test("payment failure page fits the viewport", async ({ page }) => {

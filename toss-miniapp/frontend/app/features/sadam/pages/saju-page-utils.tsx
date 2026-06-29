@@ -17,13 +17,14 @@ import {
   ohengKorean,
   type OhengKey,
 } from "../chart/constants";
-import {
-  ZodiacElementBackground,
-} from "../components/zodiac-widgets";
+import { ZodiacElementBackground } from "../components/zodiac-widgets";
 import type { SadamProfileLoaderData } from "../data/route-loaders";
 import type { SajuResolveResult } from "../saju-calculation";
 
-export const ohengStyle: Record<OhengKey, { label: string; bg: string; text: string; border: string }> = {
+export const ohengStyle: Record<
+  OhengKey,
+  { label: string; bg: string; text: string; border: string }
+> = {
   wood: { label: "목", bg: "bg-emerald-500", text: "text-emerald-950", border: "border-emerald-200" },
   fire: { label: "화", bg: "bg-red-500", text: "text-red-950", border: "border-red-200" },
   earth: { label: "토", bg: "bg-amber-500", text: "text-amber-950", border: "border-amber-200" },
@@ -78,7 +79,7 @@ export function PageShell({
               </Link>
             </Button>
             <Button asChild className="size-10 rounded-md bg-white/10 p-0 text-white hover:bg-white/15" variant="ghost">
-              <Link aria-label="홈으로 가기" to="/">
+              <Link aria-label="처음으로 가기" to="/">
                 <HomeIcon className="size-5" />
               </Link>
             </Button>

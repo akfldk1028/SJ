@@ -1,21 +1,21 @@
-import { createClientFromRequest } from "./supabase-server";
-import { getOwnedProfileWithAnalysis, getSajuBaseSummary } from "./queries";
 import {
   getChatMessages,
   getLatestChatSession,
+  resolveChatRouteOptions,
+  buildProfileQuery,
   type ChatMessageRow,
+  type ChatRouteOptions,
   type ChatSessionRow,
 } from "./chat";
-import {
-  getActiveSubscription,
-  type SubscriptionRow,
-} from "./subscriptions";
-import {
-  resolveCalculationFromProfile,
-  type AiSummaryRow,
-  type SajuAnalysisRow,
-  type SajuProfileRow,
+import { resolveCalculationFromProfile } from "./models";
+import type {
+  AiSummaryRow,
+  SajuAnalysisRow,
+  SajuProfileRow,
 } from "./models";
+import { getOwnedProfileWithAnalysis, getSajuBaseSummary } from "./queries";
+import { getActiveSubscription, type SubscriptionRow } from "./subscriptions";
+import { createClientFromRequest } from "./supabase-server";
 
 export type SadamProfileLoaderData =
   | {
@@ -25,6 +25,7 @@ export type SadamProfileLoaderData =
       summary: null;
       chatSession: null;
       chatMessages: [];
+      chatOptions: ChatRouteOptions;
       subscription: null;
       calculation: null;
       query: string;
@@ -36,6 +37,7 @@ export type SadamProfileLoaderData =
       summary: AiSummaryRow | null;
       chatSession: ChatSessionRow | null;
       chatMessages: ChatMessageRow[];
+      chatOptions: ChatRouteOptions;
       subscription: SubscriptionRow | null;
       calculation: ReturnType<typeof resolveCalculationFromProfile>;
       query: string;
@@ -50,15 +52,16 @@ export async function loadSadamProfile({
 }): Promise<SadamProfileLoaderData> {
   const url = new URL(request.url);
   const profileId = url.searchParams.get("profileId");
-  const query = profileId ? `profileId=${encodeURIComponent(profileId)}` : "";
+  const chatOptions = resolveChatRouteOptions(url);
+  const query = buildProfileQuery(profileId, chatOptions);
 
   if (!profileId) {
-    return emptyLoaderData("프로필 정보가 없습니다. 다시 입력해 주세요.", query);
+    return emptyLoaderData("프로필 정보가 없습니다. 다시 입력해 주세요.", query, chatOptions);
   }
 
   const client = createClientFromRequest(request, context.cloudflare.env);
   if (!client) {
-    return emptyLoaderData("로그인 세션이 없습니다. 다시 입력해 주세요.", query);
+    return emptyLoaderData("로그인 세션이 없습니다. 다시 입력해 주세요.", query, chatOptions);
   }
 
   let result: Awaited<ReturnType<typeof getOwnedProfileWithAnalysis>>;
@@ -68,6 +71,7 @@ export async function loadSadamProfile({
     return emptyLoaderData(
       error instanceof Error ? error.message : "프로필을 불러오지 못했습니다.",
       query,
+      chatOptions,
     );
   }
 
@@ -75,6 +79,7 @@ export async function loadSadamProfile({
     return emptyLoaderData(
       "프로필을 찾을 수 없습니다. 다시 입력해 주세요.",
       query,
+      chatOptions,
     );
   }
 
@@ -92,7 +97,7 @@ export async function loadSadamProfile({
   let chatSession: ChatSessionRow | null = null;
   let chatMessages: ChatMessageRow[] = [];
   try {
-    chatSession = await getLatestChatSession(client, result.profile.id);
+    chatSession = await getLatestChatSession(client, result.profile.id, chatOptions);
     if (chatSession) {
       chatMessages = await getChatMessages(client, chatSession.id);
     }
@@ -114,13 +119,18 @@ export async function loadSadamProfile({
     summary,
     chatSession,
     chatMessages,
+    chatOptions,
     subscription,
     calculation: resolveCalculationFromProfile(result.profile),
     query,
   };
 }
 
-function emptyLoaderData(error: string, query: string): SadamProfileLoaderData {
+function emptyLoaderData(
+  error: string,
+  query: string,
+  chatOptions: ChatRouteOptions,
+): SadamProfileLoaderData {
   return {
     error,
     profile: null,
@@ -128,6 +138,7 @@ function emptyLoaderData(error: string, query: string): SadamProfileLoaderData {
     summary: null,
     chatSession: null,
     chatMessages: [],
+    chatOptions,
     subscription: null,
     calculation: null,
     query,

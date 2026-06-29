@@ -10,6 +10,18 @@ import {
 } from "./schema";
 
 export type ChatRole = "user" | "assistant" | "system";
+export type SadamChatType =
+  | "general"
+  | "sajuAnalysis"
+  | "dailyFortune"
+  | "newYearFortune"
+  | "compatibility";
+
+export type ChatRouteOptions = {
+  chatType: SadamChatType;
+  targetProfileId: string | null;
+  autoMention: boolean;
+};
 
 export type ChatSessionRow = {
   id: string;
@@ -54,15 +66,78 @@ type AiGeminiResponse = {
   error?: string;
 };
 
+const validChatTypes = new Set<SadamChatType>([
+  "general",
+  "sajuAnalysis",
+  "dailyFortune",
+  "newYearFortune",
+  "compatibility",
+]);
+
+const chatTypeLabels: Record<SadamChatType, string> = {
+  general: "사주 상담",
+  sajuAnalysis: "사주 분석 상담",
+  dailyFortune: "오늘 운세 상담",
+  newYearFortune: "신년 운세 상담",
+  compatibility: "궁합 상담",
+};
+
+export function resolveChatRouteOptions(url: URL): ChatRouteOptions {
+  const type = url.searchParams.get("type");
+  const chatType = validChatTypes.has(type as SadamChatType)
+    ? (type as SadamChatType)
+    : "general";
+  const targetProfileId = normalizeOptionalId(url.searchParams.get("targetProfileId"));
+
+  return {
+    chatType,
+    targetProfileId,
+    autoMention: url.searchParams.get("autoMention") === "true",
+  };
+}
+
+export function getChatTypeLabel(chatType: SadamChatType) {
+  return chatTypeLabels[chatType] ?? chatTypeLabels.general;
+}
+
+export function buildProfileQuery(
+  profileId: string | null,
+  options?: Partial<ChatRouteOptions>,
+) {
+  const params = new URLSearchParams();
+  if (profileId) params.set("profileId", profileId);
+  if (options?.chatType && options.chatType !== "general") {
+    params.set("type", options.chatType);
+  }
+  if (options?.targetProfileId) {
+    params.set("targetProfileId", options.targetProfileId);
+  }
+  if (options?.autoMention) {
+    params.set("autoMention", "true");
+  }
+  return params.toString();
+}
+
 export async function getLatestChatSession(
   client: SupabaseClient,
   profileId: string,
+  options: ChatRouteOptions = {
+    chatType: "general",
+    targetProfileId: null,
+    autoMention: false,
+  },
 ) {
-  const { data, error } = await client
+  let query = client
     .from(chatSessionsTable)
     .select(chatSessionSelectColumns)
     .eq(chatSessionColumns.profileId, profileId)
-    .eq(chatSessionColumns.chatType, "general")
+    .eq(chatSessionColumns.chatType, options.chatType);
+
+  query = options.targetProfileId
+    ? query.eq(chatSessionColumns.targetProfileId, options.targetProfileId)
+    : query.is(chatSessionColumns.targetProfileId, null);
+
+  const { data, error } = await query
     .order(chatSessionColumns.updatedAt, { ascending: false })
     .limit(1)
     .maybeSingle<ChatSessionRow>();
@@ -74,18 +149,24 @@ export async function getLatestChatSession(
 export async function createChatSession(
   client: SupabaseClient,
   profile: SajuProfileRow,
+  options: ChatRouteOptions,
 ) {
   const now = new Date().toISOString();
+  const label = getChatTypeLabel(options.chatType);
   const { data, error } = await client
     .from(chatSessionsTable)
     .insert({
       id: crypto.randomUUID(),
       profile_id: profile.id,
-      title: `${profile.display_name} 상담`,
-      chat_type: "general",
+      title: `${profile.display_name} ${label}`,
+      chat_type: options.chatType,
       message_count: 0,
       last_message_preview: null,
       context_summary: null,
+      target_profile_id: options.targetProfileId,
+      total_tokens_used: 0,
+      user_message_count: 0,
+      assistant_message_count: 0,
       chat_persona: "basePerson",
       locale: profile.locale || "ko",
       created_at: now,
@@ -101,10 +182,11 @@ export async function createChatSession(
 export async function getOrCreateChatSession(
   client: SupabaseClient,
   profile: SajuProfileRow,
+  options: ChatRouteOptions,
 ) {
-  const existing = await getLatestChatSession(client, profile.id);
+  const existing = await getLatestChatSession(client, profile.id, options);
   if (existing) return existing;
-  return createChatSession(client, profile);
+  return createChatSession(client, profile, options);
 }
 
 export async function getChatMessages(
@@ -147,33 +229,32 @@ export async function createChatMessage(
   return data;
 }
 
-export async function updateChatSessionAfterMessage(
-  client: SupabaseClient,
-  sessionId: string,
-  lastUserMessage: string,
-) {
+export async function updateChatSessionAfterExchange({
+  client,
+  session,
+  lastUserMessage,
+  tokensUsed,
+}: {
+  client: SupabaseClient;
+  session: ChatSessionRow;
+  lastUserMessage: string;
+  tokensUsed: number | null;
+}) {
   await client
     .from(chatSessionsTable)
     .update({
       title:
-        lastUserMessage.length > 30
-          ? `${lastUserMessage.slice(0, 30)}...`
-          : lastUserMessage,
-      last_message_preview:
-        lastUserMessage.length > 50
-          ? `${lastUserMessage.slice(0, 50)}...`
-          : lastUserMessage,
+        session.message_count && session.message_count > 0
+          ? session.title
+          : buildSessionTitle(lastUserMessage),
+      last_message_preview: truncate(lastUserMessage, 50),
+      message_count: (session.message_count ?? 0) + 2,
+      user_message_count: (session.user_message_count ?? 0) + 1,
+      assistant_message_count: (session.assistant_message_count ?? 0) + 1,
+      total_tokens_used: (session.total_tokens_used ?? 0) + (tokensUsed ?? 0),
       updated_at: new Date().toISOString(),
     })
-    .eq(chatSessionColumns.id, sessionId);
-}
-
-function safeJson(value: unknown) {
-  try {
-    return JSON.stringify(value ?? {}, null, 2);
-  } catch {
-    return "{}";
-  }
+    .eq(chatSessionColumns.id, session.id);
 }
 
 function buildSystemPrompt({
@@ -181,27 +262,34 @@ function buildSystemPrompt({
   analysis,
   summary,
   contextSummary,
+  options,
 }: {
   profile: SajuProfileRow;
   analysis: SajuAnalysisRow | null;
   summary?: AiSummaryRow | null;
   contextSummary?: string | null;
+  options: ChatRouteOptions;
 }) {
   const sajuLine = analysis
     ? `년주 ${analysis.year_gan}${analysis.year_ji}, 월주 ${analysis.month_gan}${analysis.month_ji}, 일주 ${analysis.day_gan}${analysis.day_ji}, 시주 ${analysis.hour_gan ?? ""}${analysis.hour_ji ?? ""}`
     : "저장된 만세력 분석 없음";
+  const calendarLabel = profile.is_lunar ? "음력" : "양력";
 
   return [
     "너는 SaDam의 AI 사주 상담사다.",
-    "한국어로 답하고, 단정적 예언 대신 사용자가 이해하고 선택할 수 있는 상담형 설명을 제공한다.",
-    "중요한 의료, 법률, 금융 판단은 전문가 상담을 권한다.",
-    "답변 끝에는 사용자가 바로 누를 수 있는 후속 질문 2~3개를 [SUGGESTED_QUESTIONS] 블록에 줄 단위로 넣는다.",
+    "한국어로 답하고, 사용자가 바로 실행할 수 있는 현실적인 조언을 준다.",
+    "사주는 자기 이해를 돕는 참고 콘텐츠다. 의료, 법률, 금융 판단은 전문가 상담을 권한다.",
+    "답변 끝에는 사용자가 이어서 물어볼 만한 후속 질문 2~3개를 [SUGGESTED_QUESTIONS] 블록에 한 줄씩 넣는다.",
     "",
-    `프로필: ${profile.display_name}, 성별 ${profile.gender}, 생년월일 ${profile.birth_date}, ${profile.is_lunar ? "음력" : "양력"}`,
+    `상담 유형: ${getChatTypeLabel(options.chatType)}`,
+    options.autoMention ? "진입 시 자동 멘션 맥락이 포함된 상담이다." : "",
+    options.targetProfileId ? `대상 프로필 ID: ${options.targetProfileId}` : "",
+    `프로필: ${profile.display_name}, 성별 ${profile.gender}, 생년월일 ${profile.birth_date}, ${calendarLabel}`,
     `사주: ${sajuLine}`,
     `오행 분포: ${safeJson(analysis?.oheng_distribution)}`,
     `용신: ${safeJson(analysis?.yongsin)}`,
     `격국: ${safeJson(analysis?.gyeokguk)}`,
+    `십신: ${safeJson(analysis?.sipsin_info)}`,
     summary?.content ? `AI 평생 분석 요약: ${safeJson(summary.content)}` : "",
     contextSummary ? `이전 대화 요약: ${contextSummary}` : "",
   ]
@@ -234,6 +322,7 @@ export async function requestAiChatAnswer({
   session,
   history,
   message,
+  options,
 }: {
   client: SupabaseClient;
   userId: string;
@@ -243,6 +332,7 @@ export async function requestAiChatAnswer({
   session: ChatSessionRow;
   history: ChatMessageRow[];
   message: string;
+  options: ChatRouteOptions;
 }) {
   const messages = [
     {
@@ -252,6 +342,7 @@ export async function requestAiChatAnswer({
         analysis,
         summary,
         contextSummary: session.context_summary,
+        options,
       }),
     },
     ...history.slice(-20).map((item) => ({
@@ -285,4 +376,25 @@ export async function requestAiChatAnswer({
     suggestedQuestions: parsed.questions,
     tokensUsed: data.usage?.completion_tokens ?? null,
   };
+}
+
+function normalizeOptionalId(value: string | null) {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : null;
+}
+
+function truncate(value: string, length: number) {
+  return value.length > length ? `${value.slice(0, length)}...` : value;
+}
+
+function buildSessionTitle(message: string) {
+  return truncate(message, 30);
+}
+
+function safeJson(value: unknown) {
+  try {
+    return JSON.stringify(value ?? {}, null, 2);
+  } catch {
+    return "{}";
+  }
 }

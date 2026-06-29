@@ -9,6 +9,7 @@ import {
 } from "react-router";
 import {
   BotIcon,
+  HeartHandshakeIcon,
   Loader2Icon,
   MessageCircleIcon,
   SendIcon,
@@ -17,11 +18,14 @@ import {
 import { Badge } from "~/common/components/ui/badge";
 import { Button } from "~/common/components/ui/button";
 import {
+  buildProfileQuery,
   createChatMessage,
   getChatMessages,
+  getChatTypeLabel,
   getOrCreateChatSession,
   requestAiChatAnswer,
-  updateChatSessionAfterMessage,
+  resolveChatRouteOptions,
+  updateChatSessionAfterExchange,
 } from "../data/chat";
 import { getOwnedProfileWithAnalysis, getSajuBaseSummary } from "../data/queries";
 import { loadSadamProfile, type SadamProfileLoaderData } from "../data/route-loaders";
@@ -36,7 +40,7 @@ import {
   SajuNavButtons,
 } from "./saju-page-utils";
 
-export const meta: MetaFunction = () => [{ title: "SaDam 사주 상담" }];
+export const meta: MetaFunction = () => [{ title: "SaDam AI 사주 상담" }];
 export const loader = loadSadamProfile;
 
 type ActionData = {
@@ -44,13 +48,29 @@ type ActionData = {
 };
 
 export async function action({ request, context }: ActionFunctionArgs) {
+  const url = new URL(request.url);
+  const optionsFromUrl = resolveChatRouteOptions(url);
+
   try {
     const formData = await request.formData();
     const message = String(formData.get("message") ?? "").trim();
     const profileId = String(formData.get("profileId") ?? "").trim();
+    const formType = String(formData.get("type") ?? "").trim();
+    const formTargetProfileId = String(formData.get("targetProfileId") ?? "").trim();
+    const formAutoMention = String(formData.get("autoMention") ?? "") === "true";
+    const options = resolveChatRouteOptions(
+      new URL(
+        `/saju/chat?${buildProfileQuery(profileId, {
+          chatType: formType ? (formType as typeof optionsFromUrl.chatType) : optionsFromUrl.chatType,
+          targetProfileId: formTargetProfileId || optionsFromUrl.targetProfileId,
+          autoMention: formAutoMention || optionsFromUrl.autoMention,
+        })}`,
+        url.origin,
+      ),
+    );
 
     if (!profileId) throw new Error("프로필 정보가 없습니다. 처음부터 다시 입력해 주세요.");
-    if (!message) throw new Error("상담할 내용을 입력해 주세요.");
+    if (!message) throw new Error("상담 내용을 입력해 주세요.");
     if (message.length > 600) throw new Error("질문은 600자 이내로 입력해 주세요.");
 
     const env = context.cloudflare.env as CloudflareEnvironment;
@@ -68,7 +88,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const owned = await getOwnedProfileWithAnalysis(client, profileId);
     if (!owned) throw new Error("프로필을 찾을 수 없습니다.");
 
-    const session = await getOrCreateChatSession(client, owned.profile);
+    const session = await getOrCreateChatSession(client, owned.profile, options);
     const history = await getChatMessages(client, session.id, 30);
     const summary = await getSajuBaseSummary(
       client,
@@ -95,6 +115,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       session,
       history,
       message,
+      options,
     });
 
     await createChatMessage(client, {
@@ -106,9 +127,14 @@ export async function action({ request, context }: ActionFunctionArgs) {
       tokens_used: answer.tokensUsed,
       status: "sent",
     });
-    await updateChatSessionAfterMessage(client, session.id, message);
+    await updateChatSessionAfterExchange({
+      client,
+      session,
+      lastUserMessage: message,
+      tokensUsed: answer.tokensUsed,
+    });
 
-    return redirect(`/saju/chat?profileId=${encodeURIComponent(profileId)}`);
+    return redirect(`/saju/chat?${buildProfileQuery(profileId, options)}`);
   } catch (error) {
     return {
       error:
@@ -122,7 +148,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 const fallbackQuestions = [
   "내 사주에서 지금 가장 강한 기운은 뭐야?",
   "올해 조심해야 할 관계 패턴을 알려줘",
-  "일과 돈 흐름에서 먼저 챙길 점은 뭐야?",
+  "일과 돈의 흐름에서 먼저 챙길 점은 뭐야?",
 ];
 
 export default function SajuChatPage() {
@@ -133,6 +159,7 @@ export default function SajuChatPage() {
 
   const isSubmitting = navigation.state === "submitting";
   const messages = data.chatMessages;
+  const chatTypeLabel = getChatTypeLabel(data.chatOptions.chatType);
   const lastAssistant = [...messages].reverse().find((message) => message.role === "assistant");
   const suggestedQuestions =
     lastAssistant?.suggested_questions && lastAssistant.suggested_questions.length > 0
@@ -146,7 +173,11 @@ export default function SajuChatPage() {
       <section className="mt-5 rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <MessageCircleIcon className="size-5 text-sky-600" />
+            {data.chatOptions.chatType === "compatibility" ? (
+              <HeartHandshakeIcon className="size-5 text-rose-600" />
+            ) : (
+              <MessageCircleIcon className="size-5 text-sky-600" />
+            )}
             <h2 className="text-lg font-bold">{data.profile.display_name} 상담방</h2>
           </div>
           <Badge className="rounded-md bg-sky-50 text-sky-700">
@@ -154,8 +185,17 @@ export default function SajuChatPage() {
           </Badge>
         </div>
         <p className="mt-3 text-sm leading-6 text-slate-700">
-          Flutter 본앱처럼 저장된 사주 분석과 대화 히스토리를 바탕으로 AI 상담을 이어갑니다.
+          Flutter 본앱처럼 저장된 사주 분석, 상담 유형, 대화 히스토리를 바탕으로 AI 상담을 이어갑니다.
         </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge className="rounded-md bg-slate-100 text-slate-700">{chatTypeLabel}</Badge>
+          {data.chatOptions.autoMention ? (
+            <Badge className="rounded-md bg-amber-100 text-amber-800">자동 멘션</Badge>
+          ) : null}
+          {data.subscription ? (
+            <Badge className="rounded-md bg-emerald-100 text-emerald-800">프리미엄</Badge>
+          ) : null}
+        </div>
       </section>
 
       <section className="mt-5 min-h-[280px] space-y-3 rounded-lg border border-white/15 bg-slate-950/70 p-4 shadow-xl shadow-black/10">
@@ -211,7 +251,7 @@ export default function SajuChatPage() {
         <div className="mt-3 space-y-2">
           {suggestedQuestions.map((question) => (
             <Form key={question} method="post">
-              <input name="profileId" type="hidden" value={data.profile.id} />
+              <ChatHiddenFields data={data} />
               <input name="message" type="hidden" value={question} />
               <button
                 className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-left text-sm leading-5 text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:opacity-60"
@@ -226,7 +266,7 @@ export default function SajuChatPage() {
       </section>
 
       <Form className="mt-5 rounded-lg border border-white/15 bg-white/[0.96] p-3 shadow-xl shadow-black/10" method="post">
-        <input name="profileId" type="hidden" value={data.profile.id} />
+        <ChatHiddenFields data={data} />
         <label className="sr-only" htmlFor="message">
           상담 질문
         </label>
@@ -257,5 +297,20 @@ export default function SajuChatPage() {
 
       <SajuNavButtons query={data.query} />
     </PageShell>
+  );
+}
+
+function ChatHiddenFields({
+  data,
+}: {
+  data: Extract<SadamProfileLoaderData, { error: null }>;
+}) {
+  return (
+    <>
+      <input name="profileId" type="hidden" value={data.profile.id} />
+      <input name="type" type="hidden" value={data.chatOptions.chatType} />
+      <input name="targetProfileId" type="hidden" value={data.chatOptions.targetProfileId ?? ""} />
+      <input name="autoMention" type="hidden" value={data.chatOptions.autoMention ? "true" : "false"} />
+    </>
   );
 }
