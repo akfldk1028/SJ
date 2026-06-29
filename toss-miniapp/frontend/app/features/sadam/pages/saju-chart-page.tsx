@@ -1,5 +1,5 @@
 import { Link, type MetaFunction, useLoaderData } from "react-router";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, SparklesIcon } from "lucide-react";
 import { Button } from "~/common/components/ui/button";
 import { loadSadamProfile, type SadamProfileLoaderData } from "../data/route-loaders";
 import {
@@ -24,26 +24,32 @@ export default function SajuChartPage() {
     <PageShell calculation={calculation} eyebrow="Saju Chart" title="만세력 사주 차트">
       <ProfileSummary data={data} />
 
-      <section className="mt-5 rounded-lg border border-white/10 bg-white p-4 text-slate-950">
-        <div className="mb-4 text-center">
-          <p className="text-sm font-semibold text-slate-500">사주팔자</p>
-          <p className="mt-1 text-lg font-bold tracking-[0.25em]">
+      <section className="mt-5 overflow-hidden rounded-lg border border-white/15 bg-white/[0.96] text-slate-950 shadow-2xl shadow-black/20">
+        <div className="border-b border-slate-200 bg-slate-950 px-4 py-4 text-center text-white">
+          <div className="flex items-center justify-center gap-2">
+            <SparklesIcon className="size-4 text-amber-300" />
+            <p className="text-sm font-bold">사주팔자</p>
+            <SparklesIcon className="size-4 text-amber-300" />
+          </div>
+          <p className="mt-2 text-base font-bold tracking-[0.22em] text-white/80">
             {calculation.hourPillar ? `${calculation.hourPillar.gan}${calculation.hourPillar.ji} ` : ""}
             {calculation.dayPillar.gan}{calculation.dayPillar.ji} {calculation.monthPillar.gan}{calculation.monthPillar.ji} {calculation.yearPillar.gan}{calculation.yearPillar.ji}
           </p>
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-0 px-3 py-4">
           {calculation.hourPillar ? (
             <PillarCard label="시주" gan={calculation.hourPillar.gan} ji={calculation.hourPillar.ji} />
           ) : (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-center">
-              <p className="text-xs font-semibold text-slate-500">시주</p>
-              <p className="mt-8 text-sm font-bold text-slate-500">시간 모름</p>
+            <div className="mx-1 min-w-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 py-3 text-center">
+              <p className="text-[11px] font-bold text-slate-500">시주</p>
+              <div className="mt-2 flex h-[7.6rem] items-center justify-center rounded-md bg-white text-xs font-bold leading-5 text-slate-500 ring-1 ring-slate-200">
+                시간<br />모름
+              </div>
             </div>
           )}
-          <PillarCard isDayMaster label="일주" gan={calculation.dayPillar.gan} ji={calculation.dayPillar.ji} />
-          <PillarCard label="월주" gan={calculation.monthPillar.gan} ji={calculation.monthPillar.ji} />
-          <PillarCard label="연주" gan={calculation.yearPillar.gan} ji={calculation.yearPillar.ji} />
+          <div className="mx-1"><PillarCard isDayMaster label="일주 · 나" gan={calculation.dayPillar.gan} ji={calculation.dayPillar.ji} /></div>
+          <div className="mx-1"><PillarCard label="월주" gan={calculation.monthPillar.gan} ji={calculation.monthPillar.ji} /></div>
+          <div className="mx-1"><PillarCard label="연주" gan={calculation.yearPillar.gan} ji={calculation.yearPillar.ji} /></div>
         </div>
       </section>
 
@@ -51,8 +57,8 @@ export default function SajuChartPage() {
         <ElementDistribution distribution={data.analysis?.oheng_distribution ?? calculation.analysis.ohengDistribution} />
       </div>
 
-      <section className="mt-5 rounded-lg border border-white/10 bg-white p-4 text-slate-950">
-        <h3 className="text-sm font-bold">나의 일간</h3>
+      <section className="mt-5 rounded-lg border border-white/15 bg-white/[0.96] p-4 text-slate-950 shadow-xl shadow-black/10">
+        <h3 className="text-sm font-bold">나의 일간 · {calculation.dayPillar.gan}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-700">
           {calculation.dayPillar.gan} 일간은 이 차트의 기준점입니다. 상세 분석에서는 이 일간을 기준으로
           십신, 지장간, 신강약, 용신을 해석합니다.

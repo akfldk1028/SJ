@@ -379,6 +379,7 @@ export function resolveCalculationFromProfile(profile: SajuProfileRow) {
     birthTime,
     birthTimeUnknown: profile.birth_time_unknown ?? false,
     calendar: profile.is_lunar ? "lunar" : "solar",
+    isLeapMonth: profile.is_leap_month ?? false,
     birthCity: profile.birth_city,
     useYaJasi: profile.use_ya_jasi ?? true,
     gender: profile.gender,

@@ -1,4 +1,26 @@
 import { expect, type Page, test } from "@playwright/test";
+import { cheongan, jiji } from "../../app/features/sadam/personas";
+import { resolveSadamIdentity } from "../../app/features/sadam/saju-calculation";
+
+test("lunar 1994-11-28 resolves to the Flutter reference day pillar", () => {
+  const calculation = resolveSadamIdentity({
+    birthDate: "19941128",
+    birthTime: "unknown",
+    birthTimeUnknown: true,
+    calendar: "lunar",
+    gender: "male",
+  });
+
+  expect(calculation.correctedDateTime.getFullYear()).toBe(1994);
+  expect(calculation.correctedDateTime.getMonth()).toBe(11);
+  expect(calculation.correctedDateTime.getDate()).toBe(30);
+  expect(calculation.dayPillar).toEqual({
+    gan: cheongan[6],
+    ji: jiji[2],
+  });
+  expect(calculation.identity.ganji).toBe(`${cheongan[6]}${jiji[2]}`);
+  expect(calculation.warnings).toEqual([]);
+});
 
 test("start page is responsive and submit path is handled", async ({ page }) => {
   await page.goto("/");

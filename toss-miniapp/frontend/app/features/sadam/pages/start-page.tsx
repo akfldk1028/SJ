@@ -55,6 +55,7 @@ export async function action({
       birthTime: values.birthTime,
       birthTimeUnknown: values.birthTime === "unknown",
       calendar: values.calendar,
+      isLeapMonth: values.isLeapMonth,
       birthCity: values.birthCity,
       useYaJasi: values.useYaJasi,
       gender: values.gender,

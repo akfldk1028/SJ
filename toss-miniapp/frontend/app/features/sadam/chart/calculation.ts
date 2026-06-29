@@ -2,11 +2,11 @@ import {
   cheongan,
   jiji,
   parseBirthDate,
-  resolveIdentityFromBirthDate,
   resolveIdentityFromGanji,
   type CalendarType,
 } from "../personas";
 import { buildSajuAnalysis } from "./analysis";
+import { lunarToSolar } from "./lunar-calendar";
 import type { DateParts, Pillar, SajuResolveResult } from "./types";
 
 export type SajuResolveInput = {
@@ -14,6 +14,7 @@ export type SajuResolveInput = {
   birthTime?: string | null;
   birthTimeUnknown?: boolean;
   calendar?: CalendarType | string | null;
+  isLeapMonth?: boolean | null;
   birthCity?: string | null;
   useYaJasi?: boolean;
   gender?: "male" | "female" | string | null;
@@ -200,17 +201,30 @@ export function resolveSadamIdentity(input: SajuResolveInput): SajuResolveResult
   const birthTimeUnknown = input.birthTimeUnknown || input.birthTime === "unknown";
   const time = parseBirthTime(input.birthTime);
   const warnings: string[] = [];
+  const isLunarCalendar = input.calendar === "lunar";
 
-  if (input.calendar === "lunar") {
-    warnings.push("음력 변환 테이블은 아직 Flutter 원본 모듈에만 있어 입력일을 양력 기준으로 계산했습니다.");
+  let calculationDateParts = parsed;
+  if (isLunarCalendar) {
+    const solarParts = lunarToSolar({
+      year: parsed.year,
+      month: parsed.month,
+      day: parsed.day,
+      isLeapMonth: input.isLeapMonth ?? false,
+    });
+
+    if (solarParts) {
+      calculationDateParts = { ...solarParts, compact: input.birthDate.replace(/\D/g, "") };
+    } else {
+      warnings.push("지원 범위를 벗어나거나 유효하지 않은 음력 날짜라 입력일을 양력 기준으로 계산했습니다.");
+    }
   }
 
-  const originalDateTime = toDate({ ...parsed, ...time });
+  const originalDateTime = toDate({ ...calculationDateParts, ...time });
   const city = input.birthCity?.trim() || "서울";
   const dstAdjusted = applyDst(originalDateTime);
   const trueSolarTime = applyTrueSolarTime(dstAdjusted, city);
   const correctedDateTime = birthTimeUnknown
-    ? toDate({ ...parsed, hour: 12, minute: 0 })
+    ? toDate({ ...calculationDateParts, hour: 12, minute: 0 })
     : applyJasi(trueSolarTime, input.useYaJasi ?? true);
   const yearPillar = calculateYearPillar(correctedDateTime);
   const monthPillar = calculateMonthPillar(correctedDateTime, yearPillar);
@@ -218,9 +232,7 @@ export function resolveSadamIdentity(input: SajuResolveInput): SajuResolveResult
   const hourPillar = birthTimeUnknown
     ? null
     : calculateHourPillar(correctedDateTime.getHours(), dayPillar);
-  const identity = input.calendar === "lunar"
-    ? resolveIdentityFromBirthDate(input.birthDate)
-    : resolveIdentityFromGanji(dayPillar.gan, dayPillar.ji, "saju-corrected");
+  const identity = resolveIdentityFromGanji(dayPillar.gan, dayPillar.ji, "saju-corrected");
   const chart = { yearPillar, monthPillar, dayPillar, hourPillar };
 
   return {
