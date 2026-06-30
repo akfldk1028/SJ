@@ -100,11 +100,19 @@ test("calendar and gender radio selections show active state", async ({ page }) 
 });
 
 test("created profile pages render without app errors or horizontal overflow", async ({ page }) => {
+  test.setTimeout(90_000);
+
   const profileId = await createProfile(page);
   const safeProfileId = profileId.replace(/[^a-zA-Z0-9_-]/g, "");
   const fakeOrderId = `sadam-sadam_week_pass-${safeProfileId.slice(0, 12)}-fake`;
   const routes = [
     "/",
+    `/splash`,
+    `/onboarding`,
+    `/onboarding/zodiac`,
+    `/menu?profileId=${profileId}`,
+    `/profile/select?profileId=${profileId}`,
+    `/profile/edit?profileId=${profileId}`,
     `/result?profileId=${profileId}`,
     `/extra?profileId=${profileId}`,
     `/premium?profileId=${profileId}`,
@@ -115,6 +123,28 @@ test("created profile pages render without app errors or horizontal overflow", a
     `/saju/graph?profileId=${profileId}`,
     `/saju/chat?profileId=${profileId}`,
     `/saju/chat?profileId=${profileId}&type=compatibility&targetProfileId=${profileId}&autoMention=true`,
+    `/relationships?profileId=${profileId}`,
+    `/relationships/add?profileId=${profileId}`,
+    `/fortune/daily?profileId=${profileId}`,
+    `/fortune/daily/category?profileId=${profileId}`,
+    `/fortune/monthly?profileId=${profileId}`,
+    `/fortune/new-year?profileId=${profileId}`,
+    `/fortune/yearly-2025?profileId=${profileId}`,
+    `/fortune/traditional-saju?profileId=${profileId}`,
+    `/fortune/compatibility?profileId=${profileId}`,
+    `/compatibility/list?profileId=${profileId}`,
+    `/compatibility/detail?profileId=${profileId}`,
+    `/history?profileId=${profileId}`,
+    `/calendar?profileId=${profileId}`,
+    `/settings?profileId=${profileId}`,
+    `/settings/profile?profileId=${profileId}`,
+    `/settings/notification?profileId=${profileId}`,
+    `/settings/terms?profileId=${profileId}`,
+    `/settings/privacy?profileId=${profileId}`,
+    `/settings/disclaimer?profileId=${profileId}`,
+    `/settings/icon-generator?profileId=${profileId}`,
+    `/settings/premium?profileId=${profileId}`,
+    `/settings/subscription?profileId=${profileId}`,
   ];
 
   for (const route of routes) {

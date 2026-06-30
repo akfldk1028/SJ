@@ -4,6 +4,8 @@ export const aiSummariesTable = "ai_summaries";
 export const chatSessionsTable = "chat_sessions";
 export const chatMessagesTable = "chat_messages";
 export const subscriptionsTable = "subscriptions";
+export const profileRelationsTable = "profile_relations";
+export const compatibilityAnalysesTable = "compatibility_analyses";
 
 export const profileColumns = {
   id: "id",
@@ -248,4 +250,25 @@ export const subscriptionSelectColumns = `
   cancelled_at,
   created_at,
   updated_at
+`;
+
+export const profileRelationSelectColumns = `
+  id,
+  user_id,
+  from_profile_id,
+  to_profile_id,
+  relation_type,
+  display_name,
+  memo,
+  is_favorite,
+  sort_order,
+  created_at,
+  updated_at,
+  from_profile_analysis_id,
+  to_profile_analysis_id,
+  analysis_status,
+  analysis_requested_at,
+  compatibility_analysis_id,
+  analysis_completed_at,
+  pair_hapchung
 `;
