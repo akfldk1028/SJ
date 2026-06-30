@@ -108,7 +108,7 @@ export default function PremiumPage() {
                 )}
               </div>
               <Badge className="rounded-md bg-white/10 text-white">
-                Toss Payments
+                Apps in Toss IAP
               </Badge>
             </div>
 

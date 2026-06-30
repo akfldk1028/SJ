@@ -18,7 +18,7 @@ export const loader = loadSadamProfile;
 
 export default function ExtraPage() {
   const data = useLoaderData() as SadamProfileLoaderData;
-  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
   if (data.error || !data.profile || !data.calculation) {
@@ -32,7 +32,7 @@ export default function ExtraPage() {
     setStatus("loading");
     const result = await requestRewardedAd();
     setMessage(result.message);
-    setStatus("done");
+    setStatus(result.ok ? "done" : "error");
   };
 
   return (
@@ -61,7 +61,7 @@ export default function ExtraPage() {
               </p>
             </div>
 
-            {status === "done" ? (
+            {status === "done" || status === "error" ? (
               <div className="mt-5 rounded-lg border border-emerald-200/40 bg-emerald-400/10 p-4 shadow-lg shadow-black/10">
                 <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
                   <CheckCircle2Icon className="size-4" />

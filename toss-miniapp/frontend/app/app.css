@@ -4,6 +4,10 @@
 
 @layer base {
   :root {
+    --ait-safe-top: 0px;
+    --ait-safe-right: 0px;
+    --ait-safe-bottom: 0px;
+    --ait-safe-left: 0px;
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -81,5 +85,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    padding-top: var(--ait-safe-top);
+    padding-right: var(--ait-safe-right);
+    padding-bottom: var(--ait-safe-bottom);
+    padding-left: var(--ait-safe-left);
   }
 }

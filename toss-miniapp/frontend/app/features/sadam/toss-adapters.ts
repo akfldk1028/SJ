@@ -1,6 +1,7 @@
 export type TossActionResult = {
   ok: boolean;
   message: string;
+  orderId?: string;
 };
 
 export type PremiumProductId =
@@ -17,6 +18,8 @@ export type PremiumProduct = {
   description: string;
   features: string[];
 };
+
+type AppsInTossSdk = typeof import("@apps-in-toss/web-framework");
 
 export const premiumProducts: PremiumProduct[] = [
   {
@@ -57,14 +60,180 @@ export function formatKrw(amount: number) {
 }
 
 export async function requestRewardedAd(): Promise<TossActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 450));
+  const sdk = await loadAppsInTossSdk();
+  if (sdk && isFunctionSupported(sdk.loadFullScreenAd) && isFunctionSupported(sdk.showFullScreenAd)) {
+    return requestAppsInTossRewardedAd(sdk);
+  }
+
   return {
-    ok: true,
-    message: "리워드 광고 시청을 완료한 상태로 처리했습니다.",
+    ok: false,
+    message: "리워드 광고는 앱인토스 샌드박스 또는 토스앱 환경에서 테스트해야 합니다.",
   };
 }
 
 export async function requestPremiumPurchase({
+  product,
+  profileId,
+  customerName,
+}: {
+  product: PremiumProduct;
+  profileId: string;
+  customerName: string;
+}): Promise<TossActionResult> {
+  const sdk = await loadAppsInTossSdk();
+  if (sdk) {
+    const result = await requestAppsInTossPurchase(sdk, product);
+    if (result.ok || !shouldFallbackToTossPayments(result.message)) {
+      return result;
+    }
+  }
+
+  return requestTossPaymentsPurchase({ product, profileId, customerName });
+}
+
+export async function getAppsInTossProductIds() {
+  const sdk = await loadAppsInTossSdk();
+  if (!sdk) return [];
+
+  try {
+    const result = await sdk.IAP.getProductItemList();
+    return result.products.map((product) => product.sku);
+  } catch {
+    return [];
+  }
+}
+
+async function requestAppsInTossPurchase(
+  sdk: AppsInTossSdk,
+  product: PremiumProduct,
+): Promise<TossActionResult> {
+  if (!isAppsInTossRuntime()) {
+    return {
+      ok: false,
+      message: "앱인토스 IAP는 토스앱 또는 앱인토스 샌드박스에서만 실행됩니다.",
+    };
+  }
+
+  try {
+    const pending = await sdk.IAP.getPendingOrders().catch(() => null);
+    const pendingOrder = pending?.orders.find((order) => order.sku === product.id);
+    if (pendingOrder) {
+      await sdk.IAP.completeProductGrant({ params: { orderId: pendingOrder.orderId } });
+      return {
+        ok: true,
+        orderId: pendingOrder.orderId,
+        message: "대기 중이던 앱인토스 결제를 복원하고 상품 지급을 완료했습니다.",
+      };
+    }
+
+    return await new Promise<TossActionResult>((resolve) => {
+      let cleanup: (() => void) | null = null;
+      cleanup = sdk.IAP.createOneTimePurchaseOrder({
+        options: {
+          sku: product.id,
+          processProductGrant: async ({ orderId }) => {
+            await sdk.IAP.completeProductGrant({ params: { orderId } });
+            return true;
+          },
+        },
+        onEvent: (event) => {
+          cleanup?.();
+          resolve({
+            ok: true,
+            orderId: event.data.orderId,
+            message: "앱인토스 인앱 결제가 완료되었습니다.",
+          });
+        },
+        onError: (error) => {
+          cleanup?.();
+          resolve({
+            ok: false,
+            message: getErrorMessage(error, "앱인토스 결제 중 오류가 발생했습니다."),
+          });
+        },
+      });
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error, "앱인토스 결제를 시작하지 못했습니다."),
+    };
+  }
+}
+
+async function requestAppsInTossRewardedAd(sdk: AppsInTossSdk): Promise<TossActionResult> {
+  const adGroupId = getRewardedAdGroupId();
+  if (!adGroupId) {
+    return {
+      ok: false,
+      message: "VITE_APPS_IN_TOSS_REWARDED_AD_GROUP_ID가 필요합니다.",
+    };
+  }
+
+  try {
+    await waitForFullScreenAdLoaded(sdk, adGroupId);
+    const reward = await waitForFullScreenAdReward(sdk, adGroupId);
+
+    return reward
+      ? {
+          ok: true,
+          message: "리워드 광고 시청이 완료되었습니다.",
+        }
+      : {
+          ok: false,
+          message: "광고가 종료되었지만 보상 이벤트를 받지 못했습니다.",
+        };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error, "리워드 광고를 실행하지 못했습니다."),
+    };
+  }
+}
+
+function waitForFullScreenAdLoaded(sdk: AppsInTossSdk, adGroupId: string) {
+  return new Promise<void>((resolve, reject) => {
+    let cleanup: (() => void) | null = null;
+    cleanup = sdk.loadFullScreenAd({
+      options: { adGroupId },
+      onEvent: (event) => {
+        if (event.type === "loaded") {
+          cleanup?.();
+          resolve();
+        }
+      },
+      onError: (error) => {
+        cleanup?.();
+        reject(error);
+      },
+    });
+  });
+}
+
+function waitForFullScreenAdReward(sdk: AppsInTossSdk, adGroupId: string) {
+  return new Promise<boolean>((resolve, reject) => {
+    let cleanup: (() => void) | null = null;
+    let rewarded = false;
+    cleanup = sdk.showFullScreenAd({
+      options: { adGroupId },
+      onEvent: (event) => {
+        if (event.type === "userEarnedReward") {
+          rewarded = true;
+        }
+        if (event.type === "dismissed" || event.type === "failedToShow") {
+          cleanup?.();
+          resolve(rewarded);
+        }
+      },
+      onError: (error) => {
+        cleanup?.();
+        reject(error);
+      },
+    });
+  });
+}
+
+async function requestTossPaymentsPurchase({
   product,
   profileId,
   customerName,
@@ -84,7 +253,7 @@ export async function requestPremiumPurchase({
   if (!clientKey) {
     return {
       ok: false,
-      message: "VITE_TOSS_PAYMENTS_CLIENT_KEY 환경변수가 필요합니다.",
+      message: "토스앱 밖에서는 VITE_TOSS_PAYMENTS_CLIENT_KEY가 필요합니다.",
     };
   }
 
@@ -127,15 +296,13 @@ export async function requestPremiumPurchase({
 
     return {
       ok: true,
+      orderId,
       message: "토스페이먼츠 결제창을 열었습니다.",
     };
   } catch (error) {
     return {
       ok: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "결제창을 여는 중 오류가 발생했습니다.",
+      message: getErrorMessage(error, "결제창을 여는 중 오류가 발생했습니다."),
     };
   }
 }
@@ -161,6 +328,33 @@ async function waitForImmediatePaymentError(request: Promise<unknown>) {
   }
 }
 
+async function loadAppsInTossSdk() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return await import("@apps-in-toss/web-framework");
+  } catch {
+    return null;
+  }
+}
+
+function isFunctionSupported(fn: unknown) {
+  try {
+    const supported = (fn as { isSupported?: () => boolean }).isSupported;
+    return typeof fn === "function" && (typeof supported !== "function" || supported());
+  } catch {
+    return false;
+  }
+}
+
+function isAppsInTossRuntime() {
+  return typeof window !== "undefined" && "ReactNativeWebView" in window;
+}
+
+function shouldFallbackToTossPayments(message: string) {
+  return message.includes("토스앱") || message.includes("샌드박스");
+}
+
 function getTossPaymentsClientKey() {
   const env = (
     import.meta as ImportMeta & {
@@ -169,6 +363,16 @@ function getTossPaymentsClientKey() {
   ).env;
   const key = env?.VITE_TOSS_PAYMENTS_CLIENT_KEY;
   return key && key.trim().length > 0 ? key.trim() : null;
+}
+
+function getRewardedAdGroupId() {
+  const env = (
+    import.meta as ImportMeta & {
+      env?: Record<string, string | undefined>;
+    }
+  ).env;
+  const key = env?.VITE_APPS_IN_TOSS_REWARDED_AD_GROUP_ID ?? "ait-ad-test-rewarded-id";
+  return key.trim().length > 0 ? key.trim() : null;
 }
 
 function buildPaymentUrl(pathname: string, params: Record<string, string>) {
@@ -191,4 +395,13 @@ function buildOrderId(productId: PremiumProductId, profileId: string) {
   return `sadam-${productId}-${prefix}-${random}`
     .replace(/[^a-zA-Z0-9_-]/g, "")
     .slice(0, 64);
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.length > 0) return message;
+  }
+  return fallback;
 }

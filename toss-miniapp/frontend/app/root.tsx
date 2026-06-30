@@ -7,6 +7,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import type { Route } from "./+types/root";
+import { AppsInTossSafeArea } from "./features/sadam/components/apps-in-toss-safe-area";
 import stylesheet from "./app.css?url";
 
 export const links: Route.LinksFunction = () => [
@@ -33,6 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <AppsInTossSafeArea />
         <main>{children}</main>
         <ScrollRestoration />
         <Scripts />
